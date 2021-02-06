@@ -9,7 +9,10 @@ publish = false
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = [ "elrond-wasm-node",]
+wasm-output-mode = [ "elrond-wasm-node", "elrond_dex_factory-wasm"]
+
+[dependencies]
+elrond_dex_factory-wasm = { package = "elrond_dex_factory", path="../elrond_dex_factory", features = ["wasm-output-mode"], optional = true }
 
 [dependencies.elrond-wasm]
 version = "0.11.0"
