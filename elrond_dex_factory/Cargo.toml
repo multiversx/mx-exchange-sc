@@ -9,7 +9,7 @@ publish = false
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = [ "elrond-wasm-node",]
+wasm-output-mode = [ "elrond-wasm-node"]
 
 [dependencies.elrond-wasm]
 version = "0.11.0"
