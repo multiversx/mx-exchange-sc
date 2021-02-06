@@ -1,11 +1,15 @@
 #![no_std]
 
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use elrond_wasm::HexCallDataSerializer;
 
-// const ESDT_TRANSFER_STRING: &[u8] = b"ESDTTransfer";
+#[cfg(feature = "elrond_dex_factory-wasm")]
+pub use elrond_dex_factory_wasm as factory;
+
+pub use factory::factory::*;
+
 const PAIR_CONTRACT_ADD_LIQUIDITY: &[u8] = b"acceptEsdtPayment";
 
 #[elrond_wasm_derive::callable(FactoryProxy)]
@@ -25,6 +29,9 @@ pub trait Factory {
 /// it holds a single variable in storage, which anyone can increment.
 #[elrond_wasm_derive::contract(RouteImpl)]
 pub trait Route {
+
+	#[module(FactoryModuleImpl)]
+    fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
 	fn init(&self, factory_address: &Address) {
