@@ -3,14 +3,14 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::HexCallDataSerializer;
+// use elrond_wasm::HexCallDataSerializer;
 
 #[cfg(feature = "elrond_dex_factory-wasm")]
 pub use elrond_dex_factory_wasm as factory;
 
 pub use factory::factory::*;
 
-const PAIR_CONTRACT_ADD_LIQUIDITY: &[u8] = b"acceptEsdtPayment";
+// const PAIR_CONTRACT_ADD_LIQUIDITY: &[u8] = b"acceptEsdtPayment";
 
 #[elrond_wasm_derive::callable(PairProxy)]
 pub trait Pair {
@@ -81,7 +81,13 @@ pub trait Route {
 		require!(token_a_stored > 0, "Insuficient funds A transferred");
 		require!(token_b_stored > 0, "Insuficient funds B transferred");
 
-		let pair_address = self.factory().get_pair(&token_b);
+		let pair_address;
+		if self.factory().is_empty_pair(&token_a, &token_b) {
+			pair_address = self.factory().create_pair(&token_a, &token_b);
+		}
+		else {
+			pair_address = self.factory().get_pair(&token_a, &token_b);
+		}
 
 		let pair_contract = contract_proxy!(self, &pair_address, Pair);
 		pair_contract.get_reserves_endpoint(
@@ -102,7 +108,8 @@ pub trait Route {
 		token_a: TokenIdentifier,
 		token_b: TokenIdentifier) -> SCResult<()> {
 		let caller = self.get_caller();
-		let pair_address = self.factory().get_pair(&token_b);
+		require!(self.factory().is_empty_pair(&token_a, &token_b) == false, "Pair not created");
+		let pair_address = self.factory().get_pair(&token_a, &token_b);
 
 		let pair_contract = contract_proxy!(self, &pair_address, Pair);
 		pair_contract.remove_liquidity(caller, token_a, token_b);
@@ -124,21 +131,21 @@ pub trait Route {
 		(amount_a_desired, amount_b_desired)
 	}
 
-	fn call_esdt_second_contract(
-		&self,
-		esdt_token_name: &TokenIdentifier,
-		amount: &BigUint,
-		to: &Address,
-		func_name: &[u8],
-		args: &[BoxedBytes],
-	) {
-		let mut serializer = HexCallDataSerializer::new(func_name);
-		for arg in args {
-			serializer.push_argument_bytes(arg.as_slice());
-		}
+	// fn call_esdt_second_contract(
+	// 	&self,
+	// 	esdt_token_name: &TokenIdentifier,
+	// 	amount: &BigUint,
+	// 	to: &Address,
+	// 	func_name: &[u8],
+	// 	args: &[BoxedBytes],
+	// ) {
+	// 	let mut serializer = HexCallDataSerializer::new(func_name);
+	// 	for arg in args {
+	// 		serializer.push_argument_bytes(arg.as_slice());
+	// 	}
 
-		// self.send().direct_esdt(&to, esdt_token_name.as_slice(), amount, serializer.as_slice());
-	}
+	// 	self.send().direct_esdt(&to, esdt_token_name.as_slice(), amount, serializer.as_slice());
+	// }
 
 	#[callback]
 	fn get_reserves_callback(&self, result: AsyncCallResult< MultiArg2<BigUint, BigUint> >,
@@ -152,7 +159,7 @@ pub trait Route {
 
 		match result {
 			AsyncCallResult::Ok(result) => {
-				let pair_address = self.factory().get_pair(&token_b);
+				let pair_address = self.factory().get_pair(&token_a, &token_b);
 				let reserves = result.into_tuple();
 				let (amount_a, amount_b) = self._add_liquidity(
 											&token_a,
