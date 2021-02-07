@@ -27,14 +27,45 @@ pub trait Pair {
 
 		let mut provider_liquidity = self.get_provider_liquidity(&caller, &expected_token_name);
 		provider_liquidity += esdt_value;
-		self.set_provider_liquidity(&caller, &expected_token_name, &provider_liquidity);
+	#[endpoint]
+	fn update_liquidity_provider_storage(&self,
+		user_address: Address,
+		actual_token_a: TokenIdentifier,
+		actual_token_b: TokenIdentifier,
+		amount_a: BigUint,
+		amount_b: BigUint) -> SCResult<()> {
+
+		let caller = self.get_caller();
+
+		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+		require!(amount_a > 0 && amount_b > 0, "Invalid tokens amount specified");
+
+		let expected_token_a_name = self.get_token_a_name();
+		let expected_token_b_name = self.get_token_b_name();
+
+		require!(actual_token_a == expected_token_a_name, "Wrong token a identifier");
+		require!(actual_token_b == expected_token_b_name, "Wrong token b identifier");
+
+
+		self._update_provider_liquidity(&user_address, &actual_token_a, amount_a);
+		self._update_provider_liquidity(&user_address, &actual_token_b, amount_b);
+		
 		Ok(())
 	}
 
-	#[endpoint(getReserves)]
-	fn get_reserves() -> (reserve0, reserve1, blockTimestampLast)
-	{
-		// TODO: return
+		Ok(())
+	}
+
+	fn _update_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier, amount: BigUint) {
+		let mut provider_liquidity = self.get_provider_liquidity(user_address, token_identifier);
+		provider_liquidity += amount.clone();
+		self.set_provider_liquidity(user_address, token_identifier, &provider_liquidity);
+
+		let mut reserve = self.get_reserve(&token_identifier);
+		reserve += amount;
+		self.set_reserve(&token_identifier, &reserve);
+		
+
 	}
 
 
@@ -64,8 +95,8 @@ pub trait Pair {
 
 	#[view(providerLiquidity)]
 	#[storage_get("provider_liquidity")]
-	fn get_provider_liquidity(&self, caller: &Address, token_identifier: &TokenIdentifier) -> BigUint;
+	fn get_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier) -> BigUint;
 
 	#[storage_set("provider_liquidity")]
-	fn set_provider_liquidity(&self, caller: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
+	fn set_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
 }
