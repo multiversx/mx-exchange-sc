@@ -1,9 +1,8 @@
 #![no_std]
 
 imports!();
+derive_imports!();
 
-/// One of the simplest smart contracts possible,
-/// it holds a single variable in storage, which anyone can increment.
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
 
@@ -88,6 +87,21 @@ pub trait Pair {
 		Ok(())
 	}
 
+	#[view]
+	fn get_reserves_endpoint(&self) -> SCResult< MultiResult2<BigUint, BigUint> > {
+		let caller = self.get_caller();
+		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+
+		let token_a_name = self.get_token_a_name();
+		let token_b_name = self.get_token_b_name();
+
+		let reserve_a = self.get_reserve(&token_a_name);
+		let reserve_b = self.get_reserve(&token_b_name);
+
+		Ok( (reserve_a, reserve_b).into() )
+	}
+
+
 	fn _update_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier, amount: BigUint) {
 		let mut provider_liquidity = self.get_provider_liquidity(user_address, token_identifier);
 		provider_liquidity += amount.clone();
@@ -119,11 +133,11 @@ pub trait Pair {
 	#[storage_set("token_b_name")]
 	fn set_token_b_name(&self, esdt_token_name: &TokenIdentifier);
 
-	#[storage_get("reserve_b")]
-	fn get_reserve_b(&self) -> BigUint;
+	#[storage_get("reserve")]
+	fn get_reserve(&self, esdt_token_name: &TokenIdentifier) -> BigUint;
 
-	#[storage_set("reserve_b")]
-	fn set_reserve_b(&self, reserve_a: &BigUint);
+	#[storage_set("reserve")]
+	fn set_reserve(&self, esdt_token_name: &TokenIdentifier, reserve: &BigUint);
 
 	#[view(providerLiquidity)]
 	#[storage_get("provider_liquidity")]
