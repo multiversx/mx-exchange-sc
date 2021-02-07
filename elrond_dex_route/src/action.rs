@@ -12,5 +12,12 @@ pub enum Action<BigUint: BigUintApi> {
 		amount_a_min: BigUint,
 	    amount_b_min: BigUint,
 		caller: Address
+	},
+	SwapTokens {
+        amount_in: BigUint,
+        token_name_in: TokenIdentifier,
+        amount_out_min: BigUint,
+        token_name_out: TokenIdentifier,
+        caller: Address
 	}
 }
