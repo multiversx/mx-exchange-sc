@@ -53,6 +53,38 @@ pub trait Pair {
 		Ok(())
 	}
 
+	#[endpoint]
+	fn remove_liquidity(&self, user_address: Address,
+		actual_token_a_name: TokenIdentifier,
+		actual_token_b_name: TokenIdentifier) -> SCResult<()> {
+		let caller = self.get_caller();
+		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+
+		require!(
+			user_address != Address::zero(),
+			"Can't transfer to default address 0x0!"
+		);
+
+		let expected_token_a_name = self.get_token_a_name();
+		let expected_token_b_name = self.get_token_b_name();
+
+		require!(actual_token_a_name == expected_token_a_name, "Wrong token a identifier");
+		require!(actual_token_b_name == expected_token_b_name, "Wrong token b identifier");
+
+		let amount_a = self.get_provider_liquidity(&user_address, &expected_token_a_name);
+		let amount_b = self.get_provider_liquidity(&user_address, &expected_token_b_name);
+
+		self.send().direct_esdt(&user_address, expected_token_a_name.as_slice(), &amount_a, &[]);
+		self.send().direct_esdt(&user_address, expected_token_b_name.as_slice(), &amount_b, &[]);
+
+		let mut provider_liquidity = self.get_provider_liquidity(&user_address, &expected_token_a_name);
+		provider_liquidity -= amount_a;
+		self.set_provider_liquidity(&user_address, &expected_token_a_name, &provider_liquidity);
+
+		let mut provider_liquidity = self.get_provider_liquidity(&user_address, &expected_token_b_name);
+		provider_liquidity -= amount_b;
+		self.set_provider_liquidity(&user_address, &expected_token_b_name, &provider_liquidity);
+
 		Ok(())
 	}
 
