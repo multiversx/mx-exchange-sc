@@ -8,8 +8,10 @@ imports!();
 pub trait Pair {
 
 	#[init]
-	fn init(&self, esdt_token_name: TokenIdentifier) {
-		self.set_contract_esdt_token_name(&esdt_token_name);
+	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, router_address: Address) {
+		self.set_token_a_name(&token_a_name);
+		self.set_token_b_name(&token_b_name);
+		self.set_router_address(&router_address);
 	}
 
 	#[payable("*")]
@@ -35,18 +37,24 @@ pub trait Pair {
 		// TODO: return
 	}
 
-	#[storage_set("esdtTokenName")]
-	fn set_contract_esdt_token_name(&self, esdt_token_name: &TokenIdentifier);
 
-	#[view(getEsdtTokenName)]
-	#[storage_get("esdtTokenName")]
-	fn get_contract_esdt_token_name(&self) -> TokenIdentifier;
+	#[storage_get("router_address")]
+	fn get_router_address(&self) -> Address;
 
-	#[storage_get("reserve_a")]
-	fn get_reserve_a(&self) -> BigUint;
+	#[storage_set("router_address")]
+	fn set_router_address(&self, router_address: &Address);
 
-	#[storage_set("reserve_a")]
-	fn set_reserve_a(&self, reserve_a: &BigUint);
+	#[storage_get("token_a_name")]
+	fn get_token_a_name(&self) -> TokenIdentifier;
+
+	#[storage_set("token_a_name")]
+	fn set_token_a_name(&self, esdt_token_name: &TokenIdentifier);
+
+	#[storage_get("token_b_name")]
+	fn get_token_b_name(&self) -> TokenIdentifier;
+
+	#[storage_set("token_b_name")]
+	fn set_token_b_name(&self, esdt_token_name: &TokenIdentifier);
 
 	#[storage_get("reserve_b")]
 	fn get_reserve_b(&self) -> BigUint;
