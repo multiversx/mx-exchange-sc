@@ -12,21 +12,30 @@ pub use factory::factory::*;
 
 const PAIR_CONTRACT_ADD_LIQUIDITY: &[u8] = b"acceptEsdtPayment";
 
-#[elrond_wasm_derive::callable(FactoryProxy)]
-pub trait Factory {
-	#[callback(get_pair_address_callback)]
-	fn get_pair_address(&self, pair_token_identifier: TokenIdentifier,
+#[elrond_wasm_derive::callable(PairProxy)]
+pub trait Pair {
+	#[callback(get_reserves_callback)]
+	fn get_reserves_endpoint(&self,
 		#[callback_arg] token_a: TokenIdentifier,
 		#[callback_arg] token_b: TokenIdentifier,
 		#[callback_arg] amount_a_desired: BigUint,
 		#[callback_arg] amount_b_desired: BigUint,
 		#[callback_arg] amount_a_min: BigUint,
 		#[callback_arg] amount_b_min: BigUint,
-		#[callback_arg] caller: Address);
+		#[callback_arg] caller: Address) -> SCResult< MultiResult2<BigUint, BigUint> >;
+	
+	fn remove_liquidity(&self, user_address: Address,
+		actual_token_a_name: TokenIdentifier,
+		actual_token_b_name: TokenIdentifier) -> SCResult<()>;
+
+	fn update_liquidity_provider_storage(&self,
+		user_address: Address,
+		actual_token_a: TokenIdentifier,
+		actual_token_b: TokenIdentifier,
+		amount_a: BigUint,
+		amount_b: BigUint) -> SCResult<()>;
 }
 
-/// One of the simplest smart contracts possible,
-/// it holds a single variable in storage, which anyone can increment.
 #[elrond_wasm_derive::contract(RouteImpl)]
 pub trait Route {
 
