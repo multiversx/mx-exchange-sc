@@ -13,19 +13,19 @@ pub trait Pair {
 		self.set_router_address(&router_address);
 	}
 
-	#[payable("*")]
-	#[endpoint(acceptEsdtPayment)]
-	fn accept_esdt_payment(
-		&self,
-		#[payment] esdt_value: BigUint,
-		#[payment_token] actual_token_name: TokenIdentifier,
-		caller: Address,
-	) -> SCResult<()> {
-		let expected_token_name = self.get_contract_esdt_token_name();
-		require!(actual_token_name == expected_token_name, "Wrong esdt token");
+	// #[payable("*")]
+	// #[endpoint(acceptEsdtPayment)]
+	// fn accept_esdt_payment(
+	// 	&self,
+	// 	#[payment] esdt_value: BigUint,
+	// 	#[payment_token] actual_token_name: TokenIdentifier,
+	// 	caller: Address,
+	// ) -> SCResult<()> {
+	// 	let expected_token_name = self.get_contract_esdt_token_name();
+	// 	require!(actual_token_name == expected_token_name, "Wrong esdt token");
 
-		let mut provider_liquidity = self.get_provider_liquidity(&caller, &expected_token_name);
-		provider_liquidity += esdt_value;
+	// 	let mut provider_liquidity = self.get_provider_liquidity(&caller, &expected_token_name);
+	// 	provider_liquidity += esdt_value;
 	#[endpoint]
 	fn update_liquidity_provider_storage(&self,
 		user_address: Address,
