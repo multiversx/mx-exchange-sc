@@ -30,6 +30,13 @@ pub trait Pair {
 		actual_token_b: TokenIdentifier,
 		amount_a: BigUint,
 		amount_b: BigUint) -> SCResult<()>;
+
+	fn send_tokens_on_swap_success(&self,
+		address: Address,
+		token_in: TokenIdentifier,
+		amount_in: BigUint,
+		token_out: TokenIdentifier,
+		amount_out: BigUint) -> SCResult<()>;
 }
 
 #[elrond_wasm_derive::contract(RouteImpl)]
@@ -94,6 +101,41 @@ pub trait Route {
 			amount_b_desired,
 			amount_a_min,
 			amount_b_min,
+			caller,
+		});
+
+		Ok(())
+	}
+
+	#[payable("*")]
+	#[endpoint(swapToken)]
+	fn swap_token_endpoint(
+		&self,
+		#[payment] amount_in: BigUint,
+		#[payment_token] token_name_in: TokenIdentifier,
+		amount_out_min: BigUint,
+		token_name_out: TokenIdentifier
+	) -> SCResult<()> {
+		require!(amount_in != 0, "Amount in is zero");
+
+		if token_name_in == token_name_out {
+			self.send().direct_esdt(&self.get_caller(), token_name_in.as_slice(), &amount_in, &[]);
+			return sc_error!("Can only swap with different tokens");
+		}
+
+		if self.factory().is_empty_pair(&token_name_in, &token_name_out) {
+			self.send().direct_esdt(&self.get_caller(), token_name_in.as_slice(), &amount_in, &[]);
+			return sc_error!("No SC found for this pair");
+		}
+
+		let caller = self.get_caller();
+		let pair_address = self.factory().get_pair(&token_name_in, &token_name_out);
+		let pair_contract = contract_proxy!(self, &pair_address, Pair);
+		pair_contract.get_reserves_endpoint(Action::SwapTokens {
+			amount_in,
+			token_name_in,
+			amount_out_min,
+			token_name_out,
 			caller,
 		});
 
@@ -176,6 +218,29 @@ pub trait Route {
 
 						let pair_contract = contract_proxy!(self, &pair_address, Pair);
 						pair_contract.update_liquidity_provider_storage(caller, token_a, token_b, amount_a, amount_b);
+					},
+					Action::SwapTokens {
+						amount_in,
+						token_name_in,
+						amount_out_min,
+						token_name_out,
+						caller,
+					} => {
+						let pair_address = self.factory().get_pair(&token_name_in, &token_name_out);
+						let reserves = result.into_tuple();
+						if reserves.1 >= amount_out_min {
+							//Introduce AMM Logic. For now, just send amount_out_min.
+							let amount_out = amount_out_min;
+							//Send Pair SC the amount received by caller.
+							self.send().direct_esdt(&pair_address, token_name_in.as_slice(), &amount_in, &[]);
+							//Instruct Pair SC to send the caller token_name_out of amount_out.
+							let pair_contract = contract_proxy!(self, &pair_address, Pair);
+							pair_contract.send_tokens_on_swap_success(caller, token_name_in, amount_in, token_name_out, amount_out);
+						}
+						else {
+							// Not enough tokens in pair. Sending back the tokens received.
+							self.send().direct_esdt(&caller, token_name_in.as_slice(), &amount_in, &[]);
+						}
 					}
 				}
 			},
