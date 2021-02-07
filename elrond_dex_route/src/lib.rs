@@ -43,8 +43,7 @@ pub trait Route {
     fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
-	fn init(&self, factory_address: &Address) {
-		self.set_factory_contract_address(factory_address);
+	fn init(&self) {
 	}
 
 	#[payable("*")]
@@ -98,29 +97,17 @@ pub trait Route {
 		Ok(())
 	}
 
-	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L61
-	fn transfer_liquidity(
-		&self,
+	#[endpoint(removeLiquidity)]
+	fn remove_liquidity_endpoint(&self,
 		token_a: TokenIdentifier,
-		token_b: TokenIdentifier,
-		amount_a_desired: BigUint,
-		amount_b_desired: BigUint,
-		amount_a_min: BigUint,
-		amount_b_min: BigUint
-	) {
-		// TODO: Add functionality to send token amounts based on _add_liquidity result
-		// require!(ab > 0, "no esdt transfered!");
+		token_b: TokenIdentifier) -> SCResult<()> {
+		let caller = self.get_caller();
+		let pair_address = self.factory().get_pair(&token_b);
 
-		let factory_address = self.get_factory_contract_address();
-		let factory_contract = contract_proxy!(self, &factory_address, Factory);
-		factory_contract.get_pair_address(token_b.clone(),
-										token_a,
-										token_b,
-										amount_a_desired,
-										amount_b_desired,
-										amount_a_min,
-										amount_b_min,
-										self.get_caller());
+		let pair_contract = contract_proxy!(self, &pair_address, Pair);
+		pair_contract.remove_liquidity(caller, token_a, token_b);
+
+		Ok(())
 	}
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
@@ -193,4 +180,7 @@ pub trait Route {
 
 	#[storage_set("funds")]
 	fn set_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
+
+	#[storage_clear("funds")]
+	fn clear_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
 }
