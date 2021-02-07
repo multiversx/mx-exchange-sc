@@ -81,7 +81,7 @@ pub trait Route {
 		require!(token_a_stored > 0, "Insuficient funds A transferred");
 		require!(token_b_stored > 0, "Insuficient funds B transferred");
 
-		let pair_address = self.factory().get_pair(&token_b);
+		let pair_address = self.factory().get_pair(&token_a, &token_b);
 
 		let pair_contract = contract_proxy!(self, &pair_address, Pair);
 		pair_contract.get_reserves_endpoint(
@@ -102,7 +102,7 @@ pub trait Route {
 		token_a: TokenIdentifier,
 		token_b: TokenIdentifier) -> SCResult<()> {
 		let caller = self.get_caller();
-		let pair_address = self.factory().get_pair(&token_b);
+		let pair_address = self.factory().get_pair(&token_a, &token_b);
 
 		let pair_contract = contract_proxy!(self, &pair_address, Pair);
 		pair_contract.remove_liquidity(caller, token_a, token_b);
@@ -155,7 +155,7 @@ pub trait Route {
 
 		match result {
 			AsyncCallResult::Ok(result) => {
-				let pair_address = self.factory().get_pair(&token_b);
+				let pair_address = self.factory().get_pair(&token_a, &token_b);
 				let reserves = result.into_tuple();
 				let (amount_a, amount_b) = self._add_liquidity(
 											&token_a,
