@@ -44,20 +44,45 @@ pub trait Pair {
 
 		let caller = self.get_caller();
 
-		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
-		require!(amount_a > 0 && amount_b > 0, "Invalid tokens amount specified");
+		// require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
 
 		let expected_token_a_name = self.get_token_a_name();
 		let expected_token_b_name = self.get_token_b_name();
 
 		require!(actual_token_a == expected_token_a_name, "Wrong token a identifier");
 		require!(actual_token_b == expected_token_b_name, "Wrong token b identifier");
+		require!(amount_a > 0, "Invalid tokens A amount specified");
+		require!(amount_b > 0, "Invalid tokens B amount specified");
 
 
-		self._update_provider_liquidity(&user_address, &actual_token_a, amount_a);
-		self._update_provider_liquidity(&user_address, &actual_token_b, amount_b);
+		let total_supply = self.supply().get_total_supply();
+		let reserve_a = self.get_reserve(&actual_token_a);
+		let reserve_b = self.get_reserve(&actual_token_b);
+		let liquidity: BigUint;
+		if total_supply == 0 {
+			liquidity = amount_a.clone() - BigUint::from(1000u64);
+        	self.supply()._mint( &Address::zero(), &BigUint::from(1000u64) ); // permanently lock the first MINIMUM_LIQUIDITY tokens 
+		} else {
+			liquidity = min((amount_a.clone() * total_supply.clone()) / reserve_a,
+						(amount_b.clone() * total_supply) / reserve_b);
+		}
+
+		require!(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_MINTED");
+		self.supply()._mint(&user_address, &liquidity);
+		self._update(amount_a, amount_b, expected_token_a_name, expected_token_b_name);
 		
 		Ok(())
+	}
+
+	fn _update(&self, amount_a: BigUint, amount_b: BigUint, token_a: TokenIdentifier, token_b: TokenIdentifier) {
+		// TODO: Update prices if in new block
+		let mut reserve_a = self.get_reserve(&token_a);
+		let mut reserve_b = self.get_reserve(&token_b);
+		reserve_a += amount_a;
+		reserve_b += amount_b;
+
+		self.set_reserve(&token_a, &reserve_a);
+		self.set_reserve(&token_b, &reserve_b);
 	}
 
 	#[endpoint]
