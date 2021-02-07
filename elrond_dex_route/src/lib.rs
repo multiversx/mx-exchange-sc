@@ -43,7 +43,8 @@ pub trait Route {
     fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
-	fn init(&self) {
+	fn init(&self, pair_code: BoxedBytes) {
+		self.factory().set_pair_code(&pair_code);
 	}
 
 	#[payable("*")]
