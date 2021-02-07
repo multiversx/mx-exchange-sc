@@ -21,19 +21,19 @@ pub trait Pair {
 		self.set_router_address(&router_address);
 	}
 
-	#[payable("*")]
-	#[endpoint(acceptEsdtPayment)]
-	fn accept_esdt_payment(
-		&self,
-		#[payment] esdt_value: BigUint,
-		#[payment_token] actual_token_name: TokenIdentifier,
-		caller: Address,
-	) -> SCResult<()> {
-		let expected_token_name = self.get_contract_esdt_token_name();
-		require!(actual_token_name == expected_token_name, "Wrong esdt token");
+	// #[payable("*")]
+	// #[endpoint(acceptEsdtPayment)]
+	// fn accept_esdt_payment(
+	// 	&self,
+	// 	#[payment] esdt_value: BigUint,
+	// 	#[payment_token] actual_token_name: TokenIdentifier,
+	// 	caller: Address,
+	// ) -> SCResult<()> {
+	// 	let expected_token_name = self.get_contract_esdt_token_name();
+	// 	require!(actual_token_name == expected_token_name, "Wrong esdt token");
 
-		let mut provider_liquidity = self.get_provider_liquidity(&caller, &expected_token_name);
-		provider_liquidity += esdt_value;
+	// 	let mut provider_liquidity = self.get_provider_liquidity(&caller, &expected_token_name);
+	// 	provider_liquidity += esdt_value;
 	#[endpoint]
 	fn update_liquidity_provider_storage(&self,
 		user_address: Address,
@@ -83,6 +83,37 @@ pub trait Pair {
 
 		self.set_reserve(&token_a, &reserve_a);
 		self.set_reserve(&token_b, &reserve_b);
+	}
+
+	#[endpoint]
+	fn send_tokens_on_swap_success(&self,
+		address: Address,
+		token_in: TokenIdentifier,
+		amount_in: BigUint,
+		token_out: TokenIdentifier,
+		amount_out: BigUint) -> SCResult<()> {
+
+		let caller = self.get_caller();
+		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+		require!(amount_in > 0, "Invalid tokens amount specified");
+		require!(amount_out > 0, "Invalid tokens amount specified");
+
+		let expected_token_a_name = self.get_token_a_name();
+		let expected_token_b_name = self.get_token_b_name();
+		require!(token_in == expected_token_a_name, "Wrong token a identifier");
+		require!(token_out == expected_token_b_name, "Wrong token b identifier");
+
+		let mut reserve = self.get_reserve(&token_in);
+		reserve = reserve + amount_in;
+		self.set_reserve(&token_in, &reserve);
+
+		reserve = self.get_reserve(&token_out);
+		reserve = reserve - amount_out.clone();
+		self.set_reserve(&token_out, &reserve);
+
+		//TODO: Check if amount_out is available. If not, send back what was received.
+		self.send().direct_esdt(&address, token_out.as_slice(), &amount_out, &[]);
+		Ok(())
 	}
 
 	#[endpoint]
