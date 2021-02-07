@@ -90,32 +90,38 @@ pub trait Pair {
 		actual_token_a_name: TokenIdentifier,
 		actual_token_b_name: TokenIdentifier) -> SCResult<()> {
 		let caller = self.get_caller();
-		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+		// require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
 
 		require!(
 			user_address != Address::zero(),
 			"Can't transfer to default address 0x0!"
 		);
-
 		let expected_token_a_name = self.get_token_a_name();
 		let expected_token_b_name = self.get_token_b_name();
 
 		require!(actual_token_a_name == expected_token_a_name, "Wrong token a identifier");
 		require!(actual_token_b_name == expected_token_b_name, "Wrong token b identifier");
 
-		let amount_a = self.get_provider_liquidity(&user_address, &expected_token_a_name);
-		let amount_b = self.get_provider_liquidity(&user_address, &expected_token_b_name);
+		let mut balance_a = self.get_reserve(&expected_token_a_name);
+		let mut balance_b = self.get_reserve(&expected_token_b_name);
+		let liquidity = self.supply().get_balance_of(&user_address);
+		let total_supply = self.supply().get_total_supply();
+
+		let amount_a = (liquidity.clone() * balance_a.clone()) / total_supply.clone();
+		let amount_b = (liquidity.clone() * balance_b.clone()) / total_supply;
+
+		require!(&amount_a > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		require!(&amount_b > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		
+		self.supply()._burn(&user_address, &liquidity);
 
 		self.send().direct_esdt(&user_address, expected_token_a_name.as_slice(), &amount_a, &[]);
 		self.send().direct_esdt(&user_address, expected_token_b_name.as_slice(), &amount_b, &[]);
 
-		let mut provider_liquidity = self.get_provider_liquidity(&user_address, &expected_token_a_name);
-		provider_liquidity -= amount_a;
-		self.set_provider_liquidity(&user_address, &expected_token_a_name, &provider_liquidity);
+		balance_a -= amount_a;
+		balance_b -= amount_b;
 
-		let mut provider_liquidity = self.get_provider_liquidity(&user_address, &expected_token_b_name);
-		provider_liquidity -= amount_b;
-		self.set_provider_liquidity(&user_address, &expected_token_b_name, &provider_liquidity);
+		self._update(balance_a, balance_b, expected_token_a_name, expected_token_b_name);
 
 		Ok(())
 	}
