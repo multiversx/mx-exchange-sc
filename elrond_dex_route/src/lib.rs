@@ -12,21 +12,30 @@ pub use factory::factory::*;
 
 const PAIR_CONTRACT_ADD_LIQUIDITY: &[u8] = b"acceptEsdtPayment";
 
-#[elrond_wasm_derive::callable(FactoryProxy)]
-pub trait Factory {
-	#[callback(get_pair_address_callback)]
-	fn get_pair_address(&self, pair_token_identifier: TokenIdentifier,
+#[elrond_wasm_derive::callable(PairProxy)]
+pub trait Pair {
+	#[callback(get_reserves_callback)]
+	fn get_reserves_endpoint(&self,
 		#[callback_arg] token_a: TokenIdentifier,
 		#[callback_arg] token_b: TokenIdentifier,
 		#[callback_arg] amount_a_desired: BigUint,
 		#[callback_arg] amount_b_desired: BigUint,
 		#[callback_arg] amount_a_min: BigUint,
 		#[callback_arg] amount_b_min: BigUint,
-		#[callback_arg] caller: Address);
+		#[callback_arg] caller: Address) -> SCResult< MultiResult2<BigUint, BigUint> >;
+	
+	fn remove_liquidity(&self, user_address: Address,
+		actual_token_a_name: TokenIdentifier,
+		actual_token_b_name: TokenIdentifier) -> SCResult<()>;
+
+	fn update_liquidity_provider_storage(&self,
+		user_address: Address,
+		actual_token_a: TokenIdentifier,
+		actual_token_b: TokenIdentifier,
+		amount_a: BigUint,
+		amount_b: BigUint) -> SCResult<()>;
 }
 
-/// One of the simplest smart contracts possible,
-/// it holds a single variable in storage, which anyone can increment.
 #[elrond_wasm_derive::contract(RouteImpl)]
 pub trait Route {
 
@@ -34,8 +43,7 @@ pub trait Route {
     fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
-	fn init(&self, factory_address: &Address) {
-		self.set_factory_contract_address(factory_address);
+	fn init(&self) {
 	}
 
 	#[payable("*")]
@@ -54,7 +62,7 @@ pub trait Route {
 		Ok(())
 	}
 
-	#[endpoint(transferToPairContract)]
+	#[endpoint(addLiquidity)]
 	fn add_liquidity(
 		&self,
 		token_a: TokenIdentifier,
@@ -70,55 +78,51 @@ pub trait Route {
 		let token_a_stored = self.get_temporary_funds(&caller, &token_a);
 		let token_b_stored = self.get_temporary_funds(&caller, &token_b);
 
-		require!(token_a_stored > 0 && token_b_stored > 0, "Insuficient funds transferred");
+		require!(token_a_stored > 0, "Insuficient funds A transferred");
+		require!(token_b_stored > 0, "Insuficient funds B transferred");
 
-		self.transfer_liquidity(
-			token_a, token_b,
-			token_a_desired, token_b_desired,
-			token_a_min, token_b_min,
+		let pair_address = self.factory().get_pair(&token_b);
+
+		let pair_contract = contract_proxy!(self, &pair_address, Pair);
+		pair_contract.get_reserves_endpoint(
+			token_a,
+			token_b,
+			token_a_desired,
+			token_b_desired,
+			token_a_min,
+			token_b_min,
+			caller,
 		);
 
 		Ok(())
 	}
 
-	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L61
-	fn transfer_liquidity(
-		&self,
+	#[endpoint(removeLiquidity)]
+	fn remove_liquidity_endpoint(&self,
 		token_a: TokenIdentifier,
-		token_b: TokenIdentifier,
-		amount_a_desired: BigUint,
-		amount_b_desired: BigUint,
-		amount_a_min: BigUint,
-		amount_b_min: BigUint
-	) {
-		// TODO: Add functionality to send token amounts based on _add_liquidity result
-		// require!(ab > 0, "no esdt transfered!");
+		token_b: TokenIdentifier) -> SCResult<()> {
+		let caller = self.get_caller();
+		let pair_address = self.factory().get_pair(&token_b);
 
-		let factory_address = self.get_factory_contract_address();
-		let factory_contract = contract_proxy!(self, &factory_address, Factory);
-		factory_contract.get_pair_address(token_b.clone(),
-										token_a,
-										token_b,
-										amount_a_desired,
-										amount_b_desired,
-										amount_a_min,
-										amount_b_min,
-										self.get_caller());
+		let pair_contract = contract_proxy!(self, &pair_address, Pair);
+		pair_contract.remove_liquidity(caller, token_a, token_b);
+
+		Ok(())
 	}
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
 	fn _add_liquidity(&self,
 		_token_a: &TokenIdentifier,
 		_token_b: &TokenIdentifier,
-		_amount_a_desired: BigUint,
-		_amount_b_desired: BigUint,
+		amount_a_desired: BigUint,
+		amount_b_desired: BigUint,
 		_amount_a_min: BigUint,
-		_amount_b_min: BigUint) -> (BigUint, BigUint) {
+		_amount_b_min: BigUint,
+		_reserves: (BigUint, BigUint) ) -> (BigUint, BigUint) {
 		// TODO: Add functionality to calculate the amounts for tokens to be sent
 		// to liquidity pool
-		(BigUint::from(1u32), BigUint::from(1u32))
+		(amount_a_desired, amount_b_desired)
 	}
-
 
 	fn call_esdt_second_contract(
 		&self,
@@ -137,7 +141,7 @@ pub trait Route {
 	}
 
 	#[callback]
-	fn get_pair_address_callback(&self, pair_callback: AsyncCallResult<Address>,
+	fn get_reserves_callback(&self, result: AsyncCallResult< MultiArg2<BigUint, BigUint> >,
 								#[callback_arg] token_a: TokenIdentifier,
 								#[callback_arg] token_b: TokenIdentifier,
 								#[callback_arg] amount_a_desired: BigUint,
@@ -146,56 +150,28 @@ pub trait Route {
 								#[callback_arg] amount_b_min: BigUint,
 								#[callback_arg] caller: Address) {
 
-		match pair_callback {
-			AsyncCallResult::Ok(pair_address) => {
-				self.set_pair_address(&pair_address);
+		match result {
+			AsyncCallResult::Ok(result) => {
+				let pair_address = self.factory().get_pair(&token_b);
+				let reserves = result.into_tuple();
 				let (amount_a, amount_b) = self._add_liquidity(
 											&token_a,
 											&token_b,
 											amount_a_desired,
 											amount_b_desired,
 											amount_a_min,
-											amount_b_min);
+											amount_b_min,
+											reserves);
 
-				self.call_esdt_second_contract(
-					&token_a,
-					&amount_a,
-					&pair_address,
-					PAIR_CONTRACT_ADD_LIQUIDITY,
-					&[BoxedBytes::from(caller.as_bytes())],
-				);
+				self.send().direct_esdt(&pair_address, token_a.as_slice(), &amount_a, &[]);
+				self.send().direct_esdt(&pair_address, token_b.as_slice(), &amount_b, &[]);
 
-				self.call_esdt_second_contract(
-					&token_b,
-					&amount_b,
-					&pair_address,
-					PAIR_CONTRACT_ADD_LIQUIDITY,
-					&[BoxedBytes::from(caller.as_bytes())],
-				);
+				let pair_contract = contract_proxy!(self, &pair_address, Pair);
+				pair_contract.update_liquidity_provider_storage(caller, token_a, token_b, amount_a, amount_b);
 			},
 			AsyncCallResult::Err(_) => {},
 		}
 	}
-
-	#[view(getCallbackCounter)]
-	#[storage_get("callback_counter")]
-	fn get_callback_counter(&self) -> u32;
-
-	#[storage_set("callback_counter")]
-	fn set_callback_counter(&self, counter: u32);
-
-	#[view(GetPairAddress)]
-	#[storage_get("pair_address")]
-	fn get_pair_address(&self) -> Address;
-
-	#[storage_set("pair_address")]
-	fn set_pair_address(&self, pair_address: &Address);
-
-	#[storage_get("factoryContractAddress")]
-	fn get_factory_contract_address(&self) -> Address;
-
-	#[storage_set("factoryContractAddress")]
-	fn set_factory_contract_address(&self, address: &Address);
 
 	// Temporary Storage
 	#[view(getTemporaryFunds)]
@@ -204,4 +180,7 @@ pub trait Route {
 
 	#[storage_set("funds")]
 	fn set_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
+
+	#[storage_clear("funds")]
+	fn clear_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
 }
