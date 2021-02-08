@@ -208,8 +208,6 @@ pub trait Route {
 						let pair_address = self.factory().get_pair(&token_a, &token_b);
 						let reserves = result.into_tuple();
 						let (amount_a, amount_b) = self._add_liquidity(
-													&token_a,
-													&token_b,
 													amount_a_desired,
 													amount_b_desired,
 													amount_a_min,
