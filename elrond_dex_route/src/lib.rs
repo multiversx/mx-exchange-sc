@@ -158,33 +158,36 @@ pub trait Route {
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
 	fn _add_liquidity(&self,
-		_token_a: &TokenIdentifier,
-		_token_b: &TokenIdentifier,
 		amount_a_desired: BigUint,
 		amount_b_desired: BigUint,
-		_amount_a_min: BigUint,
-		_amount_b_min: BigUint,
-		_reserves: (BigUint, BigUint) ) -> (BigUint, BigUint) {
+		amount_a_min: BigUint,
+		amount_b_min: BigUint,
+		reserves: (BigUint, BigUint) ) -> (BigUint, BigUint) {
 		// TODO: Add functionality to calculate the amounts for tokens to be sent
 		// to liquidity pool
-		(amount_a_desired, amount_b_desired)
+		if reserves.0 == 0 && reserves.1 == 0 {
+			return (amount_a_desired, amount_b_desired);
 	}
 
-	// fn call_esdt_second_contract(
-	// 	&self,
-	// 	esdt_token_name: &TokenIdentifier,
-	// 	amount: &BigUint,
-	// 	to: &Address,
-	// 	func_name: &[u8],
-	// 	args: &[BoxedBytes],
-	// ) {
-	// 	let mut serializer = HexCallDataSerializer::new(func_name);
-	// 	for arg in args {
-	// 		serializer.push_argument_bytes(arg.as_slice());
-	// 	}
+		let amount_b_optimal = self.quote(amount_a_desired.clone(), reserves.clone());
+		if amount_b_optimal < amount_b_desired {
+			assert!(amount_b_optimal > amount_b_min, "Router: INSUFFICIENT_B_AMOUNT");
+			return (amount_a_desired, amount_b_optimal);
+		} else {
+			let amount_a_optimal = self.quote(amount_b_desired.clone(), reserves);
+			assert!(amount_a_optimal <= amount_a_desired);
+			assert!(amount_a_optimal >= amount_a_min, "Router: INSUFFICIENT_A_AMOUNT");
+			return (amount_a_optimal, amount_b_desired);
+		}
+		}
 
-	// 	self.send().direct_esdt(&to, esdt_token_name.as_slice(), amount, serializer.as_slice());
-	// }
+	fn quote(&self, amount_a: BigUint, reserves: (BigUint, BigUint)) -> BigUint {
+		assert!(amount_a > 0, "Route: INSUFFICIENT_AMOUNT");
+		assert!(reserves.0 > 0, "Route: INSUFFICIENT LIQUIDITY FOR TOKEN A");
+		assert!(reserves.1 > 0, "Route: INSUFFICIENT LIQUIDITY FOR TOKEN B");
+
+		(amount_a * reserves.1) / reserves.0
+	}
 
 	#[callback]
 	fn get_reserves_callback(&self, result: AsyncCallResult< MultiArg2<BigUint, BigUint> >,
@@ -205,8 +208,6 @@ pub trait Route {
 						let pair_address = self.factory().get_pair(&token_a, &token_b);
 						let reserves = result.into_tuple();
 						let (amount_a, amount_b) = self._add_liquidity(
-													&token_a,
-													&token_b,
 													amount_a_desired,
 													amount_b_desired,
 													amount_a_min,
