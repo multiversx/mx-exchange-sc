@@ -34,6 +34,7 @@ pub trait FactoryModule {
 		let code = self.get_pair_code();
 		arg_buffer.push_raw_arg(token_a.as_slice());
 		arg_buffer.push_raw_arg(token_b.as_slice());
+		arg_buffer.push_raw_arg(self.get_sc_address().as_bytes());
 		let new_address = self.send().deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
 		self.set_pair(&token_a, &token_b, &new_address);
 		self.set_pair(&token_b, &token_a, &new_address);
