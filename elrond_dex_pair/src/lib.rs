@@ -3,8 +3,16 @@
 imports!();
 derive_imports!();
 
+pub mod liquidity_supply;
+
+pub use crate::liquidity_supply::*;
+use core::cmp::min;
+
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
+
+	#[module(LiquiditySupplyModuleImpl)]
+    fn supply(&self) -> LiquiditySupplyModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
 	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, router_address: Address) {
@@ -36,19 +44,75 @@ pub trait Pair {
 
 		let caller = self.get_caller();
 
-		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
-		require!(amount_a > 0 && amount_b > 0, "Invalid tokens amount specified");
+		// require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
 
 		let expected_token_a_name = self.get_token_a_name();
 		let expected_token_b_name = self.get_token_b_name();
 
 		require!(actual_token_a == expected_token_a_name, "Wrong token a identifier");
 		require!(actual_token_b == expected_token_b_name, "Wrong token b identifier");
+		require!(amount_a > 0, "Invalid tokens A amount specified");
+		require!(amount_b > 0, "Invalid tokens B amount specified");
 
 
-		self._update_provider_liquidity(&user_address, &actual_token_a, amount_a);
-		self._update_provider_liquidity(&user_address, &actual_token_b, amount_b);
+		let total_supply = self.supply().get_total_supply();
+		let reserve_a = self.get_reserve(&actual_token_a);
+		let reserve_b = self.get_reserve(&actual_token_b);
+		let liquidity: BigUint;
+		if total_supply == 0 {
+			liquidity = amount_a.clone() - BigUint::from(1000u64);
+        	self.supply()._mint( &Address::zero(), &BigUint::from(1000u64) ); // permanently lock the first MINIMUM_LIQUIDITY tokens 
+		} else {
+			liquidity = min((amount_a.clone() * total_supply.clone()) / reserve_a,
+						(amount_b.clone() * total_supply) / reserve_b);
+		}
+
+		require!(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_MINTED");
+		self.supply()._mint(&user_address, &liquidity);
+		self._update(amount_a, amount_b, expected_token_a_name, expected_token_b_name);
 		
+		Ok(())
+	}
+
+	fn _update(&self, amount_a: BigUint, amount_b: BigUint, token_a: TokenIdentifier, token_b: TokenIdentifier) {
+		// TODO: Update prices if in new block
+		let mut reserve_a = self.get_reserve(&token_a);
+		let mut reserve_b = self.get_reserve(&token_b);
+		reserve_a += amount_a;
+		reserve_b += amount_b;
+
+		self.set_reserve(&token_a, &reserve_a);
+		self.set_reserve(&token_b, &reserve_b);
+	}
+
+	#[endpoint]
+	fn send_tokens_on_swap_success(&self,
+		address: Address,
+		token_in: TokenIdentifier,
+		amount_in: BigUint,
+		token_out: TokenIdentifier,
+		amount_out: BigUint) -> SCResult<()> {
+
+		let caller = self.get_caller();
+		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+		require!(amount_in > 0, "Invalid tokens amount specified");
+		require!(amount_out > 0, "Invalid tokens amount specified");
+
+		let expected_token_a_name = self.get_token_a_name();
+		let expected_token_b_name = self.get_token_b_name();
+		require!(token_in == expected_token_a_name, "Wrong token a identifier");
+		require!(token_out == expected_token_b_name, "Wrong token b identifier");
+
+		let mut reserve = self.get_reserve(&token_in);
+		reserve = reserve + amount_in;
+		self.set_reserve(&token_in, &reserve);
+
+		reserve = self.get_reserve(&token_out);
+		reserve = reserve - amount_out.clone();
+		self.set_reserve(&token_out, &reserve);
+
+		//TODO: Check if amount_out is available. If not, send back what was received.
+		self.send().direct_esdt(&address, token_out.as_slice(), &amount_out, &[]);
 		Ok(())
 	}
 
@@ -88,32 +152,38 @@ pub trait Pair {
 		actual_token_a_name: TokenIdentifier,
 		actual_token_b_name: TokenIdentifier) -> SCResult<()> {
 		let caller = self.get_caller();
-		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+		// require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
 
 		require!(
 			user_address != Address::zero(),
 			"Can't transfer to default address 0x0!"
 		);
-
 		let expected_token_a_name = self.get_token_a_name();
 		let expected_token_b_name = self.get_token_b_name();
 
 		require!(actual_token_a_name == expected_token_a_name, "Wrong token a identifier");
 		require!(actual_token_b_name == expected_token_b_name, "Wrong token b identifier");
 
-		let amount_a = self.get_provider_liquidity(&user_address, &expected_token_a_name);
-		let amount_b = self.get_provider_liquidity(&user_address, &expected_token_b_name);
+		let mut balance_a = self.get_reserve(&expected_token_a_name);
+		let mut balance_b = self.get_reserve(&expected_token_b_name);
+		let liquidity = self.supply().get_balance_of(&user_address);
+		let total_supply = self.supply().get_total_supply();
+
+		let amount_a = (liquidity.clone() * balance_a.clone()) / total_supply.clone();
+		let amount_b = (liquidity.clone() * balance_b.clone()) / total_supply;
+
+		require!(&amount_a > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		require!(&amount_b > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		
+		self.supply()._burn(&user_address, &liquidity);
 
 		self.send().direct_esdt(&user_address, expected_token_a_name.as_slice(), &amount_a, &[]);
 		self.send().direct_esdt(&user_address, expected_token_b_name.as_slice(), &amount_b, &[]);
 
-		let mut provider_liquidity = self.get_provider_liquidity(&user_address, &expected_token_a_name);
-		provider_liquidity -= amount_a;
-		self.set_provider_liquidity(&user_address, &expected_token_a_name, &provider_liquidity);
+		balance_a -= amount_a;
+		balance_b -= amount_b;
 
-		let mut provider_liquidity = self.get_provider_liquidity(&user_address, &expected_token_b_name);
-		provider_liquidity -= amount_b;
-		self.set_provider_liquidity(&user_address, &expected_token_b_name, &provider_liquidity);
+		self._update(balance_a, balance_b, expected_token_a_name, expected_token_b_name);
 
 		Ok(())
 	}
