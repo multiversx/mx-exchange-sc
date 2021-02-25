@@ -1,5 +1,5 @@
 [package]
-name = "elrond_dex_route-wasm"
+name = "elrond_dex_router-wasm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,7 +20,7 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.elrond_dex_route]
+[dependencies.elrond_dex_router]
 features = [ "wasm-output-mode",]
 default-features = false
 path = ".."

@@ -1,5 +1,5 @@
 [package]
-name = "elrond_dex_route"
+name = "elrond_dex_router"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"

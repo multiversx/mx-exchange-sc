@@ -1,5 +1,5 @@
-extern crate elrond_dex_route;
-use elrond_dex_route::*;
+extern crate elrond_dex_router;
+use elrond_dex_router::*;
 use elrond_wasm::*;
 use elrond_wasm_debug::*;
 

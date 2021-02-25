@@ -39,8 +39,8 @@ pub trait Pair {
 		amount_out: BigUint) -> SCResult<()>;
 }
 
-#[elrond_wasm_derive::contract(RouteImpl)]
-pub trait Route {
+#[elrond_wasm_derive::contract(RouterImpl)]
+pub trait Router {
 
 	#[module(FactoryModuleImpl)]
     fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
