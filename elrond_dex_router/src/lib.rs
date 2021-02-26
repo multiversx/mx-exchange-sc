@@ -31,9 +31,15 @@ pub trait Router {
 	}
 
 	#[endpoint(upgradePairs)]
-	fn upgrade_pairs(&self, pair_code: BoxedBytes) -> SCResult<bool> {
+	fn upgrade_pairs(&self, pair_code: BoxedBytes) -> SCResult<()> {
 		require!(self.get_caller() == self.get_owner(), "Permission denied");
-		Ok(self.factory().upgrade_pairs(pair_code))
+
+		let addresses = self.factory().pair_map_values();
+		for address in addresses.0.into_iter() {
+			self.factory().upgrade_pair(&address, &pair_code)
+		}
+		self.factory().set_pair_code(&pair_code);
+		Ok(())
 	}
 
 	//VIEWS

@@ -23,14 +23,8 @@ pub trait FactoryModule {
 		new_address
 	}
 
-	fn upgrade_pairs(&self, new_pair_code: BoxedBytes) -> bool {
-		self.set_pair_code(&new_pair_code);
-		let addresses = self.pair_map_values();
-		let success = true;
-		for _address in addresses.0.into_iter() {
-			//TODO: upgrade contract at address with new_pair_code
-		}
-		success
+	fn upgrade_pair(&self, _address: &Address, _new_pair_code: &BoxedBytes) {
+		//TODO
 	}
 
 	#[storage_mapper("pair_map")]
