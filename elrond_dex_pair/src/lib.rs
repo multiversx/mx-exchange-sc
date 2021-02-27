@@ -178,28 +178,15 @@ pub trait Pair {
 	#[storage_set("router_address")]
 	fn set_router_address(&self, router_address: &Address);
 
-	#[storage_get("token_a_name")]
-	fn get_token_a_name(&self) -> TokenIdentifier;
+    // Temporary Storage
+	#[view(getTemporaryFunds)]
+	#[storage_get("funds")]
+	fn get_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier) -> BigUint;
 
-	#[storage_set("token_a_name")]
-	fn set_token_a_name(&self, esdt_token_name: &TokenIdentifier);
+	#[storage_set("funds")]
+	fn set_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
 
-	#[storage_get("token_b_name")]
-	fn get_token_b_name(&self) -> TokenIdentifier;
+	#[storage_clear("funds")]
+	fn clear_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier);
 
-	#[storage_set("token_b_name")]
-	fn set_token_b_name(&self, esdt_token_name: &TokenIdentifier);
-
-	#[storage_get("reserve")]
-	fn get_reserve(&self, esdt_token_name: &TokenIdentifier) -> BigUint;
-
-	#[storage_set("reserve")]
-	fn set_reserve(&self, esdt_token_name: &TokenIdentifier, reserve: &BigUint);
-
-	#[view(providerLiquidity)]
-	#[storage_get("provider_liquidity")]
-	fn get_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier) -> BigUint;
-
-	#[storage_set("provider_liquidity")]
-	fn set_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier, amount: &BigUint);
 }
