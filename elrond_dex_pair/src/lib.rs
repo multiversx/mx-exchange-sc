@@ -65,36 +65,37 @@ pub trait Pair {
 		require!(amount_a > 0, "Invalid tokens A amount specified");
 		require!(amount_b > 0, "Invalid tokens B amount specified");
 
+	#[endpoint(addLiquidity)]
+	fn add_liquidity_endpoint(&self) -> SCResult<()> {
 
-		let total_supply = self.supply().get_total_supply();
-		let reserve_a = self.get_reserve(&actual_token_a);
-		let reserve_b = self.get_reserve(&actual_token_b);
-		let liquidity: BigUint;
-		if total_supply == 0 {
-			liquidity = amount_a.clone() - BigUint::from(1000u64);
-        	self.supply()._mint( &Address::zero(), &BigUint::from(1000u64) ); // permanently lock the first MINIMUM_LIQUIDITY tokens 
-		} else {
-			liquidity = min((amount_a.clone() * total_supply.clone()) / reserve_a,
-						(amount_b.clone() * total_supply) / reserve_b);
-		}
+		let caller = self.get_caller();
+		let expected_token_a_name = self.liquidity_pool().get_token_a_name();
+		let expected_token_b_name = self.liquidity_pool().get_token_b_name();
+		let temporary_funds_amount_a = self.get_temporary_funds(&caller, &expected_token_a_name);
+		let temporary_funds_amount_b = self.get_temporary_funds(&caller, &expected_token_b_name);
 
-		require!(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_MINTED");
-		self.supply()._mint(&user_address, &liquidity);
-		self._update(amount_a, amount_b, expected_token_a_name, expected_token_b_name);
+		require!(temporary_funds_amount_a > 0, "PAIR: NO AVAILABLE TOKEN A FUNDS");
+		require!(temporary_funds_amount_b > 0, "PAIR: NO AVAILABLE TOKEN B FUNDS");
 		
+		let result = self.liquidity_pool().add_liquidity(
+			temporary_funds_amount_a,
+			temporary_funds_amount_b,
+		);
+
+		match result {
+			SCResult::Ok(()) => {
+				let caller = self.get_caller();
+				self.clear_temporary_funds(&caller, &expected_token_a_name);
+				self.clear_temporary_funds(&caller, &expected_token_b_name);
 		Ok(())
+			},
+			SCResult::Err(err) => {
+				// TODO: transfer temporary funds back to caller
+				sc_error!(err)
+	}
+	}
 	}
 
-	fn _update(&self, amount_a: BigUint, amount_b: BigUint, token_a: TokenIdentifier, token_b: TokenIdentifier) {
-		// TODO: Update prices if in new block
-		let mut reserve_a = self.get_reserve(&token_a);
-		let mut reserve_b = self.get_reserve(&token_b);
-		reserve_a += amount_a;
-		reserve_b += amount_b;
-
-		self.set_reserve(&token_a, &reserve_a);
-		self.set_reserve(&token_b, &reserve_b);
-	}
 
 	#[endpoint]
 	fn send_tokens_on_swap_success(&self,
