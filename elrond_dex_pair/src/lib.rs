@@ -4,15 +4,19 @@ imports!();
 derive_imports!();
 
 pub mod liquidity_supply;
+pub mod liquidity_pool;
 
 pub use crate::liquidity_supply::*;
-use core::cmp::min;
+pub use crate::liquidity_pool::*;
 
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
 
 	#[module(LiquiditySupplyModuleImpl)]
     fn supply(&self) -> LiquiditySupplyModuleImpl<T, BigInt, BigUint>;
+
+	#[module(LiquidityPoolModuleImpl)]
+    fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
 	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, router_address: Address) {
