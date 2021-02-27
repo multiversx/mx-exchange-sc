@@ -25,19 +25,26 @@ pub trait Pair {
 		self.set_router_address(&router_address);
 	}
 
-	// #[payable("*")]
-	// #[endpoint(acceptEsdtPayment)]
-	// fn accept_esdt_payment(
-	// 	&self,
-	// 	#[payment] esdt_value: BigUint,
-	// 	#[payment_token] actual_token_name: TokenIdentifier,
-	// 	caller: Address,
-	// ) -> SCResult<()> {
-	// 	let expected_token_name = self.get_contract_esdt_token_name();
-	// 	require!(actual_token_name == expected_token_name, "Wrong esdt token");
+	#[payable("*")]
+    #[endpoint(acceptEsdtPayment)]
+    fn accept_payment_endpoint(
+        &self,
+        #[payment_token] token: TokenIdentifier,
+		#[payment] payment: BigUint,
+    ) -> SCResult<()> {
+        require!(payment > 0, "PAIR: Funds transfer must be a positive number");
+        if token != self.liquidity_pool().get_token_a_name() && token != self.liquidity_pool().get_token_b_name() {
+            return sc_error!("PAIR: INVALID TOKEN");
+        }
 
-	// 	let mut provider_liquidity = self.get_provider_liquidity(&caller, &expected_token_name);
-	// 	provider_liquidity += esdt_value;
+        let caller = self.get_caller();
+        let mut temporary_funds = self.get_temporary_funds(&caller, &token);
+        temporary_funds += payment;
+        self.set_temporary_funds(&caller, &token, &temporary_funds);
+
+        Ok(())
+    }
+
 	#[endpoint]
 	fn update_liquidity_provider_storage(&self,
 		user_address: Address,
