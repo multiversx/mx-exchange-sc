@@ -8,32 +8,6 @@ pub use elrond_dex_factory_wasm as factory;
 
 pub use factory::factory::*;
 
-// const PAIR_CONTRACT_ADD_LIQUIDITY: &[u8] = b"acceptEsdtPayment";
-
-#[elrond_wasm_derive::callable(PairProxy)]
-pub trait Pair {
-	#[callback(get_reserves_callback)]
-	fn get_reserves_endpoint(&self,
-		#[callback_arg] action: Action<BigUint>) -> SCResult< MultiResult2<BigUint, BigUint> >;
-	
-	fn remove_liquidity(&self, user_address: Address,
-		actual_token_a_name: TokenIdentifier,
-		actual_token_b_name: TokenIdentifier) -> SCResult<()>;
-
-	fn update_liquidity_provider_storage(&self,
-		user_address: Address,
-		actual_token_a: TokenIdentifier,
-		actual_token_b: TokenIdentifier,
-		amount_a: BigUint,
-		amount_b: BigUint) -> SCResult<()>;
-
-	fn send_tokens_on_swap_success(&self,
-		address: Address,
-		token_in: TokenIdentifier,
-		amount_in: BigUint,
-		token_out: TokenIdentifier,
-		amount_out: BigUint) -> SCResult<()>;
-}
 
 #[elrond_wasm_derive::contract(RouteImpl)]
 pub trait Route {
