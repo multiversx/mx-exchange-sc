@@ -105,26 +105,25 @@ pub trait Pair {
 		token_out: TokenIdentifier,
 		amount_out: BigUint) -> SCResult<()> {
 
-		let caller = self.get_caller();
-		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
 		require!(amount_in > 0, "Invalid tokens amount specified");
 		require!(amount_out > 0, "Invalid tokens amount specified");
 
-		let expected_token_a_name = self.get_token_a_name();
-		let expected_token_b_name = self.get_token_b_name();
+		let expected_token_a_name = self.liquidity_pool().get_token_a_name();
+		let expected_token_b_name = self.liquidity_pool().get_token_b_name();
 		require!(token_in == expected_token_a_name, "Wrong token a identifier");
 		require!(token_out == expected_token_b_name, "Wrong token b identifier");
 
-		let mut reserve = self.get_reserve(&token_in);
-		reserve = reserve + amount_in;
-		self.set_reserve(&token_in, &reserve);
-
-		reserve = self.get_reserve(&token_out);
-		reserve = reserve - amount_out.clone();
-		self.set_reserve(&token_out, &reserve);
 
 		//TODO: Check if amount_out is available. If not, send back what was received.
 		self.send().direct_esdt(&address, token_out.as_slice(), &amount_out, &[]);
+
+		let mut reserve_a = self.liquidity_pool().get_pair_reserve(&token_in);
+		let mut reserve_b = self.liquidity_pool().get_pair_reserve(&token_out);
+		reserve_a += amount_in;
+		reserve_b -= amount_out;
+		self.liquidity_pool().set_pair_reserve(&token_in, &reserve_a);
+		self.liquidity_pool().set_pair_reserve(&token_out, &reserve_b);
+
 		Ok(())
 	}
 
