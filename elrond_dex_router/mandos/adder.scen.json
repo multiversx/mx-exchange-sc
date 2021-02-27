@@ -1,5 +1,5 @@
 {
-    "name": "elrond_dex_route",
+    "name": "elrond_dex_router",
     "comment": "add then check",
     "steps": [
         {
@@ -26,7 +26,7 @@
             "tx": {
                 "from": "address:owner",
                 "value": "0",
-                "contractCode": "file:../output/elrond_dex_route.wasm",
+                "contractCode": "file:../output/elrond_dex_router.wasm",
                 "arguments": [
                     "0x05"
                 ],
@@ -100,7 +100,7 @@
                     "storage": {
                         "``sum": "0x08"
                     },
-                    "code": "file:../output/elrond_dex_route.wasm"
+                    "code": "file:../output/elrond_dex_router.wasm"
                 }
             }
         }
