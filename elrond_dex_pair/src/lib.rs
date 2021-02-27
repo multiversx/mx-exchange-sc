@@ -19,7 +19,7 @@ pub trait Pair {
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
-	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, , router_address: Address) {
+	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, router_address: Address) {
 		self.liquidity_pool().set_token_a_name(&token_a_name);
 		self.liquidity_pool().set_token_b_name(&token_b_name);
 		self.set_router_address(&router_address);
@@ -44,26 +44,6 @@ pub trait Pair {
 
         Ok(())
     }
-
-	#[endpoint]
-	fn update_liquidity_provider_storage(&self,
-		user_address: Address,
-		actual_token_a: TokenIdentifier,
-		actual_token_b: TokenIdentifier,
-		amount_a: BigUint,
-		amount_b: BigUint) -> SCResult<()> {
-
-		let caller = self.get_caller();
-
-		// require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
-
-		let expected_token_a_name = self.get_token_a_name();
-		let expected_token_b_name = self.get_token_b_name();
-
-		require!(actual_token_a == expected_token_a_name, "Wrong token a identifier");
-		require!(actual_token_b == expected_token_b_name, "Wrong token b identifier");
-		require!(amount_a > 0, "Invalid tokens A amount specified");
-		require!(amount_b > 0, "Invalid tokens B amount specified");
 
 	#[endpoint(addLiquidity)]
 	fn add_liquidity_endpoint(&self) -> SCResult<()> {
@@ -92,8 +72,8 @@ pub trait Pair {
 			SCResult::Err(err) => {
 				// TODO: transfer temporary funds back to caller
 				sc_error!(err)
-	}
-	}
+			}
+		}
 	}
 
 
