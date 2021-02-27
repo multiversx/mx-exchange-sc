@@ -19,9 +19,9 @@ pub trait Pair {
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
-	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, router_address: Address) {
-		self.set_token_a_name(&token_a_name);
-		self.set_token_b_name(&token_b_name);
+	fn init(&self, token_a_name: TokenIdentifier, token_b_name: TokenIdentifier, , router_address: Address) {
+		self.liquidity_pool().set_token_a_name(&token_a_name);
+		self.liquidity_pool().set_token_b_name(&token_b_name);
 		self.set_router_address(&router_address);
 	}
 
