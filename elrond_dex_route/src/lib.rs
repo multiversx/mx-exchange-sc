@@ -3,10 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-mod action;
-use action::Action;
-// use elrond_wasm::HexCallDataSerializer;
-
 #[cfg(feature = "elrond_dex_factory-wasm")]
 pub use elrond_dex_factory_wasm as factory;
 
