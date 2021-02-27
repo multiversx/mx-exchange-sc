@@ -130,23 +130,23 @@ pub trait Pair {
 	#[endpoint]
 	fn remove_liquidity(&self, user_address: Address,
 		actual_token_a_name: TokenIdentifier,
-		actual_token_b_name: TokenIdentifier) -> SCResult<()> {
-		let caller = self.get_caller();
-		// require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
+		actual_token_b_name: TokenIdentifier,
+		liquidity: BigUint,
+		amount_a_min: BigUint,
+		amount_b_min: BigUint) -> SCResult<()> {
 
 		require!(
 			user_address != Address::zero(),
 			"Can't transfer to default address 0x0!"
 		);
-		let expected_token_a_name = self.get_token_a_name();
-		let expected_token_b_name = self.get_token_b_name();
+		let expected_token_a_name = self.liquidity_pool().get_token_a_name();
+		let expected_token_b_name = self.liquidity_pool().get_token_b_name();
 
 		require!(actual_token_a_name == expected_token_a_name, "Wrong token a identifier");
 		require!(actual_token_b_name == expected_token_b_name, "Wrong token b identifier");
 
-		let mut balance_a = self.get_reserve(&expected_token_a_name);
-		let mut balance_b = self.get_reserve(&expected_token_b_name);
-		let liquidity = self.supply().get_balance_of(&user_address);
+		let mut balance_a = self.liquidity_pool().get_pair_reserve(&expected_token_a_name);
+		let mut balance_b = self.liquidity_pool().get_pair_reserve(&expected_token_b_name);
 		let total_supply = self.supply().get_total_supply();
 
 		let amount_a = (liquidity.clone() * balance_a.clone()) / total_supply.clone();
@@ -154,6 +154,9 @@ pub trait Pair {
 
 		require!(&amount_a > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
 		require!(&amount_b > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		require!(&amount_a >= &amount_a_min, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		require!(&amount_b >= &amount_b_min, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+
 		
 		self.supply()._burn(&user_address, &liquidity);
 
@@ -163,38 +166,11 @@ pub trait Pair {
 		balance_a -= amount_a;
 		balance_b -= amount_b;
 
-		self._update(balance_a, balance_b, expected_token_a_name, expected_token_b_name);
+		self.liquidity_pool().set_pair_reserve(&expected_token_a_name, &balance_a);
+		self.liquidity_pool().set_pair_reserve(&expected_token_b_name, &balance_b);
 
 		Ok(())
 	}
-
-	#[view]
-	fn get_reserves_endpoint(&self) -> SCResult< MultiResult2<BigUint, BigUint> > {
-		let caller = self.get_caller();
-		require!(caller == self.get_router_address(), "Permission Denied: Only router has access");
-
-		let token_a_name = self.get_token_a_name();
-		let token_b_name = self.get_token_b_name();
-
-		let reserve_a = self.get_reserve(&token_a_name);
-		let reserve_b = self.get_reserve(&token_b_name);
-
-		Ok( (reserve_a, reserve_b).into() )
-	}
-
-
-	fn _update_provider_liquidity(&self, user_address: &Address, token_identifier: &TokenIdentifier, amount: BigUint) {
-		let mut provider_liquidity = self.get_provider_liquidity(user_address, token_identifier);
-		provider_liquidity += amount.clone();
-		self.set_provider_liquidity(user_address, token_identifier, &provider_liquidity);
-
-		let mut reserve = self.get_reserve(&token_identifier);
-		reserve += amount;
-		self.set_reserve(&token_identifier, &reserve);
-		
-
-	}
-
 
 	#[storage_get("router_address")]
 	fn get_router_address(&self) -> Address;
