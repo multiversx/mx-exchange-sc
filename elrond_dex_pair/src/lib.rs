@@ -164,13 +164,13 @@ pub trait Pair {
 		Ok(())
 	}
 
-    #[payable("EGLD")]
+    	#[payable("EGLD")]
 	#[endpoint(issueLpToken)]
 	fn issue_token(
 		&self,
 		tp_token_display_name: BoxedBytes,
 		tp_token_ticker: BoxedBytes,
-        #[payment] payment: BigUint
+		#[payment] payment: BigUint
 	) -> SCResult<()> {
 
 		if self.is_empty_lp_token_identifier() == false {
@@ -181,51 +181,51 @@ pub trait Pair {
 		}
 
 		let tp_token_initial_supply = BigUint::from(LP_TOKEN_INITIAL_SUPPLY);
-        let mut serializer = HexCallDataSerializer::new(ESDT_ISSUE_STRING);
-        serializer.push_argument_bytes(tp_token_display_name.as_slice());
-        serializer.push_argument_bytes(tp_token_ticker.as_slice());
-        serializer.push_argument_bytes(&tp_token_initial_supply.to_bytes_be());
-        serializer.push_argument_bytes(&[ESDT_DECIMALS]);
+		let mut serializer = HexCallDataSerializer::new(ESDT_ISSUE_STRING);
+		serializer.push_argument_bytes(tp_token_display_name.as_slice());
+		serializer.push_argument_bytes(tp_token_ticker.as_slice());
+		serializer.push_argument_bytes(&tp_token_initial_supply.to_bytes_be());
+		serializer.push_argument_bytes(&[ESDT_DECIMALS]);
 
-        serializer.push_argument_bytes(&b"canFreeze"[..]);
-        serializer.push_argument_bytes(&b"false"[..]);
+		serializer.push_argument_bytes(&b"canFreeze"[..]);
+		serializer.push_argument_bytes(&b"false"[..]);
 
-        serializer.push_argument_bytes(&b"canWipe"[..]);
-        serializer.push_argument_bytes(&b"false"[..]);
+		serializer.push_argument_bytes(&b"canWipe"[..]);
+		serializer.push_argument_bytes(&b"false"[..]);
 
-        serializer.push_argument_bytes(&b"canPause"[..]);
-        serializer.push_argument_bytes(&b"false"[..]);
+		serializer.push_argument_bytes(&b"canPause"[..]);
+		serializer.push_argument_bytes(&b"false"[..]);
 
-        serializer.push_argument_bytes(&b"canMint"[..]);
-        serializer.push_argument_bytes(&b"true"[..]);
+		serializer.push_argument_bytes(&b"canMint"[..]);
+		serializer.push_argument_bytes(&b"true"[..]);
 
-        serializer.push_argument_bytes(&b"canBurn"[..]);
-        serializer.push_argument_bytes(&b"true"[..]);
+		serializer.push_argument_bytes(&b"canBurn"[..]);
+		serializer.push_argument_bytes(&b"true"[..]);
 
-        serializer.push_argument_bytes(&b"canChangeOwner"[..]);
-        serializer.push_argument_bytes(&b"false"[..]);
+		serializer.push_argument_bytes(&b"canChangeOwner"[..]);
+		serializer.push_argument_bytes(&b"false"[..]);
 
-        serializer.push_argument_bytes(&b"canUpgrade"[..]);
-        serializer.push_argument_bytes(&b"true"[..]);
+		serializer.push_argument_bytes(&b"canUpgrade"[..]);
+		serializer.push_argument_bytes(&b"true"[..]);
 
 		self.send().async_call_raw(
-            &Address::from(ESDT_SYSTEM_SC_ADDRESS_ARRAY),
-            &BigUint::from(ESDT_ISSUE_COST),
-            serializer.as_slice(),
-        );
+		    &Address::from(ESDT_SYSTEM_SC_ADDRESS_ARRAY),
+		    &BigUint::from(ESDT_ISSUE_COST),
+		    serializer.as_slice(),
+		);
 	}
 
-    #[callback_raw]
-    fn callback_raw(&self, #[var_args] result: AsyncCallResult<VarArgs<BoxedBytes>>) {
-        let success = match result {
-            AsyncCallResult::Ok(_) => true,
-            AsyncCallResult::Err(_) => false,
-        };
+	#[callback_raw]
+	fn callback_raw(&self, #[var_args] result: AsyncCallResult<VarArgs<BoxedBytes>>) {
+		let success = match result {
+		    AsyncCallResult::Ok(_) => true,
+		    AsyncCallResult::Err(_) => false,
+		};
 
-        if success && self.is_empty_lp_token_identifier() {
+		if success && self.is_empty_lp_token_identifier() {
 			self.set_lp_token_identifier(&self.call_value().token());
-        }
-    }
+		}
+	}
 
     // Temporary Storage
 	#[view(getTemporaryFunds)]
