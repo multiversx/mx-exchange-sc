@@ -7,7 +7,6 @@ elrond_wasm::derive_imports!();
 pub use elrond_dex_factory_wasm as factory;
 
 pub use factory::factory::*;
-use elrond_wasm::TokenIdentifier;
 
 #[elrond_wasm_derive::contract(RouterImpl)]
 pub trait Router {

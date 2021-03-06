@@ -9,6 +9,18 @@ pub mod liquidity_pool;
 pub use crate::liquidity_supply::*;
 pub use crate::liquidity_pool::*;
 
+use elrond_wasm::HexCallDataSerializer;
+
+const ESDT_DECIMALS: u8 = 18;
+const ESDT_ISSUE_STRING: &[u8] = b"issue";
+const ESDT_ISSUE_COST: u64 = 5000000000000000000; // 5 eGLD
+const LP_TOKEN_INITIAL_SUPPLY: u64 = ESDT_ISSUE_COST; //Can be any u64 != 0
+// erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
+const ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] = [
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xff,
+];
+
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
 
@@ -95,7 +107,7 @@ pub trait Pair {
 
 
 		//TODO: Check if amount_out is available. If not, send back what was received.
-		self.send().direct_esdt(&address, token_out.as_slice(), &amount_out, &[]);
+		self.send().direct_esdt_via_transf_exec(&address, token_out.as_slice(), &amount_out, &[]);
 
 		let mut reserve_a = self.liquidity_pool().get_pair_reserve(&token_in);
 		let mut reserve_b = self.liquidity_pool().get_pair_reserve(&token_out);
@@ -140,8 +152,8 @@ pub trait Pair {
 		
 		self.supply()._burn(&user_address, &liquidity);
 
-		self.send().direct_esdt(&user_address, expected_token_a_name.as_slice(), &amount_a, &[]);
-		self.send().direct_esdt(&user_address, expected_token_b_name.as_slice(), &amount_b, &[]);
+		self.send().direct_esdt_via_transf_exec(&user_address, expected_token_a_name.as_slice(), &amount_a, &[]);
+		self.send().direct_esdt_via_transf_exec(&user_address, expected_token_b_name.as_slice(), &amount_b, &[]);
 
 		balance_a -= amount_a;
 		balance_b -= amount_b;
@@ -152,11 +164,68 @@ pub trait Pair {
 		Ok(())
 	}
 
-	#[storage_get("router_address")]
-	fn get_router_address(&self) -> Address;
+    #[payable("EGLD")]
+	#[endpoint(issueLpToken)]
+	fn issue_token(
+		&self,
+		tp_token_display_name: BoxedBytes,
+		tp_token_ticker: BoxedBytes,
+        #[payment] payment: BigUint
+	) -> SCResult<()> {
 
-	#[storage_set("router_address")]
-	fn set_router_address(&self, router_address: &Address);
+		if self.is_empty_lp_token_identifier() == false {
+			return sc_error!("Already issued");
+		}
+		if payment != BigUint::from(ESDT_ISSUE_COST) {
+			return sc_error!("Should pay exactly 5 EGLD");
+		}
+
+		let tp_token_initial_supply = BigUint::from(LP_TOKEN_INITIAL_SUPPLY);
+        let mut serializer = HexCallDataSerializer::new(ESDT_ISSUE_STRING);
+        serializer.push_argument_bytes(tp_token_display_name.as_slice());
+        serializer.push_argument_bytes(tp_token_ticker.as_slice());
+        serializer.push_argument_bytes(&tp_token_initial_supply.to_bytes_be());
+        serializer.push_argument_bytes(&[ESDT_DECIMALS]);
+
+        serializer.push_argument_bytes(&b"canFreeze"[..]);
+        serializer.push_argument_bytes(&b"false"[..]);
+
+        serializer.push_argument_bytes(&b"canWipe"[..]);
+        serializer.push_argument_bytes(&b"false"[..]);
+
+        serializer.push_argument_bytes(&b"canPause"[..]);
+        serializer.push_argument_bytes(&b"false"[..]);
+
+        serializer.push_argument_bytes(&b"canMint"[..]);
+        serializer.push_argument_bytes(&b"true"[..]);
+
+        serializer.push_argument_bytes(&b"canBurn"[..]);
+        serializer.push_argument_bytes(&b"true"[..]);
+
+        serializer.push_argument_bytes(&b"canChangeOwner"[..]);
+        serializer.push_argument_bytes(&b"false"[..]);
+
+        serializer.push_argument_bytes(&b"canUpgrade"[..]);
+        serializer.push_argument_bytes(&b"true"[..]);
+
+		self.send().async_call_raw(
+            &Address::from(ESDT_SYSTEM_SC_ADDRESS_ARRAY),
+            &BigUint::from(ESDT_ISSUE_COST),
+            serializer.as_slice(),
+        );
+	}
+
+    #[callback_raw]
+    fn callback_raw(&self, #[var_args] result: AsyncCallResult<VarArgs<BoxedBytes>>) {
+        let success = match result {
+            AsyncCallResult::Ok(_) => true,
+            AsyncCallResult::Err(_) => false,
+        };
+
+        if success && self.is_empty_lp_token_identifier() {
+			self.set_lp_token_identifier(&self.call_value().token());
+        }
+    }
 
     // Temporary Storage
 	#[view(getTemporaryFunds)]
@@ -169,4 +238,21 @@ pub trait Pair {
 	#[storage_clear("funds")]
 	fn clear_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier);
 
+
+	#[view(getLpTokenIdentifier)]
+	#[storage_get("lpTokenIdentifier")]
+	fn get_lp_token_identifier(&self) -> TokenIdentifier;
+
+	#[storage_set("lpTokenIdentifier")]
+	fn set_lp_token_identifier(&self, token_identifier: &TokenIdentifier);
+
+	#[storage_is_empty("lpTokenIdentifier")]
+	fn is_empty_lp_token_identifier(&self) -> bool;
+
+
+	#[storage_get("router_address")]
+	fn get_router_address(&self) -> Address;
+
+	#[storage_set("router_address")]
+	fn set_router_address(&self, address: &Address);
 }
