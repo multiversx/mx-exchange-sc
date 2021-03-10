@@ -9,20 +9,17 @@ publish = false
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = [ "elrond-wasm-node", "elrond_dex_factory-wasm"]
-
-[dependencies]
-elrond_dex_factory-wasm = { package = "elrond_dex_factory", path="../elrond_dex_factory", features = ["wasm-output-mode"], optional = true }
+wasm-output-mode = ["elrond-wasm-node"]
 
 [dependencies.elrond-wasm]
-version = "0.11.0"
+version = "0.12.0"
 
 [dependencies.elrond-wasm-derive]
-version = "0.11.0"
+version = "0.12.0"
 
 [dependencies.elrond-wasm-node]
-version = "0.11.0"
+version = "0.12.0"
 optional = true
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.11.0"
+version = "0.12.0"
