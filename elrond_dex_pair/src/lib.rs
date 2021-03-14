@@ -103,14 +103,6 @@ pub trait Pair {
 				amount_b = amounts.1;
 			},
 			SCResult::Err(err) => {
-				self.send().direct_esdt_via_transf_exec(&caller, expected_token_a_name.as_slice(), &amount_a_desired, &[]);
-				self.send().direct_esdt_via_transf_exec(&caller, expected_token_b_name.as_slice(), &amount_b_desired, &[]);
-
-				temporary_amount_a_desired -= amount_a_desired;
-				temporary_amount_b_desired -= amount_b_desired;
-				self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
-				self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
-
 				return sc_error!(err);
 			},
 		};
@@ -133,25 +125,12 @@ pub trait Pair {
 				total_supply += liquidity.clone();
 				self.liquidity_pool().set_total_supply(&total_supply);
 
-				let mut balance_of = self.liquidity_pool().get_balance_of(&caller);
-				balance_of += liquidity;
-				self.liquidity_pool().set_balance_of(&caller, &balance_of);
-
 				temporary_amount_a_desired -= amount_a;
 				temporary_amount_b_desired -= amount_b;
 				self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
 				self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
 			},
 			SCResult::Err(err) => {
-				// TODO: transfer temporary funds back to caller
-				self.send().direct_esdt_via_transf_exec(&caller, expected_token_a_name.as_slice(), &amount_a_desired, &[]);
-				self.send().direct_esdt_via_transf_exec(&caller, expected_token_b_name.as_slice(), &amount_b_desired, &[]);
-
-				temporary_amount_a_desired -= amount_a_desired;
-				temporary_amount_b_desired -= amount_b_desired;
-				self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
-				self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
-
 				return sc_error!(err);
 			}
 		};
@@ -169,9 +148,11 @@ pub trait Pair {
 		
 		if amount_a > 0 {
 			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_slice(), &amount_a, &[]);
+			self.clear_temporary_funds(&caller, &token_a);
 		}
 		if amount_b > 0 {
 			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_slice(), &amount_b, &[]);
+			self.clear_temporary_funds(&caller, &token_b);
 		}
 
 		Ok(())
@@ -208,14 +189,8 @@ pub trait Pair {
 				let mut total_supply = self.liquidity_pool().get_total_supply();
 				total_supply -= liquidity.clone();
 				self.liquidity_pool().set_total_supply(&total_supply);
-
-				let mut balance_of = self.liquidity_pool().get_balance_of(&caller);
-				balance_of -= liquidity;
-				self.liquidity_pool().set_balance_of(&caller, &balance_of);
 			},
 			SCResult::Err(err) => {
-				// TODO: Transfer LP Tokens back to caller
-				self.send().direct_esdt_via_transf_exec(&caller, expected_liquidity_token.as_slice(), &liquidity, &[]);
 				return sc_error!(err);
 			}
 		}
