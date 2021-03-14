@@ -1,0 +1,176 @@
+{
+	"name": "swap fixed output",
+	"steps": [
+		{
+			"step": "setState",
+			"accounts": {
+				"address:user": {
+					"nonce": "3",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "3,000,000,000",
+						"str:BLC-abcdef": "3,000,000,000"
+					},
+					"storage": {}
+				},
+				"address:contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "4,000,000,000",
+						"str:BLC-abcdef": "4,000,000,000"
+					},
+					"storage": {
+						"str:token_a_name": "str:ALC-abcdef",
+						"str:token_b_name": "str:BLC-abcdef",
+						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"0x726573657276650000000a414c432d616263646566": "4,000,000,000",
+						"0x726573657276650000000a424c432d616263646566": "4,000,000,000"
+					},
+					"code": "file:../output/elrond_dex_pair.wasm"
+				}
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "swap-tokens-fixed-output",
+			"tx": {
+				"from": "address:user",
+				"to": "address:contract",
+				"value": "0",
+				"esdtTokenName": "str:ALC-abcdef",
+				"esdtValue": "160,000",
+				"function": "swapTokensFixedOutput",
+				"arguments": [
+					"str:BLC-abcdef",
+					"100,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user": {
+					"nonce": "4",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "2,999,899,696",
+						"str:BLC-abcdef": "3,000,100,000"
+					},
+					"storage": {}
+				},
+				"address:contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "4,000,100,304",
+						"str:BLC-abcdef": "3,999,900,000"
+					},
+					"storage": {
+						"str:token_a_name": "str:ALC-abcdef",
+						"str:token_b_name": "str:BLC-abcdef",
+						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"0x726573657276650000000a414c432d616263646566": "4,000,100,304",
+						"0x726573657276650000000a424c432d616263646566": "3,999,900,000"
+					},
+					"code": "file:../output/elrond_dex_pair.wasm"
+				}
+			}
+		},
+		{
+			"step": "setState",
+			"accounts": {
+				"address:user": {
+					"nonce": "3",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "3,000,000,000",
+						"str:BLC-abcdef": "3,000,000,000"
+					},
+					"storage": {}
+				},
+				"address:contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "4,000,000,000",
+						"str:BLC-abcdef": "4,000,000,000"
+					},
+					"storage": {
+						"str:token_a_name": "str:ALC-abcdef",
+						"str:token_b_name": "str:BLC-abcdef",
+						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"0x726573657276650000000a414c432d616263646566": "4,000,000,000",
+						"0x726573657276650000000a424c432d616263646566": "4,000,000,000",
+						"str:fee_on": "true"
+					},
+					"code": "file:../output/elrond_dex_pair.wasm"
+				}
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "swap-tokens-fixed-output",
+			"tx": {
+				"from": "address:user",
+				"to": "address:contract",
+				"value": "0",
+				"esdtTokenName": "str:ALC-abcdef",
+				"esdtValue": "160,000",
+				"function": "swapTokensFixedOutput",
+				"arguments": [
+					"str:BLC-abcdef",
+					"100,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user": {
+					"nonce": "4",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "2,999,899,696",
+						"str:BLC-abcdef": "3,000,100,000"
+					},
+					"storage": {}
+				},
+				"address:contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "4,000,100,304",
+						"str:BLC-abcdef": "3,999,900,000"
+					},
+					"storage": {
+						"str:token_a_name": "str:ALC-abcdef",
+						"str:token_b_name": "str:BLC-abcdef",
+						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"0x726573657276650000000a414c432d616263646566": "4,000,100,204",
+						"0x726573657276650000000a424c432d616263646566": "3,999,900,000",
+						"0x666565526573657276650000000a414c432d616263646566": "100",
+						"str:fee_on": "true"
+					},
+					"code": "file:../output/elrond_dex_pair.wasm"
+				}
+			}
+		}
+	]
+}
