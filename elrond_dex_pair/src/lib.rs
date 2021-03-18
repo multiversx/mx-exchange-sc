@@ -5,9 +5,11 @@ derive_imports!();
 
 pub mod liquidity_pool;
 pub mod library;
+pub mod fee;
 
 pub use crate::liquidity_pool::*;
 pub use crate::library::*;
+pub use crate::fee::*;
 
 use elrond_wasm::HexCallDataSerializer;
 
@@ -30,6 +32,9 @@ pub trait Pair {
 	#[module(LibraryModuleImpl)]
 	fn library(&self) -> LibraryModuleImpl<T, BigInt, BigUint>;
 
+	#[module(FeeModuleImpl)]
+	fn fee(&self) -> FeeModuleImpl<T, BigInt, BigUint>;
+
 	#[init]
 	fn init(
 		&self,
@@ -41,9 +46,7 @@ pub trait Pair {
 		self.liquidity_pool().set_token_a_name(&token_a_name);
 		self.liquidity_pool().set_token_b_name(&token_b_name);
 
-		self.set_fee_on(false);
-		self.set_fee_reserve(&token_a_name, &BigUint::from(0u64));
-		self.set_fee_reserve(&token_b_name, &BigUint::from(0u64));
+		self.fee().set_state(false);
 	}
 
 	#[payable("*")]
@@ -229,20 +232,23 @@ pub trait Pair {
 
 		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_slice(), &amount_out_optimal, &[]);
 
+		let mut fee_amount = BigUint::zero();
 		let mut amount_in_after_fee = amount_in.clone();
-		if self.get_fee_on() {
-			let fee = self.library().get_fee_fixed_input(amount_in.clone());
-			let mut fee_amount = self.get_fee_reserve(&token_in);
-
-			fee_amount += fee.clone();
-			self.set_fee_reserve(&token_in, &fee_amount);
-			amount_in_after_fee -= fee;
+		if self.fee().get_state() {
+			fee_amount = self.library().get_fee_fixed_input(amount_in.clone());
+			amount_in_after_fee -= fee_amount.clone();
 		}
 
 		balance_token_in += amount_in_after_fee;
 		balance_token_out -= amount_out_optimal;
+
 		self.liquidity_pool().set_pair_reserve(&token_in, &balance_token_in);
 		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
+
+		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
+		if self.fee().get_state() {
+			self.send_fee(token_in, fee_amount);
+		}
 
 		Ok(())
 	}
@@ -283,20 +289,22 @@ pub trait Pair {
 			self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_in.as_slice(), &residuum, &[]);
 		}
 
+		let mut fee_amount = BigUint::zero();
 		let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
-		if self.get_fee_on() {
-			let fee = self.library().get_fee_optimal_input(amount_in_optimal.clone());
-			let mut fee_amount = self.get_fee_reserve(&token_in);
-
-			fee_amount += fee.clone();
-			self.set_fee_reserve(&token_in, &fee_amount);
-			amount_in_optimal_after_fee -= fee;
+		if self.fee().get_state() {
+			fee_amount = self.library().get_fee_optimal_input(amount_in_optimal.clone());
+			amount_in_optimal_after_fee -= fee_amount.clone();
 		}
 
 		balance_token_in += amount_in_optimal_after_fee;
 		balance_token_out -= amount_out;
 		self.liquidity_pool().set_pair_reserve(&token_in, &balance_token_in);
 		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
+
+		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
+		if self.fee().get_state() {
+			self.send_fee(token_in, fee_amount);
+		}
 
 		Ok(())
 	}
@@ -352,6 +360,23 @@ pub trait Pair {
 		);
 	}
 
+	#[endpoint]
+	fn set_fee_on_endpoint(
+		&self, 
+		enabled: bool, 
+		fee_to_address: Address, 
+		fee_to_function: BoxedBytes,
+		fee_token: TokenIdentifier
+	) {
+		if self.get_caller() == self.get_router_address() {
+			self.fee().set_state(enabled);
+			self.fee().set_address(&fee_to_address);
+			self.fee().set_function(&fee_to_function);
+			self.fee().set_token_identifier(&fee_token);
+		}
+	}
+
+
 	#[callback_raw]
 	fn callback_raw(&self, #[var_args] result: AsyncCallResult<VarArgs<BoxedBytes>>) {
 		let success = match result {
@@ -364,11 +389,82 @@ pub trait Pair {
 		}
 	}
 
-	#[endpoint]
-	fn set_fee_on_endpoint(&self, enabled: bool) {
-		if self.get_caller() == self.get_router_address() {
-			self.set_fee_on(enabled);
+	fn send_fee(
+		&self, 
+		fee_token: TokenIdentifier, 
+		fee_amount: BigUint
+	) {
+		if fee_amount == BigUint::zero() {
+			return;
 		}
+
+		let fee_token_requested = self.fee().get_token_identifier();
+		let token_a = self.liquidity_pool().get_token_a_name();
+		let token_b = self.liquidity_pool().get_token_b_name();
+		let mut to_send = BigUint::zero();
+
+		if fee_token_requested == fee_token  {
+			// Luckily no conversion is required.
+			to_send = fee_amount.clone();
+		}
+		else if fee_token_requested == token_a && fee_token == token_b {
+			// Fees are in form of token_b. Need to convert them to token_a.
+			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
+			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
+			let tmp = (balance_token_b.clone(), balance_token_a.clone());
+			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+
+			if balance_token_a > fee_amount_swap && fee_amount_swap > BigUint::zero() {
+				//There are enough tokens for swapping.
+				balance_token_a -= fee_amount_swap.clone();
+				balance_token_b += fee_amount.clone();
+				self.liquidity_pool().set_pair_reserve(&token_a, &balance_token_a);
+				self.liquidity_pool().set_pair_reserve(&token_b, &balance_token_b);
+				to_send = fee_amount_swap;
+			}
+		}
+		else if fee_token_requested == token_b && fee_token == token_a {
+			// Fees are in form of token_a. Need to convert them to token_b.
+			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
+			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
+			let tmp = (balance_token_a.clone(), balance_token_b.clone());
+			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+
+			if balance_token_b > fee_amount_swap && fee_amount_swap > BigUint::zero() {
+				//There are enough tokens for swapping.
+				balance_token_b -= fee_amount_swap.clone();
+				balance_token_a += fee_amount.clone();
+				self.liquidity_pool().set_pair_reserve(&token_a, &balance_token_a);
+				self.liquidity_pool().set_pair_reserve(&token_b, &balance_token_b);
+				to_send = fee_amount_swap;
+			}
+		}
+
+		if to_send > BigUint::zero() {
+			self.send().direct_esdt_execute(
+				&self.fee().get_address(),
+				self.fee().get_token_identifier().as_slice(),
+				&to_send,
+				self.get_gas_left(),
+				&self.fee().get_function().as_slice(),
+				&ArgBuffer::new()
+			);
+		}
+		else {
+			// Either swap failed or requested token identifier differs from both token_a and token_b.
+			// Reinject them into liquidity pool.
+			let mut reserve = self.liquidity_pool().get_pair_reserve(&fee_token);
+			reserve += fee_amount;
+			self.liquidity_pool().set_pair_reserve(&fee_token, &reserve);
+		}
+	}
+
+	#[view]
+	fn get_tokens_for_given_position(
+		&self, 
+		liquidity: BigUint
+	) -> SCResult<((TokenIdentifier, BigUint), (TokenIdentifier, BigUint))> {
+		Ok(self.liquidity_pool().get_tokens_for_given_position(liquidity))
 	}
 
 	// Temporary Storage
@@ -393,24 +489,10 @@ pub trait Pair {
 	#[storage_is_empty("lpTokenIdentifier")]
 	fn is_empty_lp_token_identifier(&self) -> bool;
 
+	#[view(getRouterAddress)]
 	#[storage_get("router_address")]
 	fn get_router_address(&self) -> Address;
 
 	#[storage_set("router_address")]
 	fn set_router_address(&self, address: &Address);
-
-
-	#[view(getFeeOn)]
-	#[storage_get("fee_on")]
-	fn get_fee_on(&self) -> bool;
-
-	#[storage_set("fee_on")]
-	fn set_fee_on(&self, enabled: bool);
-
-	#[view(getFeeReserve)]
-	#[storage_get("feeReserve")]
-	fn get_fee_reserve(&self, token: &TokenIdentifier) -> BigUint;
-
-	#[storage_set("feeReserve")]
-	fn set_fee_reserve(&self, token: &TokenIdentifier, balance: &BigUint);
 }
