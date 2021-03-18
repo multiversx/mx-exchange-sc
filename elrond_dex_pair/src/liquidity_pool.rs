@@ -103,6 +103,23 @@ pub trait LiquidityPoolModule {
 		}
 	}
 
+	fn get_tokens_for_given_position(
+		&self,
+		liquidity: BigUint
+	) -> ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint)) {
+		let token_a = self.get_token_a_name();
+		let token_b = self.get_token_b_name();
+		let reserve_a = self.get_pair_reserve(&token_a);
+		let reserve_b = self.get_pair_reserve(&token_b);
+
+		let total_supply = self.get_total_supply();
+
+		let amount_a = (liquidity.clone() * reserve_a.clone()) / total_supply.clone();
+		let amount_b = (liquidity.clone() * reserve_b.clone()) / total_supply;
+
+		((token_a, amount_a), (token_b, amount_b))
+	}
+
 	#[storage_get("token_a_name")]
 	fn get_token_a_name(&self) -> TokenIdentifier;
 
