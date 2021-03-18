@@ -97,6 +97,17 @@
 					},
 					"storage": {}
 				},
+				"address:staking_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:BLC-abcdef": "0"
+					},
+					"storage": {
+						"str:wegld_token_identifier": "str:ALC-abcdef"
+					},
+					"code": "file:../../elrond_dex_staking/output/elrond_dex_staking.wasm"
+				},
 				"address:contract": {
 					"nonce": "0",
 					"balance": "0",
@@ -110,7 +121,10 @@
 						"str:lpTokenIdentifier": "str:CLC-abcdef",
 						"0x726573657276650000000a414c432d616263646566": "4,000,000,000",
 						"0x726573657276650000000a424c432d616263646566": "4,000,000,000",
-						"str:fee_on": "true"
+						"str:fee_on": "true",
+						"str:fee_to_address": "address:staking_contract",
+						"str:fee_to_function": "str:acceptEsdtFees",
+						"str:fee_token_identifier": "str:BLC-abcdef"
 					},
 					"code": "file:../output/elrond_dex_pair.wasm"
 				}
@@ -152,21 +166,34 @@
 					},
 					"storage": {}
 				},
+				"address:staking_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:BLC-abcdef": "99"
+					},
+					"storage": {
+						"str:wegld_token_identifier": "str:ALC-abcdef"
+					},
+					"code": "file:../../elrond_dex_staking/output/elrond_dex_staking.wasm"
+				},
 				"address:contract": {
 					"nonce": "0",
 					"balance": "0",
 					"esdt": {
 						"str:ALC-abcdef": "4,000,100,000",
-						"str:BLC-abcdef": "3,999,900,303"
+						"str:BLC-abcdef": "3,999,900,204"
 					},
 					"storage": {
 						"str:token_a_name": "str:ALC-abcdef",
 						"str:token_b_name": "str:BLC-abcdef",
 						"str:lpTokenIdentifier": "str:CLC-abcdef",
-						"0x726573657276650000000a414c432d616263646566": "4,000,099,900",
-						"0x726573657276650000000a424c432d616263646566": "3,999,900,303",
-						"0x666565526573657276650000000a414c432d616263646566": "100",
-						"str:fee_on": "true"
+						"0x726573657276650000000a414c432d616263646566": "4,000,100,000",
+						"0x726573657276650000000a424c432d616263646566": "3,999,900,204",
+						"str:fee_on": "true",
+						"str:fee_to_address": "address:staking_contract",
+						"str:fee_to_function": "str:acceptEsdtFees",
+						"str:fee_token_identifier": "str:BLC-abcdef"
 					},
 					"code": "file:../output/elrond_dex_pair.wasm"
 				}
