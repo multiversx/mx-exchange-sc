@@ -1,9 +1,6 @@
 [package]
-name = "elrond_dex_staking"
-version = "0.0.1"
-authors = [ "you",]
-edition = "2018"
-publish = false
+name = "elrond_dex_staking-wasm"
+version = "0.0.0"
 
 [lib]
 crate-type = [ "cdylib",]
