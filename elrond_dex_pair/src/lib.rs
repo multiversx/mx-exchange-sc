@@ -87,68 +87,54 @@ pub trait Pair {
 		require!(amount_a_desired <= temporary_amount_a_desired, "PAIR: INSSUFICIENT TOKEN A FUNDS TO ADD");
 		require!(amount_b_desired <= temporary_amount_b_desired, "PAIR: INSSUFICIENT TOKEN B FUNDS TO ADD");
 
-		let amount_a: BigUint;
-		let amount_b: BigUint;
-		let result = self.liquidity_pool()._add_liquidity(amount_a_desired.clone(), amount_b_desired.clone(), amount_a_min, amount_b_min);
+		let amounts = sc_try!(
+			self.liquidity_pool()._add_liquidity(
+				amount_a_desired.clone(), 
+				amount_b_desired.clone(), 
+				amount_a_min, 
+				amount_b_min
+			)
+		);
+		let amount_a = amounts.0;
+		let amount_b = amounts.1;
 
-		match result {
-			SCResult::Ok(amounts) => {
-				amount_a = amounts.0;
-				amount_b = amounts.1;
-			},
-			SCResult::Err(err) => {
-				return sc_error!(err);
-			},
-		};
-
-		let result = self.liquidity_pool().mint(
-			amount_a.clone(),
-			amount_b.clone(),
+		let liquidity = sc_try!(self.liquidity_pool().mint(amount_a.clone(), amount_b.clone()));
+		self.send().direct_esdt_via_transf_exec(
+			&self.get_caller(),
+			self.lp_token_identifier().get().as_esdt_identifier(),
+			&liquidity,
+			&[]
 		);
 
-		match result {
-			SCResult::Ok(liquidity) => {
-				self.send().direct_esdt_via_transf_exec(
-					&self.get_caller(),
-					self.lp_token_identifier().get().as_esdt_identifier(),
-					&liquidity,
-					&[],
-				);
+		let mut total_supply = self.liquidity_pool().total_supply().get();
+		total_supply += liquidity.clone();
+		self.liquidity_pool().total_supply().set(&total_supply);
 
-				let mut total_supply = self.liquidity_pool().total_supply().get();
-				total_supply += liquidity.clone();
-				self.liquidity_pool().total_supply().set(&total_supply);
+		temporary_amount_a_desired -= amount_a;
+		temporary_amount_b_desired -= amount_b;
+		self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
+		self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
 
-				temporary_amount_a_desired -= amount_a;
-				temporary_amount_b_desired -= amount_b;
-				self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
-				self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
-			},
-			SCResult::Err(err) => {
-				return sc_error!(err);
-			}
-		};
 		Ok(())
+	}
+
+	fn reclaim_temporary_token(&self, token: &TokenIdentifier) {
+		let caller = self.get_caller();
+		let amount = self.get_temporary_funds(&caller, token);
+		if amount > 0 {
+			self.send().direct_esdt_via_transf_exec(&caller, token.as_esdt_identifier(), &amount, &[]);
+			self.clear_temporary_funds(&caller, token);
+		}
 	}
 
 	#[endpoint(reclaimTemporaryFunds)]
 	fn reclaim_temporary_funds(&self) -> SCResult<()> {
-
-		let caller = self.get_caller();
-		let token_a = self.liquidity_pool().token_a_name().get();
-		let token_b = self.liquidity_pool().token_b_name().get();
-		let amount_a = self.get_temporary_funds(&caller, &token_a);
-		let amount_b = self.get_temporary_funds(&caller, &token_b);
-		
-		if amount_a > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
-			self.clear_temporary_funds(&caller, &token_a);
-		}
-		if amount_b > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
-			self.clear_temporary_funds(&caller, &token_b);
-		}
-
+		self.reclaim_temporary_token(
+			&self.liquidity_pool().token_a_name().get()
+		);
+		self.reclaim_temporary_token(
+			&self.liquidity_pool().token_b_name().get()
+		);
 		Ok(())
 	}
 
@@ -169,25 +155,18 @@ pub trait Pair {
 		let expected_liquidity_token = self.lp_token_identifier().get();
 		require!(liquidity_token == expected_liquidity_token, "PAIR: Wrong liquidity token");
 		
-		let result = self.liquidity_pool().burn(liquidity.clone(), amount_a_min, amount_b_min);
-		
-		match result {
-			SCResult::Ok(amounts) => {
-				let token_a = self.liquidity_pool().token_a_name().get();
-				let token_b = self.liquidity_pool().token_b_name().get();
-				let (amount_a, amount_b) = amounts;
+		let amounts = sc_try!(self.liquidity_pool().burn(liquidity.clone(), amount_a_min, amount_b_min));
+		let amount_a = amounts.0;
+		let amount_b = amounts.1;
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let mut total_supply = self.liquidity_pool().total_supply().get();
+		total_supply -= liquidity.clone();
 
-				self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
-				self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
+		self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
+		self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
+		self.liquidity_pool().total_supply().set(&total_supply);
 
-				let mut total_supply = self.liquidity_pool().total_supply().get();
-				total_supply -= liquidity.clone();
-				self.liquidity_pool().total_supply().set(&total_supply);
-			},
-			SCResult::Err(err) => {
-				return sc_error!(err);
-			}
-		}
 		Ok(())
 	}
 
