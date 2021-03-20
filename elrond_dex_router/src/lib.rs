@@ -34,7 +34,7 @@ pub trait Router {
 		require!(token_a != token_b, "Identical tokens");
 		require!(token_a.is_esdt(), "Only esdt tokens allowed");
 		require!(token_b.is_esdt(), "Only esdt tokens allowed");
-		let existent_pair = self.factory().pair_map_contains_key((token_a.clone(), token_b.clone()));
+		let existent_pair = self.factory().pair_map().contains_key(&(token_a.clone(), token_b.clone()));
 		require!(existent_pair == false, "Pair already existent");
 		Ok(self.factory().create_pair(&token_a, &token_b))
 	}
@@ -46,25 +46,27 @@ pub trait Router {
 		staking_token: TokenIdentifier
 	) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
-		self.set_staking_address(&staking_address);
-		self.set_staking_token(&staking_token);
+		self.staking_address().set(&staking_address);
+		self.staking_token().set(&staking_token);
+		Ok(())
+	}
+
+	fn check_is_pair_sc(&self, pair_address: &Address) -> SCResult<()> {
+		require!(
+			self.factory()
+				.pair_map()
+				.values()
+				.any(|address| &address == pair_address),
+			"Not a pair SC"
+		);
 		Ok(())
 	}
 
 	#[endpoint(upgradePair)]
 	fn upgrade_pair(&self, pair_address: Address) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
+		sc_try!(self.check_is_pair_sc(&pair_address));
 
-		let addresses = self.factory().pair_map_values();
-		let mut found = false;
-		for address in addresses.0.into_iter() {
-			if address == pair_address {
-				found = true;
-				break;
-			}
-		}
-
-		require!(found == true, "Not a pair SC");
 		self.factory().upgrade_pair(&pair_address);
 		Ok(())
 	}
@@ -72,19 +74,10 @@ pub trait Router {
 	#[endpoint(setFeeOn)]
 	fn set_fee_on(&self, pair_address: Address) -> SCResult<AsyncCall<BigUint>> {
 		only_owner!(self, "Permission denied");
+		sc_try!(self.check_is_pair_sc(&pair_address));
 
-		let addresses = self.factory().pair_map_values();
-		let mut found = false;
-		for address in addresses.0.into_iter() {
-			if address == pair_address {
-				found = true;
-				break;
-			}
-		}
-
-		require!(found == true, "Not a pair SC");
-		let staking_token = self.get_staking_token();
-		let staking_address = self.get_staking_address();
+		let staking_token = self.staking_token().get();
+		let staking_address = self.staking_address().get();
 		Ok(contract_call!(self, pair_address, PairContractProxy)
 			.set_fee_on_endpoint(true, staking_address, staking_token)
 			.async_call())
@@ -93,17 +86,8 @@ pub trait Router {
 	#[endpoint(setFeeOff)]
 	fn set_fee_off(&self, pair_address: Address) -> SCResult<AsyncCall<BigUint>> {
 		only_owner!(self, "Permission denied");
+		sc_try!(self.check_is_pair_sc(&pair_address));
 
-		let addresses = self.factory().pair_map_values();
-		let mut found = false;
-		for address in addresses.0.into_iter() {
-			if address == pair_address {
-				found = true;
-				break;
-			}
-		}
-
-		require!(found == true, "Not a pair SC");
 		Ok(contract_call!(self, pair_address, PairContractProxy)
 			.set_fee_on_endpoint(false, Address::zero(), TokenIdentifier::egld())
 			.async_call())
@@ -136,9 +120,9 @@ pub trait Router {
 	//VIEWS
 	#[view(getPair)]
 	fn get_pair(&self, token_a: TokenIdentifier, token_b: TokenIdentifier) -> SCResult<Address> {
-		let mut address = self.factory().pair_map_get((token_a.clone(), token_b.clone())).unwrap_or(Address::zero());
+		let mut address = self.factory().pair_map().get(&(token_a.clone(), token_b.clone())).unwrap_or(Address::zero());
 		if address == Address::zero() {
-			address = self.factory().pair_map_get((token_b.clone(), token_a.clone())).unwrap_or(Address::zero());
+			address = self.factory().pair_map().get(&(token_b.clone(), token_a.clone())).unwrap_or(Address::zero());
 		}
 		Ok(address)
 	}
@@ -150,17 +134,10 @@ pub trait Router {
 
 
 	#[view(getStakingAddress)]
-	#[storage_get("staking_address")]
-	fn get_staking_address(&self) -> Address;
-
-	#[storage_set("staking_address")]
-	fn set_staking_address(&self, address: &Address);
-
+	#[storage_mapper("staking_address")]
+	fn staking_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 
 	#[view(getStakingToken)]
-	#[storage_get("staking_token")]
-	fn get_staking_token(&self) -> TokenIdentifier;
-
-	#[storage_set("staking_token")]
-	fn set_staking_token(&self, token: &TokenIdentifier);
+	#[storage_mapper("staking_token")]
+	fn staking_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }

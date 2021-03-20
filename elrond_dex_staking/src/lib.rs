@@ -13,24 +13,7 @@ pub trait PairContract {
 pub trait Staking {
 	#[init]
 	fn init(&self, wegld_token_identifier: TokenIdentifier) {
-		self.set_wegld_token_identifier(&wegld_token_identifier);
-	}
-
-	#[payable("*")]
-	#[endpoint(acceptEsdtFees)]
-	fn accept_esdt_fee(
-		&self,
-		#[payment_token] token: TokenIdentifier,
-		#[payment] amount: BigUint
-	) -> SCResult<()> {
-		if token != self.get_wegld_token_identifier() {
-			return sc_error!("Unknown fee payment");
-		}
-
-		let mut reserve = self.get_wegld_reserve();
-		reserve += amount;
-		self.set_wegld_reserve(&reserve);
-		Ok(())
+		self.wegld_token_identifier().set(&wegld_token_identifier);
 	}
 
 	#[payable("*")]
@@ -75,25 +58,15 @@ pub trait Staking {
 
 
 	#[view(getWegldTokenIdentifier)]
-	#[storage_get("wegld_token_identifier")]
-	fn get_wegld_token_identifier(&self) -> TokenIdentifier;
-
-	#[storage_set("wegld_token_identifier")]
-	fn set_wegld_token_identifier(&self, token: &TokenIdentifier);
-
-
-	#[view(getWeGLDReserve)]
-	#[storage_get("wegld_reserve")]
-	fn get_wegld_reserve(&self) -> BigUint;
-
-	#[storage_set("wegld_reserve")]
-	fn set_wegld_reserve(&self, amount: &BigUint);
-
+	#[storage_mapper("wegld_token_identifier")]
+	fn wegld_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
 	#[view(getVirtualWeGLDReserve)]
-	#[storage_get("virtual_wegld_reserve")]
-	fn get_virtual_wegld_reserve(&self) -> BigUint;
+	#[storage_mapper("virtual_wegld_reserve")]
+	fn virtual_wegld_reserve(&self) -> SingleValueMapper<Self::Storage, BigUint>;
 
-	#[storage_set("virtual_wegld_reserve")]
-	fn set_virtual_wegld_reserve(&self, amount: &BigUint);
+
+	#[view(getSftStakingTokenIdentifier)]
+	#[storage_mapper("sft_staking_token_identifier")]
+	fn sft_staking_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }
