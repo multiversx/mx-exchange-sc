@@ -9,7 +9,12 @@ pub use factory::*;
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
-	fn set_fee_on_endpoint(&self, enabled: bool) -> ContractCall<BigUint>;
+	fn set_fee_on_endpoint(
+		&self, 
+		enabled: bool, 
+		fee_to_address: Address, 
+		fee_token: TokenIdentifier
+	) -> ContractCall<BigUint>;
 }
 
 #[elrond_wasm_derive::contract(RouterImpl)]
@@ -32,6 +37,18 @@ pub trait Router {
 		let existent_pair = self.factory().pair_map_contains_key((token_a.clone(), token_b.clone()));
 		require!(existent_pair == false, "Pair already existent");
 		Ok(self.factory().create_pair(&token_a, &token_b))
+	}
+
+	#[endpoint(setStakingInfo)]
+	fn set_staking_info(
+		&self, 
+		staking_address: Address, 
+		staking_token: TokenIdentifier
+	) -> SCResult<()> {
+		only_owner!(self, "Permission denied");
+		self.set_staking_address(&staking_address);
+		self.set_staking_token(&staking_token);
+		Ok(())
 	}
 
 	#[endpoint(upgradePair)]
@@ -66,8 +83,10 @@ pub trait Router {
 		}
 
 		require!(found == true, "Not a pair SC");
+		let staking_token = self.get_staking_token();
+		let staking_address = self.get_staking_address();
 		Ok(contract_call!(self, pair_address, PairContractProxy)
-			.set_fee_on_endpoint(true)
+			.set_fee_on_endpoint(true, staking_address, staking_token)
 			.async_call())
 	}
 
@@ -86,7 +105,7 @@ pub trait Router {
 
 		require!(found == true, "Not a pair SC");
 		Ok(contract_call!(self, pair_address, PairContractProxy)
-			.set_fee_on_endpoint(false)
+			.set_fee_on_endpoint(false, Address::zero(), TokenIdentifier::egld())
 			.async_call())
 	}
 
@@ -129,4 +148,19 @@ pub trait Router {
 		self.factory().pair_map_values()
 	}
 
+
+	#[view(getStakingAddress)]
+	#[storage_get("staking_address")]
+	fn get_staking_address(&self) -> Address;
+
+	#[storage_set("staking_address")]
+	fn set_staking_address(&self, address: &Address);
+
+
+	#[view(getStakingToken)]
+	#[storage_get("staking_token")]
+	fn get_staking_token(&self) -> TokenIdentifier;
+
+	#[storage_set("staking_token")]
+	fn set_staking_token(&self, token: &TokenIdentifier);
 }

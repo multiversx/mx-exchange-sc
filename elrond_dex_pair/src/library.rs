@@ -20,6 +20,14 @@ pub trait LibraryModule {
 		amount_out
 	}
 
+	fn get_amount_out_no_fee(&self, amount_in: BigUint, reserves: (BigUint, BigUint)) -> BigUint {
+		let numerator = amount_in.clone() * reserves.1;
+		let denominator = reserves.0 + amount_in;
+		let amount_out = numerator / denominator;
+
+		amount_out
+	}
+
 	fn get_amount_in(&self, amount_out: BigUint, reserves: (BigUint, BigUint)) -> BigUint {
 		let numerator = (reserves.0 * amount_out.clone()) * BigUint::from(1000u64);
 		let denominator = (reserves.1 - amount_out) * BigUint::from(997u64);

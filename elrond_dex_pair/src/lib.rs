@@ -5,21 +5,14 @@ derive_imports!();
 
 pub mod liquidity_pool;
 pub mod library;
+pub mod fee;
 
 pub use crate::liquidity_pool::*;
 pub use crate::library::*;
-
-use elrond_wasm::HexCallDataSerializer;
+pub use crate::fee::*;
 
 const ESDT_DECIMALS: u8 = 18;
-const ESDT_ISSUE_STRING: &[u8] = b"issue";
-const ESDT_ISSUE_COST: u64 = 5000000000000000000; // 5 eGLD
 const LP_TOKEN_INITIAL_SUPPLY: u32 = u32::MAX; //Can be any u64 != 0
-// erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
-const ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] = [
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xff,
-];
 
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
@@ -29,6 +22,9 @@ pub trait Pair {
 
 	#[module(LibraryModuleImpl)]
 	fn library(&self) -> LibraryModuleImpl<T, BigInt, BigUint>;
+
+	#[module(FeeModuleImpl)]
+	fn fee(&self) -> FeeModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
 	fn init(
@@ -41,9 +37,7 @@ pub trait Pair {
 		self.liquidity_pool().set_token_a_name(&token_a_name);
 		self.liquidity_pool().set_token_b_name(&token_b_name);
 
-		self.set_fee_on(false);
-		self.set_fee_reserve(&token_a_name, &BigUint::from(0u64));
-		self.set_fee_reserve(&token_b_name, &BigUint::from(0u64));
+		self.fee().set_state(false);
 	}
 
 	#[payable("*")]
@@ -116,7 +110,7 @@ pub trait Pair {
 			SCResult::Ok(liquidity) => {
 				self.send().direct_esdt_via_transf_exec(
 					&self.get_caller(),
-					self.get_lp_token_identifier().as_slice(),
+					self.get_lp_token_identifier().as_esdt_identifier(),
 					&liquidity,
 					&[],
 				);
@@ -147,11 +141,11 @@ pub trait Pair {
 		let amount_b = self.get_temporary_funds(&caller, &token_b);
 		
 		if amount_a > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_slice(), &amount_a, &[]);
+			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
 			self.clear_temporary_funds(&caller, &token_a);
 		}
 		if amount_b > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_slice(), &amount_b, &[]);
+			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
 			self.clear_temporary_funds(&caller, &token_b);
 		}
 
@@ -183,8 +177,8 @@ pub trait Pair {
 				let token_b = self.liquidity_pool().get_token_b_name();
 				let (amount_a, amount_b) = amounts;
 
-				self.send().direct_esdt_via_transf_exec(&caller, token_a.as_slice(), &amount_a, &[]);
-				self.send().direct_esdt_via_transf_exec(&caller, token_b.as_slice(), &amount_b, &[]);
+				self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
+				self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
 
 				let mut total_supply = self.liquidity_pool().get_total_supply();
 				total_supply -= liquidity.clone();
@@ -227,22 +221,25 @@ pub trait Pair {
 		let amount_out_optimal = self.library().get_amount_out(amount_in.clone(), tmp);
 		require!(amount_out_optimal >= amount_out_min, "Insufficient liquidity");
 
-		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_slice(), &amount_out_optimal, &[]);
+		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out_optimal, &[]);
 
+		let mut fee_amount = BigUint::zero();
 		let mut amount_in_after_fee = amount_in.clone();
-		if self.get_fee_on() {
-			let fee = self.library().get_fee_fixed_input(amount_in.clone());
-			let mut fee_amount = self.get_fee_reserve(&token_in);
-
-			fee_amount += fee.clone();
-			self.set_fee_reserve(&token_in, &fee_amount);
-			amount_in_after_fee -= fee;
+		if self.fee().get_state() {
+			fee_amount = self.library().get_fee_fixed_input(amount_in.clone());
+			amount_in_after_fee -= fee_amount.clone();
 		}
 
 		balance_token_in += amount_in_after_fee;
 		balance_token_out -= amount_out_optimal;
+
 		self.liquidity_pool().set_pair_reserve(&token_in, &balance_token_in);
 		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
+
+		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
+		if self.fee().get_state() {
+			self.send_fee(token_in, fee_amount);
+		}
 
 		Ok(())
 	}
@@ -277,26 +274,28 @@ pub trait Pair {
 		let amount_in_optimal = self.library().get_amount_in(amount_out.clone(), tmp);
 		require!(amount_in_optimal <= amount_in_max, "Insufficient liquidity");
 
-		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_slice(), &amount_out, &[]);
+		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out, &[]);
 		let residuum = amount_in_max.clone() - amount_in_optimal.clone();
 		if residuum > BigUint::from(0u64) {
-			self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_in.as_slice(), &residuum, &[]);
+			self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_in.as_esdt_identifier(), &residuum, &[]);
 		}
 
+		let mut fee_amount = BigUint::zero();
 		let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
-		if self.get_fee_on() {
-			let fee = self.library().get_fee_optimal_input(amount_in_optimal.clone());
-			let mut fee_amount = self.get_fee_reserve(&token_in);
-
-			fee_amount += fee.clone();
-			self.set_fee_reserve(&token_in, &fee_amount);
-			amount_in_optimal_after_fee -= fee;
+		if self.fee().get_state() {
+			fee_amount = self.library().get_fee_optimal_input(amount_in_optimal.clone());
+			amount_in_optimal_after_fee -= fee_amount.clone();
 		}
 
 		balance_token_in += amount_in_optimal_after_fee;
 		balance_token_out -= amount_out;
 		self.liquidity_pool().set_pair_reserve(&token_in, &balance_token_in);
 		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
+
+		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
+		if self.fee().get_state() {
+			self.send_fee(token_in, fee_amount);
+		}
 
 		Ok(())
 	}
@@ -307,68 +306,148 @@ pub trait Pair {
 		&self,
 		tp_token_display_name: BoxedBytes,
 		tp_token_ticker: BoxedBytes,
-		#[payment] payment: BigUint
-	) -> SCResult<()> {
+		#[payment] issue_cost: BigUint
+	) -> SCResult<AsyncCall<BigUint>> {
 
 		if self.is_empty_lp_token_identifier() == false {
 			return sc_error!("Already issued");
 		}
-		if payment != BigUint::from(ESDT_ISSUE_COST) {
-			return sc_error!("Should pay exactly 5 EGLD");
-		}
 
-		let tp_token_initial_supply = BigUint::from(LP_TOKEN_INITIAL_SUPPLY);
-		let mut serializer = HexCallDataSerializer::new(ESDT_ISSUE_STRING);
-		serializer.push_argument_bytes(tp_token_display_name.as_slice());
-		serializer.push_argument_bytes(tp_token_ticker.as_slice());
-		serializer.push_argument_bytes(&tp_token_initial_supply.to_bytes_be());
-		serializer.push_argument_bytes(&[ESDT_DECIMALS]);
-
-		serializer.push_argument_bytes(&b"canFreeze"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canWipe"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canPause"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canMint"[..]);
-		serializer.push_argument_bytes(&b"true"[..]);
-
-		serializer.push_argument_bytes(&b"canBurn"[..]);
-		serializer.push_argument_bytes(&b"true"[..]);
-
-		serializer.push_argument_bytes(&b"canChangeOwner"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canUpgrade"[..]);
-		serializer.push_argument_bytes(&b"true"[..]);
-
-		self.send().async_call_raw(
-			&Address::from(ESDT_SYSTEM_SC_ADDRESS_ARRAY),
-			&BigUint::from(ESDT_ISSUE_COST),
-			serializer.as_slice(),
-		);
-	}
-
-	#[callback_raw]
-	fn callback_raw(&self, #[var_args] result: AsyncCallResult<VarArgs<BoxedBytes>>) {
-		let success = match result {
-			AsyncCallResult::Ok(_) => true,
-			AsyncCallResult::Err(_) => false,
-		};
-
-		if success && self.is_empty_lp_token_identifier() {
-			self.set_lp_token_identifier(&self.call_value().token());
-		}
+		Ok(ESDTSystemSmartContractProxy::new()
+			.issue_fungible(
+				issue_cost,
+				&tp_token_display_name,
+				&tp_token_ticker,
+				&BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+				ESDT_DECIMALS.into(),
+				false,
+				false,
+				false,
+				true,
+				false,
+				true,
+				true,
+				false,
+			)
+			.async_call()
+			.with_callback(self.callbacks().lp_token_issue_callback(&self.get_caller())))
 	}
 
 	#[endpoint]
-	fn set_fee_on_endpoint(&self, enabled: bool) {
+	fn set_fee_on_endpoint(
+		&self, 
+		enabled: bool, 
+		fee_to_address: Address, 
+		fee_token: TokenIdentifier
+	) {
 		if self.get_caller() == self.get_router_address() {
-			self.set_fee_on(enabled);
+			self.fee().set_state(enabled);
+			self.fee().set_address(&fee_to_address);
+			self.fee().set_token_identifier(&fee_token);
 		}
+	}
+
+	#[callback]
+	fn lp_token_issue_callback(
+		&self,
+		caller: &Address,
+		#[payment_token] token_identifier: TokenIdentifier,
+		#[payment] returned_tokens: BigUint,
+		#[call_result] result: AsyncCallResult<()>,
+	) {
+		let mut success = false;
+		match result {
+			AsyncCallResult::Ok(()) => {
+				if self.is_empty_lp_token_identifier() {
+					success = true;
+					self.set_lp_token_identifier(&token_identifier);
+				}
+			},
+			AsyncCallResult::Err(_) => {
+				success = false;
+			},
+		}
+		if success == false {
+			if token_identifier.is_egld() && returned_tokens > 0 {
+				self.send().direct_egld(caller, &returned_tokens, &[]);
+			}
+		}
+	}
+
+	fn send_fee(
+		&self, 
+		fee_token: TokenIdentifier, 
+		fee_amount: BigUint
+	) {
+		if fee_amount == BigUint::zero() {
+			return;
+		}
+
+		let fee_token_requested = self.fee().get_token_identifier();
+		let token_a = self.liquidity_pool().get_token_a_name();
+		let token_b = self.liquidity_pool().get_token_b_name();
+		let mut to_send = BigUint::zero();
+
+		if fee_token_requested == fee_token  {
+			// Luckily no conversion is required.
+			to_send = fee_amount.clone();
+		}
+		else if fee_token_requested == token_a && fee_token == token_b {
+			// Fees are in form of token_b. Need to convert them to token_a.
+			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
+			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
+			let tmp = (balance_token_b.clone(), balance_token_a.clone());
+			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+
+			if balance_token_a > fee_amount_swap && fee_amount_swap > BigUint::zero() {
+				//There are enough tokens for swapping.
+				balance_token_a -= fee_amount_swap.clone();
+				balance_token_b += fee_amount.clone();
+				self.liquidity_pool().set_pair_reserve(&token_a, &balance_token_a);
+				self.liquidity_pool().set_pair_reserve(&token_b, &balance_token_b);
+				to_send = fee_amount_swap;
+			}
+		}
+		else if fee_token_requested == token_b && fee_token == token_a {
+			// Fees are in form of token_a. Need to convert them to token_b.
+			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
+			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
+			let tmp = (balance_token_a.clone(), balance_token_b.clone());
+			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+
+			if balance_token_b > fee_amount_swap && fee_amount_swap > BigUint::zero() {
+				//There are enough tokens for swapping.
+				balance_token_b -= fee_amount_swap.clone();
+				balance_token_a += fee_amount.clone();
+				self.liquidity_pool().set_pair_reserve(&token_a, &balance_token_a);
+				self.liquidity_pool().set_pair_reserve(&token_b, &balance_token_b);
+				to_send = fee_amount_swap;
+			}
+		}
+
+		if to_send > BigUint::zero() {
+			self.send().direct_esdt_via_transf_exec(
+				&self.fee().get_address(),
+				self.fee().get_token_identifier().as_esdt_identifier(),
+				&to_send,
+				&[]
+			);
+		}
+		else {
+			// Either swap failed or requested token identifier differs from both token_a and token_b.
+			// Reinject them into liquidity pool.
+			let mut reserve = self.liquidity_pool().get_pair_reserve(&fee_token);
+			reserve += fee_amount;
+			self.liquidity_pool().set_pair_reserve(&fee_token, &reserve);
+		}
+	}
+
+	#[view]
+	fn get_tokens_for_given_position(
+		&self, 
+		liquidity: BigUint
+	) -> SCResult<((TokenIdentifier, BigUint), (TokenIdentifier, BigUint))> {
+		Ok(self.liquidity_pool().get_tokens_for_given_position(liquidity))
 	}
 
 	// Temporary Storage
@@ -393,24 +472,10 @@ pub trait Pair {
 	#[storage_is_empty("lpTokenIdentifier")]
 	fn is_empty_lp_token_identifier(&self) -> bool;
 
+	#[view(getRouterAddress)]
 	#[storage_get("router_address")]
 	fn get_router_address(&self) -> Address;
 
 	#[storage_set("router_address")]
 	fn set_router_address(&self, address: &Address);
-
-
-	#[view(getFeeOn)]
-	#[storage_get("fee_on")]
-	fn get_fee_on(&self) -> bool;
-
-	#[storage_set("fee_on")]
-	fn set_fee_on(&self, enabled: bool);
-
-	#[view(getFeeReserve)]
-	#[storage_get("feeReserve")]
-	fn get_fee_reserve(&self, token: &TokenIdentifier) -> BigUint;
-
-	#[storage_set("feeReserve")]
-	fn set_fee_reserve(&self, token: &TokenIdentifier, balance: &BigUint);
 }

@@ -19,8 +19,8 @@ pub trait FactoryModule {
 		let amount = BigUint::from(0u32);
 		let mut arg_buffer = ArgBuffer::new();
 		let code = self.get_pair_code();
-		arg_buffer.push_argument_bytes(token_a.as_slice());
-		arg_buffer.push_argument_bytes(token_b.as_slice());
+		arg_buffer.push_argument_bytes(token_a.as_esdt_identifier());
+		arg_buffer.push_argument_bytes(token_b.as_esdt_identifier());
 		arg_buffer.push_argument_bytes(self.get_sc_address().as_bytes());
 		let new_address = self.send().deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
 		if new_address != Address::zero() {
