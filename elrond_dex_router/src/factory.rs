@@ -14,7 +14,7 @@ pub trait FactoryModule {
 		if self.pair_code_ready().get() == false {
 			return Address::zero()
 		}
-		let code_metadata = CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE | CodeMetadata::READABLE;
+		let code_metadata = CodeMetadata::UPGRADEABLE;
 		let gas_left = self.get_gas_left();
 		let amount = BigUint::from(0u32);
 		let mut arg_buffer = ArgBuffer::new();
