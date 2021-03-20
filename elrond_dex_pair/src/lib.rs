@@ -202,6 +202,7 @@ pub trait Pair {
 			balance_token_out.clone()
 		);
 		require!(amount_out_optimal >= amount_out_min, "Insufficient liquidity");
+		require!(balance_token_out > amount_out_optimal, "Insufficient balance");
 
 		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out_optimal, &[]);
 
@@ -271,6 +272,7 @@ pub trait Pair {
 			fee_amount = self.library().get_fee_optimal_input(amount_in_optimal.clone());
 			amount_in_optimal_after_fee -= fee_amount.clone();
 		}
+		require!(balance_token_out > amount_out, "Insufficient balance");
 
 		balance_token_in += amount_in_optimal_after_fee;
 		balance_token_out -= amount_out;
