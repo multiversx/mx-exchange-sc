@@ -1,0 +1,16 @@
+[package]
+name = "elrond_dex_router-abi"
+
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[dependencies.elrond_dex_router]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.13.0"
+
+[dependencies.elrond-wasm-debug]
+version = "0.13.0"
