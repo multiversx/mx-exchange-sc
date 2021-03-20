@@ -1,0 +1,133 @@
+{
+	"name": "remove liquidity",
+	"steps": [
+		{
+			"step": "setState",
+			"accounts": {
+				"address:user": {
+					"nonce": "3",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "3,000,000,000",
+						"str:BLC-abcdef": "3,000,000,000",
+						"str:CLC-abcdef": "1,999,999,000"
+					},
+					"storage": {}
+				},
+				"address:another_user": {
+					"nonce": "3",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "3,000,000,000",
+						"str:BLC-abcdef": "3,000,000,000",
+						"str:CLC-abcdef": "2,000,000,000"
+					},
+					"storage": {}
+				},
+				"address:contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "4,000,000,000",
+						"str:BLC-abcdef": "4,000,000,000",
+						"str:CLC-abcdef": "1,000,001,000"
+					},
+					"storage": {
+						"str:token_a_name": "str:ALC-abcdef",
+						"str:token_b_name": "str:BLC-abcdef",
+						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"0x726573657276650000000a414c432d616263646566": "4,000,000,000",
+						"0x726573657276650000000a424c432d616263646566": "4,000,000,000",
+						"0x746f74616c5f737570706c79": "4,000,000,000"
+					},
+					"code": "file:../output/elrond_dex_pair.wasm"
+				}
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "remove-liquidity",
+			"tx": {
+				"from": "address:user",
+				"to": "address:contract",
+				"value": "0",
+				"esdtTokenName": "str:CLC-abcdef",
+				"esdtValue": "1,999,999,000",
+				"function": "removeLiquidity",
+				"arguments": ["500,000,000", "500,000,000"],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "remove-liquidity",
+			"tx": {
+				"from": "address:another_user",
+				"to": "address:contract",
+				"value": "0",
+				"esdtTokenName": "str:CLC-abcdef",
+				"esdtValue": "2,000,000,000",
+				"function": "removeLiquidity",
+				"arguments": ["500,000,000", "500,000,000"],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user": {
+					"nonce": "4",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "4,999,999,000",
+						"str:BLC-abcdef": "4,999,999,000",
+						"str:CLC-abcdef": "0"
+					},
+					"storage": {}
+				},
+				"address:another_user": {
+					"nonce": "4",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "5,000,000,000",
+						"str:BLC-abcdef": "5,000,000,000",
+						"str:CLC-abcdef": "0"
+					},
+					"storage": {}
+				},
+				"address:contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:ALC-abcdef": "1,000",
+						"str:BLC-abcdef": "1,000",
+						"str:CLC-abcdef": "5,000,000,000"
+					},
+					"storage": {
+						"str:token_a_name": "str:ALC-abcdef",
+						"str:token_b_name": "str:BLC-abcdef",
+						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"0x726573657276650000000a414c432d616263646566": "1,000",
+						"0x726573657276650000000a424c432d616263646566": "1,000",
+						"0x746f74616c5f737570706c79": "1,000"
+					},
+					"code": "file:../output/elrond_dex_pair.wasm"
+				}
+			}
+		}
+	]
+}

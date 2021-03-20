@@ -131,11 +131,4 @@ pub trait LiquidityPoolModule {
 
 	#[storage_set("total_supply")]
 	fn set_total_supply(&self, total_supply: &BigUint);
-
-	#[view(getBalanceOf)]
-	#[storage_get("balance_of")]
-	fn get_balance_of(&self, caller: &Address) -> BigUint;
-
-	#[storage_set("balance_of")]
-	fn set_balance_of(&self, caller: &Address, balance: &BigUint);
 }
