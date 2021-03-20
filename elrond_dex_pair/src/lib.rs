@@ -217,8 +217,11 @@ pub trait Pair {
 		require!(balance_token_out > amount_out_min, "Insufficient balance for token out");
 
 		let mut balance_token_in = self.liquidity_pool().get_pair_reserve(&token_in);
-		let tmp = (balance_token_in.clone(), balance_token_out.clone());
-		let amount_out_optimal = self.library().get_amount_out(amount_in.clone(), tmp);
+		let amount_out_optimal = self.library().get_amount_out(
+			amount_in.clone(), 
+			balance_token_in.clone(), 
+			balance_token_out.clone()
+		);
 		require!(amount_out_optimal >= amount_out_min, "Insufficient liquidity");
 
 		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out_optimal, &[]);
@@ -270,8 +273,11 @@ pub trait Pair {
 		require!(balance_token_out > amount_out, "Insufficient balance for token out");
 
 		let mut balance_token_in = self.liquidity_pool().get_pair_reserve(&token_in);
-		let tmp = (balance_token_in.clone(), balance_token_out.clone());
-		let amount_in_optimal = self.library().get_amount_in(amount_out.clone(), tmp);
+		let amount_in_optimal = self.library().get_amount_in(
+			amount_out.clone(), 
+			balance_token_in.clone(), 
+			balance_token_out.clone()
+		);
 		require!(amount_in_optimal <= amount_in_max, "Insufficient liquidity");
 
 		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out, &[]);
@@ -396,8 +402,11 @@ pub trait Pair {
 			// Fees are in form of token_b. Need to convert them to token_a.
 			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
 			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
-			let tmp = (balance_token_b.clone(), balance_token_a.clone());
-			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+			let fee_amount_swap = self.library().get_amount_out_no_fee(
+				fee_amount.clone(), 
+				balance_token_b.clone(), 
+				balance_token_a.clone()
+			);
 
 			if balance_token_a > fee_amount_swap && fee_amount_swap > BigUint::zero() {
 				//There are enough tokens for swapping.
@@ -412,8 +421,11 @@ pub trait Pair {
 			// Fees are in form of token_a. Need to convert them to token_b.
 			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
 			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
-			let tmp = (balance_token_a.clone(), balance_token_b.clone());
-			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+			let fee_amount_swap = self.library().get_amount_out_no_fee(
+				fee_amount.clone(), 
+				balance_token_a.clone(), 
+				balance_token_b.clone()
+			);
 
 			if balance_token_b > fee_amount_swap && fee_amount_swap > BigUint::zero() {
 				//There are enough tokens for swapping.

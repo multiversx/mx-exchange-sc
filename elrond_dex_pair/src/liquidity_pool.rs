@@ -22,8 +22,9 @@ pub trait LiquidityPoolModule {
 		let mut liquidity: BigUint;
 		
 		if total_supply == 0 {
-			liquidity = self.library().minimum(amount_a.clone(), amount_b.clone()) - BigUint::from(1000u64);
-			require!(liquidity > 0, "Pair: FIRST TOKENS NEEDS TO BE GRATER THAN MINIMUM LIQUIDITY: 1000 * e1000-18");
+			liquidity = core::cmp::min(amount_a.clone(), amount_b.clone());
+			require!(liquidity > BigUint::from(1000u64), "Pair: FIRST TOKENS NEEDS TO BE GRATER THAN MINIMUM LIQUIDITY: 1000 * 1000e-18");
+			liquidity -= BigUint::from(1000u64);
 			total_supply += BigUint::from(1000u64);
 			self.total_supply().set(&total_supply);
 		} else {
@@ -89,14 +90,12 @@ pub trait LiquidityPoolModule {
 			return Ok((amount_a_desired, amount_b_desired));
 		}
 
-		let tmp = (reserve_a.clone(), reserve_b.clone());
-		let amount_b_optimal = self.library().quote(amount_a_desired.clone(), tmp);
+		let amount_b_optimal = self.library().quote(amount_a_desired.clone(), reserve_a.clone(), reserve_b.clone());
 		if amount_b_optimal <= amount_b_desired {
 			require!(amount_b_optimal > amount_b_min, "PAIR: INSUFFICIENT_B_AMOUNT");
 			return Ok((amount_a_desired, amount_b_optimal));
 		} else {
-			let tmp = (reserve_b.clone(), reserve_a.clone());
-			let amount_a_optimal = self.library().quote(amount_b_desired.clone(), tmp);
+			let amount_a_optimal = self.library().quote(amount_b_desired.clone(), reserve_b.clone(), reserve_a.clone());
 			require!(amount_a_optimal <= amount_a_desired, "PAIR: OPTIMAL AMOUNT GRATER THAN DESIRED AMOUNT");
 			require!(amount_a_optimal >= amount_a_min, "PAIR: INSUFFICIENT_A_AMOUNT");
 			return Ok((amount_a_optimal, amount_b_desired));
