@@ -13,7 +13,6 @@ pub trait PairContract {
 		&self, 
 		enabled: bool, 
 		fee_to_address: Address, 
-		fee_to_function: BoxedBytes,
 		fee_token: TokenIdentifier
 	) -> ContractCall<BigUint>;
 }
@@ -44,11 +43,9 @@ pub trait Router {
 	fn set_staking_info(
 		&self, 
 		staking_address: Address, 
-		staking_payment_function: BoxedBytes, 
 		staking_token: TokenIdentifier
 	) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
-		self.set_staking_payment_function(&staking_payment_function);
 		self.set_staking_address(&staking_address);
 		self.set_staking_token(&staking_token);
 		Ok(())
@@ -88,9 +85,8 @@ pub trait Router {
 		require!(found == true, "Not a pair SC");
 		let staking_token = self.get_staking_token();
 		let staking_address = self.get_staking_address();
-		let staking_payment_function = self.get_staking_payment_function();
 		Ok(contract_call!(self, pair_address, PairContractProxy)
-			.set_fee_on_endpoint(true, staking_address, staking_payment_function, staking_token)
+			.set_fee_on_endpoint(true, staking_address, staking_token)
 			.async_call())
 	}
 
@@ -109,7 +105,7 @@ pub trait Router {
 
 		require!(found == true, "Not a pair SC");
 		Ok(contract_call!(self, pair_address, PairContractProxy)
-			.set_fee_on_endpoint(false, Address::zero(), BoxedBytes::empty(), TokenIdentifier::egld())
+			.set_fee_on_endpoint(false, Address::zero(), TokenIdentifier::egld())
 			.async_call())
 	}
 
@@ -167,12 +163,4 @@ pub trait Router {
 
 	#[storage_set("staking_token")]
 	fn set_staking_token(&self, token: &TokenIdentifier);
-
-
-	#[view(getStakingPaymentFunction)]
-	#[storage_get("staking_payment_function")]
-	fn get_staking_payment_function(&self) -> BoxedBytes;
-
-	#[storage_set("staking_payment_function")]
-	fn set_staking_payment_function(&self, function: &BoxedBytes);
 }
