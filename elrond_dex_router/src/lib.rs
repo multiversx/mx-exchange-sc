@@ -34,8 +34,8 @@ pub trait Router {
 		require!(token_a != token_b, "Identical tokens");
 		require!(token_a.is_esdt(), "Only esdt tokens allowed");
 		require!(token_b.is_esdt(), "Only esdt tokens allowed");
-		let existent_pair = self.factory().pair_map().contains_key(&(token_a.clone(), token_b.clone()));
-		require!(existent_pair == false, "Pair already existent");
+		let pair_address = self.get_pair(token_a.clone(), token_b.clone());
+		require!(pair_address == Address::zero(), "Pair already existent");
 		Ok(self.factory().create_pair(&token_a, &token_b))
 	}
 
@@ -119,12 +119,12 @@ pub trait Router {
 
 	//VIEWS
 	#[view(getPair)]
-	fn get_pair(&self, token_a: TokenIdentifier, token_b: TokenIdentifier) -> SCResult<Address> {
+	fn get_pair(&self, token_a: TokenIdentifier, token_b: TokenIdentifier) -> Address {
 		let mut address = self.factory().pair_map().get(&(token_a.clone(), token_b.clone())).unwrap_or(Address::zero());
 		if address == Address::zero() {
 			address = self.factory().pair_map().get(&(token_b.clone(), token_a.clone())).unwrap_or(Address::zero());
 		}
-		Ok(address)
+		address
 	}
 
 	#[view(getAllPairs)]
