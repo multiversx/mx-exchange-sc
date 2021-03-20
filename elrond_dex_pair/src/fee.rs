@@ -4,10 +4,10 @@ derive_imports!();
 #[elrond_wasm_derive::module(FeeModuleImpl)]
 pub trait FeeModule {
 	#[view(getFeeOn)]
-	#[storage_get("state")]
+	#[storage_get("fee_on")]
 	fn get_state(&self) -> bool;
 
-	#[storage_set("enabled")]
+	#[storage_set("fee_on")]
 	fn set_state(&self, enabled: bool);
 
 
@@ -25,12 +25,4 @@ pub trait FeeModule {
 
 	#[storage_set("fee_token_identifier")]
 	fn set_token_identifier(&self, token: &TokenIdentifier);
-
-
-	#[view(getFeeToFunction)]
-	#[storage_get("fee_to_function")]
-	fn get_function(&self) -> BoxedBytes;
-
-	#[storage_set("fee_to_function")]
-	fn set_function(&self, funtion: &BoxedBytes);
 }

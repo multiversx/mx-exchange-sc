@@ -11,17 +11,8 @@ pub use crate::liquidity_pool::*;
 pub use crate::library::*;
 pub use crate::fee::*;
 
-use elrond_wasm::HexCallDataSerializer;
-
 const ESDT_DECIMALS: u8 = 18;
-const ESDT_ISSUE_STRING: &[u8] = b"issue";
-const ESDT_ISSUE_COST: u64 = 5000000000000000000; // 5 eGLD
 const LP_TOKEN_INITIAL_SUPPLY: u32 = u32::MAX; //Can be any u64 != 0
-// erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
-const ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] = [
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xff,
-];
 
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
@@ -119,7 +110,7 @@ pub trait Pair {
 			SCResult::Ok(liquidity) => {
 				self.send().direct_esdt_via_transf_exec(
 					&self.get_caller(),
-					self.get_lp_token_identifier().as_slice(),
+					self.get_lp_token_identifier().as_esdt_identifier(),
 					&liquidity,
 					&[],
 				);
@@ -150,11 +141,11 @@ pub trait Pair {
 		let amount_b = self.get_temporary_funds(&caller, &token_b);
 		
 		if amount_a > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_slice(), &amount_a, &[]);
+			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
 			self.clear_temporary_funds(&caller, &token_a);
 		}
 		if amount_b > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_slice(), &amount_b, &[]);
+			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
 			self.clear_temporary_funds(&caller, &token_b);
 		}
 
@@ -186,8 +177,8 @@ pub trait Pair {
 				let token_b = self.liquidity_pool().get_token_b_name();
 				let (amount_a, amount_b) = amounts;
 
-				self.send().direct_esdt_via_transf_exec(&caller, token_a.as_slice(), &amount_a, &[]);
-				self.send().direct_esdt_via_transf_exec(&caller, token_b.as_slice(), &amount_b, &[]);
+				self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
+				self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
 
 				let mut total_supply = self.liquidity_pool().get_total_supply();
 				total_supply -= liquidity.clone();
@@ -230,7 +221,7 @@ pub trait Pair {
 		let amount_out_optimal = self.library().get_amount_out(amount_in.clone(), tmp);
 		require!(amount_out_optimal >= amount_out_min, "Insufficient liquidity");
 
-		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_slice(), &amount_out_optimal, &[]);
+		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out_optimal, &[]);
 
 		let mut fee_amount = BigUint::zero();
 		let mut amount_in_after_fee = amount_in.clone();
@@ -283,10 +274,10 @@ pub trait Pair {
 		let amount_in_optimal = self.library().get_amount_in(amount_out.clone(), tmp);
 		require!(amount_in_optimal <= amount_in_max, "Insufficient liquidity");
 
-		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_slice(), &amount_out, &[]);
+		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out, &[]);
 		let residuum = amount_in_max.clone() - amount_in_optimal.clone();
 		if residuum > BigUint::from(0u64) {
-			self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_in.as_slice(), &residuum, &[]);
+			self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_in.as_esdt_identifier(), &residuum, &[]);
 		}
 
 		let mut fee_amount = BigUint::zero();
@@ -315,49 +306,31 @@ pub trait Pair {
 		&self,
 		tp_token_display_name: BoxedBytes,
 		tp_token_ticker: BoxedBytes,
-		#[payment] payment: BigUint
-	) -> SCResult<()> {
+		#[payment] issue_cost: BigUint
+	) -> SCResult<AsyncCall<BigUint>> {
 
 		if self.is_empty_lp_token_identifier() == false {
 			return sc_error!("Already issued");
 		}
-		if payment != BigUint::from(ESDT_ISSUE_COST) {
-			return sc_error!("Should pay exactly 5 EGLD");
-		}
 
-		let tp_token_initial_supply = BigUint::from(LP_TOKEN_INITIAL_SUPPLY);
-		let mut serializer = HexCallDataSerializer::new(ESDT_ISSUE_STRING);
-		serializer.push_argument_bytes(tp_token_display_name.as_slice());
-		serializer.push_argument_bytes(tp_token_ticker.as_slice());
-		serializer.push_argument_bytes(&tp_token_initial_supply.to_bytes_be());
-		serializer.push_argument_bytes(&[ESDT_DECIMALS]);
-
-		serializer.push_argument_bytes(&b"canFreeze"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canWipe"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canPause"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canMint"[..]);
-		serializer.push_argument_bytes(&b"true"[..]);
-
-		serializer.push_argument_bytes(&b"canBurn"[..]);
-		serializer.push_argument_bytes(&b"true"[..]);
-
-		serializer.push_argument_bytes(&b"canChangeOwner"[..]);
-		serializer.push_argument_bytes(&b"false"[..]);
-
-		serializer.push_argument_bytes(&b"canUpgrade"[..]);
-		serializer.push_argument_bytes(&b"true"[..]);
-
-		self.send().async_call_raw(
-			&Address::from(ESDT_SYSTEM_SC_ADDRESS_ARRAY),
-			&BigUint::from(ESDT_ISSUE_COST),
-			serializer.as_slice(),
-		);
+		Ok(ESDTSystemSmartContractProxy::new()
+			.issue_fungible(
+				issue_cost,
+				&tp_token_display_name,
+				&tp_token_ticker,
+				&BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+				ESDT_DECIMALS.into(),
+				false,
+				false,
+				false,
+				true,
+				false,
+				true,
+				true,
+				false,
+			)
+			.async_call()
+			.with_callback(self.callbacks().lp_token_issue_callback(&self.get_caller())))
 	}
 
 	#[endpoint]
@@ -365,27 +338,39 @@ pub trait Pair {
 		&self, 
 		enabled: bool, 
 		fee_to_address: Address, 
-		fee_to_function: BoxedBytes,
 		fee_token: TokenIdentifier
 	) {
 		if self.get_caller() == self.get_router_address() {
 			self.fee().set_state(enabled);
 			self.fee().set_address(&fee_to_address);
-			self.fee().set_function(&fee_to_function);
 			self.fee().set_token_identifier(&fee_token);
 		}
 	}
 
-
-	#[callback_raw]
-	fn callback_raw(&self, #[var_args] result: AsyncCallResult<VarArgs<BoxedBytes>>) {
-		let success = match result {
-			AsyncCallResult::Ok(_) => true,
-			AsyncCallResult::Err(_) => false,
-		};
-
-		if success && self.is_empty_lp_token_identifier() {
-			self.set_lp_token_identifier(&self.call_value().token());
+	#[callback]
+	fn lp_token_issue_callback(
+		&self,
+		caller: &Address,
+		#[payment_token] token_identifier: TokenIdentifier,
+		#[payment] returned_tokens: BigUint,
+		#[call_result] result: AsyncCallResult<()>,
+	) {
+		let mut success = false;
+		match result {
+			AsyncCallResult::Ok(()) => {
+				if self.is_empty_lp_token_identifier() {
+					success = true;
+					self.set_lp_token_identifier(&token_identifier);
+				}
+			},
+			AsyncCallResult::Err(_) => {
+				success = false;
+			},
+		}
+		if success == false {
+			if token_identifier.is_egld() && returned_tokens > 0 {
+				self.send().direct_egld(caller, &returned_tokens, &[]);
+			}
 		}
 	}
 
@@ -441,13 +426,11 @@ pub trait Pair {
 		}
 
 		if to_send > BigUint::zero() {
-			self.send().direct_esdt_execute(
+			self.send().direct_esdt_via_transf_exec(
 				&self.fee().get_address(),
-				self.fee().get_token_identifier().as_slice(),
+				self.fee().get_token_identifier().as_esdt_identifier(),
 				&to_send,
-				self.get_gas_left(),
-				&self.fee().get_function().as_slice(),
-				&ArgBuffer::new()
+				&[]
 			);
 		}
 		else {
