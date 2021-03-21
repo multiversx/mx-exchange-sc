@@ -158,15 +158,16 @@ pub trait Staking {
 		#[payment] issue_cost: BigUint,
 		token_display_name: BoxedBytes,
 		token_ticker: BoxedBytes,
-	) -> SCResult<AsyncCall<BigUint>> {
+	) -> AsyncCall<BigUint> {
 
-		only_owner!(self, "Permission denied");
-		if !self.sft_staking_token_identifier().is_empty() {
-			return sc_error!("Already issued");
-		}
+		//Adding this with SCResult will make the issue fail
+		//only_owner!(self, "Permission denied");
+		//if !self.sft_staking_token_identifier().is_empty() {
+		//	return sc_error!("Already issued");
+		//}
 
 		let caller = self.get_caller();
-		Ok(ESDTSystemSmartContractProxy::new()
+		ESDTSystemSmartContractProxy::new()
 			.issue_semi_fungible(
 				issue_cost,
 				&token_display_name,
@@ -180,7 +181,6 @@ pub trait Staking {
 			)
 			.async_call()
 			.with_callback(self.callbacks().sft_issue_callback(&caller))
-		)
 	}
 
 	#[callback]
@@ -189,25 +189,18 @@ pub trait Staking {
 		caller: &Address,
 		#[call_result] result: AsyncCallResult<TokenIdentifier>,
 	) {
-
-		let mut success = false;
 		match result {
 			AsyncCallResult::Ok(token_identifier) => {
 				if self.sft_staking_token_identifier().is_empty() {
-					success = true;
 					self.sft_staking_token_identifier().set(&token_identifier);
 				}
 			},
 			AsyncCallResult::Err(_) => {
-				success = false;
+				let (returned_tokens, token_identifier) = self.call_value().payment_token_pair();
+				if token_identifier.is_egld() && returned_tokens > 0 {
+					self.send().direct_egld(caller, &returned_tokens, &[]);
+				}
 			},
-		}
-
-		if success == false {
-			let (returned_tokens, token_identifier) = self.call_value().payment_token_pair();
-			if token_identifier.is_egld() && returned_tokens > 0 {
-				self.send().direct_egld(caller, &returned_tokens, &[]);
-			}
 		}
 	}
 
