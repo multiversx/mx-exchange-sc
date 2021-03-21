@@ -22,6 +22,8 @@ pub trait LiquidityPoolModule {
 		if total_supply == 0 {
 			require!(amount > BigUint::from(1000u64), "First Stake needs to be greater than minimum amount: 1000 * 1000e-18");
 			liquidity = amount.clone() - BigUint::from(1000u64);
+			total_supply = BigUint::from(1000u64);
+			self.total_supply().set(&total_supply);
 		} else {
 			let total_reserves = virtual_reserves.clone() + actual_reserves.clone();
 			liquidity = amount.clone() * total_supply.clone() / total_reserves;
