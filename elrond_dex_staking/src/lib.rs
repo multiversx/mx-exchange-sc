@@ -8,9 +8,8 @@ elrond_wasm::derive_imports!();
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
 
-// used as mock attributes for NFTs
 #[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct SFTAttributes<BigUint: BigUintApi> {
+pub struct StakeAttributes<BigUint: BigUintApi> {
 	lp_token_id: TokenIdentifier,
 	total_lp_tokens: BigUint,
 	total_initial_worth: BigUint,
@@ -19,7 +18,8 @@ pub struct SFTAttributes<BigUint: BigUintApi> {
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
-	fn get_tokens_for_given_position(&self, amount: BigUint) -> ContractCall<BigUint>;
+	fn get_tokens_for_given_position(&self, amount: BigUint) 
+		-> ContractCall<BigUint, ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint))>;
 }
 
 #[elrond_wasm_derive::contract(StakingImpl)]
@@ -35,7 +35,7 @@ pub trait Staking {
 	}
 
 	#[payable("*")]
-	#[endpoint(stake)]
+	#[endpoint]
 	fn stake(
 		&self,
 		#[payment_token] lp_token: TokenIdentifier,
@@ -45,40 +45,71 @@ pub trait Staking {
 		let pair = self.get_pair_for_lp_token(&lp_token);
 		require!(pair != Address::zero(), "Unknown lp token");
 
-		//TODO: Ask get_tokens_for_given_position 	with execute on dest context
-		let wegld_amount = BigUint::zero();
+		let one_third_gas = self.get_gas_left() / 3;
+		let equivalent = contract_call!(self, pair.clone(), PairContractProxy)
+			.get_tokens_for_given_position(amount.clone())
+			.execute_on_dest_context(one_third_gas, self.send());
+
+		let wegld_amount: BigUint;
+		if equivalent.0.0 == self.wegld_token_identifier().get() {
+			wegld_amount = equivalent.0.1;
+		}
+		else if equivalent.1.0 == self.wegld_token_identifier().get() {
+			wegld_amount = equivalent.1.1;
+		}
+		else {
+			return sc_error!("Invalid lp token provider");
+		}
+		require!(wegld_amount > BigUint::zero(), "Cannot stake with amount of 0");
 
 		let liquidity = sc_try!(self.liquidity_pool().add_liquidity(wegld_amount.clone()));
-
-		let attributes = SFTAttributes{
+		let attributes = StakeAttributes::<BigUint>{
 			lp_token_id: lp_token.clone(),
 			total_lp_tokens: amount.clone(),
 			total_initial_worth: wegld_amount.clone(),
 			total_amount_liquidity: liquidity.clone()
 		};
 
-		//TODO: Create STF with amount $(liquidity) with $(attributes) and send
+		self.nft_create(&liquidity, &attributes);
+		let sft_id = self.sft_staking_token_identifier().get();
+		let nonce = self.get_current_esdt_nft_nonce(&self.get_sc_address(), sft_id.as_esdt_identifier());
+
+		self.send().direct_esdt_nft_via_transfer_exec(
+			&self.get_caller(),
+			sft_id.as_esdt_identifier(),
+			nonce,
+			&liquidity,
+			&[],
+		);
+
 		Ok(())
 	}
 
 	#[payable("*")]
 	#[endpoint(unstake)]
-	fn unstake(
-		&self,
-		#[payment_token] staking_token: TokenIdentifier,
-		#[payment] liquidity: BigUint,
-	) -> SCResult<()> {
+	fn unstake(&self) -> SCResult<()> {
 
-		let sft_id = self.sft_staking_token_identifier().get();
-		require!(staking_token == sft_id, "Unknown staking token");
+		let (liquidity, sft_id) = self.call_value().payment_token_pair();
+		let sft_nonce = self.call_value().esdt_token_nonce();
 
-		//TODO: Add actual read of attributes
-		let attributes = SFTAttributes{
-			lp_token_id: staking_token.clone(),
-			total_lp_tokens: liquidity.clone(),
-			total_initial_worth: liquidity.clone(),
-			total_amount_liquidity: liquidity.clone()
-		};
+		let required_sft_id = self.sft_staking_token_identifier().get();
+		require!(sft_id == required_sft_id, "Unknown staking token");
+
+		let nft_info = self.get_esdt_token_data(
+			&self.get_sc_address(),
+			sft_id.as_esdt_identifier(),
+			sft_nonce,
+		);
+
+		let attributes: StakeAttributes::<BigUint>;
+		match StakeAttributes::<BigUint>::top_decode(nft_info.attributes.clone().as_slice()) {
+			Result::Ok(decoded_obj) => {
+				attributes = decoded_obj;
+			}
+			Result::Err(_) => {
+				return sc_error!("Decoding error");
+			}
+		}
 
 		let pair = self.get_pair_for_lp_token(&attributes.lp_token_id);
 		require!(pair != Address::zero(), "Unknown lp token");
@@ -108,17 +139,17 @@ pub trait Staking {
 			);
 		}
 
-		//Burn SFT $(liquidity) tokens with type $(staking_token) + add invariant + require!
-
 		let mut unstake_amount = self.get_unstake_amount(&self.get_caller(), &attributes.lp_token_id);
 		unstake_amount += lp_tokens;
 		self.set_unstake_amount(&self.get_caller(), &attributes.lp_token_id, &unstake_amount);
 		self.set_unbond_epoch(&self.get_caller(), &attributes.lp_token_id, self.get_block_epoch() + 14400); //10 days
 
+		//TODO: Add invariant. Something went really wrong.
+		self.nft_burn(sft_nonce, &liquidity);
 		Ok(())
 	}
 
-	#[endpoint(unbond)]
+	#[endpoint]
 	fn unbond(
 		&self,
 		lp_token: TokenIdentifier
@@ -158,29 +189,87 @@ pub trait Staking {
 		#[payment] issue_cost: BigUint,
 		token_display_name: BoxedBytes,
 		token_ticker: BoxedBytes,
-	) -> AsyncCall<BigUint> {
+	) -> SCResult<AsyncCall<BigUint>> {
 
-		//Adding this with SCResult will make the issue fail
-		//only_owner!(self, "Permission denied");
-		//if !self.sft_staking_token_identifier().is_empty() {
-		//	return sc_error!("Already issued");
-		//}
+		only_owner!(self, "Permission denied");
+		if !self.sft_staking_token_identifier().is_empty() {
+			return sc_error!("Already issued");
+		}
 
 		let caller = self.get_caller();
-		ESDTSystemSmartContractProxy::new()
+		Ok(ESDTSystemSmartContractProxy::new()
 			.issue_semi_fungible(
 				issue_cost,
 				&token_display_name,
 				&token_ticker,
-				true,
-				true,
-				true,
-				true,
-				true,
-				true,
+				SemiFungibleTokenProperties {
+					can_freeze: true,
+					can_wipe: true,
+					can_pause: true,
+					can_change_owner: true,
+					can_upgrade: true,
+					can_add_special_roles: true,
+				},
 			)
 			.async_call()
 			.with_callback(self.callbacks().sft_issue_callback(&caller))
+		)
+	}
+
+	#[endpoint(setLocalRoles)]
+	fn set_local_roles(
+		&self,
+		#[var_args] roles: VarArgs<EsdtLocalRole>,
+	) -> SCResult<AsyncCall<BigUint>> {
+
+		only_owner!(self, "Permission denied");
+		if self.sft_staking_token_identifier().is_empty() {
+			return sc_error!("No staking token issued");
+		}
+
+		Ok(ESDTSystemSmartContractProxy::new()
+			.set_special_roles(
+				&self.get_sc_address(),
+				self.sft_staking_token_identifier().get().as_esdt_identifier(),
+				roles.as_slice(),
+			)
+			.async_call()
+			.with_callback(self.callbacks().change_roles_callback())
+		)
+	}
+
+	#[callback]
+	fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+		match result {
+			AsyncCallResult::Ok(()) => {
+				self.last_error_message().clear();
+			},
+			AsyncCallResult::Err(message) => {
+				self.last_error_message().set(&message.err_msg);
+			},
+		}
+	}
+
+	fn nft_create(&self, amount: &BigUint, attributes: &StakeAttributes<BigUint>) {
+		self.send().esdt_nft_create::<StakeAttributes<BigUint>>(
+			self.get_gas_left(),
+			self.sft_staking_token_identifier().get().as_esdt_identifier(),
+			amount,
+			&BoxedBytes::empty(),
+			&BigUint::zero(),
+			&H256::zero(),
+			attributes,
+			&[],
+		);
+	}
+
+	fn nft_burn(&self, nonce: u64, amount: &BigUint) {
+		self.send().esdt_nft_burn(
+			self.get_gas_left(),
+			self.sft_staking_token_identifier().get().as_esdt_identifier(),
+			nonce,
+			amount,
+		);
 	}
 
 	#[callback]
@@ -232,6 +321,7 @@ pub trait Staking {
 	fn sft_staking_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
 
+	#[view(getUnbondEpoch)]
 	#[storage_get("unbond_epoch")]
 	fn get_unbond_epoch(&self, address: &Address, token: &TokenIdentifier) -> u64;
 
@@ -242,6 +332,7 @@ pub trait Staking {
 	fn clear_unbond_epoch(&self, address: &Address, token: &TokenIdentifier);
 
 
+	#[view(getUnstakeAmount)]
 	#[storage_get("unstake_amount")]
 	fn get_unstake_amount(&self, address: &Address, token: &TokenIdentifier) -> BigUint;
 
@@ -253,5 +344,10 @@ pub trait Staking {
 	
 	#[storage_is_empty("unstake_amount")]
 	fn is_empty_unstake_amount(&self, address: &Address, token: &TokenIdentifier) -> bool;
+
+
+	#[view(lastErrorMessage)]
+	#[storage_mapper("lastErrorMessage")]
+	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 }
 
