@@ -33,11 +33,11 @@ pub trait Pair {
 		token_b_name: TokenIdentifier,
 		router_address: Address) {
 		
-		self.set_router_address(&router_address);
-		self.liquidity_pool().set_token_a_name(&token_a_name);
-		self.liquidity_pool().set_token_b_name(&token_b_name);
+		self.router_address().set(&router_address);
+		self.liquidity_pool().token_a_name().set(&token_a_name);
+		self.liquidity_pool().token_b_name().set(&token_b_name);
 
-		self.fee().set_state(false);
+		self.fee().state().set(&false);
 	}
 
 	#[payable("*")]
@@ -49,7 +49,7 @@ pub trait Pair {
 	) -> SCResult<()> {
 
 		require!(payment > 0, "PAIR: Funds transfer must be a positive number");
-		if token != self.liquidity_pool().get_token_a_name() && token != self.liquidity_pool().get_token_b_name() {
+		if token != self.liquidity_pool().token_a_name().get() && token != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("PAIR: INVALID TOKEN");
 		}
 
@@ -72,13 +72,13 @@ pub trait Pair {
 		require!(amount_a_desired > 0, "PAIR: INSSUFICIENT TOKEN A FUNDS SENT");
 		require!(amount_b_desired > 0, "PAIR: INSSUFICIENT TOKEN B FUNDS SENT");
 
-		if self.is_empty_lp_token_identifier() {
+		if self.lp_token_identifier().is_empty() {
 			return sc_error!("Lp token not issued");
 		}
 
 		let caller = self.get_caller();
-		let expected_token_a_name = self.liquidity_pool().get_token_a_name();
-		let expected_token_b_name = self.liquidity_pool().get_token_b_name();
+		let expected_token_a_name = self.liquidity_pool().token_a_name().get();
+		let expected_token_b_name = self.liquidity_pool().token_b_name().get();
 		let mut temporary_amount_a_desired = self.get_temporary_funds(&caller, &expected_token_a_name);
 		let mut temporary_amount_b_desired = self.get_temporary_funds(&caller, &expected_token_b_name);
 
@@ -87,68 +87,54 @@ pub trait Pair {
 		require!(amount_a_desired <= temporary_amount_a_desired, "PAIR: INSSUFICIENT TOKEN A FUNDS TO ADD");
 		require!(amount_b_desired <= temporary_amount_b_desired, "PAIR: INSSUFICIENT TOKEN B FUNDS TO ADD");
 
-		let amount_a: BigUint;
-		let amount_b: BigUint;
-		let result = self.liquidity_pool()._add_liquidity(amount_a_desired.clone(), amount_b_desired.clone(), amount_a_min, amount_b_min);
+		let amounts = sc_try!(
+			self.liquidity_pool()._add_liquidity(
+				amount_a_desired.clone(), 
+				amount_b_desired.clone(), 
+				amount_a_min, 
+				amount_b_min
+			)
+		);
+		let amount_a = amounts.0;
+		let amount_b = amounts.1;
 
-		match result {
-			SCResult::Ok(amounts) => {
-				amount_a = amounts.0;
-				amount_b = amounts.1;
-			},
-			SCResult::Err(err) => {
-				return sc_error!(err);
-			},
-		};
-
-		let result = self.liquidity_pool().mint(
-			amount_a.clone(),
-			amount_b.clone(),
+		let liquidity = sc_try!(self.liquidity_pool().mint(amount_a.clone(), amount_b.clone()));
+		self.send().direct_esdt_via_transf_exec(
+			&self.get_caller(),
+			self.lp_token_identifier().get().as_esdt_identifier(),
+			&liquidity,
+			&[]
 		);
 
-		match result {
-			SCResult::Ok(liquidity) => {
-				self.send().direct_esdt_via_transf_exec(
-					&self.get_caller(),
-					self.get_lp_token_identifier().as_esdt_identifier(),
-					&liquidity,
-					&[],
-				);
+		let mut total_supply = self.liquidity_pool().total_supply().get();
+		total_supply += liquidity.clone();
+		self.liquidity_pool().total_supply().set(&total_supply);
 
-				let mut total_supply = self.liquidity_pool().get_total_supply();
-				total_supply += liquidity.clone();
-				self.liquidity_pool().set_total_supply(&total_supply);
+		temporary_amount_a_desired -= amount_a;
+		temporary_amount_b_desired -= amount_b;
+		self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
+		self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
 
-				temporary_amount_a_desired -= amount_a;
-				temporary_amount_b_desired -= amount_b;
-				self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
-				self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
-			},
-			SCResult::Err(err) => {
-				return sc_error!(err);
-			}
-		};
 		Ok(())
+	}
+
+	fn reclaim_temporary_token(&self, token: &TokenIdentifier) {
+		let caller = self.get_caller();
+		let amount = self.get_temporary_funds(&caller, token);
+		if amount > 0 {
+			self.send().direct_esdt_via_transf_exec(&caller, token.as_esdt_identifier(), &amount, &[]);
+			self.clear_temporary_funds(&caller, token);
+		}
 	}
 
 	#[endpoint(reclaimTemporaryFunds)]
 	fn reclaim_temporary_funds(&self) -> SCResult<()> {
-
-		let caller = self.get_caller();
-		let token_a = self.liquidity_pool().get_token_a_name();
-		let token_b = self.liquidity_pool().get_token_b_name();
-		let amount_a = self.get_temporary_funds(&caller, &token_a);
-		let amount_b = self.get_temporary_funds(&caller, &token_b);
-		
-		if amount_a > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
-			self.clear_temporary_funds(&caller, &token_a);
-		}
-		if amount_b > 0 {
-			self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
-			self.clear_temporary_funds(&caller, &token_b);
-		}
-
+		self.reclaim_temporary_token(
+			&self.liquidity_pool().token_a_name().get()
+		);
+		self.reclaim_temporary_token(
+			&self.liquidity_pool().token_b_name().get()
+		);
 		Ok(())
 	}
 
@@ -161,33 +147,26 @@ pub trait Pair {
 		amount_a_min: BigUint,
 		amount_b_min: BigUint) -> SCResult<()> {
 
-		if self.is_empty_lp_token_identifier() {
+		if self.lp_token_identifier().is_empty() {
 			return sc_error!("Lp token not issued");
 		}
 	
 		let caller = self.get_caller();
-		let expected_liquidity_token = self.get_lp_token_identifier();
+		let expected_liquidity_token = self.lp_token_identifier().get();
 		require!(liquidity_token == expected_liquidity_token, "PAIR: Wrong liquidity token");
 		
-		let result = self.liquidity_pool().burn(liquidity.clone(), amount_a_min, amount_b_min);
-		
-		match result {
-			SCResult::Ok(amounts) => {
-				let token_a = self.liquidity_pool().get_token_a_name();
-				let token_b = self.liquidity_pool().get_token_b_name();
-				let (amount_a, amount_b) = amounts;
+		let amounts = sc_try!(self.liquidity_pool().burn(liquidity.clone(), amount_a_min, amount_b_min));
+		let amount_a = amounts.0;
+		let amount_b = amounts.1;
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let mut total_supply = self.liquidity_pool().total_supply().get();
+		total_supply -= liquidity.clone();
 
-				self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
-				self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
+		self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
+		self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
+		self.liquidity_pool().total_supply().set(&total_supply);
 
-				let mut total_supply = self.liquidity_pool().get_total_supply();
-				total_supply -= liquidity.clone();
-				self.liquidity_pool().set_total_supply(&total_supply);
-			},
-			SCResult::Err(err) => {
-				return sc_error!(err);
-			}
-		}
 		Ok(())
 	}
 
@@ -205,11 +184,11 @@ pub trait Pair {
 			return sc_error!("Swap with same token");
 		}
 		require!(amount_in > 0, "Invalid amount_in");
-		if token_in != self.liquidity_pool().get_token_a_name() && token_in != self.liquidity_pool().get_token_b_name() {
+		if token_in != self.liquidity_pool().token_a_name().get() && token_in != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("Pair: Invalid token");
 		}
 		require!(amount_out_min > 0, "Invalid amount_out_min");
-		if token_out != self.liquidity_pool().get_token_a_name() && token_out != self.liquidity_pool().get_token_b_name() {
+		if token_out != self.liquidity_pool().token_a_name().get() && token_out != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("Pair: Invalid token");
 		}
 
@@ -217,15 +196,19 @@ pub trait Pair {
 		require!(balance_token_out > amount_out_min, "Insufficient balance for token out");
 
 		let mut balance_token_in = self.liquidity_pool().get_pair_reserve(&token_in);
-		let tmp = (balance_token_in.clone(), balance_token_out.clone());
-		let amount_out_optimal = self.library().get_amount_out(amount_in.clone(), tmp);
+		let amount_out_optimal = self.library().get_amount_out(
+			amount_in.clone(), 
+			balance_token_in.clone(), 
+			balance_token_out.clone()
+		);
 		require!(amount_out_optimal >= amount_out_min, "Insufficient liquidity");
+		require!(balance_token_out > amount_out_optimal, "Insufficient balance");
 
 		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out_optimal, &[]);
 
 		let mut fee_amount = BigUint::zero();
 		let mut amount_in_after_fee = amount_in.clone();
-		if self.fee().get_state() {
+		if self.fee().state().get() {
 			fee_amount = self.library().get_fee_fixed_input(amount_in.clone());
 			amount_in_after_fee -= fee_amount.clone();
 		}
@@ -237,7 +220,7 @@ pub trait Pair {
 		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
 
 		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
-		if self.fee().get_state() {
+		if self.fee().state().get() {
 			self.send_fee(token_in, fee_amount);
 		}
 
@@ -258,11 +241,11 @@ pub trait Pair {
 			return sc_error!("Swap with same token");
 		}
 		require!(amount_in_max > 0, "Invalid amount_in");
-		if token_in != self.liquidity_pool().get_token_a_name() && token_in != self.liquidity_pool().get_token_b_name() {
+		if token_in != self.liquidity_pool().token_a_name().get() && token_in != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("Pair: Invalid token");
 		}
 		require!(amount_out > 0, "Invalid amount_out_min");
-		if token_out != self.liquidity_pool().get_token_a_name() && token_out != self.liquidity_pool().get_token_b_name() {
+		if token_out != self.liquidity_pool().token_a_name().get() && token_out != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("Pair: Invalid token");
 		}
 
@@ -270,22 +253,26 @@ pub trait Pair {
 		require!(balance_token_out > amount_out, "Insufficient balance for token out");
 
 		let mut balance_token_in = self.liquidity_pool().get_pair_reserve(&token_in);
-		let tmp = (balance_token_in.clone(), balance_token_out.clone());
-		let amount_in_optimal = self.library().get_amount_in(amount_out.clone(), tmp);
+		let amount_in_optimal = self.library().get_amount_in(
+			amount_out.clone(), 
+			balance_token_in.clone(), 
+			balance_token_out.clone()
+		);
 		require!(amount_in_optimal <= amount_in_max, "Insufficient liquidity");
 
 		self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_out.as_esdt_identifier(), &amount_out, &[]);
 		let residuum = amount_in_max.clone() - amount_in_optimal.clone();
-		if residuum > BigUint::from(0u64) {
+		if residuum != BigUint::from(0u64) {
 			self.send().direct_esdt_via_transf_exec(&self.get_caller(), token_in.as_esdt_identifier(), &residuum, &[]);
 		}
 
 		let mut fee_amount = BigUint::zero();
 		let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
-		if self.fee().get_state() {
+		if self.fee().state().get() {
 			fee_amount = self.library().get_fee_optimal_input(amount_in_optimal.clone());
 			amount_in_optimal_after_fee -= fee_amount.clone();
 		}
+		require!(balance_token_out > amount_out, "Insufficient balance");
 
 		balance_token_in += amount_in_optimal_after_fee;
 		balance_token_out -= amount_out;
@@ -293,7 +280,7 @@ pub trait Pair {
 		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
 
 		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
-		if self.fee().get_state() {
+		if self.fee().state().get() {
 			self.send_fee(token_in, fee_amount);
 		}
 
@@ -309,7 +296,7 @@ pub trait Pair {
 		#[payment] issue_cost: BigUint
 	) -> SCResult<AsyncCall<BigUint>> {
 
-		if self.is_empty_lp_token_identifier() == false {
+		if self.lp_token_identifier().is_empty() == false {
 			return sc_error!("Already issued");
 		}
 
@@ -340,10 +327,10 @@ pub trait Pair {
 		fee_to_address: Address, 
 		fee_token: TokenIdentifier
 	) {
-		if self.get_caller() == self.get_router_address() {
-			self.fee().set_state(enabled);
-			self.fee().set_address(&fee_to_address);
-			self.fee().set_token_identifier(&fee_token);
+		if self.get_caller() == self.router_address().get() {
+			self.fee().state().set(&enabled);
+			self.fee().address().set(&fee_to_address);
+			self.fee().token_identifier().set(&fee_token);
 		}
 	}
 
@@ -358,9 +345,9 @@ pub trait Pair {
 		let mut success = false;
 		match result {
 			AsyncCallResult::Ok(()) => {
-				if self.is_empty_lp_token_identifier() {
+				if self.lp_token_identifier().is_empty() {
 					success = true;
-					self.set_lp_token_identifier(&token_identifier);
+					self.lp_token_identifier().set(&token_identifier);
 				}
 			},
 			AsyncCallResult::Err(_) => {
@@ -383,9 +370,9 @@ pub trait Pair {
 			return;
 		}
 
-		let fee_token_requested = self.fee().get_token_identifier();
-		let token_a = self.liquidity_pool().get_token_a_name();
-		let token_b = self.liquidity_pool().get_token_b_name();
+		let fee_token_requested = self.fee().token_identifier().get();
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
 		let mut to_send = BigUint::zero();
 
 		if fee_token_requested == fee_token  {
@@ -396,8 +383,11 @@ pub trait Pair {
 			// Fees are in form of token_b. Need to convert them to token_a.
 			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
 			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
-			let tmp = (balance_token_b.clone(), balance_token_a.clone());
-			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+			let fee_amount_swap = self.library().get_amount_out_no_fee(
+				fee_amount.clone(), 
+				balance_token_b.clone(), 
+				balance_token_a.clone()
+			);
 
 			if balance_token_a > fee_amount_swap && fee_amount_swap > BigUint::zero() {
 				//There are enough tokens for swapping.
@@ -412,8 +402,11 @@ pub trait Pair {
 			// Fees are in form of token_a. Need to convert them to token_b.
 			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
 			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
-			let tmp = (balance_token_a.clone(), balance_token_b.clone());
-			let fee_amount_swap = self.library().get_amount_out_no_fee(fee_amount.clone(), tmp);
+			let fee_amount_swap = self.library().get_amount_out_no_fee(
+				fee_amount.clone(), 
+				balance_token_a.clone(), 
+				balance_token_b.clone()
+			);
 
 			if balance_token_b > fee_amount_swap && fee_amount_swap > BigUint::zero() {
 				//There are enough tokens for swapping.
@@ -427,8 +420,8 @@ pub trait Pair {
 
 		if to_send > BigUint::zero() {
 			self.send().direct_esdt_via_transf_exec(
-				&self.fee().get_address(),
-				self.fee().get_token_identifier().as_esdt_identifier(),
+				&self.fee().address().get(),
+				self.fee().token_identifier().get().as_esdt_identifier(),
 				&to_send,
 				&[]
 			);
@@ -463,19 +456,10 @@ pub trait Pair {
 
 
 	#[view(getLpTokenIdentifier)]
-	#[storage_get("lpTokenIdentifier")]
-	fn get_lp_token_identifier(&self) -> TokenIdentifier;
-
-	#[storage_set("lpTokenIdentifier")]
-	fn set_lp_token_identifier(&self, token_identifier: &TokenIdentifier);
-
-	#[storage_is_empty("lpTokenIdentifier")]
-	fn is_empty_lp_token_identifier(&self) -> bool;
+	#[storage_mapper("lpTokenIdentifier")]
+	fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
 	#[view(getRouterAddress)]
-	#[storage_get("router_address")]
-	fn get_router_address(&self) -> Address;
-
-	#[storage_set("router_address")]
-	fn set_router_address(&self, address: &Address);
+	#[storage_mapper("router_address")]
+	fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 }

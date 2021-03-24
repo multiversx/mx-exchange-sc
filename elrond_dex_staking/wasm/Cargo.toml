@@ -1,6 +1,6 @@
 [package]
-name = "elrond_dex_staking"
-version = "0.0.1"
+name = "elrond_dex_staking-wasm"
+version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
 publish = false

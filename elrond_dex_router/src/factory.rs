@@ -6,42 +6,42 @@ use core::iter::FromIterator;
 pub trait FactoryModule {
 
 	fn init(&self) {
-		self.set_pair_code_ready(false);
-		self.set_pair_code(&BoxedBytes::empty());
+		self.pair_code_ready().set(&false);
+		self.pair_code().set(&BoxedBytes::empty());
 	}
 
 	fn create_pair(&self, token_a: &TokenIdentifier, token_b: &TokenIdentifier) -> Address {
-		if self.get_pair_code_ready() == false {
+		if self.pair_code_ready().get() == false {
 			return Address::zero()
 		}
-		let code_metadata = CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE | CodeMetadata::READABLE;
+		let code_metadata = CodeMetadata::UPGRADEABLE;
 		let gas_left = self.get_gas_left();
 		let amount = BigUint::from(0u32);
 		let mut arg_buffer = ArgBuffer::new();
-		let code = self.get_pair_code();
+		let code = self.pair_code().get();
 		arg_buffer.push_argument_bytes(token_a.as_esdt_identifier());
 		arg_buffer.push_argument_bytes(token_b.as_esdt_identifier());
 		arg_buffer.push_argument_bytes(self.get_sc_address().as_bytes());
 		let new_address = self.send().deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
 		if new_address != Address::zero() {
-			self.pair_map_insert((token_a.clone(), token_b.clone()), new_address.clone());
+			self.pair_map().insert((token_a.clone(), token_b.clone()), new_address.clone());
 		}
 		new_address
 	}
 
 	fn start_pair_construct(&self) {
-		self.set_pair_code_ready(false);
-		self.set_pair_code(&BoxedBytes::empty());
+		self.pair_code_ready().set(&false);
+		self.pair_code().set(&BoxedBytes::empty());
 	} 
 
 	fn end_pair_construct(&self) {
-		self.set_pair_code_ready(true);
+		self.pair_code_ready().set(&true);
 	}
 
 	fn append_pair_code(&self, part: &BoxedBytes) {
-		let existent = self.get_pair_code();
+		let existent = self.pair_code().get();
 		let new_code = BoxedBytes::from_concat(&[existent.as_slice(), part.as_slice()]);
-		self.set_pair_code(&new_code);
+		self.pair_code().set(&new_code);
 	}
 
 	fn upgrade_pair(&self, _address: &Address) {
@@ -55,31 +55,11 @@ pub trait FactoryModule {
 		MultiResultVec::from_iter(self.pair_map().values())
 	}
 
-	fn pair_map_insert(&self, item: (TokenIdentifier, TokenIdentifier), value: Address) -> Option<Address> {
-		let mut pair_map = self.pair_map();
-		pair_map.insert(item, value)
-	}
+	#[view(getPairCode)]
+	#[storage_mapper("pair_code")]
+	fn pair_code(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 
-	fn pair_map_contains_key(&self, item: (TokenIdentifier, TokenIdentifier)) -> bool {
-		let pair_map = self.pair_map();
-		pair_map.contains_key(&item)
-	}
-
-	fn pair_map_get(&self, item: (TokenIdentifier, TokenIdentifier)) -> Option<Address> {
-		let pair_map = self.pair_map();
-		pair_map.get(&item)
-	}
-
-	#[storage_get("pair_code")]
-	fn get_pair_code(&self) -> BoxedBytes;
-
-	#[storage_set("pair_code")]
-	fn set_pair_code(&self, pair_code: &BoxedBytes);
-
-	#[storage_get("pairCodeReady")]
-	fn get_pair_code_ready(&self) -> bool;
-
-	#[storage_set("pairCodeReady")]
-	fn set_pair_code_ready(&self, started: bool);
-
+	#[view(getPairCodeReady)]
+	#[storage_mapper("pair_code_ready")]
+	fn pair_code_ready(&self) -> SingleValueMapper<Self::Storage, bool>;
 }

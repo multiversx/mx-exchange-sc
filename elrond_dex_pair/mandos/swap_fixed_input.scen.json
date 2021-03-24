@@ -121,9 +121,8 @@
 						"str:lpTokenIdentifier": "str:CLC-abcdef",
 						"0x726573657276650000000a414c432d616263646566": "4,000,000,000",
 						"0x726573657276650000000a424c432d616263646566": "4,000,000,000",
-						"str:fee_on": "true",
-						"str:fee_to_address": "address:staking_contract",
-						"str:fee_to_function": "str:acceptEsdtFees",
+						"str:fee_state": "true",
+						"str:fee_address": "address:staking_contract",
 						"str:fee_token_identifier": "str:BLC-abcdef"
 					},
 					"code": "file:../output/elrond_dex_pair.wasm"
@@ -190,9 +189,8 @@
 						"str:lpTokenIdentifier": "str:CLC-abcdef",
 						"0x726573657276650000000a414c432d616263646566": "4,000,100,000",
 						"0x726573657276650000000a424c432d616263646566": "3,999,900,204",
-						"str:fee_on": "true",
-						"str:fee_to_address": "address:staking_contract",
-						"str:fee_to_function": "str:acceptEsdtFees",
+						"str:fee_state": "true",
+						"str:fee_address": "address:staking_contract",
 						"str:fee_token_identifier": "str:BLC-abcdef"
 					},
 					"code": "file:../output/elrond_dex_pair.wasm"
