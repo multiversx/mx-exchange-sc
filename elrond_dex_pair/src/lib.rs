@@ -306,15 +306,17 @@ pub trait Pair {
 				&tp_token_display_name,
 				&tp_token_ticker,
 				&BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
-				ESDT_DECIMALS.into(),
-				false,
-				false,
-				false,
-				true,
-				false,
-				true,
-				true,
-				false,
+				FungibleTokenProperties {
+					num_decimals: ESDT_DECIMALS as usize,
+					can_freeze: false,
+					can_wipe: false,
+					can_pause: false,
+					can_mint: true,
+					can_burn: false,
+					can_change_owner: true,
+					can_upgrade: true,
+					can_add_special_roles: false,
+				}
 			)
 			.async_call()
 			.with_callback(self.callbacks().lp_token_issue_callback(&self.get_caller())))

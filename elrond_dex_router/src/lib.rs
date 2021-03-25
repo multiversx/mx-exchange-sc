@@ -14,7 +14,7 @@ pub trait PairContract {
 		enabled: bool, 
 		fee_to_address: Address, 
 		fee_token: TokenIdentifier
-	) -> ContractCall<BigUint>;
+	) -> ContractCall<BigUint, ()>;
 }
 
 #[elrond_wasm_derive::contract(RouterImpl)]
