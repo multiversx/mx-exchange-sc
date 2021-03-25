@@ -259,7 +259,7 @@ pub trait Staking {
 			&BigUint::zero(),
 			&H256::zero(),
 			attributes,
-			&[],
+			&[BoxedBytes::empty()],
 		);
 	}
 
