@@ -6,7 +6,6 @@ elrond_wasm::derive_imports!();
 pub mod factory;
 pub use factory::*;
 
-
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
 	fn set_fee_on_endpoint(
@@ -14,7 +13,9 @@ pub trait PairContract {
 		enabled: bool, 
 		fee_to_address: Address, 
 		fee_token: TokenIdentifier
-	) -> ContractCall<BigUint>;
+	) -> ContractCall<BigUint, ()>;
+	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> ContractCall<BigUint, ()>;
+	fn get_lp_token_identifier_endpoint(&self) -> ContractCall<BigUint, TokenIdentifier>;
 }
 
 #[elrond_wasm_derive::contract(RouterImpl)]
@@ -37,6 +38,61 @@ pub trait Router {
 		let pair_address = self.get_pair(token_a.clone(), token_b.clone());
 		require!(pair_address == Address::zero(), "Pair already existent");
 		Ok(self.factory().create_pair(&token_a, &token_b))
+	}
+
+	#[payable("EGLD")]
+	#[endpoint(issueLpToken)]
+	fn issue_lp_token_endpoint(
+		&self,
+		address: Address,
+		tp_token_display_name: BoxedBytes,
+		tp_token_ticker: BoxedBytes,
+		#[payment] issue_cost: BigUint
+	) -> SCResult<AsyncCall<BigUint>> {
+		let half_gas = self.get_gas_left() / 2;
+		let result = contract_call!(self, address.clone(), PairContractProxy)
+            .get_lp_token_identifier_endpoint()
+            .execute_on_dest_context(half_gas, self.send());
+
+		require!(result.is_egld(), "PAIR: LP Token already issued.");
+
+		Ok(ESDTSystemSmartContractProxy::new()
+			.issue_fungible(
+				issue_cost,
+				&tp_token_display_name,
+				&tp_token_ticker,
+				&BigUint::from(1000u64),
+				FungibleTokenProperties {
+					num_decimals: 18,
+					can_freeze: true,
+					can_wipe: true,
+					can_pause: true,
+					can_mint: true,
+					can_burn: true,
+					can_change_owner: true,
+					can_upgrade: true,
+					can_add_special_roles: true,
+				},
+			)
+			.async_call()
+			.with_callback(self.callbacks().lp_token_issue_callback(address)))
+	}
+
+	#[endpoint(setLocalRoles)]
+	fn set_local_roles(
+		&self,
+		address: Address,
+		token_identifier: TokenIdentifier,
+		#[var_args] roles: VarArgs<EsdtLocalRole>,
+	) -> AsyncCall<BigUint> {
+		ESDTSystemSmartContractProxy::new()
+			.set_special_roles(
+				&address,
+				token_identifier.as_esdt_identifier(),
+				roles.as_slice(),
+			)
+			.async_call()
+			.with_callback(self.callbacks().change_roles_callback())
 	}
 
 	#[endpoint(setStakingInfo)]
@@ -132,6 +188,48 @@ pub trait Router {
 		self.factory().pair_map_values()
 	}
 
+	#[callback]
+	fn lp_token_issue_callback(
+		&self,
+		address: Address,
+		#[payment_token] token_identifier: TokenIdentifier,
+		#[payment] returned_tokens: BigUint,
+		#[call_result] result: AsyncCallResult<()>,
+	) {
+		let success;
+		match result {
+			AsyncCallResult::Ok(()) => {
+				let half_gas = self.get_gas_left() / 2;
+				
+				let _ = contract_call!(self, address, PairContractProxy)
+            					.set_lp_token_identifier_endpoint(token_identifier.clone())
+            					.execute_on_dest_context(half_gas, self.send());
+				success = true;
+				
+			},
+			AsyncCallResult::Err(_) => {
+				success = false;
+			},
+		}
+
+		if success == false {
+			if token_identifier.is_egld() && returned_tokens > 0 {
+				self.send().direct_egld(&self.get_caller(), &returned_tokens, &[]);
+			}
+		}
+	}
+
+	#[callback]
+	fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+		match result {
+			AsyncCallResult::Ok(()) => {
+				self.last_error_message().clear();
+			},
+			AsyncCallResult::Err(message) => {
+				self.last_error_message().set(&message.err_msg);
+			},
+		}
+	}
 
 	#[view(getStakingAddress)]
 	#[storage_mapper("staking_address")]
@@ -140,4 +238,8 @@ pub trait Router {
 	#[view(getStakingToken)]
 	#[storage_mapper("staking_token")]
 	fn staking_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+	#[view(lastErrorMessage)]
+	#[storage_mapper("lastErrorMessage")]
+	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 }
