@@ -11,9 +11,6 @@ pub use crate::liquidity_pool::*;
 pub use crate::library::*;
 pub use crate::fee::*;
 
-const ESDT_DECIMALS: u8 = 18;
-const LP_TOKEN_INITIAL_SUPPLY: u32 = u32::MAX; //Can be any u64 != 0
-
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
 
@@ -99,6 +96,13 @@ pub trait Pair {
 		let amount_b = amounts.1;
 
 		let liquidity = sc_try!(self.liquidity_pool().mint(amount_a.clone(), amount_b.clone()));
+
+		self.send().esdt_local_mint(
+			self.get_gas_left(),
+			self.lp_token_identifier().get().as_esdt_identifier(),
+			&liquidity,
+		);
+
 		self.send().direct_esdt_via_transf_exec(
 			&self.get_caller(),
 			self.lp_token_identifier().get().as_esdt_identifier(),
@@ -166,6 +170,12 @@ pub trait Pair {
 		self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
 		self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
 		self.liquidity_pool().total_supply().set(&total_supply);
+
+		self.send().esdt_local_burn(
+			self.get_gas_left(),
+			expected_liquidity_token.as_esdt_identifier(),
+			&liquidity,
+		);
 
 		Ok(())
 	}
@@ -285,42 +295,7 @@ pub trait Pair {
 		}
 
 		Ok(())
-	}
-
-	#[payable("EGLD")]
-	#[endpoint(issueLpToken)]
-	fn issue_token(
-		&self,
-		tp_token_display_name: BoxedBytes,
-		tp_token_ticker: BoxedBytes,
-		#[payment] issue_cost: BigUint
-	) -> SCResult<AsyncCall<BigUint>> {
-
-		if self.lp_token_identifier().is_empty() == false {
-			return sc_error!("Already issued");
-		}
-
-		Ok(ESDTSystemSmartContractProxy::new()
-			.issue_fungible(
-				issue_cost,
-				&tp_token_display_name,
-				&tp_token_ticker,
-				&BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
-				FungibleTokenProperties {
-					num_decimals: ESDT_DECIMALS as usize,
-					can_freeze: false,
-					can_wipe: false,
-					can_pause: false,
-					can_mint: true,
-					can_burn: false,
-					can_change_owner: true,
-					can_upgrade: true,
-					can_add_special_roles: false,
-				}
-			)
-			.async_call()
-			.with_callback(self.callbacks().lp_token_issue_callback(&self.get_caller())))
-	}
+  }
 
 	#[endpoint]
 	fn set_fee_on_endpoint(
@@ -333,33 +308,6 @@ pub trait Pair {
 			self.fee().state().set(&enabled);
 			self.fee().address().set(&fee_to_address);
 			self.fee().token_identifier().set(&fee_token);
-		}
-	}
-
-	#[callback]
-	fn lp_token_issue_callback(
-		&self,
-		caller: &Address,
-		#[payment_token] token_identifier: TokenIdentifier,
-		#[payment] returned_tokens: BigUint,
-		#[call_result] result: AsyncCallResult<()>,
-	) {
-		let mut success = false;
-		match result {
-			AsyncCallResult::Ok(()) => {
-				if self.lp_token_identifier().is_empty() {
-					success = true;
-					self.lp_token_identifier().set(&token_identifier);
-				}
-			},
-			AsyncCallResult::Err(_) => {
-				success = false;
-			},
-		}
-		if success == false {
-			if token_identifier.is_egld() && returned_tokens > 0 {
-				self.send().direct_egld(caller, &returned_tokens, &[]);
-			}
 		}
 	}
 
@@ -437,6 +385,23 @@ pub trait Pair {
 		}
 	}
 
+	#[endpoint]
+	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
+		let caller = self.get_caller();
+		require!(caller == self.router_address().get(), "PAIR: Permission Denied");
+		if self.lp_token_identifier().is_empty() {
+			self.lp_token_identifier().set(&token_identifier);
+		}
+
+		Ok(())
+	}
+
+	#[view]
+	fn get_lp_token_identifier_endpoint(&self) -> TokenIdentifier {
+		self.lp_token_identifier().get()
+	}
+
+
 	#[view]
 	fn get_tokens_for_given_position(
 		&self, 
@@ -456,8 +421,6 @@ pub trait Pair {
 	#[storage_clear("funds")]
 	fn clear_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier);
 
-
-	#[view(getLpTokenIdentifier)]
 	#[storage_mapper("lpTokenIdentifier")]
 	fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
