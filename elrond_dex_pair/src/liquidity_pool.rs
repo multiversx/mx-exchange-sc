@@ -120,7 +120,12 @@ pub trait LiquidityPoolModule {
 	) -> BigUint {
 		let reserve = self.get_pair_reserve(&token);
 		let total_supply = self.total_supply().get();
-		liquidity.clone() * reserve.clone() / total_supply.clone()
+		if total_supply != BigUint::zero() {
+			liquidity.clone() * reserve.clone() / total_supply.clone()
+		}
+		else {
+			BigUint::zero()
+		}
 	}
 
 	fn get_tokens_for_given_position(

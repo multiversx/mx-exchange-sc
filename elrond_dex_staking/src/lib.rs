@@ -29,9 +29,20 @@ pub trait Staking {
 	fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
 	#[init]
-	fn init(&self, wegld_token_identifier: TokenIdentifier) {
+	fn init(&self, wegld_token_identifier: TokenIdentifier, router_address: Address) {
 		self.wegld_token_identifier().set(&wegld_token_identifier);
 		self.liquidity_pool().virtual_token_id().set(&wegld_token_identifier);
+		self.router_address().set(&router_address);
+	}
+
+	#[endpoint]
+	fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
+		let caller = self.get_caller();
+		let router = self.router_address().get();
+		require!(caller == router, "Permission denied");
+		self.set_pair_for_lp_token(&token, &address);
+		self.set_lp_token_for_pair(&address, &token);
+		Ok(())
 	}
 
 	#[payable("*")]
@@ -259,7 +270,7 @@ pub trait Staking {
 			&BigUint::zero(),
 			&H256::zero(),
 			attributes,
-			&[],
+			&[BoxedBytes::empty()],
 		);
 	}
 
@@ -349,5 +360,9 @@ pub trait Staking {
 	#[view(lastErrorMessage)]
 	#[storage_mapper("lastErrorMessage")]
 	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+
+	#[view(getRouterAddress)]
+	#[storage_mapper("router_address")]
+	fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 }
 

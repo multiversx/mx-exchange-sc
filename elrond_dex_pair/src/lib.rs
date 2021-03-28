@@ -295,7 +295,7 @@ pub trait Pair {
 		}
 
 		Ok(())
-	}
+  }
 
 	#[endpoint]
 	fn set_fee_on_endpoint(
@@ -406,8 +406,8 @@ pub trait Pair {
 	fn get_tokens_for_given_position(
 		&self, 
 		liquidity: BigUint
-	) -> SCResult<((TokenIdentifier, BigUint), (TokenIdentifier, BigUint))> {
-		Ok(self.liquidity_pool().get_tokens_for_given_position(liquidity))
+	) -> ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint)) {
+		self.liquidity_pool().get_tokens_for_given_position(liquidity)
 	}
 
 	// Temporary Storage
