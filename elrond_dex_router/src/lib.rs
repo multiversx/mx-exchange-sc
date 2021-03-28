@@ -18,6 +18,12 @@ pub trait PairContract {
 	fn get_lp_token_identifier_endpoint(&self) -> ContractCall<BigUint, TokenIdentifier>;
 }
 
+#[elrond_wasm_derive::callable(StakingContractProxy)]
+pub trait StakingContract {
+	fn add_pair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
+	fn remove_pair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
+}
+
 #[elrond_wasm_derive::contract(RouterImpl)]
 pub trait Router {
 
@@ -128,25 +134,50 @@ pub trait Router {
 	}
 
 	#[endpoint(setFeeOn)]
-	fn set_fee_on(&self, pair_address: Address) -> SCResult<AsyncCall<BigUint>> {
+	fn set_fee_on(&self, pair_address: Address) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
 		sc_try!(self.check_is_pair_sc(&pair_address));
+		require!(!self.staking_address().is_empty(), "Empty staking address");
+		require!(!self.staking_token().is_empty(), "Empty staking token");
 
+		let per_execute_gas = self.get_gas_left() / 3;
 		let staking_token = self.staking_token().get();
 		let staking_address = self.staking_address().get();
-		Ok(contract_call!(self, pair_address, PairContractProxy)
+		contract_call!(self, pair_address.clone(), PairContractProxy)
 			.set_fee_on_endpoint(true, staking_address, staking_token)
-			.async_call())
+			.execute_on_dest_context(per_execute_gas, self.send());
+
+		let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
+            .get_lp_token_identifier_endpoint()
+            .execute_on_dest_context(per_execute_gas, self.send());
+
+		contract_call!(self, self.staking_address().get(), StakingContractProxy)
+			.add_pair(pair_address.clone(), lp_token.clone())
+			.execute_on_dest_context(per_execute_gas, self.send());
+
+		Ok(())
 	}
 
 	#[endpoint(setFeeOff)]
-	fn set_fee_off(&self, pair_address: Address) -> SCResult<AsyncCall<BigUint>> {
+	fn set_fee_off(&self, pair_address: Address) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
 		sc_try!(self.check_is_pair_sc(&pair_address));
+		require!(!self.staking_address().is_empty(), "Empty staking address");
 
-		Ok(contract_call!(self, pair_address, PairContractProxy)
+		let per_execute_gas = self.get_gas_left() / 3;
+		contract_call!(self, pair_address.clone(), PairContractProxy)
 			.set_fee_on_endpoint(false, Address::zero(), TokenIdentifier::egld())
-			.async_call())
+			.execute_on_dest_context(per_execute_gas, self.send());
+
+		let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
+			.get_lp_token_identifier_endpoint()
+			.execute_on_dest_context(per_execute_gas, self.send());
+
+		contract_call!(self, self.staking_address().get(), StakingContractProxy)
+			.remove_pair(pair_address.clone(), lp_token.clone())
+			.execute_on_dest_context(per_execute_gas, self.send());
+
+		Ok(())
 	}
 
 	#[endpoint(startPairCodeConstruction)]
@@ -201,9 +232,10 @@ pub trait Router {
 			AsyncCallResult::Ok(()) => {
 				let half_gas = self.get_gas_left() / 2;
 				
-				let _ = contract_call!(self, address, PairContractProxy)
-            					.set_lp_token_identifier_endpoint(token_identifier.clone())
-            					.execute_on_dest_context(half_gas, self.send());
+				contract_call!(self, address, PairContractProxy)
+					.set_lp_token_identifier_endpoint(token_identifier.clone())
+					.execute_on_dest_context(half_gas, self.send());
+
 				success = true;
 				
 			},
