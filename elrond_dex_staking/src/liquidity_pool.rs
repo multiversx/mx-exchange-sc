@@ -44,12 +44,30 @@ pub trait LiquidityPoolModule {
 		liquidity: BigUint,
 		initial_worth: BigUint
 	) -> SCResult<BigUint> {
-		require!(liquidity > 0, "Liquidity needs to be greater than 0");
-
-		let mut total_supply = self.total_supply().get();
-		require!(total_supply > liquidity, "Removing more liquidity than existent");
+		let reward = sc_try!(self.calculate_reward(liquidity.clone(), initial_worth.clone()));
 
 		let mut virtual_reserves = self.virtual_reserves().get();
+		virtual_reserves -= initial_worth;
+		self.virtual_reserves().set(&virtual_reserves);
+
+		let mut total_supply = self.total_supply().get();
+		total_supply -= liquidity;
+		self.total_supply().set(&total_supply);
+
+		Ok(reward)
+	}
+
+	fn calculate_reward(
+		&self,
+		liquidity: BigUint,
+		initial_worth: BigUint
+	) -> SCResult<BigUint> {
+		require!(liquidity > 0, "Liquidity needs to be greater than 0");
+
+		let total_supply = self.total_supply().get();
+		require!(total_supply > liquidity, "Removing more liquidity than existent");
+
+		let virtual_reserves = self.virtual_reserves().get();
 		require!(virtual_reserves > initial_worth, "Removing more virtual reserve than existent");
 
 		let actual_reserves = self.get_esdt_balance(
@@ -61,9 +79,6 @@ pub trait LiquidityPoolModule {
 
 		let total_reserves = virtual_reserves.clone() + actual_reserves.clone();
 		let worth = liquidity.clone() * total_reserves / total_supply.clone();
-
-		total_supply -= liquidity;
-		virtual_reserves -= initial_worth.clone();
 
 		if worth > initial_worth {
 			reward = worth - initial_worth;

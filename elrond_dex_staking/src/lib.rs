@@ -314,6 +314,38 @@ pub trait Staking {
 		}
 	}
 
+	#[view(calculateRewardsForGivenPosition)]
+	fn calculate_rewards_for_given_position(
+		&self,
+		sft_nonce: u64,
+		liquidity: BigUint
+	) -> SCResult<BigUint> {
+
+		let sft_info = self.get_esdt_token_data(
+			&self.get_sc_address(),
+			self.sft_staking_token_identifier().get().as_esdt_identifier(),
+			sft_nonce,
+		);
+
+		let attributes: StakeAttributes::<BigUint>;
+		match StakeAttributes::<BigUint>::top_decode(sft_info.attributes.clone().as_slice()) {
+			Result::Ok(decoded_obj) => {
+				attributes = decoded_obj;
+			}
+			Result::Err(_) => {
+				return sc_error!("Decoding error");
+			}
+		}
+
+		let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone() /
+			attributes.total_amount_liquidity.clone();
+		if initial_worth == BigUint::zero() {
+			return Ok(BigUint::zero());
+		}
+
+		self.liquidity_pool().calculate_reward(liquidity, initial_worth)
+	}
+
 	#[view(getPairForLpToken)]
 	#[storage_get("pair_for_lp_token")]
 	fn get_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> Address;
