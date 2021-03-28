@@ -14,20 +14,21 @@ pub trait LiquidityPoolModule {
 		amount_a: BigUint,
 		amount_b: BigUint,
 	) -> SCResult<BigUint> {
-		let token_a = self.get_token_a_name();
-		let token_b = self.get_token_b_name();
-		let mut total_supply = self.get_total_supply();
+		let token_a = self.token_a_name().get();
+		let token_b = self.token_b_name().get();
+		let mut total_supply = self.total_supply().get();
 		let mut reserve_a = self.get_pair_reserve(&token_a);
 		let mut reserve_b = self.get_pair_reserve(&token_b);
-		let liquidity: BigUint;
+		let mut liquidity: BigUint;
 		
 		if total_supply == 0 {
-			liquidity = self.library().minimum(amount_a.clone(), amount_b.clone()) - BigUint::from(1000u64);
-			require!(liquidity > 0, "Pair: FIRST TOKENS NEEDS TO BE GRATER THAN MINIMUM LIQUIDITY: 1000 * e1000-18");
+			liquidity = core::cmp::min(amount_a.clone(), amount_b.clone());
+			require!(liquidity > BigUint::from(1000u64), "Pair: FIRST TOKENS NEEDS TO BE GRATER THAN MINIMUM LIQUIDITY: 1000 * 1000e-18");
+			liquidity -= BigUint::from(1000u64);
 			total_supply += BigUint::from(1000u64);
-			self.set_total_supply(&total_supply);
+			self.total_supply().set(&total_supply);
 		} else {
-			liquidity = self.library().minimum(
+			liquidity = core::cmp::min(
 						(amount_a.clone() * total_supply.clone()) / reserve_a.clone(),
 						(amount_b.clone() * total_supply) / reserve_b.clone(),
 			);
@@ -44,35 +45,46 @@ pub trait LiquidityPoolModule {
 		Ok(liquidity)
 	}
 
-	fn burn(
-		&self,
-		liquidity: BigUint,
-		amount_a_min: BigUint,
-		amount_b_min: BigUint,
-	) -> SCResult<(BigUint, BigUint)> {
-		let token_a = self.get_token_a_name();
-		let token_b = self.get_token_b_name();
-		let mut reserve_a = self.get_pair_reserve(&token_a);
-		let mut reserve_b = self.get_pair_reserve(&token_b);
+	fn burn_token(
+        &self,
+        token: TokenIdentifier,
+        liquidity: BigUint,
+        total_supply: BigUint,
+        amount_min: BigUint,
+    ) -> SCResult<BigUint> {
+        let mut reserve = self.get_pair_reserve(&token);
+        let amount = (liquidity * reserve.clone()) / total_supply;
+        require!(&amount > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+        require!(
+            &amount >= &amount_min,
+            "Pair: INSUFFICIENT_LIQUIDITY_BURNED"
+        );
+        reserve -= amount.clone();
+        self.set_pair_reserve(&token, &reserve);
+        Ok(amount)
+    }
 
-		let total_supply = self.get_total_supply();
-
-		let amount_a = (liquidity.clone() * reserve_a.clone()) / total_supply.clone();
-		let amount_b = (liquidity.clone() * reserve_b.clone()) / total_supply;
-
-		require!(&amount_a > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-		require!(&amount_b > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-		require!(&amount_a >= &amount_a_min, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-		require!(&amount_b >= &amount_b_min, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-
-		reserve_a -= amount_a.clone();
-		reserve_b -= amount_b.clone();
-
-		self.set_pair_reserve(&token_a, &reserve_a);
-		self.set_pair_reserve(&token_b, &reserve_b);
-
-		Ok((amount_a, amount_b))
-	}
+    fn burn(
+        &self,
+        liquidity: BigUint,
+        amount_a_min: BigUint,
+        amount_b_min: BigUint,
+    ) -> SCResult<(BigUint, BigUint)> {
+        let total_supply = self.total_supply().get();
+        let amount_a = sc_try!(self.burn_token(
+            self.token_a_name().get(),
+            liquidity.clone(),
+            total_supply.clone(),
+            amount_a_min
+        ));
+        let amount_b = sc_try!(self.burn_token(
+            self.token_b_name().get(),
+            liquidity,
+            total_supply,
+            amount_b_min
+        ));
+        Ok((amount_a, amount_b))
+    }
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
 	fn _add_liquidity(&self,
@@ -82,38 +94,59 @@ pub trait LiquidityPoolModule {
 		amount_b_min: BigUint) -> SCResult<(BigUint, BigUint)> {
 		// TODO: Add functionality to calculate the amounts for tokens to be sent
 		// to liquidity pool
-		let reserve_a = self.get_pair_reserve(&self.get_token_a_name());
-		let reserve_b = self.get_pair_reserve(&self.get_token_b_name());
+		let reserve_a = self.get_pair_reserve(&self.token_a_name().get());
+		let reserve_b = self.get_pair_reserve(&self.token_b_name().get());
 
 		if reserve_a == 0 && reserve_b == 0 {
 			return Ok((amount_a_desired, amount_b_desired));
 		}
 
-		let tmp = (reserve_a.clone(), reserve_b.clone());
-		let amount_b_optimal = self.library().quote(amount_a_desired.clone(), tmp);
+		let amount_b_optimal = self.library().quote(amount_a_desired.clone(), reserve_a.clone(), reserve_b.clone());
 		if amount_b_optimal <= amount_b_desired {
 			require!(amount_b_optimal > amount_b_min, "PAIR: INSUFFICIENT_B_AMOUNT");
 			return Ok((amount_a_desired, amount_b_optimal));
 		} else {
-			let tmp = (reserve_b.clone(), reserve_a.clone());
-			let amount_a_optimal = self.library().quote(amount_b_desired.clone(), tmp);
+			let amount_a_optimal = self.library().quote(amount_b_desired.clone(), reserve_b.clone(), reserve_a.clone());
 			require!(amount_a_optimal <= amount_a_desired, "PAIR: OPTIMAL AMOUNT GRATER THAN DESIRED AMOUNT");
 			require!(amount_a_optimal >= amount_a_min, "PAIR: INSUFFICIENT_A_AMOUNT");
 			return Ok((amount_a_optimal, amount_b_desired));
 		}
 	}
 
-	#[storage_get("token_a_name")]
-	fn get_token_a_name(&self) -> TokenIdentifier;
+	fn get_token_for_given_position(
+		&self,
+		liquidity: BigUint,
+		token: &TokenIdentifier
+	) -> BigUint {
+		let reserve = self.get_pair_reserve(&token);
+		let total_supply = self.total_supply().get();
+		liquidity.clone() * reserve.clone() / total_supply.clone()
+	}
 
-	#[storage_set("token_a_name")]
-	fn set_token_a_name(&self, esdt_token_name: &TokenIdentifier);
+	fn get_tokens_for_given_position(
+		&self,
+		liquidity: BigUint
+	) -> ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint)) {
+		let token_a_name = self.token_a_name().get();
+		let amount_a = self.get_token_for_given_position(
+			liquidity.clone(),
+			&token_a_name
+		);
+		let token_b_name = self.token_b_name().get();
+		let amount_b = self.get_token_for_given_position(
+			liquidity.clone(),
+			&token_b_name
+		);
+		((token_a_name, amount_a), (token_b_name, amount_b))
+	}
 
-	#[storage_get("token_b_name")]
-	fn get_token_b_name(&self) -> TokenIdentifier;
+	#[view(getTokenAName)]
+	#[storage_mapper("token_a_name")]
+	fn token_a_name(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
-	#[storage_set("token_b_name")]
-	fn set_token_b_name(&self, esdt_token_name: &TokenIdentifier);
+	#[view(getTokenBName)]
+	#[storage_mapper("token_b_name")]
+	fn token_b_name(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
 	#[view(getReserve)]
 	#[storage_get("reserve")]
@@ -126,9 +159,6 @@ pub trait LiquidityPoolModule {
 	fn clear_pair_reserve(&self, token: &TokenIdentifier);
 
 	#[view(getTotalSupply)]
-	#[storage_get("total_supply")]
-	fn get_total_supply(&self) -> BigUint;
-
-	#[storage_set("total_supply")]
-	fn set_total_supply(&self, total_supply: &BigUint);
+	#[storage_mapper("total_supply")]
+	fn total_supply(&self) -> SingleValueMapper<Self::Storage, BigUint>;
 }

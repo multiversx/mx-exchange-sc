@@ -1,5 +1,5 @@
 [package]
-name = "elrond_dex_pair-wasm"
+name = "elrond_dex_staking-wasm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,11 +20,11 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.elrond_dex_pair]
+[dependencies.elrond_dex_staking]
 features = [ "wasm-output-mode",]
 default-features = false
 path = ".."
 
 [dependencies.elrond-wasm-output]
-version = "0.14.1"
+version = "0.10.2"
 features = [ "wasm-output-mode",]
