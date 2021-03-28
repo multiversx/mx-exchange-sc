@@ -45,6 +45,16 @@ pub trait Staking {
 		Ok(())
 	}
 
+	#[endpoint]
+	fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
+		let caller = self.get_caller();
+		let router = self.router_address().get();
+		require!(caller == router, "Permission denied");
+		self.clear_pair_for_lp_token(&token, &address);
+		self.clear_lp_token_for_pair(&address, &token);
+		Ok(())
+	}
+
 	#[payable("*")]
 	#[endpoint]
 	fn stake(
@@ -311,6 +321,9 @@ pub trait Staking {
 	#[storage_set("pair_for_lp_token")]
 	fn set_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
 
+	#[storage_clear("pair_for_lp_token")]
+	fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
+
 
 	#[view(getLpTokenForPair)]
 	#[storage_get("lp_token_for_pair")]
@@ -321,6 +334,9 @@ pub trait Staking {
 
 	#[storage_is_empty("lp_token_for_pair")]
 	fn is_empty_lp_token_for_pair(&self, pair_address: &Address) -> bool;
+
+	#[storage_clear("lp_token_for_pair")]
+	fn clear_lp_token_for_pair(&self, pair_address: &Address, token: &TokenIdentifier);
 
 
 	#[view(getWegldTokenIdentifier)]
