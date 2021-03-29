@@ -148,7 +148,13 @@ pub trait Router {
 		#[var_args] roles: VarArgs<EsdtLocalRole>,
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active as u8, "Not active");
-		sc_try!(self.check_is_pair_sc(&addres));
+		sc_try!(self.check_is_pair_sc(&address));
+
+		let half_gas = self.get_gas_left() / 2;
+		let pair_token = contract_call!(self, address.clone(), PairContractProxy)
+			.get_lp_token_identifier_endpoint()
+			.execute_on_dest_context(half_gas, self.send());
+		require!(token_identifier == pair_token, "PAIR: LP token differs from supplied Token");
 
 		Ok(ESDTSystemSmartContractProxy::new()
 			.set_special_roles(
