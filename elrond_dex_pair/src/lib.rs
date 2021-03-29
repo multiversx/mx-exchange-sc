@@ -298,7 +298,7 @@ pub trait Pair {
   }
 
 	#[endpoint]
-	fn set_fee_on_endpoint(
+	fn set_fee_on(
 		&self, 
 		enabled: bool, 
 		fee_to_address: Address, 
@@ -386,7 +386,7 @@ pub trait Pair {
 	}
 
 	#[endpoint]
-	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
+	fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
 		let caller = self.get_caller();
 		require!(caller == self.router_address().get(), "PAIR: Permission Denied");
 		if self.lp_token_identifier().is_empty() {
@@ -397,7 +397,7 @@ pub trait Pair {
 	}
 
 	#[view]
-	fn get_lp_token_identifier_endpoint(&self) -> TokenIdentifier {
+	fn get_lp_token_identifier(&self) -> TokenIdentifier {
 		self.lp_token_identifier().get()
 	}
 

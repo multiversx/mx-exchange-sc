@@ -51,8 +51,14 @@ pub trait FactoryModule {
 	#[storage_mapper("pair_map")]
 	fn pair_map(&self) -> MapMapper<Self::Storage, (TokenIdentifier, TokenIdentifier), Address>;
 
-	fn pair_map_values(&self) -> MultiResultVec<Address> {
+	#[view(getAllPairsAddresses)]
+	fn get_all_pairs_addresses(&self) -> MultiResultVec<Address> {
 		MultiResultVec::from_iter(self.pair_map().values())
+	}
+
+	#[view(getAllPairs)]
+	fn get_all_pairs(&self) -> MultiResultVec<(TokenIdentifier, TokenIdentifier)> {
+		MultiResultVec::from_iter(self.pair_map().keys())
 	}
 
 	#[view(getPairCode)]
