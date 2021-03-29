@@ -4,6 +4,10 @@ derive_imports!();
 #[elrond_wasm_derive::module(LibraryModuleImpl)]
 pub trait LibraryModule {
 
+	fn calculate_k(&self, amount_a: BigUint, amount_b: BigUint) -> BigUint {
+		amount_a * amount_b
+	}
+
 	fn quote(&self, amount_a: BigUint, reserve_a: BigUint, reserve_b: BigUint) -> BigUint {
 		let amount_b = (amount_a * reserve_b) / reserve_a;
 

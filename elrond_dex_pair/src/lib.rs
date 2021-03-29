@@ -74,6 +74,7 @@ pub trait Pair {
 		}
 
 		let caller = self.get_caller();
+		let old_k = self.liquidity_pool().calculate_k();
 		let expected_token_a_name = self.liquidity_pool().token_a_name().get();
 		let expected_token_b_name = self.liquidity_pool().token_b_name().get();
 		let mut temporary_amount_a_desired = self.get_temporary_funds(&caller, &expected_token_a_name);
@@ -119,6 +120,10 @@ pub trait Pair {
 		self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
 		self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
 
+		// Once liquidity has been added, the new K should never be lesser than the old K.
+		let new_k = self.liquidity_pool().calculate_k();
+		sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
+
 		Ok(())
 	}
 
@@ -156,6 +161,7 @@ pub trait Pair {
 		}
 	
 		let caller = self.get_caller();
+		let old_k = self.liquidity_pool().calculate_k();
 		let expected_liquidity_token = self.lp_token_identifier().get();
 		require!(liquidity_token == expected_liquidity_token, "PAIR: Wrong liquidity token");
 		
@@ -176,6 +182,10 @@ pub trait Pair {
 			expected_liquidity_token.as_esdt_identifier(),
 			&liquidity,
 		);
+
+		// Once liquidity has been removed, the new K should never be greater than the old K.
+		let new_k = self.liquidity_pool().calculate_k();
+		sc_try!(self.validate_k_invariant_strict(&new_k, &old_k));
 
 		Ok(())
 	}
@@ -201,6 +211,7 @@ pub trait Pair {
 		if token_out != self.liquidity_pool().token_a_name().get() && token_out != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("Pair: Invalid token");
 		}
+		let old_k = self.liquidity_pool().calculate_k();
 
 		let mut balance_token_out = self.liquidity_pool().get_pair_reserve(&token_out);
 		require!(balance_token_out > amount_out_min, "Insufficient balance for token out");
@@ -234,6 +245,10 @@ pub trait Pair {
 			self.send_fee(token_in, fee_amount);
 		}
 
+		// A swap should not decrease the value of K. Should either be greater or equal.
+		let new_k = self.liquidity_pool().calculate_k();
+		sc_try!(self.validate_k_invariant(&old_k, &new_k));
+
 		Ok(())
 	}
 
@@ -258,6 +273,7 @@ pub trait Pair {
 		if token_out != self.liquidity_pool().token_a_name().get() && token_out != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("Pair: Invalid token");
 		}
+		let old_k = self.liquidity_pool().calculate_k();
 
 		let mut balance_token_out = self.liquidity_pool().get_pair_reserve(&token_out);
 		require!(balance_token_out > amount_out, "Insufficient balance for token out");
@@ -293,6 +309,10 @@ pub trait Pair {
 		if self.fee().state().get() {
 			self.send_fee(token_in, fee_amount);
 		}
+
+		// A swap should not decrease the value of K. Should either be greater or equal.
+		let new_k = self.liquidity_pool().calculate_k();
+		sc_try!(self.validate_k_invariant(&old_k, &new_k));
 
 		Ok(())
   }
@@ -393,6 +413,16 @@ pub trait Pair {
 			self.lp_token_identifier().set(&token_identifier);
 		}
 
+		Ok(())
+	}
+
+	fn validate_k_invariant(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
+		require!(lower <= greater, "K invariant failed");
+		Ok(())
+	}
+
+	fn validate_k_invariant_strict(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
+		require!(lower < greater, "K invariant failed");
 		Ok(())
 	}
 
