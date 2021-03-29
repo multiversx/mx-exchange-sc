@@ -344,8 +344,8 @@ pub trait Router {
 	#[storage_mapper("staking_token")]
 	fn staking_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
-	#[view(lastErrorMessage)]
-	#[storage_mapper("lastErrorMessage")]
+	#[view(getLastErrorMessage)]
+	#[storage_mapper("last_error_message")]
 	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 
 	#[view(getState)]
