@@ -109,6 +109,8 @@ pub trait Router {
 		#[payment] issue_cost: BigUint
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active as u8, "Not active");
+		sc_try!(self.check_is_pair_sc(&address));
+
 		let half_gas = self.get_gas_left() / 2;
 		let result = contract_call!(self, address.clone(), PairContractProxy)
             .get_lp_token_identifier_endpoint()
@@ -146,6 +148,8 @@ pub trait Router {
 		#[var_args] roles: VarArgs<EsdtLocalRole>,
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active as u8, "Not active");
+		sc_try!(self.check_is_pair_sc(&addres));
+
 		Ok(ESDTSystemSmartContractProxy::new()
 			.set_special_roles(
 				&address,
