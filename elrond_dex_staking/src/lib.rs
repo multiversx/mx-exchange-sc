@@ -144,13 +144,12 @@ pub trait Staking {
 
 		let reward = sc_try!(self.liquidity_pool().remove_liquidity(liquidity.clone(), initial_worth.clone()));
 		if reward != BigUint::zero() {
-			let wegld_balance = self.get_esdt_balance(
-				&self.get_sc_address(),
-				self.wegld_token_identifier().get().as_esdt_identifier(),
-				0,
-			);
-			//TODO: Add invariant. Something went really wrong.
-			require!(wegld_balance > reward, "Not enough funds");
+			//Rewards should always be a part of the actual reserves of wegld.
+			//They should never be part of the virtual reserves of wegld.
+			sc_try!(self.validate_existing_esdt_tokens(
+				&reward,
+				&self.wegld_token_identifier().get(),
+			));
 
 			self.send().direct_esdt_via_transf_exec(
 				&self.get_caller(),
@@ -165,7 +164,6 @@ pub trait Staking {
 		self.set_unstake_amount(&self.get_caller(), &attributes.lp_token_id, &unstake_amount);
 		self.set_unbond_epoch(&self.get_caller(), &attributes.lp_token_id, self.get_block_epoch() + 14400); //10 days
 
-		//TODO: Add invariant. Something went really wrong.
 		self.nft_burn(sft_nonce, &liquidity);
 		Ok(())
 	}
@@ -183,13 +181,13 @@ pub trait Staking {
 		require!(block_epoch >= unbond_epoch, "Unbond called too early");
 
 		let unstake_amount = self.get_unstake_amount(&self.get_caller(), &lp_token);
-		let lp_token_balance = self.get_esdt_balance(
-			&self.get_sc_address(),
-			lp_token.as_esdt_identifier(),
-			0,
-		);
-		//TODO: Add invariant. Something went really wrong.
-		require!(lp_token_balance > unstake_amount, "Not enough lp tokens");
+		//Unbonding means that the user should get his lp tokens back.
+		//Imperfect calculus should result in less or equal to the correct amount.
+		//Imperfect calculus should never result in more lp tokens given back.
+		sc_try!(self.validate_existing_esdt_tokens(
+			&unstake_amount,
+			&lp_token
+		));
 
 		self.send().direct_esdt_via_transf_exec(
 			&self.get_caller(),
@@ -312,6 +310,22 @@ pub trait Staking {
 				}
 			},
 		}
+	}
+
+	/// Invariant: should never return error.
+	#[view(validateExistingEsdtTokens)]
+	fn validate_existing_esdt_tokens(
+		&self,
+		amount: &BigUint,
+		token: &TokenIdentifier
+	) -> SCResult<()> {
+		let balance = self.get_esdt_balance(
+			&self.get_sc_address(),
+			token.as_esdt_identifier(),
+			0,
+		);
+		require!(amount < &balance, "Existing funds invariant failed");
+		Ok(())
 	}
 
 	#[view(calculateRewardsForGivenPosition)]
