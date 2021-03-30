@@ -143,9 +143,6 @@ pub trait Pair {
 		self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
 		self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
 
-		// Once liquidity has been added, the new K should never be lesser than the old K.
-		let new_k = self.liquidity_pool().calculate_k();
-		sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
 		let balance_a = self.get_esdt_balance(
 			&self.get_sc_address(),
 			expected_token_a_name.as_esdt_identifier(),
@@ -160,6 +157,10 @@ pub trait Pair {
 			&balance_b,
 			&expected_token_a_name,
 			&expected_token_b_name);
+
+		// Once liquidity has been added, the new K should never be lesser than the old K.
+		let new_k = self.liquidity_pool().calculate_k();
+		sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
 
 		Ok(())
 	}
