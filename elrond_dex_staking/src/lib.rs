@@ -392,6 +392,19 @@ pub trait Staking {
 		self.liquidity_pool().calculate_reward(liquidity, initial_worth)
 	}
 
+	#[view(getBasicInfo)]
+	fn get_basic_info(&self) -> SCResult<(TokenIdentifier, (BigUint, BigUint))> {
+		require!(!self.wegld_token_identifier().is_empty(), "Not issued");
+		let token = self.wegld_token_identifier().get();
+		let vamount = self.liquidity_pool().virtual_reserves().get();
+		let amount = self.get_esdt_balance(
+			&self.get_sc_address(),
+			token.as_esdt_identifier(),
+			0,
+		);
+		Ok((token, (vamount, amount)))
+	}
+
 	#[view(getPairForLpToken)]
 	#[storage_get("pair_for_lp_token")]
 	fn get_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> Address;
