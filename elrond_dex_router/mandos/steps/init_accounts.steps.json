@@ -1,0 +1,29 @@
+{
+	"name": "elrond_dex_router",
+	"comment": "init root account",
+	"steps": [
+		{
+			"step": "setState",
+			"accounts": {
+				"address:user": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {},
+					"storage": {}
+				}
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+					},
+					"storage": {}
+				}
+			}
+		}
+	]
+}
