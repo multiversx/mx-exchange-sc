@@ -1,19 +1,19 @@
 {
 	"name": "elrond_dex_router",
-	"comment": "get pair views",
+	"comment": "create pair twice",
 	"steps": [
 		{
 			"step": "externalSteps",
-			"path": "create_pair_twice.scen.json"
+			"path": "steps/create_pair.steps.json"
 		},
 		{
 			"step": "scCall",
-			"txId": "get-pair",
+			"txId": "create-pair",
 			"tx": {
 				"from": "address:user",
 				"to": "address:router_contract",
 				"value": "0",
-				"function": "getPair",
+				"function": "createPair",
 				"arguments": [
 					"str:ALC-abcdef",
 					"str:BLC-abcdef"
@@ -22,77 +22,30 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": [
-					"0x0000000000000000000011111111726f757465725f636f6e7472616374005f5f"
-				],
-				"status": "0",
-				"message": "",
+				"status": "4",
+				"message": "str:Pair already existent",
 				"gas": "*",
 				"refund": "*"
 			}
 		},
 		{
 			"step": "scCall",
-			"txId": "get-all-pair-addresses",
+			"txId": "create-pair",
 			"tx": {
 				"from": "address:user",
 				"to": "address:router_contract",
 				"value": "0",
-				"function": "getAllPairsAddresses",
-				"arguments": [],
+				"function": "createPair",
+				"arguments": [
+					"str:BLC-abcdef",
+					"str:ALC-abcdef"
+				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": [
-					"0x0000000000000000000011111111726f757465725f636f6e7472616374005f5f"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "get-all-pairs-tokens",
-			"tx": {
-				"from": "address:user",
-				"to": "address:router_contract",
-				"value": "0",
-				"function": "getAllPairsTokens",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x0000000a414c432d6162636465660000000a424c432d616263646566"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "get-all-pairs",
-			"tx": {
-				"from": "address:user",
-				"to": "address:router_contract",
-				"value": "0",
-				"function": "getAllPairs",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x0000000000000000000011111111726f757465725f636f6e7472616374005f5f0000000a414c432d6162636465660000000a424c432d616263646566"
-				],
-				"status": "0",
-				"message": "",
+				"status": "4",
+				"message": "str:Pair already existent",
 				"gas": "*",
 				"refund": "*"
 			}
@@ -112,7 +65,7 @@
 					"code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm"
 				},
 				"address:user": {
-					"nonce": "11",
+					"nonce": "7",
 					"balance": "0",
 					"esdt": {},
 					"storage": {}

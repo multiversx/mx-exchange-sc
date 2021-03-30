@@ -13,26 +13,26 @@ fn contract_map() -> ContractMap<TxContext> {
 }
 
 #[test]
-fn construct_code_test() {
-	parse_execute_mandos("mandos/construct_code.scen.json", &contract_map());
+fn create_pair_twice_test() {
+	parse_execute_mandos("mandos/create_pair_twice.scen.json", &contract_map());
 }
 
 #[test]
-fn construct_code_test() {
-	parse_execute_mandos("mandos/create_pair.scen.json", &contract_map());
-}
-
-#[test]
-fn construct_code_test() {
+fn get_pair_views_test() {
 	parse_execute_mandos("mandos/get_pair_views.scen.json", &contract_map());
 }
 
 #[test]
-fn construct_code_test() {
+fn pause_test() {
 	parse_execute_mandos("mandos/pause.scen.json", &contract_map());
 }
 
 #[test]
-fn construct_code_test() {
-	parse_execute_mandos("mandos/pause.scen.json", &contract_map());
+fn resume_test() {
+	parse_execute_mandos("mandos/resume.scen.json", &contract_map());
+}
+
+#[test]
+fn set_staking_info_test() {
+	parse_execute_mandos("mandos/set_staking_info.scen.json", &contract_map());
 }

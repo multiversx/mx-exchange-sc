@@ -14,7 +14,9 @@
 				"to": "address:router_contract",
 				"value": "0",
 				"function": "pause",
-				"arguments": ["address:router_contract"],
+				"arguments": [
+					"address:router_contract"
+				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
 			},
@@ -32,19 +34,17 @@
 				"address:user": {
 					"nonce": "2",
 					"balance": "0",
-					"esdt": {
-					},
+					"esdt": {},
 					"storage": {}
 				},
 				"address:router_contract": {
 					"nonce": "0",
 					"balance": "0",
-					"esdt": {
-					},
+					"esdt": {},
 					"storage": {
 						"str:pair_code_ready": "false",
 						"str:pair_code": "",
-                        "str:state": "0"
+						"str:state": "0"
 					},
 					"code": "file:../output/elrond_dex_router.wasm"
 				}
