@@ -11,7 +11,8 @@ pub use crate::liquidity_pool::*;
 pub use crate::library::*;
 pub use crate::fee::*;
 
-enum State {
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub enum State {
 	Inactive,
 	Active
 }
@@ -40,20 +41,20 @@ pub trait Pair {
 		self.liquidity_pool().token_b_name().set(&token_b_name);
 
 		self.fee().state().set(&false);
-		self.state().set(&(State::Active as u8));
+		self.state().set(&State::Active);
 	}
 
 	#[endpoint]
 	fn pause(&self) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
-		self.state().set(&(State::Inactive as u8));
+		self.state().set(&State::Inactive);
 		Ok(())
 	}
 
 	#[endpoint]
 	fn resume(&self) -> SCResult<()> {
 		only_owner!(self, "Permission denied");
-		self.state().set(&(State::Active as u8));
+		self.state().set(&State::Active);
 		Ok(())
 	}
 
@@ -65,7 +66,7 @@ pub trait Pair {
 		#[payment] payment: BigUint,
 	) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		require!(payment > 0, "PAIR: Funds transfer must be a positive number");
 		if token != self.liquidity_pool().token_a_name().get() && token != self.liquidity_pool().token_b_name().get() {
 			return sc_error!("PAIR: INVALID TOKEN");
@@ -87,7 +88,7 @@ pub trait Pair {
 		amount_a_min: BigUint,
 		amount_b_min: BigUint) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		require!(amount_a_desired > 0, "PAIR: INSSUFICIENT TOKEN A FUNDS SENT");
 		require!(amount_b_desired > 0, "PAIR: INSSUFICIENT TOKEN B FUNDS SENT");
 
@@ -155,7 +156,7 @@ pub trait Pair {
 
 	#[endpoint(reclaimTemporaryFunds)]
 	fn reclaim_temporary_funds(&self) -> SCResult<()> {
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		self.reclaim_temporary_token(
 			&self.liquidity_pool().token_a_name().get()
 		);
@@ -174,7 +175,7 @@ pub trait Pair {
 		amount_a_min: BigUint,
 		amount_b_min: BigUint) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		if self.lp_token_identifier().is_empty() {
 			return sc_error!("Lp token not issued");
 		}
@@ -214,7 +215,7 @@ pub trait Pair {
 		amount_out_min: BigUint
 	) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		if token_in == token_out {
 			return sc_error!("Swap with same token");
 		}
@@ -272,7 +273,7 @@ pub trait Pair {
 		amount_out: BigUint
 	) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		if token_in == token_out {
 			return sc_error!("Swap with same token");
 		}
@@ -330,7 +331,7 @@ pub trait Pair {
 		fee_to_address: Address, 
 		fee_token: TokenIdentifier
 	) -> SCResult<()> {
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		self.fee().state().set(&enabled);
 		self.fee().address().set(&fee_to_address);
@@ -414,7 +415,7 @@ pub trait Pair {
 
 	#[endpoint]
 	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		if self.lp_token_identifier().is_empty() {
 			self.lp_token_identifier().set(&token_identifier);
@@ -457,5 +458,5 @@ pub trait Pair {
 
 	#[view(getState)]
 	#[storage_mapper("state")]
-	fn state(&self) -> SingleValueMapper<Self::Storage, u8>;
+	fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 }

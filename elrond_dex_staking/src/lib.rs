@@ -8,7 +8,8 @@ elrond_wasm::derive_imports!();
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
 
-enum State {
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub enum State {
 	Inactive,
 	Active
 }
@@ -38,7 +39,7 @@ pub trait Staking {
 		self.wegld_token_identifier().set(&wegld_token_identifier);
 		self.liquidity_pool().virtual_token_id().set(&wegld_token_identifier);
 		self.router_address().set(&router_address);
-		self.state().set(&(State::Active as u8));
+		self.state().set(&State::Active);
 	}
 
 	#[endpoint]
@@ -46,7 +47,7 @@ pub trait Staking {
 		let caller = self.get_caller();
 		let router = self.router_address().get();
 		require!(caller == router, "Permission denied");
-		self.state().set(&(State::Inactive as u8));
+		self.state().set(&State::Inactive);
 		Ok(())
 	}
 
@@ -55,13 +56,13 @@ pub trait Staking {
 		let caller = self.get_caller();
 		let router = self.router_address().get();
 		require!(caller == router, "Permission denied");
-		self.state().set(&(State::Active as u8));
+		self.state().set(&State::Active);
 		Ok(())
 	}
 
 	#[endpoint]
 	fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		let caller = self.get_caller();
 		let router = self.router_address().get();
 		require!(caller == router, "Permission denied");
@@ -72,7 +73,7 @@ pub trait Staking {
 
 	#[endpoint]
 	fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		let caller = self.get_caller();
 		let router = self.router_address().get();
 		require!(caller == router, "Permission denied");
@@ -89,7 +90,7 @@ pub trait Staking {
 		#[payment] amount: BigUint,
 	) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		let pair = self.get_pair_for_lp_token(&lp_token);
 		require!(pair != Address::zero(), "Unknown lp token");
 
@@ -137,7 +138,7 @@ pub trait Staking {
 	#[endpoint(unstake)]
 	fn unstake(&self) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		let (liquidity, sft_id) = self.call_value().payment_token_pair();
 		let sft_nonce = self.call_value().esdt_token_nonce();
 
@@ -204,7 +205,7 @@ pub trait Staking {
 		lp_token: TokenIdentifier
 	) -> SCResult<()> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		let caller = self.get_caller();
 		require!(!self.is_empty_unstake_amount(&caller, &lp_token), "Don't have anything to unbond");
 		let block_epoch = self.get_block_epoch();
@@ -241,7 +242,7 @@ pub trait Staking {
 		token_ticker: BoxedBytes,
 	) -> SCResult<AsyncCall<BigUint>> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		if !self.sft_staking_token_identifier().is_empty() {
 			return sc_error!("Already issued");
@@ -273,7 +274,7 @@ pub trait Staking {
 		#[var_args] roles: VarArgs<EsdtLocalRole>,
 	) -> SCResult<AsyncCall<BigUint>> {
 
-		require!(self.state().get() == State::Active as u8, "Not active");
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		if self.sft_staking_token_identifier().is_empty() {
 			return sc_error!("No staking token issued");
@@ -446,6 +447,6 @@ pub trait Staking {
 
 	#[view(getState)]
 	#[storage_mapper("state")]
-	fn state(&self) -> SingleValueMapper<Self::Storage, u8>;
+	fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 }
 
