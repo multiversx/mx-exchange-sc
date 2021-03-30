@@ -420,8 +420,8 @@ pub trait Pair {
 		}
 		else if fee_token_requested == token_a && fee_token == token_b {
 			// Fees are in form of token_b. Need to convert them to token_a.
-			let balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
-			let balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
+			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
+			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
 			let fee_amount_swap = self.library().get_amount_out_no_fee(
 				fee_amount.clone(), 
 				balance_token_b.clone(), 
@@ -430,6 +430,8 @@ pub trait Pair {
 
 			if balance_token_a > fee_amount_swap && fee_amount_swap > BigUint::zero() {
 				//There are enough tokens for swapping.
+				balance_token_a -= fee_amount_swap.clone();
+				balance_token_b += fee_amount.clone();
 				to_send = fee_amount_swap;
 
 				self.liquidity_pool()._update_reserves(
@@ -442,8 +444,8 @@ pub trait Pair {
 		}
 		else if fee_token_requested == token_b && fee_token == token_a {
 			// Fees are in form of token_a. Need to convert them to token_b.
-			let balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
-			let balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
+			let mut balance_token_a = self.liquidity_pool().get_pair_reserve(&token_a);
+			let mut balance_token_b = self.liquidity_pool().get_pair_reserve(&token_b);
 			let fee_amount_swap = self.library().get_amount_out_no_fee(
 				fee_amount.clone(), 
 				balance_token_a.clone(), 
@@ -451,6 +453,8 @@ pub trait Pair {
 			);
 
 			if balance_token_b > fee_amount_swap && fee_amount_swap > BigUint::zero() {
+				balance_token_b -= fee_amount_swap.clone();
+				balance_token_a += fee_amount.clone();
 				//There are enough tokens for swapping.
 				to_send = fee_amount_swap;
 
