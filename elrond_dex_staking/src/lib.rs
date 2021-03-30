@@ -419,8 +419,8 @@ pub trait Staking {
 	fn is_empty_unstake_amount(&self, address: &Address, token: &TokenIdentifier) -> bool;
 
 
-	#[view(lastErrorMessage)]
-	#[storage_mapper("lastErrorMessage")]
+	#[view(getLastErrorMessage)]
+	#[storage_mapper("last_error_message")]
 	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 
 	#[view(getRouterAddress)]

@@ -8,14 +8,14 @@ pub use factory::*;
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
-	fn set_fee_on_endpoint(
+	fn set_fee_on(
 		&self, 
 		enabled: bool, 
 		fee_to_address: Address, 
 		fee_token: TokenIdentifier
 	) -> ContractCall<BigUint, ()>;
-	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> ContractCall<BigUint, ()>;
-	fn get_lp_token_identifier_endpoint(&self) -> ContractCall<BigUint, TokenIdentifier>;
+	fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> ContractCall<BigUint, ()>;
+	fn get_lp_token_identifier(&self) -> ContractCall<BigUint, TokenIdentifier>;
 }
 
 #[elrond_wasm_derive::callable(StakingContractProxy)]
@@ -48,7 +48,7 @@ pub trait Router {
 
 	#[payable("EGLD")]
 	#[endpoint(issueLpToken)]
-	fn issue_lp_token_endpoint(
+	fn issue_lp_token(
 		&self,
 		address: Address,
 		tp_token_display_name: BoxedBytes,
@@ -57,7 +57,7 @@ pub trait Router {
 	) -> SCResult<AsyncCall<BigUint>> {
 		let half_gas = self.get_gas_left() / 2;
 		let result = contract_call!(self, address.clone(), PairContractProxy)
-            .get_lp_token_identifier_endpoint()
+            .get_lp_token_identifier()
             .execute_on_dest_context(half_gas, self.send());
 
 		require!(result.is_egld(), "PAIR: LP Token already issued.");
@@ -144,11 +144,11 @@ pub trait Router {
 		let staking_token = self.staking_token().get();
 		let staking_address = self.staking_address().get();
 		contract_call!(self, pair_address.clone(), PairContractProxy)
-			.set_fee_on_endpoint(true, staking_address, staking_token)
+			.set_fee_on(true, staking_address, staking_token)
 			.execute_on_dest_context(per_execute_gas, self.send());
 
 		let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .get_lp_token_identifier_endpoint()
+            .get_lp_token_identifier()
             .execute_on_dest_context(per_execute_gas, self.send());
 
 		contract_call!(self, self.staking_address().get(), StakingContractProxy)
@@ -166,11 +166,11 @@ pub trait Router {
 
 		let per_execute_gas = self.get_gas_left() / 3;
 		contract_call!(self, pair_address.clone(), PairContractProxy)
-			.set_fee_on_endpoint(false, Address::zero(), TokenIdentifier::egld())
+			.set_fee_on(false, Address::zero(), TokenIdentifier::egld())
 			.execute_on_dest_context(per_execute_gas, self.send());
 
 		let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-			.get_lp_token_identifier_endpoint()
+			.get_lp_token_identifier()
 			.execute_on_dest_context(per_execute_gas, self.send());
 
 		contract_call!(self, self.staking_address().get(), StakingContractProxy)
@@ -214,11 +214,6 @@ pub trait Router {
 		address
 	}
 
-	#[view(getAllPairs)]
-	fn get_all_pairs(&self) -> MultiResultVec<Address> {
-		self.factory().pair_map_values()
-	}
-
 	#[callback]
 	fn lp_token_issue_callback(
 		&self,
@@ -233,7 +228,7 @@ pub trait Router {
 				let half_gas = self.get_gas_left() / 2;
 				
 				contract_call!(self, address, PairContractProxy)
-					.set_lp_token_identifier_endpoint(token_identifier.clone())
+					.set_lp_token_identifier(token_identifier.clone())
 					.execute_on_dest_context(half_gas, self.send());
 
 				success = true;
@@ -271,7 +266,7 @@ pub trait Router {
 	#[storage_mapper("staking_token")]
 	fn staking_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
-	#[view(lastErrorMessage)]
-	#[storage_mapper("lastErrorMessage")]
+	#[view(getLastErrorMessage)]
+	#[storage_mapper("last_error_message")]
 	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 }
