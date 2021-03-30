@@ -95,7 +95,7 @@ pub trait LiquidityPoolModule {
 	}
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
-	fn _add_liquidity(&self,
+	fn add_liquidity(&self,
 		amount_a_desired: BigUint,
 		amount_b_desired: BigUint,
 		amount_a_min: BigUint,
@@ -120,7 +120,7 @@ pub trait LiquidityPoolModule {
 		}
 	}
 
-	fn _update_reserves(&self,
+	fn update_reserves(&self,
 		balance_a: &BigUint,
 		balance_b: &BigUint,
 		token_a: &TokenIdentifier,

@@ -109,7 +109,7 @@ pub trait Pair {
 		require!(amount_b_desired <= temporary_amount_b_desired, "PAIR: INSSUFICIENT TOKEN B FUNDS TO ADD");
 
 		let amounts = sc_try!(
-			self.liquidity_pool()._add_liquidity(
+			self.liquidity_pool().add_liquidity(
 				amount_a_desired.clone(), 
 				amount_b_desired.clone(), 
 				amount_a_min, 
@@ -155,7 +155,7 @@ pub trait Pair {
 			expected_token_b_name.as_esdt_identifier(),
 			0);
 		
-		self.liquidity_pool()._update_reserves(
+		self.liquidity_pool().update_reserves(
 			&balance_a,
 			&balance_b,
 			&expected_token_a_name,
@@ -233,7 +233,7 @@ pub trait Pair {
 			token_b.as_esdt_identifier(),
 			0);
 		
-		self.liquidity_pool()._update_reserves(
+		self.liquidity_pool().update_reserves(
 			&balance_a,
 			&balance_b,
 			&token_a,
@@ -295,7 +295,7 @@ pub trait Pair {
 		balance_token_in += amount_in_after_fee;
 		balance_token_out -= amount_out_optimal;
 
-		self.liquidity_pool()._update_reserves(
+		self.liquidity_pool().update_reserves(
 			&balance_token_in,
 			&balance_token_out,
 			&token_in,
@@ -366,7 +366,7 @@ pub trait Pair {
 		balance_token_in += amount_in_optimal_after_fee;
 		balance_token_out -= amount_out;
 
-		self.liquidity_pool()._update_reserves(
+		self.liquidity_pool().update_reserves(
 			&balance_token_in,
 			&balance_token_out,
 			&token_in,
@@ -434,7 +434,7 @@ pub trait Pair {
 				balance_token_b += fee_amount.clone();
 				to_send = fee_amount_swap;
 
-				self.liquidity_pool()._update_reserves(
+				self.liquidity_pool().update_reserves(
 					&balance_token_a,
 					&balance_token_b,
 					&token_a,
@@ -458,7 +458,7 @@ pub trait Pair {
 				//There are enough tokens for swapping.
 				to_send = fee_amount_swap;
 
-				self.liquidity_pool()._update_reserves(
+				self.liquidity_pool().update_reserves(
 					&balance_token_a,
 					&balance_token_b,
 					&token_a,
