@@ -36,7 +36,6 @@ pub trait StakingContract {
 
 #[elrond_wasm_derive::contract(RouterImpl)]
 pub trait Router {
-
 	#[module(FactoryModuleImpl)]
 	fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
 
@@ -107,15 +106,15 @@ pub trait Router {
 		address: Address,
 		tp_token_display_name: BoxedBytes,
 		tp_token_ticker: BoxedBytes,
-		#[payment] issue_cost: BigUint
+		#[payment] issue_cost: BigUint,
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active, "Not active");
 		sc_try!(self.check_is_pair_sc(&address));
 
 		let half_gas = self.get_gas_left() / 2;
 		let result = contract_call!(self, address.clone(), PairContractProxy)
-            .get_lp_token_identifier()
-            .execute_on_dest_context(half_gas, self.send());
+			.get_lp_token_identifier()
+			.execute_on_dest_context(half_gas, self.send());
 
 		require!(result.is_egld(), "PAIR: LP Token already issued.");
 
@@ -146,7 +145,6 @@ pub trait Router {
 		&self,
 		address: Address,
 		token_identifier: TokenIdentifier,
-		#[var_args] roles: VarArgs<EsdtLocalRole>,
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active, "Not active");
 		sc_try!(self.check_is_pair_sc(&address));
@@ -161,7 +159,7 @@ pub trait Router {
 			.set_special_roles(
 				&address,
 				token_identifier.as_esdt_identifier(),
-				roles.as_slice(),
+				&[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
 			)
 			.async_call()
 			.with_callback(self.callbacks().change_roles_callback())
@@ -170,9 +168,9 @@ pub trait Router {
 
 	#[endpoint(setStakingInfo)]
 	fn set_staking_info(
-		&self, 
-		staking_address: Address, 
-		staking_token: TokenIdentifier
+		&self,
+		staking_address: Address,
+		staking_token: TokenIdentifier,
 	) -> SCResult<()> {
 		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
@@ -218,8 +216,8 @@ pub trait Router {
 			.execute_on_dest_context(per_execute_gas, self.send());
 
 		let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .get_lp_token_identifier()
-            .execute_on_dest_context(per_execute_gas, self.send());
+			.get_lp_token_identifier()
+			.execute_on_dest_context(per_execute_gas, self.send());
 
 		contract_call!(self, self.staking_address().get(), StakingContractProxy)
 			.add_pair(pair_address.clone(), lp_token.clone())
@@ -281,9 +279,17 @@ pub trait Router {
 	//VIEWS
 	#[view(getPair)]
 	fn get_pair(&self, token_a: TokenIdentifier, token_b: TokenIdentifier) -> Address {
-		let mut address = self.factory().pair_map().get(&(token_a.clone(), token_b.clone())).unwrap_or(Address::zero());
+		let mut address = self
+			.factory()
+			.pair_map()
+			.get(&(token_a.clone(), token_b.clone()))
+			.unwrap_or(Address::zero());
 		if address == Address::zero() {
-			address = self.factory().pair_map().get(&(token_b.clone(), token_a.clone())).unwrap_or(Address::zero());
+			address = self
+				.factory()
+				.pair_map()
+				.get(&(token_b.clone(), token_a.clone()))
+				.unwrap_or(Address::zero());
 		}
 		address
 	}
@@ -306,7 +312,6 @@ pub trait Router {
 					.execute_on_dest_context(half_gas, self.send());
 
 				success = true;
-				
 			},
 			AsyncCallResult::Err(_) => {
 				success = false;
@@ -315,7 +320,8 @@ pub trait Router {
 
 		if success == false {
 			if token_identifier.is_egld() && returned_tokens > 0 {
-				self.send().direct_egld(&self.get_caller(), &returned_tokens, &[]);
+				self.send()
+					.direct_egld(&self.get_caller(), &returned_tokens, &[]);
 			}
 		}
 	}
@@ -325,10 +331,10 @@ pub trait Router {
 		match result {
 			AsyncCallResult::Ok(()) => {
 				self.last_error_message().clear();
-			},
+			}
 			AsyncCallResult::Err(message) => {
 				self.last_error_message().set(&message.err_msg);
-			},
+			}
 		}
 	}
 

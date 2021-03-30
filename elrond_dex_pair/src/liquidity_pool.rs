@@ -13,6 +13,7 @@ pub trait LiquidityPoolModule {
 		&self,
 		amount_a: BigUint,
 		amount_b: BigUint,
+		lp_token_identifier: TokenIdentifier,
 	) -> SCResult<BigUint> {
 		let token_a = self.token_a_name().get();
 		let token_b = self.token_b_name().get();
@@ -36,64 +37,82 @@ pub trait LiquidityPoolModule {
 
 		require!(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_MINTED");
 
+		self.send().esdt_local_mint(
+			self.get_gas_left(),
+			lp_token_identifier.as_esdt_identifier(),
+			&liquidity,
+		);
+
 		reserve_a += amount_a;
 		reserve_b += amount_b;
-
-		self.set_pair_reserve(&token_a, &reserve_a);
-		self.set_pair_reserve(&token_b, &reserve_b);
+		self.update_reserves(
+			&reserve_a,
+			&reserve_b,
+			&token_a,
+			&token_b,
+		);
 
 		Ok(liquidity)
 	}
 
 	fn burn_token(
-        &self,
-        token: TokenIdentifier,
-        liquidity: BigUint,
-        total_supply: BigUint,
-        amount_min: BigUint,
-    ) -> SCResult<BigUint> {
-        let mut reserve = self.get_pair_reserve(&token);
-        let amount = (liquidity * reserve.clone()) / total_supply;
-        require!(&amount > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-        require!(
-            &amount >= &amount_min,
-            "Pair: INSUFFICIENT_LIQUIDITY_BURNED"
-        );
-        reserve -= amount.clone();
-        self.set_pair_reserve(&token, &reserve);
-        Ok(amount)
-    }
+		&self,
+		token: TokenIdentifier,
+		liquidity: BigUint,
+		total_supply: BigUint,
+		amount_min: BigUint,
+	) -> SCResult<BigUint> {
+		let mut reserve = self.get_pair_reserve(&token);
+		let amount = (liquidity * reserve.clone()) / total_supply;
+		require!(&amount > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		require!(
+			&amount >= &amount_min,
+			"Pair: INSUFFICIENT_LIQUIDITY_BURNED"
+		);
 
-    fn burn(
-        &self,
-        liquidity: BigUint,
-        amount_a_min: BigUint,
-        amount_b_min: BigUint,
-    ) -> SCResult<(BigUint, BigUint)> {
-        let total_supply = self.total_supply().get();
-        let amount_a = sc_try!(self.burn_token(
-            self.token_a_name().get(),
-            liquidity.clone(),
-            total_supply.clone(),
-            amount_a_min
-        ));
-        let amount_b = sc_try!(self.burn_token(
-            self.token_b_name().get(),
-            liquidity,
-            total_supply,
-            amount_b_min
-        ));
-        Ok((amount_a, amount_b))
-    }
+		reserve -= amount.clone();
+		self.set_pair_reserve(&token, &reserve);
+
+		Ok(amount)
+	}
+
+	fn burn(
+		&self,
+		liquidity: BigUint,
+		amount_a_min: BigUint,
+		amount_b_min: BigUint,
+		lp_token_identifier: TokenIdentifier,
+	) -> SCResult<(BigUint, BigUint)> {
+		let total_supply = self.total_supply().get();
+		let amount_a = sc_try!(self.burn_token(
+			self.token_a_name().get(),
+			liquidity.clone(),
+			total_supply.clone(),
+			amount_a_min
+		));
+		let amount_b = sc_try!(self.burn_token(
+			self.token_b_name().get(),
+			liquidity.clone(),
+			total_supply,
+			amount_b_min
+		));
+
+		self.send().esdt_local_burn(
+			self.get_gas_left(),
+			lp_token_identifier.as_esdt_identifier(),
+			&liquidity,
+		);
+
+		Ok((amount_a, amount_b))
+	}
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
-	fn _add_liquidity(&self,
+	fn add_liquidity(&self,
 		amount_a_desired: BigUint,
 		amount_b_desired: BigUint,
 		amount_a_min: BigUint,
 		amount_b_min: BigUint) -> SCResult<(BigUint, BigUint)> {
-		// TODO: Add functionality to calculate the amounts for tokens to be sent
-		// to liquidity pool
+
 		let reserve_a = self.get_pair_reserve(&self.token_a_name().get());
 		let reserve_b = self.get_pair_reserve(&self.token_b_name().get());
 
@@ -111,6 +130,16 @@ pub trait LiquidityPoolModule {
 			require!(amount_a_optimal >= amount_a_min, "PAIR: INSUFFICIENT_A_AMOUNT");
 			return Ok((amount_a_optimal, amount_b_desired));
 		}
+	}
+
+	fn update_reserves(&self,
+		balance_a: &BigUint,
+		balance_b: &BigUint,
+		token_a: &TokenIdentifier,
+		token_b: &TokenIdentifier,
+	) {
+		self.set_pair_reserve(token_a, balance_a);
+		self.set_pair_reserve(token_b, balance_b);
 	}
 
 	fn get_token_for_given_position(
