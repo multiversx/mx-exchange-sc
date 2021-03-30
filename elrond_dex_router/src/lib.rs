@@ -6,6 +6,12 @@ elrond_wasm::derive_imports!();
 pub mod factory;
 pub use factory::*;
 
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub enum State {
+	Inactive,
+	Active
+}
+
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
 	fn set_fee_on(
@@ -16,12 +22,16 @@ pub trait PairContract {
 	) -> ContractCall<BigUint, ()>;
 	fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> ContractCall<BigUint, ()>;
 	fn get_lp_token_identifier(&self) -> ContractCall<BigUint, TokenIdentifier>;
+	fn pause(&self) -> ContractCall<BigUint, ()>;
+	fn resume(&self) -> ContractCall<BigUint, ()>;
 }
 
 #[elrond_wasm_derive::callable(StakingContractProxy)]
 pub trait StakingContract {
 	fn add_pair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
 	fn remove_pair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
+	fn pause(&self) -> ContractCall<BigUint, ()>;
+	fn resume(&self) -> ContractCall<BigUint, ()>;
 }
 
 #[elrond_wasm_derive::contract(RouterImpl)]
@@ -32,11 +42,55 @@ pub trait Router {
 	#[init]
 	fn init(&self) {
 		self.factory().init();
+		self.state().set(&State::Active);
+	}
+
+	#[endpoint]
+	fn pause(&self, address: Address) -> SCResult<()> {
+		only_owner!(self, "Permission denied");
+
+		if address == self.get_sc_address() {
+			self.state().set(&State::Inactive);
+		}
+		else if !self.staking_address().is_empty() && address == self.staking_address().get() {
+			contract_call!(self, address.clone(), StakingContractProxy)
+				.pause()
+				.execute_on_dest_context(self.get_gas_left(), self.send());
+		}
+		else {
+			sc_try!(self.check_is_pair_sc(&address));
+			contract_call!(self, address.clone(), PairContractProxy)
+				.resume()
+				.execute_on_dest_context(self.get_gas_left(), self.send());
+		}
+		Ok(())
+	}
+
+	#[endpoint]
+	fn resume(&self, address: Address) -> SCResult<()> {
+		only_owner!(self, "Permission denied");
+
+		if address == self.get_sc_address() {
+			self.state().set(&State::Active);
+		}
+		else if !self.staking_address().is_empty() && address == self.staking_address().get() {
+			contract_call!(self, address.clone(), StakingContractProxy)
+				.resume()
+				.execute_on_dest_context(self.get_gas_left(), self.send());
+		}
+		else {
+			sc_try!(self.check_is_pair_sc(&address));
+			contract_call!(self, address.clone(), PairContractProxy)
+				.resume()
+				.execute_on_dest_context(self.get_gas_left(), self.send());
+		}
+		Ok(())
 	}
 
 	//ENDPOINTS
 	#[endpoint(createPair)]
 	fn create_pair(&self, token_a: TokenIdentifier, token_b: TokenIdentifier) -> SCResult<Address> {
+		require!(self.state().get() == State::Active, "Not active");
 		require!(token_a != token_b, "Identical tokens");
 		require!(token_a.is_esdt(), "Only esdt tokens allowed");
 		require!(token_b.is_esdt(), "Only esdt tokens allowed");
@@ -54,6 +108,9 @@ pub trait Router {
 		tp_token_ticker: BoxedBytes,
 		#[payment] issue_cost: BigUint,
 	) -> SCResult<AsyncCall<BigUint>> {
+		require!(self.state().get() == State::Active, "Not active");
+		sc_try!(self.check_is_pair_sc(&address));
+
 		let half_gas = self.get_gas_left() / 2;
 		let result = contract_call!(self, address.clone(), PairContractProxy)
 			.get_lp_token_identifier()
@@ -88,8 +145,18 @@ pub trait Router {
 		&self,
 		address: Address,
 		token_identifier: TokenIdentifier,
-	) -> AsyncCall<BigUint> {
-		ESDTSystemSmartContractProxy::new()
+		#[var_args] roles: VarArgs<EsdtLocalRole>,
+	) -> SCResult<AsyncCall<BigUint>> {
+		require!(self.state().get() == State::Active, "Not active");
+		sc_try!(self.check_is_pair_sc(&address));
+
+		let half_gas = self.get_gas_left() / 2;
+		let pair_token = contract_call!(self, address.clone(), PairContractProxy)
+			.get_lp_token_identifier_endpoint()
+			.execute_on_dest_context(half_gas, self.send());
+		require!(token_identifier == pair_token, "PAIR: LP token differs from supplied Token");
+
+		Ok(ESDTSystemSmartContractProxy::new()
 			.set_special_roles(
 				&address,
 				token_identifier.as_esdt_identifier(),
@@ -97,6 +164,7 @@ pub trait Router {
 			)
 			.async_call()
 			.with_callback(self.callbacks().change_roles_callback())
+		)
 	}
 
 	#[endpoint(setStakingInfo)]
@@ -105,6 +173,7 @@ pub trait Router {
 		staking_address: Address,
 		staking_token: TokenIdentifier,
 	) -> SCResult<()> {
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		self.staking_address().set(&staking_address);
 		self.staking_token().set(&staking_token);
@@ -124,6 +193,7 @@ pub trait Router {
 
 	#[endpoint(upgradePair)]
 	fn upgrade_pair(&self, pair_address: Address) -> SCResult<()> {
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		sc_try!(self.check_is_pair_sc(&pair_address));
 
@@ -133,6 +203,7 @@ pub trait Router {
 
 	#[endpoint(setFeeOn)]
 	fn set_fee_on(&self, pair_address: Address) -> SCResult<()> {
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		sc_try!(self.check_is_pair_sc(&pair_address));
 		require!(!self.staking_address().is_empty(), "Empty staking address");
@@ -158,6 +229,7 @@ pub trait Router {
 
 	#[endpoint(setFeeOff)]
 	fn set_fee_off(&self, pair_address: Address) -> SCResult<()> {
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 		sc_try!(self.check_is_pair_sc(&pair_address));
 		require!(!self.staking_address().is_empty(), "Empty staking address");
@@ -180,6 +252,7 @@ pub trait Router {
 
 	#[endpoint(startPairCodeConstruction)]
 	fn start_pair_code_construction(&self) -> SCResult<()> {
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 
 		self.factory().start_pair_construct();
@@ -188,6 +261,7 @@ pub trait Router {
 
 	#[endpoint(endPairCodeConstruction)]
 	fn end_pair_code_construction(&self) -> SCResult<()> {
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 
 		self.factory().end_pair_construct();
@@ -195,7 +269,8 @@ pub trait Router {
 	}
 
 	#[endpoint(appendPairCode)]
-	fn apppend_pair_code(&self, part: BoxedBytes) -> SCResult<()> {
+	fn apppend_pair_code(&self, part: BoxedBytes) -> SCResult<()> {		
+		require!(self.state().get() == State::Active, "Not active");
 		only_owner!(self, "Permission denied");
 
 		self.factory().append_pair_code(&part);
@@ -275,4 +350,8 @@ pub trait Router {
 	#[view(getLastErrorMessage)]
 	#[storage_mapper("last_error_message")]
 	fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+
+	#[view(getState)]
+	#[storage_mapper("state")]
+	fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 }
