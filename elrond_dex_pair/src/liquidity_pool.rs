@@ -145,6 +145,12 @@ pub trait LiquidityPoolModule {
 		((token_a_name, amount_a), (token_b_name, amount_b))
 	}
 
+	fn calculate_k(&self) -> BigUint {
+		let amount_a = self.get_pair_reserve(&self.token_a_name().get());
+		let amount_b = self.get_pair_reserve(&self.token_b_name().get());
+		self.library().calculate_k(amount_a, amount_b)
+	}
+
 	#[view(getTokenAName)]
 	#[storage_mapper("token_a_name")]
 	fn token_a_name(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
