@@ -24,6 +24,7 @@
 						"str:token_a_name": "str:ALC-abcdef",
 						"str:token_b_name": "str:BLC-abcdef",
 						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"str:state": "1",
 						"0x726573657276650000000a414c432d616263646566": "4,000,000,000",
 						"0x726573657276650000000a424c432d616263646566": "4,000,000,000"
 					},
@@ -78,6 +79,7 @@
 						"str:token_a_name": "str:ALC-abcdef",
 						"str:token_b_name": "str:BLC-abcdef",
 						"str:lpTokenIdentifier": "str:CLC-abcdef",
+						"str:state": "1",
 						"0x726573657276650000000a414c432d616263646566": "4,000,100,304",
 						"0x726573657276650000000a424c432d616263646566": "3,999,900,000"
 					},
