@@ -120,6 +120,16 @@ pub trait LiquidityPoolModule {
 		}
 	}
 
+	fn _update_reserves(&self,
+		balance_a: &BigUint,
+		balance_b: &BigUint,
+		token_a: &TokenIdentifier,
+		token_b: &TokenIdentifier,
+	) {
+		self.set_pair_reserve(token_a, balance_a);
+		self.set_pair_reserve(token_b, balance_b);
+	}
+
 	fn get_token_for_given_position(
 		&self,
 		liquidity: BigUint,
