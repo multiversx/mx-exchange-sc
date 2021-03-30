@@ -145,14 +145,13 @@ pub trait Router {
 		&self,
 		address: Address,
 		token_identifier: TokenIdentifier,
-		#[var_args] roles: VarArgs<EsdtLocalRole>,
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active, "Not active");
 		sc_try!(self.check_is_pair_sc(&address));
 
 		let half_gas = self.get_gas_left() / 2;
 		let pair_token = contract_call!(self, address.clone(), PairContractProxy)
-			.get_lp_token_identifier_endpoint()
+			.get_lp_token_identifier()
 			.execute_on_dest_context(half_gas, self.send());
 		require!(token_identifier == pair_token, "PAIR: LP token differs from supplied Token");
 
