@@ -13,12 +13,13 @@ pub trait LiquidityPoolModule {
 		&self,
 		amount_a: BigUint,
 		amount_b: BigUint,
+		lp_token_identifier: TokenIdentifier,
 	) -> SCResult<BigUint> {
 		let token_a = self.token_a_name().get();
 		let token_b = self.token_b_name().get();
 		let mut total_supply = self.total_supply().get();
-		let mut reserve_a = self.get_pair_reserve(&token_a);
-		let mut reserve_b = self.get_pair_reserve(&token_b);
+		let reserve_a = self.get_pair_reserve(&token_a);
+		let reserve_b = self.get_pair_reserve(&token_b);
 		let mut liquidity: BigUint;
 		
 		if total_supply == 0 {
@@ -29,62 +30,69 @@ pub trait LiquidityPoolModule {
 			self.total_supply().set(&total_supply);
 		} else {
 			liquidity = core::cmp::min(
-						(amount_a.clone() * total_supply.clone()) / reserve_a.clone(),
-						(amount_b.clone() * total_supply) / reserve_b.clone(),
+						(amount_a.clone() * total_supply.clone()) / reserve_a,
+						(amount_b.clone() * total_supply) / reserve_b,
 			);
 		}
 
 		require!(liquidity > 0, "Pair: INSUFFICIENT_LIQUIDITY_MINTED");
 
-		reserve_a += amount_a;
-		reserve_b += amount_b;
-
-		self.set_pair_reserve(&token_a, &reserve_a);
-		self.set_pair_reserve(&token_b, &reserve_b);
+		self.send().esdt_local_mint(
+			self.get_gas_left(),
+			lp_token_identifier.as_esdt_identifier(),
+			&liquidity,
+		);
 
 		Ok(liquidity)
 	}
 
 	fn burn_token(
-        &self,
-        token: TokenIdentifier,
-        liquidity: BigUint,
-        total_supply: BigUint,
-        amount_min: BigUint,
-    ) -> SCResult<BigUint> {
-        let mut reserve = self.get_pair_reserve(&token);
-        let amount = (liquidity * reserve.clone()) / total_supply;
-        require!(&amount > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
-        require!(
-            &amount >= &amount_min,
-            "Pair: INSUFFICIENT_LIQUIDITY_BURNED"
-        );
-        reserve -= amount.clone();
-        self.set_pair_reserve(&token, &reserve);
-        Ok(amount)
-    }
+		&self,
+		token: TokenIdentifier,
+		liquidity: BigUint,
+		total_supply: BigUint,
+		amount_min: BigUint,
+	) -> SCResult<BigUint> {
+		let reserve = self.get_pair_reserve(&token);
+		let amount = (liquidity * reserve) / total_supply;
+		require!(&amount > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
+		require!(
+			&amount >= &amount_min,
+			"Pair: INSUFFICIENT_LIQUIDITY_BURNED"
+		);
 
-    fn burn(
-        &self,
-        liquidity: BigUint,
-        amount_a_min: BigUint,
-        amount_b_min: BigUint,
-    ) -> SCResult<(BigUint, BigUint)> {
-        let total_supply = self.total_supply().get();
-        let amount_a = sc_try!(self.burn_token(
-            self.token_a_name().get(),
-            liquidity.clone(),
-            total_supply.clone(),
-            amount_a_min
-        ));
-        let amount_b = sc_try!(self.burn_token(
-            self.token_b_name().get(),
-            liquidity,
-            total_supply,
-            amount_b_min
-        ));
-        Ok((amount_a, amount_b))
-    }
+		Ok(amount)
+	}
+
+	fn burn(
+		&self,
+		liquidity: BigUint,
+		amount_a_min: BigUint,
+		amount_b_min: BigUint,
+		lp_token_identifier: TokenIdentifier,
+	) -> SCResult<(BigUint, BigUint)> {
+		let total_supply = self.total_supply().get();
+		let amount_a = sc_try!(self.burn_token(
+			self.token_a_name().get(),
+			liquidity.clone(),
+			total_supply.clone(),
+			amount_a_min
+		));
+		let amount_b = sc_try!(self.burn_token(
+			self.token_b_name().get(),
+			liquidity.clone(),
+			total_supply,
+			amount_b_min
+		));
+
+		self.send().esdt_local_burn(
+			self.get_gas_left(),
+			lp_token_identifier.as_esdt_identifier(),
+			&liquidity,
+		);
+
+		Ok((amount_a, amount_b))
+	}
 
 	// https://github.com/Uniswap/uniswap-v2-periphery/blob/dda62473e2da448bc9cb8f4514dadda4aeede5f4/contracts/UniswapV2Router02.sol#L33
 	fn _add_liquidity(&self,
@@ -92,8 +100,7 @@ pub trait LiquidityPoolModule {
 		amount_b_desired: BigUint,
 		amount_a_min: BigUint,
 		amount_b_min: BigUint) -> SCResult<(BigUint, BigUint)> {
-		// TODO: Add functionality to calculate the amounts for tokens to be sent
-		// to liquidity pool
+
 		let reserve_a = self.get_pair_reserve(&self.token_a_name().get());
 		let reserve_b = self.get_pair_reserve(&self.token_b_name().get());
 

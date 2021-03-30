@@ -96,12 +96,12 @@ pub trait Pair {
 		let amount_a = amounts.0;
 		let amount_b = amounts.1;
 
-		let liquidity = sc_try!(self.liquidity_pool().mint(amount_a.clone(), amount_b.clone()));
-
-		self.send().esdt_local_mint(
-			self.get_gas_left(),
-			self.lp_token_identifier().get().as_esdt_identifier(),
-			&liquidity,
+		let liquidity = sc_try!(
+			self.liquidity_pool().mint(
+				amount_a.clone(),
+				amount_b.clone(),
+				self.lp_token_identifier().get(),
+			)
 		);
 
 		self.send().direct_esdt_via_transf_exec(
@@ -123,7 +123,7 @@ pub trait Pair {
 		// Once liquidity has been added, the new K should never be lesser than the old K.
 		let new_k = self.liquidity_pool().calculate_k();
 		sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
-
+		
 		Ok(())
 	}
 
@@ -165,7 +165,15 @@ pub trait Pair {
 		let expected_liquidity_token = self.lp_token_identifier().get();
 		require!(liquidity_token == expected_liquidity_token, "PAIR: Wrong liquidity token");
 		
-		let amounts = sc_try!(self.liquidity_pool().burn(liquidity.clone(), amount_a_min, amount_b_min));
+		let amounts = sc_try!(
+			self.liquidity_pool().burn(
+				liquidity.clone(),
+				amount_a_min,
+				amount_b_min,
+				self.lp_token_identifier().get(),
+			)
+		);
+		
 		let amount_a = amounts.0;
 		let amount_b = amounts.1;
 		let token_a = self.liquidity_pool().token_a_name().get();
