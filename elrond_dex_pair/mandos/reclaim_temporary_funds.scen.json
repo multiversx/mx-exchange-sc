@@ -9,7 +9,8 @@
 					"balance": "0",
 					"esdt": {
 						"str:ALC-abcdef": "3,000,000,000",
-						"str:BLC-abcdef": "3,000,000,000"
+						"str:BLC-abcdef": "3,000,000,000",
+						"str:CLC-abcdef": "0"
 					},
 					"storage": {}
 				},
@@ -18,7 +19,8 @@
 					"balance": "0",
 					"esdt": {
 						"str:ALC-abcdef": "3,000,000,000",
-						"str:BLC-abcdef": "3,000,000,000"
+						"str:BLC-abcdef": "3,000,000,000",
+						"str:CLC-abcdef": "0"
 					},
 					"storage": {}
 				},
