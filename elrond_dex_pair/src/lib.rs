@@ -12,8 +12,8 @@ pub use crate::library::*;
 pub use crate::fee::*;
 
 enum State {
-	Inactive = 0,
-	Active = 1
+	Inactive,
+	Active
 }
 
 #[elrond_wasm_derive::contract(PairImpl)]

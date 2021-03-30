@@ -7,8 +7,8 @@ pub mod factory;
 pub use factory::*;
 
 enum State {
-	Inactive = 0,
-	Active = 1
+	Inactive,
+	Active
 }
 
 #[elrond_wasm_derive::callable(PairContractProxy)]

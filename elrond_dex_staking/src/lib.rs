@@ -9,8 +9,8 @@ pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
 
 enum State {
-	Inactive = 0,
-	Active = 1
+	Inactive,
+	Active
 }
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
