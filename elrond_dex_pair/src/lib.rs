@@ -109,7 +109,7 @@ pub trait Pair {
 		require!(amount_b_desired <= temporary_amount_b_desired, "PAIR: INSSUFICIENT TOKEN B FUNDS TO ADD");
 
 		let amounts = sc_try!(
-			self.liquidity_pool()._add_liquidity(
+			self.liquidity_pool().add_liquidity(
 				amount_a_desired.clone(), 
 				amount_b_desired.clone(), 
 				amount_a_min, 
@@ -119,12 +119,12 @@ pub trait Pair {
 		let amount_a = amounts.0;
 		let amount_b = amounts.1;
 
-		let liquidity = sc_try!(self.liquidity_pool().mint(amount_a.clone(), amount_b.clone()));
-
-		self.send().esdt_local_mint(
-			self.get_gas_left(),
-			self.lp_token_identifier().get().as_esdt_identifier(),
-			&liquidity,
+		let liquidity = sc_try!(
+			self.liquidity_pool().mint(
+				amount_a.clone(),
+				amount_b.clone(),
+				self.lp_token_identifier().get(),
+			)
 		);
 
 		self.send().direct_esdt_via_transf_exec(
@@ -142,7 +142,7 @@ pub trait Pair {
 		temporary_amount_b_desired -= amount_b;
 		self.set_temporary_funds(&caller, &expected_token_a_name, &temporary_amount_a_desired);
 		self.set_temporary_funds(&caller, &expected_token_b_name, &temporary_amount_b_desired);
-
+		
 		// Once liquidity has been added, the new K should never be lesser than the old K.
 		let new_k = self.liquidity_pool().calculate_k();
 		sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
@@ -190,7 +190,15 @@ pub trait Pair {
 		let expected_liquidity_token = self.lp_token_identifier().get();
 		require!(liquidity_token == expected_liquidity_token, "PAIR: Wrong liquidity token");
 		
-		let amounts = sc_try!(self.liquidity_pool().burn(liquidity.clone(), amount_a_min, amount_b_min));
+		let amounts = sc_try!(
+			self.liquidity_pool().burn(
+				liquidity.clone(),
+				amount_a_min,
+				amount_b_min,
+				self.lp_token_identifier().get(),
+			)
+		);
+		
 		let amount_a = amounts.0;
 		let amount_b = amounts.1;
 		let token_a = self.liquidity_pool().token_a_name().get();
@@ -201,12 +209,6 @@ pub trait Pair {
 		self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
 		self.send().direct_esdt_via_transf_exec(&caller, token_b.as_esdt_identifier(), &amount_b, &[]);
 		self.liquidity_pool().total_supply().set(&total_supply);
-
-		self.send().esdt_local_burn(
-			self.get_gas_left(),
-			expected_liquidity_token.as_esdt_identifier(),
-			&liquidity,
-		);
 
 		// Once liquidity has been removed, the new K should never be greater than the old K.
 		let new_k = self.liquidity_pool().calculate_k();
@@ -263,8 +265,12 @@ pub trait Pair {
 		balance_token_in += amount_in_after_fee;
 		balance_token_out -= amount_out_optimal;
 
-		self.liquidity_pool().set_pair_reserve(&token_in, &balance_token_in);
-		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
+		self.liquidity_pool().update_reserves(
+			&balance_token_in,
+			&balance_token_out,
+			&token_in,
+			&token_out,
+		);
 
 		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
 		if self.fee().state().get() {
@@ -329,8 +335,13 @@ pub trait Pair {
 
 		balance_token_in += amount_in_optimal_after_fee;
 		balance_token_out -= amount_out;
-		self.liquidity_pool().set_pair_reserve(&token_in, &balance_token_in);
-		self.liquidity_pool().set_pair_reserve(&token_out, &balance_token_out);
+
+		self.liquidity_pool().update_reserves(
+			&balance_token_in,
+			&balance_token_out,
+			&token_in,
+			&token_out,
+		);
 
 		//The transaction was made. We are left with $(fee) of $(token_in) as fee.
 		if self.fee().state().get() {
@@ -391,9 +402,14 @@ pub trait Pair {
 				//There are enough tokens for swapping.
 				balance_token_a -= fee_amount_swap.clone();
 				balance_token_b += fee_amount.clone();
-				self.liquidity_pool().set_pair_reserve(&token_a, &balance_token_a);
-				self.liquidity_pool().set_pair_reserve(&token_b, &balance_token_b);
 				to_send = fee_amount_swap;
+
+				self.liquidity_pool().update_reserves(
+					&balance_token_a,
+					&balance_token_b,
+					&token_a,
+					&token_b,
+				);
 			}
 		}
 		else if fee_token_requested == token_b && fee_token == token_a {
@@ -407,12 +423,17 @@ pub trait Pair {
 			);
 
 			if balance_token_b > fee_amount_swap && fee_amount_swap > BigUint::zero() {
-				//There are enough tokens for swapping.
 				balance_token_b -= fee_amount_swap.clone();
 				balance_token_a += fee_amount.clone();
-				self.liquidity_pool().set_pair_reserve(&token_a, &balance_token_a);
-				self.liquidity_pool().set_pair_reserve(&token_b, &balance_token_b);
+				//There are enough tokens for swapping.
 				to_send = fee_amount_swap;
+
+				self.liquidity_pool().update_reserves(
+					&balance_token_a,
+					&balance_token_b,
+					&token_a,
+					&token_b,
+				);
 			}
 		}
 
