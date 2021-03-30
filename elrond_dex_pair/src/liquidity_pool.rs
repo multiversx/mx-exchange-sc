@@ -18,8 +18,8 @@ pub trait LiquidityPoolModule {
 		let token_a = self.token_a_name().get();
 		let token_b = self.token_b_name().get();
 		let mut total_supply = self.total_supply().get();
-		let reserve_a = self.get_pair_reserve(&token_a);
-		let reserve_b = self.get_pair_reserve(&token_b);
+		let mut reserve_a = self.get_pair_reserve(&token_a);
+		let mut reserve_b = self.get_pair_reserve(&token_b);
 		let mut liquidity: BigUint;
 		
 		if total_supply == 0 {
@@ -30,8 +30,8 @@ pub trait LiquidityPoolModule {
 			self.total_supply().set(&total_supply);
 		} else {
 			liquidity = core::cmp::min(
-						(amount_a.clone() * total_supply.clone()) / reserve_a,
-						(amount_b.clone() * total_supply) / reserve_b,
+						(amount_a.clone() * total_supply.clone()) / reserve_a.clone(),
+						(amount_b.clone() * total_supply) / reserve_b.clone(),
 			);
 		}
 
@@ -41,6 +41,15 @@ pub trait LiquidityPoolModule {
 			self.get_gas_left(),
 			lp_token_identifier.as_esdt_identifier(),
 			&liquidity,
+		);
+
+		reserve_a += amount_a;
+		reserve_b += amount_b;
+		self.update_reserves(
+			&reserve_a,
+			&reserve_b,
+			&token_a,
+			&token_b,
 		);
 
 		Ok(liquidity)
@@ -53,13 +62,16 @@ pub trait LiquidityPoolModule {
 		total_supply: BigUint,
 		amount_min: BigUint,
 	) -> SCResult<BigUint> {
-		let reserve = self.get_pair_reserve(&token);
-		let amount = (liquidity * reserve) / total_supply;
+		let mut reserve = self.get_pair_reserve(&token);
+		let amount = (liquidity * reserve.clone()) / total_supply;
 		require!(&amount > &0, "Pair: INSUFFICIENT_LIQUIDITY_BURNED");
 		require!(
 			&amount >= &amount_min,
 			"Pair: INSUFFICIENT_LIQUIDITY_BURNED"
 		);
+
+		reserve -= amount.clone();
+		self.set_pair_reserve(&token, &reserve);
 
 		Ok(amount)
 	}
