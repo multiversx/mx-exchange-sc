@@ -1,0 +1,54 @@
+{
+	"name": "elrond_dex_router",
+	"comment": "pause",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "steps/deploy_router.steps.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "pause",
+			"tx": {
+				"from": "address:user",
+				"to": "address:router_contract",
+				"value": "0",
+				"function": "pause",
+				"arguments": [
+					"address:router_contract"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user": {
+					"nonce": "2",
+					"balance": "0",
+					"esdt": {},
+					"storage": {}
+				},
+				"address:router_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {},
+					"storage": {
+						"str:pair_code_ready": "false",
+						"str:pair_code": "",
+						"str:state": "0"
+					},
+					"code": "file:../output/elrond_dex_router.wasm"
+				}
+			}
+		}
+	]
+}

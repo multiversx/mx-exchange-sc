@@ -60,7 +60,7 @@ pub trait Router {
 		else {
 			sc_try!(self.check_is_pair_sc(&address));
 			contract_call!(self, address.clone(), PairContractProxy)
-				.resume()
+				.pause()
 				.execute_on_dest_context(self.get_gas_left(), self.send());
 		}
 		Ok(())
@@ -144,7 +144,6 @@ pub trait Router {
 	fn set_local_roles(
 		&self,
 		address: Address,
-		token_identifier: TokenIdentifier,
 	) -> SCResult<AsyncCall<BigUint>> {
 		require!(self.state().get() == State::Active, "Not active");
 		sc_try!(self.check_is_pair_sc(&address));
@@ -153,12 +152,12 @@ pub trait Router {
 		let pair_token = contract_call!(self, address.clone(), PairContractProxy)
 			.get_lp_token_identifier()
 			.execute_on_dest_context(half_gas, self.send());
-		require!(token_identifier == pair_token, "PAIR: LP token differs from supplied Token");
+		require!(pair_token.is_esdt(), "PAIR: LP token not issued");
 
 		Ok(ESDTSystemSmartContractProxy::new()
 			.set_special_roles(
 				&address,
-				token_identifier.as_esdt_identifier(),
+				pair_token.as_esdt_identifier(),
 				&[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
 			)
 			.async_call()

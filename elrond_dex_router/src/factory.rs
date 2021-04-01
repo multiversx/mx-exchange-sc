@@ -9,6 +9,13 @@ pub struct PairKey {
 	pub token_b: TokenIdentifier,
 }
 
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub struct PairContractData {
+	address: Address,
+	token_a: TokenIdentifier,
+	token_b: TokenIdentifier
+}
+
 #[elrond_wasm_derive::module(FactoryModuleImpl)]
 pub trait FactoryModule {
 
@@ -68,9 +75,23 @@ pub trait FactoryModule {
 		MultiResultVec::from_iter(self.pair_map().values())
 	}
 
-	#[view(getAllPairs)]
-	fn get_all_pairs(&self) -> MultiResultVec<PairKey> {
+	#[view(getAllPairsTokens)]
+	fn get_all_pairs(&self) -> MultiResultVec<(TokenIdentifier, TokenIdentifier)> {
 		MultiResultVec::from_iter(self.pair_map().keys())
+	}
+
+	#[view(getAllPairs)]
+	fn get_pairs(&self) -> MultiResultVec<PairContractData> {
+		let map: Vec<PairContractData> = self.pair_map()
+			.iter()
+			.map(|x| PairContractData {
+					address: x.1,
+					token_a: x.0.0,
+					token_b: x.0.1
+				}
+			)
+			.collect();
+		MultiResultVec::from_iter(map)
 	}
 
 	#[view(getPairCode)]

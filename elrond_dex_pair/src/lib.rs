@@ -3,6 +3,8 @@
 imports!();
 derive_imports!();
 
+use core::iter::FromIterator;
+
 pub mod liquidity_pool;
 pub mod library;
 pub mod fee;
@@ -487,6 +489,26 @@ pub trait Pair {
 		liquidity: BigUint
 	) -> ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint)) {
 		self.liquidity_pool().get_tokens_for_given_position(liquidity)
+	}
+
+	#[view(getBasicInfo)]
+	fn get_basic_info(
+		&self
+	) -> MultiResultVec<(TokenIdentifier, BigUint)> {
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let reserve_a = self.liquidity_pool().get_pair_reserve(&token_a);
+		let reserve_b = self.liquidity_pool().get_pair_reserve(&token_b);
+
+		let mut result = Vec::<(TokenIdentifier, BigUint)>::new();
+		result.push((token_a, reserve_a));
+		result.push((token_b, reserve_b));
+		if !self.lp_token_identifier().is_empty() {
+			let lptoken = self.lp_token_identifier().get();
+			let supply = self.liquidity_pool().total_supply().get();
+			result.push((lptoken, supply));
+		}
+		MultiResultVec::from_iter(result)
 	}
 
 	// Temporary Storage

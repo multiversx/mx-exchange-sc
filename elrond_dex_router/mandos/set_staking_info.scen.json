@@ -1,0 +1,97 @@
+{
+	"name": "elrond_dex_router",
+	"comment": "set staking info",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "steps/deploy_router.steps.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "set-staing-info",
+			"tx": {
+				"from": "address:user",
+				"to": "address:router_contract",
+				"value": "0",
+				"function": "setStakingInfo",
+				"arguments": ["0x0000000000000000000011111111726f757465725f636f6e7472616374005f5f", "str:ALC-abcdef"],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+
+			"step": "scCall",
+			"txId": "get-staing-address",
+			"tx": {
+				"from": "address:user",
+				"to": "address:router_contract",
+				"value": "0",
+				"function": "getStakingAddress",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["0x0000000000000000000011111111726f757465725f636f6e7472616374005f5f"],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-staing-address",
+			"tx": {
+				"from": "address:user",
+				"to": "address:router_contract",
+				"value": "0",
+				"function": "getStakingToken",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["str:ALC-abcdef"],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user": {
+					"nonce": "4",
+					"balance": "0",
+					"esdt": {
+					},
+					"storage": {}
+				},
+				"address:router_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+					},
+					"storage": {
+						"str:state": "1",
+						"str:pair_code_ready": "false",
+						"str:pair_code": "",
+						"str:staking_token": "str:ALC-abcdef",
+						"str:staking_address": "0x0000000000000000000011111111726f757465725f636f6e7472616374005f5f"
+					},
+					"code": "file:../output/elrond_dex_router.wasm"
+				}
+			}
+		}
+	]
+}
