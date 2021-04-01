@@ -6,13 +6,33 @@ use elrond_wasm_debug::*;
 fn contract_map() -> ContractMap<TxContext> {
 	let mut contract_map = ContractMap::new();
 	contract_map.register_contract(
-		"file:../output/adder.wasm",
-		Box::new(|context| Box::new(AdderImpl::new(context))),
+		"file:../output/elrond_dex_router.wasm",
+		Box::new(|context| Box::new(RouterImpl::new(context))),
 	);
 	contract_map
 }
 
 #[test]
-fn test_mandos() {
-	parse_execute_mandos("mandos/adder.scen.json", &contract_map());
+fn create_pair_twice_test() {
+	parse_execute_mandos("mandos/create_pair_twice.scen.json", &contract_map());
+}
+
+#[test]
+fn get_pair_views_test() {
+	parse_execute_mandos("mandos/get_pair_views.scen.json", &contract_map());
+}
+
+#[test]
+fn pause_test() {
+	parse_execute_mandos("mandos/pause.scen.json", &contract_map());
+}
+
+#[test]
+fn resume_test() {
+	parse_execute_mandos("mandos/resume.scen.json", &contract_map());
+}
+
+#[test]
+fn set_staking_info_test() {
+	parse_execute_mandos("mandos/set_staking_info.scen.json", &contract_map());
 }
