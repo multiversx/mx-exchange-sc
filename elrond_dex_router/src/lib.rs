@@ -60,7 +60,7 @@ pub trait Router {
 		else {
 			sc_try!(self.check_is_pair_sc(&address));
 			contract_call!(self, address.clone(), PairContractProxy)
-				.resume()
+				.pause()
 				.execute_on_dest_context(self.get_gas_left(), self.send());
 		}
 		Ok(())
