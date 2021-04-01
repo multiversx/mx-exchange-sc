@@ -1,6 +1,13 @@
-imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use core::iter::FromIterator;
+
+#[derive(TopEncode, TopDecode, TypeAbi)]
+pub struct PairKey {
+	pub token_a: TokenIdentifier,
+	pub token_b: TokenIdentifier,
+}
 
 #[elrond_wasm_derive::module(FactoryModuleImpl)]
 pub trait FactoryModule {
@@ -24,7 +31,12 @@ pub trait FactoryModule {
 		arg_buffer.push_argument_bytes(self.get_sc_address().as_bytes());
 		let new_address = self.send().deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
 		if new_address != Address::zero() {
-			self.pair_map().insert((token_a.clone(), token_b.clone()), new_address.clone());
+			self.pair_map().insert(
+				PairKey{
+					token_a: token_a.clone(),
+					token_b: token_b.clone(),
+				},
+				new_address.clone());
 		}
 		new_address
 	}
@@ -49,7 +61,7 @@ pub trait FactoryModule {
 	}
 
 	#[storage_mapper("pair_map")]
-	fn pair_map(&self) -> MapMapper<Self::Storage, (TokenIdentifier, TokenIdentifier), Address>;
+	fn pair_map(&self) -> MapMapper<Self::Storage, PairKey, Address>;
 
 	#[view(getAllPairsAddresses)]
 	fn get_all_pairs_addresses(&self) -> MultiResultVec<Address> {
@@ -57,7 +69,7 @@ pub trait FactoryModule {
 	}
 
 	#[view(getAllPairs)]
-	fn get_all_pairs(&self) -> MultiResultVec<(TokenIdentifier, TokenIdentifier)> {
+	fn get_all_pairs(&self) -> MultiResultVec<PairKey> {
 		MultiResultVec::from_iter(self.pair_map().keys())
 	}
 

@@ -282,13 +282,19 @@ pub trait Router {
 		let mut address = self
 			.factory()
 			.pair_map()
-			.get(&(token_a.clone(), token_b.clone()))
+			.get(&PairKey{
+				token_a: token_a.clone(),
+				token_b: token_b.clone(),
+			})
 			.unwrap_or(Address::zero());
 		if address == Address::zero() {
 			address = self
 				.factory()
 				.pair_map()
-				.get(&(token_b.clone(), token_a.clone()))
+				.get(&PairKey{
+					token_a: token_a.clone(),
+					token_b: token_b.clone(),
+				})
 				.unwrap_or(Address::zero());
 		}
 		address
