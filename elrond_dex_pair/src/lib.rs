@@ -46,14 +46,18 @@ pub trait Pair {
 
 	#[endpoint]
 	fn pause(&self) -> SCResult<()> {
-		only_owner!(self, "Permission denied");
+		let caller = self.get_caller();
+		let router = self.router_address().get();
+		require!(caller == router, "permission denied");
 		self.state().set(&State::Inactive);
 		Ok(())
 	}
 
 	#[endpoint]
 	fn resume(&self) -> SCResult<()> {
-		only_owner!(self, "Permission denied");
+		let caller = self.get_caller();
+		let router = self.router_address().get();
+		require!(caller == router, "permission denied");
 		self.state().set(&State::Active);
 		Ok(())
 	}
@@ -363,7 +367,9 @@ pub trait Pair {
 		fee_token: TokenIdentifier
 	) -> SCResult<()> {
 		require!(self.state().get() == State::Active, "Not active");
-		only_owner!(self, "Permission denied");
+		let caller = self.get_caller();
+		let router = self.router_address().get();
+		require!(caller == router, "permission denied");
 		self.fee().state().set(&enabled);
 		self.fee().address().set(&fee_to_address);
 		self.fee().token_identifier().set(&fee_token);
@@ -457,7 +463,9 @@ pub trait Pair {
 	#[endpoint]
 	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
 		require!(self.state().get() == State::Active, "Not active");
-		only_owner!(self, "Permission denied");
+		let caller = self.get_caller();
+		let router = self.router_address().get();
+		require!(caller == router, "permission denied");
 		if self.lp_token_identifier().is_empty() {
 			self.lp_token_identifier().set(&token_identifier);
 		}
