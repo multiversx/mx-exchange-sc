@@ -519,6 +519,106 @@ pub trait Pair {
 		MultiResultVec::from_iter(result)
 	}
 
+	#[view(getAmountOut)]
+	fn get_amount_out(
+		&self,
+		token_in: TokenIdentifier,
+		amount_in: BigUint
+	) -> SCResult<BigUint> {
+		require!(amount_in > 0, "Zero input");
+
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let reserve_a = self.liquidity_pool().get_pair_reserve(&token_a);
+		let reserve_b = self.liquidity_pool().get_pair_reserve(&token_b);
+
+		if token_in == token_a {
+			require!(reserve_b > 0, "Zero reserves");
+			let amount_out = self.library().get_amount_out(
+				amount_in.clone(),
+				reserve_a.clone(),
+				reserve_b.clone()
+			);
+			require!(reserve_b > amount_out, "Not enough reserves");
+			Ok(amount_out)
+		}
+		else if token_in == token_b {
+			require!(reserve_a > 0, "Zero reserves");
+			let amount_out = self.library().get_amount_out(
+				amount_in.clone(),
+				reserve_b.clone(),
+				reserve_a.clone()
+			);
+			require!(reserve_a > amount_out, "Not enough reserves");
+			Ok(amount_out)
+		}
+		else {
+			sc_error!("Not a known token")
+		}
+	}
+
+	#[view(getAmountIn)]
+	fn get_amount_in(
+		&self,
+		token_wanted: TokenIdentifier,
+		amount_wanted: BigUint
+	) -> SCResult<BigUint> {
+		require!(amount_wanted > 0, "Zero input");
+
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let reserve_a = self.liquidity_pool().get_pair_reserve(&token_a);
+		let reserve_b = self.liquidity_pool().get_pair_reserve(&token_b);
+
+		if token_wanted == token_a {
+			require!(reserve_a > amount_wanted, "Not enough reserves");
+			let amount_in = self.library().get_amount_in(
+				amount_wanted.clone(),
+				reserve_b.clone(),
+				reserve_a.clone()
+			);
+			Ok(amount_in)
+		}
+		else if token_wanted == token_b {
+			require!(reserve_b > amount_wanted, "Not enough reserves");
+			let amount_in = self.library().get_amount_in(
+				amount_wanted.clone(),
+				reserve_a.clone(),
+				reserve_b.clone()
+			);
+			Ok(amount_in)
+		}
+		else {
+			sc_error!("Not a known token")
+		}
+	}
+
+	#[view(getEquivalent)]
+	fn get_equivalent(
+		&self,
+		token_in: TokenIdentifier,
+		amount_in: BigUint
+	) -> SCResult<BigUint> {
+		require!(amount_in > 0, "Zero input");
+
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let reserve_a = self.liquidity_pool().get_pair_reserve(&token_a);
+		let reserve_b = self.liquidity_pool().get_pair_reserve(&token_b);
+		require!(reserve_a > 0, "Not enough reserves");
+		require!(reserve_b > 0, "Not enough reserves");
+
+		if token_in == token_a {
+			Ok(self.library().quote(amount_in, reserve_a, reserve_b))
+		}
+		else if token_in == token_b {
+			Ok(self.library().quote(amount_in, reserve_b, reserve_a))
+		}
+		else {
+			sc_error!("Not a known token")
+		}
+	}
+
 	// Temporary Storage
 	#[view(getTemporaryFunds)]
 	#[storage_get("funds")]
