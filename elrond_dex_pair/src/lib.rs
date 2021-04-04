@@ -210,6 +210,7 @@ pub trait Pair {
 		let token_a = self.liquidity_pool().token_a_name().get();
 		let token_b = self.liquidity_pool().token_b_name().get();
 		let mut total_supply = self.liquidity_pool().total_supply().get();
+		require!(total_supply > liquidity, "Not enough supply");
 		total_supply -= liquidity.clone();
 
 		self.send().direct_esdt_via_transf_exec(&caller, token_a.as_esdt_identifier(), &amount_a, &[]);
