@@ -77,8 +77,8 @@ pub trait Staking {
 		let caller = self.get_caller();
 		let router = self.router_address().get();
 		require!(caller == router, "Permission denied");
-		self.clear_pair_for_lp_token(&token, &address);
-		self.clear_lp_token_for_pair(&address, &token);
+		self.clear_pair_for_lp_token(&token);
+		self.clear_lp_token_for_pair(&address);
 		Ok(())
 	}
 
@@ -413,7 +413,7 @@ pub trait Staking {
 	fn set_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
 
 	#[storage_clear("pair_for_lp_token")]
-	fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
+	fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier);
 
 
 	#[view(getLpTokenForPair)]
@@ -427,7 +427,7 @@ pub trait Staking {
 	fn is_empty_lp_token_for_pair(&self, pair_address: &Address) -> bool;
 
 	#[storage_clear("lp_token_for_pair")]
-	fn clear_lp_token_for_pair(&self, pair_address: &Address, token: &TokenIdentifier);
+	fn clear_lp_token_for_pair(&self, pair_address: &Address);
 
 
 	#[view(getWegldTokenIdentifier)]
