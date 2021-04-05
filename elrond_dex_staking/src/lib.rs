@@ -91,6 +91,7 @@ pub trait Staking {
 	) -> SCResult<()> {
 
 		require!(self.state().get() == State::Active, "Not active");
+		require!(!self.is_empty_pair_for_lp_token(&lp_token), "Unknown lp token");
 		let pair = self.get_pair_for_lp_token(&lp_token);
 		require!(pair != Address::zero(), "Unknown lp token");
 
@@ -161,9 +162,6 @@ pub trait Staking {
 			}
 		}
 
-		let pair = self.get_pair_for_lp_token(&attributes.lp_token_id);
-		require!(pair != Address::zero(), "Unknown lp token");
-
 		let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone() / 
 			attributes.total_amount_liquidity.clone();
 		require!(initial_worth > 0, "Cannot unstake with intial_worth == 0");
@@ -188,10 +186,12 @@ pub trait Staking {
 			);
 		}
 
-		let mut unstake_amount = self.get_unstake_amount(&self.get_caller(), &attributes.lp_token_id);
-		unstake_amount += lp_tokens;
+		let mut unstake_amount = lp_tokens;
+		if !self.is_empty_unstake_amount(&self.get_caller(), &attributes.lp_token_id) {
+			unstake_amount = self.get_unstake_amount(&self.get_caller(), &attributes.lp_token_id);
+		}
 		self.set_unstake_amount(&self.get_caller(), &attributes.lp_token_id, &unstake_amount);
-		self.set_unbond_epoch(&self.get_caller(), &attributes.lp_token_id, self.get_block_epoch() + 14400); //10 days
+		self.set_unbond_epoch(&self.get_caller(), &attributes.lp_token_id, self.get_block_epoch() + 10);
 
 		self.nft_burn(sft_nonce, &liquidity);
 		Ok(())
@@ -414,6 +414,9 @@ pub trait Staking {
 
 	#[storage_clear("pair_for_lp_token")]
 	fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier);
+
+	#[storage_is_empty("pair_for_lp_token")]
+	fn is_empty_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> bool;
 
 
 	#[view(getLpTokenForPair)]
