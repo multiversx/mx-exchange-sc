@@ -120,7 +120,8 @@ pub trait Staking {
 			total_amount_liquidity: liquidity.clone()
 		};
 
-		self.nft_create(&liquidity, &attributes);
+		let to_create = liquidity.clone() + BigUint::from(1u64);
+		self.nft_create(&to_create, &attributes);
 		let sft_id = self.sft_staking_token_identifier().get();
 		let nonce = self.get_current_esdt_nft_nonce(&self.get_sc_address(), sft_id.as_esdt_identifier());
 
@@ -356,7 +357,7 @@ pub trait Staking {
 			token.as_esdt_identifier(),
 			0,
 		);
-		require!(amount < &balance, "Existing funds invariant failed");
+		require!(amount <= &balance, "Existing funds invariant failed");
 		Ok(())
 	}
 
@@ -367,9 +368,12 @@ pub trait Staking {
 		liquidity: BigUint
 	) -> SCResult<BigUint> {
 
+		let sft_id = self.sft_staking_token_identifier().get();
+		let max_nonce = self.get_current_esdt_nft_nonce(&self.get_sc_address(), sft_id.as_esdt_identifier());
+		require!(sft_nonce <= max_nonce, "Invalid nonce");
 		let sft_info = self.get_esdt_token_data(
 			&self.get_sc_address(),
-			self.sft_staking_token_identifier().get().as_esdt_identifier(),
+			sft_id.as_esdt_identifier(),
 			sft_nonce,
 		);
 
