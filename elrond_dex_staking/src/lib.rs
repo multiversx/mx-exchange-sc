@@ -77,8 +77,8 @@ pub trait Staking {
 		let caller = self.get_caller();
 		let router = self.router_address().get();
 		require!(caller == router, "Permission denied");
-		self.clear_pair_for_lp_token(&token, &address);
-		self.clear_lp_token_for_pair(&address, &token);
+		self.clear_pair_for_lp_token(&token);
+		self.clear_lp_token_for_pair(&address);
 		Ok(())
 	}
 
@@ -91,6 +91,7 @@ pub trait Staking {
 	) -> SCResult<()> {
 
 		require!(self.state().get() == State::Active, "Not active");
+		require!(!self.is_empty_pair_for_lp_token(&lp_token), "Unknown lp token");
 		let pair = self.get_pair_for_lp_token(&lp_token);
 		require!(pair != Address::zero(), "Unknown lp token");
 
@@ -119,7 +120,8 @@ pub trait Staking {
 			total_amount_liquidity: liquidity.clone()
 		};
 
-		self.nft_create(&liquidity, &attributes);
+		let to_create = liquidity.clone() + BigUint::from(1u64);
+		self.nft_create(&to_create, &attributes);
 		let sft_id = self.sft_staking_token_identifier().get();
 		let nonce = self.get_current_esdt_nft_nonce(&self.get_sc_address(), sft_id.as_esdt_identifier());
 
@@ -161,9 +163,6 @@ pub trait Staking {
 			}
 		}
 
-		let pair = self.get_pair_for_lp_token(&attributes.lp_token_id);
-		require!(pair != Address::zero(), "Unknown lp token");
-
 		let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone() / 
 			attributes.total_amount_liquidity.clone();
 		require!(initial_worth > 0, "Cannot unstake with intial_worth == 0");
@@ -188,10 +187,12 @@ pub trait Staking {
 			);
 		}
 
-		let mut unstake_amount = self.get_unstake_amount(&self.get_caller(), &attributes.lp_token_id);
-		unstake_amount += lp_tokens;
+		let mut unstake_amount = lp_tokens;
+		if !self.is_empty_unstake_amount(&self.get_caller(), &attributes.lp_token_id) {
+			unstake_amount = self.get_unstake_amount(&self.get_caller(), &attributes.lp_token_id);
+		}
 		self.set_unstake_amount(&self.get_caller(), &attributes.lp_token_id, &unstake_amount);
-		self.set_unbond_epoch(&self.get_caller(), &attributes.lp_token_id, self.get_block_epoch() + 14400); //10 days
+		self.set_unbond_epoch(&self.get_caller(), &attributes.lp_token_id, self.get_block_epoch() + 10);
 
 		self.nft_burn(sft_nonce, &liquidity);
 		Ok(())
@@ -356,7 +357,7 @@ pub trait Staking {
 			token.as_esdt_identifier(),
 			0,
 		);
-		require!(amount < &balance, "Existing funds invariant failed");
+		require!(amount <= &balance, "Existing funds invariant failed");
 		Ok(())
 	}
 
@@ -367,9 +368,12 @@ pub trait Staking {
 		liquidity: BigUint
 	) -> SCResult<BigUint> {
 
+		let sft_id = self.sft_staking_token_identifier().get();
+		let max_nonce = self.get_current_esdt_nft_nonce(&self.get_sc_address(), sft_id.as_esdt_identifier());
+		require!(sft_nonce <= max_nonce, "Invalid nonce");
 		let sft_info = self.get_esdt_token_data(
 			&self.get_sc_address(),
-			self.sft_staking_token_identifier().get().as_esdt_identifier(),
+			sft_id.as_esdt_identifier(),
 			sft_nonce,
 		);
 
@@ -413,7 +417,10 @@ pub trait Staking {
 	fn set_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
 
 	#[storage_clear("pair_for_lp_token")]
-	fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
+	fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier);
+
+	#[storage_is_empty("pair_for_lp_token")]
+	fn is_empty_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> bool;
 
 
 	#[view(getLpTokenForPair)]
@@ -427,7 +434,7 @@ pub trait Staking {
 	fn is_empty_lp_token_for_pair(&self, pair_address: &Address) -> bool;
 
 	#[storage_clear("lp_token_for_pair")]
-	fn clear_lp_token_for_pair(&self, pair_address: &Address, token: &TokenIdentifier);
+	fn clear_lp_token_for_pair(&self, pair_address: &Address);
 
 
 	#[view(getWegldTokenIdentifier)]
