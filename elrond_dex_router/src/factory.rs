@@ -76,7 +76,7 @@ pub trait FactoryModule {
 	}
 
 	#[view(getAllPairsTokens)]
-	fn get_all_pairs(&self) -> MultiResultVec<(TokenIdentifier, TokenIdentifier)> {
+	fn get_all_pairs(&self) -> MultiResultVec<PairKey> {
 		MultiResultVec::from_iter(self.pair_map().keys())
 	}
 
@@ -86,8 +86,8 @@ pub trait FactoryModule {
 			.iter()
 			.map(|x| PairContractData {
 					address: x.1,
-					token_a: x.0.0,
-					token_b: x.0.1
+					token_a: x.0.token_a,
+					token_b: x.0.token_b,
 				}
 			)
 			.collect();

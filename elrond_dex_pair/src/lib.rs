@@ -3,8 +3,6 @@
 imports!();
 derive_imports!();
 
-use core::iter::FromIterator;
-
 pub mod liquidity_pool;
 pub mod library;
 pub mod fee;
@@ -17,6 +15,13 @@ pub use crate::fee::*;
 pub enum State {
 	Inactive,
 	Active
+}
+
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub struct PairData<BigUint: BigUintApi> {
+	reserves_a: BigUint,
+	reserves_b: BigUint,
+	total_supply: BigUint,
 }
 
 #[elrond_wasm_derive::contract(PairImpl)]
@@ -464,7 +469,7 @@ pub trait Pair {
 	}
 
 	#[endpoint]
-	fn set_lp_token_identifier_endpoint(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
+	fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()>{
 		require!(self.state().get() == State::Active, "Not active");
 		let caller = self.get_caller();
 		let router = self.router_address().get();
@@ -496,28 +501,40 @@ pub trait Pair {
 	fn get_tokens_for_given_position(
 		&self, 
 		liquidity: BigUint
-	) -> ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint)) {
+	) -> MultiResult2<BigUint, BigUint> {
 		self.liquidity_pool().get_tokens_for_given_position(liquidity)
 	}
 
 	#[view(getBasicInfo)]
 	fn get_basic_info(
 		&self
-	) -> MultiResultVec<(TokenIdentifier, BigUint)> {
+	) -> PairData<BigUint> {
 		let token_a = self.liquidity_pool().token_a_name().get();
 		let token_b = self.liquidity_pool().token_b_name().get();
-		let reserve_a = self.liquidity_pool().get_pair_reserve(&token_a);
-		let reserve_b = self.liquidity_pool().get_pair_reserve(&token_b);
-
-		let mut result = Vec::<(TokenIdentifier, BigUint)>::new();
-		result.push((token_a, reserve_a));
-		result.push((token_b, reserve_b));
-		if !self.lp_token_identifier().is_empty() {
-			let lptoken = self.lp_token_identifier().get();
-			let supply = self.liquidity_pool().total_supply().get();
-			result.push((lptoken, supply));
+		
+		PairData {
+			reserves_a: self.liquidity_pool().get_pair_reserve(&token_a),
+			reserves_b: self.liquidity_pool().get_pair_reserve(&token_b),
+			total_supply: self.liquidity_pool().total_supply().get(),
 		}
-		MultiResultVec::from_iter(result)
+	}
+
+	#[view(getAmountOut)]
+	fn get_amount_out_view(&self, amount_in: BigUint, token_in: TokenIdentifier) -> SCResult<BigUint> {
+		let token_a = self.liquidity_pool().token_a_name().get();
+		let token_b = self.liquidity_pool().token_b_name().get();
+		let reserves_a = self.liquidity_pool().get_pair_reserve(&token_a);
+		let reserves_b = self.liquidity_pool().get_pair_reserve(&token_b);
+
+		if token_in == token_a {
+			return Ok(self.library().get_amount_out(amount_in, reserves_a, reserves_b));
+		}
+
+		if token_in == token_b {
+			return Ok(self.library().get_amount_out(amount_in, reserves_b, reserves_a));
+		}
+
+		sc_error!("PAIR: INVALID TOKEN IDENTIFIER")
 	}
 
 	#[view(getAmountOut)]

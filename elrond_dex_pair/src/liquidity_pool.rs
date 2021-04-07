@@ -162,7 +162,7 @@ pub trait LiquidityPoolModule {
 	fn get_tokens_for_given_position(
 		&self,
 		liquidity: BigUint
-	) -> ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint)) {
+	) -> MultiResult2<BigUint, BigUint> {
 		let token_a_name = self.token_a_name().get();
 		let amount_a = self.get_token_for_given_position(
 			liquidity.clone(),
@@ -173,7 +173,7 @@ pub trait LiquidityPoolModule {
 			liquidity.clone(),
 			&token_b_name
 		);
-		((token_a_name, amount_a), (token_b_name, amount_b))
+		(amount_a, amount_b).into()
 	}
 
 	fn calculate_k(&self) -> BigUint {
