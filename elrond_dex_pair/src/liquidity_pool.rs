@@ -69,6 +69,7 @@ pub trait LiquidityPoolModule {
 			&amount >= &amount_min,
 			"Pair: INSUFFICIENT_LIQUIDITY_BURNED"
 		);
+		require!(reserve > amount, "Not enough reserve");
 
 		reserve -= amount.clone();
 		self.set_pair_reserve(&token, &reserve);
@@ -84,6 +85,7 @@ pub trait LiquidityPoolModule {
 		lp_token_identifier: TokenIdentifier,
 	) -> SCResult<(BigUint, BigUint)> {
 		let total_supply = self.total_supply().get();
+		require!(total_supply > 0, "No supply");
 		let amount_a = sc_try!(self.burn_token(
 			self.token_a_name().get(),
 			liquidity.clone(),
