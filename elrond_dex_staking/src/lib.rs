@@ -33,11 +33,16 @@ pub struct UnstakeAttributes {
 	lp_token_id: TokenIdentifier,
 	unbond_epoch: u64
 }
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub struct TokenAmount<BigUint: BigUintApi> {
+	token: TokenIdentifier,
+	amount: BigUint,
+}
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
 	fn get_tokens_for_given_position(&self, amount: BigUint) 
-		-> ContractCall<BigUint, ((TokenIdentifier, BigUint), (TokenIdentifier, BigUint))>;
+		-> ContractCall< BigUint, MultiResult2< TokenAmount<BigUint>, TokenAmount<BigUint> > >;
 }
 
 #[elrond_wasm_derive::contract(StakingImpl)]
@@ -114,11 +119,11 @@ pub trait Staking {
 			.execute_on_dest_context(one_third_gas, self.send());
 
 		let wegld_amount: BigUint;
-		if equivalent.0.0 == self.wegld_token_id().get() {
-			wegld_amount = equivalent.0.1;
+		if equivalent.0.0.token == self.wegld_token_id().get() {
+			wegld_amount = equivalent.0.0.amount;
 		}
-		else if equivalent.1.0 == self.wegld_token_id().get() {
-			wegld_amount = equivalent.1.1;
+		else if equivalent.0.1.token == self.wegld_token_id().get() {
+			wegld_amount = equivalent.0.1.amount;
 		}
 		else {
 			return sc_error!("Invalid lp token provider");
