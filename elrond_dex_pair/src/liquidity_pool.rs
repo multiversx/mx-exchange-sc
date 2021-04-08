@@ -3,6 +3,12 @@ derive_imports!();
 
 pub use crate::library::*;
 
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub struct TokenAmount<BigUint: BigUintApi> {
+	token: TokenIdentifier,
+	amount: BigUint,
+}
+
 #[elrond_wasm_derive::module(LiquidityPoolModuleImpl)]
 pub trait LiquidityPoolModule {
 
@@ -147,33 +153,39 @@ pub trait LiquidityPoolModule {
 	fn get_token_for_given_position(
 		&self,
 		liquidity: BigUint,
-		token: &TokenIdentifier
-	) -> BigUint {
+		token: TokenIdentifier
+	) -> TokenAmount<BigUint> {
 		let reserve = self.get_pair_reserve(&token);
 		let total_supply = self.total_supply().get();
 		if total_supply != BigUint::zero() {
-			liquidity.clone() * reserve.clone() / total_supply.clone()
+			TokenAmount {
+				token,
+				amount: liquidity.clone() * reserve.clone() / total_supply.clone()
+			}
 		}
 		else {
-			BigUint::zero()
+			TokenAmount {
+				token,
+				amount: BigUint::zero()
+			}
 		}
 	}
 
 	fn get_tokens_for_given_position(
 		&self,
 		liquidity: BigUint
-	) -> MultiResult2<BigUint, BigUint> {
+	) -> MultiResult2< TokenAmount<BigUint>, TokenAmount<BigUint> > {
 		let token_a_name = self.token_a_name().get();
-		let amount_a = self.get_token_for_given_position(
+		let token_amount_a = self.get_token_for_given_position(
 			liquidity.clone(),
-			&token_a_name
+			token_a_name
 		);
 		let token_b_name = self.token_b_name().get();
-		let amount_b = self.get_token_for_given_position(
+		let token_amount_b = self.get_token_for_given_position(
 			liquidity.clone(),
-			&token_b_name
+			token_b_name
 		);
-		(amount_a, amount_b).into()
+		(token_amount_a, token_amount_b).into()
 	}
 
 	fn calculate_k(&self) -> BigUint {

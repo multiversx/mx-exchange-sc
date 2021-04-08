@@ -10,7 +10,7 @@ publish = false
 path = ".."
 
 [dependencies.elrond-wasm]
-version = "0.14.1"
+version = "0.14"
 
 [dependencies.elrond-wasm-debug]
-version = "0.14.1"
+version = "0.14"
