@@ -291,8 +291,8 @@ pub trait Router {
 				.factory()
 				.pair_map()
 				.get(&PairKey{
-					token_a: token_a.clone(),
-					token_b: token_b.clone(),
+					token_a: token_b.clone(),
+					token_b: token_a.clone(),
 				})
 				.unwrap_or(Address::zero());
 		}
