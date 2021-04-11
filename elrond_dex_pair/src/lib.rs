@@ -201,7 +201,7 @@ pub trait Pair {
 
     #[endpoint(reclaimTemporaryFunds)]
     fn reclaim_temporary_funds(&self) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
@@ -220,7 +220,7 @@ pub trait Pair {
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
             "Lp token not issued"
