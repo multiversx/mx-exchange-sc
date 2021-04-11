@@ -117,10 +117,11 @@ pub trait Staking {
 
         let wegld_amount: BigUint;
         let wegld_token_id = self.wegld_token_id().get();
-        if equivalent.0 .0.token_id == wegld_token_id {
-            wegld_amount = equivalent.0 .0.amount;
-        } else if equivalent.0 .1.token_id == wegld_token_id {
-            wegld_amount = equivalent.0 .1.amount;
+        let token_amount_pair_tuple = equivalent.0;
+        if token_amount_pair_tuple.0.token_id == wegld_token_id {
+            wegld_amount = token_amount_pair_tuple.0.amount;
+        } else if token_amount_pair_tuple.1.token_id == wegld_token_id {
+            wegld_amount = token_amount_pair_tuple.1.amount;
         } else {
             return sc_error!("Invalid lp token provider");
         }
