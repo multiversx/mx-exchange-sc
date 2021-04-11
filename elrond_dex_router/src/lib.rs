@@ -337,6 +337,7 @@ pub trait Router {
         }
     }
 
+    #[inline]
     fn is_active(&self) -> bool {
         self.state().get()
     }
