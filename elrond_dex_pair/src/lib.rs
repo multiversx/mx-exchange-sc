@@ -103,15 +103,15 @@ pub trait Pair {
         require!(self.is_active(), "Not active");
         require!(
             first_token_amount_desired > 0,
-            "Pair: insufficient token a funds sent"
+            "Pair: insufficient first token funds sent"
         );
         require!(
             second_token_amount_desired > 0,
-            "Pair: insufficient token b funds sent"
+            "Pair: insufficient second token funds sent"
         );
         require!(
             !self.lp_token_identifier().is_empty(),
-            "Lp token not issued"
+            "LP token not issued"
         );
 
         let caller = self.get_caller();
@@ -125,19 +125,19 @@ pub trait Pair {
 
         require!(
             temporary_first_token_amount_desired > 0,
-            "Pair: no available token a funds"
+            "Pair: no available first token funds"
         );
         require!(
             temporary_second_token_amount_desired > 0,
-            "Pair: no available token b funds"
+            "Pair: no available second token funds"
         );
         require!(
             first_token_amount_desired <= temporary_first_token_amount_desired,
-            "Pair: insufficient token a funds to add"
+            "Pair: insufficient first token funds to add"
         );
         require!(
             second_token_amount_desired <= temporary_second_token_amount_desired,
-            "Pair: insufficient token b funds to add"
+            "Pair: insufficient second token funds to add"
         );
 
         let (first_token_amount, second_token_amount) =
@@ -206,7 +206,7 @@ pub trait Pair {
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
         self.reclaim_temporary_token(&caller, &first_token_id);
-        self.reclaim_temporary_token(&caller, &&second_token_id);
+        self.reclaim_temporary_token(&caller, &second_token_id);
 
         Ok(())
     }
@@ -220,10 +220,10 @@ pub trait Pair {
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
+        require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
-            "Lp token not issued"
+            "LP token not issued"
         );
 
         let caller = self.get_caller();
@@ -284,11 +284,11 @@ pub trait Pair {
         let second_token_id = self.liquidity_pool().second_token_id().get();
         require!(
             token_in == first_token_id || token_in == second_token_id,
-            "Pair: Invalid token"
+            "Pair: Invalid token in"
         );
         require!(
             token_out == first_token_id || token_out == second_token_id,
-            "Pair: Invalid token"
+            "Pair: Invalid token out"
         );
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
@@ -306,11 +306,11 @@ pub trait Pair {
         );
         require!(
             amount_out_optimal >= amount_out_min,
-            "Insufficient liquidity"
+            "Computed amount out lesser than minimum amount out"
         );
         require!(
             reserve_token_out > amount_out_optimal,
-            "Insufficient reserve"
+            "Insufficient amount out reserve"
         );
 
         self.send().direct_esdt_via_transf_exec(
@@ -360,16 +360,16 @@ pub trait Pair {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(amount_in_max > 0, "Invalid amount_in");
-        require!(token_in != token_out, "Swap with same token");
+        require!(token_in != token_out, "Invalid swap with same token");
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
         require!(
             token_in == first_token_id || token_in == second_token_id,
-            "Pair: Invalid token"
+            "Pair: Invalid token in"
         );
         require!(
             token_out == first_token_id || token_out == second_token_id,
-            "Pair: Invalid token"
+            "Pair: Invalid token out"
         );
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
@@ -385,7 +385,7 @@ pub trait Pair {
             reserve_token_in.clone(),
             reserve_token_out.clone(),
         );
-        require!(amount_in_optimal <= amount_in_max, "Insufficient liquidity");
+        require!(amount_in_optimal <= amount_in_max, "Computed amount in grater than maximum amount in");
 
         self.send().direct_esdt_via_transf_exec(
             &self.get_caller(),
@@ -411,7 +411,7 @@ pub trait Pair {
                 .get_special_fee_from_optimal_input(amount_in_optimal);
             amount_in_optimal_after_fee -= fee_amount.clone();
         }
-        require!(reserve_token_out > amount_out, "Insufficient reserve");
+        require!(reserve_token_out > amount_out, "Insufficient amount out reserve");
 
         reserve_token_in += amount_in_optimal_after_fee;
         reserve_token_out -= amount_out;
@@ -445,7 +445,7 @@ pub trait Pair {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "permission denied");
+        require!(caller == router, "Permission denied");
         self.fee().state().set(&enabled);
         self.fee().address().set(&fee_to_address);
         self.fee().token_identifier().set(&fee_token);
@@ -534,8 +534,8 @@ pub trait Pair {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "permission denied");
-        require!(self.lp_token_identifier().is_empty(), "Lp token not empty");
+        require!(caller == router, "Permission denied");
+        require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         self.lp_token_identifier().set(&token_identifier);
 
         Ok(())
@@ -585,22 +585,22 @@ pub trait Pair {
         let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
 
         if token_in == first_token_id {
-            require!(second_token_reserve > 0, "Zero reserves");
+            require!(second_token_reserve > 0, "Zero reserves for second token");
             let amount_out = self.amm().get_amount_out(
                 amount_in,
                 first_token_reserve,
                 second_token_reserve.clone(),
             );
-            require!(second_token_reserve > amount_out, "Not enough reserves");
+            require!(second_token_reserve > amount_out, "Not enough reserves for second token");
             Ok(amount_out)
         } else if token_in == second_token_id {
-            require!(first_token_reserve > 0, "Zero reserves");
+            require!(first_token_reserve > 0, "Zero reserves for first token");
             let amount_out = self.amm().get_amount_out(
                 amount_in,
                 second_token_reserve,
                 first_token_reserve.clone(),
             );
-            require!(first_token_reserve > amount_out, "Not enough reserves");
+            require!(first_token_reserve > amount_out, "Not enough reserves first token");
             Ok(amount_out)
         } else {
             sc_error!("Not a known token")
@@ -621,13 +621,13 @@ pub trait Pair {
         let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
 
         if token_wanted == first_token_id {
-            require!(first_token_reserve > amount_wanted, "Not enough reserves");
+            require!(first_token_reserve > amount_wanted, "Not enough reserves for first token");
             let amount_in =
                 self.amm()
                     .get_amount_in(amount_wanted, second_token_reserve, first_token_reserve);
             Ok(amount_in)
         } else if token_wanted == second_token_id {
-            require!(second_token_reserve > amount_wanted, "Not enough reserves");
+            require!(second_token_reserve > amount_wanted, "Not enough reserves for second token");
             let amount_in =
                 self.amm()
                     .get_amount_in(amount_wanted, first_token_reserve, second_token_reserve);
@@ -645,8 +645,8 @@ pub trait Pair {
         let second_token_id = self.liquidity_pool().second_token_id().get();
         let first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
         let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
-        require!(first_token_reserve > 0, "Not enough reserves");
-        require!(second_token_reserve > 0, "Not enough reserves");
+        require!(first_token_reserve > 0, "Not enough reserves for first token");
+        require!(second_token_reserve > 0, "Not enough reserves for second token");
 
         if token_in == first_token_id {
             Ok(self

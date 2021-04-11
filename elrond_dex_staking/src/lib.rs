@@ -104,11 +104,11 @@ pub trait Staking {
         require!(self.is_active(), "Not active");
         require!(
             !self.is_empty_pair_for_lp_token(&lp_token),
-            "Unknown lp token"
+            "Unknown LP token"
         );
         require!(!self.stake_token_id().is_empty(), "No issued unstake token");
         let pair = self.get_pair_for_lp_token(&lp_token);
-        require!(pair != Address::zero(), "Unknown lp token");
+        require!(pair != Address::zero(), "Unknown LP token");
 
         let one_third_gas = self.get_gas_left() / 3;
         let equivalent = contract_call!(self, pair, PairContractProxy)
@@ -123,7 +123,7 @@ pub trait Staking {
         } else if token_amount_pair_tuple.1.token_id == wegld_token_id {
             wegld_amount = token_amount_pair_tuple.1.amount;
         } else {
-            return sc_error!("Invalid lp token provider");
+            return sc_error!("Invalid LP token");
         }
         require!(
             wegld_amount > BigUint::zero(),

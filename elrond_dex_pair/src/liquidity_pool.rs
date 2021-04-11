@@ -93,7 +93,7 @@ pub trait LiquidityPoolModule {
         lp_token_identifier: TokenIdentifier,
     ) -> SCResult<(BigUint, BigUint)> {
         let total_supply = self.total_supply().get();
-        require!(total_supply > 0, "No supply");
+        require!(total_supply > 0, "No LP tokens supply");
         let first_token_amount = sc_try!(self.burn_token(
             self.first_token_id().get(),
             liquidity.clone(),
@@ -138,7 +138,7 @@ pub trait LiquidityPoolModule {
         if second_token_amount_optimal <= second_token_amount_desired {
             require!(
                 second_token_amount_optimal > second_token_amount_min,
-                "Pair: insufficient_b_amount"
+                "Pair: insufficient second token computed amount"
             );
             Ok((first_token_amount_desired, second_token_amount_optimal))
         } else {
@@ -153,7 +153,7 @@ pub trait LiquidityPoolModule {
             );
             require!(
                 first_token_amount_optimal >= first_token_amount_min,
-                "Pair: insufficient_a_amount"
+                "Pair: insufficient first token computed amount"
             );
             Ok((first_token_amount_optimal, second_token_amount_desired))
         }

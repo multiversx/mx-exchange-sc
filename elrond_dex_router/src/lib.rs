@@ -118,7 +118,7 @@ pub trait Router {
             .get_lp_token_identifier()
             .execute_on_dest_context(half_gas, self.send());
 
-        require!(result.is_egld(), "Lp Token already issued");
+        require!(result.is_egld(), "LP Token already issued");
 
         Ok(ESDTSystemSmartContractProxy::new()
             .issue_fungible(
@@ -154,7 +154,7 @@ pub trait Router {
         let pair_token = contract_call!(self, pair_address.clone(), PairContractProxy)
             .get_lp_token_identifier()
             .execute_on_dest_context(half_gas, self.send());
-        require!(pair_token.is_esdt(), "Lp token not issued");
+        require!(pair_token.is_esdt(), "LP token not issued");
 
         Ok(ESDTSystemSmartContractProxy::new()
             .set_special_roles(
