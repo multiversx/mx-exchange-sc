@@ -7,7 +7,7 @@ const MINIMUM_LIQUIDITY: u64 = 1000;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct TokenAmountPair<BigUint: BigUintApi> {
-    token: TokenIdentifier,
+    token_id: TokenIdentifier,
     amount: BigUint,
 }
 
@@ -173,18 +173,18 @@ pub trait LiquidityPoolModule {
     fn get_token_for_given_position(
         &self,
         liquidity: BigUint,
-        token: TokenIdentifier,
+        token_id: TokenIdentifier,
     ) -> TokenAmountPair<BigUint> {
-        let reserve = self.get_pair_reserve(&token);
+        let reserve = self.get_pair_reserve(&token_id);
         let total_supply = self.total_supply().get();
         if total_supply != BigUint::zero() {
             TokenAmountPair {
-                token,
+                token_id,
                 amount: liquidity * reserve / total_supply,
             }
         } else {
             TokenAmountPair {
-                token,
+                token_id,
                 amount: BigUint::zero(),
             }
         }
