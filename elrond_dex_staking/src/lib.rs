@@ -239,11 +239,13 @@ pub trait Staking {
         let unstake_token_id = self.unstake_token_id().get();
         require!(unstake_token_id == token_id, "Wrong unstake token");
 
-        let unstake_attributes = sc_try!(self.get_unstake_attributes(token_id, token_nonce));
+        let unstake_attributes =
+            sc_try!(self.get_unstake_attributes(token_id.clone(), token_nonce));
         let block_epoch = self.get_block_epoch();
         let unbond_epoch = unstake_attributes.unbond_epoch;
         require!(block_epoch >= unbond_epoch, "Unbond called too early");
 
+        self.burn(&token_id, token_nonce, &amount);
         let unbond_amount = amount;
         let lp_token_unbonded = unstake_attributes.lp_token_id;
         self.send().direct_esdt_via_transf_exec(
