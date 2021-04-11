@@ -220,7 +220,7 @@ pub trait Pair {
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -385,7 +385,10 @@ pub trait Pair {
             reserve_token_in.clone(),
             reserve_token_out.clone(),
         );
-        require!(amount_in_optimal <= amount_in_max, "Computed amount in grater than maximum amount in");
+        require!(
+            amount_in_optimal <= amount_in_max,
+            "Computed amount in grater than maximum amount in"
+        );
 
         self.send().direct_esdt_via_transf_exec(
             &self.get_caller(),
@@ -411,7 +414,10 @@ pub trait Pair {
                 .get_special_fee_from_optimal_input(amount_in_optimal);
             amount_in_optimal_after_fee -= fee_amount.clone();
         }
-        require!(reserve_token_out > amount_out, "Insufficient amount out reserve");
+        require!(
+            reserve_token_out > amount_out,
+            "Insufficient amount out reserve"
+        );
 
         reserve_token_in += amount_in_optimal_after_fee;
         reserve_token_out -= amount_out;
@@ -541,11 +547,13 @@ pub trait Pair {
         Ok(())
     }
 
+    #[inline]
     fn validate_k_invariant(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
         require!(lower <= greater, "K invariant failed");
         Ok(())
     }
 
+    #[inline]
     fn validate_k_invariant_strict(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
         require!(lower < greater, "K invariant failed");
         Ok(())
@@ -591,7 +599,10 @@ pub trait Pair {
                 first_token_reserve,
                 second_token_reserve.clone(),
             );
-            require!(second_token_reserve > amount_out, "Not enough reserves for second token");
+            require!(
+                second_token_reserve > amount_out,
+                "Not enough reserves for second token"
+            );
             Ok(amount_out)
         } else if token_in == second_token_id {
             require!(first_token_reserve > 0, "Zero reserves for first token");
@@ -600,7 +611,10 @@ pub trait Pair {
                 second_token_reserve,
                 first_token_reserve.clone(),
             );
-            require!(first_token_reserve > amount_out, "Not enough reserves first token");
+            require!(
+                first_token_reserve > amount_out,
+                "Not enough reserves first token"
+            );
             Ok(amount_out)
         } else {
             sc_error!("Not a known token")
@@ -621,13 +635,19 @@ pub trait Pair {
         let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
 
         if token_wanted == first_token_id {
-            require!(first_token_reserve > amount_wanted, "Not enough reserves for first token");
+            require!(
+                first_token_reserve > amount_wanted,
+                "Not enough reserves for first token"
+            );
             let amount_in =
                 self.amm()
                     .get_amount_in(amount_wanted, second_token_reserve, first_token_reserve);
             Ok(amount_in)
         } else if token_wanted == second_token_id {
-            require!(second_token_reserve > amount_wanted, "Not enough reserves for second token");
+            require!(
+                second_token_reserve > amount_wanted,
+                "Not enough reserves for second token"
+            );
             let amount_in =
                 self.amm()
                     .get_amount_in(amount_wanted, first_token_reserve, second_token_reserve);
@@ -645,8 +665,14 @@ pub trait Pair {
         let second_token_id = self.liquidity_pool().second_token_id().get();
         let first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
         let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
-        require!(first_token_reserve > 0, "Not enough reserves for first token");
-        require!(second_token_reserve > 0, "Not enough reserves for second token");
+        require!(
+            first_token_reserve > 0,
+            "Not enough reserves for first token"
+        );
+        require!(
+            second_token_reserve > 0,
+            "Not enough reserves for second token"
+        );
 
         if token_in == first_token_id {
             Ok(self
@@ -661,6 +687,7 @@ pub trait Pair {
         }
     }
 
+    #[inline]
     fn is_active(&self) -> bool {
         self.state().get()
     }
