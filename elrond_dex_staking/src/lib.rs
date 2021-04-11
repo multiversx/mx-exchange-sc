@@ -518,6 +518,7 @@ pub trait Staking {
         );
     }
 
+    #[inline]
     fn is_active(&self) -> bool {
         self.state().get()
     }
