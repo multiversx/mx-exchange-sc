@@ -163,7 +163,7 @@ pub trait Staking {
     #[payable("*")]
     #[endpoint(unstake)]
     fn unstake(&self) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         require!(!self.stake_token_id().is_empty(), "No issued stake token");
         require!(
             !self.unstake_token_id().is_empty(),
@@ -229,7 +229,7 @@ pub trait Staking {
     #[payable("*")]
     #[endpoint]
     fn unbond(&self) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         require!(
             !self.unstake_token_id().is_empty(),
             "No issued unstake token"
