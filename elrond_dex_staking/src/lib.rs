@@ -79,6 +79,14 @@ pub trait Staking {
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
+        require!(
+            self.pair_for_lp_token(&token).is_empty(),
+            "Pair address already exists for LP token"
+        );
+        require!(
+            self.lp_token_for_pair(&address).is_empty(),
+            "LP token already exists for a Pair address"
+        );
         self.pair_for_lp_token(&token).set(&address);
         self.lp_token_for_pair(&address).set(&token);
         Ok(())
@@ -90,6 +98,19 @@ pub trait Staking {
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
+        require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
+        require!(
+            !self.lp_token_for_pair(&address).is_empty(),
+            "No such LP token"
+        );
+        require!(
+            address == self.pair_for_lp_token(&token).get(),
+            "Address does not match Lp token equivalent"
+        );
+        require!(
+            token == self.lp_token_for_pair(&address).get(),
+            "LP token does not match Pair address equivalent"
+        );
         self.pair_for_lp_token(&token).clear();
         self.lp_token_for_pair(&address).clear();
         Ok(())
@@ -116,16 +137,19 @@ pub trait Staking {
             .getTokensForGivenPosition(amount.clone())
             .execute_on_dest_context(one_third_gas, self.send());
 
-        let wegld_amount: BigUint;
         let wegld_token_id = self.wegld_token_id().get();
         let token_amount_pair_tuple = equivalent.0;
-        if token_amount_pair_tuple.0.token_id == wegld_token_id {
-            wegld_amount = token_amount_pair_tuple.0.amount;
-        } else if token_amount_pair_tuple.1.token_id == wegld_token_id {
-            wegld_amount = token_amount_pair_tuple.1.amount;
+        let first_token_amount_pair = token_amount_pair_tuple.0;
+        let second_token_amount_pair = token_amount_pair_tuple.1;
+
+        let wegld_amount = if first_token_amount_pair.token_id == wegld_token_id {
+            first_token_amount_pair.amount
+        } else if second_token_amount_pair.token_id == wegld_token_id {
+            second_token_amount_pair.amount
         } else {
             return sc_error!("Invalid LP token");
-        }
+        };
+
         require!(
             wegld_amount > BigUint::zero(),
             "Cannot stake with amount of 0"
@@ -274,7 +298,7 @@ pub trait Staking {
         let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone()
             / attributes.total_amount_liquidity;
         if initial_worth == BigUint::zero() {
-            return Ok(BigUint::zero());
+            return Ok(initial_worth);
         }
 
         self.liquidity_pool().calculate_reward(
@@ -294,9 +318,7 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if !self.stake_token_id().is_empty() {
-            return sc_error!("Already issued");
-        }
+        require!(self.stake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
             issue_cost,
@@ -316,9 +338,7 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if !self.unstake_token_id().is_empty() {
-            return sc_error!("Already issued");
-        }
+        require!(self.unstake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
             issue_cost,
@@ -388,9 +408,8 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if self.stake_token_id().is_empty() {
-            return sc_error!("No stake token issued");
-        }
+        require!(!self.stake_token_id().is_empty(), "No stake token issued");
+        require!(!roles.is_empty(), "Empty args");
 
         let token = self.stake_token_id().get();
         Ok(self.set_local_roles(token, roles))
@@ -403,9 +422,11 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if self.unstake_token_id().is_empty() {
-            return sc_error!("No stake token issued");
-        }
+        require!(
+            !self.unstake_token_id().is_empty(),
+            "No unstake token issued"
+        );
+        require!(!roles.is_empty(), "Empty args");
 
         let token = self.unstake_token_id().get();
         Ok(self.set_local_roles(token, roles))
@@ -449,7 +470,8 @@ pub trait Staking {
             token_nonce,
         );
 
-        match UnstakeAttributes::top_decode(token_info.attributes.as_slice()) {
+        let unstake_attributes = token_info.decode_attributes::<UnstakeAttributes>();
+        match unstake_attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
                 return sc_error!("Decoding error");
@@ -468,7 +490,8 @@ pub trait Staking {
             token_nonce,
         );
 
-        match StakeAttributes::<BigUint>::top_decode(token_info.attributes.as_slice()) {
+        let stake_attributes = token_info.decode_attributes::<StakeAttributes<BigUint>>();
+        match stake_attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
                 return sc_error!("Decoding error");

@@ -1,5 +1,5 @@
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 const MINIMUM_INITIAL_STAKE_AMOUNT: u64 = 1000;
 
@@ -80,16 +80,15 @@ pub trait LiquidityPoolModule {
 
         let actual_reserves =
             self.get_esdt_balance(&self.get_sc_address(), token_id.as_esdt_identifier(), 0);
-        let reward: BigUint;
 
         let total_reserves = virtual_reserves + actual_reserves;
         let worth = liquidity * total_reserves / total_supply;
 
-        if worth > initial_worth {
-            reward = worth - initial_worth;
+        let reward = if worth > initial_worth {
+            worth - initial_worth
         } else {
-            reward = BigUint::zero();
-        }
+            BigUint::zero()
+        };
 
         Ok(reward)
     }
