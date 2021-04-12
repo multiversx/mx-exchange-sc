@@ -93,7 +93,7 @@ pub trait Router {
         require!(first_token_id.is_esdt(), "Only esdt tokens allowed");
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(pair_address == Address::zero(), "Pair already existent");
+        require!(pair_address == Address::zero(), "Pair already exists");
         Ok(self
             .factory()
             .create_pair(&first_token_id, &second_token_id))
@@ -283,7 +283,7 @@ pub trait Router {
         let mut address = self
             .factory()
             .pair_map()
-            .get(&PairKey {
+            .get(&PairTokens {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             })
@@ -292,7 +292,7 @@ pub trait Router {
             address = self
                 .factory()
                 .pair_map()
-                .get(&PairKey {
+                .get(&PairTokens {
                     first_token_id: second_token_id,
                     second_token_id: first_token_id,
                 })
