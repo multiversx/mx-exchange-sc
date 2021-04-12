@@ -306,16 +306,18 @@ pub trait Router {
         &self,
         caller: &Address,
         address: &Address,
-        #[call_result] result: AsyncCallResult<TokenIdentifier>,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] returned_tokens: BigUint,
+        #[call_result] result: AsyncCallResult<()>,
     ) {
+        // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
-            AsyncCallResult::Ok(token_id) => {
+            AsyncCallResult::Ok(()) => {
                 contract_call!(self, address.clone(), PairContractProxy)
                     .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context(self.get_gas_left(), self.send());
             }
             AsyncCallResult::Err(_) => {
-                let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
