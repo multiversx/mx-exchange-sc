@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -36,7 +37,7 @@ pub struct TokenAmountPair<BigUint: BigUintApi> {
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
-    fn get_tokens_for_given_position(
+    fn getTokensForGivenPosition(
         &self,
         amount: BigUint,
     ) -> ContractCall<BigUint, MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>>;
@@ -72,25 +73,25 @@ pub trait Staking {
         Ok(())
     }
 
-    #[endpoint]
+    #[endpoint(addPair)]
     fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
-        self.set_pair_for_lp_token(&token, &address);
-        self.set_lp_token_for_pair(&address, &token);
+        self.pair_for_lp_token(&token).set(&address);
+        self.lp_token_for_pair(&address).set(&token);
         Ok(())
     }
 
-    #[endpoint]
+    #[endpoint(removePair)]
     fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
-        self.clear_pair_for_lp_token(&token);
-        self.clear_lp_token_for_pair(&address);
+        self.pair_for_lp_token(&token).clear();
+        self.lp_token_for_pair(&address).clear();
         Ok(())
     }
 
@@ -103,16 +104,16 @@ pub trait Staking {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(
-            !self.is_empty_pair_for_lp_token(&lp_token),
+            !self.pair_for_lp_token(&lp_token).is_empty(),
             "Unknown LP token"
         );
         require!(!self.stake_token_id().is_empty(), "No issued unstake token");
-        let pair = self.get_pair_for_lp_token(&lp_token);
+        let pair = self.pair_for_lp_token(&lp_token).get();
         require!(pair != Address::zero(), "Unknown LP token");
 
         let one_third_gas = self.get_gas_left() / 3;
         let equivalent = contract_call!(self, pair, PairContractProxy)
-            .get_tokens_for_given_position(amount.clone())
+            .getTokensForGivenPosition(amount.clone())
             .execute_on_dest_context(one_third_gas, self.send());
 
         let wegld_amount: BigUint;
@@ -535,27 +536,18 @@ pub trait Staking {
     }
 
     #[view(getPairForLpToken)]
-    #[storage_get("pair_for_lp_token")]
-    fn get_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> Address;
-
-    #[storage_set("pair_for_lp_token")]
-    fn set_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
-
-    #[storage_clear("pair_for_lp_token")]
-    fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier);
-
-    #[storage_is_empty("pair_for_lp_token")]
-    fn is_empty_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> bool;
+    #[storage_mapper("pair_for_lp_token")]
+    fn pair_for_lp_token(
+        &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<Self::Storage, Address>;
 
     #[view(getLpTokenForPair)]
-    #[storage_get("lp_token_for_pair")]
-    fn get_lp_token_for_pair(&self, pair_address: &Address) -> TokenIdentifier;
-
-    #[storage_set("lp_token_for_pair")]
-    fn set_lp_token_for_pair(&self, pair_address: &Address, token: &TokenIdentifier);
-
-    #[storage_clear("lp_token_for_pair")]
-    fn clear_lp_token_for_pair(&self, pair_address: &Address);
+    #[storage_mapper("lp_token_for_pair")]
+    fn lp_token_for_pair(
+        &self,
+        pair_address: &Address,
+    ) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[view(getWegldTokenId)]
     #[storage_mapper("wegld_token_id")]
