@@ -8,11 +8,15 @@ pub mod amm;
 pub mod fee;
 pub mod liquidity_pool;
 
+use core::cmp::min;
+
 pub use crate::amm::*;
 pub use crate::fee::*;
 pub use crate::liquidity_pool::*;
 
 const SWAP_NO_FEE_FUNC_NAME: &[u8] = b"swapNoFee";
+const EXTERN_SWAP_GAS_LIMIT: u64 = 100000000;
+const QUERY_GAS_LIMIT: u64 = 50000000;
 
 #[elrond_wasm_derive::callable(RouterContractProxy)]
 pub trait RouterContract {
@@ -577,7 +581,7 @@ pub trait Pair {
             return;
         }
 
-        let mut slices = self.fee().destination_map().len() as u64;
+        let slices = self.fee().destination_map().len() as u64;
         if slices == 0 {
             self.reinject(&fee_token, &fee_amount);
             return;
@@ -587,13 +591,10 @@ pub trait Pair {
             self.reinject(&fee_token, &fee_amount);
             return;
         }
-
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
-        for (fee_address, fee_token_requested) in self.fee().destination_map().iter() {
-            let max_gas_per_slice = self.get_gas_left() / slices;
-            slices -= 1;
 
+        for (fee_address, fee_token_requested) in self.fee().destination_map().iter() {
             let mut to_send = BigUint::zero();
             if fee_token_requested == fee_token {
                 // Luckily no conversion is required.
@@ -650,11 +651,11 @@ pub trait Pair {
                 }
             } else {
                 // No luck... The hard way
-                let gas_limit_query = max_gas_per_slice / 5;
+                let gas_limit_query = min(self.get_gas_left(), QUERY_GAS_LIMIT);
                 let pair_address =
                     self.get_pair_address(&fee_token, &fee_token_requested, gas_limit_query);
 
-                let gas_limit_swap_no_fee = max_gas_per_slice * 3 / 5;
+                let gas_limit_swap_no_fee = min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT);
                 if pair_address != Address::zero() {
                     self.send().direct_esdt_execute(
                         &pair_address,
