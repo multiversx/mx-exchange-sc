@@ -10,8 +10,8 @@ pub use factory::*;
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-const DEFAULT_TOTAL_FEE_PRECENT: u64 = 3;
-const DEFAULT_SPECIAL_FEE_PRECENT: u64 = 1;
+const DEFAULT_TOTAL_FEE_PRECENT: u64 = 300;
+const DEFAULT_SPECIAL_FEE_PRECENT: u64 = 100;
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
@@ -102,10 +102,7 @@ pub trait Router {
                 total_fee_precent_requested >= special_fee_precent_requested,
                 "Bad precents"
             );
-            (total_fee_precent_requested, special_fee_precent_requested)
-        } else {
-            (DEFAULT_TOTAL_FEE_PRECENT, DEFAULT_SPECIAL_FEE_PRECENT)
-        };
+        }
         Ok(self.factory().create_pair(
             &first_token_id,
             &second_token_id,
