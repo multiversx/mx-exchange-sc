@@ -17,15 +17,6 @@ pub use crate::liquidity_pool::*;
 const SWAP_NO_FEE_FUNC_NAME: &[u8] = b"swapNoFee";
 const EXTERN_SWAP_GAS_LIMIT: u64 = 25000000;
 
-#[elrond_wasm_derive::callable(RouterContractProxy)]
-pub trait RouterContract {
-    fn getPairAndWhitelist(
-        &self,
-        first_token: TokenIdentifier,
-        second_token: TokenIdentifier,
-    ) -> ContractCall<BigUint, Address>;
-}
-
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
     #[module(LiquidityPoolModuleImpl)]
