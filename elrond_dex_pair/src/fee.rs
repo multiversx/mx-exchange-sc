@@ -15,7 +15,7 @@ pub trait FeeModule {
     #[storage_mapper("pair_address_cache")]
     fn pair_address_cache_map(&self) -> MapMapper<Self::Storage, TokenPair, Address>;
 
-    #[view(isWhiteListed)]
+    #[view(getWhitelistedAddresses)]
     #[storage_mapper("whitelist")]
     fn whitelist(&self) -> SetMapper<Self::Storage, Address>;
 

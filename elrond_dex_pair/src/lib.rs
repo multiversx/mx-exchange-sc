@@ -15,8 +15,7 @@ pub use crate::fee::*;
 pub use crate::liquidity_pool::*;
 
 const SWAP_NO_FEE_FUNC_NAME: &[u8] = b"swapNoFee";
-const EXTERN_SWAP_GAS_LIMIT: u64 = 100000000;
-const QUERY_GAS_LIMIT: u64 = 50000000;
+const EXTERN_SWAP_GAS_LIMIT: u64 = 25000000;
 
 #[elrond_wasm_derive::callable(RouterContractProxy)]
 pub trait RouterContract {
@@ -44,10 +43,12 @@ pub trait Pair {
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         router_address: Address,
+        router_owner_address: Address,
         total_fee_precent: u64,
         special_fee_precent: u64,
     ) {
         self.router_address().set(&router_address);
+        self.router_owner_address().set(&router_owner_address);
         self.liquidity_pool().first_token_id().set(&first_token_id);
         self.liquidity_pool()
             .second_token_id()
@@ -61,7 +62,11 @@ pub trait Pair {
     fn pause(&self) -> SCResult<()> {
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         self.state().set(&true);
         Ok(())
     }
@@ -70,7 +75,11 @@ pub trait Pair {
     fn resume(&self) -> SCResult<()> {
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         self.state().set(&true);
         Ok(())
     }
@@ -276,11 +285,40 @@ pub trait Pair {
 
     #[endpoint(whitelist)]
     fn whitelist(&self, address: Address) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         self.fee().whitelist().insert(address);
+        Ok(())
+    }
+
+    #[endpoint(cachePair)]
+    fn cache_pair(
+        &self,
+        pair_address: Address,
+        first_token: TokenIdentifier,
+        second_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        let token_pair = TokenPair {
+            first_token,
+            second_token,
+        };
+        self.fee()
+            .pair_address_cache_map()
+            .insert(token_pair, pair_address);
         Ok(())
     }
 
@@ -546,7 +584,7 @@ pub trait Pair {
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
@@ -651,17 +689,14 @@ pub trait Pair {
                 }
             } else {
                 // No luck... The hard way
-                let gas_limit_query = min(self.get_gas_left(), QUERY_GAS_LIMIT);
-                let pair_address =
-                    self.get_pair_address(&fee_token, &fee_token_requested, gas_limit_query);
+                let pair_address = self.get_pair_address(&fee_token, &fee_token_requested);
 
-                let gas_limit_swap_no_fee = min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT);
                 if pair_address != Address::zero() {
                     self.send().direct_esdt_execute(
                         &pair_address,
                         &fee_token.as_esdt_identifier(),
                         &fee_slice,
-                        gas_limit_swap_no_fee,
+                        min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
                         SWAP_NO_FEE_FUNC_NAME,
                         &ArgBuffer::new(),
                     );
@@ -691,7 +726,6 @@ pub trait Pair {
         &self,
         first_token: &TokenIdentifier,
         second_token: &TokenIdentifier,
-        gas_limit: u64,
     ) -> Address {
         let token_pair = TokenPair {
             first_token: first_token.clone(),
@@ -705,34 +739,38 @@ pub trait Pair {
             .fee()
             .pair_address_cache_map()
             .keys()
-            .any(|key| key == token_pair || key == token_pair_reversed);
+            .any(|key| key == token_pair);
+        let is_cached_reversed = self
+            .fee()
+            .pair_address_cache_map()
+            .keys()
+            .any(|key| key == token_pair_reversed);
 
-        let pair_address = if is_cached {
+        if is_cached {
             self.fee()
                 .pair_address_cache_map()
                 .get(&token_pair)
                 .unwrap()
-        } else {
-            contract_call!(self, self.router_address().get(), RouterContractProxy)
-                .getPairAndWhitelist(first_token.clone(), second_token.clone())
-                .execute_on_dest_context(gas_limit, self.send())
-        };
-
-        if pair_address != Address::zero() && !is_cached {
+        } else if is_cached_reversed {
             self.fee()
                 .pair_address_cache_map()
-                .insert(token_pair, pair_address.clone());
+                .get(&token_pair_reversed)
+                .unwrap()
+        } else {
+            Address::zero()
         }
-
-        pair_address
     }
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         self.lp_token_identifier().set(&token_identifier);
 
@@ -894,6 +932,10 @@ pub trait Pair {
     #[view(getRouterAddress)]
     #[storage_mapper("router_address")]
     fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getRouterOwnerAddress)]
+    #[storage_mapper("router_owner_address")]
+    fn router_owner_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 
     #[view(getState)]
     #[storage_mapper("state")]

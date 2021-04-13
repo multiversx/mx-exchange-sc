@@ -25,7 +25,6 @@ pub trait PairContract {
     fn getLpTokenIdentifier(&self) -> ContractCall<BigUint, TokenIdentifier>;
     fn pause(&self) -> ContractCall<BigUint, ()>;
     fn resume(&self) -> ContractCall<BigUint, ()>;
-    fn whitelist(&self, address: Address) -> ContractCall<BigUint, ()>;
 }
 
 #[elrond_wasm_derive::callable(StakingContractProxy)]
@@ -95,7 +94,8 @@ pub trait Router {
         let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
         let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
         let fee_precents_vec = fee_precents.0;
-        if self.get_caller() == self.owner().get() && fee_precents_vec.len() == 2 {
+        let owner = self.owner().get();
+        if self.get_caller() == owner && fee_precents_vec.len() == 2 {
             total_fee_precent_requested = fee_precents_vec[0];
             special_fee_precent_requested = fee_precents_vec[1];
             require!(
@@ -109,6 +109,7 @@ pub trait Router {
         Ok(self.factory().create_pair(
             &first_token_id,
             &second_token_id,
+            &owner,
             total_fee_precent_requested,
             special_fee_precent_requested,
         ))
@@ -279,36 +280,6 @@ pub trait Router {
 
         self.factory().append_pair_code(&part);
         Ok(())
-    }
-
-    #[endpoint(getPairAndWhitelist)]
-    fn get_pair_and_whitelist(
-        &self,
-        first_token_id: TokenIdentifier,
-        second_token_id: TokenIdentifier,
-    ) -> Address {
-        let caller = self.get_caller();
-        let caller_is_pair_sc = self
-            .factory()
-            .pair_map()
-            .values()
-            .any(|address| address == caller);
-
-        let zero_address = Address::zero();
-        let req_address = if caller_is_pair_sc {
-            self.get_pair(first_token_id, second_token_id)
-        } else {
-            zero_address.clone()
-        };
-
-        if req_address != zero_address {
-            let half_gas = self.get_gas_left() * 4 / 5;
-            contract_call!(self, req_address.clone(), PairContractProxy)
-                .whitelist(caller)
-                .execute_on_dest_context(half_gas, self.send());
-        }
-
-        req_address
     }
 
     #[view(getPair)]

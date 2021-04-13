@@ -26,6 +26,7 @@ pub trait FactoryModule {
         &self,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
+        owner: &Address,
         total_fee_precent: u64,
         special_fee_precent: u64,
     ) -> Address {
@@ -40,6 +41,7 @@ pub trait FactoryModule {
         arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
         arg_buffer.push_argument_bytes(second_token_id.as_esdt_identifier());
         arg_buffer.push_argument_bytes(self.get_sc_address().as_bytes());
+        arg_buffer.push_argument_bytes(owner.as_bytes());
         arg_buffer.push_argument_bytes(&total_fee_precent.to_be_bytes()[..]);
         arg_buffer.push_argument_bytes(&special_fee_precent.to_be_bytes()[..]);
         let new_address =
