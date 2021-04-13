@@ -53,13 +53,14 @@ pub trait Staking {
         self.wegld_token_id().set(&wegld_token_id);
         self.router_address().set(&router_address);
         self.state().set(&true);
+        self.owner().set(&self.get_caller());
     }
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
         let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let owner = self.owner().get();
+        require!(caller == owner, "Permission denied");
         self.state().set(&false);
         Ok(())
     }
@@ -67,8 +68,8 @@ pub trait Staking {
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
         let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let owner = self.owner().get();
+        require!(caller == owner, "Permission denied");
         self.state().set(&true);
         Ok(())
     }
@@ -595,4 +596,8 @@ pub trait Staking {
     #[view(getState)]
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<Self::Storage, bool>;
+
+    #[view(getOwner)]
+    #[storage_mapper("owner")]
+    fn owner(&self) -> SingleValueMapper<Self::Storage, Address>;
 }
