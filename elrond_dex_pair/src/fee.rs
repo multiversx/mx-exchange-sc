@@ -1,5 +1,5 @@
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 #[elrond_wasm_derive::module(FeeModuleImpl)]
 pub trait FeeModule {

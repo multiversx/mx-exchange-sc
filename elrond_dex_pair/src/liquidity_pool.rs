@@ -1,5 +1,5 @@
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 pub use crate::amm::*;
 

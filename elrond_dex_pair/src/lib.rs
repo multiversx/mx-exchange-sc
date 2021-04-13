@@ -1,7 +1,7 @@
 #![no_std]
 
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 pub mod amm;
 pub mod fee;
