@@ -298,7 +298,7 @@ pub trait Pair {
             caller == router || caller == router_owner,
             "permission denied"
         );
-        self.fee().whitelist().remove(address);
+        self.fee().whitelist().remove(&address);
         Ok(())
     }
 
@@ -330,7 +330,6 @@ pub trait Pair {
     #[endpoint(removeCachePair)]
     fn remove_cache_pair(
         &self,
-        pair_address: Address,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
@@ -343,19 +342,17 @@ pub trait Pair {
             "permission denied"
         );
         let token_pair = TokenPair {
-            first_token,
-            second_token,
+            first_token: first_token.clone(),
+            second_token: second_token.clone(),
         };
-        self.fee()
-            .pair_address_cache_map()
-            .remove(token_pair, pair_address);
+        self.fee().pair_address_cache_map().remove(&token_pair);
         let token_pair_reversed = TokenPair {
-            second_token,
-            first_token,
+            first_token: second_token,
+            second_token: first_token,
         };
         self.fee()
             .pair_address_cache_map()
-            .remove(token_pair, token_pair_reversed);
+            .remove(&token_pair_reversed);
         Ok(())
     }
 
