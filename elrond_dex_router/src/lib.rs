@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -11,25 +12,22 @@ const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
-    fn set_fee_on(
+    fn setFeeOn(
         &self,
         enabled: bool,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> ContractCall<BigUint, ()>;
-    fn set_lp_token_identifier(
-        &self,
-        token_identifier: TokenIdentifier,
-    ) -> ContractCall<BigUint, ()>;
-    fn get_lp_token_identifier(&self) -> ContractCall<BigUint, TokenIdentifier>;
+    fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> ContractCall<BigUint, ()>;
+    fn getLpTokenIdentifier(&self) -> ContractCall<BigUint, TokenIdentifier>;
     fn pause(&self) -> ContractCall<BigUint, ()>;
     fn resume(&self) -> ContractCall<BigUint, ()>;
 }
 
 #[elrond_wasm_derive::callable(StakingContractProxy)]
 pub trait StakingContract {
-    fn add_pair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
-    fn remove_pair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
+    fn addPair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
+    fn removePair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
     fn pause(&self) -> ContractCall<BigUint, ()>;
     fn resume(&self) -> ContractCall<BigUint, ()>;
 }
@@ -95,7 +93,7 @@ pub trait Router {
         require!(first_token_id.is_esdt(), "Only esdt tokens allowed");
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(pair_address == Address::zero(), "Pair already existent");
+        require!(pair_address == Address::zero(), "Pair already exists");
         Ok(self
             .factory()
             .create_pair(&first_token_id, &second_token_id))
@@ -115,7 +113,7 @@ pub trait Router {
 
         let half_gas = self.get_gas_left() / 2;
         let result = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .get_lp_token_identifier()
+            .getLpTokenIdentifier()
             .execute_on_dest_context(half_gas, self.send());
 
         require!(result.is_egld(), "LP Token already issued");
@@ -152,7 +150,7 @@ pub trait Router {
 
         let half_gas = self.get_gas_left() / 2;
         let pair_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .get_lp_token_identifier()
+            .getLpTokenIdentifier()
             .execute_on_dest_context(half_gas, self.send());
         require!(pair_token.is_esdt(), "LP token not issued");
 
@@ -212,15 +210,15 @@ pub trait Router {
         let staking_token = self.staking_token().get();
         let staking_address = self.staking_address().get();
         contract_call!(self, pair_address.clone(), PairContractProxy)
-            .set_fee_on(true, staking_address, staking_token)
+            .setFeeOn(true, staking_address, staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .get_lp_token_identifier()
+            .getLpTokenIdentifier()
             .execute_on_dest_context(per_execute_gas, self.send());
 
         contract_call!(self, self.staking_address().get(), StakingContractProxy)
-            .add_pair(pair_address, lp_token)
+            .addPair(pair_address, lp_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
@@ -235,15 +233,15 @@ pub trait Router {
 
         let per_execute_gas = self.get_gas_left() / 3;
         contract_call!(self, pair_address.clone(), PairContractProxy)
-            .set_fee_on(false, Address::zero(), TokenIdentifier::egld())
+            .setFeeOn(false, Address::zero(), TokenIdentifier::egld())
             .execute_on_dest_context(per_execute_gas, self.send());
 
         let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .get_lp_token_identifier()
+            .getLpTokenIdentifier()
             .execute_on_dest_context(per_execute_gas, self.send());
 
         contract_call!(self, self.staking_address().get(), StakingContractProxy)
-            .remove_pair(pair_address, lp_token)
+            .removePair(pair_address, lp_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
@@ -285,7 +283,7 @@ pub trait Router {
         let mut address = self
             .factory()
             .pair_map()
-            .get(&PairKey {
+            .get(&PairTokens {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             })
@@ -294,7 +292,7 @@ pub trait Router {
             address = self
                 .factory()
                 .pair_map()
-                .get(&PairKey {
+                .get(&PairTokens {
                     first_token_id: second_token_id,
                     second_token_id: first_token_id,
                 })
@@ -308,16 +306,18 @@ pub trait Router {
         &self,
         caller: &Address,
         address: &Address,
-        #[call_result] result: AsyncCallResult<TokenIdentifier>,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] returned_tokens: BigUint,
+        #[call_result] result: AsyncCallResult<()>,
     ) {
+        // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
-            AsyncCallResult::Ok(token_id) => {
+            AsyncCallResult::Ok(()) => {
                 contract_call!(self, address.clone(), PairContractProxy)
-                    .set_lp_token_identifier(token_id)
+                    .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context(self.get_gas_left(), self.send());
             }
             AsyncCallResult::Err(_) => {
-                let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     self.send().direct_egld(caller, &returned_tokens, &[]);
                 }

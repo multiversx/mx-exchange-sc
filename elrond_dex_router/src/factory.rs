@@ -3,8 +3,8 @@ elrond_wasm::derive_imports!();
 
 use core::iter::FromIterator;
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct PairKey {
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
+pub struct PairTokens {
     pub first_token_id: TokenIdentifier,
     pub second_token_id: TokenIdentifier,
 }
@@ -12,8 +12,7 @@ pub struct PairKey {
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct PairContractMetadata {
     address: Address,
-    first_token_id: TokenIdentifier,
-    second_token_id: TokenIdentifier,
+    tokens: PairTokens,
 }
 
 #[elrond_wasm_derive::module(FactoryModuleImpl)]
@@ -33,7 +32,7 @@ pub trait FactoryModule {
         }
         let code_metadata = CodeMetadata::UPGRADEABLE;
         let gas_left = self.get_gas_left();
-        let amount = BigUint::from(0u32);
+        let amount = BigUint::zero();
         let mut arg_buffer = ArgBuffer::new();
         let code = self.pair_code().get();
         arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
@@ -44,7 +43,7 @@ pub trait FactoryModule {
                 .deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
         if new_address != Address::zero() {
             self.pair_map().insert(
-                PairKey {
+                PairTokens {
                     first_token_id: first_token_id.clone(),
                     second_token_id: second_token_id.clone(),
                 },
@@ -74,27 +73,26 @@ pub trait FactoryModule {
     }
 
     #[storage_mapper("pair_map")]
-    fn pair_map(&self) -> MapMapper<Self::Storage, PairKey, Address>;
+    fn pair_map(&self) -> MapMapper<Self::Storage, PairTokens, Address>;
 
     #[view(getAllPairsAddresses)]
     fn get_all_pairs_addresses(&self) -> MultiResultVec<Address> {
         self.pair_map().values().collect()
     }
 
-    #[view(getAllPairsTokens)]
-    fn get_all_pairs(&self) -> MultiResultVec<PairKey> {
+    #[view(getAllPairTokens)]
+    fn get_all_token_pairs(&self) -> MultiResultVec<PairTokens> {
         self.pair_map().keys().collect()
     }
 
-    #[view(getAllPairs)]
-    fn get_pairs(&self) -> MultiResultVec<PairContractMetadata> {
+    #[view(getAllPairContractMetadata)]
+    fn get_all_pair_contract_metadata(&self) -> MultiResultVec<PairContractMetadata> {
         let map: Vec<PairContractMetadata> = self
             .pair_map()
             .iter()
             .map(|x| PairContractMetadata {
                 address: x.1,
-                first_token_id: x.0.first_token_id,
-                second_token_id: x.0.second_token_id,
+                tokens: x.0,
             })
             .collect();
         MultiResultVec::from_iter(map)

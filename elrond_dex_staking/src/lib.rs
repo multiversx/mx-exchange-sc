@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -36,7 +37,7 @@ pub struct TokenAmountPair<BigUint: BigUintApi> {
 
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
-    fn get_tokens_for_given_position(
+    fn getTokensForGivenPosition(
         &self,
         amount: BigUint,
     ) -> ContractCall<BigUint, MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>>;
@@ -72,25 +73,46 @@ pub trait Staking {
         Ok(())
     }
 
-    #[endpoint]
+    #[endpoint(addPair)]
     fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
-        self.set_pair_for_lp_token(&token, &address);
-        self.set_lp_token_for_pair(&address, &token);
+        require!(
+            self.pair_for_lp_token(&token).is_empty(),
+            "Pair address already exists for LP token"
+        );
+        require!(
+            self.lp_token_for_pair(&address).is_empty(),
+            "LP token already exists for a Pair address"
+        );
+        self.pair_for_lp_token(&token).set(&address);
+        self.lp_token_for_pair(&address).set(&token);
         Ok(())
     }
 
-    #[endpoint]
+    #[endpoint(removePair)]
     fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
-        self.clear_pair_for_lp_token(&token);
-        self.clear_lp_token_for_pair(&address);
+        require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
+        require!(
+            !self.lp_token_for_pair(&address).is_empty(),
+            "No such LP token"
+        );
+        require!(
+            address == self.pair_for_lp_token(&token).get(),
+            "Address does not match Lp token equivalent"
+        );
+        require!(
+            token == self.lp_token_for_pair(&address).get(),
+            "LP token does not match Pair address equivalent"
+        );
+        self.pair_for_lp_token(&token).clear();
+        self.lp_token_for_pair(&address).clear();
         Ok(())
     }
 
@@ -103,28 +125,31 @@ pub trait Staking {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(
-            !self.is_empty_pair_for_lp_token(&lp_token),
+            !self.pair_for_lp_token(&lp_token).is_empty(),
             "Unknown LP token"
         );
         require!(!self.stake_token_id().is_empty(), "No issued unstake token");
-        let pair = self.get_pair_for_lp_token(&lp_token);
+        let pair = self.pair_for_lp_token(&lp_token).get();
         require!(pair != Address::zero(), "Unknown LP token");
 
         let one_third_gas = self.get_gas_left() / 3;
         let equivalent = contract_call!(self, pair, PairContractProxy)
-            .get_tokens_for_given_position(amount.clone())
+            .getTokensForGivenPosition(amount.clone())
             .execute_on_dest_context(one_third_gas, self.send());
 
-        let wegld_amount: BigUint;
         let wegld_token_id = self.wegld_token_id().get();
         let token_amount_pair_tuple = equivalent.0;
-        if token_amount_pair_tuple.0.token_id == wegld_token_id {
-            wegld_amount = token_amount_pair_tuple.0.amount;
-        } else if token_amount_pair_tuple.1.token_id == wegld_token_id {
-            wegld_amount = token_amount_pair_tuple.1.amount;
+        let first_token_amount_pair = token_amount_pair_tuple.0;
+        let second_token_amount_pair = token_amount_pair_tuple.1;
+
+        let wegld_amount = if first_token_amount_pair.token_id == wegld_token_id {
+            first_token_amount_pair.amount
+        } else if second_token_amount_pair.token_id == wegld_token_id {
+            second_token_amount_pair.amount
         } else {
             return sc_error!("Invalid LP token");
-        }
+        };
+
         require!(
             wegld_amount > BigUint::zero(),
             "Cannot stake with amount of 0"
@@ -273,7 +298,7 @@ pub trait Staking {
         let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone()
             / attributes.total_amount_liquidity;
         if initial_worth == BigUint::zero() {
-            return Ok(BigUint::zero());
+            return Ok(initial_worth);
         }
 
         self.liquidity_pool().calculate_reward(
@@ -293,9 +318,7 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if !self.stake_token_id().is_empty() {
-            return sc_error!("Already issued");
-        }
+        require!(self.stake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
             issue_cost,
@@ -315,9 +338,7 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if !self.unstake_token_id().is_empty() {
-            return sc_error!("Already issued");
-        }
+        require!(self.unstake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
             issue_cost,
@@ -387,9 +408,8 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if self.stake_token_id().is_empty() {
-            return sc_error!("No stake token issued");
-        }
+        require!(!self.stake_token_id().is_empty(), "No stake token issued");
+        require!(!roles.is_empty(), "Empty args");
 
         let token = self.stake_token_id().get();
         Ok(self.set_local_roles(token, roles))
@@ -402,9 +422,11 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        if self.unstake_token_id().is_empty() {
-            return sc_error!("No stake token issued");
-        }
+        require!(
+            !self.unstake_token_id().is_empty(),
+            "No unstake token issued"
+        );
+        require!(!roles.is_empty(), "Empty args");
 
         let token = self.unstake_token_id().get();
         Ok(self.set_local_roles(token, roles))
@@ -448,7 +470,8 @@ pub trait Staking {
             token_nonce,
         );
 
-        match UnstakeAttributes::top_decode(token_info.attributes.as_slice()) {
+        let unstake_attributes = token_info.decode_attributes::<UnstakeAttributes>();
+        match unstake_attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
                 return sc_error!("Decoding error");
@@ -467,7 +490,8 @@ pub trait Staking {
             token_nonce,
         );
 
-        match StakeAttributes::<BigUint>::top_decode(token_info.attributes.as_slice()) {
+        let stake_attributes = token_info.decode_attributes::<StakeAttributes<BigUint>>();
+        match stake_attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
                 return sc_error!("Decoding error");
@@ -535,27 +559,18 @@ pub trait Staking {
     }
 
     #[view(getPairForLpToken)]
-    #[storage_get("pair_for_lp_token")]
-    fn get_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> Address;
-
-    #[storage_set("pair_for_lp_token")]
-    fn set_pair_for_lp_token(&self, lp_token: &TokenIdentifier, pair_address: &Address);
-
-    #[storage_clear("pair_for_lp_token")]
-    fn clear_pair_for_lp_token(&self, lp_token: &TokenIdentifier);
-
-    #[storage_is_empty("pair_for_lp_token")]
-    fn is_empty_pair_for_lp_token(&self, lp_token: &TokenIdentifier) -> bool;
+    #[storage_mapper("pair_for_lp_token")]
+    fn pair_for_lp_token(
+        &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<Self::Storage, Address>;
 
     #[view(getLpTokenForPair)]
-    #[storage_get("lp_token_for_pair")]
-    fn get_lp_token_for_pair(&self, pair_address: &Address) -> TokenIdentifier;
-
-    #[storage_set("lp_token_for_pair")]
-    fn set_lp_token_for_pair(&self, pair_address: &Address, token: &TokenIdentifier);
-
-    #[storage_clear("lp_token_for_pair")]
-    fn clear_lp_token_for_pair(&self, pair_address: &Address);
+    #[storage_mapper("lp_token_for_pair")]
+    fn lp_token_for_pair(
+        &self,
+        pair_address: &Address,
+    ) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[view(getWegldTokenId)]
     #[storage_mapper("wegld_token_id")]

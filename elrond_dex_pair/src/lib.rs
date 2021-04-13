@@ -85,9 +85,9 @@ pub trait Pair {
         );
 
         let caller = self.get_caller();
-        let mut temporary_funds = self.get_temporary_funds(&caller, &token);
+        let mut temporary_funds = self.temporary_funds(&caller, &token).get();
         temporary_funds += payment;
-        self.set_temporary_funds(&caller, &token, &temporary_funds);
+        self.temporary_funds(&caller, &token).set(&temporary_funds);
 
         Ok(())
     }
@@ -118,10 +118,12 @@ pub trait Pair {
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
         let expected_first_token_id = self.liquidity_pool().first_token_id().get();
         let expected_second_token_id = self.liquidity_pool().second_token_id().get();
-        let mut temporary_first_token_amount_desired =
-            self.get_temporary_funds(&caller, &expected_first_token_id);
-        let mut temporary_second_token_amount_desired =
-            self.get_temporary_funds(&caller, &expected_second_token_id);
+        let mut temporary_first_token_amount_desired = self
+            .temporary_funds(&caller, &expected_first_token_id)
+            .get();
+        let mut temporary_second_token_amount_desired = self
+            .temporary_funds(&caller, &expected_second_token_id)
+            .get();
 
         require!(
             temporary_first_token_amount_desired > 0,
@@ -168,16 +170,10 @@ pub trait Pair {
 
         temporary_first_token_amount_desired -= first_token_amount;
         temporary_second_token_amount_desired -= second_token_amount;
-        self.set_temporary_funds(
-            &caller,
-            &expected_first_token_id,
-            &temporary_first_token_amount_desired,
-        );
-        self.set_temporary_funds(
-            &caller,
-            &expected_second_token_id,
-            &temporary_second_token_amount_desired,
-        );
+        self.temporary_funds(&caller, &expected_first_token_id)
+            .set(&temporary_first_token_amount_desired);
+        self.temporary_funds(&caller, &expected_second_token_id)
+            .set(&temporary_second_token_amount_desired);
 
         // Once liquidity has been added, the new K should never be lesser than the old K.
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
@@ -187,7 +183,7 @@ pub trait Pair {
     }
 
     fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
-        let amount = self.get_temporary_funds(&caller, token);
+        let amount = self.temporary_funds(&caller, token).get();
         if amount > 0 {
             self.send().direct_esdt_via_transf_exec(
                 &caller,
@@ -195,7 +191,7 @@ pub trait Pair {
                 &amount,
                 &[],
             );
-            self.clear_temporary_funds(&caller, token);
+            self.temporary_funds(&caller, token).clear();
         }
     }
 
@@ -292,13 +288,13 @@ pub trait Pair {
         );
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
-        let mut reserve_token_out = self.liquidity_pool().get_pair_reserve(&token_out);
+        let mut reserve_token_out = self.liquidity_pool().pair_reserve(&token_out).get();
         require!(
             reserve_token_out > amount_out_min,
             "Insufficient reserve for token out"
         );
 
-        let mut reserve_token_in = self.liquidity_pool().get_pair_reserve(&token_in);
+        let mut reserve_token_in = self.liquidity_pool().pair_reserve(&token_in).get();
         let amount_out_optimal = self.amm().get_amount_out(
             amount_in.clone(),
             reserve_token_in.clone(),
@@ -373,13 +369,13 @@ pub trait Pair {
         );
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
-        let mut reserve_token_out = self.liquidity_pool().get_pair_reserve(&token_out);
+        let mut reserve_token_out = self.liquidity_pool().pair_reserve(&token_out).get();
         require!(
             reserve_token_out > amount_out,
             "Insufficient reserve for token out"
         );
 
-        let mut reserve_token_in = self.liquidity_pool().get_pair_reserve(&token_in);
+        let mut reserve_token_in = self.liquidity_pool().pair_reserve(&token_in).get();
         let amount_in_optimal = self.amm().get_amount_in(
             amount_out.clone(),
             reserve_token_in.clone(),
@@ -441,7 +437,7 @@ pub trait Pair {
         Ok(())
     }
 
-    #[endpoint]
+    #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,
         enabled: bool,
@@ -473,8 +469,9 @@ pub trait Pair {
             to_send = fee_amount.clone();
         } else if fee_token_requested == first_token_id && fee_token == second_token_id {
             // Fees are in form of second_token_id.  Need to convert them to first_token_id.
-            let mut second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
-            let mut first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
+            let mut second_token_reserve =
+                self.liquidity_pool().pair_reserve(&second_token_id).get();
+            let mut first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
             let fee_amount_swap = self.amm().get_amount_out_no_fee(
                 fee_amount.clone(),
                 second_token_reserve.clone(),
@@ -496,8 +493,9 @@ pub trait Pair {
             }
         } else if fee_token_requested == second_token_id && fee_token == first_token_id {
             // Fees are in form of first_token_id.  Need to convert them to second_token_id.
-            let mut first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
-            let mut second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
+            let mut first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
+            let mut second_token_reserve =
+                self.liquidity_pool().pair_reserve(&second_token_id).get();
             let fee_amount_swap = self.amm().get_amount_out_no_fee(
                 fee_amount.clone(),
                 first_token_reserve.clone(),
@@ -529,13 +527,13 @@ pub trait Pair {
         } else {
             // Either swap failed or requested token identifier differs from both first_token_id and second_token_id.
             // Reinject them into liquidity pool.
-            let mut reserve = self.liquidity_pool().get_pair_reserve(&fee_token);
+            let mut reserve = self.liquidity_pool().pair_reserve(&fee_token).get();
             reserve += fee_amount;
-            self.liquidity_pool().set_pair_reserve(&fee_token, &reserve);
+            self.liquidity_pool().pair_reserve(&fee_token).set(&reserve);
         }
     }
 
-    #[endpoint]
+    #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         let caller = self.get_caller();
@@ -559,12 +557,7 @@ pub trait Pair {
         Ok(())
     }
 
-    #[view]
-    fn get_lp_token_identifier(&self) -> TokenIdentifier {
-        self.lp_token_identifier().get()
-    }
-
-    #[view]
+    #[view(getTokensForGivenPosition)]
     fn get_tokens_for_given_position(
         &self,
         liquidity: BigUint,
@@ -577,8 +570,8 @@ pub trait Pair {
     fn get_reserves_and_total_supply(&self) -> MultiResult3<BigUint, BigUint, BigUint> {
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
-        let first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
-        let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
+        let first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
+        let second_token_reserve = self.liquidity_pool().pair_reserve(&second_token_id).get();
         let total_supply = self.liquidity_pool().total_supply().get();
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
@@ -589,8 +582,8 @@ pub trait Pair {
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
-        let first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
-        let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
+        let first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
+        let second_token_reserve = self.liquidity_pool().pair_reserve(&second_token_id).get();
 
         if token_in == first_token_id {
             require!(second_token_reserve > 0, "Zero reserves for second token");
@@ -631,8 +624,8 @@ pub trait Pair {
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
-        let first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
-        let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
+        let first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
+        let second_token_reserve = self.liquidity_pool().pair_reserve(&second_token_id).get();
 
         if token_wanted == first_token_id {
             require!(
@@ -663,8 +656,8 @@ pub trait Pair {
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
-        let first_token_reserve = self.liquidity_pool().get_pair_reserve(&first_token_id);
-        let second_token_reserve = self.liquidity_pool().get_pair_reserve(&second_token_id);
+        let first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
+        let second_token_reserve = self.liquidity_pool().pair_reserve(&second_token_id).get();
         require!(
             first_token_reserve > 0,
             "Not enough reserves for first token"
@@ -692,22 +685,15 @@ pub trait Pair {
         self.state().get()
     }
 
-    // Temporary Storage
     #[view(getTemporaryFunds)]
-    #[storage_get("funds")]
-    fn get_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier) -> BigUint;
-
-    #[storage_set("funds")]
-    fn set_temporary_funds(
+    #[storage_mapper("funds")]
+    fn temporary_funds(
         &self,
         caller: &Address,
-        token_identifier: &TokenIdentifier,
-        amount: &BigUint,
-    );
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<Self::Storage, BigUint>;
 
-    #[storage_clear("funds")]
-    fn clear_temporary_funds(&self, caller: &Address, token_identifier: &TokenIdentifier);
-
+    #[view(getLpTokenIdentifier)]
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 

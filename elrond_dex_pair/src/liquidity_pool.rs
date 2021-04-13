@@ -25,8 +25,8 @@ pub trait LiquidityPoolModule {
         let first_token = self.first_token_id().get();
         let second_token = self.second_token_id().get();
         let mut total_supply = self.total_supply().get();
-        let mut first_token_reserve = self.get_pair_reserve(&first_token);
-        let mut second_token_reserve = self.get_pair_reserve(&second_token);
+        let mut first_token_reserve = self.pair_reserve(&first_token).get();
+        let mut second_token_reserve = self.pair_reserve(&second_token).get();
         let mut liquidity: BigUint;
 
         if total_supply == 0 {
@@ -73,14 +73,14 @@ pub trait LiquidityPoolModule {
         total_supply: BigUint,
         amount_min: BigUint,
     ) -> SCResult<BigUint> {
-        let mut reserve = self.get_pair_reserve(&token);
+        let mut reserve = self.pair_reserve(&token).get();
         let amount = (liquidity * reserve.clone()) / total_supply;
         require!(amount > 0, "Pair: insufficient_liquidity_burned");
         require!(amount >= amount_min, "Pair: insufficient_liquidity_burned");
         require!(reserve > amount, "Not enough reserve");
 
         reserve -= amount.clone();
-        self.set_pair_reserve(&token, &reserve);
+        self.pair_reserve(&token).set(&reserve);
 
         Ok(amount)
     }
@@ -123,8 +123,8 @@ pub trait LiquidityPoolModule {
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> SCResult<(BigUint, BigUint)> {
-        let first_token_reserve = self.get_pair_reserve(&self.first_token_id().get());
-        let second_token_reserve = self.get_pair_reserve(&self.second_token_id().get());
+        let first_token_reserve = self.pair_reserve(&self.first_token_id().get()).get();
+        let second_token_reserve = self.pair_reserve(&self.second_token_id().get()).get();
 
         if first_token_reserve == 0 && second_token_reserve == 0 {
             return Ok((first_token_amount_desired, second_token_amount_desired));
@@ -166,8 +166,8 @@ pub trait LiquidityPoolModule {
         first_token: &TokenIdentifier,
         second_token: &TokenIdentifier,
     ) {
-        self.set_pair_reserve(first_token, first_token_reserve);
-        self.set_pair_reserve(second_token, second_token_reserve);
+        self.pair_reserve(first_token).set(first_token_reserve);
+        self.pair_reserve(second_token).set(second_token_reserve);
     }
 
     fn get_token_for_given_position(
@@ -175,7 +175,7 @@ pub trait LiquidityPoolModule {
         liquidity: BigUint,
         token_id: TokenIdentifier,
     ) -> TokenAmountPair<BigUint> {
-        let reserve = self.get_pair_reserve(&token_id);
+        let reserve = self.pair_reserve(&token_id).get();
         let total_supply = self.total_supply().get();
         if total_supply != BigUint::zero() {
             TokenAmountPair {
@@ -204,8 +204,8 @@ pub trait LiquidityPoolModule {
     }
 
     fn calculate_k_for_reserves(&self) -> BigUint {
-        let first_token_amount = self.get_pair_reserve(&self.first_token_id().get());
-        let second_token_amount = self.get_pair_reserve(&self.second_token_id().get());
+        let first_token_amount = self.pair_reserve(&self.first_token_id().get()).get();
+        let second_token_amount = self.pair_reserve(&self.second_token_id().get()).get();
         self.amm()
             .calculate_k_constant(first_token_amount, second_token_amount)
     }
@@ -219,14 +219,9 @@ pub trait LiquidityPoolModule {
     fn second_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[view(getReserve)]
-    #[storage_get("reserve")]
-    fn get_pair_reserve(&self, token: &TokenIdentifier) -> BigUint;
-
-    #[storage_set("reserve")]
-    fn set_pair_reserve(&self, token: &TokenIdentifier, reserve: &BigUint);
-
-    #[storage_clear("reserve")]
-    fn clear_pair_reserve(&self, token: &TokenIdentifier);
+    #[storage_mapper("reserve")]
+    fn pair_reserve(&self, token_id: &TokenIdentifier)
+        -> SingleValueMapper<Self::Storage, BigUint>;
 
     #[view(getTotalSupply)]
     #[storage_mapper("total_supply")]
