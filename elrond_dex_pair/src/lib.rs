@@ -288,6 +288,20 @@ pub trait Pair {
         Ok(())
     }
 
+    #[endpoint(removeWhitelist)]
+    fn remove_whitelist(&self, address: Address) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        self.fee().whitelist().remove(address);
+        Ok(())
+    }
+
     #[endpoint(cachePair)]
     fn cache_pair(
         &self,
@@ -310,6 +324,38 @@ pub trait Pair {
         self.fee()
             .pair_address_cache_map()
             .insert(token_pair, pair_address);
+        Ok(())
+    }
+
+    #[endpoint(removeCachePair)]
+    fn remove_cache_pair(
+        &self,
+        pair_address: Address,
+        first_token: TokenIdentifier,
+        second_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        let token_pair = TokenPair {
+            first_token,
+            second_token,
+        };
+        self.fee()
+            .pair_address_cache_map()
+            .remove(token_pair, pair_address);
+        let token_pair_reversed = TokenPair {
+            second_token,
+            first_token,
+        };
+        self.fee()
+            .pair_address_cache_map()
+            .remove(token_pair, token_pair_reversed);
         Ok(())
     }
 
