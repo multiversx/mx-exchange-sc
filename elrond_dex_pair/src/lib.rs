@@ -710,7 +710,7 @@ pub trait Pair {
         requested_token: &TokenIdentifier,
         destination_address: &Address,
     ) -> bool {
-        let pair_address = self.get_pair_address(&available_token, &requested_token);
+        let pair_address = self.get_extern_swap_pair_address(&available_token, &requested_token);
         if pair_address == Address::zero() {
             return false;
         }
@@ -741,7 +741,7 @@ pub trait Pair {
         balance_before != balance_after
     }
 
-    fn get_pair_address(
+    fn get_extern_swap_pair_address(
         &self,
         first_token: &TokenIdentifier,
         second_token: &TokenIdentifier,
