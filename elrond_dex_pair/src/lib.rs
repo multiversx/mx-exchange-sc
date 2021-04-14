@@ -1,18 +1,21 @@
 #![no_std]
+#![allow(non_snake_case)]
 
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 pub mod amm;
 pub mod fee;
 pub mod liquidity_pool;
 
+use core::cmp::min;
+
 pub use crate::amm::*;
 pub use crate::fee::*;
 pub use crate::liquidity_pool::*;
 
-const DEFAULT_TOTAL_FEE_PRECENT: u64 = 3;
-const DEFAUL_SPECIAL_FEE_PRECENT: u64 = 1;
+const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
+const EXTERN_SWAP_GAS_LIMIT: u64 = 25000000;
 
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
@@ -31,19 +34,18 @@ pub trait Pair {
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         router_address: Address,
+        router_owner_address: Address,
+        total_fee_precent: u64,
+        special_fee_precent: u64,
     ) {
         self.router_address().set(&router_address);
+        self.router_owner_address().set(&router_owner_address);
         self.liquidity_pool().first_token_id().set(&first_token_id);
         self.liquidity_pool()
             .second_token_id()
             .set(&second_token_id);
-        self.fee().state().set(&false);
-        self.amm()
-            .total_fee_precent()
-            .set(&DEFAULT_TOTAL_FEE_PRECENT);
-        self.amm()
-            .special_fee_precent()
-            .set(&DEFAUL_SPECIAL_FEE_PRECENT);
+        self.amm().total_fee_precent().set(&total_fee_precent);
+        self.amm().special_fee_precent().set(&special_fee_precent);
         self.state().set(&true);
     }
 
@@ -51,7 +53,11 @@ pub trait Pair {
     fn pause(&self) -> SCResult<()> {
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         self.state().set(&true);
         Ok(())
     }
@@ -60,7 +66,11 @@ pub trait Pair {
     fn resume(&self) -> SCResult<()> {
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         self.state().set(&true);
         Ok(())
     }
@@ -264,6 +274,148 @@ pub trait Pair {
         Ok(())
     }
 
+    #[endpoint(whitelist)]
+    fn whitelist(&self, address: Address) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        self.fee().whitelist().insert(address);
+        Ok(())
+    }
+
+    #[endpoint(removeWhitelist)]
+    fn remove_whitelist(&self, address: Address) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        self.fee().whitelist().remove(&address);
+        Ok(())
+    }
+
+    #[endpoint(addTrustedSwapPair)]
+    fn add_trusted_swap_pair(
+        &self,
+        pair_address: Address,
+        first_token: TokenIdentifier,
+        second_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        let token_pair = TokenPair {
+            first_token,
+            second_token,
+        };
+        self.fee()
+            .trusted_swap_pair()
+            .insert(token_pair, pair_address);
+        Ok(())
+    }
+
+    #[endpoint(removeTrustedSwapPair)]
+    fn remove_trusted_swap_pair(
+        &self,
+        first_token: TokenIdentifier,
+        second_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        let caller = self.get_caller();
+        let router = self.router_address().get();
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
+        let token_pair = TokenPair {
+            first_token: first_token.clone(),
+            second_token: second_token.clone(),
+        };
+        self.fee().trusted_swap_pair().remove(&token_pair);
+        let token_pair_reversed = TokenPair {
+            first_token: second_token,
+            second_token: first_token,
+        };
+        self.fee().trusted_swap_pair().remove(&token_pair_reversed);
+        Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(swapNoFeeAndForward)]
+    fn swap_no_fee(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment] amount_in: BigUint,
+        destination_address: Address,
+    ) -> SCResult<()> {
+        let caller = self.get_caller();
+        require!(self.fee().whitelist().contains(&caller), "Not whitelisted");
+
+        if !self.is_active() {
+            self.send().direct_esdt_via_transf_exec(
+                &caller,
+                token_in.as_esdt_identifier(),
+                &amount_in,
+                &[],
+            );
+            return Ok(());
+        }
+        require!(amount_in > 0, "Zero input");
+
+        let first_token_id = self.liquidity_pool().first_token_id().get();
+        let second_token_id = self.liquidity_pool().second_token_id().get();
+        let token_out = if token_in == first_token_id {
+            second_token_id.clone()
+        } else if token_in == second_token_id {
+            first_token_id.clone()
+        } else {
+            return sc_error!("Bad token input");
+        };
+        let old_k = self.liquidity_pool().calculate_k_for_reserves();
+
+        let amount_out = self.liquidity_pool().swap_safe_no_fee(
+            &first_token_id,
+            &second_token_id,
+            &token_in,
+            &amount_in,
+        );
+        if amount_out == 0 {
+            self.send().direct_esdt_via_transf_exec(
+                &caller,
+                token_in.as_esdt_identifier(),
+                &amount_in,
+                &[],
+            );
+            return Ok(());
+        }
+
+        // A swap should not decrease the value of K. Should either be greater or equal.
+        let new_k = self.liquidity_pool().calculate_k_for_reserves();
+        sc_try!(self.validate_k_invariant(&old_k, &new_k));
+
+        self.send().direct_esdt_via_transf_exec(
+            &destination_address,
+            token_out.as_esdt_identifier(),
+            &amount_out,
+            &[],
+        );
+        Ok(())
+    }
+
     #[payable("*")]
     #[endpoint(swapTokensFixedInput)]
     fn swap_tokens_fixed_input(
@@ -308,6 +460,7 @@ pub trait Pair {
             reserve_token_out > amount_out_optimal,
             "Insufficient amount out reserve"
         );
+        require!(amount_out_optimal != 0, "Optimal value is zero");
 
         self.send().direct_esdt_via_transf_exec(
             &self.get_caller(),
@@ -367,6 +520,7 @@ pub trait Pair {
             token_out == first_token_id || token_out == second_token_id,
             "Pair: Invalid token out"
         );
+        require!(amount_out != 0, "Desired amount out cannot be zero");
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
         let mut reserve_token_out = self.liquidity_pool().pair_reserve(&token_out).get();
@@ -444,101 +598,195 @@ pub trait Pair {
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
         require!(caller == router, "Permission denied");
-        self.fee().state().set(&enabled);
-        self.fee().address().set(&fee_to_address);
-        self.fee().token_identifier().set(&fee_token);
+        let is_dest = self
+            .fee()
+            .destination_map()
+            .keys()
+            .any(|dest_address| dest_address == fee_to_address);
+
+        if enabled {
+            require!(!is_dest, "Is already a fee destination");
+            self.fee()
+                .destination_map()
+                .insert(fee_to_address, fee_token);
+        } else {
+            require!(is_dest, "Is not a fee destination");
+            let dest_fee_token = self.fee().destination_map().get(&fee_to_address).unwrap();
+            require!(fee_token == dest_fee_token, "Destination fee token differs");
+            self.fee().destination_map().remove(&fee_to_address);
+        }
         Ok(())
     }
 
+    fn reinject(&self, token: &TokenIdentifier, amount: &BigUint) {
+        let mut reserve = self.liquidity_pool().pair_reserve(token).get();
+        reserve += amount;
+        self.liquidity_pool().pair_reserve(&token).set(&reserve);
+    }
+
     fn send_fee(&self, fee_token: TokenIdentifier, fee_amount: BigUint) {
-        if fee_amount == BigUint::zero() {
+        if fee_amount == 0 {
             return;
         }
 
-        let fee_token_requested = self.fee().token_identifier().get();
-        let first_token_id = self.liquidity_pool().first_token_id().get();
-        let second_token_id = self.liquidity_pool().second_token_id().get();
-        let mut to_send = BigUint::zero();
-
-        if fee_token_requested == fee_token {
-            // Luckily no conversion is required.
-            to_send = fee_amount.clone();
-        } else if fee_token_requested == first_token_id && fee_token == second_token_id {
-            // Fees are in form of second_token_id.  Need to convert them to first_token_id.
-            let mut second_token_reserve =
-                self.liquidity_pool().pair_reserve(&second_token_id).get();
-            let mut first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
-            let fee_amount_swap = self.amm().get_amount_out_no_fee(
-                fee_amount.clone(),
-                second_token_reserve.clone(),
-                first_token_reserve.clone(),
-            );
-
-            if first_token_reserve > fee_amount_swap && fee_amount_swap > BigUint::zero() {
-                //There are enough tokens for swapping.
-                first_token_reserve -= fee_amount_swap.clone();
-                second_token_reserve += fee_amount.clone();
-                to_send = fee_amount_swap;
-
-                self.liquidity_pool().update_reserves(
-                    &first_token_reserve,
-                    &second_token_reserve,
-                    &first_token_id,
-                    &second_token_id,
-                );
-            }
-        } else if fee_token_requested == second_token_id && fee_token == first_token_id {
-            // Fees are in form of first_token_id.  Need to convert them to second_token_id.
-            let mut first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
-            let mut second_token_reserve =
-                self.liquidity_pool().pair_reserve(&second_token_id).get();
-            let fee_amount_swap = self.amm().get_amount_out_no_fee(
-                fee_amount.clone(),
-                first_token_reserve.clone(),
-                second_token_reserve.clone(),
-            );
-
-            if second_token_reserve > fee_amount_swap && fee_amount_swap > BigUint::zero() {
-                second_token_reserve -= fee_amount_swap.clone();
-                first_token_reserve += fee_amount.clone();
-                //There are enough tokens for swapping.
-                to_send = fee_amount_swap;
-
-                self.liquidity_pool().update_reserves(
-                    &first_token_reserve,
-                    &second_token_reserve,
-                    &first_token_id,
-                    &second_token_id,
-                );
-            }
+        let slices = self.fee().destination_map().len() as u64;
+        if slices == 0 {
+            self.reinject(&fee_token, &fee_amount);
+            return;
         }
 
-        if to_send > BigUint::zero() {
-            self.send().direct_esdt_via_transf_exec(
-                &self.fee().address().get(),
-                self.fee().token_identifier().get().as_esdt_identifier(),
-                &to_send,
-                &[],
-            );
+        let fee_slice = fee_amount.clone() / BigUint::from(slices);
+        if fee_slice == 0 {
+            self.reinject(&fee_token, &fee_amount);
+            return;
+        }
+
+        let first_token_id = self.liquidity_pool().first_token_id().get();
+        let second_token_id = self.liquidity_pool().second_token_id().get();
+
+        for (fee_address, fee_token_requested) in self.fee().destination_map().iter() {
+            let mut to_send = BigUint::zero();
+            let mut resolved_externally = false;
+
+            if fee_token_requested == fee_token {
+                // Luckily no conversion is required.
+                to_send = fee_slice.clone();
+            } else if self.can_resolve_swap_locally(
+                &fee_token,
+                &fee_token_requested,
+                &first_token_id,
+                &second_token_id,
+            ) {
+                to_send = self.liquidity_pool().swap_safe_no_fee(
+                    &first_token_id,
+                    &second_token_id,
+                    &fee_token,
+                    &fee_slice,
+                );
+            } else {
+                resolved_externally = self.extern_swap_and_forward(
+                    &fee_token,
+                    &fee_slice,
+                    &fee_token_requested,
+                    &fee_address,
+                );
+            }
+
+            if resolved_externally {
+                continue;
+            }
+            if to_send > 0 {
+                self.send().direct_esdt_via_transf_exec(
+                    &fee_address,
+                    &fee_token_requested.as_esdt_identifier(),
+                    &to_send,
+                    &[],
+                );
+            } else {
+                self.reinject(&fee_token, &fee_slice);
+            }
+        }
+    }
+
+    fn can_resolve_swap_locally(
+        &self,
+        fee_token: &TokenIdentifier,
+        requested_fee_token: &TokenIdentifier,
+        pool_first_token_id: &TokenIdentifier,
+        pool_second_token_id: &TokenIdentifier,
+    ) -> bool {
+        (requested_fee_token == pool_first_token_id && fee_token == pool_second_token_id)
+            || (requested_fee_token == pool_second_token_id && fee_token == pool_first_token_id)
+    }
+
+    fn extern_swap_and_forward(
+        &self,
+        available_token: &TokenIdentifier,
+        available_amount: &BigUint,
+        requested_token: &TokenIdentifier,
+        destination_address: &Address,
+    ) -> bool {
+        let pair_address = self.get_extern_swap_pair_address(&available_token, &requested_token);
+        if pair_address == Address::zero() {
+            return false;
+        }
+
+        let balance_before = self.get_esdt_balance(
+            &self.get_sc_address(),
+            available_token.as_esdt_identifier(),
+            0,
+        );
+
+        let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(destination_address.as_bytes());
+        self.send().direct_esdt_execute(
+            &pair_address,
+            &available_token.as_esdt_identifier(),
+            &available_amount,
+            min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
+            SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
+            &arg_buffer,
+        );
+
+        let balance_after = self.get_esdt_balance(
+            &self.get_sc_address(),
+            available_token.as_esdt_identifier(),
+            0,
+        );
+
+        balance_before != balance_after
+    }
+
+    fn get_extern_swap_pair_address(
+        &self,
+        first_token: &TokenIdentifier,
+        second_token: &TokenIdentifier,
+    ) -> Address {
+        let token_pair = TokenPair {
+            first_token: first_token.clone(),
+            second_token: second_token.clone(),
+        };
+        let token_pair_reversed = TokenPair {
+            first_token: second_token.clone(),
+            second_token: first_token.clone(),
+        };
+        let is_cached = self
+            .fee()
+            .trusted_swap_pair()
+            .keys()
+            .any(|key| key == token_pair);
+        let is_cached_reversed = self
+            .fee()
+            .trusted_swap_pair()
+            .keys()
+            .any(|key| key == token_pair_reversed);
+
+        if is_cached {
+            self.fee().trusted_swap_pair().get(&token_pair).unwrap()
+        } else if is_cached_reversed {
+            self.fee()
+                .trusted_swap_pair()
+                .get(&token_pair_reversed)
+                .unwrap()
         } else {
-            // Either swap failed or requested token identifier differs from both first_token_id and second_token_id.
-            // Reinject them into liquidity pool.
-            let mut reserve = self.liquidity_pool().pair_reserve(&fee_token).get();
-            reserve += fee_amount;
-            self.liquidity_pool().pair_reserve(&fee_token).set(&reserve);
+            Address::zero()
         }
     }
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        //require!(self.is_active(), "Not active");
         let caller = self.get_caller();
         let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let router_owner = self.router_owner_address().get();
+        require!(
+            caller == router || caller == router_owner,
+            "permission denied"
+        );
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         self.lp_token_identifier().set(&token_identifier);
 
@@ -700,6 +948,10 @@ pub trait Pair {
     #[view(getRouterAddress)]
     #[storage_mapper("router_address")]
     fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getRouterOwnerAddress)]
+    #[storage_mapper("router_owner_address")]
+    fn router_owner_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 
     #[view(getState)]
     #[storage_mapper("state")]

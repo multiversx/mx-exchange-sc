@@ -1,7 +1,8 @@
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 pub use crate::amm::*;
+pub use crate::fee::*;
 
 const MINIMUM_LIQUIDITY: u64 = 1000;
 
@@ -15,6 +16,9 @@ pub struct TokenAmountPair<BigUint: BigUintApi> {
 pub trait LiquidityPoolModule {
     #[module(AmmModuleImpl)]
     fn amm(&self) -> AmmModuleImpl<T, BigInt, BigUint>;
+
+    #[module(FeeModuleImpl)]
+    fn fee(&self) -> FeeModuleImpl<T, BigInt, BigUint>;
 
     fn mint(
         &self,
@@ -208,6 +212,54 @@ pub trait LiquidityPoolModule {
         let second_token_amount = self.pair_reserve(&self.second_token_id().get()).get();
         self.amm()
             .calculate_k_constant(first_token_amount, second_token_amount)
+    }
+
+    fn swap_safe_no_fee(
+        &self,
+        first_token_id: &TokenIdentifier,
+        second_token_id: &TokenIdentifier,
+        token_in: &TokenIdentifier,
+        amount_in: &BigUint,
+    ) -> BigUint {
+        let big_zero = BigUint::zero();
+        let first_token_reserve = self.pair_reserve(first_token_id).get();
+        let second_token_reserve = self.pair_reserve(second_token_id).get();
+
+        let (token_in, mut reserve_in, token_out, mut reserve_out) = if token_in == first_token_id {
+            (
+                first_token_id,
+                first_token_reserve,
+                second_token_id,
+                second_token_reserve,
+            )
+        } else {
+            (
+                second_token_id,
+                second_token_reserve,
+                first_token_id,
+                first_token_reserve,
+            )
+        };
+
+        if reserve_out == 0 {
+            return big_zero;
+        }
+
+        let amount_out = self.amm().get_amount_out_no_fee(
+            amount_in.clone(),
+            reserve_in.clone(),
+            reserve_out.clone(),
+        );
+
+        if reserve_out <= amount_out {
+            return big_zero;
+        }
+
+        reserve_in += amount_in;
+        reserve_out -= amount_out.clone();
+        self.update_reserves(&reserve_in, &reserve_out, &token_in, &token_out);
+
+        amount_out
     }
 
     #[view(getFirstTokenId)]

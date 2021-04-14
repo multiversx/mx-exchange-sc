@@ -10,6 +10,9 @@ pub use factory::*;
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
+const DEFAULT_TOTAL_FEE_PRECENT: u64 = 300;
+const DEFAULT_SPECIAL_FEE_PRECENT: u64 = 100;
+
 #[elrond_wasm_derive::callable(PairContractProxy)]
 pub trait PairContract {
     fn setFeeOn(
@@ -41,6 +44,7 @@ pub trait Router {
     fn init(&self) {
         self.factory().init();
         self.state().set(&true);
+        self.owner().set(&self.get_caller());
     }
 
     #[endpoint]
@@ -49,10 +53,6 @@ pub trait Router {
 
         if address == self.get_sc_address() {
             self.state().set(&false);
-        } else if !self.staking_address().is_empty() && address == self.staking_address().get() {
-            contract_call!(self, address, StakingContractProxy)
-                .pause()
-                .execute_on_dest_context(self.get_gas_left(), self.send());
         } else {
             sc_try!(self.check_is_pair_sc(&address));
             contract_call!(self, address, PairContractProxy)
@@ -68,10 +68,6 @@ pub trait Router {
 
         if address == self.get_sc_address() {
             self.state().set(&true);
-        } else if !self.staking_address().is_empty() && address == self.staking_address().get() {
-            contract_call!(self, address, StakingContractProxy)
-                .resume()
-                .execute_on_dest_context(self.get_gas_left(), self.send());
         } else {
             sc_try!(self.check_is_pair_sc(&address));
             contract_call!(self, address, PairContractProxy)
@@ -87,6 +83,7 @@ pub trait Router {
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
+        #[var_args] fee_precents: VarArgs<u64>,
     ) -> SCResult<Address> {
         require!(self.is_active(), "Not active");
         require!(first_token_id != second_token_id, "Identical tokens");
@@ -94,9 +91,25 @@ pub trait Router {
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address == Address::zero(), "Pair already exists");
-        Ok(self
-            .factory()
-            .create_pair(&first_token_id, &second_token_id))
+        let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
+        let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
+        let fee_precents_vec = fee_precents.0;
+        let owner = self.owner().get();
+        if self.get_caller() == owner && fee_precents_vec.len() == 2 {
+            total_fee_precent_requested = fee_precents_vec[0];
+            special_fee_precent_requested = fee_precents_vec[1];
+            require!(
+                total_fee_precent_requested >= special_fee_precent_requested,
+                "Bad precents"
+            );
+        }
+        Ok(self.factory().create_pair(
+            &first_token_id,
+            &second_token_id,
+            &owner,
+            total_fee_precent_requested,
+            special_fee_precent_requested,
+        ))
     }
 
     #[payable("EGLD")]
@@ -164,19 +177,6 @@ pub trait Router {
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
-    #[endpoint(setStakingInfo)]
-    fn set_staking_info(
-        &self,
-        staking_address: Address,
-        staking_token: TokenIdentifier,
-    ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
-        self.staking_address().set(&staking_address);
-        self.staking_token().set(&staking_token);
-        Ok(())
-    }
-
     fn check_is_pair_sc(&self, pair_address: &Address) -> SCResult<()> {
         require!(
             self.factory()
@@ -199,25 +199,26 @@ pub trait Router {
     }
 
     #[endpoint(setFeeOn)]
-    fn set_fee_on(&self, pair_address: Address) -> SCResult<()> {
+    fn set_fee_on(
+        &self,
+        pair_address: Address,
+        staking_address: Address,
+        staking_token: TokenIdentifier,
+    ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
         sc_try!(self.check_is_pair_sc(&pair_address));
-        require!(!self.staking_address().is_empty(), "Empty staking address");
-        require!(!self.staking_token().is_empty(), "Empty staking token");
 
         let per_execute_gas = self.get_gas_left() / 3;
-        let staking_token = self.staking_token().get();
-        let staking_address = self.staking_address().get();
         contract_call!(self, pair_address.clone(), PairContractProxy)
-            .setFeeOn(true, staking_address, staking_token)
+            .setFeeOn(true, staking_address.clone(), staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
             .getLpTokenIdentifier()
             .execute_on_dest_context(per_execute_gas, self.send());
 
-        contract_call!(self, self.staking_address().get(), StakingContractProxy)
+        contract_call!(self, staking_address, StakingContractProxy)
             .addPair(pair_address, lp_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
@@ -225,22 +226,26 @@ pub trait Router {
     }
 
     #[endpoint(setFeeOff)]
-    fn set_fee_off(&self, pair_address: Address) -> SCResult<()> {
+    fn set_fee_off(
+        &self,
+        pair_address: Address,
+        staking_address: Address,
+        staking_token: TokenIdentifier,
+    ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
         sc_try!(self.check_is_pair_sc(&pair_address));
-        require!(!self.staking_address().is_empty(), "Empty staking address");
 
         let per_execute_gas = self.get_gas_left() / 3;
         contract_call!(self, pair_address.clone(), PairContractProxy)
-            .setFeeOn(false, Address::zero(), TokenIdentifier::egld())
+            .setFeeOn(false, staking_address.clone(), staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
             .getLpTokenIdentifier()
             .execute_on_dest_context(per_execute_gas, self.send());
 
-        contract_call!(self, self.staking_address().get(), StakingContractProxy)
+        contract_call!(self, staking_address, StakingContractProxy)
             .removePair(pair_address, lp_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
@@ -342,14 +347,6 @@ pub trait Router {
         self.state().get()
     }
 
-    #[view(getStakingAddress)]
-    #[storage_mapper("staking_address")]
-    fn staking_address(&self) -> SingleValueMapper<Self::Storage, Address>;
-
-    #[view(getStakingToken)]
-    #[storage_mapper("staking_token")]
-    fn staking_token(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
@@ -357,4 +354,8 @@ pub trait Router {
     #[view(getState)]
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<Self::Storage, bool>;
+
+    #[view(getOwner)]
+    #[storage_mapper("owner")]
+    fn owner(&self) -> SingleValueMapper<Self::Storage, Address>;
 }

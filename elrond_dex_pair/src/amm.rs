@@ -1,5 +1,5 @@
-imports!();
-derive_imports!();
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 #[elrond_wasm_derive::module(AmmModuleImpl)]
 pub trait AmmModule {
@@ -38,9 +38,9 @@ pub trait AmmModule {
         reserve_in: BigUint,
         reserve_out: BigUint,
     ) -> BigUint {
-        let amount_in_with_fee = amount_in * BigUint::from(1000 - self.total_fee_precent().get());
+        let amount_in_with_fee = amount_in * BigUint::from(100000 - self.total_fee_precent().get());
         let numerator = amount_in_with_fee.clone() * reserve_out;
-        let denominator = (reserve_in * BigUint::from(1000u64)) + amount_in_with_fee;
+        let denominator = (reserve_in * BigUint::from(100000u64)) + amount_in_with_fee;
 
         numerator / denominator
     }
@@ -51,24 +51,24 @@ pub trait AmmModule {
         reserve_in: BigUint,
         reserve_out: BigUint,
     ) -> BigUint {
-        let numerator = (reserve_in * amount_out.clone()) * BigUint::from(1000u64);
+        let numerator = (reserve_in * amount_out.clone()) * BigUint::from(100000u64);
         let denominator =
-            (reserve_out - amount_out) * BigUint::from(1000 - self.total_fee_precent().get());
+            (reserve_out - amount_out) * BigUint::from(100000 - self.total_fee_precent().get());
 
         (numerator / denominator) + BigUint::from(1u64)
     }
 
     fn get_special_fee_from_fixed_input(&self, amount_in: BigUint) -> BigUint {
-        amount_in * BigUint::from(self.special_fee_precent().get()) / BigUint::from(1000u64)
+        amount_in * BigUint::from(self.special_fee_precent().get()) / BigUint::from(100000u64)
     }
 
     fn get_special_fee_from_optimal_input(&self, amount_in_optimal: BigUint) -> BigUint {
         let amount_in_zero_fee = amount_in_optimal
-            * BigUint::from(1000 - self.total_fee_precent().get())
-            / BigUint::from(1000u64);
+            * BigUint::from(100000 - self.total_fee_precent().get())
+            / BigUint::from(100000u64);
 
-        amount_in_zero_fee.clone() * BigUint::from(1000u64)
-            / BigUint::from(1000 - self.special_fee_precent().get())
+        amount_in_zero_fee.clone() * BigUint::from(100000u64)
+            / BigUint::from(100000 - self.special_fee_precent().get())
             - amount_in_zero_fee
     }
 

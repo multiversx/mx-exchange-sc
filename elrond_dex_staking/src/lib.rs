@@ -49,17 +49,18 @@ pub trait Staking {
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
     #[init]
-    fn init(&self, wegld_token_id: TokenIdentifier, router_address: Address) {
-        self.wegld_token_id().set(&wegld_token_id);
+    fn init(&self, staking_pool_token_id: TokenIdentifier, router_address: Address) {
+        self.staking_pool_token_id().set(&staking_pool_token_id);
         self.router_address().set(&router_address);
         self.state().set(&true);
+        self.owner().set(&self.get_caller());
     }
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
         let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let owner = self.owner().get();
+        require!(caller == owner, "Permission denied");
         self.state().set(&false);
         Ok(())
     }
@@ -67,8 +68,8 @@ pub trait Staking {
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
         let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        let owner = self.owner().get();
+        require!(caller == owner, "Permission denied");
         self.state().set(&true);
         Ok(())
     }
@@ -137,31 +138,31 @@ pub trait Staking {
             .getTokensForGivenPosition(amount.clone())
             .execute_on_dest_context(one_third_gas, self.send());
 
-        let wegld_token_id = self.wegld_token_id().get();
+        let staking_pool_token_id = self.staking_pool_token_id().get();
         let token_amount_pair_tuple = equivalent.0;
         let first_token_amount_pair = token_amount_pair_tuple.0;
         let second_token_amount_pair = token_amount_pair_tuple.1;
 
-        let wegld_amount = if first_token_amount_pair.token_id == wegld_token_id {
+        let stake_contribution = if first_token_amount_pair.token_id == staking_pool_token_id {
             first_token_amount_pair.amount
-        } else if second_token_amount_pair.token_id == wegld_token_id {
+        } else if second_token_amount_pair.token_id == staking_pool_token_id {
             second_token_amount_pair.amount
         } else {
             return sc_error!("Invalid LP token");
         };
 
         require!(
-            wegld_amount > BigUint::zero(),
+            stake_contribution > BigUint::zero(),
             "Cannot stake with amount of 0"
         );
 
         let liquidity = sc_try!(self
             .liquidity_pool()
-            .add_liquidity(wegld_amount.clone(), wegld_token_id));
+            .add_liquidity(stake_contribution.clone(), staking_pool_token_id));
         let stake_attributes = StakeAttributes::<BigUint> {
             lp_token_id: lp_token,
             total_lp_tokens: amount,
-            total_initial_worth: wegld_amount,
+            total_initial_worth: stake_contribution,
             total_amount_liquidity: liquidity.clone(),
         };
 
@@ -208,16 +209,16 @@ pub trait Staking {
             / stake_attributes.total_amount_liquidity.clone();
         require!(lp_tokens > 0, "Cannot unstake with 0 lp_tokens");
 
-        let wegld_token_id = self.wegld_token_id().get();
+        let staking_pool_token_id = self.staking_pool_token_id().get();
         let reward = sc_try!(self.liquidity_pool().remove_liquidity(
             liquidity.clone(),
             initial_worth,
-            wegld_token_id.clone()
+            staking_pool_token_id.clone()
         ));
         if reward != BigUint::zero() {
             self.send().direct_esdt_via_transf_exec(
                 &self.get_caller(),
-                wegld_token_id.as_esdt_identifier(),
+                staking_pool_token_id.as_esdt_identifier(),
                 &reward,
                 &[],
             );
@@ -304,7 +305,7 @@ pub trait Staking {
         self.liquidity_pool().calculate_reward(
             liquidity,
             initial_worth,
-            self.wegld_token_id().get(),
+            self.staking_pool_token_id().get(),
         )
     }
 
@@ -549,10 +550,12 @@ pub trait Staking {
         self.state().get()
     }
 
-    #[view(getWegldIdAndAmounts)]
-    fn get_wegld_id_and_amounts(&self) -> SCResult<(TokenIdentifier, (BigUint, BigUint))> {
-        require!(!self.wegld_token_id().is_empty(), "Not issued");
-        let token = self.wegld_token_id().get();
+    #[view(getStakingPoolTokenIdAndAmounts)]
+    fn get_staking_pool_token_id_and_amounts(
+        &self,
+    ) -> SCResult<(TokenIdentifier, (BigUint, BigUint))> {
+        require!(!self.staking_pool_token_id().is_empty(), "Not issued");
+        let token = self.staking_pool_token_id().get();
         let vamount = self.liquidity_pool().virtual_reserves().get();
         let amount = self.get_esdt_balance(&self.get_sc_address(), token.as_esdt_identifier(), 0);
         Ok((token, (vamount, amount)))
@@ -572,9 +575,9 @@ pub trait Staking {
         pair_address: &Address,
     ) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
-    #[view(getWegldTokenId)]
-    #[storage_mapper("wegld_token_id")]
-    fn wegld_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    #[view(getStakingPoolTokenId)]
+    #[storage_mapper("staking_pool_token_id")]
+    fn staking_pool_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[view(getStakeTokenId)]
     #[storage_mapper("stake_token_id")]
@@ -595,4 +598,8 @@ pub trait Staking {
     #[view(getState)]
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<Self::Storage, bool>;
+
+    #[view(getOwner)]
+    #[storage_mapper("owner")]
+    fn owner(&self) -> SingleValueMapper<Self::Storage, Address>;
 }
