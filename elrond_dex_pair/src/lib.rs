@@ -405,7 +405,7 @@ pub trait Pair {
             reserve_token_in.clone(),
             reserve_token_out.clone(),
         );
-        if amount_out == 0 {
+        if amount_out == 0 || amount_out >= reserve_token_out {
             self.send().direct_esdt_via_transf_exec(
                 &caller,
                 token_in.as_esdt_identifier(),
