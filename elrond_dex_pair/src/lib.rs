@@ -379,50 +379,29 @@ pub trait Pair {
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
         let token_out = if token_in == first_token_id {
-            second_token_id
+            second_token_id.clone()
         } else if token_in == second_token_id {
-            first_token_id
+            first_token_id.clone()
         } else {
             return sc_error!("Bad token input");
         };
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
-        let mut reserve_token_out = self.liquidity_pool().pair_reserve(&token_out).get();
-        if reserve_token_out == 0 {
-            self.send().direct_esdt_via_transf_exec(
-                &caller,
-                token_in.as_esdt_identifier(),
-                &amount_in,
-                &[],
-            );
-            return Ok(());
-        }
-
-        let mut reserve_token_in = self.liquidity_pool().pair_reserve(&token_in).get();
-        let amount_out = self.amm().get_amount_out_no_fee(
-            amount_in.clone(),
-            reserve_token_in.clone(),
-            reserve_token_out.clone(),
-        );
-        if amount_out == 0 || amount_out >= reserve_token_out {
-            self.send().direct_esdt_via_transf_exec(
-                &caller,
-                token_in.as_esdt_identifier(),
-                &amount_in,
-                &[],
-            );
-            return Ok(());
-        }
-
-        reserve_token_in += amount_in;
-        reserve_token_out -= amount_out.clone();
-
-        self.liquidity_pool().update_reserves(
-            &reserve_token_in,
-            &reserve_token_out,
+        let amount_out = self.liquidity_pool().swap_safe_no_fee(
+            &first_token_id,
+            &second_token_id,
             &token_in,
-            &token_out,
+            &amount_in,
         );
+        if amount_out == 0 {
+            self.send().direct_esdt_via_transf_exec(
+                &caller,
+                token_in.as_esdt_identifier(),
+                &amount_in,
+                &[],
+            );
+            return Ok(());
+        }
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
@@ -657,104 +636,47 @@ pub trait Pair {
             self.reinject(&fee_token, &fee_amount);
             return;
         }
+
         let fee_slice = fee_amount.clone() / BigUint::from(slices);
         if fee_slice == 0 {
             self.reinject(&fee_token, &fee_amount);
             return;
         }
+
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
 
         for (fee_address, fee_token_requested) in self.fee().destination_map().iter() {
             let mut to_send = BigUint::zero();
+            let mut resolved_externally = false;
+
             if fee_token_requested == fee_token {
                 // Luckily no conversion is required.
                 to_send = fee_slice.clone();
-            } else if fee_token_requested == first_token_id && fee_token == second_token_id {
-                // Fees are in form of second_token_id.  Need to convert them to first_token_id.
-                let mut second_token_reserve =
-                    self.liquidity_pool().pair_reserve(&second_token_id).get();
-                let mut first_token_reserve =
-                    self.liquidity_pool().pair_reserve(&first_token_id).get();
-                let fee_amount_swap = self.amm().get_amount_out_no_fee(
-                    fee_slice.clone(),
-                    second_token_reserve.clone(),
-                    first_token_reserve.clone(),
+            } else if self.can_resolve_swap_locally(
+                &fee_token,
+                &fee_token_requested,
+                &first_token_id,
+                &second_token_id,
+            ) {
+                to_send = self.liquidity_pool().swap_safe_no_fee(
+                    &first_token_id,
+                    &second_token_id,
+                    &fee_token,
+                    &fee_slice,
                 );
-
-                if first_token_reserve > fee_amount_swap && fee_amount_swap > BigUint::zero() {
-                    //There are enough tokens for swapping.
-                    first_token_reserve -= fee_amount_swap.clone();
-                    second_token_reserve += fee_slice.clone();
-                    to_send = fee_amount_swap;
-
-                    self.liquidity_pool().update_reserves(
-                        &first_token_reserve,
-                        &second_token_reserve,
-                        &first_token_id,
-                        &second_token_id,
-                    );
-                }
-            } else if fee_token_requested == second_token_id && fee_token == first_token_id {
-                // Fees are in form of first_token_id.  Need to convert them to second_token_id.
-                let mut first_token_reserve =
-                    self.liquidity_pool().pair_reserve(&first_token_id).get();
-                let mut second_token_reserve =
-                    self.liquidity_pool().pair_reserve(&second_token_id).get();
-                let fee_amount_swap = self.amm().get_amount_out_no_fee(
-                    fee_slice.clone(),
-                    first_token_reserve.clone(),
-                    second_token_reserve.clone(),
-                );
-
-                if second_token_reserve > fee_amount_swap && fee_amount_swap > BigUint::zero() {
-                    second_token_reserve -= fee_amount_swap.clone();
-                    first_token_reserve += fee_amount.clone();
-                    //There are enough tokens for swapping.
-                    to_send = fee_amount_swap;
-
-                    self.liquidity_pool().update_reserves(
-                        &first_token_reserve,
-                        &second_token_reserve,
-                        &first_token_id,
-                        &second_token_id,
-                    );
-                }
             } else {
-                // No luck... The hard way
-                let pair_address = self.get_pair_address(&fee_token, &fee_token_requested);
-                if pair_address != Address::zero() {
-                    let balance_before = self.get_esdt_balance(
-                        &self.get_sc_address(),
-                        fee_token.as_esdt_identifier(),
-                        0,
-                    );
-
-                    let mut arg_buffer = ArgBuffer::new();
-                    arg_buffer.push_argument_bytes(fee_address.as_bytes());
-                    self.send().direct_esdt_execute(
-                        &pair_address,
-                        &fee_token.as_esdt_identifier(),
-                        &fee_slice,
-                        min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
-                        SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
-                        &arg_buffer,
-                    );
-
-                    let balance_after = self.get_esdt_balance(
-                        &self.get_sc_address(),
-                        fee_token.as_esdt_identifier(),
-                        0,
-                    );
-
-                    if balance_before != balance_after {
-                        // At this point, the fees have been succesfuly swapped
-                        // and already sent to fee_address.
-                        continue;
-                    }
-                }
+                resolved_externally = self.extern_swap_and_forward(
+                    &fee_token,
+                    &fee_slice,
+                    &fee_token_requested,
+                    &fee_address,
+                );
             }
 
+            if resolved_externally {
+                continue;
+            }
             if to_send > 0 {
                 self.send().direct_esdt_via_transf_exec(
                     &fee_address,
@@ -766,6 +688,55 @@ pub trait Pair {
                 self.reinject(&fee_token, &fee_slice);
             }
         }
+    }
+
+    fn can_resolve_swap_locally(
+        &self,
+        fee_token: &TokenIdentifier,
+        requested_fee_token: &TokenIdentifier,
+        pool_first_token_id: &TokenIdentifier,
+        pool_second_token_id: &TokenIdentifier,
+    ) -> bool {
+        (requested_fee_token == pool_first_token_id && fee_token == pool_second_token_id)
+            || (requested_fee_token == pool_second_token_id && fee_token == pool_first_token_id)
+    }
+
+    fn extern_swap_and_forward(
+        &self,
+        available_token: &TokenIdentifier,
+        available_amount: &BigUint,
+        requested_token: &TokenIdentifier,
+        destination_address: &Address,
+    ) -> bool {
+        let pair_address = self.get_pair_address(&available_token, &requested_token);
+        if pair_address == Address::zero() {
+            return false;
+        }
+
+        let balance_before = self.get_esdt_balance(
+            &self.get_sc_address(),
+            available_token.as_esdt_identifier(),
+            0,
+        );
+
+        let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(destination_address.as_bytes());
+        self.send().direct_esdt_execute(
+            &pair_address,
+            &available_token.as_esdt_identifier(),
+            &available_amount,
+            min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
+            SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
+            &arg_buffer,
+        );
+
+        let balance_after = self.get_esdt_balance(
+            &self.get_sc_address(),
+            available_token.as_esdt_identifier(),
+            0,
+        );
+
+        balance_before != balance_after
     }
 
     fn get_pair_address(
