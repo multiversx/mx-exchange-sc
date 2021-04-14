@@ -302,8 +302,8 @@ pub trait Pair {
         Ok(())
     }
 
-    #[endpoint(cachePair)]
-    fn cache_pair(
+    #[endpoint(addTrustedSwapPair)]
+    fn add_trusted_swap_pair(
         &self,
         pair_address: Address,
         first_token: TokenIdentifier,
@@ -322,13 +322,13 @@ pub trait Pair {
             second_token,
         };
         self.fee()
-            .pair_address_cache_map()
+            .trusted_swap_pair()
             .insert(token_pair, pair_address);
         Ok(())
     }
 
-    #[endpoint(removeCachePair)]
-    fn remove_cache_pair(
+    #[endpoint(removeTrustedSwapPair)]
+    fn remove_trusted_swap_pair(
         &self,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
@@ -345,13 +345,13 @@ pub trait Pair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
-        self.fee().pair_address_cache_map().remove(&token_pair);
+        self.fee().trusted_swap_pair().remove(&token_pair);
         let token_pair_reversed = TokenPair {
             first_token: second_token,
             second_token: first_token,
         };
         self.fee()
-            .pair_address_cache_map()
+            .trusted_swap_pair()
             .remove(&token_pair_reversed);
         Ok(())
     }
@@ -771,23 +771,23 @@ pub trait Pair {
         };
         let is_cached = self
             .fee()
-            .pair_address_cache_map()
+            .trusted_swap_pair()
             .keys()
             .any(|key| key == token_pair);
         let is_cached_reversed = self
             .fee()
-            .pair_address_cache_map()
+            .trusted_swap_pair()
             .keys()
             .any(|key| key == token_pair_reversed);
 
         if is_cached {
             self.fee()
-                .pair_address_cache_map()
+                .trusted_swap_pair()
                 .get(&token_pair)
                 .unwrap()
         } else if is_cached_reversed {
             self.fee()
-                .pair_address_cache_map()
+                .trusted_swap_pair()
                 .get(&token_pair_reversed)
                 .unwrap()
         } else {
