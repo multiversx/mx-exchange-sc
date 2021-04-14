@@ -460,6 +460,7 @@ pub trait Pair {
             reserve_token_out > amount_out_optimal,
             "Insufficient amount out reserve"
         );
+        require!(amount_out_optimal != 0, "Optimal value is zero");
 
         self.send().direct_esdt_via_transf_exec(
             &self.get_caller(),
@@ -519,6 +520,7 @@ pub trait Pair {
             token_out == first_token_id || token_out == second_token_id,
             "Pair: Invalid token out"
         );
+        require!(amount_out != 0, "Desired amount out cannot be zero");
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
         let mut reserve_token_out = self.liquidity_pool().pair_reserve(&token_out).get();
