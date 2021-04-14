@@ -14,7 +14,7 @@ pub use crate::amm::*;
 pub use crate::fee::*;
 pub use crate::liquidity_pool::*;
 
-const SWAP_NO_FEE_FUNC_NAME: &[u8] = b"swapNoFee";
+const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 const EXTERN_SWAP_GAS_LIMIT: u64 = 25000000;
 
 #[elrond_wasm_derive::contract(PairImpl)]
@@ -350,18 +350,17 @@ pub trait Pair {
             first_token: second_token,
             second_token: first_token,
         };
-        self.fee()
-            .trusted_swap_pair()
-            .remove(&token_pair_reversed);
+        self.fee().trusted_swap_pair().remove(&token_pair_reversed);
         Ok(())
     }
 
     #[payable("*")]
-    #[endpoint(swapNoFee)]
+    #[endpoint(swapNoFeeAndForward)]
     fn swap_no_fee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount_in: BigUint,
+        destination_address: Address,
     ) -> SCResult<()> {
         let caller = self.get_caller();
         require!(self.fee().whitelist().contains(&caller), "Not whitelisted");
@@ -430,7 +429,7 @@ pub trait Pair {
         sc_try!(self.validate_k_invariant(&old_k, &new_k));
 
         self.send().direct_esdt_via_transf_exec(
-            &caller,
+            &destination_address,
             token_out.as_esdt_identifier(),
             &amount_out,
             &[],
@@ -724,22 +723,35 @@ pub trait Pair {
             } else {
                 // No luck... The hard way
                 let pair_address = self.get_pair_address(&fee_token, &fee_token_requested);
-
                 if pair_address != Address::zero() {
+                    let balance_before = self.get_esdt_balance(
+                        &self.get_sc_address(),
+                        fee_token.as_esdt_identifier(),
+                        0,
+                    );
+
+                    let mut arg_buffer = ArgBuffer::new();
+                    arg_buffer.push_argument_bytes(fee_address.as_bytes());
                     self.send().direct_esdt_execute(
                         &pair_address,
                         &fee_token.as_esdt_identifier(),
                         &fee_slice,
                         min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
-                        SWAP_NO_FEE_FUNC_NAME,
-                        &ArgBuffer::new(),
+                        SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
+                        &arg_buffer,
                     );
 
-                    to_send = self.get_esdt_balance(
+                    let balance_after = self.get_esdt_balance(
                         &self.get_sc_address(),
-                        fee_token_requested.as_esdt_identifier(),
+                        fee_token.as_esdt_identifier(),
                         0,
                     );
+
+                    if balance_before != balance_after {
+                        // At this point, the fees have been succesfuly swapped
+                        // and already sent to fee_address.
+                        continue;
+                    }
                 }
             }
 
@@ -781,10 +793,7 @@ pub trait Pair {
             .any(|key| key == token_pair_reversed);
 
         if is_cached {
-            self.fee()
-                .trusted_swap_pair()
-                .get(&token_pair)
-                .unwrap()
+            self.fee().trusted_swap_pair().get(&token_pair).unwrap()
         } else if is_cached_reversed {
             self.fee()
                 .trusted_swap_pair()
