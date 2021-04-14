@@ -33,7 +33,7 @@ pub trait FactoryModule {
         if !self.pair_code_ready().get() {
             return Address::zero();
         }
-        let code_metadata = CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE;
+        let code_metadata = CodeMetadata::UPGRADEABLE;
         let gas_left = self.get_gas_left();
         let amount = BigUint::zero();
         let mut arg_buffer = ArgBuffer::new();
