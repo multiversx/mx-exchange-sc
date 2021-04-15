@@ -389,13 +389,6 @@ pub trait Pair {
             "Invalid token out"
         );
 
-        let token_out = if token_in == first_token_id {
-            second_token_id.clone()
-        } else if token_in == second_token_id {
-            first_token_id.clone()
-        } else {
-            return sc_error!("Bad token input");
-        };
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
 
         let amount_out = self.liquidity_pool().swap_safe_no_fee(
