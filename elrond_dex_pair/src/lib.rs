@@ -360,6 +360,7 @@ pub trait Pair {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount_in: BigUint,
+        token_out: TokenIdentifier,
         destination_address: Address,
     ) -> SCResult<()> {
         let caller = self.get_caller();
@@ -378,6 +379,16 @@ pub trait Pair {
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
+        require!(token_in != token_out, "Cannot swap same token");
+        require!(
+            token_in == first_token_id || token_in == second_token_id,
+            "Invalid token in"
+        );
+        require!(
+            token_out == first_token_id || token_out == second_token_id,
+            "Invalid token out"
+        );
+
         let token_out = if token_in == first_token_id {
             second_token_id.clone()
         } else if token_in == second_token_id {
@@ -722,6 +733,7 @@ pub trait Pair {
         );
 
         let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(requested_token.as_esdt_identifier());
         arg_buffer.push_argument_bytes(destination_address.as_bytes());
         self.send().direct_esdt_execute(
             &pair_address,
