@@ -27,7 +27,7 @@ MEX-STAKE token id: STMEX-4cca05
 MEX-UNSTAKE token id: UNSTMEX-044c48
 ```
 
-We can provide some EGLD, MEX, BUSD so you can add/swap/remove, stake/unstake/unbond.
+We can provide some EGLD, MEX, BUSD (please remember this is on testnet) so you can add/swap/remove, stake/unstake/unbond.
 
 ## Snippets usage examples:
 
