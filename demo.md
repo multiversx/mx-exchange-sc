@@ -6,12 +6,15 @@ contracts) and we provided some snippets to help interracting with them.
 Everything is deployed on public testnet (Staking contracts are deployed
 with a 0 unbonding period).
 
+```
 EGLD/MEX pair contract for swap address: erd1qqqqqqqqqqqqqpgqqwvkms3v7gjuapklycf56cmnkw2g4nt4ephq5uccm4
 EGLD/BUSD pair contract for swap address: erd1qqqqqqqqqqqqqpgqythkz66phnu9cx6dvhj7f6x7vyqklkrmephq5kx34d
 MEX/BUSD pair contract for swap address: erd1qqqqqqqqqqqqqpgqzvnj3wkhm2x7hn7zvn3rsflhdyjw5j5mephq96pam9
 Staking pool for EGLD LP providers address: erd1qqqqqqqqqqqqqpgqyfg8hntu4c3hunh0p6zz8xt7w42aqs79ephqgzwn2g
 Staking pool for MEX LP providers address: erd1qqqqqqqqqqqqqpgq35yj7rawq96fqmyj3ravzt6jl4z8579kephqjh3p0q
+```
 
+```
 EGLD token id: EGLD-bf16ca
 MEX token id: MEX-0a3d3a
 BUSD token id: BUSD-56c018
@@ -22,6 +25,7 @@ EGLD-STAKE token id: STEGLD-2e6833
 EGLD-UNSTAKE token id: UNSTEGLD-9b0ff6
 MEX-STAKE token id: STMEX-4cca05
 MEX-UNSTAKE token id: UNSTMEX-044c48
+```
 
 We can provide some EGLD, MEX, BUSD so you can add/swap/remove, stake/unstake/unbond.
 
