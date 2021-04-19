@@ -755,30 +755,34 @@ pub trait Pair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
-        let token_pair_reversed = TokenPair {
-            first_token: second_token.clone(),
-            second_token: first_token.clone(),
-        };
         let is_cached = self
             .fee()
             .trusted_swap_pair()
             .keys()
             .any(|key| key == token_pair);
-        let is_cached_reversed = self
-            .fee()
-            .trusted_swap_pair()
-            .keys()
-            .any(|key| key == token_pair_reversed);
 
         if is_cached {
             self.fee().trusted_swap_pair().get(&token_pair).unwrap()
-        } else if is_cached_reversed {
-            self.fee()
-                .trusted_swap_pair()
-                .get(&token_pair_reversed)
-                .unwrap()
         } else {
-            Address::zero()
+            let token_pair_reversed = TokenPair {
+                first_token: second_token.clone(),
+                second_token: first_token.clone(),
+            };
+
+            let is_cached_reversed = self
+                .fee()
+                .trusted_swap_pair()
+                .keys()
+                .any(|key| key == token_pair_reversed);
+
+            if is_cached_reversed {
+                self.fee()
+                    .trusted_swap_pair()
+                    .get(&token_pair_reversed)
+                    .unwrap()
+            } else {
+                Address::zero()
+            }
         }
     }
 
