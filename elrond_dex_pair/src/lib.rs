@@ -329,16 +329,7 @@ pub trait Pair {
     ) -> SCResult<()> {
         let caller = self.get_caller();
         require!(self.fee().whitelist().contains(&caller), "Not whitelisted");
-
-        if !self.is_active() {
-            self.send().direct_esdt_via_transf_exec(
-                &caller,
-                token_in.as_esdt_identifier(),
-                &amount_in,
-                &[],
-            );
-            return Ok(());
-        }
+        require!(self.is_active(), "Not active");
         require!(amount_in > 0, "Zero input");
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
@@ -361,15 +352,7 @@ pub trait Pair {
             &token_in,
             &amount_in,
         );
-        if amount_out == 0 {
-            self.send().direct_esdt_via_transf_exec(
-                &caller,
-                token_in.as_esdt_identifier(),
-                &amount_in,
-                &[],
-            );
-            return Ok(());
-        }
+        require!(amount_out > 0, "Zero input");
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
@@ -681,16 +664,10 @@ pub trait Pair {
             return false;
         }
 
-        let balance_before = self.get_esdt_balance(
-            &self.get_sc_address(),
-            available_token.as_esdt_identifier(),
-            0,
-        );
-
         let mut arg_buffer = ArgBuffer::new();
         arg_buffer.push_argument_bytes(requested_token.as_esdt_identifier());
         arg_buffer.push_argument_bytes(destination_address.as_bytes());
-        self.send().direct_esdt_execute(
+        let result = self.send().direct_esdt_execute(
             &pair_address,
             &available_token.as_esdt_identifier(),
             &available_amount,
@@ -699,13 +676,10 @@ pub trait Pair {
             &arg_buffer,
         );
 
-        let balance_after = self.get_esdt_balance(
-            &self.get_sc_address(),
-            available_token.as_esdt_identifier(),
-            0,
-        );
-
-        balance_before != balance_after
+        match result {
+            Result::Ok(()) => true,
+            Result::Err(_) => false,
+        }
     }
 
     fn get_extern_swap_pair_address(
