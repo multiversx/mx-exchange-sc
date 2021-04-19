@@ -29,8 +29,6 @@ pub trait PairContract {
 
 #[elrond_wasm_derive::callable(StakingContractProxy)]
 pub trait StakingContract {
-    fn addPair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
-    fn removePair(&self, address: Address, token: TokenIdentifier) -> ContractCall<BigUint, ()>;
     fn pause(&self) -> ContractCall<BigUint, ()>;
     fn resume(&self) -> ContractCall<BigUint, ()>;
 }
@@ -210,16 +208,8 @@ pub trait Router {
         sc_try!(self.check_is_pair_sc(&pair_address));
 
         let per_execute_gas = self.get_gas_left() / 3;
-        contract_call!(self, pair_address.clone(), PairContractProxy)
-            .setFeeOn(true, staking_address.clone(), staking_token)
-            .execute_on_dest_context(per_execute_gas, self.send());
-
-        let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .getLpTokenIdentifier()
-            .execute_on_dest_context(per_execute_gas, self.send());
-
-        contract_call!(self, staking_address, StakingContractProxy)
-            .addPair(pair_address, lp_token)
+        contract_call!(self, pair_address, PairContractProxy)
+            .setFeeOn(true, staking_address, staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
@@ -237,16 +227,8 @@ pub trait Router {
         sc_try!(self.check_is_pair_sc(&pair_address));
 
         let per_execute_gas = self.get_gas_left() / 3;
-        contract_call!(self, pair_address.clone(), PairContractProxy)
-            .setFeeOn(false, staking_address.clone(), staking_token)
-            .execute_on_dest_context(per_execute_gas, self.send());
-
-        let lp_token = contract_call!(self, pair_address.clone(), PairContractProxy)
-            .getLpTokenIdentifier()
-            .execute_on_dest_context(per_execute_gas, self.send());
-
-        contract_call!(self, staking_address, StakingContractProxy)
-            .removePair(pair_address, lp_token)
+        contract_call!(self, pair_address, PairContractProxy)
+            .setFeeOn(false, staking_address, staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
