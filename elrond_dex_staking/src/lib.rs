@@ -58,18 +58,14 @@ pub trait Staking {
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
-        let caller = self.get_caller();
-        let owner = self.owner().get();
-        require!(caller == owner, "Permission denied");
+        sc_try!(self.require_permissions());
         self.state().set(&false);
         Ok(())
     }
 
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
-        let caller = self.get_caller();
-        let owner = self.owner().get();
-        require!(caller == owner, "Permission denied");
+        sc_try!(self.require_permissions());
         self.state().set(&true);
         Ok(())
     }
@@ -77,9 +73,7 @@ pub trait Staking {
     #[endpoint(addPair)]
     fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(
             self.pair_for_lp_token(&token).is_empty(),
             "Pair address already exists for LP token"
@@ -96,9 +90,7 @@ pub trait Staking {
     #[endpoint(removePair)]
     fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
         require!(
             !self.lp_token_for_pair(&address).is_empty(),
@@ -318,7 +310,7 @@ pub trait Staking {
         token_ticker: BoxedBytes,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(self.stake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
@@ -338,7 +330,7 @@ pub trait Staking {
         token_ticker: BoxedBytes,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(self.unstake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
@@ -408,7 +400,7 @@ pub trait Staking {
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(!self.stake_token_id().is_empty(), "No stake token issued");
         require!(!roles.is_empty(), "Empty args");
 
@@ -422,7 +414,7 @@ pub trait Staking {
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(
             !self.unstake_token_id().is_empty(),
             "No unstake token issued"
@@ -543,6 +535,14 @@ pub trait Staking {
             nonce,
             amount,
         );
+    }
+
+    fn require_permissions(&self) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        let owner = self.owner().get();
+        let router = self.router_address().get();
+        require!(caller == owner || caller == router, "Permission denied");
+        Ok(())
     }
 
     #[inline]

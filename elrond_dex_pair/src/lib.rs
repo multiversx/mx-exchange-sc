@@ -51,26 +51,14 @@ pub trait Pair {
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         self.state().set(&true);
         Ok(())
     }
 
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         self.state().set(&true);
         Ok(())
     }
@@ -277,13 +265,7 @@ pub trait Pair {
     #[endpoint(whitelist)]
     fn whitelist(&self, address: Address) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         self.fee().whitelist().insert(address);
         Ok(())
     }
@@ -291,13 +273,7 @@ pub trait Pair {
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: Address) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         self.fee().whitelist().remove(&address);
         Ok(())
     }
@@ -310,13 +286,7 @@ pub trait Pair {
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         let token_pair = TokenPair {
             first_token,
             second_token,
@@ -334,13 +304,7 @@ pub trait Pair {
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         let token_pair = TokenPair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
@@ -603,9 +567,7 @@ pub trait Pair {
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        sc_try!(self.require_permissions());
         let is_dest = self
             .fee()
             .destination_map()
@@ -789,13 +751,7 @@ pub trait Pair {
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        let router_owner = self.router_owner_address().get();
-        require!(
-            caller == router || caller == router_owner,
-            "permission denied"
-        );
+        sc_try!(self.require_permissions());
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         self.lp_token_identifier().set(&token_identifier);
 
@@ -935,6 +891,14 @@ pub trait Pair {
         } else {
             sc_error!("Not a known token")
         }
+    }
+
+    fn require_permissions(&self) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        let owner = self.router_owner_address().get();
+        let router = self.router_address().get();
+        require!(caller == owner || caller == router, "Permission denied");
+        Ok(())
     }
 
     #[inline]
