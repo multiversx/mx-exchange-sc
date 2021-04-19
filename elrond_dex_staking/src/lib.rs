@@ -208,7 +208,7 @@ pub trait Staking {
             staking_pool_token_id.clone()
         ));
         let caller = self.blockchain().get_caller();
-        if reward != BigUint::zero() {
+        if reward != 0 {
             let _ = self.send().direct_esdt_via_transf_exec(
                 &caller,
                 staking_pool_token_id.as_esdt_identifier(),
@@ -293,7 +293,7 @@ pub trait Staking {
         let attributes = sc_try!(self.get_stake_attributes(token_id, token_nonce));
         let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone()
             / attributes.total_amount_liquidity;
-        if initial_worth == BigUint::zero() {
+        if initial_worth == 0 {
             return Ok(initial_worth);
         }
 

@@ -498,7 +498,7 @@ pub trait Pair {
             &[],
         );
         let residuum = amount_in_max - amount_in_optimal.clone();
-        if residuum != BigUint::from(0u64) {
+        if residuum != 0 {
             let _ = self.send().direct_esdt_via_transf_exec(
                 &self.blockchain().get_caller(),
                 token_in.as_esdt_identifier(),

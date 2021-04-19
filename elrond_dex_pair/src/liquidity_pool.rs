@@ -181,7 +181,7 @@ pub trait LiquidityPoolModule {
     ) -> TokenAmountPair<BigUint> {
         let reserve = self.pair_reserve(&token_id).get();
         let total_supply = self.total_supply().get();
-        if total_supply != BigUint::zero() {
+        if total_supply != 0 {
             TokenAmountPair {
                 token_id,
                 amount: liquidity * reserve / total_supply,

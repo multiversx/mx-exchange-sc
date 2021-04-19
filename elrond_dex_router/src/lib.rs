@@ -91,7 +91,7 @@ pub trait Router {
         require!(pair_address == Address::zero(), "Pair already exists");
         let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
         let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
-        let fee_precents_vec = fee_precents.0;
+        let fee_precents_vec = fee_precents.into_vec();
         let owner = self.owner().get();
         if self.blockchain().get_caller() == owner && fee_precents_vec.len() == 2 {
             total_fee_precent_requested = fee_precents_vec[0];
