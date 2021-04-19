@@ -82,7 +82,7 @@ pub trait Pair {
             "Pair: Invalid token"
         );
 
-        let caller = self.get_caller();
+        let caller = self.blockchain().get_caller();
         let mut temporary_funds = self.temporary_funds(&caller, &token).get();
         temporary_funds += payment;
         self.temporary_funds(&caller, &token).set(&temporary_funds);
@@ -112,7 +112,7 @@ pub trait Pair {
             "LP token not issued"
         );
 
-        let caller = self.get_caller();
+        let caller = self.blockchain().get_caller();
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
         let expected_first_token_id = self.liquidity_pool().first_token_id().get();
         let expected_second_token_id = self.liquidity_pool().second_token_id().get();
@@ -155,8 +155,8 @@ pub trait Pair {
             lp_token_id.clone(),
         ));
 
-        self.send().direct_esdt_via_transf_exec(
-            &self.get_caller(),
+        let _ = self.send().direct_esdt_via_transf_exec(
+            &self.blockchain().get_caller(),
             lp_token_id.as_esdt_identifier(),
             &liquidity,
             &[],
@@ -183,7 +183,7 @@ pub trait Pair {
     fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
         let amount = self.temporary_funds(&caller, token).get();
         if amount > 0 {
-            self.send().direct_esdt_via_transf_exec(
+            let _ = self.send().direct_esdt_via_transf_exec(
                 &caller,
                 token.as_esdt_identifier(),
                 &amount,
@@ -196,7 +196,7 @@ pub trait Pair {
     #[endpoint(reclaimTemporaryFunds)]
     fn reclaim_temporary_funds(&self) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
+        let caller = self.blockchain().get_caller();
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
         self.reclaim_temporary_token(&caller, &first_token_id);
@@ -220,7 +220,7 @@ pub trait Pair {
             "LP token not issued"
         );
 
-        let caller = self.get_caller();
+        let caller = self.blockchain().get_caller();
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
         let expected_liquidity_token = self.lp_token_identifier().get();
         require!(
@@ -241,13 +241,13 @@ pub trait Pair {
         require!(total_supply > liquidity, "Not enough supply");
         total_supply -= liquidity;
 
-        self.send().direct_esdt_via_transf_exec(
+        let _ = self.send().direct_esdt_via_transf_exec(
             &caller,
             first_token_id.as_esdt_identifier(),
             &first_token_amount,
             &[],
         );
-        self.send().direct_esdt_via_transf_exec(
+        let _ = self.send().direct_esdt_via_transf_exec(
             &caller,
             second_token_id.as_esdt_identifier(),
             &second_token_amount,
@@ -327,7 +327,7 @@ pub trait Pair {
         token_out: TokenIdentifier,
         destination_address: Address,
     ) -> SCResult<()> {
-        let caller = self.get_caller();
+        let caller = self.blockchain().get_caller();
         require!(self.fee().whitelist().contains(&caller), "Not whitelisted");
         require!(self.is_active(), "Not active");
         require!(amount_in > 0, "Zero input");
@@ -358,7 +358,7 @@ pub trait Pair {
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant(&old_k, &new_k));
 
-        self.send().direct_esdt_via_transf_exec(
+        let _ = self.send().direct_esdt_via_transf_exec(
             &destination_address,
             token_out.as_esdt_identifier(),
             &amount_out,
@@ -413,8 +413,8 @@ pub trait Pair {
         );
         require!(amount_out_optimal != 0, "Optimal value is zero");
 
-        self.send().direct_esdt_via_transf_exec(
-            &self.get_caller(),
+        let _ = self.send().direct_esdt_via_transf_exec(
+            &self.blockchain().get_caller(),
             token_out.as_esdt_identifier(),
             &amount_out_optimal,
             &[],
@@ -491,16 +491,16 @@ pub trait Pair {
             "Computed amount in grater than maximum amount in"
         );
 
-        self.send().direct_esdt_via_transf_exec(
-            &self.get_caller(),
+        let _ = self.send().direct_esdt_via_transf_exec(
+            &self.blockchain().get_caller(),
             token_out.as_esdt_identifier(),
             &amount_out,
             &[],
         );
         let residuum = amount_in_max - amount_in_optimal.clone();
         if residuum != BigUint::from(0u64) {
-            self.send().direct_esdt_via_transf_exec(
-                &self.get_caller(),
+            let _ = self.send().direct_esdt_via_transf_exec(
+                &self.blockchain().get_caller(),
                 token_in.as_esdt_identifier(),
                 &residuum,
                 &[],
@@ -629,7 +629,7 @@ pub trait Pair {
                 continue;
             }
             if to_send > 0 {
-                self.send().direct_esdt_via_transf_exec(
+                let _ = self.send().direct_esdt_via_transf_exec(
                     &fee_address,
                     &fee_token_requested.as_esdt_identifier(),
                     &to_send,
@@ -671,7 +671,7 @@ pub trait Pair {
             &pair_address,
             &available_token.as_esdt_identifier(),
             &available_amount,
-            min(self.get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
+            min(self.blockchain().get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
             SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
             &arg_buffer,
         );

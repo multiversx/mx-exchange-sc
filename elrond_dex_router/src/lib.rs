@@ -42,20 +42,20 @@ pub trait Router {
     fn init(&self) {
         self.factory().init();
         self.state().set(&true);
-        self.owner().set(&self.get_caller());
+        self.owner().set(&self.blockchain().get_caller());
     }
 
     #[endpoint]
     fn pause(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "Permission denied");
 
-        if address == self.get_sc_address() {
+        if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
         } else {
             sc_try!(self.check_is_pair_sc(&address));
             contract_call!(self, address, PairContractProxy)
                 .pause()
-                .execute_on_dest_context(self.get_gas_left(), self.send());
+                .execute_on_dest_context(self.blockchain().get_gas_left(), self.send());
         }
         Ok(())
     }
@@ -64,13 +64,13 @@ pub trait Router {
     fn resume(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "Permission denied");
 
-        if address == self.get_sc_address() {
+        if address == self.blockchain().get_sc_address() {
             self.state().set(&true);
         } else {
             sc_try!(self.check_is_pair_sc(&address));
             contract_call!(self, address, PairContractProxy)
                 .resume()
-                .execute_on_dest_context(self.get_gas_left(), self.send());
+                .execute_on_dest_context(self.blockchain().get_gas_left(), self.send());
         }
         Ok(())
     }
@@ -93,7 +93,7 @@ pub trait Router {
         let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
         let fee_precents_vec = fee_precents.0;
         let owner = self.owner().get();
-        if self.get_caller() == owner && fee_precents_vec.len() == 2 {
+        if self.blockchain().get_caller() == owner && fee_precents_vec.len() == 2 {
             total_fee_precent_requested = fee_precents_vec[0];
             special_fee_precent_requested = fee_precents_vec[1];
             require!(
@@ -122,7 +122,7 @@ pub trait Router {
         require!(self.is_active(), "Not active");
         sc_try!(self.check_is_pair_sc(&pair_address));
 
-        let half_gas = self.get_gas_left() / 2;
+        let half_gas = self.blockchain().get_gas_left() / 2;
         let result = contract_call!(self, pair_address.clone(), PairContractProxy)
             .getLpTokenIdentifier()
             .execute_on_dest_context(half_gas, self.send());
@@ -150,7 +150,7 @@ pub trait Router {
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .lp_token_issue_callback(&self.get_caller(), &pair_address),
+                    .lp_token_issue_callback(&self.blockchain().get_caller(), &pair_address),
             ))
     }
 
@@ -159,7 +159,7 @@ pub trait Router {
         require!(self.is_active(), "Not active");
         sc_try!(self.check_is_pair_sc(&pair_address));
 
-        let half_gas = self.get_gas_left() / 2;
+        let half_gas = self.blockchain().get_gas_left() / 2;
         let pair_token = contract_call!(self, pair_address.clone(), PairContractProxy)
             .getLpTokenIdentifier()
             .execute_on_dest_context(half_gas, self.send());
@@ -207,7 +207,7 @@ pub trait Router {
         only_owner!(self, "Permission denied");
         sc_try!(self.check_is_pair_sc(&pair_address));
 
-        let per_execute_gas = self.get_gas_left() / 3;
+        let per_execute_gas = self.blockchain().get_gas_left() / 3;
         contract_call!(self, pair_address, PairContractProxy)
             .setFeeOn(true, staking_address, staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
@@ -226,7 +226,7 @@ pub trait Router {
         only_owner!(self, "Permission denied");
         sc_try!(self.check_is_pair_sc(&pair_address));
 
-        let per_execute_gas = self.get_gas_left() / 3;
+        let per_execute_gas = self.blockchain().get_gas_left() / 3;
         contract_call!(self, pair_address, PairContractProxy)
             .setFeeOn(false, staking_address, staking_token)
             .execute_on_dest_context(per_execute_gas, self.send());
@@ -302,11 +302,11 @@ pub trait Router {
             AsyncCallResult::Ok(()) => {
                 contract_call!(self, address.clone(), PairContractProxy)
                     .setLpTokenIdentifier(token_id)
-                    .execute_on_dest_context(self.get_gas_left(), self.send());
+                    .execute_on_dest_context(self.blockchain().get_gas_left(), self.send());
             }
             AsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0 {
-                    self.send().direct_egld(caller, &returned_tokens, &[]);
+                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
             }
         }

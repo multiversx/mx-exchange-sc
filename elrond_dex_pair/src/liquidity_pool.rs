@@ -53,7 +53,7 @@ pub trait LiquidityPoolModule {
         require!(liquidity > 0, "Pair: insufficient_liquidity_minted");
 
         self.send().esdt_local_mint(
-            self.get_gas_left(),
+            self.blockchain().get_gas_left(),
             lp_token_identifier.as_esdt_identifier(),
             &liquidity,
         );
@@ -112,7 +112,7 @@ pub trait LiquidityPoolModule {
         ));
 
         self.send().esdt_local_burn(
-            self.get_gas_left(),
+            self.blockchain().get_gas_left(),
             lp_token_identifier.as_esdt_identifier(),
             &liquidity,
         );
