@@ -5,6 +5,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 const UNBOND_EPOCH_PERIOD: u64 = 10;
+const EXTERN_QUERY_MAX_GAS: u64 = 20000000;
 
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
@@ -41,6 +42,11 @@ pub trait PairContract {
         &self,
         amount: BigUint,
     ) -> ContractCall<BigUint, MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>>;
+    fn getEquivalent(
+        &self,
+        token: TokenIdentifier,
+        amount: BigUint,
+    ) -> ContractCall<BigUint, BigUint>;
 }
 
 #[elrond_wasm_derive::contract(StakingImpl)]
@@ -70,8 +76,59 @@ pub trait Staking {
         Ok(())
     }
 
+    #[endpoint(addTrustedPairAsOracle)]
+    fn add_oracle_pair(
+        &self,
+        first_token: TokenIdentifier,
+        second_token: TokenIdentifier,
+        address: Address,
+    ) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+        sc_try!(self.require_permissions());
+        require!(
+            self.oracle_pair(&first_token, &second_token).is_empty(),
+            "Pair already exists as oracle for given tokens"
+        );
+        require!(
+            self.oracle_pair(&second_token, &first_token).is_empty(),
+            "Pair already exists as oracle for given tokens"
+        );
+        self.oracle_pair(&first_token, &second_token).set(&address);
+        self.oracle_pair(&second_token, &first_token).set(&address);
+        Ok(())
+    }
+
+    #[endpoint(removeTrustedPairAsOracle)]
+    fn remove_oracle_pair(
+        &self,
+        first_token: TokenIdentifier,
+        second_token: TokenIdentifier,
+        address: Address,
+    ) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+        sc_try!(self.require_permissions());
+        require!(
+            !self.oracle_pair(&first_token, &second_token).is_empty(),
+            "Pair doesn't exists as oracle for given tokens"
+        );
+        require!(
+            !self.oracle_pair(&second_token, &first_token).is_empty(),
+            "Pair doesn't exists as oracle for given tokens"
+        );
+        require!(
+            self.oracle_pair(&second_token, &first_token).get() == address,
+            "Pair oracle has diferent address"
+        );
+        require!(
+            self.oracle_pair(&first_token, &second_token).get() == address,
+            "Pair oracle has diferent address"
+        );
+        self.oracle_pair(&first_token, &second_token).clear();
+        Ok(())
+    }
+
     #[endpoint(addAcceptedPairAddressAndLpToken)]
-    fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
+    fn add_accepted_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
         require!(
@@ -88,7 +145,7 @@ pub trait Staking {
     }
 
     #[endpoint(removeAcceptedPairAddressAndLpToken)]
-    fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
+    fn remove_accepted_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
         require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
@@ -117,37 +174,14 @@ pub trait Staking {
         #[payment] amount: BigUint,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        require!(
-            !self.pair_for_lp_token(&lp_token).is_empty(),
-            "Unknown LP token"
-        );
         require!(!self.stake_token_id().is_empty(), "No issued unstake token");
-        let pair = self.pair_for_lp_token(&lp_token).get();
-        require!(pair != Address::zero(), "Unknown LP token");
-
-        let one_third_gas = self.blockchain().get_gas_left() / 3;
-        let equivalent = contract_call!(self, pair, PairContractProxy)
-            .getTokensForGivenPosition(amount.clone())
-            .execute_on_dest_context(one_third_gas, self.send());
-
-        let staking_pool_token_id = self.staking_pool_token_id().get();
-        let token_amount_pair_tuple = equivalent.0;
-        let first_token_amount_pair = token_amount_pair_tuple.0;
-        let second_token_amount_pair = token_amount_pair_tuple.1;
-
-        let stake_contribution = if first_token_amount_pair.token_id == staking_pool_token_id {
-            first_token_amount_pair.amount
-        } else if second_token_amount_pair.token_id == staking_pool_token_id {
-            second_token_amount_pair.amount
-        } else {
-            return sc_error!("Invalid LP token");
-        };
-
+        let stake_contribution = sc_try!(self.get_stake_contribution(&lp_token, &amount));
         require!(
             stake_contribution > BigUint::zero(),
             "Cannot stake with amount of 0"
         );
 
+        let staking_pool_token_id = self.staking_pool_token_id().get();
         let liquidity = sc_try!(self
             .liquidity_pool()
             .add_liquidity(stake_contribution.clone(), staking_pool_token_id));
@@ -548,6 +582,63 @@ pub trait Staking {
         Ok(())
     }
 
+    #[view(getStakeContribution)]
+    fn get_stake_contribution(
+        &self,
+        token_in: &TokenIdentifier,
+        amount_in: &BigUint,
+    ) -> SCResult<BigUint> {
+        let staking_pool_token_id = self.staking_pool_token_id().get();
+        require!(
+            !self.pair_for_lp_token(&token_in).is_empty(),
+            "Unknown LP token"
+        );
+        let pair = self.pair_for_lp_token(&token_in).get();
+        require!(pair != Address::zero(), "Unknown LP token");
+
+        let mut gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
+        let equivalent = contract_call!(self, pair, PairContractProxy)
+            .getTokensForGivenPosition(amount_in.clone())
+            .execute_on_dest_context(gas_limit, self.send());
+
+        let token_amount_pair_tuple = equivalent.0;
+        let first_token_amount_pair = token_amount_pair_tuple.0;
+        let second_token_amount_pair = token_amount_pair_tuple.1;
+
+        if first_token_amount_pair.token_id == staking_pool_token_id {
+            return Ok(first_token_amount_pair.amount);
+        } else if second_token_amount_pair.token_id == staking_pool_token_id {
+            return Ok(second_token_amount_pair.amount);
+        }
+
+        let (token_to_ask, oracle_pair_to_ask) = if !self
+            .oracle_pair(&first_token_amount_pair.token_id, &staking_pool_token_id)
+            .is_empty()
+        {
+            (
+                first_token_amount_pair.token_id.clone(),
+                self.oracle_pair(&first_token_amount_pair.token_id, &staking_pool_token_id)
+                    .get(),
+            )
+        } else if !self
+            .oracle_pair(&second_token_amount_pair.token_id, &staking_pool_token_id)
+            .is_empty()
+        {
+            (
+                second_token_amount_pair.token_id.clone(),
+                self.oracle_pair(&second_token_amount_pair.token_id, &staking_pool_token_id)
+                    .get(),
+            )
+        } else {
+            return sc_error!("Cannot get a staking equivalent for given tokens");
+        };
+
+        gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
+        Ok(contract_call!(self, oracle_pair_to_ask, PairContractProxy)
+            .getEquivalent(token_to_ask, amount_in.clone())
+            .execute_on_dest_context(gas_limit, self.send()))
+    }
+
     #[inline]
     fn is_active(&self) -> bool {
         self.state().get()
@@ -581,6 +672,13 @@ pub trait Staking {
         &self,
         pair_address: &Address,
     ) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[storage_mapper("oracle_pair")]
+    fn oracle_pair(
+        &self,
+        first_token_id: &TokenIdentifier,
+        second_token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<Self::Storage, Address>;
 
     #[view(getStakingPoolTokenId)]
     #[storage_mapper("staking_pool_token_id")]
