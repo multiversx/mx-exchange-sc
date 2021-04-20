@@ -11,8 +11,9 @@ pub struct PairTokens {
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct PairContractMetadata {
+    first_token_id: TokenIdentifier,
+    second_token_id: TokenIdentifier,
     address: Address,
-    tokens: PairTokens,
 }
 
 #[elrond_wasm_derive::module(FactoryModuleImpl)]
@@ -97,8 +98,9 @@ pub trait FactoryModule {
             .pair_map()
             .iter()
             .map(|x| PairContractMetadata {
+                first_token_id: x.0.first_token_id,
+                second_token_id: x.0.second_token_id,
                 address: x.1,
-                tokens: x.0,
             })
             .collect();
         MultiResultVec::from_iter(map)
