@@ -155,12 +155,8 @@ pub trait Pair {
             lp_token_id.clone(),
         ));
 
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &self.blockchain().get_caller(),
-            lp_token_id.as_esdt_identifier(),
-            &liquidity,
-            &[],
-        );
+        let caller = &self.blockchain().get_caller();
+        self.send_tokens(&lp_token_id, &liquidity, &caller);
 
         let mut total_supply = self.liquidity_pool().total_supply().get();
         total_supply += liquidity;
@@ -183,12 +179,7 @@ pub trait Pair {
     fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
         let amount = self.temporary_funds(&caller, token).get();
         if amount > 0 {
-            let _ = self.send().direct_esdt_via_transf_exec(
-                &caller,
-                token.as_esdt_identifier(),
-                &amount,
-                &[],
-            );
+            self.send_tokens(token, &amount, caller);
             self.temporary_funds(&caller, token).clear();
         }
     }
@@ -241,18 +232,9 @@ pub trait Pair {
         require!(total_supply > liquidity, "Not enough supply");
         total_supply -= liquidity;
 
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &caller,
-            first_token_id.as_esdt_identifier(),
-            &first_token_amount,
-            &[],
-        );
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &caller,
-            second_token_id.as_esdt_identifier(),
-            &second_token_amount,
-            &[],
-        );
+        self.send_tokens(&first_token_id, &first_token_amount, &caller);
+        self.send_tokens(&second_token_id, &second_token_amount, &caller);
+
         self.liquidity_pool().total_supply().set(&total_supply);
 
         // Once liquidity has been removed, the new K should never be greater than the old K.
@@ -358,12 +340,7 @@ pub trait Pair {
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant(&old_k, &new_k));
 
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &destination_address,
-            token_out.as_esdt_identifier(),
-            &amount_out,
-            &[],
-        );
+        self.send_tokens(&token_out, &amount_out, &destination_address);
         Ok(())
     }
 
@@ -413,12 +390,8 @@ pub trait Pair {
         );
         require!(amount_out_optimal != 0, "Optimal value is zero");
 
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &self.blockchain().get_caller(),
-            token_out.as_esdt_identifier(),
-            &amount_out_optimal,
-            &[],
-        );
+        let caller = self.blockchain().get_caller();
+        self.send_tokens(&token_out, &amount_out_optimal, &caller);
 
         let mut fee_amount = BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
@@ -491,20 +464,12 @@ pub trait Pair {
             "Computed amount in grater than maximum amount in"
         );
 
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &self.blockchain().get_caller(),
-            token_out.as_esdt_identifier(),
-            &amount_out,
-            &[],
-        );
+        let caller = self.blockchain().get_caller();
+        self.send_tokens(&token_out, &amount_out, &caller);
+
         let residuum = amount_in_max - amount_in_optimal.clone();
         if residuum != 0 {
-            let _ = self.send().direct_esdt_via_transf_exec(
-                &self.blockchain().get_caller(),
-                token_in.as_esdt_identifier(),
-                &residuum,
-                &[],
-            );
+            self.send_tokens(&token_in, &residuum, &caller);
         }
 
         let mut fee_amount = BigUint::zero();
@@ -680,6 +645,16 @@ pub trait Pair {
             Result::Ok(()) => true,
             Result::Err(_) => false,
         }
+    }
+
+    #[inline]
+    fn send_tokens(&self, token: &TokenIdentifier, amount: &BigUint, destination: &Address) {
+        let _ = self.send().direct_esdt_via_transf_exec(
+            destination,
+            token.as_esdt_identifier(),
+            amount,
+            &[],
+        );
     }
 
     fn get_extern_swap_pair_address(
