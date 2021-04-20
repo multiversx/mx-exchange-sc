@@ -390,7 +390,6 @@ setLocalRolesStakeToken() {
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --gas-limit=${DEPLOY_GAS} \
           --function=setLocalRolesStakeToken \
-          --arguments 0x03 0x04 0x05 \
           --send || return
 }
 
@@ -420,7 +419,6 @@ setLocalRolesUnstakeToken() {
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --gas-limit=${DEPLOY_GAS} \
           --function=setLocalRolesUnstakeToken \
-          --arguments 0x03 0x04 0x05 \
           --send || return
 }
 
