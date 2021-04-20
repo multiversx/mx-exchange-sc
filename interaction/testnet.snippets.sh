@@ -452,11 +452,6 @@ unstake() {
     stake_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     staking_contract="0x$(erdpy wallet bech32 --decode $4)"
 
-    echo $method_name
-    echo $user_address
-    echo $stake_token
-    echo $staking_contract
-
     erdpy --verbose contract call $user_address --recall-nonce \
         --pem=${WALLET_PEM} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
