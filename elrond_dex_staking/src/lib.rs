@@ -400,21 +400,18 @@ pub trait Staking {
     #[endpoint(setLocalRolesStakeToken)]
     fn set_local_roles_stake_token(
         &self,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
         require!(!self.stake_token_id().is_empty(), "No stake token issued");
-        require!(!roles.is_empty(), "Empty args");
 
         let token = self.stake_token_id().get();
-        Ok(self.set_local_roles(token, roles))
+        Ok(self.set_local_roles(token))
     }
 
     #[endpoint(setLocalRolesUnstakeToken)]
     fn set_local_roles_unstake_token(
         &self,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
@@ -422,22 +419,24 @@ pub trait Staking {
             !self.unstake_token_id().is_empty(),
             "No unstake token issued"
         );
-        require!(!roles.is_empty(), "Empty args");
 
         let token = self.unstake_token_id().get();
-        Ok(self.set_local_roles(token, roles))
+        Ok(self.set_local_roles(token))
     }
 
     fn set_local_roles(
         &self,
         token: TokenIdentifier,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> AsyncCall<BigUint> {
         ESDTSystemSmartContractProxy::new()
             .set_special_roles(
                 &self.blockchain().get_sc_address(),
                 token.as_esdt_identifier(),
-                roles.as_slice(),
+                &[
+                    EsdtLocalRole::NftCreate,
+                    EsdtLocalRole::NftBurn,
+                    EsdtLocalRole::NftAddQuantity
+                ],
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
