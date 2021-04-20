@@ -53,33 +53,27 @@ pub trait Staking {
         self.staking_pool_token_id().set(&staking_pool_token_id);
         self.router_address().set(&router_address);
         self.state().set(&true);
-        self.owner().set(&self.get_caller());
+        self.owner().set(&self.blockchain().get_caller());
     }
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
-        let caller = self.get_caller();
-        let owner = self.owner().get();
-        require!(caller == owner, "Permission denied");
+        sc_try!(self.require_permissions());
         self.state().set(&false);
         Ok(())
     }
 
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
-        let caller = self.get_caller();
-        let owner = self.owner().get();
-        require!(caller == owner, "Permission denied");
+        sc_try!(self.require_permissions());
         self.state().set(&true);
         Ok(())
     }
 
-    #[endpoint(addPair)]
+    #[endpoint(addAcceptedPairAddressAndLpToken)]
     fn add_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(
             self.pair_for_lp_token(&token).is_empty(),
             "Pair address already exists for LP token"
@@ -93,12 +87,10 @@ pub trait Staking {
         Ok(())
     }
 
-    #[endpoint(removePair)]
+    #[endpoint(removeAcceptedPairAddressAndLpToken)]
     fn remove_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        let caller = self.get_caller();
-        let router = self.router_address().get();
-        require!(caller == router, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
         require!(
             !self.lp_token_for_pair(&address).is_empty(),
@@ -133,7 +125,7 @@ pub trait Staking {
         let pair = self.pair_for_lp_token(&lp_token).get();
         require!(pair != Address::zero(), "Unknown LP token");
 
-        let one_third_gas = self.get_gas_left() / 3;
+        let one_third_gas = self.blockchain().get_gas_left() / 3;
         let equivalent = contract_call!(self, pair, PairContractProxy)
             .getTokensForGivenPosition(amount.clone())
             .execute_on_dest_context(one_third_gas, self.send());
@@ -170,13 +162,13 @@ pub trait Staking {
         let stake_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
         let stake_token_id = self.stake_token_id().get();
         self.create_stake_tokens(&stake_token_id, &stake_tokens_to_create, &stake_attributes);
-        let stake_token_nonce = self.get_current_esdt_nft_nonce(
-            &self.get_sc_address(),
+        let stake_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
+            &self.blockchain().get_sc_address(),
             stake_token_id.as_esdt_identifier(),
         );
 
-        self.send().direct_esdt_nft_via_transfer_exec(
-            &self.get_caller(),
+        let _ = self.send().direct_esdt_nft_via_transfer_exec(
+            &self.blockchain().get_caller(),
             stake_token_id.as_esdt_identifier(),
             stake_token_nonce,
             &liquidity,
@@ -215,9 +207,10 @@ pub trait Staking {
             initial_worth,
             staking_pool_token_id.clone()
         ));
-        if reward != BigUint::zero() {
-            self.send().direct_esdt_via_transf_exec(
-                &self.get_caller(),
+        let caller = self.blockchain().get_caller();
+        if reward != 0 {
+            let _ = self.send().direct_esdt_via_transf_exec(
+                &caller,
                 staking_pool_token_id.as_esdt_identifier(),
                 &reward,
                 &[],
@@ -227,7 +220,7 @@ pub trait Staking {
 
         let unstake_attributes = UnstakeAttributes {
             lp_token_id: stake_attributes.lp_token_id,
-            unbond_epoch: self.get_block_epoch() + UNBOND_EPOCH_PERIOD,
+            unbond_epoch: self.blockchain().get_block_epoch() + UNBOND_EPOCH_PERIOD,
         };
         let unstake_tokens_to_create = lp_tokens;
         let unstake_token_id = self.unstake_token_id().get();
@@ -236,13 +229,13 @@ pub trait Staking {
             &unstake_tokens_to_create,
             &unstake_attributes,
         );
-        let unstake_nonce = self.get_current_esdt_nft_nonce(
-            &self.get_sc_address(),
+        let unstake_nonce = self.blockchain().get_current_esdt_nft_nonce(
+            &self.blockchain().get_sc_address(),
             unstake_token_id.as_esdt_identifier(),
         );
 
-        self.send().direct_esdt_nft_via_transfer_exec(
-            &self.get_caller(),
+        let _ = self.send().direct_esdt_nft_via_transfer_exec(
+            &caller,
             unstake_token_id.as_esdt_identifier(),
             unstake_nonce,
             &unstake_tokens_to_create,
@@ -267,15 +260,15 @@ pub trait Staking {
 
         let unstake_attributes =
             sc_try!(self.get_unstake_attributes(token_id.clone(), token_nonce));
-        let block_epoch = self.get_block_epoch();
+        let block_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = unstake_attributes.unbond_epoch;
         require!(block_epoch >= unbond_epoch, "Unbond called too early");
 
         self.burn(&token_id, token_nonce, &amount);
         let unbond_amount = amount;
         let lp_token_unbonded = unstake_attributes.lp_token_id;
-        self.send().direct_esdt_via_transf_exec(
-            &self.get_caller(),
+        let _ = self.send().direct_esdt_via_transf_exec(
+            &self.blockchain().get_caller(),
             lp_token_unbonded.as_esdt_identifier(),
             &unbond_amount,
             &[],
@@ -291,14 +284,16 @@ pub trait Staking {
         liquidity: BigUint,
     ) -> SCResult<BigUint> {
         let token_id = self.stake_token_id().get();
-        let token_current_nonce =
-            self.get_current_esdt_nft_nonce(&self.get_sc_address(), token_id.as_esdt_identifier());
+        let token_current_nonce = self.blockchain().get_current_esdt_nft_nonce(
+            &self.blockchain().get_sc_address(),
+            token_id.as_esdt_identifier(),
+        );
         require!(token_nonce <= token_current_nonce, "Invalid nonce");
 
         let attributes = sc_try!(self.get_stake_attributes(token_id, token_nonce));
         let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone()
             / attributes.total_amount_liquidity;
-        if initial_worth == BigUint::zero() {
+        if initial_worth == 0 {
             return Ok(initial_worth);
         }
 
@@ -318,7 +313,7 @@ pub trait Staking {
         token_ticker: BoxedBytes,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(self.stake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
@@ -338,7 +333,7 @@ pub trait Staking {
         token_ticker: BoxedBytes,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(self.unstake_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
@@ -373,7 +368,7 @@ pub trait Staking {
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .issue_callback(&self.get_caller(), issue_request),
+                    .issue_callback(&self.blockchain().get_caller(), issue_request),
             )
     }
 
@@ -396,7 +391,7 @@ pub trait Staking {
             AsyncCallResult::Err(_) => {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
-                    self.send().direct_egld(caller, &returned_tokens, &[]);
+                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
             }
         }
@@ -408,7 +403,7 @@ pub trait Staking {
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(!self.stake_token_id().is_empty(), "No stake token issued");
         require!(!roles.is_empty(), "Empty args");
 
@@ -422,7 +417,7 @@ pub trait Staking {
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
+        sc_try!(self.require_permissions());
         require!(
             !self.unstake_token_id().is_empty(),
             "No unstake token issued"
@@ -440,7 +435,7 @@ pub trait Staking {
     ) -> AsyncCall<BigUint> {
         ESDTSystemSmartContractProxy::new()
             .set_special_roles(
-                &self.get_sc_address(),
+                &self.blockchain().get_sc_address(),
                 token.as_esdt_identifier(),
                 roles.as_slice(),
             )
@@ -465,8 +460,8 @@ pub trait Staking {
         token_id: TokenIdentifier,
         token_nonce: u64,
     ) -> SCResult<UnstakeAttributes> {
-        let token_info = self.get_esdt_token_data(
-            &self.get_sc_address(),
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
             token_id.as_esdt_identifier(),
             token_nonce,
         );
@@ -485,8 +480,8 @@ pub trait Staking {
         token_id: TokenIdentifier,
         token_nonce: u64,
     ) -> SCResult<StakeAttributes<BigUint>> {
-        let token_info = self.get_esdt_token_data(
-            &self.get_sc_address(),
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
             token_id.as_esdt_identifier(),
             token_nonce,
         );
@@ -507,7 +502,7 @@ pub trait Staking {
         attributes: &StakeAttributes<BigUint>,
     ) {
         self.send().esdt_nft_create::<StakeAttributes<BigUint>>(
-            self.get_gas_left(),
+            self.blockchain().get_gas_left(),
             token_id.as_esdt_identifier(),
             amount,
             &BoxedBytes::empty(),
@@ -525,7 +520,7 @@ pub trait Staking {
         attributes: &UnstakeAttributes,
     ) {
         self.send().esdt_nft_create::<UnstakeAttributes>(
-            self.get_gas_left(),
+            self.blockchain().get_gas_left(),
             token_id.as_esdt_identifier(),
             amount,
             &BoxedBytes::empty(),
@@ -538,11 +533,19 @@ pub trait Staking {
 
     fn burn(&self, token: &TokenIdentifier, nonce: u64, amount: &BigUint) {
         self.send().esdt_nft_burn(
-            self.get_gas_left(),
+            self.blockchain().get_gas_left(),
             token.as_esdt_identifier(),
             nonce,
             amount,
         );
+    }
+
+    fn require_permissions(&self) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        let owner = self.owner().get();
+        let router = self.router_address().get();
+        require!(caller == owner || caller == router, "Permission denied");
+        Ok(())
     }
 
     #[inline]
@@ -557,7 +560,11 @@ pub trait Staking {
         require!(!self.staking_pool_token_id().is_empty(), "Not issued");
         let token = self.staking_pool_token_id().get();
         let vamount = self.liquidity_pool().virtual_reserves().get();
-        let amount = self.get_esdt_balance(&self.get_sc_address(), token.as_esdt_identifier(), 0);
+        let amount = self.blockchain().get_esdt_balance(
+            &self.blockchain().get_sc_address(),
+            token.as_esdt_identifier(),
+            0,
+        );
         Ok((token, (vamount, amount)))
     }
 

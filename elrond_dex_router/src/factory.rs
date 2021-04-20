@@ -34,13 +34,13 @@ pub trait FactoryModule {
             return Address::zero();
         }
         let code_metadata = CodeMetadata::UPGRADEABLE;
-        let gas_left = self.get_gas_left();
+        let gas_left = self.blockchain().get_gas_left();
         let amount = BigUint::zero();
         let mut arg_buffer = ArgBuffer::new();
         let code = self.pair_code().get();
         arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
         arg_buffer.push_argument_bytes(second_token_id.as_esdt_identifier());
-        arg_buffer.push_argument_bytes(self.get_sc_address().as_bytes());
+        arg_buffer.push_argument_bytes(self.blockchain().get_sc_address().as_bytes());
         arg_buffer.push_argument_bytes(owner.as_bytes());
         arg_buffer.push_argument_bytes(&total_fee_precent.to_be_bytes()[..]);
         arg_buffer.push_argument_bytes(&special_fee_precent.to_be_bytes()[..]);

@@ -10,8 +10,11 @@ pub trait LiquidityPoolModule {
 
         let mut total_supply = self.total_supply().get();
         let mut virtual_reserves = self.virtual_reserves().get();
-        let actual_reserves =
-            self.get_esdt_balance(&self.get_sc_address(), token_id.as_esdt_identifier(), 0);
+        let actual_reserves = self.blockchain().get_esdt_balance(
+            &self.blockchain().get_sc_address(),
+            token_id.as_esdt_identifier(),
+            0,
+        );
         let liquidity: BigUint;
 
         if total_supply == 0 {
@@ -78,8 +81,11 @@ pub trait LiquidityPoolModule {
             "Removing more virtual reserve than existent"
         );
 
-        let actual_reserves =
-            self.get_esdt_balance(&self.get_sc_address(), token_id.as_esdt_identifier(), 0);
+        let actual_reserves = self.blockchain().get_esdt_balance(
+            &self.blockchain().get_sc_address(),
+            token_id.as_esdt_identifier(),
+            0,
+        );
 
         let total_reserves = virtual_reserves + actual_reserves;
         let worth = liquidity * total_reserves / total_supply;
