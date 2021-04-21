@@ -10,9 +10,9 @@ pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct StakeAttributes<BigUint: BigUintApi> {
-    staked_token_id: TokenIdentifier,
-    total_staked_tokens: BigUint,
+pub struct FarmTokenAttributes<BigUint: BigUintApi> {
+    farmed_token_id: TokenIdentifier,
+    total_farmed_tokens: BigUint,
     total_initial_worth: BigUint,
     total_amount_liquidity: BigUint,
 }
@@ -36,14 +36,14 @@ pub trait PairContract {
     ) -> ContractCall<BigUint, BigUint>;
 }
 
-#[elrond_wasm_derive::contract(StakingImpl)]
-pub trait Staking {
+#[elrond_wasm_derive::contract(FarmImpl)]
+pub trait Farm {
     #[module(LiquidityPoolModuleImpl)]
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
     #[init]
-    fn init(&self, staking_pool_token_id: TokenIdentifier, router_address: Address) {
-        self.staking_pool_token_id().set(&staking_pool_token_id);
+    fn init(&self, farming_pool_token_id: TokenIdentifier, router_address: Address) {
+        self.farming_pool_token_id().set(&farming_pool_token_id);
         self.router_address().set(&router_address);
         self.state().set(&true);
         self.owner().set(&self.blockchain().get_caller());
@@ -154,44 +154,44 @@ pub trait Staking {
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn stake(
+    #[endpoint(enterFarm)]
+    fn enter_farm(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount: BigUint,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        require!(!self.stake_token_id().is_empty(), "No issued unstake token");
-        let stake_contribution = sc_try!(self.get_stake_contribution(&token_in, &amount));
+        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount));
         require!(
-            stake_contribution > BigUint::zero(),
-            "Cannot stake with amount of 0"
+            farm_contribution > BigUint::zero(),
+            "Cannot farm with amount of 0"
         );
 
-        let staking_pool_token_id = self.staking_pool_token_id().get();
+        let farming_pool_token_id = self.farming_pool_token_id().get();
         let liquidity = sc_try!(self
             .liquidity_pool()
-            .add_liquidity(stake_contribution.clone(), staking_pool_token_id, token_in.clone()));
-        let stake_attributes = StakeAttributes::<BigUint> {
-            staked_token_id: token_in,
-            total_staked_tokens: amount,
-            total_initial_worth: stake_contribution,
+            .add_liquidity(farm_contribution.clone(), farming_pool_token_id, token_in.clone()));
+        let farm_attributes = FarmTokenAttributes::<BigUint> {
+            farmed_token_id: token_in,
+            total_farmed_tokens: amount,
+            total_initial_worth: farm_contribution,
             total_amount_liquidity: liquidity.clone(),
         };
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
-        let stake_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
-        let stake_token_id = self.stake_token_id().get();
-        self.create_stake_tokens(&stake_token_id, &stake_tokens_to_create, &stake_attributes);
-        let stake_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
+        let farm_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
+        let farm_token_id = self.farm_token_id().get();
+        self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
+        let farm_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
             &self.blockchain().get_sc_address(),
-            stake_token_id.as_esdt_identifier(),
+            farm_token_id.as_esdt_identifier(),
         );
 
         let _ = self.send().direct_esdt_nft_via_transfer_exec(
             &self.blockchain().get_caller(),
-            stake_token_id.as_esdt_identifier(),
-            stake_token_nonce,
+            farm_token_id.as_esdt_identifier(),
+            farm_token_nonce,
             &liquidity,
             &[],
         );
@@ -200,36 +200,36 @@ pub trait Staking {
     }
 
     #[payable("*")]
-    #[endpoint(unstake)]
-    fn unstake(&self) -> SCResult<()> {
+    #[endpoint(exitFarm)]
+    fn exit_farm(&self) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        require!(!self.stake_token_id().is_empty(), "No issued stake token");
+        require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let (liquidity, payment_token_id) = self.call_value().payment_token_pair();
         let token_nonce = self.call_value().esdt_token_nonce();
-        let stake_token_id = self.stake_token_id().get();
-        require!(payment_token_id == stake_token_id, "Unknown stake token");
+        let farm_token_id = self.farm_token_id().get();
+        require!(payment_token_id == farm_token_id, "Unknown farm token");
 
-        let stake_attributes =
-            sc_try!(self.get_stake_attributes(payment_token_id.clone(), token_nonce));
-        let initial_worth = stake_attributes.total_initial_worth.clone() * liquidity.clone()
-            / stake_attributes.total_amount_liquidity.clone();
-        require!(initial_worth > 0, "Cannot unstake with 0 intial_worth");
-        let staked_token_amount = stake_attributes.total_staked_tokens.clone() * liquidity.clone()
-            / stake_attributes.total_amount_liquidity.clone();
-        require!(staked_token_amount > 0, "Cannot unstake with 0 staked_token");
+        let farm_attributes =
+            sc_try!(self.get_farm_attributes(payment_token_id.clone(), token_nonce));
+        let initial_worth = farm_attributes.total_initial_worth.clone() * liquidity.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
+        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * liquidity.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
 
-        let staking_pool_token_id = self.staking_pool_token_id().get();
+        let farming_pool_token_id = self.farming_pool_token_id().get();
         let reward = sc_try!(self.liquidity_pool().remove_liquidity(
             liquidity.clone(),
             initial_worth,
-            staking_pool_token_id.clone(),
-            stake_attributes.staked_token_id.clone(),
+            farming_pool_token_id.clone(),
+            farm_attributes.farmed_token_id.clone(),
         ));
         let caller = self.blockchain().get_caller();
         if reward != 0 {
             let _ = self.send().direct_esdt_via_transf_exec(
                 &caller,
-                staking_pool_token_id.as_esdt_identifier(),
+                farming_pool_token_id.as_esdt_identifier(),
                 &reward,
                 &[],
             );
@@ -238,8 +238,8 @@ pub trait Staking {
 
         let _ = self.send().direct_esdt_via_transf_exec(
             &caller,
-            stake_attributes.staked_token_id.as_esdt_identifier(),
-            &staked_token_amount,
+            farm_attributes.farmed_token_id.as_esdt_identifier(),
+            &farmed_token_amount,
             &[],
         );
 
@@ -252,14 +252,14 @@ pub trait Staking {
         token_nonce: u64,
         liquidity: BigUint,
     ) -> SCResult<BigUint> {
-        let token_id = self.stake_token_id().get();
+        let token_id = self.farm_token_id().get();
         let token_current_nonce = self.blockchain().get_current_esdt_nft_nonce(
             &self.blockchain().get_sc_address(),
             token_id.as_esdt_identifier(),
         );
         require!(token_nonce <= token_current_nonce, "Invalid nonce");
 
-        let attributes = sc_try!(self.get_stake_attributes(token_id, token_nonce));
+        let attributes = sc_try!(self.get_farm_attributes(token_id, token_nonce));
         let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone()
             / attributes.total_amount_liquidity;
         if initial_worth == 0 {
@@ -269,13 +269,13 @@ pub trait Staking {
         self.liquidity_pool().calculate_reward(
             liquidity,
             initial_worth,
-            self.staking_pool_token_id().get(),
+            self.farming_pool_token_id().get(),
         )
     }
 
     #[payable("EGLD")]
-    #[endpoint(issueStakeToken)]
-    fn issue_stake_token(
+    #[endpoint(issueFarmToken)]
+    fn issue_farm_token(
         &self,
         #[payment] issue_cost: BigUint,
         token_display_name: BoxedBytes,
@@ -283,7 +283,7 @@ pub trait Staking {
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
-        require!(self.stake_token_id().is_empty(), "Already issued");
+        require!(self.farm_token_id().is_empty(), "Already issued");
 
         Ok(self.issue_token(
             issue_cost,
@@ -327,8 +327,8 @@ pub trait Staking {
     ) {
         match result {
             AsyncCallResult::Ok(token_id) => {
-                if self.stake_token_id().is_empty() {
-                    self.stake_token_id().set(&token_id);
+                if self.farm_token_id().is_empty() {
+                    self.farm_token_id().set(&token_id);
                 }
             }
             AsyncCallResult::Err(_) => {
@@ -340,30 +340,31 @@ pub trait Staking {
         }
     }
 
-    #[endpoint(setLocalRolesStakeToken)]
-    fn set_local_roles_stake_token(
+    #[endpoint(setLocalRolesFarmToken)]
+    fn set_local_roles_farm_token(
         &self,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
-        require!(!self.stake_token_id().is_empty(), "No stake token issued");
-        require!(!roles.is_empty(), "Empty args");
+        require!(!self.farm_token_id().is_empty(), "No farm token issued");
 
-        let token = self.stake_token_id().get();
-        Ok(self.set_local_roles(token, roles))
+        let token = self.farm_token_id().get();
+        Ok(self.set_local_roles(token))
     }
 
     fn set_local_roles(
         &self,
         token: TokenIdentifier,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> AsyncCall<BigUint> {
         ESDTSystemSmartContractProxy::new()
             .set_special_roles(
                 &self.blockchain().get_sc_address(),
                 token.as_esdt_identifier(),
-                roles.as_slice(),
+                &[
+                    EsdtLocalRole::NftCreate,
+                    EsdtLocalRole::NftAddQuantity,
+                    EsdtLocalRole::NftBurn,
+                ],
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
@@ -381,19 +382,19 @@ pub trait Staking {
         }
     }
 
-    fn get_stake_attributes(
+    fn get_farm_attributes(
         &self,
         token_id: TokenIdentifier,
         token_nonce: u64,
-    ) -> SCResult<StakeAttributes<BigUint>> {
+    ) -> SCResult<FarmTokenAttributes<BigUint>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id.as_esdt_identifier(),
             token_nonce,
         );
 
-        let stake_attributes = token_info.decode_attributes::<StakeAttributes<BigUint>>();
-        match stake_attributes {
+        let farm_attributes = token_info.decode_attributes::<FarmTokenAttributes<BigUint>>();
+        match farm_attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
                 return sc_error!("Decoding error");
@@ -401,13 +402,13 @@ pub trait Staking {
         }
     }
 
-    fn create_stake_tokens(
+    fn create_farm_tokens(
         &self,
         token_id: &TokenIdentifier,
         amount: &BigUint,
-        attributes: &StakeAttributes<BigUint>,
+        attributes: &FarmTokenAttributes<BigUint>,
     ) {
-        self.send().esdt_nft_create::<StakeAttributes<BigUint>>(
+        self.send().esdt_nft_create::<FarmTokenAttributes<BigUint>>(
             self.blockchain().get_gas_left(),
             token_id.as_esdt_identifier(),
             amount,
@@ -436,14 +437,14 @@ pub trait Staking {
         Ok(())
     }
 
-    #[view(getStakeContribution)]
-    fn get_stake_contribution(
+    #[view(getFarmContribution)]
+    fn get_farm_contribution(
         &self,
         token_in: &TokenIdentifier,
         amount_in: &BigUint,
     ) -> SCResult<BigUint> {
-        let staking_pool_token_id = self.staking_pool_token_id().get();
-        if &staking_pool_token_id == token_in {
+        let farming_pool_token_id = self.farming_pool_token_id().get();
+        if &farming_pool_token_id == token_in {
             return Ok(amount_in.clone());
         }
         require!(
@@ -462,32 +463,32 @@ pub trait Staking {
         let first_token_amount_pair = token_amount_pair_tuple.0;
         let second_token_amount_pair = token_amount_pair_tuple.1;
 
-        if first_token_amount_pair.token_id == staking_pool_token_id {
+        if first_token_amount_pair.token_id == farming_pool_token_id {
             return Ok(first_token_amount_pair.amount);
-        } else if second_token_amount_pair.token_id == staking_pool_token_id {
+        } else if second_token_amount_pair.token_id == farming_pool_token_id {
             return Ok(second_token_amount_pair.amount);
         }
 
         let (token_to_ask, oracle_pair_to_ask) = if !self
-            .oracle_pair(&first_token_amount_pair.token_id, &staking_pool_token_id)
+            .oracle_pair(&first_token_amount_pair.token_id, &farming_pool_token_id)
             .is_empty()
         {
             (
                 first_token_amount_pair.token_id.clone(),
-                self.oracle_pair(&first_token_amount_pair.token_id, &staking_pool_token_id)
+                self.oracle_pair(&first_token_amount_pair.token_id, &farming_pool_token_id)
                     .get(),
             )
         } else if !self
-            .oracle_pair(&second_token_amount_pair.token_id, &staking_pool_token_id)
+            .oracle_pair(&second_token_amount_pair.token_id, &farming_pool_token_id)
             .is_empty()
         {
             (
                 second_token_amount_pair.token_id.clone(),
-                self.oracle_pair(&second_token_amount_pair.token_id, &staking_pool_token_id)
+                self.oracle_pair(&second_token_amount_pair.token_id, &farming_pool_token_id)
                     .get(),
             )
         } else {
-            return sc_error!("Cannot get a staking equivalent for given tokens");
+            return sc_error!("Cannot get a farming equivalent for given tokens");
         };
 
         gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
@@ -501,12 +502,12 @@ pub trait Staking {
         self.state().get()
     }
 
-    #[view(getStakingPoolTokenIdAndAmounts)]
-    fn get_staking_pool_token_id_and_amounts(
+    #[view(getFarmingPoolTokenIdAndAmounts)]
+    fn get_farming_pool_token_id_and_amounts(
         &self,
     ) -> SCResult<(TokenIdentifier, (BigUint, BigUint))> {
-        require!(!self.staking_pool_token_id().is_empty(), "Not issued");
-        let token = self.staking_pool_token_id().get();
+        require!(!self.farming_pool_token_id().is_empty(), "Not issued");
+        let token = self.farming_pool_token_id().get();
         let vamount = self.liquidity_pool().virtual_reserves().get();
         let amount = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
@@ -537,13 +538,13 @@ pub trait Staking {
         second_token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Address>;
 
-    #[view(getStakingPoolTokenId)]
-    #[storage_mapper("staking_pool_token_id")]
-    fn staking_pool_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    #[view(getFarmingPoolTokenId)]
+    #[storage_mapper("farming_pool_token_id")]
+    fn farming_pool_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
-    #[view(getStakeTokenId)]
-    #[storage_mapper("stake_token_id")]
-    fn stake_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    #[view(getFarmTokenId)]
+    #[storage_mapper("farm_token_id")]
+    fn farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]

@@ -27,12 +27,6 @@ pub trait PairContract {
     fn resume(&self) -> ContractCall<BigUint, ()>;
 }
 
-#[elrond_wasm_derive::callable(StakingContractProxy)]
-pub trait StakingContract {
-    fn pause(&self) -> ContractCall<BigUint, ()>;
-    fn resume(&self) -> ContractCall<BigUint, ()>;
-}
-
 #[elrond_wasm_derive::contract(RouterImpl)]
 pub trait Router {
     #[module(FactoryModuleImpl)]
@@ -200,8 +194,8 @@ pub trait Router {
     fn set_fee_on(
         &self,
         pair_address: Address,
-        staking_address: Address,
-        staking_token: TokenIdentifier,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
@@ -209,7 +203,7 @@ pub trait Router {
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
         contract_call!(self, pair_address, PairContractProxy)
-            .setFeeOn(true, staking_address, staking_token)
+            .setFeeOn(true, fee_to_address, fee_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
@@ -219,8 +213,8 @@ pub trait Router {
     fn set_fee_off(
         &self,
         pair_address: Address,
-        staking_address: Address,
-        staking_token: TokenIdentifier,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
@@ -228,7 +222,7 @@ pub trait Router {
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
         contract_call!(self, pair_address, PairContractProxy)
-            .setFeeOn(false, staking_address, staking_token)
+            .setFeeOn(false, fee_to_address, fee_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
