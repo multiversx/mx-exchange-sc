@@ -4,17 +4,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const UNBOND_EPOCH_PERIOD: u64 = 10;
 const EXTERN_QUERY_MAX_GAS: u64 = 20000000;
 
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
-
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub enum IssueRequestType {
-    Stake,
-    Unstake,
-}
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct StakeAttributes<BigUint: BigUintApi> {
@@ -22,12 +15,6 @@ pub struct StakeAttributes<BigUint: BigUintApi> {
     total_lp_tokens: BigUint,
     total_initial_worth: BigUint,
     total_amount_liquidity: BigUint,
-}
-
-#[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct UnstakeAttributes {
-    lp_token_id: TokenIdentifier,
-    unbond_epoch: u64,
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
@@ -217,10 +204,6 @@ pub trait Staking {
     fn unstake(&self) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
         require!(!self.stake_token_id().is_empty(), "No issued stake token");
-        require!(
-            !self.unstake_token_id().is_empty(),
-            "No issued unstake token"
-        );
         let (liquidity, payment_token_id) = self.call_value().payment_token_pair();
         let token_nonce = self.call_value().esdt_token_nonce();
         let stake_token_id = self.stake_token_id().get();
@@ -252,59 +235,10 @@ pub trait Staking {
         }
         self.burn(&payment_token_id, token_nonce, &liquidity);
 
-        let unstake_attributes = UnstakeAttributes {
-            lp_token_id: stake_attributes.lp_token_id,
-            unbond_epoch: self.blockchain().get_block_epoch() + UNBOND_EPOCH_PERIOD,
-        };
-        let unstake_tokens_to_create = lp_tokens;
-        let unstake_token_id = self.unstake_token_id().get();
-        self.create_unstake_tokens(
-            &unstake_token_id,
-            &unstake_tokens_to_create,
-            &unstake_attributes,
-        );
-        let unstake_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            unstake_token_id.as_esdt_identifier(),
-        );
-
-        let _ = self.send().direct_esdt_nft_via_transfer_exec(
-            &caller,
-            unstake_token_id.as_esdt_identifier(),
-            unstake_nonce,
-            &unstake_tokens_to_create,
-            &[],
-        );
-
-        Ok(())
-    }
-
-    #[payable("*")]
-    #[endpoint]
-    fn unbond(&self) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
-        require!(
-            !self.unstake_token_id().is_empty(),
-            "No issued unstake token"
-        );
-        let (amount, token_id) = self.call_value().payment_token_pair();
-        let token_nonce = self.call_value().esdt_token_nonce();
-        let unstake_token_id = self.unstake_token_id().get();
-        require!(unstake_token_id == token_id, "Wrong unstake token");
-
-        let unstake_attributes =
-            sc_try!(self.get_unstake_attributes(token_id.clone(), token_nonce));
-        let block_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = unstake_attributes.unbond_epoch;
-        require!(block_epoch >= unbond_epoch, "Unbond called too early");
-
-        self.burn(&token_id, token_nonce, &amount);
-        let unbond_amount = amount;
-        let lp_token_unbonded = unstake_attributes.lp_token_id;
         let _ = self.send().direct_esdt_via_transf_exec(
-            &self.blockchain().get_caller(),
-            lp_token_unbonded.as_esdt_identifier(),
-            &unbond_amount,
+            &caller,
+            stake_attributes.lp_token_id.as_esdt_identifier(),
+            &lp_tokens,
             &[],
         );
 
@@ -354,27 +288,6 @@ pub trait Staking {
             issue_cost,
             token_display_name,
             token_ticker,
-            IssueRequestType::Stake,
-        ))
-    }
-
-    #[payable("EGLD")]
-    #[endpoint(issueUnstakeToken)]
-    fn issue_unstake_token(
-        &self,
-        #[payment] issue_cost: BigUint,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-    ) -> SCResult<AsyncCall<BigUint>> {
-        require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
-        require!(self.unstake_token_id().is_empty(), "Already issued");
-
-        Ok(self.issue_token(
-            issue_cost,
-            token_display_name,
-            token_ticker,
-            IssueRequestType::Unstake,
         ))
     }
 
@@ -383,7 +296,6 @@ pub trait Staking {
         issue_cost: BigUint,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        issue_request: IssueRequestType,
     ) -> AsyncCall<BigUint> {
         ESDTSystemSmartContractProxy::new()
             .issue_semi_fungible(
@@ -402,7 +314,7 @@ pub trait Staking {
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .issue_callback(&self.blockchain().get_caller(), issue_request),
+                    .issue_callback(&self.blockchain().get_caller()),
             )
     }
 
@@ -410,16 +322,12 @@ pub trait Staking {
     fn issue_callback(
         &self,
         caller: &Address,
-        issue_type: IssueRequestType,
         #[call_result] result: AsyncCallResult<TokenIdentifier>,
     ) {
         match result {
             AsyncCallResult::Ok(token_id) => {
-                if issue_type == IssueRequestType::Stake && self.stake_token_id().is_empty() {
+                if self.stake_token_id().is_empty() {
                     self.stake_token_id().set(&token_id);
-                }
-                if issue_type == IssueRequestType::Unstake && self.unstake_token_id().is_empty() {
-                    self.unstake_token_id().set(&token_id);
                 }
             }
             AsyncCallResult::Err(_) => {
@@ -442,23 +350,6 @@ pub trait Staking {
         require!(!roles.is_empty(), "Empty args");
 
         let token = self.stake_token_id().get();
-        Ok(self.set_local_roles(token, roles))
-    }
-
-    #[endpoint(setLocalRolesUnstakeToken)]
-    fn set_local_roles_unstake_token(
-        &self,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall<BigUint>> {
-        require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
-        require!(
-            !self.unstake_token_id().is_empty(),
-            "No unstake token issued"
-        );
-        require!(!roles.is_empty(), "Empty args");
-
-        let token = self.unstake_token_id().get();
         Ok(self.set_local_roles(token, roles))
     }
 
@@ -485,26 +376,6 @@ pub trait Staking {
             }
             AsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
-            }
-        }
-    }
-
-    fn get_unstake_attributes(
-        &self,
-        token_id: TokenIdentifier,
-        token_nonce: u64,
-    ) -> SCResult<UnstakeAttributes> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
-            token_nonce,
-        );
-
-        let unstake_attributes = token_info.decode_attributes::<UnstakeAttributes>();
-        match unstake_attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
             }
         }
     }
@@ -536,24 +407,6 @@ pub trait Staking {
         attributes: &StakeAttributes<BigUint>,
     ) {
         self.send().esdt_nft_create::<StakeAttributes<BigUint>>(
-            self.blockchain().get_gas_left(),
-            token_id.as_esdt_identifier(),
-            amount,
-            &BoxedBytes::empty(),
-            &BigUint::zero(),
-            &H256::zero(),
-            attributes,
-            &[BoxedBytes::empty()],
-        );
-    }
-
-    fn create_unstake_tokens(
-        &self,
-        token_id: &TokenIdentifier,
-        amount: &BigUint,
-        attributes: &UnstakeAttributes,
-    ) {
-        self.send().esdt_nft_create::<UnstakeAttributes>(
             self.blockchain().get_gas_left(),
             token_id.as_esdt_identifier(),
             amount,
@@ -687,10 +540,6 @@ pub trait Staking {
     #[view(getStakeTokenId)]
     #[storage_mapper("stake_token_id")]
     fn stake_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
-    #[view(getUnstakeTokenId)]
-    #[storage_mapper("unstake_token_id")]
-    fn unstake_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
