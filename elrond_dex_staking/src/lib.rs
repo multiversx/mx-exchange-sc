@@ -11,8 +11,8 @@ pub use crate::liquidity_pool::*;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct StakeAttributes<BigUint: BigUintApi> {
-    lp_token_id: TokenIdentifier,
-    total_lp_tokens: BigUint,
+    staked_token_id: TokenIdentifier,
+    total_staked_tokens: BigUint,
     total_initial_worth: BigUint,
     total_amount_liquidity: BigUint,
 }
@@ -157,12 +157,12 @@ pub trait Staking {
     #[endpoint]
     fn stake(
         &self,
-        #[payment_token] lp_token: TokenIdentifier,
+        #[payment_token] token_in: TokenIdentifier,
         #[payment] amount: BigUint,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(!self.stake_token_id().is_empty(), "No issued unstake token");
-        let stake_contribution = sc_try!(self.get_stake_contribution(&lp_token, &amount));
+        let stake_contribution = sc_try!(self.get_stake_contribution(&token_in, &amount));
         require!(
             stake_contribution > BigUint::zero(),
             "Cannot stake with amount of 0"
@@ -171,10 +171,10 @@ pub trait Staking {
         let staking_pool_token_id = self.staking_pool_token_id().get();
         let liquidity = sc_try!(self
             .liquidity_pool()
-            .add_liquidity(stake_contribution.clone(), staking_pool_token_id));
+            .add_liquidity(stake_contribution.clone(), staking_pool_token_id, token_in.clone()));
         let stake_attributes = StakeAttributes::<BigUint> {
-            lp_token_id: lp_token,
-            total_lp_tokens: amount,
+            staked_token_id: token_in,
+            total_staked_tokens: amount,
             total_initial_worth: stake_contribution,
             total_amount_liquidity: liquidity.clone(),
         };
@@ -214,15 +214,16 @@ pub trait Staking {
         let initial_worth = stake_attributes.total_initial_worth.clone() * liquidity.clone()
             / stake_attributes.total_amount_liquidity.clone();
         require!(initial_worth > 0, "Cannot unstake with 0 intial_worth");
-        let lp_tokens = stake_attributes.total_lp_tokens.clone() * liquidity.clone()
+        let staked_token_amount = stake_attributes.total_staked_tokens.clone() * liquidity.clone()
             / stake_attributes.total_amount_liquidity.clone();
-        require!(lp_tokens > 0, "Cannot unstake with 0 lp_tokens");
+        require!(staked_token_amount > 0, "Cannot unstake with 0 staked_token");
 
         let staking_pool_token_id = self.staking_pool_token_id().get();
         let reward = sc_try!(self.liquidity_pool().remove_liquidity(
             liquidity.clone(),
             initial_worth,
-            staking_pool_token_id.clone()
+            staking_pool_token_id.clone(),
+            stake_attributes.staked_token_id.clone(),
         ));
         let caller = self.blockchain().get_caller();
         if reward != 0 {
@@ -237,8 +238,8 @@ pub trait Staking {
 
         let _ = self.send().direct_esdt_via_transf_exec(
             &caller,
-            stake_attributes.lp_token_id.as_esdt_identifier(),
-            &lp_tokens,
+            stake_attributes.staked_token_id.as_esdt_identifier(),
+            &staked_token_amount,
             &[],
         );
 
@@ -442,6 +443,9 @@ pub trait Staking {
         amount_in: &BigUint,
     ) -> SCResult<BigUint> {
         let staking_pool_token_id = self.staking_pool_token_id().get();
+        if &staking_pool_token_id == token_in {
+            return Ok(amount_in.clone());
+        }
         require!(
             !self.pair_for_lp_token(&token_in).is_empty(),
             "Unknown LP token"
