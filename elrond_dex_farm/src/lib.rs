@@ -4,7 +4,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+type Epoch = u64;
+const PENALTY_PRECENT: u64 = 10;
 const EXTERN_QUERY_MAX_GAS: u64 = 20000000;
+const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
@@ -15,6 +18,7 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     total_farmed_tokens: BigUint,
     total_initial_worth: BigUint,
     total_amount_liquidity: BigUint,
+    epoch_when_entering: Epoch,
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
@@ -179,6 +183,7 @@ pub trait Farm {
             total_farmed_tokens: amount,
             total_initial_worth: farm_contribution,
             total_amount_liquidity: liquidity.clone(),
+            epoch_when_entering: self.blockchain().get_block_epoch(),
         };
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
@@ -227,23 +232,36 @@ pub trait Farm {
             farming_pool_token_id.clone(),
             farm_attributes.farmed_token_id.clone(),
         ));
+        self.burn(&payment_token_id, token_nonce, &liquidity);
+
+        let (reward_to_send, farmed_token_to_send) =
+            if self.should_apply_penalty(farm_attributes.epoch_when_entering) {
+                (
+                    self.apply_penalty(reward),
+                    self.apply_penalty(farmed_token_amount),
+                )
+            } else {
+                (reward, farmed_token_amount)
+            };
+
         let caller = self.blockchain().get_caller();
-        if reward != 0 {
+        if reward_to_send != 0 {
             let _ = self.send().direct_esdt_via_transf_exec(
                 &caller,
                 farming_pool_token_id.as_esdt_identifier(),
-                &reward,
+                &reward_to_send,
                 &[],
             );
         }
-        self.burn(&payment_token_id, token_nonce, &liquidity);
 
-        let _ = self.send().direct_esdt_via_transf_exec(
-            &caller,
-            farm_attributes.farmed_token_id.as_esdt_identifier(),
-            &farmed_token_amount,
-            &[],
-        );
+        if farmed_token_to_send != 0 {
+            let _ = self.send().direct_esdt_via_transf_exec(
+                &caller,
+                farm_attributes.farmed_token_id.as_esdt_identifier(),
+                &farmed_token_to_send,
+                &[],
+            );
+        }
 
         Ok(())
     }
@@ -488,6 +506,16 @@ pub trait Farm {
         Ok(contract_call!(self, oracle_pair_to_ask, PairContractProxy)
             .getEquivalent(token_to_ask, amount_in.clone())
             .execute_on_dest_context(gas_limit, self.send()))
+    }
+
+    #[inline]
+    fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
+        entering_epoch + EXIT_FARM_NO_PENALTY_MIN_EPOCHS >= self.blockchain().get_block_epoch()
+    }
+
+    #[inline]
+    fn apply_penalty(&self, amount: BigUint) -> BigUint {
+        amount * BigUint::from(100 - PENALTY_PRECENT) / BigUint::from(100u64)
     }
 
     #[inline]
