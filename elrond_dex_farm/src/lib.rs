@@ -131,16 +131,13 @@ pub trait Farm {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
         require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
+        require!(address != Address::zero(), "Zero Address");
+        require!(token.is_esdt(), "Not an ESDT token");
         require!(
-            self.pair_for_lp_token(&token).is_empty(),
+            !self.pair_address_for_accepted_lp_token().contains_key(&token),
             "Pair address already exists for LP token"
         );
-        require!(
-            self.lp_token_for_pair(&address).is_empty(),
-            "LP token already exists for a Pair address"
-        );
-        self.pair_for_lp_token(&token).set(&address);
-        self.lp_token_for_pair(&address).set(&token);
+        self.pair_address_for_accepted_lp_token().insert(token, address);
         Ok(())
     }
 
@@ -149,21 +146,17 @@ pub trait Farm {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
         require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
-        require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
+        require!(address != Address::zero(), "Zero Address");
+        require!(token.is_esdt(), "Not an ESDT token");
         require!(
-            !self.lp_token_for_pair(&address).is_empty(),
-            "No such LP token"
+            self.pair_address_for_accepted_lp_token().contains_key(&token),
+            "No Pair Address for given LP token"
         );
         require!(
-            address == self.pair_for_lp_token(&token).get(),
+            self.pair_address_for_accepted_lp_token().get(&token).unwrap() == address,
             "Address does not match Lp token equivalent"
         );
-        require!(
-            token == self.lp_token_for_pair(&address).get(),
-            "LP token does not match Pair address equivalent"
-        );
-        self.pair_for_lp_token(&token).clear();
-        self.lp_token_for_pair(&address).clear();
+        self.pair_address_for_accepted_lp_token().remove(&token);
         Ok(())
     }
 
@@ -475,11 +468,10 @@ pub trait Farm {
             return Ok(amount_in.clone());
         }
         require!(
-            !self.pair_for_lp_token(&token_in).is_empty(),
+            self.pair_address_for_accepted_lp_token().contains_key(&token_in),
             "Unknown LP token"
         );
-        let pair = self.pair_for_lp_token(&token_in).get();
-        require!(pair != Address::zero(), "Unknown LP token");
+        let pair = self.pair_address_for_accepted_lp_token().get(&token_in).unwrap();
 
         let mut gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
         let equivalent = contract_call!(self, pair, PairContractProxy)
@@ -554,19 +546,21 @@ pub trait Farm {
         Ok((token, (vamount, amount)))
     }
 
-    #[view(getPairForLpToken)]
-    #[storage_mapper("pair_for_lp_token")]
-    fn pair_for_lp_token(
-        &self,
-        token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<Self::Storage, Address>;
+    #[view(getAllAcceptedTokens)]
+    fn get_all_accepted_tokens(&self) -> MultiResultVec<TokenIdentifier> {
+        if self.farm_with_lp_tokens().get() {
+            self.pair_address_for_accepted_lp_token().keys().collect()
+        } else {
+            let mut result = MultiResultVec::<TokenIdentifier>::new();
+            result.push(self.farming_pool_token_id().get());
+            result
+        }
+    }
 
-    #[view(getLpTokenForPair)]
-    #[storage_mapper("lp_token_for_pair")]
-    fn lp_token_for_pair(
+    #[storage_mapper("pair_address_for_accepted_lp_token")]
+    fn pair_address_for_accepted_lp_token(
         &self,
-        pair_address: &Address,
-    ) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    ) -> MapMapper<Self::Storage, TokenIdentifier, Address>;
 
     #[storage_mapper("oracle_pair")]
     fn oracle_pair(
