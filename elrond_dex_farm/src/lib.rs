@@ -46,11 +46,17 @@ pub trait Farm {
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
 
     #[init]
-    fn init(&self, farming_pool_token_id: TokenIdentifier, router_address: Address) {
+    fn init(
+        &self,
+        farming_pool_token_id: TokenIdentifier,
+        router_address: Address,
+        farm_with_lp_tokens: bool,
+    ) {
         self.farming_pool_token_id().set(&farming_pool_token_id);
         self.router_address().set(&router_address);
         self.state().set(&true);
         self.owner().set(&self.blockchain().get_caller());
+        self.farm_with_lp_tokens().set(&farm_with_lp_tokens);
     }
 
     #[endpoint]
@@ -76,6 +82,7 @@ pub trait Farm {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
+        require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
         require!(
             self.oracle_pair(&first_token, &second_token).is_empty(),
             "Pair already exists as oracle for given tokens"
@@ -98,6 +105,7 @@ pub trait Farm {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
+        require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
         require!(
             !self.oracle_pair(&first_token, &second_token).is_empty(),
             "Pair doesn't exists as oracle for given tokens"
@@ -122,6 +130,7 @@ pub trait Farm {
     fn add_accepted_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
+        require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
         require!(
             self.pair_for_lp_token(&token).is_empty(),
             "Pair address already exists for LP token"
@@ -139,6 +148,7 @@ pub trait Farm {
     fn remove_accepted_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
+        require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
         require!(!self.pair_for_lp_token(&token).is_empty(), "No such pair");
         require!(
             !self.lp_token_for_pair(&address).is_empty(),
@@ -461,7 +471,7 @@ pub trait Farm {
         amount_in: &BigUint,
     ) -> SCResult<BigUint> {
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        if &farming_pool_token_id == token_in {
+        if &farming_pool_token_id == token_in && !self.farm_with_lp_tokens().get() {
             return Ok(amount_in.clone());
         }
         require!(
@@ -588,4 +598,7 @@ pub trait Farm {
     #[view(getOwner)]
     #[storage_mapper("owner")]
     fn owner(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[storage_mapper("farm_with_lp_tokens")]
+    fn farm_with_lp_tokens(&self) -> SingleValueMapper<Self::Storage, bool>;
 }
