@@ -286,11 +286,17 @@ pub trait Farm {
             return Ok(initial_worth);
         }
 
-        self.liquidity_pool().calculate_reward(
+        let reward = sc_try!(self.liquidity_pool().calculate_reward(
             liquidity,
             initial_worth,
             self.farming_pool_token_id().get(),
-        )
+        ));
+
+        if self.should_apply_penalty(attributes.epoch_when_entering) {
+            Ok(self.apply_penalty(reward))
+        } else {
+            Ok(reward)
+        }
     }
 
     #[payable("EGLD")]
