@@ -184,19 +184,19 @@ setLpTokenLocalRoles() {
 
 #params:
 #   $1 = pair contract to send fees,
-#   $2 = staking contract to receive fees,
-#   $3 = staking contract expected token
+#   $2 = farm contract to receive fees,
+#   $3 = farm contract expected token
 setFeeOn() {
     pair_address="0x$(erdpy wallet bech32 --decode $1)"
-    staking_contract="0x$(erdpy wallet bech32 --decode $2)"
-    staking_token="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
+    farm_contract="0x$(erdpy wallet bech32 --decode $2)"
+    farm_token="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
 
     erdpy --verbose contract call $ROUTE_ADDRESS --recall-nonce \
         --pem=${WALLET_PEM} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --function=setFeeOn \
-        --arguments $pair_address $staking_contract $staking_token \
+        --arguments $pair_address $farm_contract $farm_token \
         --send || return
 }
 
@@ -340,12 +340,12 @@ addTrustedSwapPair() {
         --send || return
 }
 
-#### STAKING ####
+#### FARM ####
 
 # params:
-#   $1 = Staking Pool Token Identifier
-deployStakingContract() {
-    staking_pool_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+#   $1 = Farm Pool Token Identifier
+deployFarmContract() {
+    farm_pool_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
     erdpy --verbose contract deploy --recall-nonce \
         --pem=${WALLET_PEM} \
@@ -353,81 +353,52 @@ deployStakingContract() {
         --gas-limit=1499999999 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
-        --bytecode="../elrond_dex_staking/output/elrond_dex_staking.wasm" \
-        --arguments $staking_pool_token $router_address \
-        --outfile="deploy-staking-internal.interaction.json" --send || return
+        --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
+        --arguments $farm_pool_token $router_address \
+        --outfile="deploy-farm-internal.interaction.json" --send || return
 
-    ADDRESS=$(erdpy data parse --file="deploy-staking-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-farm-internal.interaction.json" --expression="data['emitted_tx']['address']")
 
     erdpy data store --key=address-devnet --value=${ADDRESS}
 
     echo ""
-    echo "Staking Smart contract address: ${ADDRESS}"
+    echo "farm Smart contract address: ${ADDRESS}"
 }
 
 # params:
-#   $1 = staking contract,
-#   $2 = stake token name,
-#   $3 = stake token ticker
-issueStakeToken() {
-    stake_token_name="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-    stake_token_ticker="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
+#   $1 = farm contract,
+#   $2 = farm token name,
+#   $3 = farm token ticker
+issueFarmToken() {
+    farm_token_name="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    farm_token_ticker="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
     erdpy --verbose contract call $1 --recall-nonce \
         --pem=${WALLET_PEM} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=${DEPLOY_GAS} \
         --value=5000000000000000000 \
-        --function=issueStakeToken \
-        --arguments $stake_token_name $stake_token_ticker \
+        --function=issueFarmToken \
+        --arguments $farm_token_name $farm_token_ticker \
         --send || return
 }
 
 # params:
-#   $1 = staking contract
-setLocalRolesStakeToken() {
+#   $1 = farm contract
+setLocalRolesFarmToken() {
     erdpy --verbose contract call $1 --recall-nonce \
           --pem=${WALLET_PEM} \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --gas-limit=${DEPLOY_GAS} \
-          --function=setLocalRolesStakeToken \
-          --send || return
-}
-
-# params:
-#   $1 = staking contract,
-#   $2 = unstake token name,
-#   $3 = unstake token ticker
-issueUnstakeToken() {
-    unstake_token_name="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-    unstake_token_ticker="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
-
-    erdpy --verbose contract call $1 --recall-nonce \
-          --pem=${WALLET_PEM} \
-          --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --gas-limit=${DEPLOY_GAS} \
-          --value=5000000000000000000 \
-          --function=issueUnstakeToken \
-          --arguments $unstake_token_name $unstake_token_ticker \
-          --send || return
-}
-
-# params:
-#   $1 = staking contract
-setLocalRolesUnstakeToken() {
-    erdpy --verbose contract call $1 --recall-nonce \
-          --pem=${WALLET_PEM} \
-          --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --gas-limit=${DEPLOY_GAS} \
-          --function=setLocalRolesUnstakeToken \
+          --function=setLocalRolesFarmToken \
           --send || return
 }
 
 #params:
-#   $1 = staking contract,
+#   $1 = farm contract,
 #   $2 = lp token id,
 #   $3 = lp token amount in hex
-stake() {
-    method_name="0x$(echo -n 'stake' | xxd -p -u | tr -d '\n')"
+enterFarm() {
+    method_name="0x$(echo -n 'enterFarm' | xxd -p -u | tr -d '\n')"
     lp_token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
 
     erdpy --verbose contract call $1 --recall-nonce \
@@ -440,12 +411,12 @@ stake() {
 }
 
 #params:
-#   $1 = stake token id,
-#   $2 = stake token nonce in hex,
-#   $3 = stake token amount in hex,
+#   $1 = farm token id,
+#   $2 = farm token nonce in hex,
+#   $3 = farm token amount in hex,
 #   $4 = address of staking contract
-unstake() {
-    method_name="0x$(echo -n 'unstake' | xxd -p -u | tr -d '\n')"
+exitFarm() {
+    method_name="0x$(echo -n 'exitFarm' | xxd -p -u | tr -d '\n')"
     user_address="$(erdpy wallet pem-address $WALLET_PEM)"
     stake_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     staking_contract="0x$(erdpy wallet bech32 --decode $4)"
@@ -456,26 +427,6 @@ unstake() {
         --gas-limit=${DEFAULT_GAS_LIMIT} \
         --function=ESDTNFTTransfer \
         --arguments $stake_token $2 $3 $staking_contract $method_name \
-        --send || return
-}
-
-# params:
-#   $1 = unstake token id,
-#   $2 = unstake token nonce in hex,
-#   $3 = unstake token amount in hex,
-#   $4 = address of staking contract
-unbond() {
-    method_name="0x$(echo -n 'unbond' | xxd -p -u | tr -d '\n')"
-    user_address="$(erdpy wallet pem-address $WALLET_PEM)"
-    unstake_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    staking_contract="0x$(erdpy wallet bech32 --decode $4)"
-
-    erdpy --verbose contract call $user_address --recall-nonce \
-        --pem=${WALLET_PEM} \
-        --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --gas-limit=${DEFAULT_GAS_LIMIT} \
-        --function=ESDTNFTTransfer \
-        --arguments $unstake_token $2 $3 $staking_contract $method_name \
         --send || return
 }
 
@@ -502,19 +453,11 @@ getLpTokenIdentifier() {
 }
 
 # params:
-#   $1 = Staking Contract Address
-getStakeTokenIdentifier() {
+#   $1 = farm Contract Address
+getFarmTokenIdentifier() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
-        --function=getStakeTokenId || return
-}
-
-# params:
-#   $1 = Staking Contract Address
-getUnstakeTokenIdentifier() {
-    erdpy --verbose contract query $1 \
-        --proxy=${PROXY} \
-        --function=getUnstakeTokenId || return
+        --function=getFarmTokenId || return
 }
 
 # params:
@@ -552,9 +495,9 @@ getTokensForGivenPosition() {
 }
 
 # params:
-#   $1 = staking contract,
-#   $2 = stake token nonce in hex,
-#   $3 = stake token amount in hex
+#   $1 = farm contract,
+#   $2 = farm token nonce in hex,
+#   $3 = farm token amount in hex
 calculateRewardsForGivenPosition() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
