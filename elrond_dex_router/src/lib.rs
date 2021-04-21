@@ -37,6 +37,7 @@ pub trait Router {
         self.factory().init();
         self.state().set(&true);
         self.owner().set(&self.blockchain().get_caller());
+        self.pair_creation_enabled().set(&false);
     }
 
     #[endpoint]
@@ -78,6 +79,14 @@ pub trait Router {
         #[var_args] fee_precents: VarArgs<u64>,
     ) -> SCResult<Address> {
         require!(self.is_active(), "Not active");
+        let owner = self.owner().get();
+        let caller = self.blockchain().get_caller();
+        if caller != owner {
+            require!(
+                self.pair_creation_enabled().get(),
+                "Pair creation is disabled"
+            );
+        }
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(first_token_id.is_esdt(), "Only esdt tokens allowed");
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
@@ -86,8 +95,7 @@ pub trait Router {
         let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
         let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
         let fee_precents_vec = fee_precents.into_vec();
-        let owner = self.owner().get();
-        if self.blockchain().get_caller() == owner && fee_precents_vec.len() == 2 {
+        if caller == owner && fee_precents_vec.len() == 2 {
             total_fee_precent_requested = fee_precents_vec[0];
             special_fee_precent_requested = fee_precents_vec[1];
             require!(
@@ -322,6 +330,16 @@ pub trait Router {
     fn is_active(&self) -> bool {
         self.state().get()
     }
+
+    #[endpoint(setPairCreationEnabled)]
+    fn set_pair_creation_enabled(&self, enabled: bool) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.pair_creation_enabled().set(&enabled);
+        Ok(())
+    }
+
+    #[storage_mapper("pair_creation_enabled")]
+    fn pair_creation_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
