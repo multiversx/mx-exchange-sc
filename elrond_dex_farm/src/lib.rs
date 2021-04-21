@@ -169,9 +169,11 @@ pub trait Farm {
         );
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        let liquidity = sc_try!(self
-            .liquidity_pool()
-            .add_liquidity(farm_contribution.clone(), farming_pool_token_id, token_in.clone()));
+        let liquidity = sc_try!(self.liquidity_pool().add_liquidity(
+            farm_contribution.clone(),
+            farming_pool_token_id,
+            token_in.clone()
+        ));
         let farm_attributes = FarmTokenAttributes::<BigUint> {
             farmed_token_id: token_in,
             total_farmed_tokens: amount,
@@ -285,11 +287,7 @@ pub trait Farm {
         sc_try!(self.require_permissions());
         require!(self.farm_token_id().is_empty(), "Already issued");
 
-        Ok(self.issue_token(
-            issue_cost,
-            token_display_name,
-            token_ticker,
-        ))
+        Ok(self.issue_token(issue_cost, token_display_name, token_ticker))
     }
 
     fn issue_token(
@@ -341,9 +339,7 @@ pub trait Farm {
     }
 
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(
-        &self,
-    ) -> SCResult<AsyncCall<BigUint>> {
+    fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall<BigUint>> {
         require!(self.is_active(), "Not active");
         sc_try!(self.require_permissions());
         require!(!self.farm_token_id().is_empty(), "No farm token issued");
@@ -352,10 +348,7 @@ pub trait Farm {
         Ok(self.set_local_roles(token))
     }
 
-    fn set_local_roles(
-        &self,
-        token: TokenIdentifier,
-    ) -> AsyncCall<BigUint> {
+    fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall<BigUint> {
         ESDTSystemSmartContractProxy::new()
             .set_special_roles(
                 &self.blockchain().get_sc_address(),

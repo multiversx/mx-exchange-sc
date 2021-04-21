@@ -631,7 +631,8 @@ pub trait Pair {
                     first_token_id
                 };
                 let first_token_reserve = self.liquidity_pool().pair_reserve(first_token_id).get();
-                let second_token_reserve = self.liquidity_pool().pair_reserve(second_token_id).get();
+                let second_token_reserve =
+                    self.liquidity_pool().pair_reserve(second_token_id).get();
                 let resolved_externally = self.extern_swap_and_forward(
                     &to_send_token,
                     &to_send,
