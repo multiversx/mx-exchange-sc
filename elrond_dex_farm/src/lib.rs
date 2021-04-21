@@ -18,7 +18,7 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     total_farmed_tokens: BigUint,
     total_initial_worth: BigUint,
     total_amount_liquidity: BigUint,
-    epoch_when_entering: Epoch,
+    entering_epoch: Epoch,
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
@@ -123,6 +123,7 @@ pub trait Farm {
             "Pair oracle has diferent address"
         );
         self.oracle_pair(&first_token, &second_token).clear();
+        self.oracle_pair(&second_token, &first_token).clear();
         Ok(())
     }
 
@@ -134,10 +135,17 @@ pub trait Farm {
         require!(address != Address::zero(), "Zero Address");
         require!(token.is_esdt(), "Not an ESDT token");
         require!(
-            !self.pair_address_for_accepted_lp_token().contains_key(&token),
+            !self
+                .pair_address_for_accepted_lp_token()
+                .contains_key(&token),
             "Pair address already exists for LP token"
         );
-        self.pair_address_for_accepted_lp_token().insert(token, address);
+        require!(
+            self.farming_pool_token_id().get() != token,
+            "Farming pool token cannot be an accepted LP token"
+        );
+        self.pair_address_for_accepted_lp_token()
+            .insert(token, address);
         Ok(())
     }
 
@@ -149,11 +157,15 @@ pub trait Farm {
         require!(address != Address::zero(), "Zero Address");
         require!(token.is_esdt(), "Not an ESDT token");
         require!(
-            self.pair_address_for_accepted_lp_token().contains_key(&token),
+            self.pair_address_for_accepted_lp_token()
+                .contains_key(&token),
             "No Pair Address for given LP token"
         );
         require!(
-            self.pair_address_for_accepted_lp_token().get(&token).unwrap() == address,
+            self.pair_address_for_accepted_lp_token()
+                .get(&token)
+                .unwrap()
+                == address,
             "Address does not match Lp token equivalent"
         );
         self.pair_address_for_accepted_lp_token().remove(&token);
@@ -186,7 +198,7 @@ pub trait Farm {
             total_farmed_tokens: amount,
             total_initial_worth: farm_contribution,
             total_amount_liquidity: liquidity.clone(),
-            epoch_when_entering: self.blockchain().get_block_epoch(),
+            entering_epoch: self.blockchain().get_block_epoch(),
         };
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
@@ -238,7 +250,7 @@ pub trait Farm {
         self.burn(&payment_token_id, token_nonce, &liquidity);
 
         let (reward_to_send, farmed_token_to_send) =
-            if self.should_apply_penalty(farm_attributes.epoch_when_entering) {
+            if self.should_apply_penalty(farm_attributes.entering_epoch) {
                 (
                     self.apply_penalty(reward),
                     self.apply_penalty(farmed_token_amount),
@@ -295,7 +307,7 @@ pub trait Farm {
             self.farming_pool_token_id().get(),
         ));
 
-        if self.should_apply_penalty(attributes.epoch_when_entering) {
+        if self.should_apply_penalty(attributes.entering_epoch) {
             Ok(self.apply_penalty(reward))
         } else {
             Ok(reward)
@@ -457,6 +469,19 @@ pub trait Farm {
         Ok(())
     }
 
+    fn is_accepted_token(
+        &self,
+        farming_pool_token_id: &TokenIdentifier,
+        token_id: &TokenIdentifier,
+    ) -> bool {
+        if self.farm_with_lp_tokens().get() {
+            self.pair_address_for_accepted_lp_token()
+                .contains_key(token_id)
+        } else {
+            farming_pool_token_id == token_id
+        }
+    }
+
     #[view(getFarmContribution)]
     fn get_farm_contribution(
         &self,
@@ -464,16 +489,19 @@ pub trait Farm {
         amount_in: &BigUint,
     ) -> SCResult<BigUint> {
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        if &farming_pool_token_id == token_in && !self.farm_with_lp_tokens().get() {
+        require!(
+            self.is_accepted_token(&farming_pool_token_id, &token_in),
+            "Token is not accepted for farming"
+        );
+        if &farming_pool_token_id == token_in {
             return Ok(amount_in.clone());
         }
-        require!(
-            self.pair_address_for_accepted_lp_token().contains_key(&token_in),
-            "Unknown LP token"
-        );
-        let pair = self.pair_address_for_accepted_lp_token().get(&token_in).unwrap();
 
-        let mut gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
+        let pair = self
+            .pair_address_for_accepted_lp_token()
+            .get(&token_in)
+            .unwrap();
+        let gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
         let equivalent = contract_call!(self, pair, PairContractProxy)
             .getTokensForGivenPosition(amount_in.clone())
             .execute_on_dest_context(gas_limit, self.send());
@@ -488,32 +516,49 @@ pub trait Farm {
             return Ok(second_token_amount_pair.amount);
         }
 
-        let (token_to_ask, oracle_pair_to_ask) = if !self
+        let zero = BigUint::zero();
+        let first_query_amount = if !self
             .oracle_pair(&first_token_amount_pair.token_id, &farming_pool_token_id)
             .is_empty()
+            && first_token_amount_pair.amount != 0
         {
-            (
-                first_token_amount_pair.token_id.clone(),
-                self.oracle_pair(&first_token_amount_pair.token_id, &farming_pool_token_id)
-                    .get(),
-            )
-        } else if !self
-            .oracle_pair(&second_token_amount_pair.token_id, &farming_pool_token_id)
-            .is_empty()
-        {
-            (
-                second_token_amount_pair.token_id.clone(),
-                self.oracle_pair(&second_token_amount_pair.token_id, &farming_pool_token_id)
-                    .get(),
+            self.ask_for_equivalent(
+                &first_token_amount_pair.token_id,
+                &first_token_amount_pair.amount,
+                &farming_pool_token_id,
             )
         } else {
-            return sc_error!("Cannot get a farming equivalent for given tokens");
+            zero.clone()
         };
 
-        gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
-        Ok(contract_call!(self, oracle_pair_to_ask, PairContractProxy)
-            .getEquivalent(token_to_ask, amount_in.clone())
-            .execute_on_dest_context(gas_limit, self.send()))
+        let second_query_amount = if !self
+            .oracle_pair(&second_token_amount_pair.token_id, &farming_pool_token_id)
+            .is_empty()
+            && second_token_amount_pair.amount != 0
+        {
+            self.ask_for_equivalent(
+                &second_token_amount_pair.token_id,
+                &second_token_amount_pair.amount,
+                &farming_pool_token_id,
+            )
+        } else {
+            zero
+        };
+
+        Ok(core::cmp::max(first_query_amount, second_query_amount))
+    }
+
+    fn ask_for_equivalent(
+        &self,
+        token_to_ask: &TokenIdentifier,
+        token_to_ask_amount: &BigUint,
+        farming_pool_token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let oracle_pair_to_ask = self.oracle_pair(token_to_ask, farming_pool_token_id).get();
+        let gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
+        contract_call!(self, oracle_pair_to_ask, PairContractProxy)
+            .getEquivalent(token_to_ask.clone(), token_to_ask_amount.clone())
+            .execute_on_dest_context(gas_limit, self.send())
     }
 
     #[inline]
