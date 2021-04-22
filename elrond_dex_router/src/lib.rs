@@ -177,6 +177,22 @@ pub trait Router {
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
+    #[endpoint(setLocalRolesOwner)]
+    fn set_local_roles_owner(
+        &self,
+        token: TokenIdentifier,
+        address: Address,
+        #[var_args] roles: VarArgs<EsdtLocalRole>,
+    ) -> SCResult<AsyncCall<BigUint>> {
+        require!(self.is_active(), "Not active");
+        only_owner!(self, "No permissions");
+        require!(!roles.is_empty(), "Empty roles");
+        Ok(ESDTSystemSmartContractProxy::new()
+            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .async_call()
+            .with_callback(self.callbacks().change_roles_callback()))
+    }
+
     fn check_is_pair_sc(&self, pair_address: &Address) -> SCResult<()> {
         require!(
             self.factory()

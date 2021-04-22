@@ -249,36 +249,82 @@ pub trait Farm {
         ));
         self.burn(&payment_token_id, token_nonce, &liquidity);
 
-        let (reward_to_send, farmed_token_to_send) =
-            if self.should_apply_penalty(farm_attributes.entering_epoch) {
-                (
-                    self.apply_penalty(reward),
-                    self.apply_penalty(farmed_token_amount),
-                )
-            } else {
-                (reward, farmed_token_amount)
-            };
-
         let caller = self.blockchain().get_caller();
-        if reward_to_send != 0 {
-            let _ = self.send().direct_esdt_via_transf_exec(
-                &caller,
-                farming_pool_token_id.as_esdt_identifier(),
-                &reward_to_send,
-                &[],
-            );
-        }
-
-        if farmed_token_to_send != 0 {
-            let _ = self.send().direct_esdt_via_transf_exec(
-                &caller,
-                farm_attributes.farmed_token_id.as_esdt_identifier(),
-                &farmed_token_to_send,
-                &[],
-            );
-        }
+        self.send_reward_and_farmed_tokens(
+            reward,
+            farming_pool_token_id,
+            farmed_token_amount,
+            farm_attributes.farmed_token_id,
+            caller,
+            farm_attributes.entering_epoch,
+        );
 
         Ok(())
+    }
+
+    fn send_reward_and_farmed_tokens(
+        &self,
+        reward_amount: BigUint,
+        reward_token: TokenIdentifier,
+        farmed_amount: BigUint,
+        farmed_token: TokenIdentifier,
+        address: Address,
+        entering_epoch: u64,
+    ) {
+        if reward_token == farmed_token {
+            let send_total = farmed_amount + reward_amount;
+            self.send_tokens_and_burn_penalty(farmed_token, send_total, address, entering_epoch);
+        } else {
+            self.send_tokens_and_burn_penalty(
+                reward_token,
+                reward_amount,
+                address.clone(),
+                entering_epoch,
+            );
+            self.send_tokens_and_burn_penalty(farmed_token, farmed_amount, address, entering_epoch);
+        }
+    }
+
+    fn send_tokens_and_burn_penalty(
+        &self,
+        token: TokenIdentifier,
+        amount: BigUint,
+        address: Address,
+        entering_epoch: u64,
+    ) {
+        if amount > 0 {
+            if self.should_apply_penalty(entering_epoch) {
+                let penalty_amount = self.get_penalty_amount(amount.clone());
+                if penalty_amount > 0 {
+                    self.burn_token(&token, &penalty_amount);
+                }
+                let to_send = amount - penalty_amount;
+                if to_send > 0 {
+                    self.send_tokens(&token, &to_send, &address);
+                }
+            } else {
+                self.send_tokens(&token, &amount, &address);
+            }
+        }
+    }
+
+    #[inline]
+    fn burn_token(&self, token: &TokenIdentifier, amount: &BigUint) {
+        self.send().esdt_local_burn(
+            self.blockchain().get_gas_left(),
+            token.as_esdt_identifier(),
+            &amount,
+        );
+    }
+
+    #[inline]
+    fn send_tokens(&self, token: &TokenIdentifier, amount: &BigUint, destination: &Address) {
+        let _ = self.send().direct_esdt_via_transf_exec(
+            destination,
+            token.as_esdt_identifier(),
+            amount,
+            &[],
+        );
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -308,7 +354,7 @@ pub trait Farm {
         ));
 
         if self.should_apply_penalty(attributes.entering_epoch) {
-            Ok(self.apply_penalty(reward))
+            Ok(reward.clone() - self.get_penalty_amount(reward))
         } else {
             Ok(reward)
         }
@@ -567,8 +613,8 @@ pub trait Farm {
     }
 
     #[inline]
-    fn apply_penalty(&self, amount: BigUint) -> BigUint {
-        amount * BigUint::from(100 - PENALTY_PRECENT) / BigUint::from(100u64)
+    fn get_penalty_amount(&self, amount: BigUint) -> BigUint {
+        amount * BigUint::from(PENALTY_PRECENT) / BigUint::from(100u64)
     }
 
     #[inline]

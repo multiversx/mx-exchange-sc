@@ -896,16 +896,14 @@ pub trait Pair {
 
     #[view(getEquivalent)]
     fn get_equivalent(&self, token_in: TokenIdentifier, amount_in: BigUint) -> SCResult<BigUint> {
+        require!(amount_in > 0, "Zero input");
         let zero = BigUint::zero();
-        if amount_in == 0 {
-            return Ok(zero);
-        }
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
         let second_token_id = self.liquidity_pool().second_token_id().get();
         let first_token_reserve = self.liquidity_pool().pair_reserve(&first_token_id).get();
         let second_token_reserve = self.liquidity_pool().pair_reserve(&second_token_id).get();
-        if first_token_reserve == 0 || second_token_reserve > 0 {
+        if first_token_reserve == 0 || second_token_reserve == 0 {
             return Ok(zero);
         }
 
