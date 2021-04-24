@@ -27,12 +27,6 @@ pub trait PairContract {
     fn resume(&self) -> ContractCall<BigUint, ()>;
 }
 
-#[elrond_wasm_derive::callable(StakingContractProxy)]
-pub trait StakingContract {
-    fn pause(&self) -> ContractCall<BigUint, ()>;
-    fn resume(&self) -> ContractCall<BigUint, ()>;
-}
-
 #[elrond_wasm_derive::contract(RouterImpl)]
 pub trait Router {
     #[module(FactoryModuleImpl)]
@@ -43,6 +37,7 @@ pub trait Router {
         self.factory().init();
         self.state().set(&true);
         self.owner().set(&self.blockchain().get_caller());
+        self.pair_creation_enabled().set(&false);
     }
 
     #[endpoint]
@@ -84,6 +79,14 @@ pub trait Router {
         #[var_args] fee_precents: VarArgs<u64>,
     ) -> SCResult<Address> {
         require!(self.is_active(), "Not active");
+        let owner = self.owner().get();
+        let caller = self.blockchain().get_caller();
+        if caller != owner {
+            require!(
+                self.pair_creation_enabled().get(),
+                "Pair creation is disabled"
+            );
+        }
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(first_token_id.is_esdt(), "Only esdt tokens allowed");
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
@@ -92,8 +95,7 @@ pub trait Router {
         let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
         let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
         let fee_precents_vec = fee_precents.into_vec();
-        let owner = self.owner().get();
-        if self.blockchain().get_caller() == owner && fee_precents_vec.len() == 2 {
+        if caller == owner && fee_precents_vec.len() == 2 {
             total_fee_precent_requested = fee_precents_vec[0];
             special_fee_precent_requested = fee_precents_vec[1];
             require!(
@@ -175,6 +177,22 @@ pub trait Router {
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
+    #[endpoint(setLocalRolesOwner)]
+    fn set_local_roles_owner(
+        &self,
+        token: TokenIdentifier,
+        address: Address,
+        #[var_args] roles: VarArgs<EsdtLocalRole>,
+    ) -> SCResult<AsyncCall<BigUint>> {
+        require!(self.is_active(), "Not active");
+        only_owner!(self, "No permissions");
+        require!(!roles.is_empty(), "Empty roles");
+        Ok(ESDTSystemSmartContractProxy::new()
+            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .async_call()
+            .with_callback(self.callbacks().change_roles_callback()))
+    }
+
     fn check_is_pair_sc(&self, pair_address: &Address) -> SCResult<()> {
         require!(
             self.factory()
@@ -200,8 +218,8 @@ pub trait Router {
     fn set_fee_on(
         &self,
         pair_address: Address,
-        staking_address: Address,
-        staking_token: TokenIdentifier,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
@@ -209,7 +227,7 @@ pub trait Router {
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
         contract_call!(self, pair_address, PairContractProxy)
-            .setFeeOn(true, staking_address, staking_token)
+            .setFeeOn(true, fee_to_address, fee_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
@@ -219,8 +237,8 @@ pub trait Router {
     fn set_fee_off(
         &self,
         pair_address: Address,
-        staking_address: Address,
-        staking_token: TokenIdentifier,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
@@ -228,7 +246,7 @@ pub trait Router {
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
         contract_call!(self, pair_address, PairContractProxy)
-            .setFeeOn(false, staking_address, staking_token)
+            .setFeeOn(false, fee_to_address, fee_token)
             .execute_on_dest_context(per_execute_gas, self.send());
 
         Ok(())
@@ -328,6 +346,16 @@ pub trait Router {
     fn is_active(&self) -> bool {
         self.state().get()
     }
+
+    #[endpoint(setPairCreationEnabled)]
+    fn set_pair_creation_enabled(&self, enabled: bool) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.pair_creation_enabled().set(&enabled);
+        Ok(())
+    }
+
+    #[storage_mapper("pair_creation_enabled")]
+    fn pair_creation_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]

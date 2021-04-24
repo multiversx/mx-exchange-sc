@@ -1,27 +1,36 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const MINIMUM_INITIAL_STAKE_AMOUNT: u64 = 1000;
+const MINIMUM_INITIAL_FARM_AMOUNT: u64 = 1000;
 
 #[elrond_wasm_derive::module(LiquidityPoolModuleImpl)]
 pub trait LiquidityPoolModule {
-    fn add_liquidity(&self, amount: BigUint, token_id: TokenIdentifier) -> SCResult<BigUint> {
+    fn add_liquidity(
+        &self,
+        amount: BigUint,
+        farming_pool_token_id: TokenIdentifier,
+        farmed_token_id: TokenIdentifier,
+    ) -> SCResult<BigUint> {
         require!(amount > 0, "Amount needs to be greater than 0");
 
+        let is_virtual_amount = farming_pool_token_id != farmed_token_id;
         let mut total_supply = self.total_supply().get();
         let mut virtual_reserves = self.virtual_reserves().get();
-        let actual_reserves = self.blockchain().get_esdt_balance(
+        let mut actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
+            farming_pool_token_id.as_esdt_identifier(),
             0,
         );
-        let liquidity: BigUint;
+        if !is_virtual_amount {
+            actual_reserves -= amount.clone();
+        }
 
+        let liquidity: BigUint;
         if total_supply == 0 {
-            let minimum_amount = BigUint::from(MINIMUM_INITIAL_STAKE_AMOUNT);
+            let minimum_amount = BigUint::from(MINIMUM_INITIAL_FARM_AMOUNT);
             require!(
                 amount > minimum_amount,
-                "First Stake needs to be greater than minimum amount"
+                "First farm needs to be greater than minimum amount"
             );
             liquidity = amount.clone() - minimum_amount.clone();
             total_supply = minimum_amount;
@@ -32,8 +41,10 @@ pub trait LiquidityPoolModule {
         }
         require!(liquidity > 0, "Insuficient liquidity minted");
 
-        virtual_reserves += amount;
-        self.virtual_reserves().set(&virtual_reserves);
+        if is_virtual_amount {
+            virtual_reserves += amount;
+            self.virtual_reserves().set(&virtual_reserves);
+        }
 
         total_supply += liquidity.clone();
         self.total_supply().set(&total_supply);
@@ -45,14 +56,21 @@ pub trait LiquidityPoolModule {
         &self,
         liquidity: BigUint,
         initial_worth: BigUint,
-        token_id: TokenIdentifier,
+        farming_pool_token_id: TokenIdentifier,
+        farmed_token_id: TokenIdentifier,
     ) -> SCResult<BigUint> {
-        let reward =
-            sc_try!(self.calculate_reward(liquidity.clone(), initial_worth.clone(), token_id));
+        let reward = sc_try!(self.calculate_reward(
+            liquidity.clone(),
+            initial_worth.clone(),
+            farming_pool_token_id.clone()
+        ));
 
-        let mut virtual_reserves = self.virtual_reserves().get();
-        virtual_reserves -= initial_worth;
-        self.virtual_reserves().set(&virtual_reserves);
+        let is_virtual_amount = farming_pool_token_id != farmed_token_id;
+        if is_virtual_amount {
+            let mut virtual_reserves = self.virtual_reserves().get();
+            virtual_reserves -= initial_worth;
+            self.virtual_reserves().set(&virtual_reserves);
+        }
 
         let mut total_supply = self.total_supply().get();
         total_supply -= liquidity;

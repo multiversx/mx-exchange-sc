@@ -1,5 +1,5 @@
 [package]
-name = "elrond_dex_staking"
+name = "elrond_dex_farm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"

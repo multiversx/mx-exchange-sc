@@ -1,7 +1,7 @@
-use elrond_dex_staking::*;
+use elrond_dex_farm::*;
 use elrond_wasm_debug::*;
 
 fn main() {
-	let contract = StakingImpl::new(TxContext::dummy());
+	let contract = FarmImpl::new(TxContext::dummy());
 	print!("{}", abi_json::contract_abi(&contract));
 }
