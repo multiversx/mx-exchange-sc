@@ -72,6 +72,10 @@ pub trait Pair {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(
+            self.call_value().esdt_token_nonce() == 0,
+            "Only fungible tokens are accepted in liquidity pools"
+        );
+        require!(
             payment > 0,
             "PAIR: Funds transfer must be a positive number"
         );
