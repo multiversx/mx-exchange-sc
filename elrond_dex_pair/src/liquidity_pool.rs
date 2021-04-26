@@ -8,8 +8,8 @@ const MINIMUM_LIQUIDITY: u64 = 1000;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct TokenAmountPair<BigUint: BigUintApi> {
-    token_id: TokenIdentifier,
-    amount: BigUint,
+    pub token_id: TokenIdentifier,
+    pub amount: BigUint,
 }
 
 #[elrond_wasm_derive::module(LiquidityPoolModuleImpl)]

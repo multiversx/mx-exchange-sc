@@ -101,7 +101,9 @@ pub trait Pair {
         second_token_amount_desired: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> SCResult<()> {
+    ) -> SCResult<
+        MultiResult3<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>,
+    > {
         require!(self.is_active(), "Not active");
         require!(
             first_token_amount_desired > 0,
@@ -163,7 +165,7 @@ pub trait Pair {
         self.send_tokens(&lp_token_id, &liquidity, &caller);
 
         let mut total_supply = self.liquidity_pool().total_supply().get();
-        total_supply += liquidity;
+        total_supply += liquidity.clone();
         self.liquidity_pool().total_supply().set(&total_supply);
 
         temporary_first_token_amount_desired -= first_token_amount;
@@ -177,7 +179,21 @@ pub trait Pair {
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
 
-        Ok(())
+        Ok((
+            TokenAmountPair {
+                token_id: lp_token_id,
+                amount: liquidity,
+            },
+            TokenAmountPair {
+                token_id: expected_first_token_id,
+                amount: temporary_first_token_amount_desired,
+            },
+            TokenAmountPair {
+                token_id: expected_second_token_id,
+                amount: temporary_second_token_amount_desired,
+            },
+        )
+            .into())
     }
 
     fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
