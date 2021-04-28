@@ -101,7 +101,9 @@ pub trait Pair {
         second_token_amount_desired: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> SCResult<()> {
+    ) -> SCResult<
+        MultiResult3<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>,
+    > {
         require!(self.is_active(), "Not active");
         require!(
             first_token_amount_desired > 0,
@@ -120,27 +122,27 @@ pub trait Pair {
         let old_k = self.liquidity_pool().calculate_k_for_reserves();
         let expected_first_token_id = self.liquidity_pool().first_token_id().get();
         let expected_second_token_id = self.liquidity_pool().second_token_id().get();
-        let mut temporary_first_token_amount_desired = self
+        let temporary_first_token_amount = self
             .temporary_funds(&caller, &expected_first_token_id)
             .get();
-        let mut temporary_second_token_amount_desired = self
+        let temporary_second_token_amount = self
             .temporary_funds(&caller, &expected_second_token_id)
             .get();
 
         require!(
-            temporary_first_token_amount_desired > 0,
+            temporary_first_token_amount > 0,
             "Pair: no available first token funds"
         );
         require!(
-            temporary_second_token_amount_desired > 0,
+            temporary_second_token_amount > 0,
             "Pair: no available second token funds"
         );
         require!(
-            first_token_amount_desired <= temporary_first_token_amount_desired,
+            first_token_amount_desired <= temporary_first_token_amount,
             "Pair: insufficient first token funds to add"
         );
         require!(
-            second_token_amount_desired <= temporary_second_token_amount_desired,
+            second_token_amount_desired <= temporary_second_token_amount,
             "Pair: insufficient second token funds to add"
         );
 
@@ -163,29 +165,53 @@ pub trait Pair {
         self.send_tokens(&lp_token_id, &liquidity, &caller);
 
         let mut total_supply = self.liquidity_pool().total_supply().get();
-        total_supply += liquidity;
+        total_supply += liquidity.clone();
         self.liquidity_pool().total_supply().set(&total_supply);
 
-        temporary_first_token_amount_desired -= first_token_amount;
-        temporary_second_token_amount_desired -= second_token_amount;
+        let temporary_first_token_unused =
+            temporary_first_token_amount - first_token_amount.clone();
+        let temporary_second_token_unused =
+            temporary_second_token_amount - second_token_amount.clone();
         self.temporary_funds(&caller, &expected_first_token_id)
-            .set(&temporary_first_token_amount_desired);
+            .clear();
         self.temporary_funds(&caller, &expected_second_token_id)
-            .set(&temporary_second_token_amount_desired);
+            .clear();
+        self.send_tokens(
+            &expected_first_token_id,
+            &temporary_first_token_unused,
+            &caller,
+        );
+        self.send_tokens(
+            &expected_second_token_id,
+            &temporary_second_token_unused,
+            &caller,
+        );
 
         // Once liquidity has been added, the new K should never be lesser than the old K.
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
 
-        Ok(())
+        Ok((
+            TokenAmountPair {
+                token_id: lp_token_id,
+                amount: liquidity,
+            },
+            TokenAmountPair {
+                token_id: expected_first_token_id,
+                amount: first_token_amount,
+            },
+            TokenAmountPair {
+                token_id: expected_second_token_id,
+                amount: second_token_amount,
+            },
+        )
+            .into())
     }
 
     fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
         let amount = self.temporary_funds(&caller, token).get();
-        if amount > 0 {
-            self.send_tokens(token, &amount, caller);
-            self.temporary_funds(&caller, token).clear();
-        }
+        self.send_tokens(token, &amount, caller);
+        self.temporary_funds(&caller, token).clear();
     }
 
     #[endpoint(reclaimTemporaryFunds)]
@@ -472,9 +498,7 @@ pub trait Pair {
         self.send_tokens(&token_out, &amount_out, &caller);
 
         let residuum = amount_in_max - amount_in_optimal.clone();
-        if residuum != 0 {
-            self.send_tokens(&token_in, &residuum, &caller);
-        }
+        self.send_tokens(&token_in, &residuum, &caller);
 
         let mut fee_amount = BigUint::zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
@@ -735,12 +759,14 @@ pub trait Pair {
 
     #[inline]
     fn send_tokens(&self, token: &TokenIdentifier, amount: &BigUint, destination: &Address) {
-        let _ = self.send().direct_esdt_via_transf_exec(
-            destination,
-            token.as_esdt_identifier(),
-            amount,
-            &[],
-        );
+        if amount > &0 {
+            let _ = self.send().direct_esdt_via_transf_exec(
+                destination,
+                token.as_esdt_identifier(),
+                amount,
+                &[],
+            );
+        }
     }
 
     fn get_extern_swap_pair_address(
