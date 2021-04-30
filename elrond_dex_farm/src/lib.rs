@@ -5,6 +5,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 type Epoch = u64;
+type Nonce = u64;
 const PENALTY_PRECENT: u64 = 10;
 const EXTERN_QUERY_MAX_GAS: u64 = 20000000;
 const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
@@ -19,6 +20,13 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     total_initial_worth: BigUint,
     total_amount_liquidity: BigUint,
     entering_epoch: Epoch,
+}
+
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub struct SftTokenAmountPair<BigUint: BigUintApi> {
+    token_id: TokenIdentifier,
+    token_nonce: Nonce,
+    amount: BigUint,
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
@@ -528,12 +536,70 @@ pub trait Farm {
         }
     }
 
+    #[view(simulateEnterFarm)]
+    fn simulate_enter_farm(
+        &self,
+        token_in: TokenIdentifier,
+        amount_in: BigUint,
+    ) -> SCResult<SftTokenAmountPair<BigUint>> {
+        let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount_in));
+        let farming_pool_token_id = self.farming_pool_token_id().get();
+        let liquidity = self.liquidity_pool().calculate_liquidity(
+            &farm_contribution,
+            &farming_pool_token_id,
+            &token_in,
+        );
+        let farm_token_id = self.farm_token_id().get();
+        let farming_pool_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
+            &self.blockchain().get_sc_address(),
+            &farm_token_id.as_esdt_identifier(),
+        );
+        Ok(SftTokenAmountPair {
+            token_id: farm_token_id,
+            token_nonce: farming_pool_token_nonce + 1,
+            amount: liquidity,
+        })
+    }
+
+    #[view(simulateExitFarm)]
+    fn simulate_exit_farm(
+        &self,
+        token_id: TokenIdentifier,
+        token_nonce: Nonce,
+        amount: BigUint,
+    ) -> SCResult<MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>> {
+        let farm_token_id = self.farm_token_id().get();
+        require!(token_id == farm_token_id, "Wrong input token");
+
+        let farm_attributes = sc_try!(self.get_farm_attributes(token_id, token_nonce));
+        let initial_worth = farm_attributes.total_initial_worth.clone() * amount.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
+        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * amount.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        let reward = sc_try!(self.calculate_rewards_for_given_position(token_nonce, amount));
+        let farming_pool_token_id = self.farming_pool_token_id().get();
+
+        Ok((
+            TokenAmountPair {
+                token_id: farm_attributes.farmed_token_id,
+                amount: farmed_token_amount,
+            },
+            TokenAmountPair {
+                token_id: farming_pool_token_id,
+                amount: reward,
+            },
+        )
+            .into())
+    }
+
     #[view(getFarmContribution)]
     fn get_farm_contribution(
         &self,
         token_in: &TokenIdentifier,
         amount_in: &BigUint,
     ) -> SCResult<BigUint> {
+        require!(amount_in > &0, "Zero amount in");
         let farming_pool_token_id = self.farming_pool_token_id().get();
         require!(
             self.is_accepted_token(&farming_pool_token_id, &token_in),
