@@ -12,6 +12,8 @@ const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
+pub mod rewards;
+pub use crate::rewards::*;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
@@ -52,6 +54,9 @@ pub trait PairContract {
 pub trait Farm {
     #[module(LiquidityPoolModuleImpl)]
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
+
+    #[module(RewardsModule)]
+    fn rewards(&self) -> RewardsModule<T, BigInt, BigUint>;
 
     #[init]
     fn init(
@@ -196,6 +201,7 @@ pub trait Farm {
         );
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
+        self.rewards().mint_rewards(&farming_pool_token_id);
         let liquidity = sc_try!(self.liquidity_pool().add_liquidity(
             farm_contribution.clone(),
             farming_pool_token_id,
@@ -249,6 +255,7 @@ pub trait Farm {
         require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
+        self.rewards().mint_rewards(&farming_pool_token_id);
         let reward = sc_try!(self.liquidity_pool().remove_liquidity(
             liquidity.clone(),
             initial_worth,
@@ -536,7 +543,7 @@ pub trait Farm {
         }
     }
 
-    #[view(simulateEnterFarm)]
+    #[endpoint(simulateEnterFarm)]
     fn simulate_enter_farm(
         &self,
         token_in: TokenIdentifier,
@@ -544,6 +551,8 @@ pub trait Farm {
     ) -> SCResult<SftTokenAmountPair<BigUint>> {
         let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount_in));
         let farming_pool_token_id = self.farming_pool_token_id().get();
+
+        self.rewards().mint_rewards(&farming_pool_token_id);
         let liquidity = self.liquidity_pool().calculate_liquidity(
             &farm_contribution,
             &farming_pool_token_id,
@@ -561,7 +570,7 @@ pub trait Farm {
         })
     }
 
-    #[view(simulateExitFarm)]
+    #[endpoint(simulateExitFarm)]
     fn simulate_exit_farm(
         &self,
         token_id: TokenIdentifier,
@@ -577,8 +586,10 @@ pub trait Farm {
         require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
         let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * amount.clone()
             / farm_attributes.total_amount_liquidity.clone();
-        let reward = sc_try!(self.calculate_rewards_for_given_position(token_nonce, amount));
+
         let farming_pool_token_id = self.farming_pool_token_id().get();
+        self.rewards().mint_rewards(&farming_pool_token_id);
+        let reward = sc_try!(self.calculate_rewards_for_given_position(token_nonce, amount));
 
         Ok((
             TokenAmountPair {
