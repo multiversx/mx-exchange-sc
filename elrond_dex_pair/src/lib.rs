@@ -17,6 +17,13 @@ pub use crate::liquidity_pool::*;
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 const EXTERN_SWAP_GAS_LIMIT: u64 = 25000000;
 
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub enum State {
+    Inactive,
+    Active,
+    ActiveNoSwaps,
+}
+
 #[elrond_wasm_derive::contract(PairImpl)]
 pub trait Pair {
     #[module(LiquidityPoolModuleImpl)]
@@ -46,20 +53,27 @@ pub trait Pair {
             .set(&second_token_id);
         self.amm().total_fee_precent().set(&total_fee_precent);
         self.amm().special_fee_precent().set(&special_fee_precent);
-        self.state().set(&true);
+        self.state().set(&State::ActiveNoSwaps);
     }
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
         sc_try!(self.require_permissions());
-        self.state().set(&true);
+        self.state().set(&State::Inactive);
         Ok(())
     }
 
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
         sc_try!(self.require_permissions());
-        self.state().set(&true);
+        self.state().set(&State::Active);
+        Ok(())
+    }
+
+    #[endpoint(setState)]
+    fn set_state(&self, state: State) -> SCResult<()> {
+        sc_try!(self.require_permissions());
+        self.state().set(&state);
         Ok(())
     }
 
@@ -341,7 +355,7 @@ pub trait Pair {
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         require!(self.fee().whitelist().contains(&caller), "Not whitelisted");
-        require!(self.is_active(), "Not active");
+        require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Zero input");
 
         let first_token_id = self.liquidity_pool().first_token_id().get();
@@ -383,7 +397,7 @@ pub trait Pair {
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
     ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
         let first_token_id = self.liquidity_pool().first_token_id().get();
@@ -461,7 +475,7 @@ pub trait Pair {
         token_out: TokenIdentifier,
         amount_out: BigUint,
     ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
+        require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
         let first_token_id = self.liquidity_pool().first_token_id().get();
@@ -960,7 +974,13 @@ pub trait Pair {
 
     #[inline]
     fn is_active(&self) -> bool {
-        self.state().get()
+        let state = self.state().get();
+        state == State::Active || state == State::ActiveNoSwaps
+    }
+
+    #[inline]
+    fn can_swap(&self) -> bool {
+        self.state().get() == State::ActiveNoSwaps
     }
 
     #[view(getTemporaryFunds)]
@@ -985,5 +1005,5 @@ pub trait Pair {
 
     #[view(getState)]
     #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 }
