@@ -12,6 +12,8 @@ const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
 pub mod liquidity_pool;
 pub use crate::liquidity_pool::*;
+pub mod rewards;
+pub use crate::rewards::*;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
@@ -52,6 +54,9 @@ pub trait PairContract {
 pub trait Farm {
     #[module(LiquidityPoolModuleImpl)]
     fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
+
+    #[module(RewardsModule)]
+    fn rewards(&self) -> RewardsModule<T, BigInt, BigUint>;
 
     #[init]
     fn init(
@@ -258,6 +263,7 @@ pub trait Farm {
         self.burn(&payment_token_id, token_nonce, &liquidity);
 
         let caller = self.blockchain().get_caller();
+        self.rewards().mint_rewards(&farming_pool_token_id);
         self.send_reward_and_farmed_tokens(
             reward,
             farming_pool_token_id,
@@ -355,7 +361,7 @@ pub trait Farm {
             return Ok(initial_worth);
         }
 
-        let reward = sc_try!(self.liquidity_pool().calculate_reward(
+        let reward = sc_try!(self.rewards().calculate_reward_for_given_liquidity(
             liquidity,
             initial_worth,
             self.farming_pool_token_id().get(),
@@ -544,6 +550,7 @@ pub trait Farm {
     ) -> SCResult<SftTokenAmountPair<BigUint>> {
         let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount_in));
         let farming_pool_token_id = self.farming_pool_token_id().get();
+
         let liquidity = self.liquidity_pool().calculate_liquidity(
             &farm_contribution,
             &farming_pool_token_id,
