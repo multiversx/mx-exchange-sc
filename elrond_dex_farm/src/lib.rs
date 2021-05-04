@@ -220,14 +220,7 @@ pub trait Farm {
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
 
-        let _ = self.send().direct_esdt_nft_via_transfer_exec(
-            &self.blockchain().get_caller(),
-            farm_token_id.as_esdt_identifier(),
-            farm_token_nonce,
-            &liquidity,
-            &[],
-        );
-
+        self.send_tokens(&farm_token_id, farm_token_nonce, &liquidity, &self.blockchain().get_caller());
         Ok(())
     }
 
@@ -257,7 +250,7 @@ pub trait Farm {
             farming_pool_token_id.clone(),
             farm_attributes.farmed_token_id.clone(),
         ));
-        self.burn(&payment_token_id, token_nonce, &liquidity);
+        self.burn_tokens(&payment_token_id, token_nonce, &liquidity);
 
         let caller = self.blockchain().get_caller();
         self.rewards().mint_rewards(&farming_pool_token_id);
@@ -303,39 +296,56 @@ pub trait Farm {
         address: Address,
         entering_epoch: u64,
     ) {
-        if amount > 0 {
-            if self.should_apply_penalty(entering_epoch) {
-                let penalty_amount = self.get_penalty_amount(amount.clone());
-                if penalty_amount > 0 {
-                    self.burn_token(&token, &penalty_amount);
-                }
-                let to_send = amount - penalty_amount;
-                if to_send > 0 {
-                    self.send_tokens(&token, &to_send, &address);
-                }
+        if self.should_apply_penalty(entering_epoch) {
+            let penalty_amount = self.get_penalty_amount(amount.clone());
+            self.burn_tokens(&token, 0, &penalty_amount);
+            let to_send = amount - penalty_amount;
+            self.send_tokens(&token, 0, &to_send, &address);
+        } else {
+            self.send_tokens(&token, 0, &amount, &address);
+        }
+    }
+
+    #[inline]
+    fn burn_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
+        if amount > &0 {
+            if nonce > 0 {
+                self.send().esdt_nft_burn(
+                    self.blockchain().get_gas_left(),
+                    token.as_esdt_identifier(),
+                    nonce,
+                    amount,
+                );
             } else {
-                self.send_tokens(&token, &amount, &address);
+                self.send().esdt_local_burn(
+                    self.blockchain().get_gas_left(),
+                    token.as_esdt_identifier(),
+                    &amount,
+                );
             }
         }
     }
 
     #[inline]
-    fn burn_token(&self, token: &TokenIdentifier, amount: &BigUint) {
-        self.send().esdt_local_burn(
-            self.blockchain().get_gas_left(),
-            token.as_esdt_identifier(),
-            &amount,
-        );
-    }
-
-    #[inline]
-    fn send_tokens(&self, token: &TokenIdentifier, amount: &BigUint, destination: &Address) {
-        let _ = self.send().direct_esdt_via_transf_exec(
-            destination,
-            token.as_esdt_identifier(),
-            amount,
-            &[],
-        );
+    fn send_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &BigUint, destination: &Address) {
+        if amount > &0 {
+            if nonce > 0 {
+                let _ = self.send().direct_esdt_nft_via_transfer_exec(
+                    &destination,
+                    token.as_esdt_identifier(),
+                    nonce,
+                    &amount,
+                    &[],
+                );
+            } else {
+                let _ = self.send().direct_esdt_via_transf_exec(
+                    destination,
+                    token.as_esdt_identifier(),
+                    amount,
+                    &[],
+                );
+            }
+        }
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -512,15 +522,6 @@ pub trait Farm {
         let new_nonce = self.farm_token_nonce().get() + 1;
         self.farm_token_nonce().set(&new_nonce);
         new_nonce
-    }
-
-    fn burn(&self, token: &TokenIdentifier, nonce: u64, amount: &BigUint) {
-        self.send().esdt_nft_burn(
-            self.blockchain().get_gas_left(),
-            token.as_esdt_identifier(),
-            nonce,
-            amount,
-        );
     }
 
     fn require_permissions(&self) -> SCResult<()> {
