@@ -344,6 +344,7 @@ addTrustedSwapPair() {
 
 # params:
 #   $1 = Farm Pool Token Identifier
+#   $2 = Farm With LP Token boolean in hex
 deployFarmContract() {
     farm_pool_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
@@ -354,7 +355,7 @@ deployFarmContract() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
         --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
-        --arguments $farm_pool_token $router_address \
+        --arguments $farm_pool_token $router_address $3 \
         --outfile="deploy-farm-internal.interaction.json" --send || return
 
     ADDRESS=$(erdpy data parse --file="deploy-farm-internal.interaction.json" --expression="data['emitted_tx']['address']")
@@ -362,7 +363,28 @@ deployFarmContract() {
     erdpy data store --key=address-devnet --value=${ADDRESS}
 
     echo ""
-    echo "farm Smart contract address: ${ADDRESS}"
+    echo "Farm Smart Contract address: ${ADDRESS}"
+}
+
+# params:
+#   $1 = Farm Address
+#   $2 = Farm Pool Token Identifier
+#   $3 = Farm With LP Token boolean in hex
+upgradeFarmContract() {
+    farm_pool_token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
+    erdpy --verbose contract upgrade $1 --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-price=1499999999 \
+        --gas-limit=1499999999 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --metadata-payable \
+        --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
+        --arguments $farm_pool_token $router_address $3 \
+        --outfile="upgrade-farm-internal.interaction.json" --send || return
+
+    echo ""
+    echo "Farm Smart Contract upgraded"
 }
 
 # params:
@@ -391,6 +413,23 @@ setLocalRolesFarmToken() {
           --gas-limit=${DEPLOY_GAS} \
           --function=setLocalRolesFarmToken \
           --send || return
+}
+
+# params:
+#   $1 = farm contract
+#   $2 = Pair Address
+#   $3 = LPToken Identifier for Pair Address
+addAcceptedPairAddressAndLpToken() {
+    pair_address="0x$(erdpy wallet bech32 --decode $2)"
+    lptoken_identifier="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
+    erdpy --verbose contract call $1 --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --gas-limit=${DEPLOY_GAS} \
+          --function=addAcceptedPairAddressAndLpToken \
+          --arguments $pair_address $lptoken_identifier \
+          --send || return
+
 }
 
 #params:
@@ -505,6 +544,11 @@ calculateRewardsForGivenPosition() {
         --arguments $2 $3 || return 
 }
 
+getState() {
+    erdpy --verbose contract query $1 \
+        --proxy=${PROXY} \
+        --function=getState || return
+}
 
 ##### UTILS #####
 
@@ -563,5 +607,27 @@ mintWrappedEgld() {
         --gas-limit=${DEPLOY_GAS} \
         --function=mintWrappedEgld \
         --arguments $1 \
+        --send || return
+}
+
+# params:
+#   $1 = Contract Address
+pauseContract() {
+    erdpy --verbose contract call $1 --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=${DEPLOY_GAS} \
+        --function=pause \
+        --send || return
+}
+
+# params:
+#   $1 = Contract Address
+resumeContract() {
+    erdpy --verbose contract call $1 --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=${DEPLOY_GAS} \
+        --function=resume \
         --send || return
 }
