@@ -213,10 +213,7 @@ pub trait Farm {
         let farm_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
         let farm_token_id = self.farm_token_id().get();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
-        let farm_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            farm_token_id.as_esdt_identifier(),
-        );
+        let farm_token_nonce = self.farm_token_nonce().get();
 
         let _ = self.send().direct_esdt_nft_via_transfer_exec(
             &self.blockchain().get_caller(),
@@ -342,10 +339,7 @@ pub trait Farm {
         liquidity: BigUint,
     ) -> SCResult<BigUint> {
         let token_id = self.farm_token_id().get();
-        let token_current_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
-        );
+        let token_current_nonce = self.farm_token_nonce().get();
         require!(token_nonce <= token_current_nonce, "Invalid nonce");
 
         let attributes = sc_try!(self.get_farm_attributes(token_id, token_nonce));
@@ -504,6 +498,14 @@ pub trait Farm {
             attributes,
             &[BoxedBytes::empty()],
         );
+
+        self.increase_nonce();
+    }
+
+    fn increase_nonce(&self) -> Nonce {
+        let new_nonce = self.farm_token_nonce().get() + 1;
+        self.farm_token_nonce().set(&new_nonce);
+        new_nonce
     }
 
     fn burn(&self, token: &TokenIdentifier, nonce: u64, amount: &BigUint) {
@@ -550,10 +552,7 @@ pub trait Farm {
             &token_in,
         );
         let farm_token_id = self.farm_token_id().get();
-        let farming_pool_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            &farm_token_id.as_esdt_identifier(),
-        );
+        let farming_pool_token_nonce = self.farm_token_nonce().get();
         Ok(SftTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: farming_pool_token_nonce + 1,
@@ -733,6 +732,9 @@ pub trait Farm {
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
     fn farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[storage_mapper("farm_token_nonce")]
+    fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
