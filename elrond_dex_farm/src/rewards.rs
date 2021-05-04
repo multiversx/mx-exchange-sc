@@ -5,8 +5,13 @@ elrond_wasm::derive_imports!();
 
 type Nonce = u64;
 
+pub use crate::liquidity_pool::*;
+
 #[elrond_wasm_derive::module(RewardsModule)]
 pub trait RewardsModuleImpl {
+    #[module(LiquidityPoolModuleImpl)]
+    fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
+
     #[endpoint(setPerBlockRewardAmount)]
     fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {
         only_owner!(self, "Permission denied");
@@ -42,6 +47,45 @@ pub trait RewardsModuleImpl {
             );
             self.last_reward_block_nonce().set(&current_nonce);
         }
+    }
+
+    fn calculate_reward_for_given_liquidity(
+        &self,
+        liquidity: BigUint,
+        initial_worth: BigUint,
+        token_id: TokenIdentifier,
+    ) -> SCResult<BigUint> {
+        require!(liquidity > 0, "Liquidity needs to be greater than 0");
+
+        let total_supply = self.liquidity_pool().total_supply().get();
+        require!(
+            total_supply > liquidity,
+            "Removing more liquidity than existent"
+        );
+
+        let virtual_reserves = self.liquidity_pool().virtual_reserves().get();
+        require!(
+            virtual_reserves > initial_worth,
+            "Removing more virtual reserve than existent"
+        );
+
+        let actual_reserves = self.blockchain().get_esdt_balance(
+            &self.blockchain().get_sc_address(),
+            token_id.as_esdt_identifier(),
+            0,
+        );
+        let reward_amount = self.calculate_reward_amount_current_block();
+
+        let total_reserves = virtual_reserves + actual_reserves + reward_amount;
+        let worth = liquidity * total_reserves / total_supply;
+
+        let reward = if worth > initial_worth {
+            worth - initial_worth
+        } else {
+            BigUint::zero()
+        };
+
+        Ok(reward)
     }
 
     #[view(getLastRewardEpoch)]

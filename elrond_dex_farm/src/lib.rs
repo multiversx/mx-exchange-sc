@@ -361,7 +361,7 @@ pub trait Farm {
             return Ok(initial_worth);
         }
 
-        let reward = sc_try!(self.liquidity_pool().calculate_reward(
+        let reward = sc_try!(self.rewards().calculate_reward_for_given_liquidity(
             liquidity,
             initial_worth,
             self.farming_pool_token_id().get(),
@@ -584,9 +584,8 @@ pub trait Farm {
         require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
         let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * amount.clone()
             / farm_attributes.total_amount_liquidity.clone();
-
-        let farming_pool_token_id = self.farming_pool_token_id().get();
         let reward = sc_try!(self.calculate_rewards_for_given_position(token_nonce, amount));
+        let farming_pool_token_id = self.farming_pool_token_id().get();
 
         Ok((
             TokenAmountPair {

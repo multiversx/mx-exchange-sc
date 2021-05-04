@@ -7,7 +7,6 @@ pub use crate::rewards::*;
 
 #[elrond_wasm_derive::module(LiquidityPoolModuleImpl)]
 pub trait LiquidityPoolModule {
-
     #[module(RewardsModule)]
     fn rewards(&self) -> RewardsModule<T, BigInt, BigUint>;
 
@@ -52,7 +51,7 @@ pub trait LiquidityPoolModule {
         farming_pool_token_id: TokenIdentifier,
         farmed_token_id: TokenIdentifier,
     ) -> SCResult<BigUint> {
-        let reward = sc_try!(self.calculate_reward(
+        let reward = sc_try!(self.rewards().calculate_reward_for_given_liquidity(
             liquidity.clone(),
             initial_worth.clone(),
             farming_pool_token_id.clone()
@@ -99,45 +98,6 @@ pub trait LiquidityPoolModule {
             let total_reserves = virtual_reserves + actual_reserves + reward_amount;
             amount * &total_supply / total_reserves
         }
-    }
-
-    fn calculate_reward(
-        &self,
-        liquidity: BigUint,
-        initial_worth: BigUint,
-        token_id: TokenIdentifier,
-    ) -> SCResult<BigUint> {
-        require!(liquidity > 0, "Liquidity needs to be greater than 0");
-
-        let total_supply = self.total_supply().get();
-        require!(
-            total_supply > liquidity,
-            "Removing more liquidity than existent"
-        );
-
-        let virtual_reserves = self.virtual_reserves().get();
-        require!(
-            virtual_reserves > initial_worth,
-            "Removing more virtual reserve than existent"
-        );
-
-        let actual_reserves = self.blockchain().get_esdt_balance(
-            &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
-            0,
-        );
-        let reward_amount = self.rewards().calculate_reward_amount_current_block();
-
-        let total_reserves = virtual_reserves + actual_reserves + reward_amount;
-        let worth = liquidity * total_reserves / total_supply;
-
-        let reward = if worth > initial_worth {
-            worth - initial_worth
-        } else {
-            BigUint::zero()
-        };
-
-        Ok(reward)
     }
 
     #[view(getTotalSupply)]
