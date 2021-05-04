@@ -384,7 +384,7 @@ pub trait Pair {
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant(&old_k, &new_k));
 
-        self.send_tokens(&token_out, &amount_out, &destination_address);
+        self.send_tokens_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
         Ok(())
     }
 
@@ -626,7 +626,7 @@ pub trait Pair {
         second_token_id: &TokenIdentifier,
     ) {
         if self.can_send_fee_directly(fee_token, requested_fee_token) {
-            self.send_tokens(fee_token, fee_slice, fee_address);
+            self.send_tokens_or_burn_on_zero_address(fee_token, fee_slice, fee_address);
         } else if self.can_resolve_swap_locally(
             fee_token,
             requested_fee_token,
@@ -640,7 +640,11 @@ pub trait Pair {
                 fee_slice,
             );
             if to_send > 0 {
-                self.send_tokens(requested_fee_token, &to_send, fee_address);
+                self.send_tokens_or_burn_on_zero_address(
+                    requested_fee_token,
+                    &to_send,
+                    fee_address,
+                );
             } else {
                 self.reinject(fee_token, fee_slice);
             }
@@ -780,6 +784,31 @@ pub trait Pair {
                 amount,
                 &[],
             );
+        }
+    }
+
+    #[inline]
+    fn send_tokens_or_burn_on_zero_address(
+        &self,
+        token: &TokenIdentifier,
+        amount: &BigUint,
+        destination: &Address,
+    ) {
+        if amount > &0 {
+            if destination == &Address::zero() {
+                self.send().esdt_local_burn(
+                    self.blockchain().get_gas_left(),
+                    token.as_esdt_identifier(),
+                    &amount,
+                );
+            } else {
+                let _ = self.send().direct_esdt_via_transf_exec(
+                    destination,
+                    token.as_esdt_identifier(),
+                    amount,
+                    &[],
+                );
+            }
         }
     }
 
