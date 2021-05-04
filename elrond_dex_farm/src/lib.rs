@@ -311,7 +311,7 @@ pub trait Farm {
             farming_pool_token_id,
             farm_attributes.farmed_token_id.clone()
         ));
-        let farm_attributes = FarmTokenAttributes::<BigUint> {
+        let new_farm_attributes = FarmTokenAttributes::<BigUint> {
             farmed_token_id: farm_attributes.farmed_token_id,
             total_farmed_tokens: farmed_token_amount,
             total_initial_worth: initial_worth,
@@ -321,13 +321,13 @@ pub trait Farm {
 
         // Create and send the new farm tokens.
         let farm_tokens_to_create = re_added_liquidity.clone() + BigUint::from(1u64);
-        self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
+        self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
         self.send_tokens(
             &farm_token_id,
             farm_token_nonce,
             &re_added_liquidity,
-            &self.blockchain().get_caller(),
+            &caller,
         );
 
         Ok(())
