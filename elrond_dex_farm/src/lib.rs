@@ -220,7 +220,12 @@ pub trait Farm {
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
 
-        self.send_tokens(&farm_token_id, farm_token_nonce, &liquidity, &self.blockchain().get_caller());
+        self.send_tokens(
+            &farm_token_id,
+            farm_token_nonce,
+            &liquidity,
+            &self.blockchain().get_caller(),
+        );
         Ok(())
     }
 
@@ -261,6 +266,66 @@ pub trait Farm {
             farm_attributes.farmed_token_id,
             caller,
             farm_attributes.entering_epoch,
+        );
+
+        Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(claimRewards)]
+    fn claim_rewards(&self) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        let (liquidity, payment_token_id) = self.call_value().payment_token_pair();
+        let token_nonce = self.call_value().esdt_token_nonce();
+        let farm_token_id = self.farm_token_id().get();
+        require!(payment_token_id == farm_token_id, "Unknown farm token");
+
+        // Get info from input tokens and burn them.
+        let farm_attributes =
+            sc_try!(self.get_farm_attributes(payment_token_id.clone(), token_nonce));
+        let initial_worth = farm_attributes.total_initial_worth.clone() * liquidity.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
+        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * liquidity.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
+        self.burn_tokens(&payment_token_id, token_nonce, &liquidity);
+
+        // Remove liquidity and send rewards. No penalty.
+        let caller = self.blockchain().get_caller();
+        let farming_pool_token_id = self.farming_pool_token_id().get();
+        let reward = sc_try!(self.liquidity_pool().remove_liquidity(
+            liquidity,
+            initial_worth.clone(),
+            farming_pool_token_id.clone(),
+            farm_attributes.farmed_token_id.clone(),
+        ));
+        self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
+
+        // Re-add the lp tokens and their worth into liquidity pool.
+        let re_added_liquidity = sc_try!(self.liquidity_pool().add_liquidity(
+            initial_worth.clone(),
+            farming_pool_token_id,
+            farm_attributes.farmed_token_id.clone()
+        ));
+        let farm_attributes = FarmTokenAttributes::<BigUint> {
+            farmed_token_id: farm_attributes.farmed_token_id,
+            total_farmed_tokens: farmed_token_amount,
+            total_initial_worth: initial_worth,
+            total_amount_liquidity: re_added_liquidity.clone(),
+            entering_epoch: farm_attributes.entering_epoch,
+        };
+
+        // Create and send the new farm tokens.
+        let farm_tokens_to_create = re_added_liquidity.clone() + BigUint::from(1u64);
+        self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
+        let farm_token_nonce = self.farm_token_nonce().get();
+        self.send_tokens(
+            &farm_token_id,
+            farm_token_nonce,
+            &re_added_liquidity,
+            &self.blockchain().get_caller(),
         );
 
         Ok(())
@@ -327,7 +392,13 @@ pub trait Farm {
     }
 
     #[inline]
-    fn send_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &BigUint, destination: &Address) {
+    fn send_tokens(
+        &self,
+        token: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &BigUint,
+        destination: &Address,
+    ) {
         if amount > &0 {
             if nonce > 0 {
                 let _ = self.send().direct_esdt_nft_via_transfer_exec(
