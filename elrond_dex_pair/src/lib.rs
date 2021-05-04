@@ -782,7 +782,7 @@ pub trait Pair {
     ) {
         if amount > &0 {
             if destination == &Address::zero() {
-                self.send().esdt_local_mint(
+                self.send().esdt_local_burn(
                     self.blockchain().get_gas_left(),
                     token.as_esdt_identifier(),
                     &amount,
