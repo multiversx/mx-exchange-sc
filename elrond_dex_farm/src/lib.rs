@@ -201,7 +201,6 @@ pub trait Farm {
         );
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        self.rewards().mint_rewards(&farming_pool_token_id);
         let liquidity = sc_try!(self.liquidity_pool().add_liquidity(
             farm_contribution.clone(),
             farming_pool_token_id,
@@ -255,7 +254,6 @@ pub trait Farm {
         require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        self.rewards().mint_rewards(&farming_pool_token_id);
         let reward = sc_try!(self.liquidity_pool().remove_liquidity(
             liquidity.clone(),
             initial_worth,
@@ -265,6 +263,7 @@ pub trait Farm {
         self.burn(&payment_token_id, token_nonce, &liquidity);
 
         let caller = self.blockchain().get_caller();
+        self.rewards().mint_rewards(&farming_pool_token_id);
         self.send_reward_and_farmed_tokens(
             reward,
             farming_pool_token_id,
@@ -543,7 +542,7 @@ pub trait Farm {
         }
     }
 
-    #[endpoint(simulateEnterFarm)]
+    #[view(simulateEnterFarm)]
     fn simulate_enter_farm(
         &self,
         token_in: TokenIdentifier,
@@ -552,7 +551,6 @@ pub trait Farm {
         let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount_in));
         let farming_pool_token_id = self.farming_pool_token_id().get();
 
-        self.rewards().mint_rewards(&farming_pool_token_id);
         let liquidity = self.liquidity_pool().calculate_liquidity(
             &farm_contribution,
             &farming_pool_token_id,
@@ -570,7 +568,7 @@ pub trait Farm {
         })
     }
 
-    #[endpoint(simulateExitFarm)]
+    #[view(simulateExitFarm)]
     fn simulate_exit_farm(
         &self,
         token_id: TokenIdentifier,
@@ -588,7 +586,6 @@ pub trait Farm {
             / farm_attributes.total_amount_liquidity.clone();
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        self.rewards().mint_rewards(&farming_pool_token_id);
         let reward = sc_try!(self.calculate_rewards_for_given_position(token_nonce, amount));
 
         Ok((

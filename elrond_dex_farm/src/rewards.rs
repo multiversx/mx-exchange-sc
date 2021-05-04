@@ -16,13 +16,25 @@ pub trait RewardsModuleImpl {
         Ok(())
     }
 
-    fn mint_rewards(&self, token_id: &TokenIdentifier) {
+    fn calculate_reward_amount_current_block(&self) -> BigUint {
         let current_nonce = self.blockchain().get_block_nonce();
+        self.calculate_reward_amount(current_nonce)
+    }
+
+    fn calculate_reward_amount(&self, block_nonce: Nonce) -> BigUint {
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let per_block_reward = self.per_block_reward_amount().get();
-        if current_nonce > last_reward_nonce && per_block_reward > 0 {
-            let to_mint =
-                BigUint::from(per_block_reward) * BigUint::from(current_nonce - last_reward_nonce);
+        if block_nonce > last_reward_nonce && per_block_reward > 0 {
+            BigUint::from(per_block_reward) * BigUint::from(block_nonce - last_reward_nonce)
+        } else {
+            BigUint::zero()
+        }
+    }
+
+    fn mint_rewards(&self, token_id: &TokenIdentifier) {
+        let current_nonce = self.blockchain().get_block_nonce();
+        let to_mint = self.calculate_reward_amount(current_nonce);
+        if to_mint != 0 {
             self.send().esdt_local_mint(
                 self.blockchain().get_gas_left(),
                 token_id.as_esdt_identifier(),
