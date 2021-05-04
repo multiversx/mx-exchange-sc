@@ -15,6 +15,12 @@ pub use crate::liquidity_pool::*;
 pub mod rewards;
 pub use crate::rewards::*;
 
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub enum State {
+    Inactive,
+    Active,
+}
+
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     farmed_token_id: TokenIdentifier,
@@ -67,7 +73,7 @@ pub trait Farm {
     ) {
         self.farming_pool_token_id().set(&farming_pool_token_id);
         self.router_address().set(&router_address);
-        self.state().set(&true);
+        self.state().set(&State::Active);
         self.owner().set(&self.blockchain().get_caller());
         self.farm_with_lp_tokens().set(&farm_with_lp_tokens);
     }
@@ -75,14 +81,14 @@ pub trait Farm {
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
         sc_try!(self.require_permissions());
-        self.state().set(&false);
+        self.state().set(&State::Inactive);
         Ok(())
     }
 
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
         sc_try!(self.require_permissions());
-        self.state().set(&true);
+        self.state().set(&State::Active);
         Ok(())
     }
 
@@ -692,7 +698,8 @@ pub trait Farm {
 
     #[inline]
     fn is_active(&self) -> bool {
-        self.state().get()
+        let state = self.state().get();
+        state == State::Active
     }
 
     #[view(getFarmingPoolTokenIdAndAmounts)]
@@ -751,7 +758,7 @@ pub trait Farm {
 
     #[view(getState)]
     #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 
     #[view(getOwner)]
     #[storage_mapper("owner")]
