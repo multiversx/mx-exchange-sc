@@ -224,19 +224,14 @@ pub trait Farm {
         let farm_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
         let farm_token_id = self.farm_token_id().get();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
-        let farm_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            farm_token_id.as_esdt_identifier(),
-        );
+        let farm_token_nonce = self.farm_token_nonce().get();
 
-        let _ = self.send().direct_esdt_nft_via_transfer_exec(
-            &self.blockchain().get_caller(),
-            farm_token_id.as_esdt_identifier(),
+        self.send_tokens(
+            &farm_token_id,
             farm_token_nonce,
             &liquidity,
-            &[],
+            &self.blockchain().get_caller(),
         );
-
         Ok(())
     }
 
@@ -266,7 +261,7 @@ pub trait Farm {
             farming_pool_token_id.clone(),
             farm_attributes.farmed_token_id.clone(),
         ));
-        self.burn(&payment_token_id, token_nonce, &liquidity);
+        self.burn_tokens(&payment_token_id, token_nonce, &liquidity);
 
         let caller = self.blockchain().get_caller();
         self.rewards().mint_rewards(&farming_pool_token_id);
@@ -277,6 +272,68 @@ pub trait Farm {
             farm_attributes.farmed_token_id,
             caller,
             farm_attributes.entering_epoch,
+        );
+
+        Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(claimRewards)]
+    fn claim_rewards(&self) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        let (liquidity, payment_token_id) = self.call_value().payment_token_pair();
+        let token_nonce = self.call_value().esdt_token_nonce();
+        let farm_token_id = self.farm_token_id().get();
+        require!(payment_token_id == farm_token_id, "Unknown farm token");
+
+        // Get info from input tokens and burn them.
+        let farm_attributes =
+            sc_try!(self.get_farm_attributes(payment_token_id.clone(), token_nonce));
+        let initial_worth = farm_attributes.total_initial_worth.clone() * liquidity.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
+        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * liquidity.clone()
+            / farm_attributes.total_amount_liquidity.clone();
+        require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
+        self.burn_tokens(&payment_token_id, token_nonce, &liquidity);
+
+        // Remove liquidity and send rewards. No penalty.
+        let caller = self.blockchain().get_caller();
+        let farming_pool_token_id = self.farming_pool_token_id().get();
+        let reward = sc_try!(self.liquidity_pool().remove_liquidity(
+            liquidity,
+            initial_worth.clone(),
+            farming_pool_token_id.clone(),
+            farm_attributes.farmed_token_id.clone(),
+        ));
+        // Must mint rewards before sending them.
+        self.rewards().mint_rewards(&farming_pool_token_id);
+        self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
+
+        // Re-add the lp tokens and their worth into liquidity pool.
+        let re_added_liquidity = sc_try!(self.liquidity_pool().add_liquidity(
+            initial_worth.clone(),
+            farming_pool_token_id,
+            farm_attributes.farmed_token_id.clone()
+        ));
+        let new_farm_attributes = FarmTokenAttributes::<BigUint> {
+            farmed_token_id: farm_attributes.farmed_token_id,
+            total_farmed_tokens: farmed_token_amount,
+            total_initial_worth: initial_worth,
+            total_amount_liquidity: re_added_liquidity.clone(),
+            entering_epoch: farm_attributes.entering_epoch,
+        };
+
+        // Create and send the new farm tokens.
+        let farm_tokens_to_create = re_added_liquidity.clone() + BigUint::from(1u64);
+        self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
+        let farm_token_nonce = self.farm_token_nonce().get();
+        self.send_tokens(
+            &farm_token_id,
+            farm_token_nonce,
+            &re_added_liquidity,
+            &caller,
         );
 
         Ok(())
@@ -312,39 +369,62 @@ pub trait Farm {
         address: Address,
         entering_epoch: u64,
     ) {
-        if amount > 0 {
-            if self.should_apply_penalty(entering_epoch) {
-                let penalty_amount = self.get_penalty_amount(amount.clone());
-                if penalty_amount > 0 {
-                    self.burn_token(&token, &penalty_amount);
-                }
-                let to_send = amount - penalty_amount;
-                if to_send > 0 {
-                    self.send_tokens(&token, &to_send, &address);
-                }
+        if self.should_apply_penalty(entering_epoch) {
+            let penalty_amount = self.get_penalty_amount(amount.clone());
+            self.burn_tokens(&token, 0, &penalty_amount);
+            let to_send = amount - penalty_amount;
+            self.send_tokens(&token, 0, &to_send, &address);
+        } else {
+            self.send_tokens(&token, 0, &amount, &address);
+        }
+    }
+
+    #[inline]
+    fn burn_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
+        if amount > &0 {
+            if nonce > 0 {
+                self.send().esdt_nft_burn(
+                    self.blockchain().get_gas_left(),
+                    token.as_esdt_identifier(),
+                    nonce,
+                    amount,
+                );
             } else {
-                self.send_tokens(&token, &amount, &address);
+                self.send().esdt_local_burn(
+                    self.blockchain().get_gas_left(),
+                    token.as_esdt_identifier(),
+                    &amount,
+                );
             }
         }
     }
 
     #[inline]
-    fn burn_token(&self, token: &TokenIdentifier, amount: &BigUint) {
-        self.send().esdt_local_burn(
-            self.blockchain().get_gas_left(),
-            token.as_esdt_identifier(),
-            &amount,
-        );
-    }
-
-    #[inline]
-    fn send_tokens(&self, token: &TokenIdentifier, amount: &BigUint, destination: &Address) {
-        let _ = self.send().direct_esdt_via_transf_exec(
-            destination,
-            token.as_esdt_identifier(),
-            amount,
-            &[],
-        );
+    fn send_tokens(
+        &self,
+        token: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &BigUint,
+        destination: &Address,
+    ) {
+        if amount > &0 {
+            if nonce > 0 {
+                let _ = self.send().direct_esdt_nft_via_transfer_exec(
+                    &destination,
+                    token.as_esdt_identifier(),
+                    nonce,
+                    &amount,
+                    &[],
+                );
+            } else {
+                let _ = self.send().direct_esdt_via_transf_exec(
+                    destination,
+                    token.as_esdt_identifier(),
+                    amount,
+                    &[],
+                );
+            }
+        }
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -354,10 +434,7 @@ pub trait Farm {
         liquidity: BigUint,
     ) -> SCResult<BigUint> {
         let token_id = self.farm_token_id().get();
-        let token_current_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
-        );
+        let token_current_nonce = self.farm_token_nonce().get();
         require!(token_nonce <= token_current_nonce, "Invalid nonce");
 
         let attributes = sc_try!(self.get_farm_attributes(token_id, token_nonce));
@@ -516,15 +593,14 @@ pub trait Farm {
             attributes,
             &[BoxedBytes::empty()],
         );
+
+        self.increase_nonce();
     }
 
-    fn burn(&self, token: &TokenIdentifier, nonce: u64, amount: &BigUint) {
-        self.send().esdt_nft_burn(
-            self.blockchain().get_gas_left(),
-            token.as_esdt_identifier(),
-            nonce,
-            amount,
-        );
+    fn increase_nonce(&self) -> Nonce {
+        let new_nonce = self.farm_token_nonce().get() + 1;
+        self.farm_token_nonce().set(&new_nonce);
+        new_nonce
     }
 
     fn require_permissions(&self) -> SCResult<()> {
@@ -563,10 +639,7 @@ pub trait Farm {
             &token_in,
         );
         let farm_token_id = self.farm_token_id().get();
-        let farming_pool_token_nonce = self.blockchain().get_current_esdt_nft_nonce(
-            &self.blockchain().get_sc_address(),
-            &farm_token_id.as_esdt_identifier(),
-        );
+        let farming_pool_token_nonce = self.farm_token_nonce().get();
         Ok(SftTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: farming_pool_token_nonce + 1,
@@ -747,6 +820,9 @@ pub trait Farm {
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
     fn farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[storage_mapper("farm_token_nonce")]
+    fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
