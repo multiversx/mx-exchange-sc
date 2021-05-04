@@ -301,6 +301,8 @@ pub trait Farm {
             farming_pool_token_id.clone(),
             farm_attributes.farmed_token_id.clone(),
         ));
+        // Must mint rewards before sending them.
+        self.rewards().mint_rewards(&farming_pool_token_id);
         self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         // Re-add the lp tokens and their worth into liquidity pool.
