@@ -339,6 +339,17 @@ pub trait Farm {
         Ok(())
     }
 
+    #[payable("*")]
+    #[endpoint(acceptFee)]
+    fn accept_fee(&self, #[payment_token] token_in: TokenIdentifier) -> SCResult<()> {
+        let farming_pool_token_id = self.farming_pool_token_id().get();
+        require!(
+            token_in == farming_pool_token_id,
+            "Bad fee token identifier"
+        );
+        Ok(())
+    }
+
     fn send_reward_and_farmed_tokens(
         &self,
         reward_amount: BigUint,
