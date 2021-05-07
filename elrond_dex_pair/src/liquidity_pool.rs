@@ -141,7 +141,7 @@ pub trait LiquidityPoolModule {
         );
         if second_token_amount_optimal <= second_token_amount_desired {
             require!(
-                second_token_amount_optimal > second_token_amount_min,
+                second_token_amount_optimal >= second_token_amount_min,
                 "Pair: insufficient second token computed amount"
             );
             Ok((first_token_amount_desired, second_token_amount_optimal))
