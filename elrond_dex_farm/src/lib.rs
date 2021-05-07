@@ -197,7 +197,7 @@ pub trait Farm {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount: BigUint,
-    ) -> SCResult<()> {
+    ) -> SCResult<SftTokenAmountPair<BigUint>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount));
@@ -232,15 +232,25 @@ pub trait Farm {
             &liquidity,
             &self.blockchain().get_caller(),
         );
-        Ok(())
+
+        Ok(
+            SftTokenAmountPair {
+                token_id: farm_token_id,
+                token_nonce: farm_token_nonce,
+                amount: liquidity,
+            }
+        )
     }
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm(&self) -> SCResult<()> {
+    fn exit_farm(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment] liquidity: BigUint,
+    ) -> SCResult<MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>> {
         //require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
-        let (liquidity, payment_token_id) = self.call_value().payment_token_pair();
         let token_nonce = self.call_value().esdt_token_nonce();
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
@@ -250,12 +260,13 @@ pub trait Farm {
         let initial_worth = farm_attributes.total_initial_worth.clone() * liquidity.clone()
             / farm_attributes.total_amount_liquidity.clone();
         require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
-        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * liquidity.clone()
+        let mut farmed_token_amount = farm_attributes.total_farmed_tokens.clone()
+            * liquidity.clone()
             / farm_attributes.total_amount_liquidity.clone();
         require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
 
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        let reward = sc_try!(self.liquidity_pool().remove_liquidity(
+        let mut reward = sc_try!(self.liquidity_pool().remove_liquidity(
             liquidity.clone(),
             initial_worth,
             farming_pool_token_id.clone(),
@@ -265,24 +276,46 @@ pub trait Farm {
 
         let caller = self.blockchain().get_caller();
         self.rewards().mint_rewards(&farming_pool_token_id);
-        self.send_reward_and_farmed_tokens(
-            reward,
-            farming_pool_token_id,
-            farmed_token_amount,
-            farm_attributes.farmed_token_id,
-            caller,
-            farm_attributes.entering_epoch,
-        );
+        if self.should_apply_penalty(farm_attributes.entering_epoch) {
+            let mut penalty_amount = self.get_penalty_amount(reward.clone());
+            self.burn_tokens(&farming_pool_token_id, 0, &penalty_amount);
+            reward = reward - penalty_amount;
 
-        Ok(())
+            penalty_amount = self.get_penalty_amount(farmed_token_amount.clone());
+            self.burn_tokens(&farm_attributes.farmed_token_id, 0, &farmed_token_amount);
+            farmed_token_amount = farmed_token_amount - penalty_amount;
+        }
+
+        self.send_tokens(
+            &farm_attributes.farmed_token_id,
+            0,
+            &farmed_token_amount,
+            &caller,
+        );
+        self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
+
+        Ok((
+            TokenAmountPair {
+                token_id: farm_attributes.farmed_token_id,
+                amount: farmed_token_amount,
+            },
+            TokenAmountPair {
+                token_id: farming_pool_token_id,
+                amount: reward,
+            },
+        )
+            .into())
     }
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self) -> SCResult<()> {
+    fn claim_rewards(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment] liquidity: BigUint,
+    ) -> SCResult<MultiResult2<SftTokenAmountPair<BigUint>, TokenAmountPair<BigUint>>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
-        let (liquidity, payment_token_id) = self.call_value().payment_token_pair();
         let token_nonce = self.call_value().esdt_token_nonce();
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
@@ -314,7 +347,7 @@ pub trait Farm {
         // Re-add the lp tokens and their worth into liquidity pool.
         let re_added_liquidity = sc_try!(self.liquidity_pool().add_liquidity(
             initial_worth.clone(),
-            farming_pool_token_id,
+            farming_pool_token_id.clone(),
             farm_attributes.farmed_token_id.clone()
         ));
         let new_farm_attributes = FarmTokenAttributes::<BigUint> {
@@ -336,7 +369,18 @@ pub trait Farm {
             &caller,
         );
 
-        Ok(())
+        Ok((
+            SftTokenAmountPair {
+                token_id: farm_token_id,
+                token_nonce: farm_token_nonce,
+                amount: re_added_liquidity,
+            },
+            TokenAmountPair {
+                token_id: farming_pool_token_id,
+                amount: reward,
+            },
+        )
+            .into())
     }
 
     #[payable("*")]
@@ -348,46 +392,6 @@ pub trait Farm {
             "Bad fee token identifier"
         );
         Ok(())
-    }
-
-    fn send_reward_and_farmed_tokens(
-        &self,
-        reward_amount: BigUint,
-        reward_token: TokenIdentifier,
-        farmed_amount: BigUint,
-        farmed_token: TokenIdentifier,
-        address: Address,
-        entering_epoch: u64,
-    ) {
-        if reward_token == farmed_token {
-            let send_total = farmed_amount + reward_amount;
-            self.send_tokens_and_burn_penalty(farmed_token, send_total, address, entering_epoch);
-        } else {
-            self.send_tokens_and_burn_penalty(
-                reward_token,
-                reward_amount,
-                address.clone(),
-                entering_epoch,
-            );
-            self.send_tokens_and_burn_penalty(farmed_token, farmed_amount, address, entering_epoch);
-        }
-    }
-
-    fn send_tokens_and_burn_penalty(
-        &self,
-        token: TokenIdentifier,
-        amount: BigUint,
-        address: Address,
-        entering_epoch: u64,
-    ) {
-        if self.should_apply_penalty(entering_epoch) {
-            let penalty_amount = self.get_penalty_amount(amount.clone());
-            self.burn_tokens(&token, 0, &penalty_amount);
-            let to_send = amount - penalty_amount;
-            self.send_tokens(&token, 0, &to_send, &address);
-        } else {
-            self.send_tokens(&token, 0, &amount, &address);
-        }
     }
 
     #[inline]
@@ -635,6 +639,7 @@ pub trait Farm {
         }
     }
 
+    //TODO: remove this function
     #[view(simulateEnterFarm)]
     fn simulate_enter_farm(
         &self,
@@ -658,6 +663,7 @@ pub trait Farm {
         })
     }
 
+    //TODO: remove this function
     #[view(simulateExitFarm)]
     fn simulate_exit_farm(
         &self,
@@ -690,6 +696,7 @@ pub trait Farm {
             .into())
     }
 
+    //TODO: remove view
     #[view(getFarmContribution)]
     fn get_farm_contribution(
         &self,
