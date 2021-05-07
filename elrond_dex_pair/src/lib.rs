@@ -254,7 +254,9 @@ pub trait Pair {
         #[payment] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> SCResult<()> {
+    ) -> SCResult<
+        MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>
+    > {
         //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -291,7 +293,17 @@ pub trait Pair {
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant_strict(&new_k, &old_k));
 
-        Ok(())
+        Ok((
+            TokenAmountPair {
+                token_id: first_token_id,
+                amount: first_token_amount,
+            },
+            TokenAmountPair {
+                token_id: second_token_id,
+                amount: second_token_amount,
+            }
+        )
+            .into())
     }
 
     #[endpoint(whitelist)]
