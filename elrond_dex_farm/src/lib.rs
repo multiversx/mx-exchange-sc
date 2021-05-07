@@ -282,7 +282,7 @@ pub trait Farm {
             reward = reward - penalty_amount;
 
             penalty_amount = self.get_penalty_amount(farmed_token_amount.clone());
-            self.burn_tokens(&farm_attributes.farmed_token_id, 0, &farmed_token_amount);
+            self.burn_tokens(&farm_attributes.farmed_token_id, 0, &penalty_amount);
             farmed_token_amount = farmed_token_amount - penalty_amount;
         }
 
