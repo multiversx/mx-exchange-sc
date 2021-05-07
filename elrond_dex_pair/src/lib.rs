@@ -15,13 +15,19 @@ pub use crate::fee::*;
 pub use crate::liquidity_pool::*;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
-const EXTERN_SWAP_GAS_LIMIT: u64 = 25000000;
+const EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
+const SEND_FEE_GAS_COST: u64 = 25000000;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
     Inactive,
     Active,
     ActiveNoSwaps,
+}
+
+#[elrond_wasm_derive::callable(FarmContractProxy)]
+pub trait FarmContract {
+    fn acceptFee(&self) -> ContractCall<BigUint, ()>;
 }
 
 #[elrond_wasm_derive::contract(PairImpl)]
@@ -384,7 +390,7 @@ pub trait Pair {
         let new_k = self.liquidity_pool().calculate_k_for_reserves();
         sc_try!(self.validate_k_invariant(&old_k, &new_k));
 
-        self.send_tokens_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
+        self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
         Ok(())
     }
 
@@ -626,7 +632,7 @@ pub trait Pair {
         second_token_id: &TokenIdentifier,
     ) {
         if self.can_send_fee_directly(fee_token, requested_fee_token) {
-            self.send_tokens_or_burn_on_zero_address(fee_token, fee_slice, fee_address);
+            self.send_fee_or_burn_on_zero_address(fee_token, fee_slice, fee_address);
         } else if self.can_resolve_swap_locally(
             fee_token,
             requested_fee_token,
@@ -640,11 +646,7 @@ pub trait Pair {
                 fee_slice,
             );
             if to_send > 0 {
-                self.send_tokens_or_burn_on_zero_address(
-                    requested_fee_token,
-                    &to_send,
-                    fee_address,
-                );
+                self.send_fee_or_burn_on_zero_address(requested_fee_token, &to_send, fee_address);
             } else {
                 self.reinject(fee_token, fee_slice);
             }
@@ -788,7 +790,7 @@ pub trait Pair {
     }
 
     #[inline]
-    fn send_tokens_or_burn_on_zero_address(
+    fn send_fee_or_burn_on_zero_address(
         &self,
         token: &TokenIdentifier,
         amount: &BigUint,
@@ -802,12 +804,10 @@ pub trait Pair {
                     &amount,
                 );
             } else {
-                let _ = self.send().direct_esdt_via_transf_exec(
-                    destination,
-                    token.as_esdt_identifier(),
-                    amount,
-                    &[],
-                );
+                contract_call!(self, destination.clone(), FarmContractProxy)
+                    .with_token_transfer(token.clone(), amount.clone())
+                    .acceptFee()
+                    .execute_on_dest_context(SEND_FEE_GAS_COST, self.send());
             }
         }
     }
@@ -1009,7 +1009,7 @@ pub trait Pair {
 
     #[inline]
     fn can_swap(&self) -> bool {
-        self.state().get() == State::ActiveNoSwaps
+        self.state().get() == State::Active
     }
 
     #[view(getTemporaryFunds)]
