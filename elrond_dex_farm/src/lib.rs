@@ -221,10 +221,10 @@ pub trait Farm {
             entering_epoch: self.blockchain().get_block_epoch(),
         };
 
-        // Do the actual permanent lock of first minimul liquidity
+        // Do the actual permanent lock of first minimum liquidity
         // only after the token attributes are crafted for the user.
         if is_first_provider {
-            liquidity -= BigUint::from(self.liquidity_pool().minimul_liquidity_farm_amount());
+            liquidity -= BigUint::from(self.liquidity_pool().minimum_liquidity_farm_amount());
         }
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
@@ -664,7 +664,7 @@ pub trait Farm {
         let farming_pool_token_nonce = self.farm_token_nonce().get();
 
         if is_first_provider {
-            liquidity -= BigUint::from(self.liquidity_pool().minimul_liquidity_farm_amount());
+            liquidity -= BigUint::from(self.liquidity_pool().minimum_liquidity_farm_amount());
         }
 
         Ok(SftTokenAmountPair {
