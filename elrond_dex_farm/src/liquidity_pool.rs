@@ -36,7 +36,7 @@ pub trait LiquidityPoolModule {
             self.virtual_reserves().set(&virtual_reserves);
         }
 
-        total_supply += liquidity.clone();
+        total_supply += &liquidity;
         self.total_supply().set(&total_supply);
 
         Ok(liquidity)
@@ -90,7 +90,7 @@ pub trait LiquidityPoolModule {
         let reward_amount = self.rewards().calculate_reward_amount_current_block();
 
         if !is_virtual_amount {
-            actual_reserves -= amount.clone();
+            actual_reserves -= amount;
         }
 
         if total_supply == 0 {

@@ -254,9 +254,7 @@ pub trait Pair {
         #[payment] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> SCResult<
-        MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>
-    > {
+    ) -> SCResult<MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>> {
         //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -301,7 +299,7 @@ pub trait Pair {
             TokenAmountPair {
                 token_id: second_token_id,
                 amount: second_token_amount,
-            }
+            },
         )
             .into())
     }
@@ -459,7 +457,7 @@ pub trait Pair {
         let mut amount_in_after_fee = amount_in.clone();
         if self.fee().is_enabled() {
             fee_amount = self.amm().get_special_fee_from_fixed_input(amount_in);
-            amount_in_after_fee -= fee_amount.clone();
+            amount_in_after_fee -= &fee_amount;
         }
 
         reserve_token_in += amount_in_after_fee;
@@ -529,7 +527,7 @@ pub trait Pair {
         let caller = self.blockchain().get_caller();
         self.send_tokens(&token_out, &amount_out, &caller);
 
-        let residuum = amount_in_max - amount_in_optimal.clone();
+        let residuum = &amount_in_max - &amount_in_optimal;
         self.send_tokens(&token_in, &residuum, &caller);
 
         let mut fee_amount = BigUint::zero();
@@ -538,7 +536,7 @@ pub trait Pair {
             fee_amount = self
                 .amm()
                 .get_special_fee_from_optimal_input(amount_in_optimal);
-            amount_in_optimal_after_fee -= fee_amount.clone();
+            amount_in_optimal_after_fee -= &fee_amount;
         }
         require!(
             reserve_token_out > amount_out,
@@ -613,7 +611,7 @@ pub trait Pair {
             return;
         }
 
-        let fee_slice = fee_amount.clone() / BigUint::from(slices);
+        let fee_slice = &fee_amount / &BigUint::from(slices);
         if fee_slice == 0 {
             self.reinject(&fee_token, &fee_amount);
             return;
