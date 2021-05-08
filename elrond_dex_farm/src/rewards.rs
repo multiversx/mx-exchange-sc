@@ -64,11 +64,6 @@ pub trait RewardsModuleImpl {
         );
 
         let virtual_reserves = self.liquidity_pool().virtual_reserves().get();
-        require!(
-            virtual_reserves > initial_worth,
-            "Removing more virtual reserve than existent"
-        );
-
         let actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
             token_id.as_esdt_identifier(),
