@@ -206,8 +206,9 @@ pub trait Farm {
             "Cannot farm with amount of 0"
         );
 
+        let is_first_provider = self.liquidity_pool().is_first_provider();
         let farming_pool_token_id = self.farming_pool_token_id().get();
-        let liquidity = sc_try!(self.liquidity_pool().add_liquidity(
+        let mut liquidity = sc_try!(self.liquidity_pool().add_liquidity(
             farm_contribution.clone(),
             farming_pool_token_id,
             token_in.clone()
@@ -219,6 +220,12 @@ pub trait Farm {
             total_amount_liquidity: liquidity.clone(),
             entering_epoch: self.blockchain().get_block_epoch(),
         };
+
+        // Do the actual permanent lock of first minimum liquidity
+        // only after the token attributes are crafted for the user.
+        if is_first_provider {
+            liquidity -= BigUint::from(self.liquidity_pool().minimum_liquidity_farm_amount());
+        }
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
         let farm_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
@@ -233,13 +240,11 @@ pub trait Farm {
             &self.blockchain().get_caller(),
         );
 
-        Ok(
-            SftTokenAmountPair {
-                token_id: farm_token_id,
-                token_nonce: farm_token_nonce,
-                amount: liquidity,
-            }
-        )
+        Ok(SftTokenAmountPair {
+            token_id: farm_token_id,
+            token_nonce: farm_token_nonce,
+            amount: liquidity,
+        })
     }
 
     #[payable("*")]
@@ -279,11 +284,11 @@ pub trait Farm {
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
             let mut penalty_amount = self.get_penalty_amount(reward.clone());
             self.burn_tokens(&farming_pool_token_id, 0, &penalty_amount);
-            reward = reward - penalty_amount;
+            reward -= penalty_amount;
 
             penalty_amount = self.get_penalty_amount(farmed_token_amount.clone());
             self.burn_tokens(&farm_attributes.farmed_token_id, 0, &penalty_amount);
-            farmed_token_amount = farmed_token_amount - penalty_amount;
+            farmed_token_amount -= penalty_amount;
         }
 
         self.send_tokens(
@@ -649,13 +654,19 @@ pub trait Farm {
         let farm_contribution = sc_try!(self.get_farm_contribution(&token_in, &amount_in));
         let farming_pool_token_id = self.farming_pool_token_id().get();
 
-        let liquidity = self.liquidity_pool().calculate_liquidity(
+        let is_first_provider = self.liquidity_pool().is_first_provider();
+        let mut liquidity = self.liquidity_pool().calculate_liquidity(
             &farm_contribution,
             &farming_pool_token_id,
             &token_in,
         );
         let farm_token_id = self.farm_token_id().get();
         let farming_pool_token_nonce = self.farm_token_nonce().get();
+
+        if is_first_provider {
+            liquidity -= BigUint::from(self.liquidity_pool().minimum_liquidity_farm_amount());
+        }
+
         Ok(SftTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: farming_pool_token_nonce + 1,

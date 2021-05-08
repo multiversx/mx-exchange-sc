@@ -23,12 +23,10 @@ pub trait LiquidityPoolModule {
 
         let mut total_supply = self.total_supply().get();
         if total_supply == 0 {
-            let minimum_amount = BigUint::from(MINIMUM_INITIAL_FARM_AMOUNT);
             require!(
                 liquidity > MINIMUM_INITIAL_FARM_AMOUNT,
                 "First farm needs to be greater than minimum amount"
             );
-            total_supply = minimum_amount;
         }
 
         let is_virtual_amount = farming_pool_token_id != farmed_token_id;
@@ -60,6 +58,10 @@ pub trait LiquidityPoolModule {
         let is_virtual_amount = farming_pool_token_id != farmed_token_id;
         if is_virtual_amount {
             let mut virtual_reserves = self.virtual_reserves().get();
+            require!(
+                virtual_reserves > initial_worth,
+                "Removing more virtual amount than available"
+            );
             virtual_reserves -= initial_worth;
             self.virtual_reserves().set(&virtual_reserves);
         }
@@ -92,12 +94,19 @@ pub trait LiquidityPoolModule {
         }
 
         if total_supply == 0 {
-            let minimum_amount = BigUint::from(MINIMUM_INITIAL_FARM_AMOUNT);
-            amount - &minimum_amount
+            amount.clone()
         } else {
             let total_reserves = virtual_reserves + actual_reserves + reward_amount;
             amount * &total_supply / total_reserves
         }
+    }
+
+    fn is_first_provider(&self) -> bool {
+        self.total_supply().get() == 0
+    }
+
+    fn minimum_liquidity_farm_amount(&self) -> u64 {
+        MINIMUM_INITIAL_FARM_AMOUNT
     }
 
     #[view(getTotalSupply)]
