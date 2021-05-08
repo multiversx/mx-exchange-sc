@@ -105,7 +105,7 @@ pub trait LiquidityPoolModule {
         self.total_supply().get() == 0
     }
 
-    fn minimul_liquidity_farm_amount(&self) -> u64 {
+    fn minimum_liquidity_farm_amount(&self) -> u64 {
         MINIMUM_INITIAL_FARM_AMOUNT
     }
 
