@@ -40,13 +40,13 @@ pub trait LiquidityPoolModule {
                 liquidity > minimum_liquidity,
                 "Pair: first tokens needs to be grater than minimum liquidity"
             );
-            liquidity -= minimum_liquidity.clone();
+            liquidity -= &minimum_liquidity;
             total_supply += minimum_liquidity;
             self.total_supply().set(&total_supply);
         } else {
             liquidity = core::cmp::min(
-                (first_token_amount.clone() * total_supply.clone()) / first_token_reserve.clone(),
-                (second_token_amount.clone() * total_supply) / second_token_reserve.clone(),
+                (&first_token_amount * &total_supply) / first_token_reserve.clone(),
+                (&second_token_amount * &total_supply) / second_token_reserve.clone(),
             );
         }
 
@@ -78,12 +78,12 @@ pub trait LiquidityPoolModule {
         amount_min: BigUint,
     ) -> SCResult<BigUint> {
         let mut reserve = self.pair_reserve(&token).get();
-        let amount = (liquidity * reserve.clone()) / total_supply;
+        let amount = (&liquidity * &reserve) / total_supply;
         require!(amount > 0, "Pair: insufficient_liquidity_burned");
         require!(amount >= amount_min, "Pair: insufficient_liquidity_burned");
         require!(reserve > amount, "Not enough reserve");
 
-        reserve -= amount.clone();
+        reserve -= &amount;
         self.pair_reserve(&token).set(&reserve);
 
         Ok(amount)
@@ -256,7 +256,7 @@ pub trait LiquidityPoolModule {
         }
 
         reserve_in += amount_in;
-        reserve_out -= amount_out.clone();
+        reserve_out -= &amount_out;
         self.update_reserves(&reserve_in, &reserve_out, &token_in, &token_out);
 
         amount_out

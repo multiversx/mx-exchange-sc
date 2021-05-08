@@ -228,7 +228,7 @@ pub trait Farm {
         }
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
-        let farm_tokens_to_create = liquidity.clone() + BigUint::from(1u64);
+        let farm_tokens_to_create = &liquidity + &BigUint::from(1u64);
         let farm_token_id = self.farm_token_id().get();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
@@ -262,11 +262,10 @@ pub trait Farm {
 
         let farm_attributes =
             sc_try!(self.get_farm_attributes(payment_token_id.clone(), token_nonce));
-        let initial_worth = farm_attributes.total_initial_worth.clone() * liquidity.clone()
+        let initial_worth = &farm_attributes.total_initial_worth * &liquidity
             / farm_attributes.total_amount_liquidity.clone();
         require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
-        let mut farmed_token_amount = farm_attributes.total_farmed_tokens.clone()
-            * liquidity.clone()
+        let mut farmed_token_amount = &farm_attributes.total_farmed_tokens * &liquidity
             / farm_attributes.total_amount_liquidity.clone();
         require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
 
@@ -328,10 +327,10 @@ pub trait Farm {
         // Get info from input tokens and burn them.
         let farm_attributes =
             sc_try!(self.get_farm_attributes(payment_token_id.clone(), token_nonce));
-        let initial_worth = farm_attributes.total_initial_worth.clone() * liquidity.clone()
+        let initial_worth = &farm_attributes.total_initial_worth * &liquidity
             / farm_attributes.total_amount_liquidity.clone();
         require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
-        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * liquidity.clone()
+        let farmed_token_amount = &farm_attributes.total_farmed_tokens * &liquidity
             / farm_attributes.total_amount_liquidity.clone();
         require!(farmed_token_amount > 0, "Cannot unfarm with 0 farmed_token");
         self.burn_tokens(&payment_token_id, token_nonce, &liquidity);
@@ -364,7 +363,7 @@ pub trait Farm {
         };
 
         // Create and send the new farm tokens.
-        let farm_tokens_to_create = re_added_liquidity.clone() + BigUint::from(1u64);
+        let farm_tokens_to_create = &re_added_liquidity + &BigUint::from(1u64);
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
         self.send_tokens(
@@ -458,8 +457,8 @@ pub trait Farm {
         require!(token_nonce <= token_current_nonce, "Invalid nonce");
 
         let attributes = sc_try!(self.get_farm_attributes(token_id, token_nonce));
-        let initial_worth = attributes.total_initial_worth.clone() * liquidity.clone()
-            / attributes.total_amount_liquidity;
+        let initial_worth =
+            &attributes.total_initial_worth * &liquidity / attributes.total_amount_liquidity;
         if initial_worth == 0 {
             return Ok(initial_worth);
         }
@@ -471,7 +470,7 @@ pub trait Farm {
         ));
 
         if self.should_apply_penalty(attributes.entering_epoch) {
-            Ok(reward.clone() - self.get_penalty_amount(reward))
+            Ok(&reward - &self.get_penalty_amount(reward.clone()))
         } else {
             Ok(reward)
         }
@@ -686,10 +685,10 @@ pub trait Farm {
         require!(token_id == farm_token_id, "Wrong input token");
 
         let farm_attributes = sc_try!(self.get_farm_attributes(token_id, token_nonce));
-        let initial_worth = farm_attributes.total_initial_worth.clone() * amount.clone()
+        let initial_worth = &farm_attributes.total_initial_worth * &amount
             / farm_attributes.total_amount_liquidity.clone();
         require!(initial_worth > 0, "Cannot unfarm with 0 intial_worth");
-        let farmed_token_amount = farm_attributes.total_farmed_tokens.clone() * amount.clone()
+        let farmed_token_amount = &farm_attributes.total_farmed_tokens * &amount
             / farm_attributes.total_amount_liquidity.clone();
         let reward = sc_try!(self.calculate_rewards_for_given_position(token_nonce, amount));
         let farming_pool_token_id = self.farming_pool_token_id().get();
