@@ -51,6 +51,10 @@ pub trait LiquidityPoolModule: amm::AmmModule {
             &liquidity,
         );
 
+        let mut total_supply = self.total_supply().get();
+        total_supply += liquidity.clone();
+        self.total_supply().set(&total_supply);
+
         first_token_reserve += first_token_amount;
         second_token_reserve += second_token_amount;
         self.update_reserves(
@@ -109,6 +113,11 @@ pub trait LiquidityPoolModule: amm::AmmModule {
             lp_token_identifier.as_esdt_identifier(),
             &liquidity,
         );
+
+        let mut total_supply = self.total_supply().get();
+        require!(total_supply > liquidity, "Not enough supply");
+        total_supply -= liquidity;
+        self.total_supply().set(&total_supply);
 
         Ok((first_token_amount, second_token_amount))
     }

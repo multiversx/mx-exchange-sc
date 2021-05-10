@@ -188,10 +188,6 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         let caller = &self.blockchain().get_caller();
         self.send_tokens(&lp_token_id, &liquidity, &caller);
 
-        let mut total_supply = self.liquidity_pool().total_supply().get();
-        total_supply += liquidity.clone();
-        self.liquidity_pool().total_supply().set(&total_supply);
-
         let temporary_first_token_unused =
             temporary_first_token_amount - first_token_amount.clone();
         let temporary_second_token_unused =
@@ -281,16 +277,10 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             self.lp_token_identifier().get(),
         ));
 
-        let first_token_id = self.liquidity_pool().first_token_id().get();
-        let second_token_id = self.liquidity_pool().second_token_id().get();
-        let mut total_supply = self.liquidity_pool().total_supply().get();
-        require!(total_supply > liquidity, "Not enough supply");
-        total_supply -= liquidity;
-
+        let first_token_id = self.first_token_id().get();
+        let second_token_id = self.second_token_id().get();
         self.send_tokens(&first_token_id, &first_token_amount, &caller);
         self.send_tokens(&second_token_id, &second_token_amount, &caller);
-
-        self.liquidity_pool().total_supply().set(&total_supply);
 
         // Once liquidity has been removed, the new K should never be greater than the old K.
         let new_k = self.calculate_k_for_reserves();
