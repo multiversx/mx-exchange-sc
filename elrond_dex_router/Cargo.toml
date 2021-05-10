@@ -13,13 +13,21 @@ wasm-output-mode = ["elrond-wasm-node"]
 
 [dependencies.elrond-wasm]
 version = "0.15"
+path = "../../elrond-wasm-rs/elrond-wasm"
 
 [dependencies.elrond-wasm-derive]
 version = "0.15"
+path = "../../elrond-wasm-rs/elrond-wasm-derive"
 
 [dependencies.elrond-wasm-node]
 version = "0.15"
 optional = true
+path = "../../elrond-wasm-rs/elrond-wasm-node"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.15"
+path = "../../elrond-wasm-rs/elrond-wasm-debug"
+
+[dependencies.elrond_dex_pair]
+path = "../elrond_dex_pair"
+

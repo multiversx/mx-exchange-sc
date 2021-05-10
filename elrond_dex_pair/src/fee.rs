@@ -7,7 +7,7 @@ pub struct TokenPair {
     pub second_token: TokenIdentifier,
 }
 
-#[elrond_wasm_derive::module(FeeModuleImpl)]
+#[elrond_wasm_derive::module]
 pub trait FeeModule {
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<Self::Storage, Address, TokenIdentifier>;

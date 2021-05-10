@@ -3,19 +3,16 @@ elrond_wasm::derive_imports!();
 
 const MINIMUM_INITIAL_FARM_AMOUNT: u64 = 1000;
 
-pub use crate::rewards::*;
+use super::rewards;
 
-#[elrond_wasm_derive::module(LiquidityPoolModuleImpl)]
-pub trait LiquidityPoolModule {
-    #[module(RewardsModule)]
-    fn rewards(&self) -> RewardsModule<T, BigInt, BigUint>;
-
+#[elrond_wasm_derive::module]
+pub trait LiquidityPoolModule: rewards::RewardsModule {
     fn add_liquidity(
         &self,
-        amount: BigUint,
+        amount: Self::BigUint,
         farming_pool_token_id: TokenIdentifier,
         farmed_token_id: TokenIdentifier,
-    ) -> SCResult<BigUint> {
+    ) -> SCResult<Self::BigUint> {
         require!(amount > 0, "Amount needs to be greater than 0");
 
         let liquidity = self.calculate_liquidity(&amount, &farming_pool_token_id, &farmed_token_id);
@@ -44,20 +41,24 @@ pub trait LiquidityPoolModule {
 
     fn remove_liquidity(
         &self,
-        liquidity: BigUint,
-        initial_worth: BigUint,
+        liquidity: Self::BigUint,
+        initial_worth: Self::BigUint,
         farming_pool_token_id: TokenIdentifier,
         farmed_token_id: TokenIdentifier,
-    ) -> SCResult<BigUint> {
-        let reward = sc_try!(self.rewards().calculate_reward_for_given_liquidity(
+    ) -> SCResult<Self::BigUint> {
+        let mut total_supply = self.total_supply().get();
+        let mut virtual_reserves = self.virtual_reserves().get();
+
+        let reward = sc_try!(self.calculate_reward_for_given_liquidity(
             liquidity.clone(),
             initial_worth.clone(),
-            farming_pool_token_id.clone()
+            farming_pool_token_id.clone(),
+            total_supply.clone(),
+            virtual_reserves.clone(),
         ));
 
         let is_virtual_amount = farming_pool_token_id != farmed_token_id;
         if is_virtual_amount {
-            let mut virtual_reserves = self.virtual_reserves().get();
             require!(
                 virtual_reserves > initial_worth,
                 "Removing more virtual amount than available"
@@ -66,7 +67,6 @@ pub trait LiquidityPoolModule {
             self.virtual_reserves().set(&virtual_reserves);
         }
 
-        let mut total_supply = self.total_supply().get();
         total_supply -= liquidity;
         self.total_supply().set(&total_supply);
 
@@ -75,10 +75,10 @@ pub trait LiquidityPoolModule {
 
     fn calculate_liquidity(
         &self,
-        amount: &BigUint,
+        amount: &Self::BigUint,
         farming_pool_token_id: &TokenIdentifier,
         farmed_token_id: &TokenIdentifier,
-    ) -> BigUint {
+    ) -> Self::BigUint {
         let is_virtual_amount = farming_pool_token_id != farmed_token_id;
         let total_supply = self.total_supply().get();
         let virtual_reserves = self.virtual_reserves().get();
@@ -87,7 +87,7 @@ pub trait LiquidityPoolModule {
             farming_pool_token_id.as_esdt_identifier(),
             0,
         );
-        let reward_amount = self.rewards().calculate_reward_amount_current_block();
+        let reward_amount = self.calculate_reward_amount_current_block();
 
         if !is_virtual_amount {
             actual_reserves -= amount;
@@ -111,9 +111,9 @@ pub trait LiquidityPoolModule {
 
     #[view(getTotalSupply)]
     #[storage_mapper("total_supply")]
-    fn total_supply(&self) -> SingleValueMapper<Self::Storage, BigUint>;
+    fn total_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
     #[view(getVirtualReserves)]
     #[storage_mapper("virtual_reserves")]
-    fn virtual_reserves(&self) -> SingleValueMapper<Self::Storage, BigUint>;
+    fn virtual_reserves(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }

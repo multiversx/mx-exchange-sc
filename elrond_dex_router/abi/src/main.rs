@@ -1,7 +1,3 @@
-use elrond_dex_router::*;
-use elrond_wasm_debug::*;
-
 fn main() {
-	let contract = RouterImpl::new(TxContext::dummy());
-	print!("{}", abi_json::contract_abi(&contract));
+	elrond_wasm_debug::abi_json::print_abi::<elrond_dex_router::AbiProvider>();
 }

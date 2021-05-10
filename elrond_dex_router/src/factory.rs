@@ -16,9 +16,9 @@ pub struct PairContractMetadata {
     address: Address,
 }
 
-#[elrond_wasm_derive::module(FactoryModuleImpl)]
+#[elrond_wasm_derive::module]
 pub trait FactoryModule {
-    fn init(&self) {
+    fn init_factory(&self) {
         self.pair_code_ready().set(&false);
         self.pair_code().set(&BoxedBytes::empty());
     }
@@ -36,7 +36,7 @@ pub trait FactoryModule {
         }
         let code_metadata = CodeMetadata::UPGRADEABLE;
         let gas_left = self.blockchain().get_gas_left();
-        let amount = BigUint::zero();
+        let amount = Self::BigUint::zero();
         let mut arg_buffer = ArgBuffer::new();
         let code = self.pair_code().get();
         arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
