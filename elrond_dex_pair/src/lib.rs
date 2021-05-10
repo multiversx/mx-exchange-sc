@@ -383,7 +383,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         let amount_out =
             self.swap_safe_no_fee(&first_token_id, &second_token_id, &token_in, &amount_in);
-        require!(amount_out > 0, "Zero input");
+        require!(amount_out > 0, "Zero output");
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
