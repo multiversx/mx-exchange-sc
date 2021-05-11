@@ -456,7 +456,7 @@ pub trait Pair {
         let mut fee_amount = BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
         if self.fee().is_enabled() {
-            fee_amount = self.amm().get_special_fee_from_fixed_input(amount_in);
+            fee_amount = self.amm().get_special_fee_fron_input(amount_in);
             amount_in_after_fee -= &fee_amount;
         }
 
@@ -535,7 +535,7 @@ pub trait Pair {
         if self.fee().is_enabled() {
             fee_amount = self
                 .amm()
-                .get_special_fee_from_optimal_input(amount_in_optimal);
+                .get_special_fee_fron_input(amount_in_optimal);
             amount_in_optimal_after_fee -= &fee_amount;
         }
 
