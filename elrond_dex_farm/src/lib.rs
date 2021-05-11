@@ -314,7 +314,6 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         )?;
         // Must mint rewards before sending them.
         self.mint_rewards(&farming_pool_token_id);
-        self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         // Re-add the lp tokens and their worth into liquidity pool.
         let re_added_liquidity = self.add_liquidity(
@@ -334,12 +333,14 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         let farm_tokens_to_create = &re_added_liquidity + &Self::BigUint::from(1u64);
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
+
         self.send_tokens(
             &farm_token_id,
             farm_token_nonce,
             &re_added_liquidity,
             &caller,
         );
+        self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         Ok((
             SftTokenAmountPair {

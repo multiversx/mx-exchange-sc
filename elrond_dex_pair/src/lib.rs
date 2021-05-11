@@ -184,8 +184,6 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         )?;
 
         let caller = &self.blockchain().get_caller();
-        self.send_tokens(&lp_token_id, &liquidity, &caller);
-
         let temporary_first_token_unused =
             temporary_first_token_amount - first_token_amount.clone();
         let temporary_second_token_unused =
@@ -194,6 +192,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             .clear();
         self.temporary_funds(&caller, &expected_second_token_id)
             .clear();
+        self.send_tokens(&lp_token_id, &liquidity, &caller);
         self.send_tokens(
             &expected_first_token_id,
             &temporary_first_token_unused,
@@ -228,8 +227,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
     fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
         let amount = self.temporary_funds(&caller, token).get();
-        self.send_tokens(token, &amount, caller);
         self.temporary_funds(&caller, token).clear();
+        self.send_tokens(token, &amount, caller);
     }
 
     #[endpoint(reclaimTemporaryFunds)]
@@ -438,7 +437,6 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         require!(amount_out_optimal != 0, "Optimal value is zero");
 
         let caller = self.blockchain().get_caller();
-        self.send_tokens(&token_out, &amount_out_optimal, &caller);
 
         let mut fee_amount = Self::BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
@@ -447,10 +445,11 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             amount_in_after_fee -= &fee_amount;
         }
 
-        reserve_token_in += amount_in_after_fee;
-        reserve_token_out -= amount_out_optimal;
+        reserve_token_in += &amount_in_after_fee;
+        reserve_token_out -= &amount_out_optimal;
 
         self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
+        self.send_tokens(&token_out, &amount_out_optimal, &caller);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_enabled() {
@@ -507,10 +506,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         );
 
         let caller = self.blockchain().get_caller();
-        self.send_tokens(&token_out, &amount_out, &caller);
-
         let residuum = &amount_in_max - &amount_in_optimal;
-        self.send_tokens(&token_in, &residuum, &caller);
 
         let mut fee_amount = Self::BigUint::zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
@@ -523,10 +519,12 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             "Insufficient amount out reserve"
         );
 
-        reserve_token_in += amount_in_optimal_after_fee;
-        reserve_token_out -= amount_out;
+        reserve_token_in += &amount_in_optimal_after_fee;
+        reserve_token_out -= &amount_out;
 
         self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
+        self.send_tokens(&token_out, &amount_out, &caller);
+        self.send_tokens(&token_in, &residuum, &caller);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_enabled() {
