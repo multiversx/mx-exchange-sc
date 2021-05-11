@@ -10,8 +10,8 @@ pub use crate::factory::*;
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-const DEFAULT_TOTAL_FEE_PRECENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PRECENT: u64 = 100;
+const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
+const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 100;
 
 #[elrond_wasm_derive::contract]
 pub trait Router: factory::FactoryModule {
@@ -62,7 +62,7 @@ pub trait Router: factory::FactoryModule {
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] fee_precents: VarArgs<u64>,
+        #[var_args] fee_percents: VarArgs<u64>,
     ) -> SCResult<Address> {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -78,23 +78,23 @@ pub trait Router: factory::FactoryModule {
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address == Address::zero(), "Pair already exists");
-        let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
-        let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
-        let fee_precents_vec = fee_precents.into_vec();
-        if caller == owner && fee_precents_vec.len() == 2 {
-            total_fee_precent_requested = fee_precents_vec[0];
-            special_fee_precent_requested = fee_precents_vec[1];
+        let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
+        let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
+        let fee_percents_vec = fee_percents.into_vec();
+        if caller == owner && fee_percents_vec.len() == 2 {
+            total_fee_percent_requested = fee_percents_vec[0];
+            special_fee_percent_requested = fee_percents_vec[1];
             require!(
-                total_fee_precent_requested >= special_fee_precent_requested,
-                "Bad precents"
+                total_fee_percent_requested >= special_fee_percent_requested,
+                "Bad percents"
             );
         }
         Ok(self.create_pair(
             &first_token_id,
             &second_token_id,
             &owner,
-            total_fee_precent_requested,
-            special_fee_precent_requested,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
         ))
     }
 

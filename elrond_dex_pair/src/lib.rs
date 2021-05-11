@@ -49,15 +49,15 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         second_token_id: TokenIdentifier,
         router_address: Address,
         router_owner_address: Address,
-        total_fee_precent: u64,
-        special_fee_precent: u64,
+        total_fee_percent: u64,
+        special_fee_percent: u64,
     ) {
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
-        self.total_fee_precent().set(&total_fee_precent);
-        self.special_fee_precent().set(&special_fee_precent);
+        self.total_fee_percent().set(&total_fee_percent);
+        self.special_fee_percent().set(&special_fee_percent);
         self.state().set(&State::ActiveNoSwaps);
     }
 

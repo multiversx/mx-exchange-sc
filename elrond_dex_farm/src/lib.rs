@@ -6,7 +6,7 @@ elrond_wasm::derive_imports!();
 
 type Epoch = u64;
 type Nonce = u64;
-const PENALTY_PRECENT: u64 = 10;
+const PENALTY_PERCENT: u64 = 10;
 const EXTERN_QUERY_MAX_GAS: u64 = 20000000;
 const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
@@ -705,7 +705,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
 
     #[inline]
     fn get_penalty_amount(&self, amount: Self::BigUint) -> Self::BigUint {
-        amount * Self::BigUint::from(PENALTY_PRECENT) / Self::BigUint::from(100u64)
+        amount * Self::BigUint::from(PENALTY_PERCENT) / Self::BigUint::from(100u64)
     }
 
     #[inline]
