@@ -538,10 +538,6 @@ pub trait Pair {
                 .get_special_fee_from_optimal_input(amount_in_optimal);
             amount_in_optimal_after_fee -= &fee_amount;
         }
-        require!(
-            reserve_token_out > amount_out,
-            "Insufficient amount out reserve"
-        );
 
         reserve_token_in += amount_in_optimal_after_fee;
         reserve_token_out -= amount_out;
