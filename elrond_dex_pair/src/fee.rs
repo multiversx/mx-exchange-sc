@@ -1,11 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct TokenPair {
-    pub first_token: TokenIdentifier,
-    pub second_token: TokenIdentifier,
-}
+use dex_common::*;
 
 #[elrond_wasm_derive::module]
 pub trait FeeModule {

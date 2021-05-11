@@ -30,3 +30,6 @@ path = "../../elrond-wasm-rs/elrond-wasm-debug"
 
 [dependencies.elrond_dex_pair]
 path = "../elrond_dex_pair"
+
+[dependencies.dex-common]
+path = "../common/dex-common"

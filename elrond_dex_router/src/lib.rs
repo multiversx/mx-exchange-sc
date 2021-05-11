@@ -33,7 +33,7 @@ pub trait Router: factory::FactoryModule {
         if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
         } else {
-            sc_try!(self.check_is_pair_sc(&address));
+            self.check_is_pair_sc(&address)?;
             self.pair_contract_proxy(address)
                 .pause()
                 .execute_on_dest_context(self.blockchain().get_gas_left());
@@ -48,7 +48,7 @@ pub trait Router: factory::FactoryModule {
         if address == self.blockchain().get_sc_address() {
             self.state().set(&true);
         } else {
-            sc_try!(self.check_is_pair_sc(&address));
+            self.check_is_pair_sc(&address)?;
             self.pair_contract_proxy(address)
                 .resume()
                 .execute_on_dest_context(self.blockchain().get_gas_left());
@@ -108,7 +108,7 @@ pub trait Router: factory::FactoryModule {
         #[payment] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let half_gas = self.blockchain().get_gas_left() / 2;
         let result = self
@@ -146,7 +146,7 @@ pub trait Router: factory::FactoryModule {
     #[endpoint(setLocalRoles)]
     fn set_local_roles(&self, pair_address: Address) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let half_gas = self.blockchain().get_gas_left() / 2;
         let pair_token = self
@@ -195,7 +195,7 @@ pub trait Router: factory::FactoryModule {
     fn upgrade_pair_endpoint(&self, pair_address: Address) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         self.upgrade_pair(&pair_address);
         Ok(())
@@ -210,7 +210,7 @@ pub trait Router: factory::FactoryModule {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
         self.pair_contract_proxy(pair_address)
@@ -229,7 +229,7 @@ pub trait Router: factory::FactoryModule {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
         self.pair_contract_proxy(pair_address)
@@ -303,8 +303,8 @@ pub trait Router: factory::FactoryModule {
         // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
             AsyncCallResult::Ok(()) => {
-                self.pair_contract_proxy(address)
-                    .setLpTokenIdentifier(token_id)
+                self.pair_contract_proxy(address.clone())
+                    .setLpTokenIdentifier(token_id.clone())
                     .execute_on_dest_context(self.blockchain().get_gas_left());
             }
             AsyncCallResult::Err(_) => {

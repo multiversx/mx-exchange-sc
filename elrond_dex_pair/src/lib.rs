@@ -9,9 +9,7 @@ mod fee;
 mod liquidity_pool;
 
 use core::cmp::min;
-
-use crate::fee::*;
-use crate::liquidity_pool::*;
+use dex_common::*;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 const EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
@@ -65,21 +63,21 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
     #[endpoint]
     fn pause(&self) -> SCResult<()> {
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         self.state().set(&State::Inactive);
         Ok(())
     }
 
     #[endpoint]
     fn resume(&self) -> SCResult<()> {
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         self.state().set(&State::Active);
         Ok(())
     }
 
     #[endpoint(setState)]
     fn set_state(&self, state: State) -> SCResult<()> {
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         self.state().set(&state);
         Ok(())
     }
@@ -171,19 +169,19 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             "Pair: insufficient second token funds to add"
         );
 
-        let (first_token_amount, second_token_amount) = sc_try!(self.add_liquidity(
+        let (first_token_amount, second_token_amount) = self.add_liquidity(
             first_token_amount_desired,
             second_token_amount_desired,
             first_token_amount_min,
-            second_token_amount_min
-        ));
+            second_token_amount_min,
+        )?;
 
         let lp_token_id = self.lp_token_identifier().get();
-        let liquidity = sc_try!(self.mint(
+        let liquidity = self.mint(
             first_token_amount.clone(),
             second_token_amount.clone(),
             lp_token_id.clone(),
-        ));
+        )?;
 
         let caller = &self.blockchain().get_caller();
         self.send_tokens(&lp_token_id, &liquidity, &caller);
@@ -209,7 +207,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         // Once liquidity has been added, the new K should never be lesser than the old K.
         let new_k = self.calculate_k_for_reserves();
-        sc_try!(self.validate_k_invariant_strict(&old_k, &new_k));
+        self.validate_k_invariant_strict(&old_k, &new_k)?;
 
         Ok((
             TokenAmountPair {
@@ -270,12 +268,12 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             "Pair: wrong liquidity token"
         );
 
-        let (first_token_amount, second_token_amount) = sc_try!(self.burn(
+        let (first_token_amount, second_token_amount) = self.burn(
             liquidity.clone(),
             first_token_amount_min,
             second_token_amount_min,
             self.lp_token_identifier().get(),
-        ));
+        )?;
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -284,7 +282,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         // Once liquidity has been removed, the new K should never be greater than the old K.
         let new_k = self.calculate_k_for_reserves();
-        sc_try!(self.validate_k_invariant_strict(&new_k, &old_k));
+        self.validate_k_invariant_strict(&new_k, &old_k)?;
 
         Ok((
             TokenAmountPair {
@@ -302,7 +300,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
     #[endpoint(whitelist)]
     fn whitelist_endpoint(&self, address: Address) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         self.whitelist().insert(address);
         Ok(())
     }
@@ -310,7 +308,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: Address) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         self.whitelist().remove(&address);
         Ok(())
     }
@@ -323,7 +321,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         let token_pair = TokenPair {
             first_token,
             second_token,
@@ -339,7 +337,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         let token_pair = TokenPair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
@@ -387,7 +385,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        sc_try!(self.validate_k_invariant(&old_k, &new_k));
+        self.validate_k_invariant(&old_k, &new_k)?;
 
         self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
         Ok(())
@@ -461,7 +459,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        sc_try!(self.validate_k_invariant(&old_k, &new_k));
+        self.validate_k_invariant(&old_k, &new_k)?;
 
         Ok(())
     }
@@ -537,7 +535,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        sc_try!(self.validate_k_invariant(&old_k, &new_k));
+        self.validate_k_invariant(&old_k, &new_k)?;
 
         Ok(())
     }
@@ -550,7 +548,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         let is_dest = self
             .destination_map()
             .keys()
@@ -821,7 +819,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
     #[endpoint]
     fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
-        sc_try!(self.require_permissions());
+        self.require_permissions()?;
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         self.lp_token_identifier().set(&token_identifier);
 

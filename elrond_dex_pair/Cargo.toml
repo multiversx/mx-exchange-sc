@@ -27,3 +27,6 @@ path = "../../elrond-wasm-rs/elrond-wasm-node"
 [dev-dependencies.elrond-wasm-debug]
 version = "0.15"
 path = "../../elrond-wasm-rs/elrond-wasm-debug"
+
+[dependencies.dex-common]
+path = "../common/dex-common"

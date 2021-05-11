@@ -2,14 +2,9 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::amm;
+use dex_common::*;
 
 const MINIMUM_LIQUIDITY: u64 = 1000;
-
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct TokenAmountPair<BigUint: BigUintApi> {
-    pub token_id: TokenIdentifier,
-    pub amount: BigUint,
-}
 
 #[elrond_wasm_derive::module]
 pub trait LiquidityPoolModule: amm::AmmModule {
@@ -95,18 +90,18 @@ pub trait LiquidityPoolModule: amm::AmmModule {
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
         let total_supply = self.total_supply().get();
         require!(total_supply > 0, "No LP tokens supply");
-        let first_token_amount = sc_try!(self.burn_token(
+        let first_token_amount = self.burn_token(
             self.first_token_id().get(),
             liquidity.clone(),
             total_supply.clone(),
-            first_token_amount_min
-        ));
-        let second_token_amount = sc_try!(self.burn_token(
+            first_token_amount_min,
+        )?;
+        let second_token_amount = self.burn_token(
             self.second_token_id().get(),
             liquidity.clone(),
             total_supply,
-            second_token_amount_min
-        ));
+            second_token_amount_min,
+        )?;
 
         self.send().esdt_local_burn(
             self.blockchain().get_gas_left(),
