@@ -58,7 +58,7 @@ pub trait AmmModule {
         (numerator / denominator) + BigUint::from(1u64)
     }
 
-    fn get_special_fee_fron_input(&self, amount_in: BigUint) -> BigUint {
+    fn get_special_fee_from_input(&self, amount_in: BigUint) -> BigUint {
         amount_in * BigUint::from(self.special_fee_precent().get()) / BigUint::from(100000u64)
     }
 
