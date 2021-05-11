@@ -321,6 +321,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
     ) -> SCResult<()> {
         //require!(self.is_active(), "Not active");
         self.require_permissions()?;
+        require!(first_token != second_token, "Tokens should differ");
         let token_pair = TokenPair {
             first_token,
             second_token,
