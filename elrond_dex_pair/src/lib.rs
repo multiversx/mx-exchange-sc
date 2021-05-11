@@ -422,11 +422,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         );
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
-        let amount_out_optimal = self.get_amount_out(
-            amount_in.clone(),
-            reserve_token_in.clone(),
-            reserve_token_out.clone(),
-        );
+        let amount_out_optimal =
+            self.get_amount_out(&amount_in, &reserve_token_in, &reserve_token_out);
         require!(
             amount_out_optimal >= amount_out_min,
             "Computed amount out lesser than minimum amount out"
@@ -441,8 +438,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         let mut fee_amount = Self::BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
-        if self.is_enabled() {
-            fee_amount = self.get_special_fee_from_fixed_input(amount_in);
+        if self.is_fee_enabled() {
+            fee_amount = self.get_special_fee_from_fixed_input(&amount_in);
             amount_in_after_fee -= &fee_amount;
         }
 
@@ -453,7 +450,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         self.send_tokens(&token_out, &amount_out_optimal, &caller);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
-        if self.is_enabled() {
+        if self.is_fee_enabled() {
             self.send_fee(token_in, fee_amount);
         }
 
@@ -496,11 +493,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         );
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
-        let amount_in_optimal = self.get_amount_in(
-            amount_out.clone(),
-            reserve_token_in.clone(),
-            reserve_token_out.clone(),
-        );
+        let amount_in_optimal =
+            self.get_amount_in(&amount_out, &reserve_token_in, &reserve_token_out);
         require!(
             amount_in_optimal <= amount_in_max,
             "Computed amount in greater than maximum amount in"
@@ -511,8 +505,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
 
         let mut fee_amount = Self::BigUint::zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
-        if self.is_enabled() {
-            fee_amount = self.get_special_fee_from_optimal_input(amount_in_optimal);
+        if self.is_fee_enabled() {
+            fee_amount = self.get_special_fee_from_optimal_input(&amount_in_optimal);
             amount_in_optimal_after_fee -= &fee_amount;
         }
         require!(
@@ -528,7 +522,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         self.send_tokens(&token_in, &residuum, &caller);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
-        if self.is_enabled() {
+        if self.is_fee_enabled() {
             self.send_fee(token_in, fee_amount);
         }
 
@@ -861,8 +855,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
 
-    #[view(getAmountOut)]
-    fn get_amount_out_view(
+    #[view]
+    fn getAmountOut(
         &self,
         token_in: TokenIdentifier,
         amount_in: Self::BigUint,
@@ -877,7 +871,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         if token_in == first_token_id {
             require!(second_token_reserve > 0, "Zero reserves for second token");
             let amount_out =
-                self.get_amount_out(amount_in, first_token_reserve, second_token_reserve.clone());
+                self.get_amount_out(&amount_in, &first_token_reserve, &second_token_reserve);
             require!(
                 second_token_reserve > amount_out,
                 "Not enough reserves for second token"
@@ -886,7 +880,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         } else if token_in == second_token_id {
             require!(first_token_reserve > 0, "Zero reserves for first token");
             let amount_out =
-                self.get_amount_out(amount_in, second_token_reserve, first_token_reserve.clone());
+                self.get_amount_out(&amount_in, &second_token_reserve, &first_token_reserve);
             require!(
                 first_token_reserve > amount_out,
                 "Not enough reserves first token"
@@ -897,8 +891,8 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         }
     }
 
-    #[view(getAmountIn)]
-    fn get_amount_in_view(
+    #[view]
+    fn getAmountIn(
         &self,
         token_wanted: TokenIdentifier,
         amount_wanted: Self::BigUint,
@@ -916,7 +910,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
                 "Not enough reserves for first token"
             );
             let amount_in =
-                self.get_amount_in(amount_wanted, second_token_reserve, first_token_reserve);
+                self.get_amount_in(&amount_wanted, &second_token_reserve, &first_token_reserve);
             Ok(amount_in)
         } else if token_wanted == second_token_id {
             require!(
@@ -924,7 +918,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
                 "Not enough reserves for second token"
             );
             let amount_in =
-                self.get_amount_in(amount_wanted, first_token_reserve, second_token_reserve);
+                self.get_amount_in(&amount_wanted, &first_token_reserve, &second_token_reserve);
             Ok(amount_in)
         } else {
             sc_error!("Not a known token")
@@ -949,9 +943,9 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         }
 
         if token_in == first_token_id {
-            Ok(self.quote(amount_in, first_token_reserve, second_token_reserve))
+            Ok(self.quote(&amount_in, &first_token_reserve, &second_token_reserve))
         } else if token_in == second_token_id {
-            Ok(self.quote(amount_in, second_token_reserve, first_token_reserve))
+            Ok(self.quote(&amount_in, &second_token_reserve, &first_token_reserve))
         } else {
             sc_error!("Not a known token")
         }

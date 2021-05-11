@@ -50,11 +50,11 @@ pub trait LiquidityPoolModule: rewards::RewardsModule {
         let mut virtual_reserves = self.virtual_reserves().get();
 
         let reward = self.calculate_reward_for_given_liquidity(
-            liquidity.clone(),
-            initial_worth.clone(),
-            farming_pool_token_id.clone(),
-            total_supply.clone(),
-            virtual_reserves.clone(),
+            &liquidity,
+            &initial_worth,
+            &farming_pool_token_id,
+            &total_supply,
+            &virtual_reserves,
         )?;
 
         let is_virtual_amount = farming_pool_token_id != farmed_token_id;

@@ -47,13 +47,13 @@ pub trait RewardsModule {
 
     fn calculate_reward_for_given_liquidity(
         &self,
-        liquidity: Self::BigUint,
-        initial_worth: Self::BigUint,
-        token_id: TokenIdentifier,
-        total_supply: Self::BigUint,
-        virtual_reserves: Self::BigUint,
+        liquidity: &Self::BigUint,
+        initial_worth: &Self::BigUint,
+        token_id: &TokenIdentifier,
+        total_supply: &Self::BigUint,
+        virtual_reserves: &Self::BigUint,
     ) -> SCResult<Self::BigUint> {
-        require!(liquidity > 0, "Liquidity needs to be greater than 0");
+        require!(liquidity > &0, "Liquidity needs to be greater than 0");
         require!(
             total_supply > liquidity,
             "Removing more liquidity than existent"
@@ -66,11 +66,11 @@ pub trait RewardsModule {
         );
         let reward_amount = self.calculate_reward_amount_current_block();
 
-        let total_reserves = virtual_reserves + actual_reserves + reward_amount;
-        let worth = liquidity * total_reserves / total_supply;
+        let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
+        let worth = liquidity * &total_reserves / total_supply.clone();
 
-        let reward = if worth > initial_worth {
-            worth - initial_worth
+        let reward = if &worth > initial_worth {
+            &worth - initial_worth
         } else {
             Self::BigUint::zero()
         };

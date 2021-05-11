@@ -132,9 +132,9 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         }
 
         let second_token_amount_optimal = self.quote(
-            first_token_amount_desired.clone(),
-            first_token_reserve.clone(),
-            second_token_reserve.clone(),
+            &first_token_amount_desired,
+            &first_token_reserve,
+            &second_token_reserve,
         );
         if second_token_amount_optimal <= second_token_amount_desired {
             require!(
@@ -144,9 +144,9 @@ pub trait LiquidityPoolModule: amm::AmmModule {
             Ok((first_token_amount_desired, second_token_amount_optimal))
         } else {
             let first_token_amount_optimal = self.quote(
-                second_token_amount_desired.clone(),
-                second_token_reserve,
-                first_token_reserve,
+                &second_token_amount_desired,
+                &second_token_reserve,
+                &first_token_reserve,
             );
             require!(
                 first_token_amount_optimal <= first_token_amount_desired,
@@ -207,7 +207,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
     fn calculate_k_for_reserves(&self) -> Self::BigUint {
         let first_token_amount = self.pair_reserve(&self.first_token_id().get()).get();
         let second_token_amount = self.pair_reserve(&self.second_token_id().get()).get();
-        self.calculate_k_constant(first_token_amount, second_token_amount)
+        self.calculate_k_constant(&first_token_amount, &second_token_amount)
     }
 
     fn swap_safe_no_fee(
@@ -241,8 +241,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
             return big_zero;
         }
 
-        let amount_out =
-            self.get_amount_out_no_fee(amount_in.clone(), reserve_in.clone(), reserve_out.clone());
+        let amount_out = self.get_amount_out_no_fee(&amount_in, &reserve_in, &reserve_out);
 
         if reserve_out <= amount_out {
             return big_zero;

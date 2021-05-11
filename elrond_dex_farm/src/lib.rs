@@ -437,11 +437,11 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         }
 
         let reward = self.calculate_reward_for_given_liquidity(
-            liquidity,
-            initial_worth,
-            self.farming_pool_token_id().get(),
-            self.total_supply().get(),
-            self.virtual_reserves().get(),
+            &liquidity,
+            &initial_worth,
+            &self.farming_pool_token_id().get(),
+            &self.total_supply().get(),
+            &self.virtual_reserves().get(),
         )?;
 
         if self.should_apply_penalty(attributes.entering_epoch) {

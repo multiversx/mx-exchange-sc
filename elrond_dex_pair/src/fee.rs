@@ -16,7 +16,7 @@ pub trait FeeModule {
     fn whitelist(&self) -> SetMapper<Self::Storage, Address>;
 
     #[view(getFeeState)]
-    fn is_enabled(&self) -> bool {
+    fn is_fee_enabled(&self) -> bool {
         !self.destination_map().is_empty()
     }
 }
