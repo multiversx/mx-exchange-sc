@@ -167,7 +167,7 @@ pub trait Pair {
         );
 
         let (first_token_amount, second_token_amount) =
-            sc_try!(self.liquidity_pool().add_liquidity(
+            sc_try!(self.liquidity_pool().calculate_optimal_amounts(
                 first_token_amount_desired,
                 second_token_amount_desired,
                 first_token_amount_min,

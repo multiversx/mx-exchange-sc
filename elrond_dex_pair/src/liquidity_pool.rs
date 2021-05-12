@@ -120,7 +120,7 @@ pub trait LiquidityPoolModule {
         Ok((first_token_amount, second_token_amount))
     }
 
-    fn add_liquidity(
+    fn calculate_optimal_amounts(
         &self,
         first_token_amount_desired: BigUint,
         second_token_amount_desired: BigUint,
