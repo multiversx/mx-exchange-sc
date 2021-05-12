@@ -706,6 +706,8 @@ pub trait Pair {
             } else {
                 self.reinject(fee_token, fee_slice);
             }
+        } else {
+            self.reinject(fee_token, fee_slice);
         }
     }
 
