@@ -1,13 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct TokenPair {
-    pub first_token: TokenIdentifier,
-    pub second_token: TokenIdentifier,
-}
+use dex_common::*;
 
-#[elrond_wasm_derive::module(FeeModuleImpl)]
+#[elrond_wasm_derive::module]
 pub trait FeeModule {
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<Self::Storage, Address, TokenIdentifier>;
@@ -20,7 +16,7 @@ pub trait FeeModule {
     fn whitelist(&self) -> SetMapper<Self::Storage, Address>;
 
     #[view(getFeeState)]
-    fn is_enabled(&self) -> bool {
+    fn is_fee_enabled(&self) -> bool {
         !self.destination_map().is_empty()
     }
 }

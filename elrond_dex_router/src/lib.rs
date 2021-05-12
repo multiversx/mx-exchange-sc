@@ -4,37 +4,23 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub mod factory;
-pub use factory::*;
+mod factory;
+pub use crate::factory::*;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-const DEFAULT_TOTAL_FEE_PRECENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PRECENT: u64 = 100;
+const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
+const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 100;
 
-#[elrond_wasm_derive::callable(PairContractProxy)]
-pub trait PairContract {
-    fn setFeeOn(
-        &self,
-        enabled: bool,
-        fee_to_address: Address,
-        fee_token: TokenIdentifier,
-    ) -> ContractCall<BigUint, ()>;
-    fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> ContractCall<BigUint, ()>;
-    fn getLpTokenIdentifier(&self) -> ContractCall<BigUint, TokenIdentifier>;
-    fn pause(&self) -> ContractCall<BigUint, ()>;
-    fn resume(&self) -> ContractCall<BigUint, ()>;
-}
-
-#[elrond_wasm_derive::contract(RouterImpl)]
-pub trait Router {
-    #[module(FactoryModuleImpl)]
-    fn factory(&self) -> FactoryModuleImpl<T, BigInt, BigUint>;
+#[elrond_wasm_derive::contract]
+pub trait Router: factory::FactoryModule {
+    #[proxy]
+    fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
 
     #[init]
     fn init(&self) {
-        self.factory().init();
+        self.init_factory();
         self.state().set(&true);
         self.owner().set(&self.blockchain().get_caller());
         self.pair_creation_enabled().set(&false);
@@ -47,10 +33,10 @@ pub trait Router {
         if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
         } else {
-            sc_try!(self.check_is_pair_sc(&address));
-            contract_call!(self, address, PairContractProxy)
+            self.check_is_pair_sc(&address)?;
+            self.pair_contract_proxy(address)
                 .pause()
-                .execute_on_dest_context(self.blockchain().get_gas_left(), self.send());
+                .execute_on_dest_context(self.blockchain().get_gas_left());
         }
         Ok(())
     }
@@ -62,21 +48,21 @@ pub trait Router {
         if address == self.blockchain().get_sc_address() {
             self.state().set(&true);
         } else {
-            sc_try!(self.check_is_pair_sc(&address));
-            contract_call!(self, address, PairContractProxy)
+            self.check_is_pair_sc(&address)?;
+            self.pair_contract_proxy(address)
                 .resume()
-                .execute_on_dest_context(self.blockchain().get_gas_left(), self.send());
+                .execute_on_dest_context(self.blockchain().get_gas_left());
         }
         Ok(())
     }
 
     //ENDPOINTS
     #[endpoint(createPair)]
-    fn create_pair(
+    fn create_pair_endpoint(
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] fee_precents: VarArgs<u64>,
+        #[var_args] fee_percents: VarArgs<u64>,
     ) -> SCResult<Address> {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -92,23 +78,23 @@ pub trait Router {
         require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address == Address::zero(), "Pair already exists");
-        let mut total_fee_precent_requested = DEFAULT_TOTAL_FEE_PRECENT;
-        let mut special_fee_precent_requested = DEFAULT_SPECIAL_FEE_PRECENT;
-        let fee_precents_vec = fee_precents.into_vec();
-        if caller == owner && fee_precents_vec.len() == 2 {
-            total_fee_precent_requested = fee_precents_vec[0];
-            special_fee_precent_requested = fee_precents_vec[1];
+        let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
+        let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
+        let fee_percents_vec = fee_percents.into_vec();
+        if caller == owner && fee_percents_vec.len() == 2 {
+            total_fee_percent_requested = fee_percents_vec[0];
+            special_fee_percent_requested = fee_percents_vec[1];
             require!(
-                total_fee_precent_requested >= special_fee_precent_requested,
-                "Bad precents"
+                total_fee_percent_requested >= special_fee_percent_requested,
+                "Bad percents"
             );
         }
-        Ok(self.factory().create_pair(
+        Ok(self.create_pair(
             &first_token_id,
             &second_token_id,
             &owner,
-            total_fee_precent_requested,
-            special_fee_precent_requested,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
         ))
     }
 
@@ -119,24 +105,25 @@ pub trait Router {
         pair_address: Address,
         tp_token_display_name: BoxedBytes,
         tp_token_ticker: BoxedBytes,
-        #[payment] issue_cost: BigUint,
-    ) -> SCResult<AsyncCall<BigUint>> {
+        #[payment] issue_cost: Self::BigUint,
+    ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let half_gas = self.blockchain().get_gas_left() / 2;
-        let result = contract_call!(self, pair_address.clone(), PairContractProxy)
+        let result = self
+            .pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(half_gas, self.send());
+            .execute_on_dest_context(half_gas);
 
         require!(result.is_egld(), "LP Token already issued");
 
-        Ok(ESDTSystemSmartContractProxy::new()
+        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .issue_fungible(
                 issue_cost,
                 &tp_token_display_name,
                 &tp_token_ticker,
-                &BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+                &Self::BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -157,17 +144,18 @@ pub trait Router {
     }
 
     #[endpoint(setLocalRoles)]
-    fn set_local_roles(&self, pair_address: Address) -> SCResult<AsyncCall<BigUint>> {
+    fn set_local_roles(&self, pair_address: Address) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let half_gas = self.blockchain().get_gas_left() / 2;
-        let pair_token = contract_call!(self, pair_address.clone(), PairContractProxy)
+        let pair_token = self
+            .pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(half_gas, self.send());
+            .execute_on_dest_context(half_gas);
         require!(pair_token.is_esdt(), "LP token not issued");
 
-        Ok(ESDTSystemSmartContractProxy::new()
+        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(
                 &pair_address,
                 pair_token.as_esdt_identifier(),
@@ -183,11 +171,11 @@ pub trait Router {
         token: TokenIdentifier,
         address: Address,
         #[var_args] roles: VarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall<BigUint>> {
+    ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "No permissions");
         require!(!roles.is_empty(), "Empty roles");
-        Ok(ESDTSystemSmartContractProxy::new()
+        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
@@ -195,8 +183,7 @@ pub trait Router {
 
     fn check_is_pair_sc(&self, pair_address: &Address) -> SCResult<()> {
         require!(
-            self.factory()
-                .pair_map()
+            self.pair_map()
                 .values()
                 .any(|address| &address == pair_address),
             "Not a pair SC"
@@ -205,12 +192,12 @@ pub trait Router {
     }
 
     #[endpoint(upgradePair)]
-    fn upgrade_pair(&self, pair_address: Address) -> SCResult<()> {
+    fn upgrade_pair_endpoint(&self, pair_address: Address) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
-        self.factory().upgrade_pair(&pair_address);
+        self.upgrade_pair(&pair_address);
         Ok(())
     }
 
@@ -223,12 +210,12 @@ pub trait Router {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
-        contract_call!(self, pair_address, PairContractProxy)
+        self.pair_contract_proxy(pair_address)
             .setFeeOn(true, fee_to_address, fee_token)
-            .execute_on_dest_context(per_execute_gas, self.send());
+            .execute_on_dest_context(per_execute_gas);
 
         Ok(())
     }
@@ -242,12 +229,12 @@ pub trait Router {
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
-        sc_try!(self.check_is_pair_sc(&pair_address));
+        self.check_is_pair_sc(&pair_address)?;
 
         let per_execute_gas = self.blockchain().get_gas_left() / 3;
-        contract_call!(self, pair_address, PairContractProxy)
+        self.pair_contract_proxy(pair_address)
             .setFeeOn(false, fee_to_address, fee_token)
-            .execute_on_dest_context(per_execute_gas, self.send());
+            .execute_on_dest_context(per_execute_gas);
 
         Ok(())
     }
@@ -257,7 +244,7 @@ pub trait Router {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
 
-        self.factory().start_pair_construct();
+        self.start_pair_construct();
         Ok(())
     }
 
@@ -266,7 +253,7 @@ pub trait Router {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
 
-        self.factory().end_pair_construct();
+        self.end_pair_construct();
         Ok(())
     }
 
@@ -275,7 +262,7 @@ pub trait Router {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
 
-        self.factory().append_pair_code(&part);
+        self.append_pair_code(&part);
         Ok(())
     }
 
@@ -286,7 +273,6 @@ pub trait Router {
         second_token_id: TokenIdentifier,
     ) -> Address {
         let mut address = self
-            .factory()
             .pair_map()
             .get(&PairTokens {
                 first_token_id: first_token_id.clone(),
@@ -295,7 +281,6 @@ pub trait Router {
             .unwrap_or_else(Address::zero);
         if address == Address::zero() {
             address = self
-                .factory()
                 .pair_map()
                 .get(&PairTokens {
                     first_token_id: second_token_id,
@@ -312,15 +297,15 @@ pub trait Router {
         caller: &Address,
         address: &Address,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment] returned_tokens: BigUint,
+        #[payment] returned_tokens: Self::BigUint,
         #[call_result] result: AsyncCallResult<()>,
     ) {
         // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
             AsyncCallResult::Ok(()) => {
-                contract_call!(self, address.clone(), PairContractProxy)
-                    .setLpTokenIdentifier(token_id)
-                    .execute_on_dest_context(self.blockchain().get_gas_left(), self.send());
+                self.pair_contract_proxy(address.clone())
+                    .setLpTokenIdentifier(token_id.clone())
+                    .execute_on_dest_context(self.blockchain().get_gas_left());
             }
             AsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0 {
