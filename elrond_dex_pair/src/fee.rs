@@ -339,4 +339,30 @@ pub trait FeeModule: config::ConfigModule + liquidity_pool::LiquidityPoolModule 
             }
         }
     }
+
+    #[endpoint]
+    fn setFeeOn(
+        &self,
+        enabled: bool,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        //require!(self.is_active(), "Not active");
+        self.require_permissions()?;
+        let is_dest = self
+            .destination_map()
+            .keys()
+            .any(|dest_address| dest_address == fee_to_address);
+
+        if enabled {
+            require!(!is_dest, "Is already a fee destination");
+            self.destination_map().insert(fee_to_address, fee_token);
+        } else {
+            require!(is_dest, "Is not a fee destination");
+            let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
+            require!(fee_token == dest_fee_token, "Destination fee token differs");
+            self.destination_map().remove(&fee_to_address);
+        }
+        Ok(())
+    }
 }
