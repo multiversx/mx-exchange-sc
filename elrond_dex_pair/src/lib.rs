@@ -472,6 +472,16 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         Ok(())
     }
 
+    #[endpoint]
+    fn setFeeOn(
+        &self,
+        enabled: bool,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        self.set_fee_on(enabled, fee_to_address, fee_token)
+    }
+
     #[inline]
     fn validate_k_invariant(&self, lower: &Self::BigUint, greater: &Self::BigUint) -> SCResult<()> {
         require!(lower <= greater, "K invariant failed");

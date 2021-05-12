@@ -341,7 +341,7 @@ pub trait FeeModule: config::ConfigModule + liquidity_pool::LiquidityPoolModule 
     }
 
     #[endpoint]
-    fn setFeeOn(
+    fn set_fee_on(
         &self,
         enabled: bool,
         fee_to_address: Address,
