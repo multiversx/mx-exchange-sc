@@ -167,7 +167,7 @@ pub trait Pair {
         );
 
         let (first_token_amount, second_token_amount) =
-            sc_try!(self.liquidity_pool().add_liquidity(
+            sc_try!(self.liquidity_pool().calculate_optimal_amounts(
                 first_token_amount_desired,
                 second_token_amount_desired,
                 first_token_amount_min,
@@ -672,6 +672,9 @@ pub trait Pair {
             fee_token,
             requested_fee_token,
         ) {
+            let first_token_reserve = self.liquidity_pool().pair_reserve(first_token_id).get();
+            let second_token_reserve =
+                self.liquidity_pool().pair_reserve(second_token_id).get();
             let to_send = self.liquidity_pool().swap_safe_no_fee(
                 first_token_id,
                 second_token_id,
@@ -684,9 +687,6 @@ pub trait Pair {
                 } else {
                     first_token_id
                 };
-                let first_token_reserve = self.liquidity_pool().pair_reserve(first_token_id).get();
-                let second_token_reserve =
-                    self.liquidity_pool().pair_reserve(second_token_id).get();
                 let resolved_externally = self.extern_swap_and_forward(
                     &to_send_token,
                     &to_send,
