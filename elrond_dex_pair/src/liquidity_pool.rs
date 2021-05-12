@@ -250,8 +250,7 @@ pub trait LiquidityPoolModule {
             reserve_in.clone(),
             reserve_out.clone(),
         );
-
-        if reserve_out <= amount_out {
+        if reserve_out <= amount_out || amount_out == 0 {
             return big_zero;
         }
 
