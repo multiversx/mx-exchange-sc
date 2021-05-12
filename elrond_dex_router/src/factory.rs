@@ -30,10 +30,8 @@ pub trait FactoryModule {
         owner: &Address,
         total_fee_precent: u64,
         special_fee_precent: u64,
-    ) -> Address {
-        if !self.pair_code_ready().get() {
-            return Address::zero();
-        }
+    ) -> SCResult<Address> {
+        require!(self.pair_code_ready().get(), "Pair code not ready");
         let code_metadata = CodeMetadata::UPGRADEABLE;
         let gas_left = self.blockchain().get_gas_left();
         let amount = BigUint::zero();
@@ -48,16 +46,15 @@ pub trait FactoryModule {
         let new_address =
             self.send()
                 .deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
-        if new_address != Address::zero() {
-            self.pair_map().insert(
-                PairTokens {
-                    first_token_id: first_token_id.clone(),
-                    second_token_id: second_token_id.clone(),
-                },
-                new_address.clone(),
-            );
-        }
-        new_address
+        require!(new_address != Address::zero(), "deploy failed");
+        self.pair_map().insert(
+            PairTokens {
+                first_token_id: first_token_id.clone(),
+                second_token_id: second_token_id.clone(),
+            },
+            new_address.clone(),
+        );
+        Ok(new_address)
     }
 
     fn start_pair_construct(&self) {

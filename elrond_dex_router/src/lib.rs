@@ -103,13 +103,13 @@ pub trait Router {
                 "Bad precents"
             );
         }
-        Ok(self.factory().create_pair(
+        self.factory().create_pair(
             &first_token_id,
             &second_token_id,
             &owner,
             total_fee_precent_requested,
             special_fee_precent_requested,
-        ))
+        )
     }
 
     #[payable("EGLD")]
