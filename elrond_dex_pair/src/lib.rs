@@ -5,15 +5,23 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod amm;
-mod fee;
 mod config;
+mod fee;
 mod liquidity_pool;
 
-use dex_common::*;
 use config::*;
+use dex_common::*;
+
+type AddLiquidityResultType<BigUint> =
+    MultiResult3<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>;
+
+type RemoveLiquidityResultType<BigUint> =
+    MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>;
 
 #[elrond_wasm_derive::contract]
-pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule {
+pub trait Pair:
+    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule
+{
     #[init]
     fn init(
         &self,
@@ -92,13 +100,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         second_token_amount_desired: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
-    ) -> SCResult<
-        MultiResult3<
-            TokenAmountPair<Self::BigUint>,
-            TokenAmountPair<Self::BigUint>,
-            TokenAmountPair<Self::BigUint>,
-        >,
-    > {
+    ) -> SCResult<AddLiquidityResultType<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(
             first_token_amount_desired > 0,
@@ -141,7 +143,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
             "Pair: insufficient second token funds to add"
         );
 
-        let (first_token_amount, second_token_amount) = self.add_liquidity(
+        let (first_token_amount, second_token_amount) = self.calculate_optimal_amounts(
             first_token_amount_desired,
             second_token_amount_desired,
             first_token_amount_min,
@@ -223,8 +225,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         #[payment] liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
-    ) -> SCResult<MultiResult2<TokenAmountPair<Self::BigUint>, TokenAmountPair<Self::BigUint>>>
-    {
+    ) -> SCResult<RemoveLiquidityResultType<Self::BigUint>>{
         //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -240,7 +241,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         );
 
         let (first_token_amount, second_token_amount) = self.burn(
-            liquidity.clone(),
+            liquidity,
             first_token_amount_min,
             second_token_amount_min,
             self.lp_token_identifier().get(),
@@ -356,7 +357,7 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         let mut fee_amount = Self::BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
         if self.is_fee_enabled() {
-            fee_amount = self.get_special_fee_from_fixed_input(&amount_in);
+            fee_amount = self.get_special_fee_from_input(&amount_in);
             amount_in_after_fee -= &fee_amount;
         }
 
@@ -423,13 +424,9 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         let mut fee_amount = Self::BigUint::zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
         if self.is_fee_enabled() {
-            fee_amount = self.get_special_fee_from_optimal_input(&amount_in_optimal);
+            fee_amount = self.get_special_fee_from_input(&amount_in_optimal);
             amount_in_optimal_after_fee -= &fee_amount;
         }
-        require!(
-            reserve_token_out > amount_out,
-            "Insufficient amount out reserve"
-        );
 
         reserve_token_in += &amount_in_optimal_after_fee;
         reserve_token_out -= &amount_out;
@@ -470,6 +467,16 @@ pub trait Pair: amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolM
         self.lp_token_identifier().set(&token_identifier);
 
         Ok(())
+    }
+
+    #[endpoint]
+    fn setFeeOn(
+        &self,
+        enabled: bool,
+        fee_to_address: Address,
+        fee_token: TokenIdentifier,
+    ) -> SCResult<()> {
+        self.set_fee_on(enabled, fee_to_address, fee_token)
     }
 
     #[inline]

@@ -117,7 +117,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         Ok((first_token_amount, second_token_amount))
     }
 
-    fn add_liquidity(
+    fn calculate_optimal_amounts(
         &self,
         first_token_amount_desired: Self::BigUint,
         second_token_amount_desired: Self::BigUint,
@@ -242,8 +242,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         }
 
         let amount_out = self.get_amount_out_no_fee(&amount_in, &reserve_in, &reserve_out);
-
-        if reserve_out <= amount_out {
+        if reserve_out <= amount_out || amount_out == 0 {
             return big_zero;
         }
 

@@ -1,11 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use dex_common::*;
 use super::amm;
 use super::config;
 use super::liquidity_pool;
 use core::cmp::min;
+use dex_common::*;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 const EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
@@ -27,7 +27,9 @@ mod farm_proxy {
 }
 
 #[elrond_wasm_derive::module]
-pub trait FeeModule: config::ConfigModule + liquidity_pool::LiquidityPoolModule + amm::AmmModule {
+pub trait FeeModule:
+    config::ConfigModule + liquidity_pool::LiquidityPoolModule + amm::AmmModule
+{
     #[proxy]
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
 
@@ -100,7 +102,6 @@ pub trait FeeModule: config::ConfigModule + liquidity_pool::LiquidityPoolModule 
         self.trusted_swap_pair().remove(&token_pair_reversed);
         Ok(())
     }
-
 
     fn reinject(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
         let mut reserve = self.pair_reserve(token).get();
@@ -341,7 +342,7 @@ pub trait FeeModule: config::ConfigModule + liquidity_pool::LiquidityPoolModule 
     }
 
     #[endpoint]
-    fn setFeeOn(
+    fn set_fee_on(
         &self,
         enabled: bool,
         fee_to_address: Address,
