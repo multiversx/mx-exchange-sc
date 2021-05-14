@@ -89,13 +89,13 @@ pub trait Router: factory::FactoryModule {
                 "Bad percents"
             );
         }
-        Ok(self.create_pair(
+        self.create_pair(
             &first_token_id,
             &second_token_id,
             &owner,
             total_fee_percent_requested,
             special_fee_percent_requested,
-        ))
+        )
     }
 
     #[payable("EGLD")]

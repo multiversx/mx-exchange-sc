@@ -98,19 +98,19 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
         require!(
             !self.oracle_pair(&first_token, &second_token).is_empty(),
-            "Pair doesn't exists as oracle for given tokens"
+            "Pair doesn't exist as oracle for given tokens"
         );
         require!(
             !self.oracle_pair(&second_token, &first_token).is_empty(),
-            "Pair doesn't exists as oracle for given tokens"
+            "Pair doesn't exist as oracle for given tokens"
         );
         require!(
             self.oracle_pair(&second_token, &first_token).get() == address,
-            "Pair oracle has diferent address"
+            "Pair oracle has different address"
         );
         require!(
             self.oracle_pair(&first_token, &second_token).get() == address,
-            "Pair oracle has diferent address"
+            "Pair oracle has different address"
         );
         self.oracle_pair(&first_token, &second_token).clear();
         self.oracle_pair(&second_token, &first_token).clear();

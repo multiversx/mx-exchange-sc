@@ -181,6 +181,8 @@ pub trait FeeModule:
             fee_token,
             requested_fee_token,
         ) {
+            let first_token_reserve = self.pair_reserve(first_token_id).get();
+            let second_token_reserve = self.pair_reserve(second_token_id).get();
             let to_send =
                 self.swap_safe_no_fee(first_token_id, second_token_id, fee_token, fee_slice);
             if to_send > 0 {
@@ -189,8 +191,6 @@ pub trait FeeModule:
                 } else {
                     first_token_id
                 };
-                let first_token_reserve = self.pair_reserve(first_token_id).get();
-                let second_token_reserve = self.pair_reserve(second_token_id).get();
                 let resolved_externally = self.extern_swap_and_forward(
                     &to_send_token,
                     &to_send,
@@ -210,6 +210,8 @@ pub trait FeeModule:
             } else {
                 self.reinject(fee_token, fee_slice);
             }
+        } else {
+            self.reinject(fee_token, fee_slice);
         }
     }
 
