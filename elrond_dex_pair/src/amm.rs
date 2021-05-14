@@ -59,25 +59,12 @@ pub trait AmmModule {
         (numerator / denominator) + Self::BigUint::from(1u64)
     }
 
-    fn get_special_fee_from_fixed_input(&self, amount_in: &Self::BigUint) -> Self::BigUint {
+    fn get_special_fee_from_input(&self, amount_in: &Self::BigUint) -> Self::BigUint {
         amount_in * &Self::BigUint::from(self.special_fee_percent().get())
             / Self::BigUint::from(100000u64)
     }
 
-    fn get_special_fee_from_optimal_input(
-        &self,
-        amount_in_optimal: &Self::BigUint,
-    ) -> Self::BigUint {
-        let amount_in_zero_fee = amount_in_optimal
-            * &Self::BigUint::from(100000 - self.total_fee_percent().get())
-            / Self::BigUint::from(100000u64);
-
-        &amount_in_zero_fee * &Self::BigUint::from(100000u64)
-            / Self::BigUint::from(100000 - self.special_fee_percent().get())
-            - amount_in_zero_fee
-    }
-
-    #[view(getTotalFee)]
+    #[view(getTotalFeePercent)]
     #[storage_mapper("total_fee_percent")]
     fn total_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
 
