@@ -1,32 +1,32 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[elrond_wasm_derive::module(AmmModuleImpl)]
+#[elrond_wasm_derive::module]
 pub trait AmmModule {
     fn calculate_k_constant(
         &self,
-        first_token_amount: BigUint,
-        second_token_amount: BigUint,
-    ) -> BigUint {
+        first_token_amount: &Self::BigUint,
+        second_token_amount: &Self::BigUint,
+    ) -> Self::BigUint {
         first_token_amount * second_token_amount
     }
 
     fn quote(
         &self,
-        first_token_amount: BigUint,
-        first_token_reserve: BigUint,
-        second_token_reserve: BigUint,
-    ) -> BigUint {
-        (first_token_amount * second_token_reserve) / first_token_reserve
+        first_token_amount: &Self::BigUint,
+        first_token_reserve: &Self::BigUint,
+        second_token_reserve: &Self::BigUint,
+    ) -> Self::BigUint {
+        (first_token_amount * second_token_reserve) / first_token_reserve.clone()
     }
 
     fn get_amount_out_no_fee(
         &self,
-        amount_in: BigUint,
-        reserve_in: BigUint,
-        reserve_out: BigUint,
-    ) -> BigUint {
-        let numerator = &amount_in * &reserve_out;
+        amount_in: &Self::BigUint,
+        reserve_in: &Self::BigUint,
+        reserve_out: &Self::BigUint,
+    ) -> Self::BigUint {
+        let numerator = amount_in * reserve_out;
         let denominator = reserve_in + amount_in;
 
         numerator / denominator
@@ -34,39 +34,41 @@ pub trait AmmModule {
 
     fn get_amount_out(
         &self,
-        amount_in: BigUint,
-        reserve_in: BigUint,
-        reserve_out: BigUint,
-    ) -> BigUint {
-        let amount_in_with_fee = amount_in * BigUint::from(100000 - self.total_fee_precent().get());
-        let numerator = &amount_in_with_fee * &reserve_out;
-        let denominator = (reserve_in * BigUint::from(100000u64)) + amount_in_with_fee;
+        amount_in: &Self::BigUint,
+        reserve_in: &Self::BigUint,
+        reserve_out: &Self::BigUint,
+    ) -> Self::BigUint {
+        let amount_in_with_fee =
+            amount_in * &Self::BigUint::from(100000 - self.total_fee_percent().get());
+        let numerator = &amount_in_with_fee * reserve_out;
+        let denominator = (reserve_in * &Self::BigUint::from(100000u64)) + amount_in_with_fee;
 
         numerator / denominator
     }
 
     fn get_amount_in(
         &self,
-        amount_out: BigUint,
-        reserve_in: BigUint,
-        reserve_out: BigUint,
-    ) -> BigUint {
-        let numerator = (&reserve_in * &amount_out) * BigUint::from(100000u64);
-        let denominator =
-            (reserve_out - amount_out) * BigUint::from(100000 - self.total_fee_precent().get());
+        amount_out: &Self::BigUint,
+        reserve_in: &Self::BigUint,
+        reserve_out: &Self::BigUint,
+    ) -> Self::BigUint {
+        let numerator = reserve_in * amount_out * Self::BigUint::from(100000u64);
+        let denominator = (reserve_out - amount_out)
+            * Self::BigUint::from(100000 - self.total_fee_percent().get());
 
-        (numerator / denominator) + BigUint::from(1u64)
+        (numerator / denominator) + Self::BigUint::from(1u64)
     }
 
-    fn get_special_fee_from_input(&self, amount_in: BigUint) -> BigUint {
-        amount_in * BigUint::from(self.special_fee_precent().get()) / BigUint::from(100000u64)
+    fn get_special_fee_from_input(&self, amount_in: &Self::BigUint) -> Self::BigUint {
+        amount_in * &Self::BigUint::from(self.special_fee_percent().get())
+            / Self::BigUint::from(100000u64)
     }
 
-    #[view(getTotalFeePrecent)]
-    #[storage_mapper("total_fee_precent")]
-    fn total_fee_precent(&self) -> SingleValueMapper<Self::Storage, u64>;
+    #[view(getTotalFeePercent)]
+    #[storage_mapper("total_fee_percent")]
+    fn total_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
 
-    #[view(getSpecialFeePrecent)]
-    #[storage_mapper("special_fee_precent")]
-    fn special_fee_precent(&self) -> SingleValueMapper<Self::Storage, u64>;
+    #[view(getSpecialFee)]
+    #[storage_mapper("special_fee_percent")]
+    fn special_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
 }

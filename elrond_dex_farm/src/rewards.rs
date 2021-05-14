@@ -5,13 +5,8 @@ elrond_wasm::derive_imports!();
 
 type Nonce = u64;
 
-pub use crate::liquidity_pool::*;
-
-#[elrond_wasm_derive::module(RewardsModule)]
-pub trait RewardsModuleImpl {
-    #[module(LiquidityPoolModuleImpl)]
-    fn liquidity_pool(&self) -> LiquidityPoolModuleImpl<T, BigInt, BigUint>;
-
+#[elrond_wasm_derive::module]
+pub trait RewardsModule {
     #[endpoint(setPerBlockRewardAmount)]
     fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {
         only_owner!(self, "Permission denied");
@@ -21,18 +16,19 @@ pub trait RewardsModuleImpl {
         Ok(())
     }
 
-    fn calculate_reward_amount_current_block(&self) -> BigUint {
+    fn calculate_reward_amount_current_block(&self) -> Self::BigUint {
         let current_nonce = self.blockchain().get_block_nonce();
         self.calculate_reward_amount(current_nonce)
     }
 
-    fn calculate_reward_amount(&self, block_nonce: Nonce) -> BigUint {
+    fn calculate_reward_amount(&self, block_nonce: Nonce) -> Self::BigUint {
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let per_block_reward = self.per_block_reward_amount().get();
         if block_nonce > last_reward_nonce && per_block_reward > 0 {
-            BigUint::from(per_block_reward) * BigUint::from(block_nonce - last_reward_nonce)
+            Self::BigUint::from(per_block_reward)
+                * Self::BigUint::from(block_nonce - last_reward_nonce)
         } else {
-            BigUint::zero()
+            Self::BigUint::zero()
         }
     }
 
@@ -51,19 +47,18 @@ pub trait RewardsModuleImpl {
 
     fn calculate_reward_for_given_liquidity(
         &self,
-        liquidity: BigUint,
-        initial_worth: BigUint,
-        token_id: TokenIdentifier,
-    ) -> SCResult<BigUint> {
-        require!(liquidity > 0, "Liquidity needs to be greater than 0");
-
-        let total_supply = self.liquidity_pool().total_supply().get();
+        liquidity: &Self::BigUint,
+        initial_worth: &Self::BigUint,
+        token_id: &TokenIdentifier,
+        total_supply: &Self::BigUint,
+        virtual_reserves: &Self::BigUint,
+    ) -> SCResult<Self::BigUint> {
+        require!(liquidity > &0, "Liquidity needs to be greater than 0");
         require!(
             total_supply > liquidity,
             "Removing more liquidity than existent"
         );
 
-        let virtual_reserves = self.liquidity_pool().virtual_reserves().get();
         let actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
             token_id.as_esdt_identifier(),
@@ -71,13 +66,13 @@ pub trait RewardsModuleImpl {
         );
         let reward_amount = self.calculate_reward_amount_current_block();
 
-        let total_reserves = virtual_reserves + actual_reserves + reward_amount;
-        let worth = liquidity * total_reserves / total_supply;
+        let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
+        let worth = liquidity * &total_reserves / total_supply.clone();
 
-        let reward = if worth > initial_worth {
-            worth - initial_worth
+        let reward = if &worth > initial_worth {
+            &worth - initial_worth
         } else {
-            BigUint::zero()
+            Self::BigUint::zero()
         };
 
         Ok(reward)
