@@ -12,14 +12,18 @@ path = "src/lib.rs"
 wasm-output-mode = ["elrond-wasm-node"]
 
 [dependencies.elrond-wasm]
-version = "0.15"
+version = "0.16"
 
 [dependencies.elrond-wasm-derive]
-version = "0.15"
+version = "0.16"
 
 [dependencies.elrond-wasm-node]
-version = "0.15"
+version = "0.16"
 optional = true
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.15"
+version = "0.16"
+
+[dependencies.elrond_dex_pair]
+path = "../elrond_dex_pair"
+
