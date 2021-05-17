@@ -81,7 +81,7 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint]
-    fn enterFarmWithLockedRewards(
+    fn enterFarmAndLockRewards(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] enter_amount: Self::BigUint,
