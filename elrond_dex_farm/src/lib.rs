@@ -75,6 +75,11 @@ pub trait Farm:
 
         let is_first_provider = self.is_first_provider();
         let mut liquidity = self.add_liquidity(&enter_amount)?;
+        let attributes = FarmTokenAttributes {
+            total_entering_amount: enter_amount,
+            total_liquidity_amount: liquidity.clone(),
+            entering_epoch: self.blockchain().get_block_epoch(),
+        };
 
         // Do the actual permanent lock of first minimum liquidity
         // only after the token attributes are crafted for the user.
@@ -84,7 +89,7 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
-        let new_nonce = self.create_farm_tokens(&liquidity, &farm_token_id, &enter_amount);
+        let new_nonce = self.create_farm_tokens(&liquidity, &farm_token_id, &attributes);
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &liquidity, &caller);
 
@@ -182,8 +187,13 @@ pub trait Farm:
         // Add the liquidity again, create and send new SFT.
         let re_added_liquidity = self.add_liquidity(&entering_amount)?;
         let caller = self.blockchain().get_caller();
+        let new_attributes = FarmTokenAttributes {
+            total_entering_amount: entering_amount.clone(),
+            total_liquidity_amount: re_added_liquidity.clone(),
+            entering_epoch: farm_attributes.entering_epoch,
+        };
         let new_nonce =
-            self.create_farm_tokens(&re_added_liquidity, &farm_token_id, &entering_amount);
+            self.create_farm_tokens(&re_added_liquidity, &farm_token_id, &new_attributes);
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &re_added_liquidity, &caller);
 
@@ -222,30 +232,49 @@ pub trait Farm:
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,
-        token_nonce: u64,
         liquidity: Self::BigUint,
+        attributes_raw: BoxedBytes,
     ) -> SCResult<Self::BigUint> {
-        let token_id = self.farm_token_id().get();
-        let token_current_nonce = self.farm_token_nonce().get();
-        require!(token_nonce <= token_current_nonce, "Invalid nonce");
+        require!(liquidity > 0, "Zero liquidity input");
+        let total_supply = self.total_supply().get();
+        require!(total_supply > liquidity, "Not enough supply");
 
-        let attributes = self.get_farm_attributes(&token_id, token_nonce)?;
+        let attributes = self.decode_attributes(&attributes_raw)?;
+        require!(
+            liquidity <= attributes.total_liquidity_amount,
+            "Bad arguments"
+        );
+
         let entering_amount =
             &attributes.total_entering_amount * &liquidity / attributes.total_liquidity_amount;
-        if entering_amount == 0 {
-            return Ok(entering_amount);
-        }
-
-        let reward = self.calculate_reward_for_given_liquidity(
+        Ok(self.calculate_reward_for_given_liquidity(
             &liquidity,
             &entering_amount,
-            &self.total_supply().get(),
+            &total_supply,
             &self.virtual_reserves().get(),
             &self.reward_token_id().get(),
-        )?;
-
-        Ok(reward)
+        ))
     }
+
+	#[view(decodeAttributes)]
+	fn decode_attributes_endpoint(
+        &self,
+        attributes_raw: BoxedBytes,
+    ) -> SCResult<MultiResultVec<BoxedBytes>> {
+		let mut result = Vec::new();
+        let attributes = self.decode_attributes(&attributes_raw)?;
+
+        result.push(b"total_entering_amount"[..].into());
+        result.push(attributes.total_entering_amount.to_bytes_be().as_slice().into());
+
+        result.push(b"total_liquidity_amount"[..].into());
+        result.push(attributes.total_liquidity_amount.to_bytes_be().as_slice().into());
+
+        result.push(b"entering_epoch"[..].into());
+		result.push(attributes.entering_epoch.to_be_bytes()[..].into());
+
+		Ok(result.into())
+	}
 
     #[payable("EGLD")]
     #[endpoint(issueFarmToken)]
@@ -347,6 +376,19 @@ pub trait Farm:
         }
     }
 
+    fn decode_attributes(
+        &self,
+        attributes_raw: &BoxedBytes,
+    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
+        let attributes = <FarmTokenAttributes<Self::BigUint>>::top_decode(attributes_raw.as_slice());
+        match attributes {
+            Result::Ok(decoded_obj) => Ok(decoded_obj),
+            Result::Err(_) => {
+                return sc_error!("Decoding error");
+            }
+        }
+    }
+
     fn get_farm_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -371,13 +413,8 @@ pub trait Farm:
         &self,
         liquidity: &Self::BigUint,
         farm_token_id: &TokenIdentifier,
-        entering_amount: &Self::BigUint,
+        attributes: &FarmTokenAttributes<Self::BigUint>,
     ) -> Nonce {
-        let attributes = FarmTokenAttributes {
-            total_entering_amount: entering_amount.clone(),
-            total_liquidity_amount: liquidity.clone(),
-            entering_epoch: self.blockchain().get_block_epoch(),
-        };
         self.send()
             .esdt_nft_create::<FarmTokenAttributes<Self::BigUint>>(
                 self.blockchain().get_gas_left(),
@@ -386,7 +423,7 @@ pub trait Farm:
                 &BoxedBytes::empty(),
                 &Self::BigUint::zero(),
                 &H256::zero(),
-                &attributes,
+                attributes,
                 &[BoxedBytes::empty()],
             );
         self.increase_nonce()

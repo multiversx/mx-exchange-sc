@@ -52,23 +52,27 @@ pub trait RewardsModule {
         total_supply: &Self::BigUint,
         virtual_reserves: &Self::BigUint,
         reward_token_id: &TokenIdentifier,
-    ) -> SCResult<Self::BigUint> {
+    ) -> Self::BigUint {
         let actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
             reward_token_id.as_esdt_identifier(),
             0,
         );
+        let big_zero = Self::BigUint::zero();
         let reward_amount = self.calculate_reward_amount_current_block();
         let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
-        let worth = liquidity * &total_reserves / total_supply.clone();
 
-        let reward = if &worth > enter_amount {
-            &worth - enter_amount
+        let worth = if total_supply > &0 {
+            liquidity * &total_reserves / total_supply.clone()
         } else {
-            Self::BigUint::zero()
+            big_zero.clone()
         };
 
-        Ok(reward)
+        if &worth > enter_amount {
+            &worth - enter_amount
+        } else {
+            big_zero
+        }
     }
 
     #[view(getLastRewardEpoch)]

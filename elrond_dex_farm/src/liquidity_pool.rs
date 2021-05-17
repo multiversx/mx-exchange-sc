@@ -3,8 +3,8 @@ elrond_wasm::derive_imports!();
 
 const MINIMUM_INITIAL_FARM_AMOUNT: u64 = 1000;
 
-use super::rewards;
 use super::config;
+use super::rewards;
 
 #[elrond_wasm_derive::module]
 pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
@@ -19,7 +19,7 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
             amount,
             &total_supply,
             &virtual_reserves,
-            &farming_token_id, 
+            &farming_token_id,
             &reward_token_id,
         );
         require!(liquidity > 0, "Insuficient liquidity minted");
@@ -61,13 +61,17 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
             &total_supply,
             &virtual_reserves,
             &reward_token_id,
-        )?;
+        );
 
         total_supply -= liquidity;
         self.total_supply().set(&total_supply);
 
-        if farming_token_id == reward_token_id {
-            virtual_reserves += enter_amount;
+        if farming_token_id != reward_token_id {
+            require!(
+                &virtual_reserves > enter_amount,
+                "Virtual amount is less than enter amount"
+            );
+            virtual_reserves -= enter_amount;
             self.virtual_reserves().set(&virtual_reserves);
         }
 
@@ -79,7 +83,7 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
         amount: &Self::BigUint,
         total_supply: &Self::BigUint,
         virtual_reserves: &Self::BigUint,
-        farming_token_id: &TokenIdentifier, 
+        farming_token_id: &TokenIdentifier,
         reward_token_id: &TokenIdentifier,
     ) -> Self::BigUint {
         let mut actual_reserves = self.blockchain().get_esdt_balance(
