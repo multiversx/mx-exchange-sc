@@ -30,6 +30,14 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     entering_epoch: Epoch,
 }
 
+/*
+    This contract is used at the moment and might not be up to date.
+    TODOs:
+        -> remove commented lines
+        -> remove the +1 when creating farm tokens
+        -> change calculate_rewards_for_given_position so it receives token attributes
+*/
+
 #[elrond_wasm_derive::contract]
 pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[proxy]

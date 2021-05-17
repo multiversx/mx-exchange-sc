@@ -32,7 +32,7 @@ pub trait RewardsModule {
         }
     }
 
-    fn mint_rewards(&self, token_id: &TokenIdentifier) {
+    fn mint_rewards(&self, token_id: &TokenIdentifier) -> Self::BigUint {
         let current_nonce = self.blockchain().get_block_nonce();
         let to_mint = self.calculate_reward_amount(current_nonce);
         if to_mint != 0 {
@@ -43,27 +43,23 @@ pub trait RewardsModule {
             );
             self.last_reward_block_nonce().set(&current_nonce);
         }
+        to_mint
     }
 
     fn calculate_reward_for_given_liquidity(
         &self,
         liquidity: &Self::BigUint,
         enter_amount: &Self::BigUint,
-        total_supply: &Self::BigUint,
+        farm_token_supply: &Self::BigUint,
         virtual_reserves: &Self::BigUint,
-        reward_token_id: &TokenIdentifier,
+        actual_reserves: &Self::BigUint,
     ) -> Self::BigUint {
-        let actual_reserves = self.blockchain().get_esdt_balance(
-            &self.blockchain().get_sc_address(),
-            reward_token_id.as_esdt_identifier(),
-            0,
-        );
         let big_zero = Self::BigUint::zero();
         let reward_amount = self.calculate_reward_amount_current_block();
         let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
 
-        let worth = if total_supply > &0 {
-            liquidity * &total_reserves / total_supply.clone()
+        let worth = if farm_token_supply > &0 {
+            liquidity * &total_reserves / farm_token_supply.clone()
         } else {
             big_zero.clone()
         };

@@ -6,8 +6,9 @@ elrond_wasm::derive_imports!();
 
 type Epoch = u64;
 type Nonce = u64;
+const PENALTY_PERCENT: u64 = 10;
 const BURN_TOKENS_GAS_LIMIT: u64 = 5000000;
-const EXIT_FARM_MIN_EPOCHS: u64 = 3;
+const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
 mod config;
 mod liquidity_pool;
@@ -107,26 +108,23 @@ pub trait Farm:
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
     ) -> SCResult<ExitFarmResultType<Self::BigUint>> {
-        //require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
-        let enter_amount = &farm_attributes.total_entering_amount * &liquidity
+        let mut enter_amount = &farm_attributes.total_entering_amount * &liquidity
             / farm_attributes.total_liquidity_amount.clone();
-        require!(
-            farm_attributes.entering_epoch + EXIT_FARM_MIN_EPOCHS
-                < self.blockchain().get_block_epoch(),
-            "Exit too soon"
-        );
         require!(enter_amount > 0, "Cannot exit farm with 0 entering amount");
 
-        let caller = self.blockchain().get_caller();
-        let reward = self.remove_liquidity(&liquidity, &enter_amount)?;
-        let farming_token_id = self.farming_token_id().get();
+        // Before removing liquidity, first generate the rewards.
         let reward_token_id = self.reward_token_id().get();
+        self.increase_actual_reserves(&self.mint_rewards(&reward_token_id));
+
+        let caller = self.blockchain().get_caller();
+        let mut reward = self.remove_liquidity(&liquidity, &enter_amount)?;
+        let farming_token_id = self.farming_token_id().get();
         self.send().burn_tokens(
             &farm_token_id,
             token_nonce,
@@ -134,7 +132,16 @@ pub trait Farm:
             BURN_TOKENS_GAS_LIMIT,
         );
 
-        self.mint_rewards(&reward_token_id);
+        if self.should_apply_penalty(farm_attributes.entering_epoch) {
+            let mut penalty_amount = self.get_penalty_amount(reward.clone());
+            self.send().burn_tokens(&reward_token_id, 0, &penalty_amount, BURN_TOKENS_GAS_LIMIT);
+            reward -= penalty_amount;
+
+            penalty_amount = self.get_penalty_amount(enter_amount.clone());
+            self.send().burn_tokens(&farming_token_id, 0, &penalty_amount, BURN_TOKENS_GAS_LIMIT);
+            enter_amount -= penalty_amount;
+        }
+
         self.send()
             .transfer_tokens(&farming_token_id, 0, &enter_amount, &caller);
         self.send()
@@ -175,6 +182,10 @@ pub trait Farm:
             "Cannot exit farm with 0 entering amount"
         );
 
+        // Before removing liquidity, first generate the rewards.
+        let reward_token_id = self.reward_token_id().get();
+        self.increase_actual_reserves(&self.mint_rewards(&reward_token_id));
+
         // Remove liquidity and burn the received SFT.
         let reward = self.remove_liquidity(&liquidity, &entering_amount)?;
         self.send().burn_tokens(
@@ -197,9 +208,7 @@ pub trait Farm:
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &re_added_liquidity, &caller);
 
-        // Finally, mint and send the rewards.
-        let reward_token_id = self.reward_token_id().get();
-        self.mint_rewards(&reward_token_id);
+        // Send rewards
         self.send()
             .transfer_tokens(&reward_token_id, 0, &reward, &caller);
 
@@ -222,10 +231,11 @@ pub trait Farm:
     fn acceptFee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] _amount: Self::BigUint,
+        #[payment] amount: Self::BigUint,
     ) -> SCResult<()> {
         let reward_token_id = self.reward_token_id().get();
         require!(token_in == reward_token_id, "Bad fee token identifier");
+        self.increase_actual_reserves(&amount);
         Ok(())
     }
 
@@ -236,8 +246,8 @@ pub trait Farm:
         attributes_raw: BoxedBytes,
     ) -> SCResult<Self::BigUint> {
         require!(liquidity > 0, "Zero liquidity input");
-        let total_supply = self.total_supply().get();
-        require!(total_supply > liquidity, "Not enough supply");
+        let farm_token_supply = self.farm_token_supply().get();
+        require!(farm_token_supply > liquidity, "Not enough supply");
 
         let attributes = self.decode_attributes(&attributes_raw)?;
         require!(
@@ -247,13 +257,20 @@ pub trait Farm:
 
         let entering_amount =
             &attributes.total_entering_amount * &liquidity / attributes.total_liquidity_amount;
-        Ok(self.calculate_reward_for_given_liquidity(
+
+        let reward = self.calculate_reward_for_given_liquidity(
             &liquidity,
             &entering_amount,
-            &total_supply,
+            &farm_token_supply,
             &self.virtual_reserves().get(),
-            &self.reward_token_id().get(),
-        ))
+            &self.actual_reserves().get(),
+        );
+
+        if self.should_apply_penalty(attributes.entering_epoch) {
+            Ok(&reward - &self.get_penalty_amount(reward.clone()))
+        } else {
+            Ok(reward)
+        }
     }
 
     #[view(decodeAttributes)]
@@ -446,6 +463,16 @@ pub trait Farm:
         let new_nonce = self.farm_token_nonce().get() + 1;
         self.farm_token_nonce().set(&new_nonce);
         new_nonce
+    }
+
+    #[inline]
+    fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
+        entering_epoch + EXIT_FARM_NO_PENALTY_MIN_EPOCHS > self.blockchain().get_block_epoch()
+    }
+
+    #[inline]
+    fn get_penalty_amount(&self, amount: Self::BigUint) -> Self::BigUint {
+        amount * Self::BigUint::from(PENALTY_PERCENT) / Self::BigUint::from(100u64)
     }
 
     #[view(getFarmTokenId)]
