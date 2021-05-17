@@ -336,10 +336,10 @@ pub trait Farm:
                 *reward_token_id = result.token_id;
                 *reward_nonce = result.token_nonce;
                 *reward_amount = result.amount;
+            } else {
+                let _ = self.send()
+                    .direct_esdt_via_transf_exec(destination, reward_token_id.as_esdt_identifier(), reward_amount, &[]);
             }
-        } else {
-            let _ = self.send()
-                .direct_esdt_via_transf_exec(destination, reward_token_id.as_esdt_identifier(), reward_amount, &[]);
         }
     }
 
