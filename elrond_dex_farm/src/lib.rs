@@ -256,25 +256,37 @@ pub trait Farm:
         ))
     }
 
-	#[view(decodeAttributes)]
-	fn decode_attributes_endpoint(
+    #[view(decodeAttributes)]
+    fn decode_attributes_endpoint(
         &self,
         attributes_raw: BoxedBytes,
     ) -> SCResult<MultiResultVec<BoxedBytes>> {
-		let mut result = Vec::new();
+        let mut result = Vec::new();
         let attributes = self.decode_attributes(&attributes_raw)?;
 
         result.push(b"total_entering_amount"[..].into());
-        result.push(attributes.total_entering_amount.to_bytes_be().as_slice().into());
+        result.push(
+            attributes
+                .total_entering_amount
+                .to_bytes_be()
+                .as_slice()
+                .into(),
+        );
 
         result.push(b"total_liquidity_amount"[..].into());
-        result.push(attributes.total_liquidity_amount.to_bytes_be().as_slice().into());
+        result.push(
+            attributes
+                .total_liquidity_amount
+                .to_bytes_be()
+                .as_slice()
+                .into(),
+        );
 
         result.push(b"entering_epoch"[..].into());
-		result.push(attributes.entering_epoch.to_be_bytes()[..].into());
+        result.push(attributes.entering_epoch.to_be_bytes()[..].into());
 
-		Ok(result.into())
-	}
+        Ok(result.into())
+    }
 
     #[payable("EGLD")]
     #[endpoint(issueFarmToken)]
@@ -380,7 +392,8 @@ pub trait Farm:
         &self,
         attributes_raw: &BoxedBytes,
     ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let attributes = <FarmTokenAttributes<Self::BigUint>>::top_decode(attributes_raw.as_slice());
+        let attributes =
+            <FarmTokenAttributes<Self::BigUint>>::top_decode(attributes_raw.as_slice());
         match attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
