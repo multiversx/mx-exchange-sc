@@ -48,31 +48,34 @@ pub trait RewardsModule {
     fn calculate_reward_for_given_liquidity(
         &self,
         liquidity: &Self::BigUint,
-        enter_amount: &Self::BigUint,
+        initial_worth: &Self::BigUint,
+        token_id: &TokenIdentifier,
         total_supply: &Self::BigUint,
         virtual_reserves: &Self::BigUint,
-        reward_token_id: &TokenIdentifier,
-    ) -> Self::BigUint {
+    ) -> SCResult<Self::BigUint> {
+        require!(liquidity > &0, "Liquidity needs to be greater than 0");
+        require!(
+            total_supply > liquidity,
+            "Removing more liquidity than existent"
+        );
+
         let actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
-            reward_token_id.as_esdt_identifier(),
+            token_id.as_esdt_identifier(),
             0,
         );
-        let big_zero = Self::BigUint::zero();
         let reward_amount = self.calculate_reward_amount_current_block();
-        let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
 
-        let worth = if total_supply > &0 {
-            liquidity * &total_reserves / total_supply.clone()
+        let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
+        let worth = liquidity * &total_reserves / total_supply.clone();
+
+        let reward = if &worth > initial_worth {
+            &worth - initial_worth
         } else {
-            big_zero.clone()
+            Self::BigUint::zero()
         };
 
-        if &worth > enter_amount {
-            &worth - enter_amount
-        } else {
-            big_zero
-        }
+        Ok(reward)
     }
 
     #[view(getLastRewardEpoch)]
