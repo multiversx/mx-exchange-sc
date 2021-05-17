@@ -107,7 +107,6 @@ pub trait Farm:
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
     ) -> SCResult<ExitFarmResultType<Self::BigUint>> {
-        //require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();
         let farm_token_id = self.farm_token_id().get();
@@ -123,10 +122,13 @@ pub trait Farm:
         );
         require!(enter_amount > 0, "Cannot exit farm with 0 entering amount");
 
+        // Before removing liquidity, first generate the rewards.
+        let reward_token_id = self.reward_token_id().get();
+        self.increase_actual_reserves(&self.mint_rewards(&reward_token_id));
+
         let caller = self.blockchain().get_caller();
         let reward = self.remove_liquidity(&liquidity, &enter_amount)?;
         let farming_token_id = self.farming_token_id().get();
-        let reward_token_id = self.reward_token_id().get();
         self.send().burn_tokens(
             &farm_token_id,
             token_nonce,
@@ -134,7 +136,6 @@ pub trait Farm:
             BURN_TOKENS_GAS_LIMIT,
         );
 
-        self.mint_rewards(&reward_token_id);
         self.send()
             .transfer_tokens(&farming_token_id, 0, &enter_amount, &caller);
         self.send()
@@ -175,6 +176,10 @@ pub trait Farm:
             "Cannot exit farm with 0 entering amount"
         );
 
+        // Before removing liquidity, first generate the rewards.
+        let reward_token_id = self.reward_token_id().get();
+        self.increase_actual_reserves(&self.mint_rewards(&reward_token_id));
+
         // Remove liquidity and burn the received SFT.
         let reward = self.remove_liquidity(&liquidity, &entering_amount)?;
         self.send().burn_tokens(
@@ -197,9 +202,7 @@ pub trait Farm:
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &re_added_liquidity, &caller);
 
-        // Finally, mint and send the rewards.
-        let reward_token_id = self.reward_token_id().get();
-        self.mint_rewards(&reward_token_id);
+        // Send rewards
         self.send()
             .transfer_tokens(&reward_token_id, 0, &reward, &caller);
 
@@ -222,10 +225,11 @@ pub trait Farm:
     fn acceptFee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] _amount: Self::BigUint,
+        #[payment] amount: Self::BigUint,
     ) -> SCResult<()> {
         let reward_token_id = self.reward_token_id().get();
         require!(token_in == reward_token_id, "Bad fee token identifier");
+        self.increase_actual_reserves(&amount);
         Ok(())
     }
 
@@ -236,8 +240,8 @@ pub trait Farm:
         attributes_raw: BoxedBytes,
     ) -> SCResult<Self::BigUint> {
         require!(liquidity > 0, "Zero liquidity input");
-        let total_supply = self.total_supply().get();
-        require!(total_supply > liquidity, "Not enough supply");
+        let farm_token_supply = self.farm_token_supply().get();
+        require!(farm_token_supply > liquidity, "Not enough supply");
 
         let attributes = self.decode_attributes(&attributes_raw)?;
         require!(
@@ -250,9 +254,9 @@ pub trait Farm:
         Ok(self.calculate_reward_for_given_liquidity(
             &liquidity,
             &entering_amount,
-            &total_supply,
+            &farm_token_supply,
             &self.virtual_reserves().get(),
-            &self.reward_token_id().get(),
+            &self.actual_reserves().get(),
         ))
     }
 
