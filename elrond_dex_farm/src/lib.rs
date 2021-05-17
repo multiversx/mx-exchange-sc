@@ -6,10 +6,10 @@ elrond_wasm::derive_imports!();
 
 type Epoch = u64;
 type Nonce = u64;
-const PENALTY_PERCENT: u64 = 10;
-const BURN_TOKENS_GAS_LIMIT: u64 = 5000000;
-const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
-const LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u64 = 2;
+const DEFAULT_PENALTY_PERCENT: u8 = 10;
+const DEFAULT_BURN_TOKENS_GAS_LIMIT: u64 = 5000000;
+const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
+const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
 
 mod config;
 mod liquidity_pool;
@@ -21,13 +21,15 @@ use dex_common::*;
 type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
     MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
-type ExitFarmResultType<BigUint> = MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+type ExitFarmResultType<BigUint> =
+    MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     total_entering_amount: BigUint,
     total_liquidity_amount: BigUint,
     entering_epoch: Epoch,
+    liquidity_multiplier: u8,
     with_locked_rewards: bool,
 }
 
@@ -53,6 +55,13 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
+        self.penalty_percent().set(&DEFAULT_PENALTY_PERCENT);
+        self.locked_rewards_liquidity_multiplier()
+            .set(&DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER);
+        self.minimum_farming_epochs()
+            .set(&DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_tokens_gas_limit()
+            .set(&DEFAULT_BURN_TOKENS_GAS_LIMIT);
     }
 
     #[endpoint]
@@ -101,8 +110,10 @@ pub trait Farm:
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
 
+        let mut liquidity_multiplier = 0u8;
         let farm_contribution = if with_locked_rewards {
-            enter_amount * Self::BigUint::from(LOCKED_REWARDS_LIQUIDITY_MUTIPLIER)
+            liquidity_multiplier = self.locked_rewards_liquidity_multiplier().get();
+            enter_amount * Self::BigUint::from(liquidity_multiplier as u64)
         } else {
             enter_amount
         };
@@ -113,6 +124,7 @@ pub trait Farm:
             total_entering_amount: farm_contribution,
             total_liquidity_amount: liquidity.clone(),
             entering_epoch: self.blockchain().get_block_epoch(),
+            liquidity_multiplier,
             with_locked_rewards,
         };
 
@@ -146,6 +158,7 @@ pub trait Farm:
         let token_nonce = self.call_value().esdt_token_nonce();
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
+        let burn_gas_limit = self.burn_tokens_gas_limit().get();
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let mut enter_amount = &farm_attributes.total_entering_amount * &liquidity
@@ -158,11 +171,6 @@ pub trait Farm:
                 || !self.should_apply_penalty(farm_attributes.entering_epoch),
             "Exit too early for lock rewards option"
         );
-        require!(
-            !farm_attributes.with_locked_rewards
-                || enter_amount >= Self::BigUint::from(LOCKED_REWARDS_LIQUIDITY_MUTIPLIER),
-            "Cannot exit farm with enter amount of zero"
-        );
 
         // Before removing liquidity, first generate the rewards.
         let mut reward_token_id = self.reward_token_id().get();
@@ -171,43 +179,37 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let mut reward = self.remove_liquidity(&liquidity, &enter_amount)?;
         let farming_token_id = self.farming_token_id().get();
-        self.send().burn_tokens(
-            &farm_token_id,
-            token_nonce,
-            &liquidity,
-            BURN_TOKENS_GAS_LIMIT,
-        );
+        self.send()
+            .burn_tokens(&farm_token_id, token_nonce, &liquidity, burn_gas_limit);
 
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
-            let mut penalty_amount = self.get_penalty_amount(reward.clone());
+            let mut penalty_amount = self.get_penalty_amount(&reward);
             self.send()
-                .burn_tokens(&reward_token_id, 0, &penalty_amount, BURN_TOKENS_GAS_LIMIT);
+                .burn_tokens(&reward_token_id, 0, &penalty_amount, burn_gas_limit);
             reward -= penalty_amount;
 
-            penalty_amount = self.get_penalty_amount(enter_amount.clone());
+            penalty_amount = self.get_penalty_amount(&enter_amount);
             self.send()
-                .burn_tokens(&farming_token_id, 0, &penalty_amount, BURN_TOKENS_GAS_LIMIT);
+                .burn_tokens(&farming_token_id, 0, &penalty_amount, burn_gas_limit);
             enter_amount -= penalty_amount;
         }
 
+        self.send_back_farmed_tokens(
+            &farming_token_id,
+            &mut enter_amount,
+            farm_attributes.liquidity_multiplier,
+            &caller,
+            farm_attributes.with_locked_rewards,
+        )?;
+
         let mut reward_nonce = 0u64;
-        if farm_attributes.with_locked_rewards {
-            enter_amount =
-                enter_amount.clone() / Self::BigUint::from(LOCKED_REWARDS_LIQUIDITY_MUTIPLIER);
-            self.send()
-                .transfer_tokens(&farming_token_id, 0, &enter_amount, &caller);
-            if reward > 0 {
-                let result = self.send_rewards_with_lock(&reward_token_id, &reward, &caller);
-                reward_nonce = result.token_nonce;
-                reward_token_id = result.token_id;
-                reward = result.amount;
-            }
-        } else {
-            self.send()
-                .transfer_tokens(&farming_token_id, 0, &enter_amount, &caller);
-            self.send()
-                .transfer_tokens(&reward_token_id, 0, &reward, &caller);
-        }
+        self.send_rewards(
+            &mut reward_token_id,
+            &mut reward_nonce,
+            &mut reward,
+            &caller,
+            farm_attributes.with_locked_rewards,
+        );
 
         Ok((
             FftTokenAmountPair {
@@ -235,6 +237,7 @@ pub trait Farm:
         let token_nonce = self.call_value().esdt_token_nonce();
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
+        let burn_gas_limit = self.burn_tokens_gas_limit().get();
 
         // Read the attributes from the received SFT.
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
@@ -251,12 +254,8 @@ pub trait Farm:
 
         // Remove liquidity and burn the received SFT.
         let mut reward = self.remove_liquidity(&liquidity, &entering_amount)?;
-        self.send().burn_tokens(
-            &payment_token_id,
-            token_nonce,
-            &liquidity,
-            BURN_TOKENS_GAS_LIMIT,
-        );
+        self.send()
+            .burn_tokens(&payment_token_id, token_nonce, &liquidity, burn_gas_limit);
 
         // Add the liquidity again, create and send new SFT.
         let re_added_liquidity = self.add_liquidity(&entering_amount)?;
@@ -265,6 +264,7 @@ pub trait Farm:
             total_entering_amount: entering_amount.clone(),
             total_liquidity_amount: re_added_liquidity.clone(),
             entering_epoch: farm_attributes.entering_epoch,
+            liquidity_multiplier: farm_attributes.liquidity_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
         };
         let new_nonce =
@@ -274,17 +274,13 @@ pub trait Farm:
 
         // Send rewards
         let mut reward_nonce = 0u64;
-        if farm_attributes.with_locked_rewards {
-            if reward > 0 {
-                let result = self.send_rewards_with_lock(&reward_token_id, &reward, &caller);
-                reward_nonce = result.token_nonce;
-                reward_token_id = result.token_id;
-                reward = result.amount;
-            }
-        } else {
-            self.send()
-                .transfer_tokens(&reward_token_id, 0, &reward, &caller);
-        }
+        self.send_rewards(
+            &mut reward_token_id,
+            &mut reward_nonce,
+            &mut reward,
+            &caller,
+            farm_attributes.with_locked_rewards,
+        );
 
         Ok((
             GenericEsdtAmountPair {
@@ -301,21 +297,50 @@ pub trait Farm:
             .into())
     }
 
-    fn send_rewards_with_lock(
+    fn send_back_farmed_tokens(
         &self,
-        reward_token_id: &TokenIdentifier,
-        reward_amount: &Self::BigUint,
+        farmed_token_id: &TokenIdentifier,
+        farmed_amount: &mut Self::BigUint,
+        liquidity_multiplier: u8,
         destination: &Address,
-    ) -> GenericEsdtAmountPair<Self::BigUint> {
-        self.send().esdt_local_mint(
-            BURN_TOKENS_GAS_LIMIT,
-            reward_token_id.as_esdt_identifier(),
-            &reward_amount,
-        );
-        let locked_asset_factory_address = self.locked_asset_factory_address().get();
-        self.locked_asset_factory(locked_asset_factory_address)
-            .createAndForward(reward_amount.clone(), destination.clone())
-            .execute_on_dest_context(self.blockchain().get_gas_left())
+        with_locked_rewards: bool,
+    ) -> SCResult<()> {
+        if with_locked_rewards {
+            *farmed_amount = farmed_amount.clone() / Self::BigUint::from(liquidity_multiplier as u64);
+            require!(farmed_amount > &mut 0, "Cannot send back farmed tokens with amount 0");
+        }
+        let _ = self.send()
+            .direct_esdt_via_transf_exec(destination, farmed_token_id.as_esdt_identifier(), farmed_amount, &[]);
+        Ok(())
+    }
+
+    fn send_rewards(
+        &self,
+        reward_token_id: &mut TokenIdentifier,
+        reward_nonce: &mut Nonce,
+        reward_amount: &mut Self::BigUint,
+        destination: &Address,
+        with_locked_rewards: bool,
+    ) {
+        if reward_amount > &mut 0 {
+            if with_locked_rewards {
+                self.send().esdt_local_mint(
+                    self.burn_tokens_gas_limit().get(),
+                    reward_token_id.as_esdt_identifier(),
+                    &reward_amount,
+                );
+                let locked_asset_factory_address = self.locked_asset_factory_address().get();
+                let result = self.locked_asset_factory(locked_asset_factory_address)
+                    .createAndForward(reward_amount.clone(), destination.clone())
+                    .execute_on_dest_context(self.blockchain().get_gas_left());
+                *reward_token_id = result.token_id;
+                *reward_nonce = result.token_nonce;
+                *reward_amount = result.amount;
+            }
+        } else {
+            let _ = self.send()
+                .direct_esdt_via_transf_exec(destination, reward_token_id.as_esdt_identifier(), reward_amount, &[]);
+        }
     }
 
     #[payable("*")]
@@ -359,7 +384,7 @@ pub trait Farm:
         );
 
         if self.should_apply_penalty(attributes.entering_epoch) {
-            Ok(&reward - &self.get_penalty_amount(reward.clone()))
+            Ok(&reward - &self.get_penalty_amount(&reward))
         } else {
             Ok(reward)
         }
@@ -559,12 +584,13 @@ pub trait Farm:
 
     #[inline]
     fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
-        entering_epoch + EXIT_FARM_NO_PENALTY_MIN_EPOCHS > self.blockchain().get_block_epoch()
+        entering_epoch + self.minimum_farming_epochs().get() as u64
+            > self.blockchain().get_block_epoch()
     }
 
     #[inline]
-    fn get_penalty_amount(&self, amount: Self::BigUint) -> Self::BigUint {
-        amount * Self::BigUint::from(PENALTY_PERCENT) / Self::BigUint::from(100u64)
+    fn get_penalty_amount(&self, amount: &Self::BigUint) -> Self::BigUint {
+        amount * &Self::BigUint::from(self.penalty_percent().get() as u64) / Self::BigUint::from(100u64)
     }
 
     #[view(getFarmTokenId)]
