@@ -1,0 +1,30 @@
+[package]
+name = "elrond_dex_farm-wasm"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = [ "cdylib",]
+
+[workspace]
+members = [ ".",]
+
+[dev-dependencies]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+
+[dependencies.elrond_dex_farm]
+features = [ "wasm-output-mode",]
+default-features = false
+path = ".."
+
+[dependencies.elrond-wasm-output]
+version = "0.16"
+features = [ "wasm-output-mode",]

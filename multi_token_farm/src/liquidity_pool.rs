@@ -4,72 +4,71 @@ elrond_wasm::derive_imports!();
 const MINIMUM_INITIAL_FARM_AMOUNT: u64 = 1000;
 
 use super::rewards;
-use super::config;
 
 #[elrond_wasm_derive::module]
-pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
-    fn add_liquidity(&self, amount: &Self::BigUint) -> SCResult<Self::BigUint> {
-        require!(amount > &0, "Amount needs to be greater than 0");
-        let reward_token_id = self.reward_token_id().get();
-        let farming_token_id = self.farming_token_id().get();
-        let mut total_supply = self.total_supply().get();
-        let mut virtual_reserves = self.virtual_reserves().get();
+pub trait LiquidityPoolModule: rewards::RewardsModule {
+    fn add_liquidity(
+        &self,
+        amount: Self::BigUint,
+        farming_pool_token_id: TokenIdentifier,
+        farmed_token_id: TokenIdentifier,
+    ) -> SCResult<Self::BigUint> {
+        require!(amount > 0, "Amount needs to be greater than 0");
 
-        let liquidity = self.calculate_liquidity(
-            amount,
-            &total_supply,
-            &virtual_reserves,
-            &farming_token_id, 
-            &reward_token_id,
-        );
+        let liquidity = self.calculate_liquidity(&amount, &farming_pool_token_id, &farmed_token_id);
         require!(liquidity > 0, "Insuficient liquidity minted");
 
+        let mut total_supply = self.total_supply().get();
         if total_supply == 0 {
             require!(
                 liquidity > MINIMUM_INITIAL_FARM_AMOUNT,
                 "First farm needs to be greater than minimum amount"
             );
         }
-        total_supply += &liquidity;
-        self.total_supply().set(&total_supply);
 
-        if farming_token_id != reward_token_id {
+        let is_virtual_amount = farming_pool_token_id != farmed_token_id;
+        if is_virtual_amount {
+            let mut virtual_reserves = self.virtual_reserves().get();
             virtual_reserves += amount;
             self.virtual_reserves().set(&virtual_reserves);
         }
+
+        total_supply += &liquidity;
+        self.total_supply().set(&total_supply);
 
         Ok(liquidity)
     }
 
     fn remove_liquidity(
         &self,
-        liquidity: &Self::BigUint,
-        enter_amount: &Self::BigUint,
+        liquidity: Self::BigUint,
+        initial_worth: Self::BigUint,
+        farming_pool_token_id: TokenIdentifier,
+        farmed_token_id: TokenIdentifier,
     ) -> SCResult<Self::BigUint> {
-        require!(liquidity > &0, "Amount needs to be greater than 0");
-        require!(enter_amount > &0, "Amount needs to be greater than 0");
-
-        let reward_token_id = self.reward_token_id().get();
-        let farming_token_id = self.farming_token_id().get();
-        let mut virtual_reserves = self.virtual_reserves().get();
         let mut total_supply = self.total_supply().get();
-        require!(&total_supply > liquidity, "Not enough supply");
+        let mut virtual_reserves = self.virtual_reserves().get();
 
         let reward = self.calculate_reward_for_given_liquidity(
             &liquidity,
-            &enter_amount,
+            &initial_worth,
+            &farming_pool_token_id,
             &total_supply,
             &virtual_reserves,
-            &reward_token_id,
         )?;
+
+        let is_virtual_amount = farming_pool_token_id != farmed_token_id;
+        if is_virtual_amount {
+            require!(
+                virtual_reserves > initial_worth,
+                "Removing more virtual amount than available"
+            );
+            virtual_reserves -= initial_worth;
+            self.virtual_reserves().set(&virtual_reserves);
+        }
 
         total_supply -= liquidity;
         self.total_supply().set(&total_supply);
-
-        if farming_token_id == reward_token_id {
-            virtual_reserves += enter_amount;
-            self.virtual_reserves().set(&virtual_reserves);
-        }
 
         Ok(reward)
     }
@@ -77,26 +76,27 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
     fn calculate_liquidity(
         &self,
         amount: &Self::BigUint,
-        total_supply: &Self::BigUint,
-        virtual_reserves: &Self::BigUint,
-        farming_token_id: &TokenIdentifier, 
-        reward_token_id: &TokenIdentifier,
+        farming_pool_token_id: &TokenIdentifier,
+        farmed_token_id: &TokenIdentifier,
     ) -> Self::BigUint {
+        let is_virtual_amount = farming_pool_token_id != farmed_token_id;
+        let total_supply = self.total_supply().get();
+        let virtual_reserves = self.virtual_reserves().get();
         let mut actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
-            reward_token_id.as_esdt_identifier(),
+            farming_pool_token_id.as_esdt_identifier(),
             0,
         );
         let reward_amount = self.calculate_reward_amount_current_block();
 
-        if farming_token_id == reward_token_id {
+        if !is_virtual_amount {
             actual_reserves -= amount;
         }
 
-        if total_supply == &0 {
+        if total_supply == 0 {
             amount.clone()
         } else {
-            let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
+            let total_reserves = virtual_reserves + actual_reserves + reward_amount;
             amount * &total_supply / total_reserves
         }
     }
