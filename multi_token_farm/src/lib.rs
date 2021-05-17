@@ -176,7 +176,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount: Self::BigUint,
-    ) -> SCResult<SftTokenAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_contribution = self.get_farm_contribution(&token_in, &amount)?;
@@ -216,7 +216,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             &self.blockchain().get_caller(),
         );
 
-        Ok(SftTokenAmountPair {
+        Ok(GenericEsdtAmountPair {
             token_id: farm_token_id,
             token_nonce: farm_token_nonce,
             amount: liquidity,
@@ -229,7 +229,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
-    ) -> SCResult<MultiResult2<TokenAmountPair<Self::BigUint>, TokenAmountPair<Self::BigUint>>>
+    ) -> SCResult<MultiResult2<FftTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>>
     {
         //require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -275,11 +275,11 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         Ok((
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: farm_attributes.farmed_token_id,
                 amount: farmed_token_amount,
             },
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: farming_pool_token_id,
                 amount: reward,
             },
@@ -293,7 +293,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
-    ) -> SCResult<MultiResult2<SftTokenAmountPair<Self::BigUint>, TokenAmountPair<Self::BigUint>>>
+    ) -> SCResult<MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>>
     {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -351,12 +351,12 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         Ok((
-            SftTokenAmountPair {
+            GenericEsdtAmountPair {
                 token_id: farm_token_id,
                 token_nonce: farm_token_nonce,
                 amount: re_added_liquidity,
             },
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: farming_pool_token_id,
                 amount: reward,
             },

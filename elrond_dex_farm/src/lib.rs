@@ -18,10 +18,10 @@ mod rewards;
 use config::*;
 use dex_common::*;
 
-type EnterFarmResultType<BigUint> = SftTokenAmountPair<BigUint>;
+type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiResult2<SftTokenAmountPair<BigUint>, TokenAmountPair<BigUint>>;
-type ExitFarmResultType<BigUint> = MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>;
+    MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+type ExitFarmResultType<BigUint> = MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
@@ -128,7 +128,7 @@ pub trait Farm:
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &liquidity, &caller);
 
-        Ok(SftTokenAmountPair {
+        Ok(GenericEsdtAmountPair {
             token_id: farm_token_id,
             token_nonce: new_nonce,
             amount: liquidity,
@@ -165,7 +165,7 @@ pub trait Farm:
         );
 
         // Before removing liquidity, first generate the rewards.
-        let reward_token_id = self.reward_token_id().get();
+        let mut reward_token_id = self.reward_token_id().get();
         self.increase_actual_reserves(&self.mint_rewards(&reward_token_id));
 
         let caller = self.blockchain().get_caller();
@@ -190,13 +190,18 @@ pub trait Farm:
             enter_amount -= penalty_amount;
         }
 
+        let mut reward_nonce = 0u64;
         if farm_attributes.with_locked_rewards {
             enter_amount =
                 enter_amount.clone() / Self::BigUint::from(LOCKED_REWARDS_LIQUIDITY_MUTIPLIER);
             self.send()
                 .transfer_tokens(&farming_token_id, 0, &enter_amount, &caller);
-            self.send_rewards_with_lock(&reward_token_id, &reward, &caller);
-            reward = Self::BigUint::zero();
+            if reward > 0 {
+                let result = self.send_rewards_with_lock(&reward_token_id, &reward, &caller);
+                reward_nonce = result.token_nonce;
+                reward_token_id = result.token_id;
+                reward = result.amount;
+            }
         } else {
             self.send()
                 .transfer_tokens(&farming_token_id, 0, &enter_amount, &caller);
@@ -205,12 +210,13 @@ pub trait Farm:
         }
 
         Ok((
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: farming_token_id,
                 amount: enter_amount,
             },
-            TokenAmountPair {
+            GenericEsdtAmountPair {
                 token_id: reward_token_id,
+                token_nonce: reward_nonce,
                 amount: reward,
             },
         )
@@ -240,7 +246,7 @@ pub trait Farm:
         );
 
         // Before removing liquidity, first generate the rewards.
-        let reward_token_id = self.reward_token_id().get();
+        let mut reward_token_id = self.reward_token_id().get();
         self.increase_actual_reserves(&self.mint_rewards(&reward_token_id));
 
         // Remove liquidity and burn the received SFT.
@@ -267,22 +273,28 @@ pub trait Farm:
             .transfer_tokens(&farm_token_id, new_nonce, &re_added_liquidity, &caller);
 
         // Send rewards
+        let mut reward_nonce = 0u64;
         if farm_attributes.with_locked_rewards {
-            self.send_rewards_with_lock(&reward_token_id, &reward, &caller);
-            reward = Self::BigUint::zero();
+            if reward > 0 {
+                let result = self.send_rewards_with_lock(&reward_token_id, &reward, &caller);
+                reward_nonce = result.token_nonce;
+                reward_token_id = result.token_id;
+                reward = result.amount;
+            }
         } else {
             self.send()
                 .transfer_tokens(&reward_token_id, 0, &reward, &caller);
         }
 
         Ok((
-            SftTokenAmountPair {
+            GenericEsdtAmountPair {
                 token_id: farm_token_id,
                 token_nonce: new_nonce,
                 amount: re_added_liquidity,
             },
-            TokenAmountPair {
+            GenericEsdtAmountPair {
                 token_id: reward_token_id,
+                token_nonce: reward_nonce,
                 amount: reward,
             },
         )
@@ -294,18 +306,16 @@ pub trait Farm:
         reward_token_id: &TokenIdentifier,
         reward_amount: &Self::BigUint,
         destination: &Address,
-    ) {
-        if reward_amount > &0 {
-            self.send().esdt_local_mint(
-                BURN_TOKENS_GAS_LIMIT,
-                reward_token_id.as_esdt_identifier(),
-                &reward_amount,
-            );
-            let locked_asset_factory_address = self.locked_asset_factory_address().get();
-            self.locked_asset_factory(locked_asset_factory_address)
-                .createAndForward(reward_amount.clone(), destination.clone())
-                .execute_on_dest_context(self.blockchain().get_gas_left());
-        }
+    ) -> GenericEsdtAmountPair<Self::BigUint> {
+        self.send().esdt_local_mint(
+            BURN_TOKENS_GAS_LIMIT,
+            reward_token_id.as_esdt_identifier(),
+            &reward_amount,
+        );
+        let locked_asset_factory_address = self.locked_asset_factory_address().get();
+        self.locked_asset_factory(locked_asset_factory_address)
+            .createAndForward(reward_amount.clone(), destination.clone())
+            .execute_on_dest_context(self.blockchain().get_gas_left())
     }
 
     #[payable("*")]

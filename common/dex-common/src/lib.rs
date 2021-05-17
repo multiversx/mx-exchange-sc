@@ -6,13 +6,13 @@ elrond_wasm::derive_imports!();
 type Nonce = u64;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct TokenAmountPair<BigUint: BigUintApi> {
+pub struct FftTokenAmountPair<BigUint: BigUintApi> {
     pub token_id: TokenIdentifier,
     pub amount: BigUint,
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct SftTokenAmountPair<BigUint: BigUintApi> {
+pub struct GenericEsdtAmountPair<BigUint: BigUintApi> {
     pub token_id: TokenIdentifier,
     pub token_nonce: Nonce,
     pub amount: BigUint,
