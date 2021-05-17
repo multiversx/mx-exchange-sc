@@ -46,4 +46,8 @@ pub trait ConfigModule {
     #[view(getRewardTokenId)]
     #[storage_mapper("reward_token_id")]
     fn reward_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[view(getLockedAssetFactoryAddress)]
+    #[storage_mapper("locked_asset_factory_address")]
+    fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 }
