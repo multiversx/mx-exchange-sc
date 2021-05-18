@@ -324,7 +324,7 @@ pub trait Farm:
     ) {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
-                self.send().esdt_local_mint(
+                self.send().esdt_local_burn(
                     self.burn_tokens_gas_limit().get(),
                     reward_token_id.as_esdt_identifier(),
                     &reward_amount,
