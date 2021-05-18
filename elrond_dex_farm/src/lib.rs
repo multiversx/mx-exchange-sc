@@ -406,38 +406,6 @@ pub trait Farm:
         }
     }
 
-    #[view(decodeAttributes)]
-    fn decode_attributes_endpoint(
-        &self,
-        attributes_raw: BoxedBytes,
-    ) -> SCResult<MultiResultVec<BoxedBytes>> {
-        let mut result = Vec::new();
-        let attributes = self.decode_attributes(&attributes_raw)?;
-
-        result.push(b"total_entering_amount"[..].into());
-        result.push(
-            attributes
-                .total_entering_amount
-                .to_bytes_be()
-                .as_slice()
-                .into(),
-        );
-
-        result.push(b"total_liquidity_amount"[..].into());
-        result.push(
-            attributes
-                .total_liquidity_amount
-                .to_bytes_be()
-                .as_slice()
-                .into(),
-        );
-
-        result.push(b"entering_epoch"[..].into());
-        result.push(attributes.entering_epoch.to_be_bytes()[..].into());
-
-        Ok(result.into())
-    }
-
     #[payable("EGLD")]
     #[endpoint(issueFarmToken)]
     fn issue_farm_token(
