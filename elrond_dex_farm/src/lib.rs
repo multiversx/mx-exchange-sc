@@ -306,11 +306,19 @@ pub trait Farm:
         with_locked_rewards: bool,
     ) -> SCResult<()> {
         if with_locked_rewards {
-            *farmed_amount = farmed_amount.clone() / Self::BigUint::from(liquidity_multiplier as u64);
-            require!(farmed_amount > &mut 0, "Cannot send back farmed tokens with amount 0");
+            *farmed_amount =
+                farmed_amount.clone() / Self::BigUint::from(liquidity_multiplier as u64);
+            require!(
+                farmed_amount > &mut 0,
+                "Cannot send back farmed tokens with amount 0"
+            );
         }
-        let _ = self.send()
-            .direct_esdt_via_transf_exec(destination, farmed_token_id.as_esdt_identifier(), farmed_amount, &[]);
+        let _ = self.send().direct_esdt_via_transf_exec(
+            destination,
+            farmed_token_id.as_esdt_identifier(),
+            farmed_amount,
+            &[],
+        );
         Ok(())
     }
 
@@ -330,15 +338,23 @@ pub trait Farm:
                     &reward_amount,
                 );
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
-                let result = self.locked_asset_factory(locked_asset_factory_address)
+                let result = self
+                    .locked_asset_factory(locked_asset_factory_address)
                     .createAndForward(reward_amount.clone(), destination.clone())
-                    .execute_on_dest_context_custom_range(self.blockchain().get_gas_left(), |_, after| (after-1, after));
+                    .execute_on_dest_context_custom_range(
+                        self.blockchain().get_gas_left() * 9 / 10,
+                        |_, after| (after - 1, after),
+                    );
                 *reward_token_id = result.token_id;
                 *reward_nonce = result.token_nonce;
                 *reward_amount = result.amount;
             } else {
-                let _ = self.send()
-                    .direct_esdt_via_transf_exec(destination, reward_token_id.as_esdt_identifier(), reward_amount, &[]);
+                let _ = self.send().direct_esdt_via_transf_exec(
+                    destination,
+                    reward_token_id.as_esdt_identifier(),
+                    reward_amount,
+                    &[],
+                );
             }
         }
     }
@@ -590,7 +606,8 @@ pub trait Farm:
 
     #[inline]
     fn get_penalty_amount(&self, amount: &Self::BigUint) -> Self::BigUint {
-        amount * &Self::BigUint::from(self.penalty_percent().get() as u64) / Self::BigUint::from(100u64)
+        amount * &Self::BigUint::from(self.penalty_percent().get() as u64)
+            / Self::BigUint::from(100u64)
     }
 
     #[view(getFarmTokenId)]
