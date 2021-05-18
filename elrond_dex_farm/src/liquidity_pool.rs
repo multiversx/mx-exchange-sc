@@ -13,11 +13,7 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
         let mut farm_token_supply = self.farm_token_supply().get();
         let mut virtual_reserves = self.virtual_reserves().get();
 
-        let liquidity = self.calculate_liquidity(
-            amount,
-            &farm_token_supply,
-            &virtual_reserves,
-        );
+        let liquidity = self.calculate_liquidity(amount, &farm_token_supply, &virtual_reserves);
         require!(liquidity > 0, "Insuficient liquidity minted");
 
         if farm_token_supply == 0 {
@@ -56,7 +52,10 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
 
         //These are sanity checks. Should never fail.
         require!(&farm_token_supply > liquidity, "Not enough supply");
-        require!(&virtual_reserves > enter_amount, "Not enough virtual amount");
+        require!(
+            &virtual_reserves > enter_amount,
+            "Not enough virtual amount"
+        );
         require!(actual_reserves >= reward, "Not enough actual reserves");
 
         actual_reserves -= &reward;

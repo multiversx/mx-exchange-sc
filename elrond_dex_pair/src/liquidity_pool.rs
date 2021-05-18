@@ -175,16 +175,16 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         &self,
         liquidity: Self::BigUint,
         token_id: TokenIdentifier,
-    ) -> TokenAmountPair<Self::BigUint> {
+    ) -> FftTokenAmountPair<Self::BigUint> {
         let reserve = self.pair_reserve(&token_id).get();
         let total_supply = self.total_supply().get();
         if total_supply != 0 {
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id,
                 amount: liquidity * reserve / total_supply,
             }
         } else {
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id,
                 amount: Self::BigUint::zero(),
             }
@@ -194,7 +194,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
     fn get_both_tokens_for_given_position(
         &self,
         liquidity: Self::BigUint,
-    ) -> MultiResult2<TokenAmountPair<Self::BigUint>, TokenAmountPair<Self::BigUint>> {
+    ) -> MultiResult2<FftTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>> {
         let first_token_id = self.first_token_id().get();
         let token_first_token_amount =
             self.get_token_for_given_position(liquidity.clone(), first_token_id);

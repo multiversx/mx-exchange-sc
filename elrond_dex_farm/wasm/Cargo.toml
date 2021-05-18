@@ -28,3 +28,6 @@ path = ".."
 [dependencies.elrond-wasm-output]
 version = "0.16"
 features = [ "wasm-output-mode",]
+
+[dependencies.sc-locked-asset-factory]
+path = "../../../sc-distribution-rs/sc-locked-asset-factory"

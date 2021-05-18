@@ -24,8 +24,8 @@ optional = true
 [dev-dependencies.elrond-wasm-debug]
 version = "0.16"
 
-[dependencies.elrond_dex_pair]
-path = "../elrond_dex_pair"
+[dependencies.sc-locked-asset-factory]
+path = "../../sc-distribution-rs/sc-locked-asset-factory"
 
 [dependencies.dex-common]
 path = "../common/dex-common"

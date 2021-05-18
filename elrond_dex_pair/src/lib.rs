@@ -13,10 +13,10 @@ use config::*;
 use dex_common::*;
 
 type AddLiquidityResultType<BigUint> =
-    MultiResult3<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>;
+    MultiResult3<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
 type RemoveLiquidityResultType<BigUint> =
-    MultiResult2<TokenAmountPair<BigUint>, TokenAmountPair<BigUint>>;
+    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
 #[elrond_wasm_derive::contract]
 pub trait Pair:
@@ -183,15 +183,15 @@ pub trait Pair:
         self.validate_k_invariant_strict(&old_k, &new_k)?;
 
         Ok((
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: lp_token_id,
                 amount: liquidity,
             },
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: expected_first_token_id,
                 amount: first_token_amount,
             },
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: expected_second_token_id,
                 amount: second_token_amount,
             },
@@ -257,11 +257,11 @@ pub trait Pair:
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 
         Ok((
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: first_token_id,
                 amount: first_token_amount,
             },
-            TokenAmountPair {
+            FftTokenAmountPair {
                 token_id: second_token_id,
                 amount: second_token_amount,
             },
@@ -499,7 +499,7 @@ pub trait Pair:
     fn getTokensForGivenPosition(
         &self,
         liquidity: Self::BigUint,
-    ) -> MultiResult2<TokenAmountPair<Self::BigUint>, TokenAmountPair<Self::BigUint>> {
+    ) -> MultiResult2<FftTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>> {
         self.get_both_tokens_for_given_position(liquidity)
     }
 
