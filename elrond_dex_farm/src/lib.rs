@@ -332,7 +332,7 @@ pub trait Farm:
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
                 let result = self.locked_asset_factory(locked_asset_factory_address)
                     .createAndForward(reward_amount.clone(), destination.clone())
-                    .execute_on_dest_context(self.blockchain().get_gas_left());
+                    .execute_on_dest_context_custom_range(self.blockchain().get_gas_left(), |_, after| (after-1, after));
                 *reward_token_id = result.token_id;
                 *reward_nonce = result.token_nonce;
                 *reward_amount = result.amount;
