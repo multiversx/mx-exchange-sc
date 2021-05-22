@@ -1,0 +1,88 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "claim_locked_assets_basic.scen.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "setup_pair_contract.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:owner",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "addPairToIntermediate",
+                "arguments": [
+                    "address:pair_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "acceptEsdtPaymentProxy",
+                "esdt": {
+                    "tokenIdentifier": "str:WEGLD-abcdef",
+                    "value": "10,000"
+                },
+                "arguments": [
+                    "address:pair_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "acceptEsdtPaymentProxy",
+                "esdt": {
+                    "tokenIdentifier": "str:LKMEX-abcdef",
+                    "value": "10,000",
+                    "nonce": "0x02"
+                },
+                "arguments": [
+                    "address:pair_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

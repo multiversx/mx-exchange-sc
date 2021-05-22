@@ -1,0 +1,18 @@
+[package]
+name = "sc-locked-asset-factory-abi"
+
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[dependencies.sc-locked-asset-factory]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.16"
+
+
+[dependencies.elrond-wasm-debug]
+version = "0.16"
+

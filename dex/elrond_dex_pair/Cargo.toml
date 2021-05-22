@@ -1,0 +1,28 @@
+[package]
+name = "elrond_dex_pair"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.elrond-wasm]
+version = "0.16"
+
+[dependencies.elrond-wasm-derive]
+version = "0.16"
+
+[dependencies.elrond-wasm-node]
+version = "0.16"
+optional = true
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.16"
+
+[dependencies.dex-common]
+path = "../dex-common"
