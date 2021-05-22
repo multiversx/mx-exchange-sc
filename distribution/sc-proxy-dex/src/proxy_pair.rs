@@ -1,5 +1,5 @@
-#![allow(clippy::clippy::too_many_arguments)]
-#![allow(clippy::clippy::comparison_chain)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::comparison_chain)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -544,7 +544,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             proxy_params.accept_esdt_payment_gas_limit,
         );
         self.pair_contract_proxy(pair_address.clone())
-            .acceptEsdtPayment(token_to_send.clone(), amount.clone())
+            .acceptEsdtPayment(token_to_send, amount.clone())
             .execute_on_dest_context(gas_limit);
     }
 

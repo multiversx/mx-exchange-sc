@@ -83,7 +83,7 @@ pub trait LiquidityPoolModule: rewards::RewardsModule + config::ConfigModule {
             amount.clone()
         } else {
             let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
-            amount * &farm_token_supply / total_reserves
+            amount * farm_token_supply / total_reserves
         }
     }
 

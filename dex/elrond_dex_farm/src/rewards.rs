@@ -54,7 +54,7 @@ pub trait RewardsModule {
     ) -> Self::BigUint {
         let big_zero = Self::BigUint::zero();
         let reward_amount = self.calculate_reward_amount_current_block();
-        let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
+        let total_reserves = virtual_reserves + actual_reserves + reward_amount;
 
         let worth = if farm_token_supply > &0 {
             liquidity * &total_reserves / farm_token_supply.clone()

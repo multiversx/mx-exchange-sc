@@ -261,7 +261,7 @@ pub trait Farm:
         let re_added_liquidity = self.add_liquidity(&entering_amount)?;
         let caller = self.blockchain().get_caller();
         let new_attributes = FarmTokenAttributes {
-            total_entering_amount: entering_amount.clone(),
+            total_entering_amount: entering_amount,
             total_liquidity_amount: re_added_liquidity.clone(),
             entering_epoch: farm_attributes.entering_epoch,
             liquidity_multiplier: farm_attributes.liquidity_multiplier,

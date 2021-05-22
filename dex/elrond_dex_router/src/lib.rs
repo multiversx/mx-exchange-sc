@@ -304,7 +304,7 @@ pub trait Router: factory::FactoryModule {
         match result {
             AsyncCallResult::Ok(()) => {
                 self.pair_contract_proxy(address.clone())
-                    .setLpTokenIdentifier(token_id.clone())
+                    .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context(self.blockchain().get_gas_left());
             }
             AsyncCallResult::Err(_) => {
