@@ -30,7 +30,7 @@ pub trait RewardsModule: config::ConfigModule {
         let to_mint = self.calculate_blocks_reward(current_nonce);
         if to_mint != 0 {
             self.send().esdt_local_mint(
-                self.blockchain().get_gas_left(),
+                self.mint_tokens_gas_limit().get(),
                 token_id.as_esdt_identifier(),
                 &to_mint,
             );
@@ -50,16 +50,9 @@ pub trait RewardsModule: config::ConfigModule {
     fn calculate_reward(
         &self,
         amount: &Self::BigUint,
-        debt: &Self::BigUint,
-    ) -> SCResult<Self::BigUint> {
-        let worth =
-            amount * &self.reward_per_share().get() / Self::BigUint::from(DIVISION_SAFETY_CONSTANT);
-        require!(&worth >= debt, "Debt greater than worth");
-        Ok(worth - debt.clone())
-    }
-
-    fn calculate_reward_debt(&self, amount: &Self::BigUint) -> Self::BigUint {
-        amount * &self.reward_per_share().get() / Self::BigUint::from(DIVISION_SAFETY_CONSTANT)
+        enter_reward_per_share: &Self::BigUint,
+    ) -> Self::BigUint {
+        amount * &(&self.reward_per_share().get() - enter_reward_per_share) / Self::BigUint::from(DIVISION_SAFETY_CONSTANT)
     }
 
     fn increase_reward_reserve(&self, amount: &Self::BigUint) {
@@ -76,10 +69,13 @@ pub trait RewardsModule: config::ConfigModule {
 
     fn update_reward_per_share(&self, reward_increase: &Self::BigUint) {
         let current = self.reward_per_share().get();
-        let increase = reward_increase * &Self::BigUint::from(DIVISION_SAFETY_CONSTANT)
-            / self.farm_token_supply().get();
-        if increase > 0 {
-            self.reward_per_share().set(&(current + increase));
+        let farm_token_supply = self.farm_token_supply().get();
+        if farm_token_supply > 0 {
+            let increase = reward_increase * &Self::BigUint::from(DIVISION_SAFETY_CONSTANT)
+                / self.farm_token_supply().get();
+            if increase > 0 {
+                self.reward_per_share().set(&(current + increase));
+            }
         }
     }
 

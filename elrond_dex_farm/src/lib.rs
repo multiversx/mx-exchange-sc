@@ -26,7 +26,7 @@ type ExitFarmResultType<BigUint> =
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
-    reward_debt: BigUint,
+    reward_per_share: BigUint,
     entering_epoch: Epoch,
     apr_multiplier: u8,
     with_locked_rewards: bool,
@@ -116,7 +116,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         self.generate_rewards(&reward_token_id);
 
         let attributes = FarmTokenAttributes {
-            reward_debt: self.calculate_reward_debt(&farm_contribution),
+            reward_per_share: self.reward_per_share().get(),
             entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier,
             with_locked_rewards,
@@ -167,12 +167,11 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 || !self.should_apply_penalty(farm_attributes.entering_epoch),
             "Exit too early for lock rewards option"
         );
-        self.burn_farm_tokens(&farm_token_id, token_nonce, &amount, burn_gas_limit)?;
 
         let mut reward_token_id = self.reward_token_id().get();
         self.generate_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(&amount, &farm_attributes.reward_debt)?;
+        let mut reward = self.calculate_reward(&amount, &farm_attributes.reward_per_share);
         self.decrease_reward_reserve(&reward)?;
 
         let farming_token_id = self.farming_token_id().get();
@@ -190,6 +189,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         }
 
         let caller = self.blockchain().get_caller();
+        self.send()
+            .burn_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit);
         self.send_back_farmed_tokens(
             &farming_token_id,
             &mut farming_token_amount,
@@ -235,27 +236,27 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
         let burn_gas_limit = self.burn_tokens_gas_limit().get();
-
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
-        self.send()
-            .burn_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit);
 
         let mut reward_token_id = self.reward_token_id().get();
         self.generate_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(&amount, &farm_attributes.reward_debt)?;
-        self.decrease_reward_reserve(&reward)?;
+        let mut reward = self.calculate_reward(&amount, &farm_attributes.reward_per_share);
+        if reward > 0 {
+            self.decrease_reward_reserve(&reward)?;
+        }
 
         let new_attributes = FarmTokenAttributes {
-            reward_debt: self.calculate_reward_debt(&amount),
+            reward_per_share: self.reward_per_share().get(),
             entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
         };
 
         let caller = self.blockchain().get_caller();
-        let new_nonce =
-            self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
+        let new_nonce = self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
+        self.send()
+            .burn_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit);
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &amount, &caller);
 
@@ -371,7 +372,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         require!(farm_token_supply >= amount, "Not enough supply");
 
         let attributes = self.decode_attributes(&attributes_raw)?;
-        let reward = self.calculate_reward(&amount, &attributes.reward_debt)?;
+        let reward = self.calculate_reward(&amount, &attributes.reward_per_share);
 
         if self.should_apply_penalty(attributes.entering_epoch) {
             Ok(&reward - &self.get_penalty_amount(&reward))
@@ -544,7 +545,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         gas_limit: u64,
     ) -> SCResult<()> {
         let farm_amount = self.farm_token_supply().get();
-        require!(amount >= &farm_amount, "Not enough supply");
+        require!(&farm_amount >= amount, "Not enough supply");
         self.farm_token_supply().set(&(&farm_amount - amount));
         self.send()
             .burn_tokens(farm_token_id, farm_token_nonce, amount, gas_limit);
