@@ -67,28 +67,6 @@ pub trait ConfigModule {
         Ok(())
     }
 
-    #[endpoint]
-    fn start_produce_rewards(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        let current_nonce = self.blockchain().get_block_nonce();
-        self.produce_rewards_enabled().set(&true);
-        self.last_reward_block_nonce().set(&current_nonce);
-        Ok(())
-    }
-
-    #[endpoint]
-    fn end_produce_rewards(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        self.produce_rewards_enabled().set(&false);
-        self.last_reward_block_nonce().set(&0);
-        Ok(())
-    }
-
-    #[inline(always)]
-    fn produces_rewards(&self) -> bool {
-        self.produce_rewards_enabled().get()
-    }
-
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;

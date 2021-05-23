@@ -113,7 +113,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             self.get_farm_contribution(&enter_amount, with_locked_rewards);
 
         let reward_token_id = self.reward_token_id().get();
-        self.generate_rewards(&reward_token_id);
+        self.generate_aggregated_rewards(&reward_token_id);
 
         let attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
@@ -169,9 +169,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         );
 
         let mut reward_token_id = self.reward_token_id().get();
-        self.generate_rewards(&reward_token_id);
+        self.generate_aggregated_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(&amount, &farm_attributes.reward_per_share);
+        let mut reward = self.calculate_reward(
+            &amount,
+            &self.reward_per_share().get(),
+            &farm_attributes.reward_per_share,
+        );
         self.decrease_reward_reserve(&reward)?;
 
         let farming_token_id = self.farming_token_id().get();
@@ -239,9 +243,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
         let mut reward_token_id = self.reward_token_id().get();
-        self.generate_rewards(&reward_token_id);
+        self.generate_aggregated_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(&amount, &farm_attributes.reward_per_share);
+        let mut reward = self.calculate_reward(
+            &amount,
+            &self.reward_per_share().get(),
+            &farm_attributes.reward_per_share,
+        );
         if reward > 0 {
             self.decrease_reward_reserve(&reward)?;
         }
@@ -356,8 +364,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let reward_token_id = self.reward_token_id().get();
         require!(token_in == reward_token_id, "Bad fee token identifier");
         require!(amount > 0, "Zero amount in");
-        self.increase_reward_reserve(&amount);
-        self.update_reward_per_share(&amount);
+        self.increase_temporary_fee_storage(&amount);
         Ok(())
     }
 
@@ -371,8 +378,19 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farm_token_supply = self.farm_token_supply().get();
         require!(farm_token_supply >= amount, "Not enough supply");
 
+        let current_block = self.blockchain().get_block_nonce();
+        let to_be_minted = self.calculate_per_block_rewards(current_block);
+        let fees = self.temporary_fee_storage().get();
+        let reward_increase = to_be_minted + fees;
+        let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
+
         let attributes = self.decode_attributes(&attributes_raw)?;
-        let reward = self.calculate_reward(&amount, &attributes.reward_per_share);
+        let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
+        let reward = self.calculate_reward(
+            &amount,
+            &future_reward_per_share,
+            &attributes.reward_per_share,
+        );
 
         if self.should_apply_penalty(attributes.entering_epoch) {
             Ok(&reward - &self.get_penalty_amount(&reward))
