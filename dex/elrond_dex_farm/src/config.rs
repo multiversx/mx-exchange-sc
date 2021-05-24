@@ -128,4 +128,7 @@ pub trait ConfigModule {
 
     #[storage_mapper("farm_token_supply")]
     fn farm_token_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[storage_mapper("division_safety_constant")]
+    fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }

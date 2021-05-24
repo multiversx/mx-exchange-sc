@@ -4,7 +4,6 @@ use super::config;
 
 type Nonce = u64;
 type Epoch = u64;
-const DIVISION_SAFETY_CONSTANT: u64 = 1000000000000;
 
 #[elrond_wasm_derive::module]
 pub trait RewardsModule: config::ConfigModule {
@@ -93,7 +92,7 @@ pub trait RewardsModule: config::ConfigModule {
         &self,
         reward_increase: &Self::BigUint,
     ) -> Self::BigUint {
-        reward_increase * &Self::BigUint::from(DIVISION_SAFETY_CONSTANT)
+        reward_increase * &self.division_safety_constant().get()
             / self.farm_token_supply().get()
     }
 
@@ -104,7 +103,7 @@ pub trait RewardsModule: config::ConfigModule {
         initial_reward_per_share: &Self::BigUint,
     ) -> Self::BigUint {
         amount * &(current_reward_per_share - initial_reward_per_share)
-            / Self::BigUint::from(DIVISION_SAFETY_CONSTANT)
+            / self.division_safety_constant().get()
     }
 
     fn increase_temporary_fee_storage(&self, amount: &Self::BigUint) {

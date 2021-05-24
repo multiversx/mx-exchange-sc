@@ -44,7 +44,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         locked_asset_factory_address: Address,
-    ) {
+        division_safety_constant: Self::BigUint,
+    ) -> SCResult<()> {
         self.state().set(&State::Active);
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
@@ -61,6 +62,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             .set(&DEFAULT_BURN_TOKENS_GAS_LIMIT);
         self.mint_tokens_gas_limit()
             .set(&DEFAULT_MINT_TOKENS_GAS_LIMIT);
+        require!(division_safety_constant != 0, "Division constant cannot be 0");
+        self.division_safety_constant().set(&division_safety_constant);
+        Ok(())
     }
 
     #[endpoint]
