@@ -1,0 +1,34 @@
+[package]
+name = "sc-locked-asset-factory"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.elrond-wasm]
+version = "0.16"
+
+[dependencies.elrond-wasm-derive]
+version = "0.16"
+
+[dependencies.elrond-wasm-node]
+version = "0.16"
+optional = true
+
+[dependencies.distrib-common]
+path = "../distribution/distrib-common"
+
+[dependencies.modules]
+path = "../distribution/modules"
+
+[dependencies.dex-common]
+path = "../dex/dex-common"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.16"

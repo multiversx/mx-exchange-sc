@@ -1,0 +1,35 @@
+[package]
+name = "sc_distribution_rs"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.elrond-wasm]
+version = "0.16"
+
+[dependencies.elrond-wasm-derive]
+version = "0.16"
+
+[dependencies.elrond-wasm-node]
+version = "0.16"
+optional = true
+
+[dependencies.distrib-common]
+path = "../distrib-common"
+
+[dependencies.modules]
+path = "../modules"
+
+[dependencies.sc-locked-asset-factory]
+path = "../../sc-locked-asset-factory"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.16"
+

@@ -1,0 +1,134 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "set_user_distribution_with_unlock.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user1",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "1",
+                    "balance": "100,000,000",
+                    "esdt": {},
+                    "storage": {},
+                    "code": ""
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "30"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user1",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimLockedAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "1", "1000"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimLockedAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "2", "90000"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "3",
+            "tx": {
+                "from": "address:owner",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "getLockedTokenId",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "str:LKMEX-abcdef"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "2",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:LKMEX-abcdef": [
+                            {
+                                "nonce": "0x01",
+                                "value": "1,000"
+                            }
+                        ]
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}
