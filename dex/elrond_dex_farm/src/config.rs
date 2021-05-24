@@ -60,13 +60,6 @@ pub trait ConfigModule {
         Ok(())
     }
 
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(&self, per_block_amount: Self::BigUint) -> SCResult<()> {
-        self.require_permissions()?;
-        self.per_block_reward_amount().set(&per_block_amount);
-        Ok(())
-    }
-
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;

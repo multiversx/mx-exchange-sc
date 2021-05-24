@@ -131,6 +131,15 @@ pub trait RewardsModule: config::ConfigModule {
         Ok(())
     }
 
+    #[endpoint(setPerBlockRewardAmount)]
+    fn set_per_block_rewards(&self, per_block_amount: Self::BigUint) -> SCResult<()> {
+        self.require_permissions()?;
+        let reward_token_id = self.reward_token_id().get();
+        self.generate_aggregated_rewards(&reward_token_id);
+        self.per_block_reward_amount().set(&per_block_amount);
+        Ok(())
+    }
+
     #[inline(always)]
     fn produces_per_block_rewards(&self) -> bool {
         self.produce_rewards_enabled().get()
