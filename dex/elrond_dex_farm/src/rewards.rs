@@ -16,8 +16,7 @@ pub trait RewardsModule: config::ConfigModule {
             let per_block_reward = self.per_block_reward_amount().get();
 
             if block_nonce > last_reward_nonce && per_block_reward > 0 {
-                Self::BigUint::from(per_block_reward)
-                    * Self::BigUint::from(block_nonce - last_reward_nonce)
+                per_block_reward * Self::BigUint::from(block_nonce - last_reward_nonce)
             } else {
                 big_zero
             }
