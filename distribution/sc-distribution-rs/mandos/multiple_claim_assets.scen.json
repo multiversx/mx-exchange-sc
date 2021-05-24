@@ -1,0 +1,185 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "set_user_distribution.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "10"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user1",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "100"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "1",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:MEX-abcdef": "100"
+                    },
+                    "storage": {
+                        "str:ELRONDesdtMEX-abcdef": "100"
+                    }
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "20"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user2",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "400"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user2": {
+                    "nonce": "1",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:MEX-abcdef": "400"
+                    },
+                    "storage": {
+                        "str:ELRONDesdtMEX-abcdef": "400"
+                    }
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "30"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user3",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "900"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user3": {
+                    "nonce": "1",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:MEX-abcdef": "900"
+                    },
+                    "storage": {
+                        "str:ELRONDesdtMEX-abcdef": "900"
+                    }
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "40"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:user4",
+                "to": "address:dist_contract",
+                "value": "0",
+                "function": "claimAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "1600"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user4": {
+                    "nonce": "1",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:MEX-abcdef": "1600"
+                    },
+                    "storage": {
+                        "str:ELRONDesdtMEX-abcdef": "1600"
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}
