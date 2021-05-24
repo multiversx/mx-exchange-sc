@@ -262,8 +262,7 @@ pub trait Router: factory::FactoryModule {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
 
-        self.append_pair_code(&part);
-        Ok(())
+        self.append_pair_code(&part)
     }
 
     #[view(getPair)]

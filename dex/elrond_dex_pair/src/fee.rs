@@ -343,7 +343,6 @@ pub trait FeeModule:
         }
     }
 
-    #[endpoint]
     fn set_fee_on(
         &self,
         enabled: bool,

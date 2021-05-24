@@ -66,10 +66,15 @@ pub trait FactoryModule {
         self.pair_code_ready().set(&true);
     }
 
-    fn append_pair_code(&self, part: &BoxedBytes) {
+    fn append_pair_code(&self, part: &BoxedBytes) -> SCResult<()> {
+        require!(
+            !self.pair_code_ready().get(),
+            "Pair construction not started"
+        );
         let existent = self.pair_code().get();
         let new_code = BoxedBytes::from_concat(&[existent.as_slice(), part.as_slice()]);
         self.pair_code().set(&new_code);
+        Ok(())
     }
 
     fn upgrade_pair(&self, _address: &Address) {
