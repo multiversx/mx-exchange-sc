@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use core::iter::FromIterator;
+const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
 pub struct PairTokens {
@@ -21,6 +22,8 @@ pub trait FactoryModule {
     fn init_factory(&self) {
         self.pair_code_ready().set(&false);
         self.pair_code().set(&BoxedBytes::empty());
+        self.temporary_owner_period()
+            .set(&TEMPORARY_OWNER_PERIOD_BLOCKS);
     }
 
     fn create_pair(
@@ -53,6 +56,13 @@ pub trait FactoryModule {
                 second_token_id: second_token_id.clone(),
             },
             new_address.clone(),
+        );
+        self.pair_temporary_owner().insert(
+            new_address.clone(),
+            (
+                self.blockchain().get_caller(),
+                self.blockchain().get_block_nonce(),
+            ),
         );
         Ok(new_address)
     }
@@ -108,6 +118,39 @@ pub trait FactoryModule {
         MultiResultVec::from_iter(map)
     }
 
+    fn get_pair_temporary_owner(&self, pair_address: &Address) -> Option<Address> {
+        let result = self.pair_temporary_owner().get(pair_address);
+
+        match result {
+            Some((temporary_owner, creation_block)) => {
+                let expire_block = creation_block + self.temporary_owner_period().get();
+
+                if expire_block >= self.blockchain().get_block_nonce() {
+                    self.pair_temporary_owner().remove(pair_address);
+                    None
+                } else {
+                    Some(temporary_owner)
+                }
+            }
+            None => None,
+        }
+    }
+
+    #[endpoint(clearPairTemporaryOwnerStorage)]
+    fn clear_pair_temporary_owner_storage(&self) -> SCResult<usize> {
+        only_owner!(self, "No permissions");
+        let size = self.pair_temporary_owner().len();
+        self.pair_temporary_owner().clear();
+        Ok(size)
+    }
+
+    #[endpoint(setTemporaryOwnerPeriod)]
+    fn set_temporary_owner_period(&self, period_blocks: u64) -> SCResult<()> {
+        only_owner!(self, "No permissions");
+        self.temporary_owner_period().set(&period_blocks);
+        Ok(())
+    }
+
     #[view(getPairCode)]
     #[storage_mapper("pair_code")]
     fn pair_code(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
@@ -115,4 +158,10 @@ pub trait FactoryModule {
     #[view(getPairCodeReady)]
     #[storage_mapper("pair_code_ready")]
     fn pair_code_ready(&self) -> SingleValueMapper<Self::Storage, bool>;
+
+    #[storage_mapper("temporary_owner_period")]
+    fn temporary_owner_period(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("pair_temporary_owner")]
+    fn pair_temporary_owner(&self) -> MapMapper<Self::Storage, Address, (Address, u64)>;
 }
