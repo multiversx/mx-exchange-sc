@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+type Nonce = u64;
+
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
     Inactive,
@@ -31,9 +33,9 @@ pub trait ConfigModule {
     }
 
     #[endpoint]
-    fn set_locked_rewards_liquidity_multiplier(&self, muliplier: u8) -> SCResult<()> {
+    fn set_locked_rewards_apr_multiplier(&self, muliplier: u8) -> SCResult<()> {
         self.require_permissions()?;
-        self.locked_rewards_liquidity_multiplier().set(&muliplier);
+        self.locked_rewards_apr_multiplier().set(&muliplier);
         Ok(())
     }
 
@@ -41,6 +43,13 @@ pub trait ConfigModule {
     fn set_burn_tokens_gas_limit(&self, limit: u64) -> SCResult<()> {
         self.require_permissions()?;
         self.burn_tokens_gas_limit().set(&limit);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn set_mint_tokens_gas_limit(&self, limit: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.mint_tokens_gas_limit().set(&limit);
         Ok(())
     }
 
@@ -83,15 +92,43 @@ pub trait ConfigModule {
     #[storage_mapper("penalty_percent")]
     fn penalty_percent(&self) -> SingleValueMapper<Self::Storage, u8>;
 
-    #[view(getLockedRewardLiquidityMuliplier)]
-    #[storage_mapper("locked_rewards_liquidity_mulitplier")]
-    fn locked_rewards_liquidity_multiplier(&self) -> SingleValueMapper<Self::Storage, u8>;
+    #[view(getLockedRewardAprMuliplier)]
+    #[storage_mapper("locked_rewards_apr_multiplier")]
+    fn locked_rewards_apr_multiplier(&self) -> SingleValueMapper<Self::Storage, u8>;
 
     #[view(getBurnTokensGasLimit)]
     #[storage_mapper("burn_tokens_gas_limit")]
     fn burn_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
+    #[view(getMintTokensGasLimit)]
+    #[storage_mapper("mint_tokens_gas_limit")]
+    fn mint_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
     #[view(getMinimumFarmingEpoch)]
     #[storage_mapper("minimum_farming_epochs")]
     fn minimum_farming_epochs(&self) -> SingleValueMapper<Self::Storage, u8>;
+
+    #[view(getPerBlockRewardAmount)]
+    #[storage_mapper("per_block_reward_amount")]
+    fn per_block_reward_amount(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[storage_mapper("produce_rewards_enabled")]
+    fn produce_rewards_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
+
+    #[view(getLastRewardEpoch)]
+    #[storage_mapper("last_reward_block_nonce")]
+    fn last_reward_block_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[view(getFarmTokenId)]
+    #[storage_mapper("farm_token_id")]
+    fn farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[storage_mapper("farm_token_nonce")]
+    fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[storage_mapper("farm_token_supply")]
+    fn farm_token_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[storage_mapper("division_safety_constant")]
+    fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }
