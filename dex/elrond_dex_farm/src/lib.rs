@@ -201,8 +201,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         }
 
         let caller = self.blockchain().get_caller();
-        self.send()
-            .burn_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit);
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit)?;
         self.send_back_farmed_tokens(
             &farming_token_id,
             &mut farming_token_amount,
@@ -270,9 +269,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         };
 
         let caller = self.blockchain().get_caller();
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit)?;
         let new_nonce = self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
-        self.send()
-            .burn_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit);
         self.send()
             .transfer_tokens(&farm_token_id, new_nonce, &amount, &caller);
 
