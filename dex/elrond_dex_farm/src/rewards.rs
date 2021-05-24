@@ -92,8 +92,7 @@ pub trait RewardsModule: config::ConfigModule {
         &self,
         reward_increase: &Self::BigUint,
     ) -> Self::BigUint {
-        reward_increase * &self.division_safety_constant().get()
-            / self.farm_token_supply().get()
+        reward_increase * &self.division_safety_constant().get() / self.farm_token_supply().get()
     }
 
     fn calculate_reward(
@@ -102,8 +101,8 @@ pub trait RewardsModule: config::ConfigModule {
         current_reward_per_share: &Self::BigUint,
         initial_reward_per_share: &Self::BigUint,
     ) -> Self::BigUint {
-        amount * &(current_reward_per_share - initial_reward_per_share)
-            / self.division_safety_constant().get()
+        let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
+        amount * &reward_per_share_diff / self.division_safety_constant().get()
     }
 
     fn increase_temporary_fee_storage(&self, amount: &Self::BigUint) {

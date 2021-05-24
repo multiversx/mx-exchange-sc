@@ -62,8 +62,12 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             .set(&DEFAULT_BURN_TOKENS_GAS_LIMIT);
         self.mint_tokens_gas_limit()
             .set(&DEFAULT_MINT_TOKENS_GAS_LIMIT);
-        require!(division_safety_constant != 0, "Division constant cannot be 0");
-        self.division_safety_constant().set(&division_safety_constant);
+        require!(
+            division_safety_constant != 0,
+            "Division constant cannot be 0"
+        );
+        self.division_safety_constant()
+            .set(&division_safety_constant);
         Ok(())
     }
 
