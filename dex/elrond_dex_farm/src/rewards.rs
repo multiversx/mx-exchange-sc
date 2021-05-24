@@ -53,7 +53,7 @@ pub trait RewardsModule: config::ConfigModule {
     fn reset_temporary_fee_storage(&self) -> Self::BigUint {
         let current_block = self.blockchain().get_block_nonce();
 
-        if current_block != self.last_fees_clear_epoch().get() {
+        if current_block > self.last_fees_clear_epoch().get() {
             let fees = self.temporary_fee_storage().get();
             self.last_fees_clear_epoch().set(&current_block);
             self.temporary_fee_storage().clear();
