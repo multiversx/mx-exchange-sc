@@ -55,10 +55,10 @@ pub trait Pair:
         Ok(())
     }
 
-    #[endpoint(setState)]
-    fn set_state(&self, state: State) -> SCResult<()> {
+    #[endpoint(setStateActiveNoSwaps)]
+    fn set_state_active_no_swaps(&self) -> SCResult<()> {
         self.require_permissions()?;
-        self.state().set(&state);
+        self.state().set(&State::ActiveNoSwaps);
         Ok(())
     }
 
