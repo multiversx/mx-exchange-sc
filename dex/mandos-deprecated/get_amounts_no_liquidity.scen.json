@@ -1,0 +1,308 @@
+{
+	"name": "get pair views",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "complete_setup.scen.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountOut",
+				"arguments": [
+					"str:ALC-abcdef",
+					"0"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Zero input",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-amount-out1",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountOut",
+				"arguments": [
+					"str:CLC-abcdef",
+					"100"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Not a known token",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountOut",
+				"arguments": [
+					"str:ALC-abcdef",
+					"100"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Zero reserves for first token",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountOut",
+				"arguments": [
+					"str:ALC-abcdef",
+					"1,000,000,000,000,000,000,000,000,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Zero reserves for first token",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountIn",
+				"arguments": [
+					"str:ALC-abcdef",
+					"0"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Zero input",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountIn",
+				"arguments": [
+					"str:ALC-abcdef",
+					"100"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Not enough reserves for second token",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountIn",
+				"arguments": [
+					"str:ALC-abcdef",
+					"100,000,000,000,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Not enough reserves for second token",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-amount-out2",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getAmountIn",
+				"arguments": [
+					"str:BLC-abcdef",
+					"100,000,000,000,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Not a known token",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getEquivalent",
+				"arguments": [
+					"str:ALC-abcdef",
+					"0"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "4",
+				"message": "str:Zero input",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getEquivalent",
+				"arguments": [
+					"str:BLC-abcdef",
+					"1"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["0"],
+				"status": "0",
+				"message": "*",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getEquivalent",
+				"arguments": [
+					"str:ALC-abcdef",
+					"100"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["0"],
+				"status": "0",
+				"message": "*",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getEquivalent",
+				"arguments": [
+					"str:WEGLD-abcdef",
+					"100"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["0"],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getEquivalent",
+				"arguments": [
+					"str:WEGLD-abcdef",
+					"100"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["0"],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

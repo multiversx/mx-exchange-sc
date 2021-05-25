@@ -1,0 +1,51 @@
+{
+	"name": "reclaim temporary funds",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "accept_esdt_payment.scen.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "reclaim-temporary-funds",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "reclaimTemporaryFunds",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "getTemporaryFunds",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getTemporaryFunds",
+				"arguments": [
+					"address:user1",
+					"str:WEGLD-abcdef"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": ["0"],
+				"status": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

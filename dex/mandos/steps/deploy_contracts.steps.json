@@ -1,0 +1,64 @@
+{
+	"name": "deploy router",
+	"steps": [
+		{
+			"step": "setState",
+			"newAddresses": [
+				{
+					"creatorAddress": "address:owner",
+					"creatorNonce": "0",
+					"newAddress": "sc:router_contract"
+				},
+				{
+					"creatorAddress": "address:owner",
+					"creatorNonce": "1",
+					"newAddress": "sc:farm_contract"
+				}
+			]
+		},
+		{
+			"step": "scDeploy",
+			"txId": "deploy-router",
+			"tx": {
+				"from": "address:owner",
+				"value": "0",
+				"contractCode": "file:../../elrond_dex_router/output/elrond_dex_router.wasm",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "",
+				"logs": [],
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scDeploy",
+			"txId": "deploy-staking22",
+			"tx": {
+				"from": "address:owner",
+				"value": "0",
+				"contractCode": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+				"arguments": [
+					"sc:router_contract",
+					"str:WEGLD-abcdef",
+					"str:LPTOK-abcdef",
+					"sc:router_contract",
+					"1000000000000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "",
+				"logs": [],
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

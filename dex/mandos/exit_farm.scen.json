@@ -1,0 +1,43 @@
+{
+	"name": "exit farm",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "enter_farm.scen.json"
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockEpoch": "4"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "unstake",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "exitFarm",
+				"esdt": {
+					"tokenIdentifier": "str:FARM-abcdef",
+					"value": "100,000",
+					"nonce": "2"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c4c50544f4b2d616263646566000000030186a0",
+					"0x0000000c5745474c442d616263646566000000000000000000000000"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

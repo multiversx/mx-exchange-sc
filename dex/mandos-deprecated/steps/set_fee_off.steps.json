@@ -1,0 +1,74 @@
+{
+	"name": "set fee on",
+	"steps": [
+		{
+			"step": "scCall",
+			"txId": "set-fee-off",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:router_contract",
+				"value": "0",
+				"function": "setFeeOff",
+				"arguments": [
+					"sc:pair_contract",
+					"sc:farm_contract",
+					"str:WEGLD-abcdef"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "remove-pair",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "removeAcceptedPairAddressAndLpToken",
+				"arguments": [
+					"sc:pair_contract",
+					"str:LPTOK-abcdef"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-fee-state",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "getFeeState",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					""
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

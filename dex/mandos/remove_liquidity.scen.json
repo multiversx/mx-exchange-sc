@@ -1,0 +1,39 @@
+{
+	"name": "remove liquidity",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "add_liquidity.scen.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "remove-liquidity",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"esdt": {
+					"tokenIdentifier": "str:LPTOK-abcdef",
+					"value": "1,999,999,000"
+				},
+				"function": "removeLiquidity",
+				"arguments": [
+					"500,000,000",
+					"500,000,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c5745474c442d6162636465660000000477359018",
+					"0x0000000a414c432d6162636465660000000477359018"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

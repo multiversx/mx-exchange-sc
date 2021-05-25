@@ -1,0 +1,65 @@
+{
+	"name": "check fee after swap",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "swap_fixed_input.scen.json"
+		},
+		{
+			"step": "scCall",
+			"txId": "swap-fixed-input",
+			"tx": {
+				"from": "address:user2",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "swapTokensFixedInput",
+				"esdt": {
+					"tokenIdentifier": "str:WEGLD-abcdef",
+					"value": "100,000"
+				},
+				"arguments": [
+					"str:ALC-abcdef",
+					"50,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"sc:farm_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:WEGLD-abcdef": "199"
+					},
+					"storage": {
+						"``ELRONDroleesdtFARM-abcdef": "0x0a1145534454526f6c654e46544372656174650a1645534454526f6c654e46544164645175616e746974790a0f45534454526f6c654e46544275726e",
+						"str:pair_address_for_accepted_lp_token.info": "0x00000001000000010000000100000001",
+						"str:pair_address_for_accepted_lp_token.mappedLPTOK-abcdef": "sc:pair_contract",
+						"str:pair_address_for_accepted_lp_token.node_idLPTOK-abcdef": "1",
+						"0x706169725f616464726573735f666f725f61636365707465645f6c705f746f6b656e2e76616c756500000001": "str:LPTOK-abcdef",
+						"0x706169725f616464726573735f666f725f61636365707465645f6c705f746f6b656e2e6e6f64655f6c696e6b7300000001": "0x0000000000000000",
+						"str:farming_pool_token_id": "str:WEGLD-abcdef",
+						"str:farm_token_id": "str:FARM-abcdef",
+						"str:router_address": "sc:router_contract",
+						"str:virtual_token_id": "str:WEGLD-abcdef",
+						"str:state": "1",
+						"str:owner": "address:owner",
+						"str:farm_with_lp_tokens": "1"
+					},
+					"code": "file:../output/elrond_dex_farm.wasm"
+				},
+				"+": ""
+			}
+		}
+	]
+}

@@ -1,0 +1,305 @@
+{
+	"name": "accept esdt payment",
+	"steps": [
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "0"
+			}
+		},
+		{
+			"step": "setState",
+			"accounts": {
+				"address:alice": {
+					"nonce": "0",
+					"balance": "1,000,000,000,000",
+					"esdt": {
+						"str:LPTOK-abcdef": "1,000"
+					},
+					"storage": {}
+				},
+				"address:bob": {
+					"nonce": "0",
+					"balance": "1,000,000,000,000",
+					"esdt": {
+						"str:LPTOK-abcdef": "2,000"
+					},
+					"storage": {}
+				},
+				"address:eve": {
+					"nonce": "0",
+					"balance": "1,000,000,000,000",
+					"esdt": {
+						"str:LPTOK-abcdef": "500"
+					},
+					"storage": {}
+				},
+				"sc:farm_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:FARM-abcdef": {
+							"roles": [
+								"ESDTRoleNFTCreate",
+								"ESDTRoleNFTAddQuantity",
+								"ESDTRoleNFTBurn"
+							]
+						},
+						"str:LPTOK-abcdef": {
+							"roles": [
+								"ESDTRoleLocalBurn"
+							]
+						},
+						"str:MEX-abcdef": {
+							"roles": [
+								"ESDTRoleLocalMint",
+								"ESDTRoleLocalBurn"
+							]
+						}
+					},
+					"storage": {
+						"str:farming_token_id": "str:LPTOK-abcdef",
+						"str:farm_token_id": "str:FARM-abcdef",
+						"str:reward_token_id": "str:MEX-abcdef",
+						"str:state": "1",
+						"str:minimum_farming_epochs": "2",
+						"str:burn_tokens_gas_limit": "5,000,000",
+						"str:mint_tokens_gas_limit": "5,000,000",
+						"str:penalty_percent": "0",
+						"str:division_safety_constant": "1000000000000",
+						"str:per_block_reward_amount": "100",
+						"str:produce_rewards_enabled": "1",
+						"str:create_farm_tokens_gas_limit": "5000000"
+					},
+					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm",
+					"owner": "address:owner"
+				}
+			}
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "3"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "alice-enters",
+			"tx": {
+				"from": "address:alice",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "enterFarm",
+				"esdt": {
+					"tokenIdentifier": "str:LPTOK-abcdef",
+					"value": "1,000"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x01",
+					"0x0000000b4641524d2d61626364656600000000000000010000000203e8"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "bob-enters",
+			"tx": {
+				"from": "address:bob",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "enterFarm",
+				"esdt": {
+					"tokenIdentifier": "str:LPTOK-abcdef",
+					"value": "2,000"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x02",
+					"0x0000000b4641524d2d61626364656600000000000000020000000207D0"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "6"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "eve-enters",
+			"tx": {
+				"from": "address:eve",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "enterFarm",
+				"esdt": {
+					"tokenIdentifier": "str:LPTOK-abcdef",
+					"value": "500"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x03",
+					"0x0000000b4641524d2d61626364656600000000000000030000000201F4"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "10"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "bob-exits",
+			"tx": {
+				"from": "address:bob",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "exitFarm",
+				"esdt": {
+					"tokenIdentifier": "str:FARM-abcdef",
+					"nonce": "2",
+					"value": "2,000"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c4c50544f4b2d6162636465660000000207D0",
+					"0x0000000a4d45582d61626364656600000000000000000000000201AC"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "13"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "alice-exits",
+			"tx": {
+				"from": "address:alice",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "exitFarm",
+				"esdt": {
+					"tokenIdentifier": "str:FARM-abcdef",
+					"nonce": "1",
+					"value": "1,000"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c4c50544f4b2d6162636465660000000203e8",
+					"0x0000000a4d45582d616263646566000000000000000000000002019E"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "16"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "eve-exits",
+			"tx": {
+				"from": "address:eve",
+				"to": "sc:farm_contract",
+				"value": "0",
+				"function": "exitFarm",
+				"esdt": {
+					"tokenIdentifier": "str:FARM-abcdef",
+					"nonce": "3",
+					"value": "500"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c4c50544f4b2d6162636465660000000201f4",
+					"0x0000000a4d45582d61626364656600000000000000000000000201C9"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:alice": {
+					"nonce": "2",
+					"balance": "1,000,000,000,000",
+					"esdt": {
+						"str:LPTOK-abcdef": "1,000",
+						"str:MEX-abcdef": "414"
+					}
+				},
+				"address:bob": {
+					"nonce": "2",
+					"balance": "1,000,000,000,000",
+					"esdt": {
+						"str:LPTOK-abcdef": "2,000",
+						"str:MEX-abcdef": "428"
+					}
+				},
+				"address:eve": {
+					"nonce": "2",
+					"balance": "1,000,000,000,000",
+					"esdt": {
+						"str:LPTOK-abcdef": "500",
+						"str:MEX-abcdef": "457"
+					}
+				},
+				"+": ""
+			}
+		}
+	]
+}

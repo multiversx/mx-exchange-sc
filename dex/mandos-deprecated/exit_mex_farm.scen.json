@@ -1,0 +1,59 @@
+{
+	"name": "exit farm",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "enter_mex_farm.scen.json"
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockEpoch": "10",
+				"blockNonce": "10"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "unstake",
+			"tx": {
+				"from": "address:user_with_mex",
+				"to": "sc:mex_farm_contract",
+				"value": "0",
+				"function": "exitFarm",
+				"esdt": {
+					"tokenIdentifier": "str:FARM-abcdef",
+					"value": "99,999,000",
+					"nonce": "1"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000a4d45582d6162636465660000000405f5dd18",
+					"0x0000000a4d45582d61626364656600000002c34f"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user_with_mex": {
+					"nonce": "2",
+					"balance": "100,000,000",
+					"esdt": {
+						"str:MEX-abcdef": "5000048999"
+					},
+					"storage": {},
+					"code": ""
+				},
+				"+": ""
+			}
+		}
+	]
+}
