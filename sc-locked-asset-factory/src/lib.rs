@@ -95,9 +95,10 @@ pub trait LockedAssetFactory:
     #[endpoint(unlockAssets)]
     fn unlock_assets(
         &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        let (amount, token_id) = self.call_value().payment_token_pair();
         let token_nonce = self.call_value().esdt_token_nonce();
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");

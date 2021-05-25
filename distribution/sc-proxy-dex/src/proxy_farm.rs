@@ -60,17 +60,33 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
-    fn enter_farm_proxy_endpoint(&self, farm_address: Address) -> SCResult<()> {
-        self.enter_farm_proxy(farm_address, false)
+    fn enter_farm_proxy_endpoint(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
+        farm_address: Address,
+    ) -> SCResult<()> {
+        self.enter_farm_proxy(token_id, amount, farm_address, false)
     }
 
     #[payable("*")]
     #[endpoint(enterFarmAndLockRewardsProxy)]
-    fn enter_farm_and_lock_rewards_proxy_endpoint(&self, farm_address: Address) -> SCResult<()> {
-        self.enter_farm_proxy(farm_address, true)
+    fn enter_farm_and_lock_rewards_proxy_endpoint(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
+        farm_address: Address,
+    ) -> SCResult<()> {
+        self.enter_farm_proxy(token_id, amount, farm_address, true)
     }
 
-    fn enter_farm_proxy(&self, farm_address: Address, with_lock_rewards: bool) -> SCResult<()> {
+    fn enter_farm_proxy(
+        &self,
+        token_id: TokenIdentifier,
+        amount: Self::BigUint,
+        farm_address: Address,
+        with_lock_rewards: bool,
+    ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_proxy_farm_params_not_empty()?;
         self.require_wrapped_farm_token_id_not_empty()?;
@@ -78,7 +94,6 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let proxy_params = self.proxy_farm_params().get();
 
         let token_nonce = self.call_value().esdt_token_nonce();
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
 
         let to_farm_token_id: TokenIdentifier;
@@ -127,7 +142,12 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
     #[payable("*")]
     #[endpoint(exitFarmProxy)]
-    fn exit_farm_proxy(&self, farm_address: &Address) -> SCResult<()> {
+    fn exit_farm_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
+        farm_address: &Address,
+    ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_proxy_farm_params_not_empty()?;
         self.require_wrapped_farm_token_id_not_empty()?;
@@ -135,7 +155,6 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let proxy_params = self.proxy_farm_params().get();
 
         let token_nonce = self.call_value().esdt_token_nonce();
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
         require!(
             token_id == self.wrapped_farm_token_id().get(),
@@ -192,7 +211,12 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
     #[payable("*")]
     #[endpoint(claimRewardsProxy)]
-    fn claim_rewards_proxy(&self, farm_address: Address) -> SCResult<()> {
+    fn claim_rewards_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
+        farm_address: Address,
+    ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_proxy_farm_params_not_empty()?;
         self.require_wrapped_farm_token_id_not_empty()?;
@@ -200,7 +224,6 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let proxy_params = self.proxy_farm_params().get();
 
         let token_nonce = self.call_value().esdt_token_nonce();
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
         require!(
             token_id == self.wrapped_farm_token_id().get(),

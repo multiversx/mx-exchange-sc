@@ -65,11 +65,15 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
     #[payable("*")]
     #[endpoint(acceptEsdtPaymentProxy)]
-    fn accept_esdt_payment_proxy(&self, pair_address: Address) -> SCResult<()> {
+    fn accept_esdt_payment_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
+        pair_address: Address,
+    ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
 
         let token_nonce = self.call_value().esdt_token_nonce();
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
 
         let caller = self.blockchain().get_caller();
@@ -255,6 +259,8 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     #[endpoint(removeLiquidityProxy)]
     fn remove_liquidity_proxy(
         &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment] amount: Self::BigUint,
         pair_address: Address,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
@@ -266,7 +272,6 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
         let token_nonce = self.call_value().esdt_token_nonce();
         require!(token_nonce != 0, "Can only be called with an SFT");
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
 
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
