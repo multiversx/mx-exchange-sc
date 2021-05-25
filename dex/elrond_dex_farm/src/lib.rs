@@ -142,13 +142,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let new_nonce = self.create_farm_tokens(&farm_contribution, &farm_token_id, &attributes);
-        self.send_tokens(
+        self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
             &farm_contribution,
             &caller,
             &opt_accept_funds_func,
-        )?;
+        );
 
         Ok(GenericEsdtAmountPair {
             token_id: farm_token_id,
@@ -289,8 +289,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit)?;
         let new_nonce = self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
-        self.send()
-            .transfer_tokens(&farm_token_id, new_nonce, &amount, &caller);
+        self.send_nft_tokens(&farm_token_id, new_nonce, &amount, &caller, &opt_accept_funds_func);
 
         // Send rewards
         let mut reward_nonce = 0u64;
@@ -339,7 +338,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             farming_amount,
             destination,
             opt_accept_funds_func,
-        )?;
+        );
         Ok(())
     }
 
@@ -375,31 +374,15 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 *reward_nonce = result.token_nonce;
                 *reward_amount = result.amount;
             } else {
-                self.send_tokens(
+                self.send_fft_tokens(
                     reward_token_id,
-                    *reward_nonce,
                     reward_amount,
                     destination,
                     opt_accept_funds_func,
-                )?;
+                );
             }
         }
         Ok(())
-    }
-
-    fn send_tokens(
-        &self,
-        token: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        if nonce == 0 {
-            self.send_fft_tokens(token, amount, destination, opt_accept_funds_func)
-        } else {
-            self.send_nft_tokens(token, nonce, amount, destination, opt_accept_funds_func)
-        }
     }
 
     fn send_fft_tokens(
@@ -408,7 +391,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
                 accept_funds_func.as_slice(),
@@ -420,7 +403,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             }
         };
 
-        let result = self.send().direct_esdt_execute(
+        let _ = self.send().direct_esdt_execute(
             destination,
             token.as_esdt_identifier(),
             amount,
@@ -428,13 +411,6 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             function,
             &ArgBuffer::new(),
         );
-
-        match result {
-            Result::Ok(_) => Ok(()),
-            Result::Err(_) => {
-                sc_error!("Direct esdt nft execute failed")
-            }
-        }
     }
 
     fn send_nft_tokens(
@@ -444,7 +420,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
                 accept_funds_func.as_slice(),
@@ -456,7 +432,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             }
         };
 
-        let result = self.send().direct_esdt_nft_execute(
+        let _ = self.send().direct_esdt_nft_execute(
             destination,
             token.as_esdt_identifier(),
             nonce,
@@ -465,13 +441,6 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             function,
             &ArgBuffer::new(),
         );
-
-        match result {
-            Result::Ok(_) => Ok(()),
-            Result::Err(_) => {
-                sc_error!("Direct esdt nft execute failed")
-            }
-        }
     }
 
     #[payable("*")]

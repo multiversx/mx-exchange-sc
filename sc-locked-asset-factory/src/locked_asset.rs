@@ -19,7 +19,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         attributes: &LockedTokenAttributes,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<Nonce> {
+    ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(&token_id, amount, attributes);
         let last_created_nonce = self.locked_asset_token_nonce().get();
@@ -29,8 +29,8 @@ pub trait LockedAssetModule: asset::AssetModule {
             amount,
             address,
             opt_accept_funds_func,
-        )?;
-        Ok(last_created_nonce)
+        );
+        last_created_nonce
     }
 
     fn add_quantity_and_send_locked_assets(
@@ -39,10 +39,10 @@ pub trait LockedAssetModule: asset::AssetModule {
         sft_nonce: Nonce,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) {
         let token_id = self.locked_asset_token_id().get();
         self.add_quantity(&token_id, sft_nonce, amount);
-        self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func)
+        self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
     }
 
     fn add_quantity(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
@@ -61,7 +61,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
                 accept_funds_func.as_slice(),
@@ -73,7 +73,7 @@ pub trait LockedAssetModule: asset::AssetModule {
             }
         };
 
-        let result = self.send().direct_esdt_nft_execute(
+        let _ = self.send().direct_esdt_nft_execute(
             destination,
             token.as_esdt_identifier(),
             nonce,
@@ -82,13 +82,6 @@ pub trait LockedAssetModule: asset::AssetModule {
             function,
             &ArgBuffer::new(),
         );
-
-        match result {
-            Result::Ok(_) => Ok(()),
-            Result::Err(_) => {
-                sc_error!("Direct esdt nft execute failed")
-            }
-        }
     }
 
     fn create_tokens(
