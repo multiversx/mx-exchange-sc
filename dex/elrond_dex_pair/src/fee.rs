@@ -50,17 +50,17 @@ pub trait FeeModule:
 
     #[endpoint(whitelist)]
     fn whitelist_endpoint(&self, address: Address) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        self.whitelist().insert(address);
+        let is_new = self.whitelist().insert(address);
+        require!(is_new, "Address already whitelisted");
         Ok(())
     }
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: Address) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        self.whitelist().remove(&address);
+        let is_removed = self.whitelist().remove(&address);
+        require!(is_removed, "Addresss not whitelisted");
         Ok(())
     }
 
@@ -71,14 +71,14 @@ pub trait FeeModule:
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(first_token != second_token, "Tokens should differ");
         let token_pair = TokenPair {
             first_token,
             second_token,
         };
-        self.trusted_swap_pair().insert(token_pair, pair_address);
+        let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
+        require!(is_new, "Pair already trusted");
         Ok(())
     }
 
@@ -88,18 +88,18 @@ pub trait FeeModule:
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
         let token_pair = TokenPair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
-        self.trusted_swap_pair().remove(&token_pair);
+        let mut is_removed = self.trusted_swap_pair().remove(&token_pair) != None;
         let token_pair_reversed = TokenPair {
             first_token: second_token,
             second_token: first_token,
         };
-        self.trusted_swap_pair().remove(&token_pair_reversed);
+        is_removed = is_removed || (self.trusted_swap_pair().remove(&token_pair_reversed) != None);
+        require!(is_removed, "Pair was not trusted");
         Ok(())
     }
 
