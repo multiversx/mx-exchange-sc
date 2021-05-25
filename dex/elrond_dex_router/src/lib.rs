@@ -81,7 +81,8 @@ pub trait Router: factory::FactoryModule {
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
         let fee_percents_vec = fee_percents.into_vec();
-        if caller == owner && fee_percents_vec.len() == 2 {
+        if caller == owner {
+            require!(fee_percents_vec.len() == 2, "Bad percents length");
             total_fee_percent_requested = fee_percents_vec[0];
             special_fee_percent_requested = fee_percents_vec[1];
             require!(
