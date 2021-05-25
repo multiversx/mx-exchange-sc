@@ -200,16 +200,6 @@ pub trait Router: factory::FactoryModule {
         Ok(())
     }
 
-    #[endpoint(upgradePair)]
-    fn upgrade_pair_endpoint(&self, pair_address: Address) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
-        self.check_is_pair_sc(&pair_address)?;
-
-        self.upgrade_pair(&pair_address);
-        Ok(())
-    }
-
     #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,

@@ -87,10 +87,6 @@ pub trait FactoryModule {
         Ok(())
     }
 
-    fn upgrade_pair(&self, _address: &Address) {
-        //TODO
-    }
-
     #[storage_mapper("pair_map")]
     fn pair_map(&self) -> MapMapper<Self::Storage, PairTokens, Address>;
 
