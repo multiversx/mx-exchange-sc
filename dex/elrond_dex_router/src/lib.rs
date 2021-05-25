@@ -81,7 +81,8 @@ pub trait Router: factory::FactoryModule {
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
         let fee_percents_vec = fee_percents.into_vec();
-        if caller == owner && fee_percents_vec.len() == 2 {
+        if caller == owner {
+            require!(fee_percents_vec.len() == 2, "Bad percents length");
             total_fee_percent_requested = fee_percents_vec[0];
             special_fee_percent_requested = fee_percents_vec[1];
             require!(
@@ -109,6 +110,15 @@ pub trait Router: factory::FactoryModule {
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
+        let caller = self.blockchain().get_caller();
+        let result = self.get_pair_temporary_owner(&pair_address);
+
+        match result {
+            None => {}
+            Some(temporary_owner) => {
+                require!(caller == temporary_owner, "Temporary owner differs");
+            }
+        };
 
         let half_gas = self.blockchain().get_gas_left() / 2;
         let result = self
@@ -139,7 +149,7 @@ pub trait Router: factory::FactoryModule {
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .lp_token_issue_callback(&self.blockchain().get_caller(), &pair_address),
+                    .lp_token_issue_callback(&caller, &pair_address),
             ))
     }
 
@@ -188,16 +198,6 @@ pub trait Router: factory::FactoryModule {
                 .any(|address| &address == pair_address),
             "Not a pair SC"
         );
-        Ok(())
-    }
-
-    #[endpoint(upgradePair)]
-    fn upgrade_pair_endpoint(&self, pair_address: Address) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
-        self.check_is_pair_sc(&pair_address)?;
-
-        self.upgrade_pair(&pair_address);
         Ok(())
     }
 
@@ -262,8 +262,7 @@ pub trait Router: factory::FactoryModule {
         require!(self.is_active(), "Not active");
         only_owner!(self, "Permission denied");
 
-        self.append_pair_code(&part);
-        Ok(())
+        self.append_pair_code(&part)
     }
 
     #[view(getPair)]
@@ -303,6 +302,7 @@ pub trait Router: factory::FactoryModule {
         // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
             AsyncCallResult::Ok(()) => {
+                self.pair_temporary_owner().remove(&address);
                 self.pair_contract_proxy(address.clone())
                     .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context(self.blockchain().get_gas_left());

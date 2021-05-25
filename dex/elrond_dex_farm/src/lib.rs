@@ -202,7 +202,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit)?;
-        self.send_back_farmed_tokens(
+        self.send_back_farming_tokens(
             &farming_token_id,
             &mut farming_token_amount,
             farm_attributes.apr_multiplier,
@@ -299,25 +299,25 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             .into())
     }
 
-    fn send_back_farmed_tokens(
+    fn send_back_farming_tokens(
         &self,
-        farmed_token_id: &TokenIdentifier,
-        farmed_amount: &mut Self::BigUint,
+        farming_token_id: &TokenIdentifier,
+        farming_amount: &mut Self::BigUint,
         apr_multiplier: u8,
         destination: &Address,
         with_locked_rewards: bool,
     ) -> SCResult<()> {
         if with_locked_rewards {
-            *farmed_amount = farmed_amount.clone() / Self::BigUint::from(apr_multiplier as u64);
+            *farming_amount = farming_amount.clone() / Self::BigUint::from(apr_multiplier as u64);
             require!(
-                farmed_amount > &mut 0,
-                "Cannot send back farmed tokens with amount 0"
+                farming_amount > &mut 0,
+                "Cannot send back farming tokens with amount 0"
             );
         }
         let _ = self.send().direct_esdt_via_transf_exec(
             destination,
-            farmed_token_id.as_esdt_identifier(),
-            farmed_amount,
+            farming_token_id.as_esdt_identifier(),
+            farming_amount,
             &[],
         );
         Ok(())

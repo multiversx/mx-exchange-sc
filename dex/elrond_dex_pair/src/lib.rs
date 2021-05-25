@@ -12,8 +12,11 @@ mod liquidity_pool;
 use config::*;
 use dex_common::*;
 
-type AddLiquidityResultType<BigUint> =
-    MultiResult3<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+type AddLiquidityResultType<BigUint> = MultiResult3<
+    FftTokenAmountPair<BigUint>,
+    FftTokenAmountPair<BigUint>,
+    FftTokenAmountPair<BigUint>,
+>;
 
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
@@ -55,10 +58,10 @@ pub trait Pair:
         Ok(())
     }
 
-    #[endpoint(setState)]
-    fn set_state(&self, state: State) -> SCResult<()> {
+    #[endpoint(setStateActiveNoSwaps)]
+    fn set_state_active_no_swaps(&self) -> SCResult<()> {
         self.require_permissions()?;
-        self.state().set(&state);
+        self.state().set(&State::ActiveNoSwaps);
         Ok(())
     }
 
@@ -225,7 +228,7 @@ pub trait Pair:
         #[payment] liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
-    ) -> SCResult<RemoveLiquidityResultType<Self::BigUint>>{
+    ) -> SCResult<RemoveLiquidityResultType<Self::BigUint>> {
         //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -461,7 +464,6 @@ pub trait Pair:
 
     #[endpoint]
     fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         self.lp_token_identifier().set(&token_identifier);
