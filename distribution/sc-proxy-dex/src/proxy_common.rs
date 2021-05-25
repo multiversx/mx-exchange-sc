@@ -42,21 +42,21 @@ pub trait ProxyCommonModule {
         #[payment_token] token_id: TokenIdentifier,
         #[payment] amount: Self::BigUint,
     ) {
-        let tx_hash = self.blockchain().get_tx_hash();
-
-        if !self.last_tx_hash().is_empty() {
-            let last_tx_hash = self.last_tx_hash().get();
-            if tx_hash != last_tx_hash {
-                self.last_tx_hash().set(&tx_hash);
-                self.last_tx_accepted_funds().clear();
-            }
-        } else {
-            self.last_tx_hash().set(&tx_hash);
-        }
-
         let token_nonce = self.call_value().esdt_token_nonce();
-        self.last_tx_accepted_funds()
+        self.current_tx_accepted_funds()
             .insert((token_id, token_nonce), amount);
+    }
+
+    fn reset_received_funds_on_current_tx(&self) {
+        self.current_tx_accepted_funds().clear();
+    }
+
+    fn validate_received_funds_on_current_tx_size(&self, desired_size: usize) -> SCResult<()> {
+        require!(
+            self.current_tx_accepted_funds().len() == desired_size,
+            "Bad received funds size"
+        );
+        Ok(())
     }
 
     fn validate_received_funds_on_current_tx(
@@ -65,43 +65,30 @@ pub trait ProxyCommonModule {
         token_nonce: Nonce,
         amount: &Self::BigUint,
     ) -> SCResult<()> {
-        if self.last_tx_hash().is_empty() {
-            return sc_error!("No funds received");
-        }
         if amount == &Self::BigUint::zero() {
             return Ok(());
         }
 
-        let tx_hash = self.blockchain().get_tx_hash();
-        let last_tx_hash = self.last_tx_hash().get();
+        let result = self
+            .current_tx_accepted_funds()
+            .get(&(token_id.clone(), token_nonce));
 
-        if tx_hash == last_tx_hash {
-            let result = self
-                .last_tx_accepted_funds()
-                .get(&(token_id.clone(), token_nonce));
-
-            match result {
-                Some(available_amount) => {
-                    if &available_amount >= amount {
-                        Ok(())
-                    } else {
-                        sc_error!("Available amount is not enough")
-                    }
-                }
-                None => {
-                    sc_error!("No available funds of this type")
+        match result {
+            Some(available_amount) => {
+                if &available_amount >= amount {
+                    Ok(())
+                } else {
+                    sc_error!("Available amount is not enough")
                 }
             }
-        } else {
-            sc_error!("No available funds for this tx hash")
+            None => {
+                sc_error!("No available funds of this type")
+            }
         }
     }
 
-    #[storage_mapper("last_tx_hash")]
-    fn last_tx_hash(&self) -> SingleValueMapper<Self::Storage, H256>;
-
-    #[storage_mapper("last_tx_accepted_funds")]
-    fn last_tx_accepted_funds(
+    #[storage_mapper("current_tx_accepted_funds")]
+    fn current_tx_accepted_funds(
         &self,
     ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
 

@@ -159,6 +159,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         );
 
         // Actual adding of liquidity
+        self.reset_received_funds_on_current_tx();
         let result = self.actual_add_liquidity(
             &pair_address,
             &first_token_amount_desired,
@@ -181,9 +182,11 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 || second_token_used.token_id == second_token_id,
             "Bad token order"
         );
-        self.validate_received_funds_on_current_tx(&lp_received.token_id, 0, &lp_received.amount)?;
 
+        let mut desired_received_funds_size = 1;
+        self.validate_received_funds_on_current_tx(&lp_received.token_id, 0, &lp_received.amount)?;
         if first_token_amount_desired > first_token_used.amount {
+            desired_received_funds_size += 1;
             self.validate_received_funds_on_current_tx(
                 &first_token_used.token_id,
                 0,
@@ -192,12 +195,14 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         }
 
         if second_token_amount_desired > second_token_used.amount {
+            desired_received_funds_size += 1;
             self.validate_received_funds_on_current_tx(
                 &second_token_used.token_id,
                 0,
                 &(&second_token_amount_desired - &second_token_used.amount),
             )?;
         }
+        self.validate_received_funds_on_current_tx_size(desired_received_funds_size)?;
 
         //Recalculate temporary funds and burn unused
         let locked_asset_token_nonce: Nonce;
@@ -296,6 +301,8 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
         let locked_asset_token_id = attributes.locked_assets_token_id;
         let asset_token_id = self.asset_token_id().get();
+
+        self.reset_received_funds_on_current_tx();
         let tokens_for_position = self
             .actual_remove_liquidity(
                 &pair_address,
@@ -307,6 +314,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             )
             .into_tuple();
 
+        self.validate_received_funds_on_current_tx_size(2)?;
         self.validate_received_funds_on_current_tx(
             &tokens_for_position.0.token_id,
             0,

@@ -98,6 +98,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             return sc_error!("Unknown input Token");
         }
 
+        self.reset_received_funds_on_current_tx();
         let farm_result = self.actual_enter_farm(
             &farm_address,
             &to_farm_token_id,
@@ -112,6 +113,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
+        self.validate_received_funds_on_current_tx_size(1)?;
         self.validate_received_funds_on_current_tx(
             &farm_token_id,
             farm_token_nonce,
@@ -151,6 +153,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
+        self.reset_received_funds_on_current_tx();
         let farm_result = self
             .actual_exit_farm(
                 &farm_address,
@@ -163,6 +166,14 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let farmed_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
 
+        let desired_received_funds_size = if reward_token_returned.amount == 0
+            || reward_token_returned.token_id == farmed_token_returned.token_id
+        {
+            1
+        } else {
+            2
+        };
+        self.validate_received_funds_on_current_tx_size(desired_received_funds_size)?;
         self.validate_received_funds_on_current_tx(
             &farmed_token_returned.token_id,
             0,
@@ -234,6 +245,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             proxy_params.burn_tokens_gas_limit,
         );
 
+        self.reset_received_funds_on_current_tx();
         let result = self
             .actual_claim_rewards(
                 &farm_address,
@@ -253,6 +265,12 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             "Farm token amount received should be greater than 0"
         );
 
+        let desired_received_funds_size = if reward_token_returned.amount == 0 {
+            1
+        } else {
+            2
+        };
+        self.validate_received_funds_on_current_tx_size(desired_received_funds_size)?;
         self.validate_received_funds_on_current_tx(
             &new_farm_token_id,
             new_farm_token_nonce,
