@@ -23,7 +23,11 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["*","*","*"],
+				"out": [
+					"*",
+					"*",
+					"*"
+				],
 				"status": "0",
 				"message": "",
 				"gas": "*",
@@ -46,7 +50,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["0"],
+				"out": [
+					"0"
+				],
 				"status": "",
 				"gas": "*",
 				"refund": "*"

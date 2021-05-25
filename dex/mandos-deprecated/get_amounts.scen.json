@@ -67,7 +67,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["99"],
+				"out": [
+					"99"
+				],
 				"status": "0",
 				"message": "",
 				"gas": "*",
@@ -90,7 +92,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["1999999999"],
+				"out": [
+					"1999999999"
+				],
 				"status": "0",
 				"message": "",
 				"gas": "*",
@@ -136,7 +140,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["101"],
+				"out": [
+					"101"
+				],
 				"status": "0",
 				"message": "0",
 				"gas": "*",
@@ -251,7 +257,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["100"],
+				"out": [
+					"100"
+				],
 				"status": "0",
 				"message": "",
 				"gas": "*",
@@ -274,7 +282,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["100"],
+				"out": [
+					"100"
+				],
 				"status": "0",
 				"message": "",
 				"gas": "*",
@@ -297,7 +307,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["100"],
+				"out": [
+					"100"
+				],
 				"status": "0",
 				"message": "",
 				"gas": "*",

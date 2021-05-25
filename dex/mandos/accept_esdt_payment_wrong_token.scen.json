@@ -68,7 +68,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["0"],
+				"out": [
+					"0"
+				],
 				"message": "*",
 				"status": "",
 				"gas": "*",
@@ -91,7 +93,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": ["2,000,000,000"],
+				"out": [
+					"2,000,000,000"
+				],
 				"status": "",
 				"gas": "*",
 				"refund": "*"

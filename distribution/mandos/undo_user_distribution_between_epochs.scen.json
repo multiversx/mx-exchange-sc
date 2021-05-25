@@ -128,7 +128,9 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": ["0x04"],
+                "out": [
+                    "0x04"
+                ],
                 "status": "",
                 "logs": [],
                 "gas": "*",
