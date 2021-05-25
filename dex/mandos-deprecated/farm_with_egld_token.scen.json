@@ -1,0 +1,188 @@
+{
+	"name": "farm with mex",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "steps/init_accounts.steps.json"
+		},
+		{
+			"step": "setState",
+			"accounts": {
+				"sc:egld_farm_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:FARM-abcdef": {
+							"roles": [
+								"ESDTRoleNFTCreate",
+								"ESDTRoleNFTAddQuantity",
+								"ESDTRoleNFTBurn"
+							]
+						}
+					},
+					"storage": {
+						"str:farming_pool_token_id": "str:WEGLD-abcdef",
+						"str:farm_token_id": "str:FARM-abcdef",
+						"str:router_address": "sc:router_contract",
+						"str:virtual_token_id": "str:WEGLD-abcdef",
+						"str:state": "1",
+						"str:owner": "address:owner",
+						"str:farm_with_lp_tokens": "0"
+					},
+					"code": "file:../output/elrond_dex_farm.wasm"
+				}
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "enter farm",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:egld_farm_contract",
+				"value": "0",
+				"function": "enterFarm",
+				"esdt": {
+					"tokenIdentifier": "str:WEGLD-abcdef",
+					"value": "100,000,000"
+				},
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x01",
+					"0x0000000b4641524d2d61626364656600000000000000010000000405f5dd18"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-virtual-reserves",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:egld_farm_contract",
+				"value": "0",
+				"function": "getVirtualReserves",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0"
+				],
+				"status": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-virtual-reserves",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:egld_farm_contract",
+				"value": "0",
+				"function": "getTotalSupply",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"100,000,000"
+				],
+				"status": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "checkState",
+			"accounts": {
+				"address:user1": {
+					"nonce": "3",
+					"balance": "1,000,000,000,000,000,000,000,000,000,000",
+					"esdt": {
+						"str:WEGLD-abcdef": "4,900,000,000",
+						"str:ALC-abcdef": "5,000,000,000",
+						"str:BLC-abcdef": "5,000,000,000",
+						"str:FARM-abcdef": {
+							"instances": [
+								{
+									"nonce": "0x01",
+									"balance": "99,999,000",
+									"creator": "*",
+									"hash": "*",
+									"attributes": "*"
+								}
+							]
+						}
+					}
+				},
+				"sc:egld_farm_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:WEGLD-abcdef": "100,000,000",
+						"str:FARM-abcdef": {
+							"instances": [
+								{
+									"nonce": "0x01",
+									"balance": "1",
+									"creator": "*",
+									"hash": "*",
+									"attributes": "*"
+								}
+							],
+							"roles": [
+								"ESDTRoleNFTCreate",
+								"ESDTRoleNFTAddQuantity",
+								"ESDTRoleNFTBurn"
+							],
+							"lastNonce": "1"
+						}
+					},
+					"storage": {
+						"str:farm_token_nonce": "1",
+						"str:total_supply": "100000000",
+						"str:farm_token_id": "str:FARM-abcdef",
+						"str:virtual_token_id": "str:WEGLD-abcdef",
+						"str:router_address": "sc:router_contract",
+						"str:owner": "address:owner",
+						"str:state": "1",
+						"str:farming_pool_token_id": "str:WEGLD-abcdef"
+					},
+					"code": "file:../output/elrond_dex_farm.wasm"
+				},
+				"+": ""
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-virtual-reserves",
+			"tx": {
+				"from": "address:user1",
+				"to": "sc:egld_farm_contract",
+				"value": "0",
+				"function": "getAllAcceptedTokens",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x5745474c442d616263646566"
+				],
+				"status": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}
