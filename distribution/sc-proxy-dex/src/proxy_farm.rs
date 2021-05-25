@@ -4,12 +4,13 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 type Nonce = u64;
-use core::cmp::min;
 use distrib_common::*;
 
 use super::proxy_common;
 use super::proxy_pair;
 pub use dex_common::*;
+
+const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
@@ -88,10 +89,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         } else if self.accepted_locked_assets().contains(&token_id) {
             let asset_token_id = self.asset_token_id().get();
             self.send().esdt_local_mint(
-                min(
-                    self.blockchain().get_gas_left(),
-                    proxy_params.mint_tokens_gas_limit,
-                ),
+                proxy_params.mint_tokens_gas_limit,
                 &asset_token_id.as_esdt_identifier(),
                 &amount,
             );
@@ -178,20 +176,14 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             &token_id,
             token_nonce,
             &amount,
-            min(
-                self.blockchain().get_gas_left(),
-                proxy_params.burn_tokens_gas_limit,
-            ),
+            proxy_params.burn_tokens_gas_limit,
         );
         if farmed_token_returned.token_id == self.asset_token_id().get() {
             self.send().burn_tokens(
                 &farmed_token_returned.token_id,
                 0,
                 &farmed_token_returned.amount,
-                min(
-                    self.blockchain().get_gas_left(),
-                    proxy_params.burn_tokens_gas_limit,
-                ),
+                proxy_params.burn_tokens_gas_limit,
             );
         }
 
@@ -330,18 +322,28 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         proxy_params: &ProxyFarmParams,
         with_locked_rewards: bool,
     ) -> EnterFarmResultType<Self::BigUint> {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.enter_farm_gas_limit,
-        );
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
-                .enterFarmAndLockRewards(lp_token_id.clone(), amount.clone())
-                .execute_on_dest_context_custom_range(gas_limit, |_, after| (after - 1, after))
+                .enterFarmAndLockRewards(
+                    lp_token_id.clone(),
+                    amount.clone(),
+                    OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                )
+                .execute_on_dest_context_custom_range(
+                    proxy_params.enter_farm_gas_limit,
+                    |_, after| (after - 1, after),
+                )
         } else {
             self.farm_contract_proxy(farm_address.clone())
-                .enterFarm(lp_token_id.clone(), amount.clone())
-                .execute_on_dest_context_custom_range(gas_limit, |_, after| (after - 1, after))
+                .enterFarm(
+                    lp_token_id.clone(),
+                    amount.clone(),
+                    OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                )
+                .execute_on_dest_context_custom_range(
+                    proxy_params.enter_farm_gas_limit,
+                    |_, after| (after - 1, after),
+                )
         }
     }
 
@@ -353,14 +355,16 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         amount: &Self::BigUint,
         proxy_params: &ProxyFarmParams,
     ) -> ExitFarmResultType<Self::BigUint> {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.exit_farm_gas_limit,
-        );
         self.farm_contract_proxy(farm_address.clone())
-            .exitFarm(farm_token_id.clone(), amount.clone())
+            .exitFarm(
+                farm_token_id.clone(),
+                amount.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+            )
             .with_nft_nonce(farm_token_nonce)
-            .execute_on_dest_context_custom_range(gas_limit, |_, after| (after - 2, after))
+            .execute_on_dest_context_custom_range(proxy_params.exit_farm_gas_limit, |_, after| {
+                (after - 2, after)
+            })
     }
 
     fn actual_claim_rewards(
@@ -371,14 +375,17 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         amount: &Self::BigUint,
         proxy_params: &ProxyFarmParams,
     ) -> ClaimRewardsResultType<Self::BigUint> {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.claim_rewards_gas_limit,
-        );
         self.farm_contract_proxy(farm_address.clone())
-            .claimRewards(farm_token_id.clone(), amount.clone())
+            .claimRewards(
+                farm_token_id.clone(),
+                amount.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+            )
             .with_nft_nonce(farm_token_nonce)
-            .execute_on_dest_context_custom_range(gas_limit, |_, after| (after - 2, after))
+            .execute_on_dest_context_custom_range(
+                proxy_params.claim_rewards_gas_limit,
+                |_, after| (after - 2, after),
+            )
     }
 
     fn increase_wrapped_farm_token_nonce(&self) -> Nonce {

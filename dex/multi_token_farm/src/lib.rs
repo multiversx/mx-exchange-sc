@@ -294,8 +294,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
-    ) -> SCResult<MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>>
-    {
+    ) -> SCResult<
+        MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
+    > {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();

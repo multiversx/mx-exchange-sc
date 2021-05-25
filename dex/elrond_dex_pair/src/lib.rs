@@ -4,6 +4,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
+const DEFAULT_MINT_TOKENS_GAS_LIMIT: u64 = 500000;
+const DEFAULT_BURN_TOKENS_GAS_LIMIT: u64 = 500000;
+const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
+const DEFAULT_SEND_FEE_GAS_LIMIT: u64 = 25000000;
+
 mod amm;
 mod config;
 mod fee;
@@ -42,6 +48,15 @@ pub trait Pair:
         self.total_fee_percent().set(&total_fee_percent);
         self.special_fee_percent().set(&special_fee_percent);
         self.state().set(&State::ActiveNoSwaps);
+        self.transfer_exec_gas_limit()
+            .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.mint_tokens_gas_limit()
+            .set(&DEFAULT_MINT_TOKENS_GAS_LIMIT);
+        self.burn_tokens_gas_limit()
+            .set(&DEFAULT_BURN_TOKENS_GAS_LIMIT);
+        self.send_fee_gas_limit().set(&DEFAULT_SEND_FEE_GAS_LIMIT);
+        self.extern_swap_gas_limit()
+            .set(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
     }
 
     #[endpoint]
@@ -103,6 +118,7 @@ pub trait Pair:
         second_token_amount_desired: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<AddLiquidityResultType<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(
@@ -169,21 +185,24 @@ pub trait Pair:
             .clear();
         self.temporary_funds(&caller, &expected_second_token_id)
             .clear();
-        self.send_tokens(&lp_token_id, &liquidity, &caller);
-        self.send_tokens(
-            &expected_first_token_id,
-            &temporary_first_token_unused,
-            &caller,
-        );
-        self.send_tokens(
-            &expected_second_token_id,
-            &temporary_second_token_unused,
-            &caller,
-        );
 
         // Once liquidity has been added, the new K should never be lesser than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&old_k, &new_k)?;
+
+        self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
+        self.send_tokens(
+            &expected_first_token_id,
+            &temporary_first_token_unused,
+            &caller,
+            &opt_accept_funds_func,
+        )?;
+        self.send_tokens(
+            &expected_second_token_id,
+            &temporary_second_token_unused,
+            &caller,
+            &opt_accept_funds_func,
+        )?;
 
         Ok((
             FftTokenAmountPair {
@@ -202,20 +221,28 @@ pub trait Pair:
             .into())
     }
 
-    fn reclaim_temporary_token(&self, caller: &Address, token: &TokenIdentifier) {
+    fn reclaim_temporary_token(
+        &self,
+        caller: &Address,
+        token: &TokenIdentifier,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
         let amount = self.temporary_funds(&caller, token).get();
         self.temporary_funds(&caller, token).clear();
-        self.send_tokens(token, &amount, caller);
+        self.send_tokens(token, &amount, caller, opt_accept_funds_func)?;
+        Ok(())
     }
 
     #[endpoint(reclaimTemporaryFunds)]
-    fn reclaim_temporary_funds(&self) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
+    fn reclaim_temporary_funds(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        self.reclaim_temporary_token(&caller, &first_token_id);
-        self.reclaim_temporary_token(&caller, &second_token_id);
+        self.reclaim_temporary_token(&caller, &first_token_id, &opt_accept_funds_func)?;
+        self.reclaim_temporary_token(&caller, &second_token_id, &opt_accept_funds_func)?;
 
         Ok(())
     }
@@ -228,8 +255,8 @@ pub trait Pair:
         #[payment] liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<RemoveLiquidityResultType<Self::BigUint>> {
-        //require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -252,12 +279,23 @@ pub trait Pair:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        self.send_tokens(&first_token_id, &first_token_amount, &caller);
-        self.send_tokens(&second_token_id, &second_token_amount, &caller);
 
         // Once liquidity has been removed, the new K should never be greater than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&new_k, &old_k)?;
+
+        self.send_tokens(
+            &first_token_id,
+            &first_token_amount,
+            &caller,
+            &opt_accept_funds_func,
+        )?;
+        self.send_tokens(
+            &second_token_id,
+            &second_token_amount,
+            &caller,
+            &opt_accept_funds_func,
+        )?;
 
         Ok((
             FftTokenAmountPair {
@@ -320,6 +358,7 @@ pub trait Pair:
         #[payment] amount_in: Self::BigUint,
         token_out: TokenIdentifier,
         amount_out_min: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
@@ -366,18 +405,22 @@ pub trait Pair:
 
         reserve_token_in += &amount_in_after_fee;
         reserve_token_out -= &amount_out_optimal;
-
         self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
-        self.send_tokens(&token_out, &amount_out_optimal, &caller);
-
-        //The transaction was made. We are left with $(fee) of $(token_in) as fee.
-        if self.is_fee_enabled() {
-            self.send_fee(token_in, fee_amount);
-        }
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant(&old_k, &new_k)?;
+
+        //The transaction was made. We are left with $(fee) of $(token_in) as fee.
+        if self.is_fee_enabled() {
+            self.send_fee(&token_in, fee_amount);
+        }
+        self.send_tokens(
+            &token_out,
+            &amount_out_optimal,
+            &caller,
+            &opt_accept_funds_func,
+        )?;
 
         Ok(())
     }
@@ -390,6 +433,7 @@ pub trait Pair:
         #[payment] amount_in_max: Self::BigUint,
         token_out: TokenIdentifier,
         amount_out: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
@@ -433,32 +477,59 @@ pub trait Pair:
 
         reserve_token_in += &amount_in_optimal_after_fee;
         reserve_token_out -= &amount_out;
-
         self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
-        self.send_tokens(&token_out, &amount_out, &caller);
-        self.send_tokens(&token_in, &residuum, &caller);
-
-        //The transaction was made. We are left with $(fee) of $(token_in) as fee.
-        if self.is_fee_enabled() {
-            self.send_fee(token_in, fee_amount);
-        }
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant(&old_k, &new_k)?;
 
+        //The transaction was made. We are left with $(fee) of $(token_in) as fee.
+        if self.is_fee_enabled() {
+            self.send_fee(&token_in, fee_amount);
+        }
+
+        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
+        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
+
         Ok(())
     }
 
-    #[inline]
-    fn send_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint, destination: &Address) {
+    fn send_tokens(
+        &self,
+        token: &TokenIdentifier,
+        amount: &Self::BigUint,
+        destination: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
         if amount > &0 {
-            let _ = self.send().direct_esdt_via_transf_exec(
+            let (function, gas_limit) = match opt_accept_funds_func {
+                OptionalArg::Some(accept_funds_func) => (
+                    accept_funds_func.as_slice(),
+                    self.transfer_exec_gas_limit().get(),
+                ),
+                OptionalArg::None => {
+                    let no_func: &[u8] = &[];
+                    (no_func, 0u64)
+                }
+            };
+
+            let result = self.send().direct_esdt_execute(
                 destination,
                 token.as_esdt_identifier(),
                 amount,
-                &[],
+                gas_limit,
+                function,
+                &ArgBuffer::new(),
             );
+
+            match result {
+                Result::Ok(_) => Ok(()),
+                Result::Err(_) => {
+                    sc_error!("Direct esdt nft execute failed")
+                }
+            }
+        } else {
+            Ok(())
         }
     }
 

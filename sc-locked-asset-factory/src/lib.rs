@@ -3,6 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
+
 use dex_common::*;
 use distrib_common::*;
 use modules::*;
@@ -25,6 +27,8 @@ pub trait LockedAssetFactory:
 
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period().set(&default_unlock_period.0);
+        self.transfer_exec_gas_limit()
+            .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         Ok(())
     }
 
@@ -49,6 +53,7 @@ pub trait LockedAssetFactory:
         &self,
         amount: Self::BigUint,
         address: Address,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -58,11 +63,12 @@ pub trait LockedAssetFactory:
         require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
         require!(amount > 0, "Zero input amount");
 
-        Ok(self.produce_tokens_and_send(
+        self.produce_tokens_and_send(
             &amount,
             &self.create_default_unlock_milestones(),
             &address,
-        ))
+            &opt_accept_funds_func,
+        )
     }
 
     #[endpoint(createAndForwardCustomSchedule)]
@@ -81,13 +87,16 @@ pub trait LockedAssetFactory:
         require!(amount > 0, "Zero input amount");
         require!(!schedule.is_empty(), "Empty param");
 
-        let _ = self.produce_tokens_and_send(&amount, &schedule.0, &address);
+        let _ = self.produce_tokens_and_send(&amount, &schedule.0, &address, &OptionalArg::None);
         Ok(())
     }
 
     #[payable("*")]
     #[endpoint(unlockAssets)]
-    fn unlock_assets(&self) -> SCResult<()> {
+    fn unlock_assets(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
         let (amount, token_id) = self.call_value().payment_token_pair();
         let token_nonce = self.call_value().esdt_token_nonce();
         let locked_token_id = self.locked_asset_token_id().get();
@@ -107,8 +116,12 @@ pub trait LockedAssetFactory:
         if locked_remaining > 0 {
             let new_unlock_milestones = self
                 .create_new_unlock_milestones(current_block_epoch, &attributes.unlock_milestones);
-            let _ =
-                self.produce_tokens_and_send(&locked_remaining, &new_unlock_milestones, &caller);
+            let _ = self.produce_tokens_and_send(
+                &locked_remaining,
+                &new_unlock_milestones,
+                &caller,
+                &opt_accept_funds_func,
+            );
         }
 
         self.burn_locked_assets(&locked_token_id, &amount, token_nonce);
@@ -120,27 +133,38 @@ pub trait LockedAssetFactory:
         amount: &Self::BigUint,
         unlock_milestones: &[UnlockMilestone],
         address: &Address,
-    ) -> GenericEsdtAmountPair<Self::BigUint> {
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let attributes = LockedTokenAttributes {
             unlock_milestones: unlock_milestones.to_vec(),
         };
         let result = self.get_cached_sft_nonce_for_attributes(&attributes);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
-                self.add_quantity_and_send_locked_assets(&amount, cached_nonce, &address);
+                self.add_quantity_and_send_locked_assets(
+                    &amount,
+                    cached_nonce,
+                    &address,
+                    opt_accept_funds_func,
+                )?;
                 cached_nonce
             }
             Option::None => {
-                let new_nonce = self.create_and_send_locked_assets(&amount, &attributes, &address);
+                let new_nonce = self.create_and_send_locked_assets(
+                    &amount,
+                    &attributes,
+                    &address,
+                    opt_accept_funds_func,
+                )?;
                 self.cache_attributes_and_nonce(attributes, new_nonce);
                 new_nonce
             }
         };
-        GenericEsdtAmountPair {
+        Ok(GenericEsdtAmountPair {
             token_id: self.locked_asset_token_id().get(),
             token_nonce: sent_nonce,
             amount: amount.clone(),
-        }
+        })
     }
 
     #[payable("EGLD")]
