@@ -96,19 +96,14 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let token_nonce = self.call_value().esdt_token_nonce();
         require!(amount != 0, "Payment amount cannot be zero");
 
-        let to_farm_token_id: TokenIdentifier;
+        let farming_token_id: TokenIdentifier;
         if token_id == self.wrapped_lp_token_id().get() {
             let wrapped_lp_token_attrs =
                 self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
-            to_farm_token_id = wrapped_lp_token_attrs.lp_token_id;
-        } else if self.accepted_locked_assets().contains(&token_id) {
+            farming_token_id = wrapped_lp_token_attrs.lp_token_id;
+        } else if token_id == self.locked_asset_token_id().get() {
             let asset_token_id = self.asset_token_id().get();
-            self.send().esdt_local_mint(
-                proxy_params.mint_tokens_gas_limit,
-                &asset_token_id.as_esdt_identifier(),
-                &amount,
-            );
-            to_farm_token_id = asset_token_id;
+            farming_token_id = asset_token_id;
         } else {
             return sc_error!("Unknown input Token");
         }
@@ -116,7 +111,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         self.reset_received_funds_on_current_tx();
         let farm_result = self.actual_enter_farm(
             &farm_address,
-            &to_farm_token_id,
+            &farming_token_id,
             &amount,
             &proxy_params,
             with_lock_rewards,
@@ -376,15 +371,23 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
     fn actual_enter_farm(
         &self,
         farm_address: &Address,
-        lp_token_id: &TokenIdentifier,
+        farming_token_id: &TokenIdentifier,
         amount: &Self::BigUint,
         proxy_params: &ProxyFarmParams,
         with_locked_rewards: bool,
     ) -> EnterFarmResultType<Self::BigUint> {
+        let asset_token_id = self.asset_token_id().get();
+        if farming_token_id == &asset_token_id {
+            self.send().esdt_local_mint(
+                proxy_params.mint_tokens_gas_limit,
+                asset_token_id.as_esdt_identifier(),
+                &amount,
+            );
+        }
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
                 .enterFarmAndLockRewards(
-                    lp_token_id.clone(),
+                    farming_token_id.clone(),
                     amount.clone(),
                     OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
                 )
@@ -395,7 +398,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         } else {
             self.farm_contract_proxy(farm_address.clone())
                 .enterFarm(
-                    lp_token_id.clone(),
+                    farming_token_id.clone(),
                     amount.clone(),
                     OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
                 )
