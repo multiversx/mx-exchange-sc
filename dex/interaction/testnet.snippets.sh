@@ -1,5 +1,5 @@
 # WALLET_PEM="~/Elrond/MySandbox/testnet/wallets/users/alice.pem"
-WALLET_PEM="/home/elrond/Test/erd1qa2pdw875gyd3ct05f3npk8wzm9mrxsdtstcc2trfw5aqpqcephqzd6trq.pem"
+WALLET_PEM="~/Documents/shared_folder/elrond_testnet_wallet.pem"
 DEPLOY_TRANSACTION=$(erdpy data load --key=deployTransaction-devnet)
 DEPLOY_GAS="1000000000"
 PROXY="https://testnet-gateway.elrond.com"
@@ -8,8 +8,9 @@ CHAIN_ID="T"
 # CHAIN_ID="local-testnet"
 
 ESDT_ISSUE_ADDRESS="erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"
-ROUTE_ADDRESS="erd1qqqqqqqqqqqqqpgqwge8qwlqcq2066phdvqysvnsn9x6xg8uephqxf7ang"
-WEGLD_WRAP_ADDRESS="erd1qqqqqqqqqqqqqpgq37e5r67hvtrkyhs6yadwvwtk3rxk792e0n4s066pa5"
+ROUTE_ADDRESS="erd1qqqqqqqqqqqqqpgq3ptwtt8uvltaepq8kcjr8vxv22d8rw0a0n4seq3x2r"
+WEGLD_WRAP_ADDRESS="erd1qqqqqqqqqqqqqpgqa7hv0nahgsl8tz0psat46x0tchm0wuyc0n4s6q28ad"
+PAIR_ADDRESS="erd1qqqqqqqqqqqqqpgqr23zlc896w6qc2hw3evmmdmppw6jaucv0n4svx9zhn"
 DEFAULT_GAS_LIMIT=50000000
 
 ##### ENDPOINTS #####
@@ -33,6 +34,56 @@ issueToken() {
         --send || return
 }
 
+# params:
+#   $1 = Token Identifier
+changeTokenProperties() {
+    true="0x$(echo -n 'true' | xxd -p -u | tr -d '\n')"
+    canMint="0x$(echo -n 'canMint' | xxd -p -u | tr -d '\n')"
+    token_identifier="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call ${ESDT_ISSUE_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=60000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function="controlChanges" \
+        --arguments ${token_identifier} ${canMint} ${true} \
+        --send || return
+}
+
+# params:
+#   $1 = Token Identifier
+#   $2 = Amount in hex
+mintToken() {
+    token_identifier="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call ${ESDT_ISSUE_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=60000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function="mint" \
+        --arguments ${token_identifier} $2 \
+        --send || return
+}
+
+# params:
+#   $1 = Token Identifier
+#   $2 = Address to assign the role
+#   $3 = Special Role
+setSpecialRoleToken() {
+    token_identifier="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    address="0x$(erdpy wallet bech32 --decode $2)"
+    special_role="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call ${ESDT_ISSUE_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=60000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function="setSpecialRole" \
+        --arguments $token_identifier $address $special_role \
+        --send || return
+}
+
+
 #### ROUTER ####
 
 deployRouterContract() {
@@ -41,7 +92,6 @@ deployRouterContract() {
           --gas-price=1499999999 \
           --gas-limit=1499999999 \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --metadata-payable \
           --bytecode="../elrond_dex_router/output/elrond_dex_router.wasm" \
           --outfile="deploy-route-internal.interaction.json" --send || return
     
@@ -59,7 +109,6 @@ upgradeRouterContract() {
           --gas-limit=${DEPLOY_GAS} \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --bytecode="../elrond_dex_router/output/elrond_dex_router.wasm" \
-          --metadata-payable \
           --outfile="upgrade-route-internal.interaction.json" --send || return
 
     echo ""
@@ -153,10 +202,12 @@ createPair() {
 
 # params:
 #   $1 = Pair Address,
+#   $2 = LP Token Name,
+#   $3 = LP Token Tocker
 issueLpToken() {
     pair_address="0x$(erdpy wallet bech32 --decode $1)"
-    lp_token_name="0x$(echo -n 'LPToken' | xxd -p -u | tr -d '\n')"
-    lp_token_ticker="0x$(echo -n 'LPT' | xxd -p -u | tr -d '\n')"
+    lp_token_name="0x$(echo -n 'EGLDBUSDLPToken' | xxd -p -u | tr -d '\n')"
+    lp_token_ticker="0x$(echo -n 'EBLPT' | xxd -p -u | tr -d '\n')"
 
     erdpy --verbose contract call ${ROUTE_ADDRESS} --recall-nonce \
           --pem=${WALLET_PEM} \
@@ -218,7 +269,87 @@ setFeeOff() {
         --send || return
 }
 
+# params
+#   $1 = Token Identifier
+#   $2 = Address
+setLocalRolesOwner() {
+    token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    address="0x$(erdpy wallet bech32 --decode $2)"
+
+    erdpy --verbose contract call $ROUTE_ADDRESS --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=200000000 \
+        --function=setLocalRolesOwner \
+        --arguments $token $address 0x02 \
+        --send || return
+}
+
 #### PAIRS ####
+
+# params
+#   $1 = First Token ID
+#   $2 = Second Token ID
+deployPairContract() {
+    first_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    second_token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
+    user_address="$(erdpy wallet pem-address $WALLET_PEM)"
+    user_address_decode="0x$(erdpy wallet bech32 --decode $user_address)"
+
+    erdpy --verbose contract deploy --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --gas-price=1499999999 \
+          --gas-limit=1499999999 \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --bytecode="../elrond_dex_pair/output/elrond_dex_pair.wasm" \
+          --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
+          --outfile="deploy-pair-internal.interaction.json" --send || return
+    
+    ADDRESS=$(erdpy data parse --file="deploy-pair-internal.interaction.json" --expression="data['emitted_tx']['address']")
+
+    echo ""
+    echo "Pair Smart contract address: ${ADDRESS}"
+}
+
+# params
+#   $1 = First Token ID
+#   $2 = Second Token ID
+#   $3 = Pair Address
+upgradePairContract() {
+    first_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    second_token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
+    user_address="$(erdpy wallet pem-address $WALLET_PEM)"
+    user_address_decode="0x$(erdpy wallet bech32 --decode $user_address)"
+
+    erdpy --verbose contract upgrade $3 --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --gas-price=1499999999 \
+          --gas-limit=1499999999 \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --bytecode="../elrond_dex_pair/output/elrond_dex_pair.wasm" \
+          --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
+          --outfile="upgrade-pair-internal.interaction.json" --send || return
+    
+    echo ""
+    echo "Pair Smart contract upgraded"
+}
+
+# params
+#   $1 = Pair Address
+#   $2 = Token Identifier
+setLpTokenIdentifier() {
+    token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call $1 --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=20000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function=setLpTokenIdentifier \
+        --arguments $token \
+        --send || return
+}
 
 # params:
 #   $1 = Pair Address,
@@ -662,6 +793,14 @@ getState() {
         --function=getState || return
 }
 
+# params
+#   $1 = Farm Address
+getActualReserves() {
+    erdpy --verbose contract query $1 \
+        --proxy=${PROXY} \
+        --function=getActualReserves || return
+}
+
 ##### UTILS #####
 
 deployWEGLDContract() {
@@ -702,6 +841,17 @@ setWEGLDLocalRole() {
 }
 
 wrapEgld() {
+    erdpy --verbose contract call ${WEGLD_WRAP_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=${DEPLOY_GAS} \
+        --value=$1 \
+        --function=wrapEgld \
+        --send || return   
+
+}
+
+unwrapEgld() {
     erdpy --verbose contract call ${WEGLD_WRAP_ADDRESS} --recall-nonce \
         --pem=${WALLET_PEM} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
