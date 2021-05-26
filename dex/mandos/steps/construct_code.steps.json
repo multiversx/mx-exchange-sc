@@ -1,0 +1,86 @@
+{
+	"name": "construct code test",
+	"steps": [
+		{
+			"step": "scCall",
+			"txId": "start-pair-code-construct",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:router_contract",
+				"value": "0",
+				"function": "startPairCodeConstruction",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "append-pair-code",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:router_contract",
+				"value": "0",
+				"function": "appendPairCode",
+				"arguments": [
+					"file:../../elrond_dex_pair/output/elrond_dex_pair.wasm"
+				],
+				"gasLimit": "999,999,999,999",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "end-pair-code-construct",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:router_contract",
+				"value": "0",
+				"function": "endPairCodeConstruction",
+				"arguments": [],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "get-pair-code",
+			"tx": {
+				"from": "address:owner",
+				"to": "sc:router_contract",
+				"value": "0",
+				"function": "getPairCode",
+				"arguments": [],
+				"gasLimit": "999,999,999,999",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"file:../../elrond_dex_pair/output/elrond_dex_pair.wasm"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}

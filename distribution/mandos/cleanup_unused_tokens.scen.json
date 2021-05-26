@@ -1,0 +1,37 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "unlock_assets_basic.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "300"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "12",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "cleanupUnusedTokens",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "4"
+                ],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}
