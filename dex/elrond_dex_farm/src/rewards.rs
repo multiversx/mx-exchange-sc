@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 use super::config;
 
 type Nonce = u64;
-type Epoch = u64;
 
 #[elrond_wasm_derive::module]
 pub trait RewardsModule: config::ConfigModule {
@@ -41,25 +40,14 @@ pub trait RewardsModule: config::ConfigModule {
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
         let reward_minted = self.mint_per_block_rewards(&reward_token_id);
-        let fees = self.reset_temporary_fee_storage();
+        self.increase_current_block_fee_storage(&Self::BigUint::zero());
+        let fees = self.undistributed_fee_storage().get();
+        self.undistributed_fee_storage().clear();
         let total_reward = reward_minted + fees;
 
         if total_reward > 0 {
             self.increase_reward_reserve(&total_reward);
             self.update_reward_per_share(&total_reward);
-        }
-    }
-
-    fn reset_temporary_fee_storage(&self) -> Self::BigUint {
-        let current_block = self.blockchain().get_block_nonce();
-
-        if current_block > self.last_fees_clear_epoch().get() {
-            let fees = self.temporary_fee_storage().get();
-            self.last_fees_clear_epoch().set(&current_block);
-            self.temporary_fee_storage().clear();
-            fees
-        } else {
-            Self::BigUint::zero()
         }
     }
 
@@ -105,9 +93,32 @@ pub trait RewardsModule: config::ConfigModule {
         amount * &reward_per_share_diff / self.division_safety_constant().get()
     }
 
-    fn increase_temporary_fee_storage(&self, amount: &Self::BigUint) {
-        let current = self.temporary_fee_storage().get();
-        self.temporary_fee_storage().set(&(&current + amount));
+    fn increase_undistributed_fee_storage(&self, amount: &Self::BigUint) {
+        if amount > &0 {
+            let current = self.undistributed_fee_storage().get();
+            self.undistributed_fee_storage().set(&(&current + amount));
+        }
+    }
+
+    fn increase_current_block_fee_storage(&self, amount: &Self::BigUint) {
+        let current_block = self.blockchain().get_block_nonce();
+        let current_block_fee_storage = self.current_block_fee_storage().get();
+
+        let (known_block_nonce, fee_amount) = match current_block_fee_storage {
+            Some(value) => (value.0, value.1),
+            None => (0, Self::BigUint::zero()),
+        };
+
+        if known_block_nonce == current_block {
+            if amount > &0 {
+                self.current_block_fee_storage()
+                    .set(&Some((current_block, &fee_amount + amount)));
+            }
+        } else {
+            self.increase_undistributed_fee_storage(&fee_amount);
+            self.current_block_fee_storage()
+                .set(&Some((current_block, Self::BigUint::zero())));
+        }
     }
 
     #[endpoint]
@@ -151,9 +162,11 @@ pub trait RewardsModule: config::ConfigModule {
     #[storage_mapper("reward_reserve")]
     fn reward_reserve(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
-    #[storage_mapper("last_fees_clear_epoch")]
-    fn last_fees_clear_epoch(&self) -> SingleValueMapper<Self::Storage, Epoch>;
+    #[storage_mapper("undistributed_fee_storage")]
+    fn undistributed_fee_storage(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
-    #[storage_mapper("temporary_fee_storage")]
-    fn temporary_fee_storage(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    #[storage_mapper("current_block_fee_storage")]
+    fn current_block_fee_storage(
+        &self,
+    ) -> SingleValueMapper<Self::Storage, Option<(Nonce, Self::BigUint)>>;
 }

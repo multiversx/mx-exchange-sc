@@ -49,7 +49,7 @@
 						"str:router_address": "sc:router_contract",
 						"str:state": "1",
 						"str:owner": "address:owner",
-						"str:temporary_fee_storage": "199",
+						"str:current_block_fee_storage": "0x01000000000000000000000001c7",
 						"str:minimum_farming_epochs": "2",
 						"str:burn_tokens_gas_limit": "5,000,000",
 						"str:mint_tokens_gas_limit": "5,000,000",

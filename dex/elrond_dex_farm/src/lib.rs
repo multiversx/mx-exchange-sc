@@ -464,7 +464,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let reward_token_id = self.reward_token_id().get();
         require!(token_in == reward_token_id, "Bad fee token identifier");
         require!(amount > 0, "Zero amount in");
-        self.increase_temporary_fee_storage(&amount);
+        self.increase_current_block_fee_storage(&amount);
         Ok(())
     }
 
@@ -480,7 +480,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
 
         let current_block = self.blockchain().get_block_nonce();
         let to_be_minted = self.calculate_per_block_rewards(current_block);
-        let fees = self.temporary_fee_storage().get();
+
+        let mut fees = self.undistributed_fee_storage().get();
+        fees += match self.current_block_fee_storage().get() {
+            Some(value) => value.1,
+            None => Self::BigUint::zero(),
+        };
+
         let reward_increase = to_be_minted + fees;
         let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
 
