@@ -233,6 +233,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
+            farm_attributes.entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -305,6 +306,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
+            farm_attributes.entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -355,6 +357,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         reward_amount: &mut Self::BigUint,
         destination: &Address,
         with_locked_rewards: bool,
+        entering_epoch: Epoch,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
@@ -370,6 +373,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                     .create_and_forward(
                         reward_amount.clone(),
                         destination.clone(),
+                        entering_epoch,
                         opt_accept_funds_func.clone(),
                     )
                     .execute_on_dest_context_custom_range(

@@ -5,6 +5,8 @@ elrond_wasm::derive_imports!();
 
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
 
+type Epoch = u64;
+
 use dex_common::*;
 use distrib_common::*;
 use modules::*;
@@ -53,6 +55,7 @@ pub trait LockedAssetFactory:
         &self,
         amount: Self::BigUint,
         address: Address,
+        start_epoch: Epoch,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
@@ -65,7 +68,7 @@ pub trait LockedAssetFactory:
 
         self.produce_tokens_and_send(
             &amount,
-            &self.create_default_unlock_milestones(),
+            &self.create_default_unlock_milestones(start_epoch),
             &address,
             &opt_accept_funds_func,
         )
@@ -235,14 +238,12 @@ pub trait LockedAssetFactory:
             .async_call())
     }
 
-    fn create_default_unlock_milestones(&self) -> Vec<UnlockMilestone> {
-        let current_epoch = self.blockchain().get_block_epoch();
-
+    fn create_default_unlock_milestones(&self, start_epoch: Epoch) -> Vec<UnlockMilestone> {
         self.default_unlock_period()
             .get()
             .iter()
             .map(|x| UnlockMilestone {
-                unlock_epoch: x.unlock_epoch + current_epoch,
+                unlock_epoch: x.unlock_epoch + start_epoch,
                 unlock_percent: x.unlock_percent,
             })
             .collect()
