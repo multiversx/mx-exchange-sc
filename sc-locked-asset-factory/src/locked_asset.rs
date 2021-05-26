@@ -18,12 +18,18 @@ pub trait LockedAssetModule: asset::AssetModule {
         amount: &Self::BigUint,
         attributes: &LockedTokenAttributes,
         address: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(&token_id, amount, attributes);
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.send()
-            .transfer_tokens(&token_id, last_created_nonce, amount, address);
+        self.send_tokens(
+            &token_id,
+            last_created_nonce,
+            amount,
+            address,
+            opt_accept_funds_func,
+        );
         last_created_nonce
     }
 
@@ -32,11 +38,11 @@ pub trait LockedAssetModule: asset::AssetModule {
         amount: &Self::BigUint,
         sft_nonce: Nonce,
         address: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) {
         let token_id = self.locked_asset_token_id().get();
         self.add_quantity(&token_id, sft_nonce, amount);
-        self.send()
-            .transfer_tokens(&token_id, sft_nonce, amount, address);
+        self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
     }
 
     fn add_quantity(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
@@ -45,6 +51,36 @@ pub trait LockedAssetModule: asset::AssetModule {
             token.as_esdt_identifier(),
             nonce,
             amount,
+        );
+    }
+
+    fn send_tokens(
+        &self,
+        token: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+        destination: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) {
+        let (function, gas_limit) = match opt_accept_funds_func {
+            OptionalArg::Some(accept_funds_func) => (
+                accept_funds_func.as_slice(),
+                self.transfer_exec_gas_limit().get(),
+            ),
+            OptionalArg::None => {
+                let no_func: &[u8] = &[];
+                (no_func, 0u64)
+            }
+        };
+
+        let _ = self.send().direct_esdt_nft_execute(
+            destination,
+            token.as_esdt_identifier(),
+            nonce,
+            amount,
+            gas_limit,
+            function,
+            &ArgBuffer::new(),
         );
     }
 
@@ -182,6 +218,16 @@ pub trait LockedAssetModule: asset::AssetModule {
         }
         Ok(())
     }
+
+    #[endpoint]
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.transfer_exec_gas_limit().set(&gas_limit);
+        Ok(())
+    }
+
+    #[storage_mapper("transfer_exec_gas_limit")]
+    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[storage_mapper("locked_token_id")]
     fn locked_asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;

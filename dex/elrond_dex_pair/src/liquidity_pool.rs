@@ -2,12 +2,13 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::amm;
+use super::config;
 use dex_common::*;
 
 const MINIMUM_LIQUIDITY: u64 = 1000;
 
 #[elrond_wasm_derive::module]
-pub trait LiquidityPoolModule: amm::AmmModule {
+pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
     fn mint(
         &self,
         first_token_amount: Self::BigUint,
@@ -41,7 +42,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         require!(liquidity > 0, "Pair: insufficient_liquidity_minted");
 
         self.send().esdt_local_mint(
-            self.blockchain().get_gas_left(),
+            self.mint_tokens_gas_limit().get(),
             lp_token_identifier.as_esdt_identifier(),
             &liquidity,
         );
@@ -104,7 +105,7 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         )?;
 
         self.send().esdt_local_burn(
-            self.blockchain().get_gas_left(),
+            self.burn_tokens_gas_limit().get(),
             lp_token_identifier.as_esdt_identifier(),
             &liquidity,
         );

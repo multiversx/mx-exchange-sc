@@ -4,12 +4,9 @@ elrond_wasm::derive_imports!();
 use super::amm;
 use super::config;
 use super::liquidity_pool;
-use core::cmp::min;
 use dex_common::*;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
-const EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
-const SEND_FEE_GAS_COST: u64 = 25000000;
 
 mod farm_proxy {
     elrond_wasm::imports!();
@@ -109,20 +106,20 @@ pub trait FeeModule:
         self.pair_reserve(&token).set(&reserve);
     }
 
-    fn send_fee(&self, fee_token: TokenIdentifier, fee_amount: Self::BigUint) {
+    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: Self::BigUint) {
         if fee_amount == 0 {
             return;
         }
 
         let slices = self.destination_map().len() as u64;
         if slices == 0 {
-            self.reinject(&fee_token, &fee_amount);
+            self.reinject(fee_token, &fee_amount);
             return;
         }
 
         let fee_slice = &fee_amount / &Self::BigUint::from(slices);
         if fee_slice == 0 {
-            self.reinject(&fee_token, &fee_amount);
+            self.reinject(fee_token, &fee_amount);
             return;
         }
 
@@ -131,7 +128,7 @@ pub trait FeeModule:
 
         for (fee_address, fee_token_requested) in self.destination_map().iter() {
             self.send_fee_slice(
-                &fee_token,
+                fee_token,
                 &fee_slice,
                 &fee_address,
                 &fee_token_requested,
@@ -278,7 +275,7 @@ pub trait FeeModule:
             &pair_address,
             &available_token.as_esdt_identifier(),
             &available_amount,
-            min(self.blockchain().get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
+            self.extern_swap_gas_limit().get(),
             SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
             &arg_buffer,
         );
@@ -299,14 +296,14 @@ pub trait FeeModule:
         if amount > &0 {
             if destination == &Address::zero() {
                 self.send().esdt_local_burn(
-                    self.blockchain().get_gas_left(),
+                    self.burn_tokens_gas_limit().get(),
                     token.as_esdt_identifier(),
                     &amount,
                 );
             } else {
                 self.farm_proxy(destination.clone())
                     .acceptFee(token.clone(), amount.clone())
-                    .execute_on_dest_context(SEND_FEE_GAS_COST);
+                    .execute_on_dest_context(self.send_fee_gas_limit().get());
             }
         }
     }

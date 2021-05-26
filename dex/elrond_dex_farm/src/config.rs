@@ -60,6 +60,19 @@ pub trait ConfigModule {
         Ok(())
     }
 
+    #[endpoint]
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.transfer_exec_gas_limit().set(&gas_limit);
+        Ok(())
+    }
+
+    #[storage_mapper("transfer_exec_gas_limit")]
+    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("create_farm_tokens_gas_limit")]
+    fn create_farm_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;

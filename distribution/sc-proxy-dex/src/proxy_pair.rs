@@ -6,7 +6,8 @@ elrond_wasm::derive_imports!();
 
 type Nonce = u64;
 
-use core::cmp::min;
+const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
+
 use dex_common::*;
 use distrib_common::*;
 
@@ -158,6 +159,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         );
 
         // Actual adding of liquidity
+        self.reset_received_funds_on_current_tx();
         let result = self.actual_add_liquidity(
             &pair_address,
             &first_token_amount_desired,
@@ -180,6 +182,27 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 || second_token_used.token_id == second_token_id,
             "Bad token order"
         );
+        require!(
+            first_token_used.amount <= first_token_amount_desired
+                && second_token_used.amount <= second_token_amount_desired,
+            "Used more tokens than provided"
+        );
+        self.validate_received_funds_chunk(
+            [
+                (&lp_received.token_id, 0, &lp_received.amount),
+                (
+                    &first_token_used.token_id,
+                    0,
+                    &(&first_token_amount_desired - &first_token_used.amount),
+                ),
+                (
+                    &second_token_used.token_id,
+                    0,
+                    &(&first_token_amount_desired - &first_token_used.amount),
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         //Recalculate temporary funds and burn unused
         let locked_asset_token_nonce: Nonce;
@@ -278,6 +301,8 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
         let locked_asset_token_id = attributes.locked_assets_token_id;
         let asset_token_id = self.asset_token_id().get();
+
+        self.reset_received_funds_on_current_tx();
         let tokens_for_position = self
             .actual_remove_liquidity(
                 &pair_address,
@@ -288,6 +313,21 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 &proxy_params,
             )
             .into_tuple();
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &tokens_for_position.0.token_id,
+                    0,
+                    &tokens_for_position.0.amount,
+                ),
+                (
+                    &tokens_for_position.1.token_id,
+                    0,
+                    &tokens_for_position.1.amount,
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         let fungible_token_id: TokenIdentifier;
         let fungible_token_amount: Self::BigUint;
@@ -374,18 +414,15 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         second_token_amount_min: &Self::BigUint,
         proxy_params: &ProxyPairParams,
     ) -> AddLiquidityResultType<Self::BigUint> {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.add_liquidity_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .addLiquidity(
                 first_token_amount_desired.clone(),
                 second_token_amount_desired.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context(proxy_params.add_liquidity_gas_limit)
     }
 
     fn actual_remove_liquidity(
@@ -397,18 +434,15 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         second_token_amount_min: &Self::BigUint,
         proxy_params: &ProxyPairParams,
     ) -> RemoveLiquidityResultType<Self::BigUint> {
-        let gas_limit = min(
-            self.blockchain().get_gas_left(),
-            proxy_params.remove_liquidity_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .removeLiquidity(
                 lp_token_id.clone(),
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context(proxy_params.remove_liquidity_gas_limit)
     }
 
     fn ask_for_lp_token_id(
@@ -416,13 +450,9 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         pair_address: &Address,
         proxy_params: &ProxyPairParams,
     ) -> TokenIdentifier {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.ask_for_lp_token_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context(proxy_params.ask_for_lp_token_gas_limit)
     }
 
     fn get_wrapped_lp_token_attributes(
@@ -486,13 +516,9 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             locked_assets_invested: locked_tokens_consumed.clone(),
             locked_assets_nonce: locked_tokens_nonce,
         };
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.mint_tokens_gas_limit,
-        );
         self.send()
             .esdt_nft_create::<WrappedLpTokenAttributes<Self::BigUint>>(
-                gas_limit,
+                proxy_params.mint_tokens_gas_limit,
                 wrapped_lp_token_id.as_esdt_identifier(),
                 lp_token_amount,
                 &BoxedBytes::empty(),
@@ -530,22 +556,15 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         } else {
             let asset_token_id = self.asset_token_id().get();
             self.send().esdt_local_mint(
-                min(
-                    self.blockchain().get_gas_left(),
-                    proxy_params.mint_tokens_gas_limit,
-                ),
+                proxy_params.mint_tokens_gas_limit,
                 &asset_token_id.as_esdt_identifier(),
                 amount,
             );
             token_to_send = asset_token_id;
         };
-        let gas_limit = min(
-            self.blockchain().get_gas_left(),
-            proxy_params.accept_esdt_payment_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .acceptEsdtPayment(token_to_send, amount.clone())
-            .execute_on_dest_context(gas_limit);
+            .execute_on_dest_context(proxy_params.accept_esdt_payment_gas_limit);
     }
 
     fn increase_temporary_funds_amount(

@@ -11,6 +11,8 @@ const DEFAULT_BURN_TOKENS_GAS_LIMIT: u64 = 5000000;
 const DEFAULT_MINT_TOKENS_GAS_LIMIT: u64 = 5000000;
 const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
+const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
+const DEFAULT_CREATE_FARM_TOKENS_GAS_LIMIT: u64 = 500000;
 
 mod config;
 mod rewards;
@@ -68,6 +70,10 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         );
         self.division_safety_constant()
             .set(&division_safety_constant);
+        self.transfer_exec_gas_limit()
+            .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.create_farm_tokens_gas_limit()
+            .set(&DEFAULT_CREATE_FARM_TOKENS_GAS_LIMIT);
         Ok(())
     }
 
@@ -91,8 +97,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] enter_amount: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
-        self.enter_farm(token_in, enter_amount, false)
+        self.enter_farm(token_in, enter_amount, false, opt_accept_funds_func)
     }
 
     #[payable("*")]
@@ -101,8 +108,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] enter_amount: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
-        self.enter_farm(token_in, enter_amount, true)
+        self.enter_farm(token_in, enter_amount, true, opt_accept_funds_func)
     }
 
     fn enter_farm(
@@ -110,6 +118,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         token_in: TokenIdentifier,
         enter_amount: Self::BigUint,
         with_locked_rewards: bool,
+        opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -133,8 +142,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let new_nonce = self.create_farm_tokens(&farm_contribution, &farm_token_id, &attributes);
-        self.send()
-            .transfer_tokens(&farm_token_id, new_nonce, &farm_contribution, &caller);
+        self.send_nft_tokens(
+            &farm_token_id,
+            new_nonce,
+            &farm_contribution,
+            &caller,
+            &opt_accept_funds_func,
+        );
 
         Ok(GenericEsdtAmountPair {
             token_id: farm_token_id,
@@ -162,6 +176,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] amount: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<ExitFarmResultType<Self::BigUint>> {
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();
@@ -208,6 +223,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             farm_attributes.apr_multiplier,
             &caller,
             farm_attributes.with_locked_rewards,
+            &opt_accept_funds_func,
         )?;
 
         let mut reward_nonce = 0u64;
@@ -217,7 +233,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
-        );
+            &opt_accept_funds_func,
+        )?;
 
         Ok((
             FftTokenAmountPair {
@@ -239,6 +256,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] amount: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<ClaimRewardsResultType<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -271,8 +289,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount, burn_gas_limit)?;
         let new_nonce = self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
-        self.send()
-            .transfer_tokens(&farm_token_id, new_nonce, &amount, &caller);
+        self.send_nft_tokens(
+            &farm_token_id,
+            new_nonce,
+            &amount,
+            &caller,
+            &opt_accept_funds_func,
+        );
 
         // Send rewards
         let mut reward_nonce = 0u64;
@@ -282,7 +305,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
-        );
+            &opt_accept_funds_func,
+        )?;
 
         Ok((
             GenericEsdtAmountPair {
@@ -306,6 +330,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         apr_multiplier: u8,
         destination: &Address,
         with_locked_rewards: bool,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         if with_locked_rewards {
             *farming_amount = farming_amount.clone() / Self::BigUint::from(apr_multiplier as u64);
@@ -314,11 +339,11 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 "Cannot send back farming tokens with amount 0"
             );
         }
-        let _ = self.send().direct_esdt_via_transf_exec(
-            destination,
-            farming_token_id.as_esdt_identifier(),
+        self.send_fft_tokens(
+            farming_token_id,
             farming_amount,
-            &[],
+            destination,
+            opt_accept_funds_func,
         );
         Ok(())
     }
@@ -330,7 +355,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         reward_amount: &mut Self::BigUint,
         destination: &Address,
         with_locked_rewards: bool,
-    ) {
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
                 self.send().esdt_local_burn(
@@ -341,23 +367,86 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
                 let result = self
                     .locked_asset_factory(locked_asset_factory_address)
-                    .create_and_forward(reward_amount.clone(), destination.clone())
+                    .create_and_forward(
+                        reward_amount.clone(),
+                        destination.clone(),
+                        opt_accept_funds_func.clone(),
+                    )
                     .execute_on_dest_context_custom_range(
-                        self.blockchain().get_gas_left() * 9 / 10,
+                        self.transfer_exec_gas_limit().get() * 2,
                         |_, after| (after - 1, after),
                     );
                 *reward_token_id = result.token_id;
                 *reward_nonce = result.token_nonce;
                 *reward_amount = result.amount;
             } else {
-                let _ = self.send().direct_esdt_via_transf_exec(
-                    destination,
-                    reward_token_id.as_esdt_identifier(),
+                self.send_fft_tokens(
+                    reward_token_id,
                     reward_amount,
-                    &[],
+                    destination,
+                    opt_accept_funds_func,
                 );
             }
         }
+        Ok(())
+    }
+
+    fn send_fft_tokens(
+        &self,
+        token: &TokenIdentifier,
+        amount: &Self::BigUint,
+        destination: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) {
+        let (function, gas_limit) = match opt_accept_funds_func {
+            OptionalArg::Some(accept_funds_func) => (
+                accept_funds_func.as_slice(),
+                self.transfer_exec_gas_limit().get(),
+            ),
+            OptionalArg::None => {
+                let no_func: &[u8] = &[];
+                (no_func, 0u64)
+            }
+        };
+
+        let _ = self.send().direct_esdt_execute(
+            destination,
+            token.as_esdt_identifier(),
+            amount,
+            gas_limit,
+            function,
+            &ArgBuffer::new(),
+        );
+    }
+
+    fn send_nft_tokens(
+        &self,
+        token: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+        destination: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) {
+        let (function, gas_limit) = match opt_accept_funds_func {
+            OptionalArg::Some(accept_funds_func) => (
+                accept_funds_func.as_slice(),
+                self.transfer_exec_gas_limit().get(),
+            ),
+            OptionalArg::None => {
+                let no_func: &[u8] = &[];
+                (no_func, 0u64)
+            }
+        };
+
+        let _ = self.send().direct_esdt_nft_execute(
+            destination,
+            token.as_esdt_identifier(),
+            nonce,
+            amount,
+            gas_limit,
+            function,
+            &ArgBuffer::new(),
+        );
     }
 
     #[payable("*")]
@@ -549,7 +638,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         self.farm_token_supply().set(&(&amount + farm_amount));
         self.send()
             .esdt_nft_create::<FarmTokenAttributes<Self::BigUint>>(
-                self.blockchain().get_gas_left(),
+                self.create_farm_tokens_gas_limit().get(),
                 farm_token_id.as_esdt_identifier(),
                 farm_amount,
                 &BoxedBytes::empty(),

@@ -22,6 +22,28 @@ pub trait ConfigModule {
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 
+    #[storage_mapper("mint_tokens_gas_limit")]
+    fn mint_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("burn_tokens_gas_limit")]
+    fn burn_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("send_fee_gas_limit")]
+    fn send_fee_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("extern_swap_gas_limit")]
+    fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("transfer_exec_gas_limit")]
+    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[endpoint]
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.transfer_exec_gas_limit().set(&gas_limit);
+        Ok(())
+    }
+
     fn require_permissions(&self) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let owner = self.router_owner_address().get();
