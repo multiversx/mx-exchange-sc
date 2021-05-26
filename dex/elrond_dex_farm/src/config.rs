@@ -139,6 +139,7 @@ pub trait ConfigModule {
     #[storage_mapper("farm_token_nonce")]
     fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
+    #[view(getFarmTokenSupply)]
     #[storage_mapper("farm_token_supply")]
     fn farm_token_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 

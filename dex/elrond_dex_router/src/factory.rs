@@ -36,7 +36,7 @@ pub trait FactoryModule {
     ) -> SCResult<Address> {
         require!(self.pair_code_ready().get(), "Pair code not ready");
         let code_metadata = CodeMetadata::UPGRADEABLE;
-        let gas_left = self.blockchain().get_gas_left() / 2;
+        let gas_left = self.blockchain().get_gas_left();
         let amount = Self::BigUint::zero();
         let mut arg_buffer = ArgBuffer::new();
         let code = self.pair_code().get();
