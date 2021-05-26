@@ -18,8 +18,11 @@
                 "from": "address:owner",
                 "to": "sc:locked_asset_factory",
                 "value": "0",
-                "function": "cleanupUnusedTokens",
-                "arguments": [],
+                "function": "invalidateCache",
+                "arguments": [
+                    "0",
+                    "100"
+                ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
