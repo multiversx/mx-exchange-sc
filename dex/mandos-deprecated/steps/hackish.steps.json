@@ -1,0 +1,61 @@
+{
+	"name": "hackish step dont commit",
+	"steps": [
+		{
+			"step": "setState",
+			"accounts": {
+				"sc:pair_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:LPTOK-abcdef": {
+							"roles": [
+								"ESDTRoleLocalMint",
+								"ESDTRoleLocalBurn"
+							]
+						}
+					},
+					"storage": {
+						"str:first_token_id": "str:WEGLD-abcdef",
+						"str:second_token_id": "str:ALC-abcdef",
+						"str:state": "1",
+						"str:lpTokenIdentifier": "str:LPTOK-abcdef",
+						"str:router_address": "sc:router_contract",
+						"str:router_owner_address": "address:owner",
+						"str:total_fee_percent": "300",
+						"str:special_fee_percent": "100"
+					},
+					"code": "file:../../output/elrond_dex_pair.wasm"
+				},
+				"sc:farm_contract": {
+					"nonce": "0",
+					"balance": "0",
+					"esdt": {
+						"str:FARM-abcdef": {
+							"roles": [
+								"ESDTRoleNFTCreate",
+								"ESDTRoleNFTAddQuantity",
+								"ESDTRoleNFTBurn"
+							]
+						},
+						"str:LPTOK-abcdef": {
+							"roles": [
+								"ESDTRoleLocalBurn"
+							]
+						}
+					},
+					"storage": {
+						"str:farming_pool_token_id": "str:WEGLD-abcdef",
+						"str:farm_token_id": "str:FARM-abcdef",
+						"str:router_address": "sc:router_contract",
+						"str:virtual_token_id": "str:WEGLD-abcdef",
+						"str:state": "1",
+						"str:owner": "address:owner",
+						"str:farm_with_lp_tokens": "1"
+					},
+					"code": "file:../../output/elrond_dex_farm.wasm"
+				}
+			}
+		}
+	]
+}

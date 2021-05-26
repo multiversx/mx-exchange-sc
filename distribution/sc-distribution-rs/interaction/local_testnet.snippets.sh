@@ -18,7 +18,7 @@ REWARD_AMOUNT=0x1000
 REWARD_EPOCH=10
 
 deploy() {
-    erdpy --verbose contract deploy --bytecode="../output/sc_distribution_rs.wasm" --recall-nonce --pem=${ALICE} --gas-limit=900000000 --arguments ${DISTRIBUTED_TOKEN_ID_HEX} --send --outfile="deploy-testnet.interaction.json" --proxy=${PROXY} --chain=${CHAIN_ID} || return
+    erdpy --verbose contract deploy --bytecode="../sc-distribution-rs/output/sc_distribution_rs.wasm" --recall-nonce --pem=${ALICE} --gas-limit=900000000 --arguments ${DISTRIBUTED_TOKEN_ID_HEX} --send --outfile="deploy-testnet.interaction.json" --proxy=${PROXY} --chain=${CHAIN_ID} || return
 }
 
 startGlobalOperation() {
