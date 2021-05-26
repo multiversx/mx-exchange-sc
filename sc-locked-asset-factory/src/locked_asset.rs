@@ -8,8 +8,8 @@ use distrib_common::*;
 use modules::*;
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
-const BURN_TOKENS_GAS_LIMIT: u64 = 5000000;
-const ADD_QUANTITY_GAS_LIMIT: u64 = 5000000;
+const BURN_TOKENS_GAS_LIMIT: u64 = 500000;
+const ADD_QUANTITY_GAS_LIMIT: u64 = 500000;
 
 #[elrond_wasm_derive::module]
 pub trait LockedAssetModule: asset::AssetModule {

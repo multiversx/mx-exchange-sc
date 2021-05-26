@@ -26,7 +26,7 @@ pub struct CommunityDistribution<BigUint: BigUintApi> {
     pub unlock_milestones: Vec<UnlockMilestone>,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[derive(TopEncode, TopDecode, Clone, TypeAbi)]
 pub struct LockedTokenAttributes {
     pub unlock_milestones: Vec<UnlockMilestone>,
 }

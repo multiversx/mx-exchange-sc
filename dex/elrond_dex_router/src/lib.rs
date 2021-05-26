@@ -299,7 +299,6 @@ pub trait Router: factory::FactoryModule {
         #[payment] returned_tokens: Self::BigUint,
         #[call_result] result: AsyncCallResult<()>,
     ) {
-        // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
             AsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(&address);
