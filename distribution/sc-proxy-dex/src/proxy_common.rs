@@ -48,12 +48,14 @@ pub trait ProxyCommonModule {
         }
 
         let token_nonce = self.call_value().esdt_token_nonce();
-        let entry = self.current_tx_accepted_funds().get(&(token_id.clone(), token_nonce));
+        let entry = self
+            .current_tx_accepted_funds()
+            .get(&(token_id.clone(), token_nonce));
         match entry {
             Some(value) => {
                 self.current_tx_accepted_funds()
                     .insert((token_id, token_nonce), value + amount);
-            },
+            }
             None => {
                 self.current_tx_accepted_funds()
                     .insert((token_id, token_nonce), amount);
