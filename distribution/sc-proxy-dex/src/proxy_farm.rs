@@ -166,24 +166,33 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let farmed_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
 
-        let desired_received_funds_size = if reward_token_returned.amount == 0
-            || reward_token_returned.token_id == farmed_token_returned.token_id
-        {
-            1
+        if reward_token_returned.token_id == farmed_token_returned.token_id {
+            self.validate_received_funds_on_current_tx_size(1)?;
+            self.validate_received_funds_on_current_tx(
+                &farmed_token_returned.token_id,
+                0,
+                &(&farmed_token_returned.amount + &reward_token_returned.amount),
+            )?;
+        } else if reward_token_returned.amount == 0 {
+            self.validate_received_funds_on_current_tx_size(1)?;
+            self.validate_received_funds_on_current_tx(
+                &farmed_token_returned.token_id,
+                0,
+                &farmed_token_returned.amount,
+            )?;
         } else {
-            2
-        };
-        self.validate_received_funds_on_current_tx_size(desired_received_funds_size)?;
-        self.validate_received_funds_on_current_tx(
-            &farmed_token_returned.token_id,
-            0,
-            &farmed_token_returned.amount,
-        )?;
-        self.validate_received_funds_on_current_tx(
-            &reward_token_returned.token_id,
-            reward_token_returned.token_nonce,
-            &reward_token_returned.amount,
-        )?;
+            self.validate_received_funds_on_current_tx_size(2)?;
+            self.validate_received_funds_on_current_tx(
+                &farmed_token_returned.token_id,
+                0,
+                &farmed_token_returned.amount,
+            )?;
+            self.validate_received_funds_on_current_tx(
+                &reward_token_returned.token_id,
+                reward_token_returned.token_nonce,
+                &reward_token_returned.amount,
+            )?;
+        }
 
         let caller = self.blockchain().get_caller();
         self.send().transfer_tokens(

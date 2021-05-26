@@ -48,8 +48,17 @@ pub trait ProxyCommonModule {
         }
 
         let token_nonce = self.call_value().esdt_token_nonce();
-        self.current_tx_accepted_funds()
-            .insert((token_id, token_nonce), amount);
+        let entry = self.current_tx_accepted_funds().get(&(token_id.clone(), token_nonce));
+        match entry {
+            Some(value) => {
+                self.current_tx_accepted_funds()
+                    .insert((token_id, token_nonce), value + amount);
+            },
+            None => {
+                self.current_tx_accepted_funds()
+                    .insert((token_id, token_nonce), amount);
+            }
+        }
     }
 
     fn reset_received_funds_on_current_tx(&self) {
