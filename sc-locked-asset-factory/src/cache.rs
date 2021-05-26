@@ -64,6 +64,11 @@ pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {
         Ok(invalidated_entries)
     }
 
+    #[view(getCacheSize)]
+    fn get_cache_size(&self) -> usize {
+        self.cached_attributes_to_sft_nonce_map().len()
+    }
+
     #[storage_mapper("cached_attributes_to_sft_nonce_map")]
     fn cached_attributes_to_sft_nonce_map(
         &self,
