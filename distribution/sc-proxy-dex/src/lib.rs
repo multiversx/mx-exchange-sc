@@ -1,5 +1,4 @@
 #![no_std]
-#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -138,8 +137,4 @@ pub trait ProxyDexImpl:
             .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
             .async_call())
     }
-
-    #[payable("*")]
-    #[endpoint]
-    fn acceptPay(&self) {}
 }

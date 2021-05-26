@@ -147,7 +147,7 @@ pub trait LockedAssetFactory:
                     cached_nonce,
                     &address,
                     opt_accept_funds_func,
-                )?;
+                );
                 cached_nonce
             }
             Option::None => {
@@ -156,7 +156,7 @@ pub trait LockedAssetFactory:
                     &attributes,
                     &address,
                     opt_accept_funds_func,
-                )?;
+                );
                 self.cache_attributes_and_nonce(attributes, new_nonce);
                 new_nonce
             }
