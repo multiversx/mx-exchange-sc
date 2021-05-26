@@ -75,6 +75,44 @@ pub trait ProxyCommonModule {
         Ok(())
     }
 
+    fn validate_received_funds_chunk(
+        &self,
+        received_funds: Vec<(&TokenIdentifier, Nonce, &Self::BigUint)>,
+    ) -> SCResult<()> {
+        let big_zero = Self::BigUint::zero();
+
+        for funds in received_funds {
+            let token_id = funds.0;
+            let nonce = funds.1;
+            let amount = funds.2;
+
+            if amount == &big_zero {
+                continue;
+            }
+
+            self.validate_received_funds_on_current_tx(token_id, nonce, amount)?;
+            let old_amount = self
+                .current_tx_accepted_funds()
+                .get(&(token_id.clone(), nonce))
+                .unwrap();
+
+            if &old_amount == amount {
+                self.current_tx_accepted_funds()
+                    .remove(&(token_id.clone(), nonce));
+            } else {
+                self.current_tx_accepted_funds()
+                    .insert((token_id.clone(), nonce), &old_amount - amount);
+            }
+        }
+
+        require!(
+            self.current_tx_accepted_funds().is_empty(),
+            "More funds were received"
+        );
+
+        Ok(())
+    }
+
     fn validate_received_funds_on_current_tx(
         &self,
         token_id: &TokenIdentifier,

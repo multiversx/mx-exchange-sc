@@ -182,27 +182,27 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 || second_token_used.token_id == second_token_id,
             "Bad token order"
         );
-
-        let mut desired_received_funds_size = 1;
-        self.validate_received_funds_on_current_tx(&lp_received.token_id, 0, &lp_received.amount)?;
-        if first_token_amount_desired > first_token_used.amount {
-            desired_received_funds_size += 1;
-            self.validate_received_funds_on_current_tx(
-                &first_token_used.token_id,
-                0,
-                &(&first_token_amount_desired - &first_token_used.amount),
-            )?;
-        }
-
-        if second_token_amount_desired > second_token_used.amount {
-            desired_received_funds_size += 1;
-            self.validate_received_funds_on_current_tx(
-                &second_token_used.token_id,
-                0,
-                &(&second_token_amount_desired - &second_token_used.amount),
-            )?;
-        }
-        self.validate_received_funds_on_current_tx_size(desired_received_funds_size)?;
+        require!(
+            first_token_used.amount <= first_token_amount_desired
+                && second_token_used.amount <= second_token_amount_desired,
+            "Used more tokens than provided"
+        );
+        self.validate_received_funds_chunk(
+            [
+                (&lp_received.token_id, 0, &lp_received.amount),
+                (
+                    &first_token_used.token_id,
+                    0,
+                    &(&first_token_amount_desired - &first_token_used.amount),
+                ),
+                (
+                    &second_token_used.token_id,
+                    0,
+                    &(&first_token_amount_desired - &first_token_used.amount),
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         //Recalculate temporary funds and burn unused
         let locked_asset_token_nonce: Nonce;
@@ -313,17 +313,20 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 &proxy_params,
             )
             .into_tuple();
-
-        self.validate_received_funds_on_current_tx_size(2)?;
-        self.validate_received_funds_on_current_tx(
-            &tokens_for_position.0.token_id,
-            0,
-            &tokens_for_position.0.amount,
-        )?;
-        self.validate_received_funds_on_current_tx(
-            &tokens_for_position.1.token_id,
-            0,
-            &tokens_for_position.1.amount,
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &tokens_for_position.0.token_id,
+                    0,
+                    &tokens_for_position.0.amount,
+                ),
+                (
+                    &tokens_for_position.1.token_id,
+                    0,
+                    &tokens_for_position.1.amount,
+                ),
+            ]
+            .to_vec(),
         )?;
 
         let fungible_token_id: TokenIdentifier;

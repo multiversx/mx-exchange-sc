@@ -113,11 +113,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
-        self.validate_received_funds_on_current_tx_size(1)?;
-        self.validate_received_funds_on_current_tx(
-            &farm_token_id,
-            farm_token_nonce,
-            &farm_token_total_amount,
+        self.validate_received_funds_chunk(
+            [(&farm_token_id, farm_token_nonce, &farm_token_total_amount)].to_vec(),
         )?;
 
         let attributes = WrappedFarmTokenAttributes {
@@ -165,34 +162,21 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             .into_tuple();
         let farmed_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
-
-        if reward_token_returned.token_id == farmed_token_returned.token_id {
-            self.validate_received_funds_on_current_tx_size(1)?;
-            self.validate_received_funds_on_current_tx(
-                &farmed_token_returned.token_id,
-                0,
-                &(&farmed_token_returned.amount + &reward_token_returned.amount),
-            )?;
-        } else if reward_token_returned.amount == 0 {
-            self.validate_received_funds_on_current_tx_size(1)?;
-            self.validate_received_funds_on_current_tx(
-                &farmed_token_returned.token_id,
-                0,
-                &farmed_token_returned.amount,
-            )?;
-        } else {
-            self.validate_received_funds_on_current_tx_size(2)?;
-            self.validate_received_funds_on_current_tx(
-                &farmed_token_returned.token_id,
-                0,
-                &farmed_token_returned.amount,
-            )?;
-            self.validate_received_funds_on_current_tx(
-                &reward_token_returned.token_id,
-                reward_token_returned.token_nonce,
-                &reward_token_returned.amount,
-            )?;
-        }
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &farmed_token_returned.token_id,
+                    0,
+                    &farmed_token_returned.amount,
+                ),
+                (
+                    &reward_token_returned.token_id,
+                    reward_token_returned.token_nonce,
+                    &reward_token_returned.amount,
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         let caller = self.blockchain().get_caller();
         self.send().transfer_tokens(
@@ -273,22 +257,20 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             new_farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
-
-        let desired_received_funds_size = if reward_token_returned.amount == 0 {
-            1
-        } else {
-            2
-        };
-        self.validate_received_funds_on_current_tx_size(desired_received_funds_size)?;
-        self.validate_received_funds_on_current_tx(
-            &new_farm_token_id,
-            new_farm_token_nonce,
-            &new_farm_token_total_amount,
-        )?;
-        self.validate_received_funds_on_current_tx(
-            &reward_token_returned.token_id,
-            reward_token_returned.token_nonce,
-            &reward_token_returned.amount,
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &new_farm_token_id,
+                    new_farm_token_nonce,
+                    &new_farm_token_total_amount,
+                ),
+                (
+                    &reward_token_returned.token_id,
+                    reward_token_returned.token_nonce,
+                    &reward_token_returned.amount,
+                ),
+            ]
+            .to_vec(),
         )?;
 
         // Send the reward to the caller.
