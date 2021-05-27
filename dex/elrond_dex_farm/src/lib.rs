@@ -201,7 +201,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
         );
-        self.decrease_reward_reserve(&reward)?;
+        if reward > 0 {
+            self.decrease_reward_reserve(&reward)?;
+        }
 
         let farming_token_id = self.farming_token_id().get();
         let mut farming_token_amount = amount.clone();
