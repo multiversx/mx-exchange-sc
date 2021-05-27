@@ -110,7 +110,7 @@ pub trait Router: factory::FactoryModule {
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
-        if caller != owner {
+        if caller != self.owner().get() {
             require!(
                 self.pair_creation_enabled().get(),
                 "Pair creation is disabled"
