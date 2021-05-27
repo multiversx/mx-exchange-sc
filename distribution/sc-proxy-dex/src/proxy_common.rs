@@ -4,7 +4,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 type Nonce = u64;
-const MAX_FUNDS_EXTRIES: usize = 10;
+const MAX_FUNDS_ENTRIES: usize = 10;
 
 #[elrond_wasm_derive::module]
 pub trait ProxyCommonModule {
@@ -20,7 +20,7 @@ pub trait ProxyCommonModule {
         #[payment_token] token_id: TokenIdentifier,
         #[payment] amount: Self::BigUint,
     ) {
-        if self.current_tx_accepted_funds().len() > MAX_FUNDS_EXTRIES {
+        if self.current_tx_accepted_funds().len() > MAX_FUNDS_ENTRIES {
             self.current_tx_accepted_funds().clear();
         }
 
