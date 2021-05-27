@@ -96,19 +96,14 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let token_nonce = self.call_value().esdt_token_nonce();
         require!(amount != 0, "Payment amount cannot be zero");
 
-        let to_farm_token_id: TokenIdentifier;
+        let farming_token_id: TokenIdentifier;
         if token_id == self.wrapped_lp_token_id().get() {
             let wrapped_lp_token_attrs =
                 self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
-            to_farm_token_id = wrapped_lp_token_attrs.lp_token_id;
-        } else if self.accepted_locked_assets().contains(&token_id) {
+            farming_token_id = wrapped_lp_token_attrs.lp_token_id;
+        } else if token_id == self.locked_asset_token_id().get() {
             let asset_token_id = self.asset_token_id().get();
-            self.send().esdt_local_mint(
-                proxy_params.mint_tokens_gas_limit,
-                &asset_token_id.as_esdt_identifier(),
-                &amount,
-            );
-            to_farm_token_id = asset_token_id;
+            farming_token_id = asset_token_id;
         } else {
             return sc_error!("Unknown input Token");
         }
@@ -116,7 +111,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         self.reset_received_funds_on_current_tx();
         let farm_result = self.actual_enter_farm(
             &farm_address,
-            &to_farm_token_id,
+            &farming_token_id,
             &amount,
             &proxy_params,
             with_lock_rewards,
@@ -135,8 +130,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let attributes = WrappedFarmTokenAttributes {
             farm_token_id,
             farm_token_nonce,
-            farmed_token_id: token_id,
-            farmed_token_nonce: token_nonce,
+            farming_token_id: token_id,
+            farming_token_nonce: token_nonce,
         };
         let caller = self.blockchain().get_caller();
         self.create_and_send_wrapped_farm_tokens(&attributes, &farm_token_total_amount, &caller);
@@ -179,14 +174,14 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
                 &proxy_params,
             )
             .into_tuple();
-        let farmed_token_returned = farm_result.0;
+        let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
         self.validate_received_funds_chunk(
             [
                 (
-                    &farmed_token_returned.token_id,
+                    &farming_token_returned.token_id,
                     0,
-                    &farmed_token_returned.amount,
+                    &farming_token_returned.amount,
                 ),
                 (
                     &reward_token_returned.token_id,
@@ -199,9 +194,9 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
         let caller = self.blockchain().get_caller();
         self.send().transfer_tokens(
-            &wrapped_farm_token_attrs.farmed_token_id,
-            wrapped_farm_token_attrs.farmed_token_nonce,
-            &farmed_token_returned.amount,
+            &wrapped_farm_token_attrs.farming_token_id,
+            wrapped_farm_token_attrs.farming_token_nonce,
+            &farming_token_returned.amount,
             &caller,
         );
 
@@ -217,11 +212,11 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             &amount,
             proxy_params.burn_tokens_gas_limit,
         );
-        if farmed_token_returned.token_id == self.asset_token_id().get() {
+        if farming_token_returned.token_id == self.asset_token_id().get() {
             self.send().burn_tokens(
-                &farmed_token_returned.token_id,
+                &farming_token_returned.token_id,
                 0,
-                &farmed_token_returned.amount,
+                &farming_token_returned.amount,
                 proxy_params.burn_tokens_gas_limit,
             );
         }
@@ -309,8 +304,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
             farm_token_id: new_farm_token_id,
             farm_token_nonce: new_farm_token_nonce,
-            farmed_token_id: wrapped_farm_token_attrs.farmed_token_id,
-            farmed_token_nonce: wrapped_farm_token_attrs.farmed_token_nonce,
+            farming_token_id: wrapped_farm_token_attrs.farming_token_id,
+            farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
         };
         self.create_and_send_wrapped_farm_tokens(
             &new_wrapped_farm_token_attributes,
@@ -376,15 +371,23 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
     fn actual_enter_farm(
         &self,
         farm_address: &Address,
-        lp_token_id: &TokenIdentifier,
+        farming_token_id: &TokenIdentifier,
         amount: &Self::BigUint,
         proxy_params: &ProxyFarmParams,
         with_locked_rewards: bool,
     ) -> EnterFarmResultType<Self::BigUint> {
+        let asset_token_id = self.asset_token_id().get();
+        if farming_token_id == &asset_token_id {
+            self.send().esdt_local_mint(
+                proxy_params.mint_tokens_gas_limit,
+                asset_token_id.as_esdt_identifier(),
+                &amount,
+            );
+        }
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
                 .enterFarmAndLockRewards(
-                    lp_token_id.clone(),
+                    farming_token_id.clone(),
                     amount.clone(),
                     OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
                 )
@@ -395,7 +398,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         } else {
             self.farm_contract_proxy(farm_address.clone())
                 .enterFarm(
-                    lp_token_id.clone(),
+                    farming_token_id.clone(),
                     amount.clone(),
                     OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
                 )

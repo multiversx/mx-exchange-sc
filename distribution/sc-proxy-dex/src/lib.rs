@@ -24,10 +24,12 @@ pub trait ProxyDexImpl:
     fn init(
         &self,
         asset_token_id: TokenIdentifier,
+        locked_asset_token_id: TokenIdentifier,
         proxy_pair_params: ProxyPairParams,
         proxy_farm_params: ProxyFarmParams,
     ) {
         self.asset_token_id().set(&asset_token_id);
+        self.locked_asset_token_id().set(&&locked_asset_token_id);
         self.init_proxy_pair(proxy_pair_params);
         self.init_proxy_farm(proxy_farm_params);
     }

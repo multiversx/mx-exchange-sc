@@ -35,7 +35,6 @@ pub struct LockedTokenAttributes {
 pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
     pub lp_token_id: TokenIdentifier,
     pub lp_token_total_amount: BigUint,
-    pub locked_assets_token_id: TokenIdentifier,
     pub locked_assets_invested: BigUint,
     pub locked_assets_nonce: Nonce,
 }
@@ -44,6 +43,6 @@ pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
 pub struct WrappedFarmTokenAttributes {
     pub farm_token_id: TokenIdentifier,
     pub farm_token_nonce: Nonce,
-    pub farmed_token_id: TokenIdentifier,
-    pub farmed_token_nonce: Nonce,
+    pub farming_token_id: TokenIdentifier,
+    pub farming_token_nonce: Nonce,
 }

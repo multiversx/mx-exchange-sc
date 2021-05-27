@@ -124,13 +124,11 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             first_token_amount_desired > 0 && second_token_amount_desired > 0,
             "Cannot add zero amount"
         );
-        let locked_asset_token_id = if self.accepted_locked_assets().contains(&first_token_id) {
-            first_token_id.clone()
-        } else if self.accepted_locked_assets().contains(&second_token_id) {
-            second_token_id.clone()
-        } else {
-            return sc_error!("One token should be an accepted locked asset token");
-        };
+        let locked_asset_token_id = self.locked_asset_token_id().get();
+        require!(
+            first_token_id == locked_asset_token_id || second_token_id == locked_asset_token_id,
+            "One token should be locked asset"
+        );
         let first_token_amount_temporary = self
             .temporary_funds(&caller, &first_token_id, first_token_nonce)
             .get();
@@ -267,7 +265,6 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         self.create_and_send(
             &lp_received.token_id,
             &lp_received.amount,
-            &locked_asset_token_id,
             &consumed_locked_tokens,
             locked_asset_token_nonce,
             &caller,
@@ -304,7 +301,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
         require!(lp_token_id == attributes.lp_token_id, "Bad input address");
 
-        let locked_asset_token_id = attributes.locked_assets_token_id;
+        let locked_asset_token_id = self.locked_asset_token_id().get();
         let asset_token_id = self.asset_token_id().get();
 
         self.reset_received_funds_on_current_tx();
@@ -484,7 +481,6 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         &self,
         lp_token_id: &TokenIdentifier,
         lp_token_amount: &Self::BigUint,
-        locked_token_id: &TokenIdentifier,
         locked_tokens_consumed: &Self::BigUint,
         locked_tokens_nonce: Nonce,
         caller: &Address,
@@ -495,7 +491,6 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             &wrapped_lp_token_id,
             lp_token_id,
             lp_token_amount,
-            locked_token_id,
             locked_tokens_consumed,
             locked_tokens_nonce,
             proxy_params,
@@ -509,7 +504,6 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         wrapped_lp_token_id: &TokenIdentifier,
         lp_token_id: &TokenIdentifier,
         lp_token_amount: &Self::BigUint,
-        locked_token_id: &TokenIdentifier,
         locked_tokens_consumed: &Self::BigUint,
         locked_tokens_nonce: Nonce,
         proxy_params: &ProxyPairParams,
@@ -517,7 +511,6 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         let attributes = WrappedLpTokenAttributes::<Self::BigUint> {
             lp_token_id: lp_token_id.clone(),
             lp_token_total_amount: lp_token_amount.clone(),
-            locked_assets_token_id: locked_token_id.clone(),
             locked_assets_invested: locked_tokens_consumed.clone(),
             locked_assets_nonce: locked_tokens_nonce,
         };

@@ -109,8 +109,14 @@ pub trait Router: factory::FactoryModule {
         #[payment] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address)?;
         let caller = self.blockchain().get_caller();
+        if caller != self.owner().get() {
+            require!(
+                self.pair_creation_enabled().get(),
+                "Pair creation is disabled"
+            );
+        }
+        self.check_is_pair_sc(&pair_address)?;
         let result = self.get_pair_temporary_owner(&pair_address);
 
         match result {

@@ -144,30 +144,9 @@
                 "contractCode": "file:../../sc-proxy-dex/output/sc-proxy-dex.wasm",
                 "arguments": [
                     "str:MEX-abcdef",
+                    "str:LKMEX-abcdef",
                     "0x0000000008FFFFFF00000000017D784000000000017D7840000000000FFFE10000000000004C4B4000000000004C4B40",
                     "0x0000000010FFFFFF0000000010FFFFFF0000000010FFFFFF00000000004C4B4000000000004C4B40"
-                ],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "addAcceptedLockedAssetTokenId",
-                "arguments": [
-                    "str:LKMEX-abcdef"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
@@ -274,6 +253,7 @@
                         "str:wrapped_farm_token_nonce": "0",
                         "str:proxy_pair_params": "0x0000000008FFFFFF00000000017D784000000000017D7840000000000FFFE10000000000004C4B4000000000004C4B40",
                         "str:distributed_token_id": "str:MEX-abcdef",
+                        "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:accepted_locked_assets.info": "0x00000002000000010000000200000002",
                         "str:accepted_locked_assets.node_idLKMEX-abcdef": "1",
                         "str:accepted_locked_assets.node_idLKMEX2-abcdef": "2",
