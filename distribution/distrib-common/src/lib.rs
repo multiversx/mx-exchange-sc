@@ -43,6 +43,6 @@ pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
 pub struct WrappedFarmTokenAttributes {
     pub farm_token_id: TokenIdentifier,
     pub farm_token_nonce: Nonce,
-    pub farmed_token_id: TokenIdentifier,
-    pub farmed_token_nonce: Nonce,
+    pub farming_token_id: TokenIdentifier,
+    pub farming_token_nonce: Nonce,
 }

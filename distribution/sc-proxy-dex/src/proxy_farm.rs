@@ -130,8 +130,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let attributes = WrappedFarmTokenAttributes {
             farm_token_id,
             farm_token_nonce,
-            farmed_token_id: token_id,
-            farmed_token_nonce: token_nonce,
+            farming_token_id: token_id,
+            farming_token_nonce: token_nonce,
         };
         let caller = self.blockchain().get_caller();
         self.create_and_send_wrapped_farm_tokens(&attributes, &farm_token_total_amount, &caller);
@@ -174,14 +174,14 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
                 &proxy_params,
             )
             .into_tuple();
-        let farmed_token_returned = farm_result.0;
+        let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
         self.validate_received_funds_chunk(
             [
                 (
-                    &farmed_token_returned.token_id,
+                    &farming_token_returned.token_id,
                     0,
-                    &farmed_token_returned.amount,
+                    &farming_token_returned.amount,
                 ),
                 (
                     &reward_token_returned.token_id,
@@ -194,9 +194,9 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
         let caller = self.blockchain().get_caller();
         self.send().transfer_tokens(
-            &wrapped_farm_token_attrs.farmed_token_id,
-            wrapped_farm_token_attrs.farmed_token_nonce,
-            &farmed_token_returned.amount,
+            &wrapped_farm_token_attrs.farming_token_id,
+            wrapped_farm_token_attrs.farming_token_nonce,
+            &farming_token_returned.amount,
             &caller,
         );
 
@@ -212,11 +212,11 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             &amount,
             proxy_params.burn_tokens_gas_limit,
         );
-        if farmed_token_returned.token_id == self.asset_token_id().get() {
+        if farming_token_returned.token_id == self.asset_token_id().get() {
             self.send().burn_tokens(
-                &farmed_token_returned.token_id,
+                &farming_token_returned.token_id,
                 0,
-                &farmed_token_returned.amount,
+                &farming_token_returned.amount,
                 proxy_params.burn_tokens_gas_limit,
             );
         }
@@ -304,8 +304,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
             farm_token_id: new_farm_token_id,
             farm_token_nonce: new_farm_token_nonce,
-            farmed_token_id: wrapped_farm_token_attrs.farmed_token_id,
-            farmed_token_nonce: wrapped_farm_token_attrs.farmed_token_nonce,
+            farming_token_id: wrapped_farm_token_attrs.farming_token_id,
+            farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
         };
         self.create_and_send_wrapped_farm_tokens(
             &new_wrapped_farm_token_attributes,
