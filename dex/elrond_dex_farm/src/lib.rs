@@ -126,6 +126,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
+        self.increase_farming_token_reserve(&enter_amount);
 
         let (farm_contribution, apr_multiplier) =
             self.get_farm_contribution(&enter_amount, with_locked_rewards);
@@ -342,6 +343,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 "Cannot send back farming tokens with amount 0"
             );
         }
+        self.decrease_farming_token_reserve(&farming_amount)?;
         self.send_fft_tokens(
             farming_token_id,
             farming_amount,
@@ -693,4 +695,20 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         amount * &Self::BigUint::from(self.penalty_percent().get() as u64)
             / Self::BigUint::from(100u64)
     }
+
+    fn increase_farming_token_reserve(&self, amount: &Self::BigUint) {
+        let current = self.farming_token_reserve().get();
+        self.farming_token_reserve().set(&(&current + amount));
+    }
+
+    fn decrease_farming_token_reserve(&self, amount: &Self::BigUint) -> SCResult<()> {
+        let current = self.farming_token_reserve().get();
+        require!(&current >= amount, "Not enough farming reserve");
+        self.farming_token_reserve().set(&(&current - amount));
+        Ok(())
+    }
+
+    #[view(getFarmingTokenReserve)]
+    #[storage_mapper("farming_token_reserve")]
+    fn farming_token_reserve(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }
