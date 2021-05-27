@@ -117,7 +117,7 @@ pub trait RewardsModule: config::ConfigModule {
         } else {
             self.increase_undistributed_fee_storage(&fee_amount);
             self.current_block_fee_storage()
-                .set(&Some((current_block, Self::BigUint::zero())));
+                .set(&Some((current_block, amount.clone())));
         }
     }
 
