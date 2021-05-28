@@ -370,7 +370,6 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                         entering_epoch,
                         opt_accept_funds_func.clone(),
                     )
-                    .with_gas_limit(self.transfer_exec_gas_limit().get() * 2)
                     .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
                 *reward_token_id = result.token_id;
                 *reward_nonce = result.token_nonce;
