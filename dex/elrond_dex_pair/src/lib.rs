@@ -40,11 +40,12 @@ pub trait Pair:
         router_owner_address: Address,
         total_fee_percent: u64,
         special_fee_percent: u64,
-    ) {
+    ) -> SCResult<()> {
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
+        require!(total_fee_percent >= special_fee_percent, "Bad percents");
         self.total_fee_percent().set(&total_fee_percent);
         self.special_fee_percent().set(&special_fee_percent);
         self.state().set(&State::ActiveNoSwaps);
@@ -57,6 +58,7 @@ pub trait Pair:
         self.send_fee_gas_limit().set(&DEFAULT_SEND_FEE_GAS_LIMIT);
         self.extern_swap_gas_limit()
             .set(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
+        Ok(())
     }
 
     #[endpoint]
