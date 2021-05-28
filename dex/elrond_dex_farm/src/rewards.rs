@@ -13,7 +13,7 @@ pub trait RewardsModule: config::ConfigModule {
             let last_reward_nonce = self.last_reward_block_nonce().get();
             let per_block_reward = self.per_block_reward_amount().get();
 
-            if block_nonce > last_reward_nonce && per_block_reward > 0 {
+            if block_nonce > last_reward_nonce {
                 per_block_reward * Self::BigUint::from(block_nonce - last_reward_nonce)
             } else {
                 big_zero
@@ -124,6 +124,10 @@ pub trait RewardsModule: config::ConfigModule {
     #[endpoint]
     fn start_produce_rewards(&self) -> SCResult<()> {
         self.require_permissions()?;
+        require!(
+            self.per_block_reward_amount().get() != 0,
+            "Cannot produce zero reward amount"
+        );
         let current_nonce = self.blockchain().get_block_nonce();
         self.produce_rewards_enabled().set(&true);
         self.last_reward_block_nonce().set(&current_nonce);
@@ -143,6 +147,7 @@ pub trait RewardsModule: config::ConfigModule {
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: Self::BigUint) -> SCResult<()> {
         self.require_permissions()?;
+        require!(per_block_amount != 0, "Amount cannot be zero");
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
         self.per_block_reward_amount().set(&per_block_amount);
