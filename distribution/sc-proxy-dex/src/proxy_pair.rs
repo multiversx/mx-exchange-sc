@@ -89,7 +89,10 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         second_token_id: TokenIdentifier,
         second_token_nonce: Nonce,
     ) -> SCResult<()> {
-        require!(first_token_id != second_token_id || first_token_nonce != second_token_nonce, "Identical tokens");
+        require!(
+            first_token_id != second_token_id || first_token_nonce != second_token_nonce,
+            "Identical tokens"
+        );
         let caller = self.blockchain().get_caller();
         let first_token_amount = self
             .temporary_funds(&caller, &first_token_id, first_token_nonce)
