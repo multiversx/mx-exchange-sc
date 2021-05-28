@@ -33,8 +33,8 @@ pub trait RewardsModule: config::ConfigModule {
                 token_id.as_esdt_identifier(),
                 &to_mint,
             );
-            self.last_reward_block_nonce().set(&current_nonce);
         }
+        self.last_reward_block_nonce().set(&current_nonce);
         to_mint
     }
 
@@ -140,7 +140,6 @@ pub trait RewardsModule: config::ConfigModule {
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
         self.produce_rewards_enabled().set(&false);
-        self.last_reward_block_nonce().set(&0);
         Ok(())
     }
 
