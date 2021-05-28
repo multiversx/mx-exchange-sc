@@ -118,7 +118,7 @@ pub trait ProxyCommonModule {
         }
     }
 
-    fn transfer_tokens(
+    fn direct_generic(
         &self,
         to: &Address,
         token_id: &TokenIdentifier,
@@ -134,7 +134,7 @@ pub trait ProxyCommonModule {
         }
     }
 
-    fn transfer_safe(
+    fn direct_generic_safe(
         &self,
         to: &Address,
         token_id: &TokenIdentifier,
@@ -142,7 +142,7 @@ pub trait ProxyCommonModule {
         amount: &Self::BigUint,
     ) {
         if amount > &0 {
-            self.transfer_tokens(to, token_id, nonce, amount);
+            self.direct_generic(to, token_id, nonce, amount);
         }
     }
 

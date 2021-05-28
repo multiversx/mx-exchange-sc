@@ -175,7 +175,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             &[],
         );
 
-        self.transfer_safe(
+        self.direct_generic_safe(
             &caller,
             &reward_token_returned.token_id,
             reward_token_returned.token_nonce,
@@ -247,7 +247,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
         // Send the reward to the caller.
         let caller = self.blockchain().get_caller();
-        self.transfer_safe(
+        self.direct_generic_safe(
             &caller,
             &reward_token_returned.token_id,
             reward_token_returned.token_nonce,

@@ -93,13 +93,13 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             .clear();
         self.temporary_funds(&caller, &second_token_id, second_token_nonce)
             .clear();
-        self.transfer_safe(
+        self.direct_generic_safe(
             &caller,
             &first_token_id,
             first_token_nonce,
             &first_token_amount,
         );
-        self.transfer_safe(
+        self.direct_generic_safe(
             &caller,
             &second_token_id,
             second_token_nonce,
