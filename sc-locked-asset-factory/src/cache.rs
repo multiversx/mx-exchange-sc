@@ -58,7 +58,8 @@ pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {
 
             invalidated_entries += 1;
             self.cached_attributes_to_sft_nonce_map().remove(&entry.0);
-            self.burn_locked_assets(&token_id, &&amount_to_burn, entry.1)
+            self.send()
+                .esdt_nft_burn(&token_id, entry.1, &amount_to_burn);
         }
 
         Ok(invalidated_entries)

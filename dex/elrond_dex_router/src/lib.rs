@@ -36,7 +36,7 @@ pub trait Router: factory::FactoryModule {
             self.check_is_pair_sc(&address)?;
             self.pair_contract_proxy(address)
                 .pause()
-                .execute_on_dest_context(self.blockchain().get_gas_left());
+                .execute_on_dest_context();
         }
         Ok(())
     }
@@ -51,7 +51,7 @@ pub trait Router: factory::FactoryModule {
             self.check_is_pair_sc(&address)?;
             self.pair_contract_proxy(address)
                 .resume()
-                .execute_on_dest_context(self.blockchain().get_gas_left());
+                .execute_on_dest_context();
         }
         Ok(())
     }
@@ -106,7 +106,7 @@ pub trait Router: factory::FactoryModule {
         pair_address: Address,
         tp_token_display_name: BoxedBytes,
         tp_token_ticker: BoxedBytes,
-        #[payment] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
@@ -126,12 +126,10 @@ pub trait Router: factory::FactoryModule {
             }
         };
 
-        let half_gas = self.blockchain().get_gas_left() / 2;
         let result = self
             .pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(half_gas);
-
+            .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
@@ -164,17 +162,16 @@ pub trait Router: factory::FactoryModule {
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
-        let half_gas = self.blockchain().get_gas_left() / 2;
         let pair_token = self
             .pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(half_gas);
+            .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(
                 &pair_address,
-                pair_token.as_esdt_identifier(),
+                &pair_token,
                 &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
             )
             .async_call()
@@ -192,7 +189,7 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "No permissions");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .set_special_roles(&address, &token, &roles.as_slice())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
     }
@@ -218,10 +215,9 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "Permission denied");
         self.check_is_pair_sc(&pair_address)?;
 
-        let per_execute_gas = self.blockchain().get_gas_left() / 3;
         self.pair_contract_proxy(pair_address)
             .setFeeOn(true, fee_to_address, fee_token)
-            .execute_on_dest_context(per_execute_gas);
+            .execute_on_dest_context();
 
         Ok(())
     }
@@ -237,10 +233,9 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "Permission denied");
         self.check_is_pair_sc(&pair_address)?;
 
-        let per_execute_gas = self.blockchain().get_gas_left() / 3;
         self.pair_contract_proxy(pair_address)
             .setFeeOn(false, fee_to_address, fee_token)
-            .execute_on_dest_context(per_execute_gas);
+            .execute_on_dest_context();
 
         Ok(())
     }
@@ -302,7 +297,7 @@ pub trait Router: factory::FactoryModule {
         caller: &Address,
         address: &Address,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment] returned_tokens: Self::BigUint,
+        #[payment_amount] returned_tokens: Self::BigUint,
         #[call_result] result: AsyncCallResult<()>,
     ) {
         match result {
@@ -310,7 +305,7 @@ pub trait Router: factory::FactoryModule {
                 self.pair_temporary_owner().remove(&address);
                 self.pair_contract_proxy(address.clone())
                     .setLpTokenIdentifier(token_id)
-                    .execute_on_dest_context(self.blockchain().get_gas_left());
+                    .execute_on_dest_context();
             }
             AsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0 {

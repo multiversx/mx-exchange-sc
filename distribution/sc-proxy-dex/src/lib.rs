@@ -7,9 +7,6 @@ mod proxy_common;
 mod proxy_farm;
 mod proxy_pair;
 
-use crate::proxy_farm::*;
-use crate::proxy_pair::*;
-
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub enum IssueRequestType {
     ProxyFarm,
@@ -21,17 +18,9 @@ pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule + proxy_farm::ProxyFarmModule
 {
     #[init]
-    fn init(
-        &self,
-        asset_token_id: TokenIdentifier,
-        locked_asset_token_id: TokenIdentifier,
-        proxy_pair_params: ProxyPairParams,
-        proxy_farm_params: ProxyFarmParams,
-    ) {
+    fn init(&self, asset_token_id: TokenIdentifier, locked_asset_token_id: TokenIdentifier) {
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_token_id().set(&&locked_asset_token_id);
-        self.init_proxy_pair(proxy_pair_params);
-        self.init_proxy_farm(proxy_farm_params);
     }
 
     #[payable("EGLD")]
@@ -136,7 +125,7 @@ pub trait ProxyDexImpl:
         only_owner!(self, "Permission denied");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .set_special_roles(&address, &token, &roles.as_slice())
             .async_call())
     }
 }

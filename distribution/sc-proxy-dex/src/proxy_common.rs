@@ -118,6 +118,34 @@ pub trait ProxyCommonModule {
         }
     }
 
+    fn transfer_tokens(
+        &self,
+        to: &Address,
+        token_id: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+    ) {
+        if nonce == 0 {
+            let _ =
+                self.send()
+                    .direct_esdt_execute(to, token_id, amount, 0, &[], &ArgBuffer::new());
+        } else {
+            self.send().direct_nft(to, token_id, nonce, amount, &[]);
+        }
+    }
+
+    fn transfer_safe(
+        &self,
+        to: &Address,
+        token_id: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+    ) {
+        if amount > &0 {
+            self.transfer_tokens(to, token_id, nonce, amount);
+        }
+    }
+
     #[storage_mapper("current_tx_accepted_funds")]
     fn current_tx_accepted_funds(
         &self,
