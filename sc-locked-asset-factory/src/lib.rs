@@ -100,7 +100,6 @@ pub trait LockedAssetFactory:
         &self,
         #[payment_token] token_id: TokenIdentifier,
         #[payment] amount: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let token_nonce = self.call_value().esdt_token_nonce();
         let locked_token_id = self.locked_asset_token_id().get();
@@ -124,7 +123,7 @@ pub trait LockedAssetFactory:
                 &locked_remaining,
                 &new_unlock_milestones,
                 &caller,
-                &opt_accept_funds_func,
+                &OptionalArg::None,
             );
         }
 
