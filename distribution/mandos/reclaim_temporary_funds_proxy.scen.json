@@ -16,8 +16,8 @@
                 "arguments": [
                     "str:WEGLD-abcdef",
                     "0",
-                    "str:WEGLD-abcdef",
-                    "0"
+                    "str:LKMEX-abcdef",
+                    "1"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
