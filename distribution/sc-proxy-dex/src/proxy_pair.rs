@@ -22,16 +22,6 @@ type AddLiquidityResultType<BigUint> = MultiResult3<
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
-#[derive(TopEncode, TopDecode, PartialEq, Clone, Copy, TypeAbi)]
-pub struct ProxyPairParams {
-    pub add_liquidity_gas_limit: u64,
-    pub accept_esdt_payment_gas_limit: u64,
-    pub ask_for_lp_token_gas_limit: u64,
-    pub remove_liquidity_gas_limit: u64,
-    pub burn_tokens_gas_limit: u64,
-    pub mint_tokens_gas_limit: u64,
-}
-
 #[elrond_wasm_derive::module]
 pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     #[proxy]

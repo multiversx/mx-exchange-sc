@@ -18,15 +18,6 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct ProxyFarmParams {
-    pub claim_rewards_gas_limit: u64,
-    pub enter_farm_gas_limit: u64,
-    pub exit_farm_gas_limit: u64,
-    pub burn_tokens_gas_limit: u64,
-    pub mint_tokens_gas_limit: u64,
-}
-
 #[elrond_wasm_derive::module]
 pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule {
     #[proxy]
