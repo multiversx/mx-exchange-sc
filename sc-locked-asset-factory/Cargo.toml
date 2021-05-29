@@ -12,13 +12,13 @@ path = "src/lib.rs"
 wasm-output-mode = [ "elrond-wasm-node",]
 
 [dependencies.elrond-wasm]
-version = "0.16"
+version = "0.17"
 
 [dependencies.elrond-wasm-derive]
-version = "0.16"
+version = "0.17"
 
 [dependencies.elrond-wasm-node]
-version = "0.16"
+version = "0.17"
 optional = true
 
 [dependencies.distrib-common]
@@ -31,4 +31,4 @@ path = "../distribution/modules"
 path = "../dex/dex-common"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.16"
+version = "0.17"

@@ -34,11 +34,7 @@ pub trait RewardsModule {
         let current_nonce = self.blockchain().get_block_nonce();
         let to_mint = self.calculate_reward_amount(current_nonce);
         if to_mint != 0 {
-            self.send().esdt_local_mint(
-                self.blockchain().get_gas_left(),
-                token_id.as_esdt_identifier(),
-                &to_mint,
-            );
+            self.send().esdt_local_mint(token_id, &to_mint);
             self.last_reward_block_nonce().set(&current_nonce);
         }
     }
@@ -57,11 +53,9 @@ pub trait RewardsModule {
             "Removing more liquidity than existent"
         );
 
-        let actual_reserves = self.blockchain().get_esdt_balance(
-            &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
-            0,
-        );
+        let actual_reserves =
+            self.blockchain()
+                .get_esdt_balance(&self.blockchain().get_sc_address(), &token_id, 0);
         let reward_amount = self.calculate_reward_amount_current_block();
 
         let total_reserves = virtual_reserves + &actual_reserves + reward_amount;

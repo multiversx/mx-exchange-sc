@@ -40,20 +40,6 @@ pub trait ConfigModule {
     }
 
     #[endpoint]
-    fn set_burn_tokens_gas_limit(&self, limit: u64) -> SCResult<()> {
-        self.require_permissions()?;
-        self.burn_tokens_gas_limit().set(&limit);
-        Ok(())
-    }
-
-    #[endpoint]
-    fn set_mint_tokens_gas_limit(&self, limit: u64) -> SCResult<()> {
-        self.require_permissions()?;
-        self.mint_tokens_gas_limit().set(&limit);
-        Ok(())
-    }
-
-    #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: u8) -> SCResult<()> {
         self.require_permissions()?;
         self.minimum_farming_epochs().set(&epochs);
@@ -69,9 +55,6 @@ pub trait ConfigModule {
 
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[storage_mapper("create_farm_tokens_gas_limit")]
-    fn create_farm_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
@@ -108,14 +91,6 @@ pub trait ConfigModule {
     #[view(getLockedRewardAprMuliplier)]
     #[storage_mapper("locked_rewards_apr_multiplier")]
     fn locked_rewards_apr_multiplier(&self) -> SingleValueMapper<Self::Storage, u8>;
-
-    #[view(getBurnTokensGasLimit)]
-    #[storage_mapper("burn_tokens_gas_limit")]
-    fn burn_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(getMintTokensGasLimit)]
-    #[storage_mapper("mint_tokens_gas_limit")]
-    fn mint_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getMinimumFarmingEpoch)]
     #[storage_mapper("minimum_farming_epochs")]

@@ -40,12 +40,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         }
 
         require!(liquidity > 0, "Pair: insufficient_liquidity_minted");
-
-        self.send().esdt_local_mint(
-            self.mint_tokens_gas_limit().get(),
-            lp_token_identifier.as_esdt_identifier(),
-            &liquidity,
-        );
+        self.send()
+            .esdt_local_mint(&lp_token_identifier, &liquidity);
 
         let mut total_supply = self.total_supply().get();
         total_supply += liquidity.clone();
@@ -103,12 +99,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             total_supply,
             second_token_amount_min,
         )?;
-
-        self.send().esdt_local_burn(
-            self.burn_tokens_gas_limit().get(),
-            lp_token_identifier.as_esdt_identifier(),
-            &liquidity,
-        );
+        self.send()
+            .esdt_local_burn(&lp_token_identifier, &liquidity);
 
         let mut total_supply = self.total_supply().get();
         require!(total_supply > liquidity, "Not enough supply");
