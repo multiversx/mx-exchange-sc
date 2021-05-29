@@ -593,10 +593,14 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         let vec: Vec<GenericEsdtAmountPair<Self::BigUint>> = self
             .temporary_funds(address)
             .iter()
-            .map(|x| GenericEsdtAmountPair {
-                token_id: x.0 .0,
-                token_nonce: x.0 .1,
-                amount: x.1,
+            .map(|x| {
+                let (key, amount) = x;
+                let (token_id, token_nonce) = key;
+                GenericEsdtAmountPair {
+                    token_id,
+                    token_nonce,
+                    amount,
+                }
             })
             .collect();
         MultiResultVec::from_iter(vec)
