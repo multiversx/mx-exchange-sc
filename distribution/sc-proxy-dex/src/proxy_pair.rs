@@ -5,8 +5,10 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 type Nonce = u64;
+use core::iter::FromIterator;
 
 const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
+const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
 use dex_common::*;
 use distrib_common::*;
@@ -53,8 +55,17 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
         require!(amount != 0, "Payment amount cannot be zero");
+        require!(
+            token_id == self.locked_asset_token_id().get() || token_nonce == 0,
+            "Bad input token"
+        );
 
         let caller = self.blockchain().get_caller();
+        require!(
+            self.temporary_funds(&caller).len() <= MAX_USER_TEMPORARY_SIZE,
+            "Temporary funds storage for this address exceeded maximum"
+        );
+
         self.increase_temporary_funds_amount(&caller, &token_id, token_nonce, &amount);
         Ok(())
     }
@@ -73,15 +84,17 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         );
         let caller = self.blockchain().get_caller();
         let first_token_amount = self
-            .temporary_funds(&caller, &first_token_id, first_token_nonce)
-            .get();
+            .temporary_funds(&caller)
+            .get(&(first_token_id.clone(), first_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
         let second_token_amount = self
-            .temporary_funds(&caller, &second_token_id, second_token_nonce)
-            .get();
-        self.temporary_funds(&caller, &first_token_id, first_token_nonce)
-            .clear();
-        self.temporary_funds(&caller, &second_token_id, second_token_nonce)
-            .clear();
+            .temporary_funds(&caller)
+            .get(&(second_token_id.clone(), second_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
+        self.temporary_funds(&caller)
+            .remove(&(first_token_id.clone(), first_token_nonce));
+        self.temporary_funds(&caller)
+            .remove(&(second_token_id.clone(), second_token_nonce));
         self.direct_generic_safe(
             &caller,
             &first_token_id,
@@ -130,15 +143,17 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             "One token should be locked asset"
         );
         let first_token_amount_temporary = self
-            .temporary_funds(&caller, &first_token_id, first_token_nonce)
-            .get();
+            .temporary_funds(&caller)
+            .get(&(first_token_id.clone(), first_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
         require!(
             first_token_amount_temporary >= first_token_amount_desired,
             "Not enough first temporary funds"
         );
         let second_token_amount_temporary = self
-            .temporary_funds(&caller, &second_token_id, second_token_nonce)
-            .get();
+            .temporary_funds(&caller)
+            .get(&(second_token_id.clone(), second_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
         require!(
             second_token_amount_temporary >= second_token_amount_desired,
             "Not enough second temporary funds"
@@ -518,10 +533,14 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         token_nonce: Nonce,
         increase_amount: &Self::BigUint,
     ) {
-        let old_amount = self.temporary_funds(caller, token_id, token_nonce).get();
-        let new_amount = old_amount + increase_amount.clone();
-        self.temporary_funds(caller, token_id, token_nonce)
-            .set(&new_amount);
+        let old_value = self
+            .temporary_funds(caller)
+            .get(&(token_id.clone(), token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
+        self.temporary_funds(caller).insert(
+            (token_id.clone(), token_nonce),
+            &old_value + increase_amount,
+        );
     }
 
     fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
@@ -537,13 +556,19 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         token_nonce: Nonce,
         decrease_amount: &Self::BigUint,
     ) {
-        let old_amount = self.temporary_funds(caller, token_id, token_nonce).get();
-        let new_amount = old_amount - decrease_amount.clone();
-        if new_amount > 0 {
-            self.temporary_funds(caller, token_id, token_nonce)
-                .set(&new_amount);
+        let old_value = self
+            .temporary_funds(caller)
+            .get(&(token_id.clone(), token_nonce))
+            .unwrap();
+
+        if &old_value != decrease_amount {
+            self.temporary_funds(caller).insert(
+                (token_id.clone(), token_nonce),
+                &old_value - decrease_amount,
+            );
         } else {
-            self.temporary_funds(caller, token_id, token_nonce).clear();
+            self.temporary_funds(caller)
+                .remove(&(token_id.clone(), token_nonce));
         }
     }
 
@@ -561,13 +586,27 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     }
 
     #[view(getTemporaryFunds)]
+    fn get_temporary_funds(
+        &self,
+        address: &Address,
+    ) -> MultiResultVec<GenericEsdtAmountPair<Self::BigUint>> {
+        let vec: Vec<GenericEsdtAmountPair<Self::BigUint>> = self
+            .temporary_funds(address)
+            .iter()
+            .map(|x| GenericEsdtAmountPair {
+                token_id: x.0 .0,
+                token_nonce: x.0 .1,
+                amount: x.1,
+            })
+            .collect();
+        MultiResultVec::from_iter(vec)
+    }
+
     #[storage_mapper("funds")]
     fn temporary_funds(
         &self,
-        caller: &Address,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+        user: &Address,
+    ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
 
     #[view(getIntermediatedPairs)]
     #[storage_mapper("intermediated_pairs")]
