@@ -590,7 +590,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         &self,
         address: &Address,
     ) -> MultiResultVec<GenericEsdtAmountPair<Self::BigUint>> {
-        let vec: Vec<GenericEsdtAmountPair<Self::BigUint>> = self
+        MultiResultVec::from_iter(self
             .temporary_funds(address)
             .iter()
             .map(|x| {
@@ -602,8 +602,8 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                     amount,
                 }
             })
-            .collect();
-        MultiResultVec::from_iter(vec)
+            .collect::<Vec<GenericEsdtAmountPair<Self::BigUint>>>()
+        )
     }
 
     #[storage_mapper("funds")]
