@@ -18,7 +18,7 @@ mod farm_proxy {
         fn acceptFee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
-            #[payment] amount: Self::BigUint,
+            #[payment_amount] amount: Self::BigUint,
         );
     }
 }

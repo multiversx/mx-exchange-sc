@@ -18,13 +18,13 @@ pub trait ProxyCommonModule {
     fn acceptPay(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment] amount: Self::BigUint,
+        #[payment_amount] amount: Self::BigUint,
+        #[payment_nonce] token_nonce: Nonce,
     ) {
         if self.current_tx_accepted_funds().len() > MAX_FUNDS_ENTRIES {
             self.current_tx_accepted_funds().clear();
         }
 
-        let token_nonce = self.call_value().esdt_token_nonce();
         let entry = self
             .current_tx_accepted_funds()
             .get(&(token_id.clone(), token_nonce));
