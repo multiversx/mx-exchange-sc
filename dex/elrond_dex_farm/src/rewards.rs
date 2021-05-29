@@ -28,11 +28,7 @@ pub trait RewardsModule: config::ConfigModule {
         let to_mint = self.calculate_per_block_rewards(current_nonce);
 
         if to_mint != 0 {
-            self.send().esdt_local_mint(
-                self.mint_tokens_gas_limit().get(),
-                token_id.as_esdt_identifier(),
-                &to_mint,
-            );
+            self.send().esdt_local_mint(token_id, &to_mint);
         }
         self.last_reward_block_nonce().set(&current_nonce);
         to_mint

@@ -8,8 +8,6 @@ use distrib_common::*;
 use modules::*;
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
-const BURN_TOKENS_GAS_LIMIT: u64 = 500000;
-const ADD_QUANTITY_GAS_LIMIT: u64 = 500000;
 
 #[elrond_wasm_derive::module]
 pub trait LockedAssetModule: asset::AssetModule {
@@ -41,17 +39,9 @@ pub trait LockedAssetModule: asset::AssetModule {
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) {
         let token_id = self.locked_asset_token_id().get();
-        self.add_quantity(&token_id, sft_nonce, amount);
+        self.send()
+            .esdt_nft_add_quantity(&token_id, sft_nonce, amount);
         self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
-    }
-
-    fn add_quantity(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
-        self.send().esdt_nft_add_quantity(
-            ADD_QUANTITY_GAS_LIMIT,
-            token.as_esdt_identifier(),
-            nonce,
-            amount,
-        );
     }
 
     fn send_tokens(
@@ -75,7 +65,7 @@ pub trait LockedAssetModule: asset::AssetModule {
 
         let _ = self.send().direct_esdt_nft_execute(
             destination,
-            token.as_esdt_identifier(),
+            token,
             nonce,
             amount,
             gas_limit,
@@ -92,8 +82,7 @@ pub trait LockedAssetModule: asset::AssetModule {
     ) {
         let amount_to_create = amount + &Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE);
         self.send().esdt_nft_create::<LockedTokenAttributes>(
-            self.blockchain().get_gas_left(),
-            token.as_esdt_identifier(),
+            token,
             &amount_to_create,
             &BoxedBytes::empty(),
             &Self::BigUint::zero(),
@@ -104,11 +93,6 @@ pub trait LockedAssetModule: asset::AssetModule {
         self.increase_nonce();
     }
 
-    fn burn_locked_assets(&self, token_id: &TokenIdentifier, amount: &Self::BigUint, nonce: Nonce) {
-        self.send()
-            .burn_tokens(token_id, nonce, amount, BURN_TOKENS_GAS_LIMIT);
-    }
-
     fn get_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -116,7 +100,7 @@ pub trait LockedAssetModule: asset::AssetModule {
     ) -> SCResult<LockedTokenAttributes> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
+            token_id,
             token_nonce,
         );
 

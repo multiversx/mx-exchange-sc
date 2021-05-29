@@ -18,13 +18,13 @@ pub trait ProxyCommonModule {
     fn acceptPay(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment] amount: Self::BigUint,
+        #[payment_amount] amount: Self::BigUint,
+        #[payment_nonce] token_nonce: Nonce,
     ) {
         if self.current_tx_accepted_funds().len() > MAX_FUNDS_ENTRIES {
             self.current_tx_accepted_funds().clear();
         }
 
-        let token_nonce = self.call_value().esdt_token_nonce();
         let entry = self
             .current_tx_accepted_funds()
             .get(&(token_id.clone(), token_nonce));
@@ -115,6 +115,34 @@ pub trait ProxyCommonModule {
             None => {
                 sc_error!("No available funds of this type")
             }
+        }
+    }
+
+    fn direct_generic(
+        &self,
+        to: &Address,
+        token_id: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+    ) {
+        if nonce == 0 {
+            let _ =
+                self.send()
+                    .direct_esdt_execute(to, token_id, amount, 0, &[], &ArgBuffer::new());
+        } else {
+            self.send().direct_nft(to, token_id, nonce, amount, &[]);
+        }
+    }
+
+    fn direct_generic_safe(
+        &self,
+        to: &Address,
+        token_id: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+    ) {
+        if amount > &0 {
+            self.direct_generic(to, token_id, nonce, amount);
         }
     }
 

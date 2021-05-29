@@ -84,7 +84,7 @@ pub trait LiquidityPoolModule: rewards::RewardsModule {
         let virtual_reserves = self.virtual_reserves().get();
         let mut actual_reserves = self.blockchain().get_esdt_balance(
             &self.blockchain().get_sc_address(),
-            farming_pool_token_id.as_esdt_identifier(),
+            farming_pool_token_id,
             0,
         );
         let reward_amount = self.calculate_reward_amount_current_block();

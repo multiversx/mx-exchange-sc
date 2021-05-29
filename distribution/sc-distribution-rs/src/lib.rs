@@ -159,7 +159,8 @@ pub trait EsdtDistribution: asset::AssetModule + global_op::GlobalOperationModul
                     caller.clone(),
                     MultiArgVec::from(unlock_milestones),
                 )
-                .execute_on_dest_context(gas_limit_per_execute);
+                .with_gas_limit(gas_limit_per_execute)
+                .execute_on_dest_context();
         }
 
         let cummulated_amount = self.sum_of(&assets_amounts);

@@ -5,10 +5,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
-const DEFAULT_MINT_TOKENS_GAS_LIMIT: u64 = 500000;
-const DEFAULT_BURN_TOKENS_GAS_LIMIT: u64 = 500000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
-const DEFAULT_SEND_FEE_GAS_LIMIT: u64 = 25000000;
 
 mod amm;
 mod config;
@@ -51,11 +48,6 @@ pub trait Pair:
         self.state().set(&State::ActiveNoSwaps);
         self.transfer_exec_gas_limit()
             .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.mint_tokens_gas_limit()
-            .set(&DEFAULT_MINT_TOKENS_GAS_LIMIT);
-        self.burn_tokens_gas_limit()
-            .set(&DEFAULT_BURN_TOKENS_GAS_LIMIT);
-        self.send_fee_gas_limit().set(&DEFAULT_SEND_FEE_GAS_LIMIT);
         self.extern_swap_gas_limit()
             .set(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
         Ok(())
@@ -87,7 +79,7 @@ pub trait Pair:
     fn acceptEsdtPayment(
         &self,
         #[payment_token] token: TokenIdentifier,
-        #[payment] payment: Self::BigUint,
+        #[payment_amount] payment: Self::BigUint,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(
@@ -254,7 +246,7 @@ pub trait Pair:
     fn removeLiquidity(
         &self,
         #[payment_token] liquidity_token: TokenIdentifier,
-        #[payment] liquidity: Self::BigUint,
+        #[payment_amount] liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
@@ -317,7 +309,7 @@ pub trait Pair:
     fn swap_no_fee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] amount_in: Self::BigUint,
+        #[payment_amount] amount_in: Self::BigUint,
         token_out: TokenIdentifier,
         destination_address: Address,
     ) -> SCResult<()> {
@@ -357,7 +349,7 @@ pub trait Pair:
     fn swap_tokens_fixed_input(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] amount_in: Self::BigUint,
+        #[payment_amount] amount_in: Self::BigUint,
         token_out: TokenIdentifier,
         amount_out_min: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
@@ -432,7 +424,7 @@ pub trait Pair:
     fn swap_tokens_fixed_output(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] amount_in_max: Self::BigUint,
+        #[payment_amount] amount_in_max: Self::BigUint,
         token_out: TokenIdentifier,
         amount_out: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
@@ -517,7 +509,7 @@ pub trait Pair:
 
             let result = self.send().direct_esdt_execute(
                 destination,
-                token.as_esdt_identifier(),
+                token,
                 amount,
                 gas_limit,
                 function,

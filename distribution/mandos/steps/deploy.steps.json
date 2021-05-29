@@ -144,9 +144,7 @@
                 "contractCode": "file:../../sc-proxy-dex/output/sc-proxy-dex.wasm",
                 "arguments": [
                     "str:MEX-abcdef",
-                    "str:LKMEX-abcdef",
-                    "0x0000000008FFFFFF00000000017D784000000000017D7840000000000FFFE10000000000004C4B4000000000004C4B40",
-                    "0x0000000010FFFFFF0000000010FFFFFF0000000010FFFFFF00000000004C4B4000000000004C4B40"
+                    "str:LKMEX-abcdef"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"

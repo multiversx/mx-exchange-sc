@@ -22,12 +22,6 @@ pub trait ConfigModule {
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 
-    #[storage_mapper("mint_tokens_gas_limit")]
-    fn mint_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[storage_mapper("burn_tokens_gas_limit")]
-    fn burn_tokens_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
     #[storage_mapper("send_fee_gas_limit")]
     fn send_fee_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 

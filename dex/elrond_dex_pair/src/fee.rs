@@ -18,7 +18,7 @@ mod farm_proxy {
         fn acceptFee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
-            #[payment] amount: Self::BigUint,
+            #[payment_amount] amount: Self::BigUint,
         );
     }
 }
@@ -273,7 +273,7 @@ pub trait FeeModule:
         arg_buffer.push_argument_bytes(destination_address.as_bytes());
         let result = self.send().direct_esdt_execute(
             &pair_address,
-            &available_token.as_esdt_identifier(),
+            &available_token,
             &available_amount,
             self.extern_swap_gas_limit().get(),
             SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
@@ -295,15 +295,11 @@ pub trait FeeModule:
     ) {
         if amount > &0 {
             if destination == &Address::zero() {
-                self.send().esdt_local_burn(
-                    self.burn_tokens_gas_limit().get(),
-                    token.as_esdt_identifier(),
-                    &amount,
-                );
+                self.send().esdt_local_burn(token, &amount);
             } else {
                 self.farm_proxy(destination.clone())
                     .acceptFee(token.clone(), amount.clone())
-                    .execute_on_dest_context(self.send_fee_gas_limit().get());
+                    .execute_on_dest_context();
             }
         }
     }

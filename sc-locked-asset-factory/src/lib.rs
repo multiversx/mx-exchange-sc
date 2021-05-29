@@ -6,6 +6,7 @@ elrond_wasm::derive_imports!();
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
 
 type Epoch = u64;
+type Nonce = u64;
 
 use dex_common::*;
 use distrib_common::*;
@@ -99,9 +100,9 @@ pub trait LockedAssetFactory:
     fn unlock_assets(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment] amount: Self::BigUint,
+        #[payment_amount] amount: Self::BigUint,
+        #[payment_nonce] token_nonce: Nonce,
     ) -> SCResult<()> {
-        let token_nonce = self.call_value().esdt_token_nonce();
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
@@ -127,7 +128,8 @@ pub trait LockedAssetFactory:
             );
         }
 
-        self.burn_locked_assets(&locked_token_id, &amount, token_nonce);
+        self.send()
+            .esdt_nft_burn(&locked_token_id, token_nonce, &amount);
         Ok(())
     }
 
@@ -176,7 +178,7 @@ pub trait LockedAssetFactory:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        #[payment] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
         require!(
@@ -233,7 +235,7 @@ pub trait LockedAssetFactory:
         require!(!roles.is_empty(), "Empty roles");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .set_special_roles(&address, &token, &roles.as_slice())
             .async_call())
     }
 
