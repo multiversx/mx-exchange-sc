@@ -371,24 +371,20 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
         //Do cleanup
         if assets_received > locked_assets_invested {
-            let difference = assets_received - locked_assets_invested.clone();
+            let difference = assets_received - locked_assets_invested;
             self.send()
                 .direct(&caller, &asset_token_id, &difference, &[]);
-            self.send()
-                .esdt_local_burn(&asset_token_id, &locked_assets_invested);
         } else if assets_received < locked_assets_invested {
-            let difference = locked_assets_invested - assets_received.clone();
+            let difference = locked_assets_invested - assets_received;
             self.send().esdt_nft_burn(
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
                 &difference,
             );
-            self.send()
-                .esdt_local_burn(&asset_token_id, &assets_received);
-        } else {
-            self.send()
-                .esdt_local_burn(&asset_token_id, &assets_received);
         }
+
+        self.send()
+            .esdt_local_burn(&asset_token_id, &locked_assets_to_send);
 
         self.send()
             .esdt_nft_burn(&wrapped_lp_token_id, token_nonce, &amount);
