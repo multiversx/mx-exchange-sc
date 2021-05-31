@@ -11,6 +11,7 @@ pub trait AssetModule {
         }
     }
 
+    #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]
     fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }
