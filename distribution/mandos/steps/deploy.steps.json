@@ -179,8 +179,7 @@
                         }
                     },
                     "storage": {
-                        "str:distributed_token_id": "str:MEX-abcdef",
-                        "str:locked_token_id": "str:LKMEX-abcdef",
+                        "str:asset_token_id": "str:MEX-abcdef",
                         "str:locked_asset_factory_address": "sc:locked_asset_factory"
                     },
                     "code": "file:../../sc-distribution-rs/output/sc_distribution_rs.wasm",
@@ -205,8 +204,8 @@
                         }
                     },
                     "storage": {
-                        "str:distributed_token_id": "str:MEX-abcdef",
-                        "str:locked_token_id": "str:LKMEX-abcdef",
+                        "str:asset_token_id": "str:MEX-abcdef",
+                        "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:default_unlock_period": "0x000000000000001b32000000000000002c32",
                         "str:transfer_exec_gas_limit": "50000000"
                     },
@@ -250,7 +249,7 @@
                         "str:wrapped_farm_token_id": "str:WFARM-abcdef",
                         "str:wrapped_farm_token_nonce": "0",
                         "str:proxy_pair_params": "0x0000000008FFFFFF00000000017D784000000000017D7840000000000FFFE10000000000004C4B4000000000004C4B40",
-                        "str:distributed_token_id": "str:MEX-abcdef",
+                        "str:asset_token_id": "str:MEX-abcdef",
                         "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:accepted_locked_assets.info": "0x00000002000000010000000200000002",
                         "str:accepted_locked_assets.node_idLKMEX-abcdef": "1",
