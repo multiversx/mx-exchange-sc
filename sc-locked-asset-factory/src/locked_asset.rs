@@ -213,8 +213,8 @@ pub trait LockedAssetModule: asset::AssetModule {
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
-    #[view(getLockedTokenId)]
-    #[storage_mapper("locked_token_id")]
+    #[view(getLockedAssetTokenId)]
+    #[storage_mapper("locked_asset_token_id")]
     fn locked_asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[storage_mapper("locked_token_nonce")]
