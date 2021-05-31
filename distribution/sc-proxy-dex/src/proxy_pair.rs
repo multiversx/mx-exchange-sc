@@ -371,11 +371,11 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
         //Do cleanup
         if assets_received > locked_assets_invested {
-            let difference = assets_received - locked_assets_invested.clone();
+            let difference = assets_received - locked_assets_invested;
             self.send()
                 .direct(&caller, &asset_token_id, &difference, &[]);
         } else if assets_received < locked_assets_invested {
-            let difference = locked_assets_invested - assets_received.clone();
+            let difference = locked_assets_invested - assets_received;
             self.send().esdt_nft_burn(
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
