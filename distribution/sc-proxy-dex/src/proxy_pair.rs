@@ -586,19 +586,19 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         &self,
         address: &Address,
     ) -> MultiResultVec<GenericEsdtAmountPair<Self::BigUint>> {
-        MultiResultVec::from_iter(self
-            .temporary_funds(address)
-            .iter()
-            .map(|x| {
-                let (key, amount) = x;
-                let (token_id, token_nonce) = key;
-                GenericEsdtAmountPair {
-                    token_id,
-                    token_nonce,
-                    amount,
-                }
-            })
-            .collect::<Vec<GenericEsdtAmountPair<Self::BigUint>>>()
+        MultiResultVec::from_iter(
+            self.temporary_funds(address)
+                .iter()
+                .map(|x| {
+                    let (key, amount) = x;
+                    let (token_id, token_nonce) = key;
+                    GenericEsdtAmountPair {
+                        token_id,
+                        token_nonce,
+                        amount,
+                    }
+                })
+                .collect::<Vec<GenericEsdtAmountPair<Self::BigUint>>>(),
         )
     }
 
