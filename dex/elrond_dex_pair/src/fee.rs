@@ -90,13 +90,16 @@ pub trait FeeModule:
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
+
         let mut is_removed = self.trusted_swap_pair().remove(&token_pair) != None;
-        let token_pair_reversed = TokenPair {
-            first_token: second_token,
-            second_token: first_token,
-        };
-        is_removed = is_removed || (self.trusted_swap_pair().remove(&token_pair_reversed) != None);
-        require!(is_removed, "Pair was not trusted");
+        if !is_removed {
+            let token_pair_reversed = TokenPair {
+                first_token: second_token,
+                second_token: first_token,
+            };
+            is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
+            require!(is_removed, "Pair was not trusted");
+        }
         Ok(())
     }
 
