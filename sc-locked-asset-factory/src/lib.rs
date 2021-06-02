@@ -17,6 +17,8 @@ const EPOCHS_IN_MONTH: u64 = 30;
 mod cache;
 mod locked_asset;
 
+use locked_asset::*;
+
 #[elrond_wasm_derive::contract]
 pub trait LockedAssetFactory:
     asset::AssetModule + locked_asset::LockedAssetModule + cache::CacheModule
@@ -73,7 +75,7 @@ pub trait LockedAssetFactory:
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
         self.produce_tokens_and_send(
             &amount,
-            &self.create_default_unlock_milestones(month_start_epoch),
+            &self.create_default_unlock_schedule(month_start_epoch),
             &address,
             &opt_accept_funds_func,
         )
@@ -95,7 +97,11 @@ pub trait LockedAssetFactory:
         require!(amount > 0, "Zero input amount");
         require!(!schedule.is_empty(), "Empty param");
 
-        let _ = self.produce_tokens_and_send(&amount, &schedule.0, &address, &OptionalArg::None);
+        let unlock_schedule = UnlockSchedule {
+            unlock_milestones: schedule.0,
+        };
+        let _ =
+            self.produce_tokens_and_send(&amount, &unlock_schedule, &address, &OptionalArg::None);
         Ok(())
     }
 
@@ -110,10 +116,13 @@ pub trait LockedAssetFactory:
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
-        let attributes = self.get_attributes(&token_id, token_nonce)?;
+        let unlock_schedule = self.get_unlock_schedule_for_sft_nonce(token_nonce).unwrap();
         let current_block_epoch = self.blockchain().get_block_epoch();
-        let unlock_amount =
-            self.get_unlock_amount(&amount, current_block_epoch, &attributes.unlock_milestones);
+        let unlock_amount = self.get_unlock_amount(
+            &amount,
+            current_block_epoch,
+            &unlock_schedule.unlock_milestones,
+        );
         require!(amount >= unlock_amount, "Cannot unlock more than locked");
         require!(unlock_amount > 0, "Method called too soon");
 
@@ -122,11 +131,16 @@ pub trait LockedAssetFactory:
 
         let locked_remaining = amount.clone() - unlock_amount;
         if locked_remaining > 0 {
-            let new_unlock_milestones = self
-                .create_new_unlock_milestones(current_block_epoch, &attributes.unlock_milestones);
+            let new_unlock_milestones = self.create_new_unlock_milestones(
+                current_block_epoch,
+                &unlock_schedule.unlock_milestones,
+            );
+            let new_unlock_schedule = UnlockSchedule {
+                unlock_milestones: new_unlock_milestones,
+            };
             let _ = self.produce_tokens_and_send(
                 &locked_remaining,
-                &new_unlock_milestones,
+                &new_unlock_schedule,
                 &caller,
                 &OptionalArg::None,
             );
@@ -144,32 +158,25 @@ pub trait LockedAssetFactory:
     fn produce_tokens_and_send(
         &self,
         amount: &Self::BigUint,
-        unlock_milestones: &[UnlockMilestone],
+        unlock_schedule: &UnlockSchedule,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
-        let attributes = LockedTokenAttributes {
-            unlock_milestones: unlock_milestones.to_vec(),
-        };
-        let result = self.get_cached_sft_nonce_for_attributes(&attributes);
+        let result = self.get_sft_nonce_for_unlock_schedule(unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
                 self.add_quantity_and_send_locked_assets(
-                    &amount,
+                    amount,
                     cached_nonce,
-                    &address,
+                    address,
                     opt_accept_funds_func,
                 );
                 cached_nonce
             }
             Option::None => {
-                let new_nonce = self.create_and_send_locked_assets(
-                    &amount,
-                    &attributes,
-                    &address,
-                    opt_accept_funds_func,
-                );
-                self.cache_attributes_and_nonce(attributes, new_nonce);
+                let new_nonce =
+                    self.create_and_send_locked_assets(amount, address, opt_accept_funds_func);
+                self.cache_unlock_schedule_and_nonce(unlock_schedule, new_nonce);
                 new_nonce
             }
         };
@@ -247,15 +254,18 @@ pub trait LockedAssetFactory:
             .async_call())
     }
 
-    fn create_default_unlock_milestones(&self, start_epoch: Epoch) -> Vec<UnlockMilestone> {
-        self.default_unlock_period()
-            .get()
-            .iter()
-            .map(|x| UnlockMilestone {
-                unlock_epoch: x.unlock_epoch + start_epoch,
-                unlock_percent: x.unlock_percent,
-            })
-            .collect()
+    fn create_default_unlock_schedule(&self, start_epoch: Epoch) -> UnlockSchedule {
+        UnlockSchedule {
+            unlock_milestones: self
+                .default_unlock_period()
+                .get()
+                .iter()
+                .map(|x| UnlockMilestone {
+                    unlock_epoch: x.unlock_epoch + start_epoch,
+                    unlock_percent: x.unlock_percent,
+                })
+                .collect(),
+        }
     }
 
     #[storage_mapper("init_epoch")]
