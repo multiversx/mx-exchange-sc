@@ -71,6 +71,10 @@ pub trait LockedAssetFactory:
         );
         require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
         require!(amount > 0, "Zero input amount");
+        require!(
+            start_epoch >= self.init_epoch().get(),
+            "Invalid start epoch"
+        );
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
         self.produce_tokens_and_send(
@@ -92,7 +96,10 @@ pub trait LockedAssetFactory:
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
-        let unlock_schedule = self.get_unlock_schedule_for_sft_nonce(token_nonce).unwrap();
+        let cached_value = self.get_unlock_schedule_for_sft_nonce(token_nonce);
+        require!(cached_value.is_some() , "Unlock Schedule not found in cache");
+        let unlock_schedule = cached_value.unwrap();
+
         let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
         let unlock_amount = self.get_unlock_amount(
             &amount,
