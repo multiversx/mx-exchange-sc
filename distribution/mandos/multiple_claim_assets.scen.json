@@ -18,14 +18,16 @@
                 "from": "address:user1",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "claimAssets",
+                "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
-                    "100"
+                    "0x01",
+                    "0x0000000c4c4b4d45582d61626364656600000000000000010000000164",
+                    "0x64"
                 ],
                 "status": "",
                 "logs": [],
@@ -40,10 +42,17 @@
                     "nonce": "1",
                     "balance": "100,000,000",
                     "esdt": {
-                        "str:MEX-abcdef": "100"
-                    },
-                    "storage": {
-                        "str:ELRONDesdtMEX-abcdef": "100"
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "100",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
                     }
                 },
                 "+": ""
@@ -59,17 +68,18 @@
             "step": "scCall",
             "txId": "2",
             "tx": {
-                "from": "address:user2",
+                "from": "address:user1",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "claimAssets",
+                "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
-                    "400"
+                    "0x0000000c4c4b4d45582d61626364656600000000000000010000000164",
+                    "0x64"
                 ],
                 "status": "",
                 "logs": [],
@@ -80,14 +90,21 @@
         {
             "step": "checkState",
             "accounts": {
-                "address:user2": {
-                    "nonce": "1",
+                "address:user1": {
+                    "nonce": "2",
                     "balance": "100,000,000",
                     "esdt": {
-                        "str:MEX-abcdef": "400"
-                    },
-                    "storage": {
-                        "str:ELRONDesdtMEX-abcdef": "400"
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "200",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
                     }
                 },
                 "+": ""
@@ -103,17 +120,19 @@
             "step": "scCall",
             "txId": "2",
             "tx": {
-                "from": "address:user3",
+                "from": "address:user1",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "claimAssets",
+                "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
-                    "900"
+                    "0x02",
+                    "0x0000000c4c4b4d45582d61626364656600000000000000020000000164",
+                    "0x64"
                 ],
                 "status": "",
                 "logs": [],
@@ -124,14 +143,28 @@
         {
             "step": "checkState",
             "accounts": {
-                "address:user3": {
-                    "nonce": "1",
+                "address:user1": {
+                    "nonce": "3",
                     "balance": "100,000,000",
                     "esdt": {
-                        "str:MEX-abcdef": "900"
-                    },
-                    "storage": {
-                        "str:ELRONDesdtMEX-abcdef": "900"
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "200",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "0x02",
+                                    "balance": "100",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
                     }
                 },
                 "+": ""
@@ -147,17 +180,18 @@
             "step": "scCall",
             "txId": "2",
             "tx": {
-                "from": "address:user4",
+                "from": "address:user1",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "claimAssets",
+                "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
-                    "1600"
+                    "0x0000000c4c4b4d45582d61626364656600000000000000020000000164",
+                    "0x64"
                 ],
                 "status": "",
                 "logs": [],
@@ -168,14 +202,28 @@
         {
             "step": "checkState",
             "accounts": {
-                "address:user4": {
-                    "nonce": "1",
+                "address:user1": {
+                    "nonce": "4",
                     "balance": "100,000,000",
                     "esdt": {
-                        "str:MEX-abcdef": "1600"
-                    },
-                    "storage": {
-                        "str:ELRONDesdtMEX-abcdef": "1600"
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "200",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "0x02",
+                                    "balance": "200",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
                     }
                 },
                 "+": ""

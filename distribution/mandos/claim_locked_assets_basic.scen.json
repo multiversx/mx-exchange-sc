@@ -6,41 +6,6 @@
             "path": "set_user_distribution_with_unlock.scen.json"
         },
         {
-            "step": "scCall",
-            "txId": "claimAssets",
-            "tx": {
-                "from": "address:user1",
-                "to": "sc:dist_contract",
-                "value": "0",
-                "function": "claimAssets",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "0"
-                ],
-                "status": "",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "checkState",
-            "accounts": {
-                "address:user1": {
-                    "nonce": "1",
-                    "balance": "100,000,000",
-                    "esdt": {},
-                    "storage": {},
-                    "code": ""
-                },
-                "+": ""
-            }
-        },
-        {
             "step": "setState",
             "currentBlockInfo": {
                 "blockEpoch": "30"
@@ -61,7 +26,30 @@
             "expect": {
                 "out": [
                     "0x1",
-                    "1000"
+                    "0x0000000c4c4b4d45582d61626364656600000000000000010000000203e8",
+                    "0x03e8"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "claimLockedAssets-1",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:dist_contract",
+                "value": "0",
+                "function": "claimLockedAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    ""
                 ],
                 "status": "",
                 "logs": [],
@@ -83,7 +71,8 @@
             },
             "expect": {
                 "out": [
-                    "90000"
+                    "0x0000000c4c4b4d45582d616263646566000000000000000100000003015f90",
+                    "0x015f90"
                 ],
                 "status": "",
                 "logs": [],

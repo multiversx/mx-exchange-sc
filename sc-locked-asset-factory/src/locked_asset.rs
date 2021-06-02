@@ -9,17 +9,21 @@ use modules::*;
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+pub struct UnlockSchedule {
+    pub unlock_milestones: Vec<UnlockMilestone>,
+}
+
 #[elrond_wasm_derive::module]
 pub trait LockedAssetModule: asset::AssetModule {
     fn create_and_send_locked_assets(
         &self,
         amount: &Self::BigUint,
-        attributes: &LockedTokenAttributes,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
-        self.create_tokens(&token_id, amount, attributes);
+        self.create_tokens(&token_id, amount);
         let last_created_nonce = self.locked_asset_token_nonce().get();
         self.send_tokens(
             &token_id,
@@ -74,43 +78,18 @@ pub trait LockedAssetModule: asset::AssetModule {
         );
     }
 
-    fn create_tokens(
-        &self,
-        token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        attributes: &LockedTokenAttributes,
-    ) {
+    fn create_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
         let amount_to_create = amount + &Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE);
-        self.send().esdt_nft_create::<LockedTokenAttributes>(
+        self.send().esdt_nft_create(
             token,
             &amount_to_create,
             &BoxedBytes::empty(),
             &Self::BigUint::zero(),
             &BoxedBytes::empty(),
-            attributes,
+            &BoxedBytes::empty(),
             &[BoxedBytes::empty()],
         );
         self.increase_nonce();
-    }
-
-    fn get_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SCResult<LockedTokenAttributes> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        let attributes = token_info.decode_attributes::<LockedTokenAttributes>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
     }
 
     fn get_unlock_amount(
@@ -132,7 +111,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         let mut unlock_percent = 0u8;
 
         for milestone in unlock_milestones {
-            if milestone.unlock_epoch < current_epoch {
+            if milestone.unlock_epoch <= current_epoch {
                 unlock_percent += milestone.unlock_percent;
             }
         }
@@ -153,7 +132,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         }
 
         for old_milestone in old_unlock_milestones.iter() {
-            if old_milestone.unlock_epoch >= current_epoch {
+            if old_milestone.unlock_epoch > current_epoch {
                 let new_unlock_percent: u64 =
                     (old_milestone.unlock_percent as u64) * 100u64 / unlock_percent_remaining;
                 new_unlock_milestones.push(UnlockMilestone {
