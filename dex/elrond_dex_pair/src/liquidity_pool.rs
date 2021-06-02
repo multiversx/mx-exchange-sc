@@ -86,7 +86,10 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         lp_token_identifier: TokenIdentifier,
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
         let total_supply = self.total_supply().get();
-        require!(total_supply > 0, "No LP tokens supply");
+        require!(
+            total_supply >= &liquidity + &Self::BigUint::from(MINIMUM_LIQUIDITY),
+            "Not enough LP token supply"
+        );
         let first_token_amount = self.burn_token(
             self.first_token_id().get(),
             liquidity.clone(),
