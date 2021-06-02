@@ -55,7 +55,7 @@
                 "from": "address:owner",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "setPerUserDistributedAssets",
+                "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "50",
                     "address:user1",
@@ -111,35 +111,25 @@
                 "from": "address:user4",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "claimAssets",
+                "function": "claimLockedAssets",
                 "arguments": [],
-                "gasLimit": "100,000,000",
+                "gasLimit": "1,000,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
+                    "*",
+                    "*",
+                    "*",
+                    "*",
+                    "*",
+                    "*",
                     "1600"
                 ],
                 "status": "",
                 "logs": [],
                 "gas": "*",
                 "refund": "*"
-            }
-        },
-        {
-            "step": "checkState",
-            "accounts": {
-                "address:user4": {
-                    "nonce": "1",
-                    "balance": "100,000,000",
-                    "esdt": {
-                        "str:MEX-abcdef": "1600"
-                    },
-                    "storage": {
-                        "str:ELRONDesdtMEX-abcdef": "1600"
-                    }
-                },
-                "+": ""
             }
         }
     ]

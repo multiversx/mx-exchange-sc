@@ -49,71 +49,14 @@
                             "instances": [
                                 {
                                     "nonce": "0x02",
-                                    "balance": "900",
+                                    "balance": "500",
                                     "creator": "*",
                                     "hash": "*",
                                     "attributes": "*"
                                 }
                             ]
                         },
-                        "str:MEX-abcdef": "100"
-                    }
-                },
-                "+": ""
-            }
-        },
-        {
-            "step": "setState",
-            "currentBlockInfo": {
-                "blockEpoch": "50"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "13",
-            "tx": {
-                "from": "address:user1",
-                "to": "sc:locked_asset_factory",
-                "value": "0",
-                "function": "unlockAssets",
-                "esdt": {
-                    "tokenIdentifier": "str:LKMEX-abcdef",
-                    "value": "900",
-                    "nonce": "2"
-                },
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "*"
-                ],
-                "status": "0",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "checkState",
-            "accounts": {
-                "address:user1": {
-                    "nonce": "4",
-                    "balance": "100,000,000",
-                    "esdt": {
-                        "str:LKMEX-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x03",
-                                    "balance": "792",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
-                                }
-                            ]
-                        },
-                        "str:MEX-abcdef": "208"
+                        "str:MEX-abcdef": "500"
                     }
                 },
                 "+": ""
@@ -127,7 +70,7 @@
         },
         {
             "step": "scCall",
-            "txId": "14",
+            "txId": "13",
             "tx": {
                 "from": "address:user1",
                 "to": "sc:locked_asset_factory",
@@ -135,65 +78,8 @@
                 "function": "unlockAssets",
                 "esdt": {
                     "tokenIdentifier": "str:LKMEX-abcdef",
-                    "value": "792",
-                    "nonce": "3"
-                },
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "*"
-                ],
-                "status": "0",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "checkState",
-            "accounts": {
-                "address:user1": {
-                    "nonce": "5",
-                    "balance": "100,000,000",
-                    "esdt": {
-                        "str:LKMEX-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x04",
-                                    "balance": "96",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
-                                }
-                            ]
-                        },
-                        "str:MEX-abcdef": "904"
-                    }
-                },
-                "+": ""
-            }
-        },
-        {
-            "step": "setState",
-            "currentBlockInfo": {
-                "blockEpoch": "256"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "15",
-            "tx": {
-                "from": "address:user1",
-                "to": "sc:locked_asset_factory",
-                "value": "0",
-                "function": "unlockAssets",
-                "esdt": {
-                    "tokenIdentifier": "str:LKMEX-abcdef",
-                    "value": "96",
-                    "nonce": "4"
+                    "value": "500",
+                    "nonce": "2"
                 },
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -211,10 +97,10 @@
             "step": "checkState",
             "accounts": {
                 "address:user1": {
-                    "nonce": "6",
+                    "nonce": "4",
                     "balance": "100,000,000",
                     "esdt": {
-                        "str:MEX-abcdef": "1000"
+                        "str:MEX-abcdef": "1,000"
                     }
                 },
                 "+": ""

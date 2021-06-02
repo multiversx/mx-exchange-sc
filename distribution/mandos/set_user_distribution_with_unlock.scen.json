@@ -35,47 +35,7 @@
                 "function": "setCommunityDistribution",
                 "arguments": [
                     "100,000",
-                    "10",
-                    "0x000000000000001b0a",
-                    "0x000000000000002c0a",
-                    "0x000000000000003d0a",
-                    "0x000000000000004e0a",
-                    "0x00000000000000500a",
-                    "0x00000000000000610a",
-                    "0x00000000000000720a",
-                    "0x00000000000000830a",
-                    "0x00000000000000940a",
-                    "0x00000000000000ff0a"
-                ],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
-                "value": "0",
-                "function": "setPerUserDistributedAssets",
-                "arguments": [
-                    "10",
-                    "address:user1",
-                    "100",
-                    "address:user2",
-                    "200",
-                    "address:user3",
-                    "300",
-                    "address:user4",
-                    "400"
+                    "10"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
@@ -130,37 +90,6 @@
             },
             "expect": {
                 "out": [],
-                "status": "",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
-                "value": "0",
-                "function": "getLastCommunityDistributionUnlockMilestones",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "0x000000000000001b0a",
-                    "0x000000000000002c0a",
-                    "0x000000000000003d0a",
-                    "0x000000000000004e0a",
-                    "0x00000000000000500a",
-                    "0x00000000000000610a",
-                    "0x00000000000000720a",
-                    "0x00000000000000830a",
-                    "0x00000000000000940a",
-                    "0x00000000000000ff0a"
-                ],
                 "status": "",
                 "logs": [],
                 "gas": "*",
