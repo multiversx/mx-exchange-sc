@@ -14,7 +14,7 @@ pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {
         self.nonce_cache().get(unlock_schedule)
     }
 
-    #[inline(always)]
+    #[view(getUnlockScheduleForSFTNonce)]
     fn get_unlock_schedule_for_sft_nonce(&self, nonce: Nonce) -> Option<UnlockSchedule> {
         self.unlock_schedule_cache().get(&nonce)
     }
