@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
+const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 
 type Epoch = u64;
 type Nonce = u64;
