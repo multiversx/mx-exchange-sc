@@ -99,7 +99,7 @@ pub trait FeeModule:
                 second_token: first_token,
             };
             is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
-            require!(is_removed, "Pair was not trusted");
+            require!(is_removed, "Pair does not exist in trusted pair map");
         }
         Ok(())
     }
