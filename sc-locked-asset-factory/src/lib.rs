@@ -268,12 +268,15 @@ pub trait LockedAssetFactory:
         }
     }
 
+    #[view(getInitEpoch)]
     #[storage_mapper("init_epoch")]
     fn init_epoch(&self) -> SingleValueMapper<Self::Storage, Epoch>;
 
+    #[view(getWhitelistedContracts)]
     #[storage_mapper("whitelist")]
     fn whitelisted_contracts(&self) -> SetMapper<Self::Storage, Address>;
 
+    #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]
     fn default_unlock_period(&self) -> SingleValueMapper<Self::Storage, Vec<UnlockMilestone>>;
 }
