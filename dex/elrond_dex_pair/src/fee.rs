@@ -4,6 +4,7 @@ elrond_wasm::derive_imports!();
 use super::amm;
 use super::config;
 use super::liquidity_pool;
+use core::iter::FromIterator;
 use dex_common::*;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
@@ -90,13 +91,16 @@ pub trait FeeModule:
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
+
         let mut is_removed = self.trusted_swap_pair().remove(&token_pair) != None;
-        let token_pair_reversed = TokenPair {
-            first_token: second_token,
-            second_token: first_token,
-        };
-        is_removed = is_removed || (self.trusted_swap_pair().remove(&token_pair_reversed) != None);
-        require!(is_removed, "Pair was not trusted");
+        if !is_removed {
+            let token_pair_reversed = TokenPair {
+                first_token: second_token,
+                second_token: first_token,
+            };
+            is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
+            require!(is_removed, "Pair does not exist in trusted pair map");
+        }
         Ok(())
     }
 
@@ -359,5 +363,25 @@ pub trait FeeModule:
             self.destination_map().remove(&fee_to_address);
         }
         Ok(())
+    }
+
+    #[view(getFeeDestinations)]
+    fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier)> {
+        MultiResultVec::from_iter(
+            self.destination_map()
+                .iter()
+                .map(|x| (x.0, x.1))
+                .collect::<Vec<(Address, TokenIdentifier)>>(),
+        )
+    }
+
+    #[view(getTrustedSwapPairs)]
+    fn get_trusted_swap_pairs(&self) -> MultiResultVec<(TokenPair, Address)> {
+        MultiResultVec::from_iter(
+            self.trusted_swap_pair()
+                .iter()
+                .map(|x| (x.0, x.1))
+                .collect::<Vec<(TokenPair, Address)>>(),
+        )
     }
 }
