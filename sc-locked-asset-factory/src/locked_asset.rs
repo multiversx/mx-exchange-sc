@@ -111,7 +111,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         let mut unlock_percent = 0u8;
 
         for milestone in unlock_milestones {
-            if milestone.unlock_epoch < current_epoch {
+            if milestone.unlock_epoch <= current_epoch {
                 unlock_percent += milestone.unlock_percent;
             }
         }
@@ -132,7 +132,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         }
 
         for old_milestone in old_unlock_milestones.iter() {
-            if old_milestone.unlock_epoch >= current_epoch {
+            if old_milestone.unlock_epoch > current_epoch {
                 let new_unlock_percent: u64 =
                     (old_milestone.unlock_percent as u64) * 100u64 / unlock_percent_remaining;
                 new_unlock_milestones.push(UnlockMilestone {
