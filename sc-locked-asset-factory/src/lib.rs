@@ -97,7 +97,7 @@ pub trait LockedAssetFactory:
         require!(token_id == locked_token_id, "Bad payment token");
 
         let cached_value = self.get_unlock_schedule_for_sft_nonce(token_nonce);
-        require!(cached_value.is_some() , "Unlock Schedule not found in cache");
+        require!(cached_value.is_some(), "Unlock Schedule not found in cache");
         let unlock_schedule = cached_value.unwrap();
 
         let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
