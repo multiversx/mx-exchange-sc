@@ -81,30 +81,6 @@ pub trait LockedAssetFactory:
         )
     }
 
-    #[endpoint(createAndForwardCustomSchedule)]
-    fn create_and_forward_custom_schedule(
-        &self,
-        amount: Self::BigUint,
-        address: Address,
-        #[var_args] schedule: VarArgs<UnlockMilestone>,
-    ) -> SCResult<()> {
-        let caller = self.blockchain().get_caller();
-        require!(
-            self.whitelisted_contracts().contains(&caller),
-            "Permission denied"
-        );
-        require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
-        require!(amount > 0, "Zero input amount");
-        require!(!schedule.is_empty(), "Empty param");
-
-        let unlock_schedule = UnlockSchedule {
-            unlock_milestones: schedule.0,
-        };
-        let _ =
-            self.produce_tokens_and_send(&amount, &unlock_schedule, &address, &OptionalArg::None);
-        Ok(())
-    }
-
     #[payable("*")]
     #[endpoint(unlockAssets)]
     fn unlock_assets(
