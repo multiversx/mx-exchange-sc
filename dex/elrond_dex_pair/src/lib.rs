@@ -4,7 +4,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 25000000;
+const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
@@ -42,7 +42,10 @@ pub trait Pair:
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
-        require!(total_fee_percent >= special_fee_percent, "Bad percents");
+        require!(
+            total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
+            "Bad percents"
+        );
         self.total_fee_percent().set(&total_fee_percent);
         self.special_fee_percent().set(&special_fee_percent);
         self.state().set(&State::ActiveNoSwaps);

@@ -18,7 +18,7 @@ pub struct GenericEsdtAmountPair<BigUint: BigUintApi> {
     pub amount: BigUint,
 }
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
 pub struct TokenPair {
     pub first_token: TokenIdentifier,
     pub second_token: TokenIdentifier,

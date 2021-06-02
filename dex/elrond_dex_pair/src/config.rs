@@ -22,12 +22,11 @@ pub trait ConfigModule {
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<Self::Storage, State>;
 
-    #[storage_mapper("send_fee_gas_limit")]
-    fn send_fee_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
+    #[view(getExternSwapGasLimit)]
     #[storage_mapper("extern_swap_gas_limit")]
     fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
+    #[view(getTranferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
@@ -35,6 +34,13 @@ pub trait ConfigModule {
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
         self.require_permissions()?;
         self.transfer_exec_gas_limit().set(&gas_limit);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn set_extern_swap_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.extern_swap_gas_limit().set(&gas_limit);
         Ok(())
     }
 
