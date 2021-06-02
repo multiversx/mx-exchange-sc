@@ -132,7 +132,6 @@ pub trait Pair:
         );
 
         let caller = self.blockchain().get_caller();
-        let old_k = self.calculate_k_for_reserves();
         let expected_first_token_id = self.first_token_id().get();
         let expected_second_token_id = self.second_token_id().get();
         let temporary_first_token_amount = self
@@ -159,6 +158,7 @@ pub trait Pair:
             "Pair: insufficient second token funds to add"
         );
 
+        let old_k = self.calculate_k_for_reserves();
         let (first_token_amount, second_token_amount) = self.calculate_optimal_amounts(
             first_token_amount_desired,
             second_token_amount_desired,
@@ -166,12 +166,8 @@ pub trait Pair:
             second_token_amount_min,
         )?;
 
-        let lp_token_id = self.lp_token_identifier().get();
-        let liquidity = self.mint(
-            first_token_amount.clone(),
-            second_token_amount.clone(),
-            lp_token_id.clone(),
-        )?;
+        let liquidity =
+            self.add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
 
         let caller = &self.blockchain().get_caller();
         let temporary_first_token_unused =
@@ -186,6 +182,9 @@ pub trait Pair:
         // Once liquidity has been added, the new K should never be lesser than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&old_k, &new_k)?;
+
+        let lp_token_id = self.lp_token_identifier().get();
+        self.send().esdt_local_mint(&lp_token_id, &liquidity);
 
         self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
         self.send_tokens(
@@ -260,18 +259,16 @@ pub trait Pair:
         );
 
         let caller = self.blockchain().get_caller();
-        let old_k = self.calculate_k_for_reserves();
-        let expected_liquidity_token = self.lp_token_identifier().get();
         require!(
-            liquidity_token == expected_liquidity_token,
+            liquidity_token == self.lp_token_identifier().get(),
             "Pair: wrong liquidity token"
         );
 
-        let (first_token_amount, second_token_amount) = self.burn(
-            liquidity,
+        let old_k = self.calculate_k_for_reserves();
+        let (first_token_amount, second_token_amount) = self.remove_liquidity(
+            liquidity.clone(),
             first_token_amount_min,
             second_token_amount_min,
-            self.lp_token_identifier().get(),
         )?;
 
         let first_token_id = self.first_token_id().get();
@@ -293,6 +290,8 @@ pub trait Pair:
             &caller,
             &opt_accept_funds_func,
         )?;
+
+        self.send().esdt_local_burn(&liquidity_token, &liquidity);
 
         Ok((
             FftTokenAmountPair {
