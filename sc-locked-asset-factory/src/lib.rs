@@ -117,7 +117,7 @@ pub trait LockedAssetFactory:
         require!(token_id == locked_token_id, "Bad payment token");
 
         let unlock_schedule = self.get_unlock_schedule_for_sft_nonce(token_nonce).unwrap();
-        let month_start_epoch = self.get_month_start_epoch();
+        let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
         let unlock_amount = self.get_unlock_amount(
             &amount,
             month_start_epoch,

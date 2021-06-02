@@ -117,7 +117,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
                     OptionalArg::None,
                 )
                 .with_gas_limit(gas_limit_per_execute)
-                .execute_on_dest_context();
+                .execute_on_dest_context_ignore_result();
             cummulated_amount += amount;
         }
 
