@@ -212,7 +212,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 (
                     &second_token_used.token_id,
                     0,
-                    &(&first_token_amount_desired - &first_token_used.amount),
+                    &(&second_token_amount_desired - &second_token_used.amount),
                 ),
             ]
             .to_vec(),
