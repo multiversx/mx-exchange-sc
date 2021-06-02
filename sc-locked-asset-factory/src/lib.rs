@@ -117,10 +117,10 @@ pub trait LockedAssetFactory:
         require!(token_id == locked_token_id, "Bad payment token");
 
         let unlock_schedule = self.get_unlock_schedule_for_sft_nonce(token_nonce).unwrap();
-        let current_block_epoch = self.blockchain().get_block_epoch();
+        let month_start_epoch = self.get_month_start_epoch();
         let unlock_amount = self.get_unlock_amount(
             &amount,
-            current_block_epoch,
+            month_start_epoch,
             &unlock_schedule.unlock_milestones,
         );
         require!(amount >= unlock_amount, "Cannot unlock more than locked");
@@ -132,7 +132,7 @@ pub trait LockedAssetFactory:
         let locked_remaining = amount.clone() - unlock_amount;
         if locked_remaining > 0 {
             let new_unlock_milestones = self.create_new_unlock_milestones(
-                current_block_epoch,
+                month_start_epoch,
                 &unlock_schedule.unlock_milestones,
             );
             let new_unlock_schedule = UnlockSchedule {
