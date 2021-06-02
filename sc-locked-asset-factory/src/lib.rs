@@ -12,6 +12,8 @@ use dex_common::*;
 use distrib_common::*;
 use modules::*;
 
+const EPOCHS_IN_MONTH: u64 = 30;
+
 mod cache;
 mod locked_asset;
 
@@ -32,6 +34,7 @@ pub trait LockedAssetFactory:
         self.default_unlock_period().set(&default_unlock_period.0);
         self.transfer_exec_gas_limit()
             .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.init_epoch().set(&self.blockchain().get_block_epoch());
         Ok(())
     }
 
@@ -67,9 +70,10 @@ pub trait LockedAssetFactory:
         require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
         require!(amount > 0, "Zero input amount");
 
+        let month_start_epoch = self.get_month_start_epoch(start_epoch);
         self.produce_tokens_and_send(
             &amount,
-            &self.create_default_unlock_milestones(start_epoch),
+            &self.create_default_unlock_milestones(month_start_epoch),
             &address,
             &opt_accept_funds_func,
         )
@@ -131,6 +135,10 @@ pub trait LockedAssetFactory:
         self.send()
             .esdt_nft_burn(&locked_token_id, token_nonce, &amount);
         Ok(())
+    }
+
+    fn get_month_start_epoch(&self, epoch: Epoch) -> Epoch {
+        epoch - (epoch - self.init_epoch().get()) % EPOCHS_IN_MONTH
     }
 
     fn produce_tokens_and_send(
@@ -249,6 +257,9 @@ pub trait LockedAssetFactory:
             })
             .collect()
     }
+
+    #[storage_mapper("init_epoch")]
+    fn init_epoch(&self) -> SingleValueMapper<Self::Storage, Epoch>;
 
     #[storage_mapper("whitelist")]
     fn whitelisted_contracts(&self) -> SetMapper<Self::Storage, Address>;
