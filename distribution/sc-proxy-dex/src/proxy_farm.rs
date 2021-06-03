@@ -137,25 +137,10 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
         self.reset_received_funds_on_current_tx();
         let farm_result = self
-            .actual_exit_farm(&farm_address, &farm_token_id, farm_token_nonce, &amount)
+            .actual_exit_farm(&farm_address, &farm_token_id, farm_token_nonce, &amount)?
             .into_tuple();
         let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
-        self.validate_received_funds_chunk(
-            [
-                (
-                    &farming_token_returned.token_id,
-                    0,
-                    &farming_token_returned.amount,
-                ),
-                (
-                    &reward_token_returned.token_id,
-                    reward_token_returned.token_nonce,
-                    &reward_token_returned.amount,
-                ),
-            ]
-            .to_vec(),
-        )?;
 
         let caller = self.blockchain().get_caller();
         self.send().direct_nft(
@@ -208,7 +193,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
         self.reset_received_funds_on_current_tx();
         let result = self
-            .actual_claim_rewards(&farm_address, &farm_token_id, farm_token_nonce, &amount)
+            .actual_claim_rewards(&farm_address, &farm_token_id, farm_token_nonce, &amount)?
             .into_tuple();
         let new_farm_token = result.0;
         let reward_token_returned = result.1;
@@ -219,21 +204,6 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             new_farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
-        self.validate_received_funds_chunk(
-            [
-                (
-                    &new_farm_token_id,
-                    new_farm_token_nonce,
-                    &new_farm_token_total_amount,
-                ),
-                (
-                    &reward_token_returned.token_id,
-                    reward_token_returned.token_nonce,
-                    &reward_token_returned.amount,
-                ),
-            ]
-            .to_vec(),
-        )?;
 
         // Send the reward to the caller.
         let caller = self.blockchain().get_caller();
@@ -348,15 +318,70 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         farm_token_id: &TokenIdentifier,
         farm_token_nonce: Nonce,
         amount: &Self::BigUint,
-    ) -> ExitFarmResultType<Self::BigUint> {
-        self.farm_contract_proxy(farm_address.clone())
-            .exitFarm(
-                farm_token_id.clone(),
-                amount.clone(),
-                farm_token_nonce,
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+    ) -> SCResult<ExitFarmResultType<Self::BigUint>> {
+        let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME).as_slice());
+
+        let result = self.send().direct_esdt_nft_execute(
+            farm_address,
+            farm_token_id,
+            farm_token_nonce,
+            amount,
+            self.blockchain().get_gas_left(),
+            &b"exitFarm"[..],
+            &arg_buffer,
+        );
+        require!(result == Result::Ok(()), "Failed to call transfer execute");
+
+        let accented_funds_len = self.current_tx_accepted_funds().len();
+        require!(
+            accented_funds_len == 1 || accented_funds_len == 2,
+            "Bad received funds len"
+        );
+
+        let asset_token_id = self.asset_token_id().get();
+        let locked_asset_token_id = self.locked_asset_token_id().get();
+        let mut farming_token = Option::<FftTokenAmountPair<Self::BigUint>>::None;
+        let mut reward_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
+
+        for (token_id, token_nonce) in self.current_tx_accepted_funds().keys() {
+            if token_id == asset_token_id || token_id == locked_asset_token_id {
+                reward_token = Option::Some(GenericEsdtAmountPair {
+                    token_id: token_id.clone(),
+                    token_nonce: token_nonce,
+                    amount: self
+                        .current_tx_accepted_funds()
+                        .get(&(token_id, token_nonce))
+                        .unwrap(),
+                });
+            } else {
+                farming_token = Option::Some(FftTokenAmountPair {
+                    token_id: token_id.clone(),
+                    amount: self
+                        .current_tx_accepted_funds()
+                        .get(&(token_id, token_nonce))
+                        .unwrap(),
+                })
+            }
+        }
+        require!(
+            farming_token != Option::None,
+            "Did not receive farming token"
+        );
+
+        if reward_token != Option::None {
+            Ok((farming_token.unwrap(), reward_token.unwrap()).into())
+        } else {
+            Ok((
+                farming_token.unwrap(),
+                GenericEsdtAmountPair::<Self::BigUint> {
+                    token_id: asset_token_id.clone(),
+                    token_nonce: 0u64,
+                    amount: Self::BigUint::zero(),
+                },
             )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+                .into())
+        }
     }
 
     fn actual_claim_rewards(
@@ -365,15 +390,68 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         farm_token_id: &TokenIdentifier,
         farm_token_nonce: Nonce,
         amount: &Self::BigUint,
-    ) -> ClaimRewardsResultType<Self::BigUint> {
-        self.farm_contract_proxy(farm_address.clone())
-            .claimRewards(
-                farm_token_id.clone(),
-                amount.clone(),
-                farm_token_nonce,
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+    ) -> SCResult<ClaimRewardsResultType<Self::BigUint>> {
+        let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME).as_slice());
+
+        let result = self.send().direct_esdt_nft_execute(
+            farm_address,
+            farm_token_id,
+            farm_token_nonce,
+            amount,
+            self.blockchain().get_gas_left(),
+            &b"claimRewards"[..],
+            &arg_buffer,
+        );
+        require!(result == Result::Ok(()), "Failed to call transfer execute");
+
+        let accented_funds_len = self.current_tx_accepted_funds().len();
+        require!(
+            accented_funds_len == 1 || accented_funds_len == 2,
+            "Bad received funds len"
+        );
+
+        let asset_token_id = self.asset_token_id().get();
+        let locked_asset_token_id = self.locked_asset_token_id().get();
+        let mut farm_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
+        let mut reward_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
+
+        for (token_id, token_nonce) in self.current_tx_accepted_funds().keys() {
+            if token_id == asset_token_id || token_id == locked_asset_token_id {
+                reward_token = Option::Some(GenericEsdtAmountPair {
+                    token_id: token_id.clone(),
+                    token_nonce: token_nonce,
+                    amount: self
+                        .current_tx_accepted_funds()
+                        .get(&(token_id, token_nonce))
+                        .unwrap(),
+                });
+            } else {
+                farm_token = Option::Some(GenericEsdtAmountPair {
+                    token_id: token_id.clone(),
+                    token_nonce: token_nonce,
+                    amount: self
+                        .current_tx_accepted_funds()
+                        .get(&(token_id, token_nonce))
+                        .unwrap(),
+                })
+            }
+        }
+        require!(farm_token != Option::None, "Did not receive farm token");
+
+        if reward_token != Option::None {
+            Ok((farm_token.unwrap(), reward_token.unwrap()).into())
+        } else {
+            Ok((
+                farm_token.unwrap(),
+                GenericEsdtAmountPair::<Self::BigUint> {
+                    token_id: asset_token_id.clone(),
+                    token_nonce: 0u64,
+                    amount: Self::BigUint::zero(),
+                },
             )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+                .into())
+        }
     }
 
     fn increase_wrapped_farm_token_nonce(&self) -> Nonce {
