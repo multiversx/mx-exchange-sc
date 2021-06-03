@@ -345,11 +345,10 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let mut reward_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
 
         for (token_id, token_nonce) in self.current_tx_accepted_funds().keys() {
-
             if token_id == asset_token_id || token_id == locked_asset_token_id {
                 reward_token = Option::Some(GenericEsdtAmountPair {
                     token_id: token_id.clone(),
-                    token_nonce: token_nonce,
+                    token_nonce,
                     amount: self
                         .current_tx_accepted_funds()
                         .get(&(token_id, token_nonce))
@@ -366,8 +365,9 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             }
         }
 
+        // This covers the case where the reward token and the token used to farm (farming token) are the same.
         if reward_token != Option::None && farming_token == Option::None {
-            let received_tokens = reward_token.unwrap().clone();
+            let received_tokens = reward_token.unwrap();
 
             if received_tokens.token_id == asset_token_id && &received_tokens.amount >= amount {
                 farming_token = Option::Some(FftTokenAmountPair::<Self::BigUint> {
@@ -399,7 +399,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             Ok((
                 farming_token.unwrap(),
                 GenericEsdtAmountPair::<Self::BigUint> {
-                    token_id: asset_token_id.clone(),
+                    token_id: asset_token_id,
                     token_nonce: 0u64,
                     amount: Self::BigUint::zero(),
                 },
@@ -441,11 +441,10 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let mut reward_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
 
         for (token_id, token_nonce) in self.current_tx_accepted_funds().keys() {
-
             if &token_id == farm_token_id {
                 farm_token = Option::Some(GenericEsdtAmountPair {
                     token_id: token_id.clone(),
-                    token_nonce: token_nonce,
+                    token_nonce,
                     amount: self
                         .current_tx_accepted_funds()
                         .get(&(token_id, token_nonce))
@@ -454,7 +453,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             } else if token_id == asset_token_id || token_id == locked_asset_token_id {
                 reward_token = Option::Some(GenericEsdtAmountPair {
                     token_id: token_id.clone(),
-                    token_nonce: token_nonce,
+                    token_nonce,
                     amount: self
                         .current_tx_accepted_funds()
                         .get(&(token_id, token_nonce))
@@ -474,7 +473,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             Ok((
                 farm_token.unwrap(),
                 GenericEsdtAmountPair::<Self::BigUint> {
-                    token_id: asset_token_id.clone(),
+                    token_id: asset_token_id,
                     token_nonce: 0u64,
                     amount: Self::BigUint::zero(),
                 },
