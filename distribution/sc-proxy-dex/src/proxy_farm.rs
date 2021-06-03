@@ -345,6 +345,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let mut reward_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
 
         for (token_id, token_nonce) in self.current_tx_accepted_funds().keys() {
+
             if token_id == asset_token_id || token_id == locked_asset_token_id {
                 reward_token = Option::Some(GenericEsdtAmountPair {
                     token_id: token_id.clone(),
@@ -364,9 +365,32 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
                 })
             }
         }
+
+        if reward_token != Option::None && farming_token == Option::None {
+            let received_tokens = reward_token.unwrap().clone();
+
+            if received_tokens.token_id == asset_token_id && &received_tokens.amount >= amount {
+                farming_token = Option::Some(FftTokenAmountPair::<Self::BigUint> {
+                    token_id: asset_token_id.clone(),
+                    amount: amount.clone(),
+                });
+                reward_token = Option::Some(GenericEsdtAmountPair::<Self::BigUint> {
+                    token_id: asset_token_id.clone(),
+                    token_nonce: 0u64,
+                    amount: &received_tokens.amount - amount,
+                });
+            } else {
+                reward_token = Option::Some(received_tokens);
+            }
+        }
+
         require!(
             farming_token != Option::None,
             "Did not receive farming token"
+        );
+        require!(
+            reward_token != Option::None || accented_funds_len == 1,
+            "Unknown token received as reward"
         );
 
         if reward_token != Option::None {
@@ -417,16 +441,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         let mut reward_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
 
         for (token_id, token_nonce) in self.current_tx_accepted_funds().keys() {
-            if token_id == asset_token_id || token_id == locked_asset_token_id {
-                reward_token = Option::Some(GenericEsdtAmountPair {
-                    token_id: token_id.clone(),
-                    token_nonce: token_nonce,
-                    amount: self
-                        .current_tx_accepted_funds()
-                        .get(&(token_id, token_nonce))
-                        .unwrap(),
-                });
-            } else {
+
+            if &token_id == farm_token_id {
                 farm_token = Option::Some(GenericEsdtAmountPair {
                     token_id: token_id.clone(),
                     token_nonce: token_nonce,
@@ -435,9 +451,22 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
                         .get(&(token_id, token_nonce))
                         .unwrap(),
                 })
+            } else if token_id == asset_token_id || token_id == locked_asset_token_id {
+                reward_token = Option::Some(GenericEsdtAmountPair {
+                    token_id: token_id.clone(),
+                    token_nonce: token_nonce,
+                    amount: self
+                        .current_tx_accepted_funds()
+                        .get(&(token_id, token_nonce))
+                        .unwrap(),
+                });
             }
         }
         require!(farm_token != Option::None, "Did not receive farm token");
+        require!(
+            reward_token != Option::None || accented_funds_len == 1,
+            "Unknown token received as reward"
+        );
 
         if reward_token != Option::None {
             Ok((farm_token.unwrap(), reward_token.unwrap()).into())
