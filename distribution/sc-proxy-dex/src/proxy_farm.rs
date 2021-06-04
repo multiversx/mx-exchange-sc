@@ -17,6 +17,10 @@ type ClaimRewardsResultType<BigUint> =
     MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+type ClaimRewardsResultTypeOption<BigUint> =
+    (Option::<GenericEsdtAmountPair<BigUint>>, Option::<GenericEsdtAmountPair<BigUint>>);
+type ExitFarmResultTypeOption<BigUint> =
+    (Option::<FftTokenAmountPair<BigUint>>, Option::<GenericEsdtAmountPair<BigUint>>);
 
 #[elrond_wasm_derive::module]
 pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule {
@@ -141,6 +145,21 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             .into_tuple();
         let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &farming_token_returned.token_id,
+                    0,
+                    &farming_token_returned.amount,
+                ),
+                (
+                    &reward_token_returned.token_id,
+                    reward_token_returned.token_nonce,
+                    &reward_token_returned.amount,
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         let caller = self.blockchain().get_caller();
         self.send().direct_nft(
@@ -204,6 +223,21 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             new_farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &new_farm_token_id,
+                    new_farm_token_nonce,
+                    &new_farm_token_total_amount,
+                ),
+                (
+                    &reward_token_returned.token_id,
+                    reward_token_returned.token_nonce,
+                    &reward_token_returned.amount,
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         // Send the reward to the caller.
         let caller = self.blockchain().get_caller();
@@ -339,6 +373,35 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             "Bad received funds len"
         );
 
+        let (farming_token, reward_token) = self.get_exit_farm_result(amount);
+        require!(
+            farming_token != Option::None,
+            "Did not receive farming token"
+        );
+        require!(
+            reward_token != Option::None || accented_funds_len == 1,
+            "Unknown token received as reward"
+        );
+
+        if reward_token != Option::None {
+            Ok((farming_token.unwrap(), reward_token.unwrap()).into())
+        } else {
+            Ok((
+                farming_token.unwrap(),
+                GenericEsdtAmountPair::<Self::BigUint> {
+                    token_id: self.asset_token_id().get(),
+                    token_nonce: 0u64,
+                    amount: Self::BigUint::zero(),
+                },
+            )
+                .into())
+        }
+    }
+
+    fn get_exit_farm_result(
+        &self,
+        exit_amount: &Self::BigUint,
+    ) -> ExitFarmResultTypeOption::<Self::BigUint> {
         let asset_token_id = self.asset_token_id().get();
         let locked_asset_token_id = self.locked_asset_token_id().get();
         let mut farming_token = Option::<FftTokenAmountPair<Self::BigUint>>::None;
@@ -369,43 +432,23 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         if reward_token != Option::None && farming_token == Option::None {
             let received_tokens = reward_token.unwrap();
 
-            if received_tokens.token_id == asset_token_id && &received_tokens.amount >= amount {
+            if received_tokens.token_id == asset_token_id && &received_tokens.amount >= exit_amount
+            {
                 farming_token = Option::Some(FftTokenAmountPair::<Self::BigUint> {
                     token_id: asset_token_id.clone(),
-                    amount: amount.clone(),
+                    amount: exit_amount.clone(),
                 });
                 reward_token = Option::Some(GenericEsdtAmountPair::<Self::BigUint> {
-                    token_id: asset_token_id.clone(),
+                    token_id: asset_token_id,
                     token_nonce: 0u64,
-                    amount: &received_tokens.amount - amount,
+                    amount: &received_tokens.amount - exit_amount,
                 });
             } else {
                 reward_token = Option::Some(received_tokens);
             }
         }
 
-        require!(
-            farming_token != Option::None,
-            "Did not receive farming token"
-        );
-        require!(
-            reward_token != Option::None || accented_funds_len == 1,
-            "Unknown token received as reward"
-        );
-
-        if reward_token != Option::None {
-            Ok((farming_token.unwrap(), reward_token.unwrap()).into())
-        } else {
-            Ok((
-                farming_token.unwrap(),
-                GenericEsdtAmountPair::<Self::BigUint> {
-                    token_id: asset_token_id,
-                    token_nonce: 0u64,
-                    amount: Self::BigUint::zero(),
-                },
-            )
-                .into())
-        }
+        (farming_token, reward_token)
     }
 
     fn actual_claim_rewards(
@@ -435,6 +478,32 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             "Bad received funds len"
         );
 
+        let (farm_token, reward_token) = self.get_claim_rewards_result(farm_token_id);
+        require!(farm_token != Option::None, "Did not receive farm token");
+        require!(
+            reward_token != Option::None || accented_funds_len == 1,
+            "Unknown token received as reward"
+        );
+
+        if reward_token != Option::None {
+            Ok((farm_token.unwrap(), reward_token.unwrap()).into())
+        } else {
+            Ok((
+                farm_token.unwrap(),
+                GenericEsdtAmountPair::<Self::BigUint> {
+                    token_id: self.asset_token_id().get(),
+                    token_nonce: 0u64,
+                    amount: Self::BigUint::zero(),
+                },
+            )
+                .into())
+        }
+    }
+
+    fn get_claim_rewards_result(
+        &self,
+        farm_token_id: &TokenIdentifier,
+    ) -> ClaimRewardsResultTypeOption::<Self::BigUint> {
         let asset_token_id = self.asset_token_id().get();
         let locked_asset_token_id = self.locked_asset_token_id().get();
         let mut farm_token = Option::<GenericEsdtAmountPair<Self::BigUint>>::None;
@@ -461,25 +530,8 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
                 });
             }
         }
-        require!(farm_token != Option::None, "Did not receive farm token");
-        require!(
-            reward_token != Option::None || accented_funds_len == 1,
-            "Unknown token received as reward"
-        );
 
-        if reward_token != Option::None {
-            Ok((farm_token.unwrap(), reward_token.unwrap()).into())
-        } else {
-            Ok((
-                farm_token.unwrap(),
-                GenericEsdtAmountPair::<Self::BigUint> {
-                    token_id: asset_token_id,
-                    token_nonce: 0u64,
-                    amount: Self::BigUint::zero(),
-                },
-            )
-                .into())
-        }
+        (farm_token, reward_token)
     }
 
     fn increase_wrapped_farm_token_nonce(&self) -> Nonce {
