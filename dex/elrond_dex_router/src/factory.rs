@@ -155,6 +155,7 @@ pub trait FactoryModule {
     #[storage_mapper("pair_code_ready")]
     fn pair_code_ready(&self) -> SingleValueMapper<Self::Storage, bool>;
 
+    #[view(getTemporaryOwnerPeriod)]
     #[storage_mapper("temporary_owner_period")]
     fn temporary_owner_period(&self) -> SingleValueMapper<Self::Storage, u64>;
 

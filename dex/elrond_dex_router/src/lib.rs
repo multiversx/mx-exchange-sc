@@ -339,6 +339,7 @@ pub trait Router: factory::FactoryModule {
         Ok(())
     }
 
+    #[view(getPairCreationEnabled)]
     #[storage_mapper("pair_creation_enabled")]
     fn pair_creation_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
 
