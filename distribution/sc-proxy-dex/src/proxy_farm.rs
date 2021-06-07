@@ -122,7 +122,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         #[payment_nonce] token_nonce: Nonce,
         farm_address: &Address,
     ) -> SCResult<()> {
-        self.require_is_intermediated_farm(&farm_address)?;
+        self.require_is_intermediated_farm(farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
         require!(amount != 0, "Payment amount cannot be zero");
@@ -306,7 +306,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             &BoxedBytes::empty(),
             &Self::BigUint::zero(),
             &BoxedBytes::empty(),
-            &attributes,
+            attributes,
             &[BoxedBytes::empty()],
         );
         self.increase_wrapped_farm_token_nonce();
@@ -321,7 +321,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
     ) -> EnterFarmResultType<Self::BigUint> {
         let asset_token_id = self.asset_token_id().get();
         if farming_token_id == &asset_token_id {
-            self.send().esdt_local_mint(&asset_token_id, &amount);
+            self.send().esdt_local_mint(&asset_token_id, amount);
         }
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())

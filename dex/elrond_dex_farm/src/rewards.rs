@@ -44,7 +44,7 @@ pub trait RewardsModule: config::ConfigModule {
     }
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
-        let reward_minted = self.mint_per_block_rewards(&reward_token_id);
+        let reward_minted = self.mint_per_block_rewards(reward_token_id);
         self.increase_current_block_fee_storage(&Self::BigUint::zero());
         let fees = self.undistributed_fee_storage().get();
         self.undistributed_fee_storage().clear();

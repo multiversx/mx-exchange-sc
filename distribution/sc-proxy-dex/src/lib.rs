@@ -20,7 +20,7 @@ pub trait ProxyDexImpl:
     #[init]
     fn init(&self, asset_token_id: TokenIdentifier, locked_asset_token_id: TokenIdentifier) {
         self.asset_token_id().set(&asset_token_id);
-        self.locked_asset_token_id().set(&&locked_asset_token_id);
+        self.locked_asset_token_id().set(&locked_asset_token_id);
     }
 
     #[payable("EGLD")]
@@ -125,7 +125,7 @@ pub trait ProxyDexImpl:
         only_owner!(self, "Permission denied");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call())
     }
 }

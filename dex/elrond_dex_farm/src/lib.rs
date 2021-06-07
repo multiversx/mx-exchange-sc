@@ -338,7 +338,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 "Cannot send back farming tokens with amount 0"
             );
         }
-        self.decrease_farming_token_reserve(&farming_amount)?;
+        self.decrease_farming_token_reserve(farming_amount)?;
         self.send_fft_tokens(
             farming_token_id,
             farming_amount,
@@ -360,7 +360,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
-                self.send().esdt_local_burn(reward_token_id, &reward_amount);
+                self.send().esdt_local_burn(reward_token_id, reward_amount);
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
                 let result = self
                     .locked_asset_factory(locked_asset_factory_address)

@@ -107,7 +107,7 @@ pub trait FeeModule:
     fn reinject(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
         let mut reserve = self.pair_reserve(token).get();
         reserve += amount;
-        self.pair_reserve(&token).set(&reserve);
+        self.pair_reserve(token).set(&reserve);
     }
 
     fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: Self::BigUint) {
@@ -198,7 +198,7 @@ pub trait FeeModule:
                     first_token_id
                 };
                 let resolved_externally = self.extern_swap_and_forward(
-                    &to_send_token,
+                    to_send_token,
                     &to_send,
                     requested_fee_token,
                     fee_address,
@@ -245,7 +245,7 @@ pub trait FeeModule:
         fee_token: &TokenIdentifier,
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
-        let pair_address = self.get_extern_swap_pair_address(&fee_token, &requested_fee_token);
+        let pair_address = self.get_extern_swap_pair_address(fee_token, requested_fee_token);
         pair_address != Address::zero()
     }
 
@@ -257,12 +257,10 @@ pub trait FeeModule:
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
         if fee_token == first_token {
-            let pair_address =
-                self.get_extern_swap_pair_address(&second_token, &requested_fee_token);
+            let pair_address = self.get_extern_swap_pair_address(second_token, requested_fee_token);
             pair_address != Address::zero()
         } else if fee_token == second_token {
-            let pair_address =
-                self.get_extern_swap_pair_address(&first_token, &requested_fee_token);
+            let pair_address = self.get_extern_swap_pair_address(first_token, requested_fee_token);
             pair_address != Address::zero()
         } else {
             false
@@ -276,14 +274,14 @@ pub trait FeeModule:
         requested_token: &TokenIdentifier,
         destination_address: &Address,
     ) -> bool {
-        let pair_address = self.get_extern_swap_pair_address(&available_token, &requested_token);
+        let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
         let mut arg_buffer = ArgBuffer::new();
         arg_buffer.push_argument_bytes(requested_token.as_esdt_identifier());
         arg_buffer.push_argument_bytes(destination_address.as_bytes());
         let result = self.send().direct_esdt_execute(
             &pair_address,
-            &available_token,
-            &available_amount,
+            available_token,
+            available_amount,
             self.extern_swap_gas_limit().get(),
             SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
             &arg_buffer,
@@ -304,7 +302,7 @@ pub trait FeeModule:
     ) {
         if amount > &0 {
             if destination == &Address::zero() {
-                self.send().esdt_local_burn(token, &amount);
+                self.send().esdt_local_burn(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
                     .acceptFee(token.clone(), amount.clone())

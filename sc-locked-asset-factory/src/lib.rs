@@ -236,7 +236,7 @@ pub trait LockedAssetFactory:
         require!(!roles.is_empty(), "Empty roles");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call())
     }
 
