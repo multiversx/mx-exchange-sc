@@ -36,6 +36,10 @@ pub trait LockedAssetFactory:
         self.default_unlock_period().set(&default_unlock_period.0);
         self.transfer_exec_gas_limit()
             .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+
+        if self.init_epoch().get() == 0 {
+            self.init_epoch().set(&self.blockchain().get_block_epoch());
+        }
         Ok(())
     }
 
@@ -70,6 +74,10 @@ pub trait LockedAssetFactory:
         );
         require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
         require!(amount > 0, "Zero input amount");
+        require!(
+            start_epoch >= self.init_epoch().get(),
+            "Invalid start epoch"
+        );
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
         self.produce_tokens_and_send(
@@ -130,7 +138,7 @@ pub trait LockedAssetFactory:
     }
 
     fn get_month_start_epoch(&self, epoch: Epoch) -> Epoch {
-        epoch - epoch % EPOCHS_IN_MONTH
+        epoch - (epoch - self.init_epoch().get()) % EPOCHS_IN_MONTH
     }
 
     fn produce_tokens_and_send(
@@ -245,6 +253,10 @@ pub trait LockedAssetFactory:
                 .collect(),
         }
     }
+
+    #[view(getInitEpoch)]
+    #[storage_mapper("init_epoch")]
+    fn init_epoch(&self) -> SingleValueMapper<Self::Storage, Epoch>;
 
     #[view(getWhitelistedContracts)]
     #[storage_mapper("whitelist")]
