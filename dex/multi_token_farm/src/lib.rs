@@ -2,18 +2,18 @@
 #![allow(non_snake_case)]
 #![allow(clippy::type_complexity)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
-
-type Epoch = u64;
-type Nonce = u64;
-const PENALTY_PERCENT: u64 = 10;
-const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
-
 mod liquidity_pool;
 mod rewards;
 
-use dex_common::*;
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
+use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
+
+type Epoch = u64;
+type Nonce = u64;
+
+const PENALTY_PERCENT: u64 = 10;
+const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {

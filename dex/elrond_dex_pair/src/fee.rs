@@ -5,7 +5,7 @@ use super::amm;
 use super::config;
 use super::liquidity_pool;
 use core::iter::FromIterator;
-use dex_common::*;
+use dex_common::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 

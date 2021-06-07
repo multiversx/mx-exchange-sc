@@ -10,8 +10,8 @@ use core::iter::FromIterator;
 const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
-use dex_common::*;
-use distrib_common::*;
+use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
+use distrib_common::WrappedLpTokenAttributes;
 
 use super::proxy_common;
 

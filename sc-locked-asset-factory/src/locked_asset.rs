@@ -4,8 +4,7 @@ elrond_wasm::derive_imports!();
 type Nonce = u64;
 type Epoch = u64;
 
-use distrib_common::*;
-use modules::*;
+use distrib_common::UnlockMilestone;
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 
