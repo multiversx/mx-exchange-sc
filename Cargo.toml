@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "dex",
   "dex/dex-common",
   "dex/elrond_dex_farm",
   "dex/elrond_dex_farm/abi",
@@ -10,6 +11,7 @@ members = [
   "dex/multi_token_farm",
   "dex/multi_token_farm/abi",
 
+  "distribution",
   "distribution/distrib-common",
   "distribution/modules",
   "distribution/sc-distribution-rs",
