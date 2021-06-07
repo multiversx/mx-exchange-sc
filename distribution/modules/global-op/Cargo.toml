@@ -1,0 +1,24 @@
+[package]
+name = "global-op"
+version = "0.0.0"
+authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/global_op.rs"
+
+[features]
+wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.distrib-common]
+path = "../../distrib-common"
+
+[dependencies.elrond-wasm]
+version = "0.17"
+
+[dependencies.elrond-wasm-derive]
+version = "0.17"
+
+[dependencies.elrond-wasm-node]
+version = "0.17"
+optional = true

@@ -5,7 +5,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod factory;
-pub use crate::factory::*;
+use factory::PairTokens;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;

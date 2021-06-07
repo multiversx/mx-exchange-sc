@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use super::amm;
 use super::config;
-use dex_common::*;
+use dex_common::FftTokenAmountPair;
 
 const MINIMUM_LIQUIDITY: u64 = 1_000;
 
