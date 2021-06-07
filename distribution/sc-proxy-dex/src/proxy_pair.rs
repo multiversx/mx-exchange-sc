@@ -472,7 +472,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             locked_tokens_nonce,
         );
         self.send()
-            .direct_nft(caller, &wrapped_lp_token_id, nonce, &lp_token_amount, &[]);
+            .direct_nft(caller, &wrapped_lp_token_id, nonce, lp_token_amount, &[]);
     }
 
     fn create_tokens(

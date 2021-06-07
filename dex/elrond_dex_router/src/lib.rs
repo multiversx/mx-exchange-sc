@@ -191,7 +191,7 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "No permissions");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
     }
@@ -304,7 +304,7 @@ pub trait Router: factory::FactoryModule {
     ) {
         match result {
             AsyncCallResult::Ok(()) => {
-                self.pair_temporary_owner().remove(&address);
+                self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context();

@@ -386,7 +386,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             if nonce > 0 {
                 self.send().esdt_nft_burn(token, nonce, amount);
             } else {
-                self.send().esdt_local_burn(token, &amount);
+                self.send().esdt_local_burn(token, amount);
             }
         }
     }
@@ -403,7 +403,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             if nonce > 0 {
                 let _ = self
                     .send()
-                    .direct_nft(&destination, token, nonce, &amount, &[]);
+                    .direct_nft(destination, token, nonce, amount, &[]);
             } else {
                 let _ = self.send().direct(destination, token, amount, &[]);
             }
@@ -617,7 +617,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         require!(amount_in > &0, "Zero amount in");
         let farming_pool_token_id = self.farming_pool_token_id().get();
         require!(
-            self.is_accepted_token(&farming_pool_token_id, &token_in),
+            self.is_accepted_token(&farming_pool_token_id, token_in),
             "Token is not accepted for farming"
         );
         if &farming_pool_token_id == token_in {
@@ -626,7 +626,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
 
         let pair = self
             .pair_address_for_accepted_lp_token()
-            .get(&token_in)
+            .get(token_in)
             .unwrap();
         let equivalent = self
             .pair_contract_proxy(pair)

@@ -55,7 +55,7 @@ pub trait RewardsModule {
 
         let actual_reserves =
             self.blockchain()
-                .get_esdt_balance(&self.blockchain().get_sc_address(), &token_id, 0);
+                .get_esdt_balance(&self.blockchain().get_sc_address(), token_id, 0);
         let reward_amount = self.calculate_reward_amount_current_block();
 
         let total_reserves = virtual_reserves + &actual_reserves + reward_amount;
