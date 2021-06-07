@@ -179,7 +179,7 @@ pub trait Pair:
         self.temporary_funds(&caller, &expected_second_token_id)
             .clear();
 
-        // Once liquidity has been added, the new K should never be lesser than the old K.
+        // Once liquidity has been added, the new K should always be greater than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&old_k, &new_k)?;
 
@@ -274,7 +274,7 @@ pub trait Pair:
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        // Once liquidity has been removed, the new K should never be greater than the old K.
+        // Once liquidity has been removed, the new K should always be lesser than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 

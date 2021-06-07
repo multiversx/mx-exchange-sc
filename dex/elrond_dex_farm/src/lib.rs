@@ -468,8 +468,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farm_token_supply = self.farm_token_supply().get();
         require!(farm_token_supply >= amount, "Not enough supply");
 
-        let current_block = self.blockchain().get_block_nonce();
-        let to_be_minted = self.calculate_per_block_rewards(current_block);
+        let last_reward_nonce = self.last_reward_block_nonce().get();
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let to_be_minted = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
         let mut fees = self.undistributed_fee_storage().get();
         fees += match self.current_block_fee_storage().get() {

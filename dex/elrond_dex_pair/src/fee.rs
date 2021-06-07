@@ -140,6 +140,11 @@ pub trait FeeModule:
                 &second_token_id,
             );
         }
+
+        let rounding_error = fee_amount - fee_slice * Self::BigUint::from(slices);
+        if rounding_error > 0 {
+            self.reinject(fee_token, &rounding_error);
+        }
     }
 
     fn send_fee_slice(
