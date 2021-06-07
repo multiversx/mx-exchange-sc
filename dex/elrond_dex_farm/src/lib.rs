@@ -472,10 +472,17 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let current_block_nonce = self.blockchain().get_block_nonce();
         let to_be_minted = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
+        let big_zero = Self::BigUint::zero();
         let mut fees = self.undistributed_fee_storage().get();
         fees += match self.current_block_fee_storage().get() {
-            Some(value) => value.1,
-            None => Self::BigUint::zero(),
+            Some((block_nonce, fee_amount)) => {
+                if current_block_nonce > block_nonce {
+                    fee_amount
+                } else {
+                    big_zero
+                }
+            }
+            None => big_zero,
         };
 
         let reward_increase = to_be_minted + fees;
