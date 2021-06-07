@@ -159,7 +159,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
             let multiplier = self.locked_rewards_apr_multiplier().get();
             (amount * &Self::BigUint::from(multiplier as u64), multiplier)
         } else {
-            (amount.clone(), 0u8)
+            (amount.clone(), 1u8)
         }
     }
 
