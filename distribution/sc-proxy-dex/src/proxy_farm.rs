@@ -137,7 +137,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
 
         self.reset_received_funds_on_current_tx();
         let farm_result = self
-            .actual_exit_farm(&farm_address, &farm_token_id, farm_token_nonce, &amount)
+            .actual_exit_farm(farm_address, &farm_token_id, farm_token_nonce, &amount)
             .into_tuple();
         let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
