@@ -1,107 +1,143 @@
-# Dex overview
+# Maiar Exchange Smart Contracts
 
-This document will describe how the Dex is going to work and what role
-each contract within it has. Let's say we have the next set of contracts
-up and running:
+This repository contains the principal Smart Contract components of Maiar Exchange.
 
-```
-EGLD/MEX pair contract for swap
-EGLD/BUSD pair contract for swap
-MEX/BUSD pair contract for swap
-Staking pool for EGLD LP providers
-Staking pool for MEX LP providers
-```
+This document will contain an overview of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
 
-## Most common scenarios
+- [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
+  - [DEX Contracts](#dex-contracts)
+    - [Pair Contract](#pair-contract)
+      - [Adding liquidty](#adding-liquidty)
+      - [Removing liquidity](#removing-liquidity)
+      - [Swapping](#swapping)
+    - [Router Contract](#router-contract)
+    - [Farm Contract](#farm-contract)
+      - [Entering Farm](#entering-farm)
+      - [Exiting Farm](#exiting-farm)
+      - [Claiming rewards](#claiming-rewards)
+  - [MEX Distribution Contracts](#mex-distribution-contracts)
+    - [Distribution Contract](#distribution-contract)
+    - [DEX Proxy Contract](#dex-proxy-contract)
+      - [Proxy Pair Module](#proxy-pair-module)
+      - [Proxy Farm Module](#proxy-farm-module)
+  - [Locked MEX Factory Contract](#locked-mex-factory-contract)
 
-### Adding Liquidity
+Other Smart Contracts that are part of Maiar exchange, but are not part of this repository, are:
 
-Let's say Alice wants to add liquidity to EGLD/MEX pool. She will need
-to provide EGLD and MEX to the EGLD/MEX pair contract. In return, she
-will get LP tokens (tokens that will represent her position in the
-liquidity pool), let's call them LP-EGLD-MEX tokens. These tokens are
-normal ESDT tokens, so called fungible tokens.
+- [Egld wrapping](https://github.com/ElrondNetwork/sc-bridge-elrond/tree/main/egld-esdt-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
+- [Multisig](https://github.com/ElrondNetwork/sc-bridge-elrond/tree/main/multisig)
+used for deploying and setting up all the Smart Contracts.
 
-One important thing to mention here is that the position in a liquidity
-pool can be traded also. So Alice can decide to sell her LP-EGLD-MEX
-tokens to Bob and then Bob will be the owner of the position in the
-liquidity pool (meaning that as long as he's got those LP-EGLD-MEX tokens,
-he can decide to get out of the pool at any time).
+## DEX Contracts
 
-### Swapping with fixed input
+These are the core Smart Contracts and the foundation of Maiar Exchange. They consist of three contracts, all of which will be explained below.
 
-Let's say Bob wants to swap 1000 EGLD for MEX. He will give 1000 EGLD to
-EGLD/MEX pair contract and also specify the minimul amount of MEX that
-he's expectig. On success, he will receive an amount of MEX, greater or
-equal with the minimul amount of MEX that he requested. On failure, he
-will get back his 1000 EGLD. About the fees now, 0.3% is the total fees
-of the swap, so a total of 3 EGLD. From that, 0.2% is going to stay in the
-liquidity pool, so 2 EGLD goes back, and will be claimed by the liquidity
-providers. The rest of 0.1%, so 1 EGLD, will go to the staking contracts.
-Since there are 2 staking contracts, 0.5 EGLD will go to EGLD Staking
-contract and 0.5 EGLD will go to the MEX Staking contract.
+Some important general properties:
 
-One important thing to mention is that the MEX Staking contract works
-with MEX as rewards, so the 0.5 EGLD will actually have to be swapped to
-MEX in order to be sent to the MEX Staking contract. In case of EGLD/MEX
-pair contract, the swap can be done locally, within the same pair contract.
-In case of other contracts, like EGLD/BUSD contract, the BUSD fees from
-swaps will have to be converted externally, so the EGLD/BUSD makes a swap
-request to BUSD/MEX pool. This process is automated and invisible to the
-user. The swap of fees, either locally or externally will happen with 0 fees.
+- Every DEX contract is marked as `non payable` in order to minimize the risk of a user sending his tokens to the contract by accident and hence locking them indefinitely.
 
-### Swapping with fixed output
+- Every DEX contract is `stateless`, meaning that no contract will keep track of any user data.
+  
+- Every interaction with the contracts can be done using `erdpy`. A set of snippets is provided as a starting point for anyone interested.
 
-Swapping with fixed output works exactly the same as Swapping with fixed
-input, except that you specify the precise amount of tokens you want to get,
-and you pay the maximum amount that you are willing to pay for the swap. In 
-case you pay 10 EGLD and you want 20 MEX, but the price of these 20 MEX swap
-was actually 8 EGLD, you will get back the 2 extra EGLD that you provided + 
-the 20 MEX tokens. About the fees, they work in a similar manner as explained
-above.
+### Pair Contract
 
-### Removing liquidity
+The Pair Contract acts as an AMM for trading two different tokens. The AMM is based on liquidity pools and on the already popular `x*y=k` approach. The total fee percent for each swap can be configured at the init phrase (at deploy time), although the default value (and the value that will be used) will be `0.3%`, from which `0.25`% will stay in the liquidity pool, `0.05%` will be used to buyback and burn MEX tokens.
 
-Let's say Alice wants to get out of EGLD/MEX liquidity pool. She will have to
-give some of her LP-EGLD-MEX tokens and she will receive EGLD and MEX amounts
-calculated at the current time. She will benefit of 0.2% fee from all swaps 
-within the period she provided for the pool (calculated for her position in the
-pool, of course).
+One tehnical subtlety of this contracts is that it only functions with `Fungible Tokens`. It does not handle neither EGLD nor Semi-Fungible tokens (SFTs) nor Non-Fungible Tokens (NFTs).
 
-### Staking 
+#### Adding liquidty
 
-Let's say Alice added some liquidity to EGLD/MEX liquidity pool and she
-wants to stake her LP-EGLD-MEX tokens. She will have to go to EGLD Staking
-contract (or MEX Staking contract, or both in case of LP-EGLD-MEX) and lock
-her LP-EGLD-MEX tokens. In return, she will get EGLD-STAKE tokens. These
-tokens are Semi-Fungible tokens and they contain information needed when
-unstaking (and calculating rewards).
+A user can become a Liquidity Provider by adding liquidity to the pool. For doing that, a user has to transfer tokens for both types to the contract. By doing this, the user will receive an `LP token`, which will represent his position in the liquidity pool. From now on, the user will gain a part of the fees accumulated by swap transactions, until of course, he decides to exit the liquidity pool.
 
-One important thing to mention is that Alice can sell her position in the
-Staking pool. The meaning and reasonings are explained in the "Add Liquidity"
-section.
+A user can sell his position or part of his position in the pool at his own willing. This can be done by simply transferring LP tokens to another account. The LP token is a fungible token and as any other ESDT tokens, it can be transferred directly anywhere whithout the need to interact with any contract.
 
-### Unstaking
+#### Removing liquidity
 
-Let's say Alice wants some of her LP tokens back, she will have to provide
-some EGLD-STAKE tokens to the EGLD staking contract. In return, she will
-get some EGLD rewards for the time spent as an EGLD staker, and some Unstake
-tokens, let's call the EGLD-UNSTAKE tokens. These tokens are also Semi-Fungible
-tokens and they contain the information needed for unbonding (most importantly
-here is the unbond period, which is 10 days).
+A Liquidity Provider may decide to exit a liquidity pool. In order to do this, the user has to give back his LP tokens and in exchange, he will get his tokens + his rewards (share of swap fees).
 
-One important thing to mention here is that we introduced this EGLD-UNSTAKE
-token so the EGLD staking contract will not have to keep track of any
-addresses. Pancake Swap keeps track of Users that Unstaked, meaning that they
-have a per user address mapping that keeps information like the unbonding
-epoch. In order to make the staking contract fully decentralized and stateless,
-we introduced this unstake token that has that kind of information. The staking
-contracts will have no "per user mapping". :) 
+The amount of each type of token that will receive depends on the current state of the liquidity pool, and specifically on the swap ratio. Hence, if the ratio in the pool changes by the time a user added liquidity, when deciding to remove liquidity, a user will receive tokens only based on the current ratio of the pool and not based on the ratio from when he added liquidity.
 
-### Unbonding
+#### Swapping
 
-Let's say Alice unstaked some of her EGLD-STAKE tokens and she got some
-EGLD-UNSTAKE tokens and 10 days passed since then. Alice can give her 
-EGLD-UNSTAKE and she will receive back her LP-EGLD-MEX tokens.
+The primary functionality that the Pair Contracts offers is allowing users to swap tokens. The user can configure a minimum amount of tokens that he wants to get back in exchange for his fixed amount of input tokens and also he can configure the maximum amount of tokens that he wants to spend in order to get a fixed amount in exchange. This is particulary useful because a FrontEnd may use this parameters to expose a slippage percent to the user, much like we already saw in a lot of exchanges.
 
+A fee of 0.3% will be deduced from each swap. Part the each swap (0.25%) fee will go to the Liquidity Providers and the other part (0.05%) will be used to buyback and burn MEX tokens.
 
+### Router Contract
+
+The Router Contract is a manager for the pair contracts. All the Pair Contracts in this DEX will be deploied through the router.
+
+It was the permission to configure pair contracts and to set their state. It also contains the Table where a user can query the contract address for a specific swap pair.
+
+It's also ment to be used by any user to create and deploy a Pair Contract, although there is a setting to turn this option On and Off.
+
+### Farm Contract
+
+The Farm Contract is a contract where a user can block his tokens in order to receive rewards. It is similar with the staking mechanism, where you lock your EGLD to receive more EGLD, but still, there are a lot of differences between the two and should not be confused which each other.
+
+The differences include:
+
+- The token that you use in order to be able to enter a Farm is not necesarry the same as the reward token. Hence, in the contract we named the first one `Farming token` and the second one `Reward token`.
+
+- The farm position is always tokenized. This allows the farm contract to be stateless in the sense that no user information will be held in the contract. When entering a farm, a `Farm Token` will be granted to the user, and it will represent his position in the Farm. This farm token can be used to claim rewards and to get back the Farming Tokens. The amount of farming tokens that he will get back are the same as the amount that he entered.
+
+- There are two possible sources of rewards. First is from the swap fees. The pair will automatically send the fees in the requested token type (MEX tokens) to the farm and Farm's reposnsability is to distribute them fairly between the farmers. The other source of rewards is by minting. The contract can also mint per block rewards, this value being configurable.
+
+- The Farm position, represented by the Farm Token, will be a Semi-Fungible Token. The reasoning behind this is that in order to correctly calculate the reward each farmer should get, some metadata needs to stored in the SFT's attributes.
+
+- The Farm position, similar with the liquidity pool position, can be sold by just transferring the SFTs to another account without any need to intrract with any contract.
+
+#### Entering Farm
+
+Entering a Farm is done by a user transferring his Farming tokens to the farm. By doing this, the user will receive Farm Tokens, which he can use to both claim rewards and to get back his tokens, by exiting farm.
+
+One thing to mention here is that a user can opt for receiving his MEX Reward as Locked MEX instead of regular MEX. By doing so, a user will benefit from `Double APR` when it comes to rewards.
+
+#### Exiting Farm
+
+Existing a Farm is done by a user transferring his Farm Tokens to the farm. By doing this, a user will automatically get his reward and his farming tokens back.
+
+On constraint here is that:
+
+- A user cannot exit farm earlier than `3 epochs` after he entered if the user went for the Double APR option. This is because these rewards are designed to be long term rewards hence entering and exiting with this option too frequently should be discouraged.
+
+- A user that did not went for the long term reward can exit farm at any time, but exiting before 3 epochs were reached after entering will be penalised with 10% of both rewards and farming tokens.
+
+Entering a farm should be a proof that a user wants to get more tokens by locking his own for at least a minimum amount of epochs.
+
+#### Claiming rewards
+
+Claiming rewards will be done by a user transferring his Farm Tokens to the farm. By doing this, a user will get his Reward Tokens for the period starting with either EnterFarm or last ClaimRewards operation, plus another Farm Token. The reason behind sending a Farm Token and receiving another one is in order to place a new reward counter in the newly created SFT and burn the old SFT, for which the rewards have been claimed.
+
+## MEX Distribution Contracts
+
+### Distribution Contract
+
+The Distribution Contract will be used in order to distribute the first `MEX tokens` to the community. The particular thing about this is that the first tokens will be in the form of `LOCKED MEX`.
+
+This contract can receive information from the snapshots of eGLD holder and will keep track of how many Locked MEX should each user get. The only functionality of this contract is allowing the user to come and claim his distribution share of Locked Mex through the Locked MEX Factory Contract.
+
+### DEX Proxy Contract
+
+The DEX Proxy Contract can be used by the user to interract with the DEX contracts with Locked MEX. The principal idea is that a user can use his Locked MEX as if it was MEX for adding liquidity.
+
+There are two major components in this contract and we'll explain them separately.
+
+#### Proxy Pair Module
+
+Proxy Pair Module allows a user to add and remove liqudity using Locked MEX in the pair contracts that have MEX as one of the pair tokens.
+
+This contract is also stateless, will not keep track of any -per-user-data- and the position in the pools will be also tokenized. By entering a liquidty pool with a regular token and a Locked MEX, a user will receive `Wrapped LP Tokens`. The Wrapped LP Token, as the name suggest, is just a Wrapper over the regular LP Token, and it exists because a user cannot receive the LP Tokens directly, otherwise he could remove liquidity and get back MEX tokens, instead of his Locked MEX provided.
+
+Trading Wrapped LP Tokens can be done by transferring directly. The Wrapped LP Token can be used for either removing liquidity or for entering a Farm.
+
+#### Proxy Farm Module
+
+Proxy Farm Module allows a user to enter a Farm with Wrapped LP Tokens. A user can also enter a Farm that accepts MEX as Farming token using Locked MEX. By entering a Farm with either Wrapped LP Token or Locked Mex, a user will receive `Wrapped Farm Tokens`. The user can use those tokens to claim rewards or to exit the Farm, which will result in him getting back the tokens used to enter farm via the proxy (so either Wrapped LP Token or Locked MEX) and his rewards (either MEX or Locked MEX).
+
+## Locked MEX Factory Contract
+
+This contract is the only contract that has the ability to create `LOCKED MEX` tokens. Other contract (that are whitelisted) can request creating and forwarding of these tokens.
+
+Locked MEX is an SFT Token. The reasoning behind this is because each Locked Mex, depending on the creating parameters, can have different `Unlock Schedule`.
