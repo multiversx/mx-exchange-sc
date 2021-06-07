@@ -7,9 +7,6 @@ mod proxy_common;
 mod proxy_farm;
 mod proxy_pair;
 
-use crate::proxy_farm::*;
-use crate::proxy_pair::*;
-
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub enum IssueRequestType {
     ProxyFarm,
@@ -21,15 +18,9 @@ pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule + proxy_farm::ProxyFarmModule
 {
     #[init]
-    fn init(
-        &self,
-        asset_token_id: TokenIdentifier,
-        proxy_pair_params: ProxyPairParams,
-        proxy_farm_params: ProxyFarmParams,
-    ) {
+    fn init(&self, asset_token_id: TokenIdentifier, locked_asset_token_id: TokenIdentifier) {
         self.asset_token_id().set(&asset_token_id);
-        self.init_proxy_pair(proxy_pair_params);
-        self.init_proxy_farm(proxy_farm_params);
+        self.locked_asset_token_id().set(&locked_asset_token_id);
     }
 
     #[payable("EGLD")]
@@ -38,7 +29,7 @@ pub trait ProxyDexImpl:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        #[payment] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
         require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
@@ -56,7 +47,7 @@ pub trait ProxyDexImpl:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        #[payment] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
         require!(
@@ -134,7 +125,7 @@ pub trait ProxyDexImpl:
         only_owner!(self, "Permission denied");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call())
     }
 }

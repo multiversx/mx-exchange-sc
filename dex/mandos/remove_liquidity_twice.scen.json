@@ -27,7 +27,7 @@
 			"expect": {
 				"out": [],
 				"status": "4",
-				"message": "str:Not enough reserve",
+				"message": "str:Not enough LP token supply",
 				"gas": "*",
 				"refund": "*"
 			}

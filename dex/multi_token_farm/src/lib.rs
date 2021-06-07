@@ -8,7 +8,6 @@ elrond_wasm::derive_imports!();
 type Epoch = u64;
 type Nonce = u64;
 const PENALTY_PERCENT: u64 = 10;
-const EXTERN_QUERY_MAX_GAS: u64 = 20000000;
 const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
 
 mod liquidity_pool;
@@ -294,8 +293,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
-    ) -> SCResult<MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>>
-    {
+    ) -> SCResult<
+        MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
+    > {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();
@@ -384,18 +384,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn burn_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
         if amount > &0 {
             if nonce > 0 {
-                self.send().esdt_nft_burn(
-                    self.blockchain().get_gas_left(),
-                    token.as_esdt_identifier(),
-                    nonce,
-                    amount,
-                );
+                self.send().esdt_nft_burn(token, nonce, amount);
             } else {
-                self.send().esdt_local_burn(
-                    self.blockchain().get_gas_left(),
-                    token.as_esdt_identifier(),
-                    &amount,
-                );
+                self.send().esdt_local_burn(token, amount);
             }
         }
     }
@@ -410,20 +401,11 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     ) {
         if amount > &0 {
             if nonce > 0 {
-                let _ = self.send().direct_esdt_nft_via_transfer_exec(
-                    &destination,
-                    token.as_esdt_identifier(),
-                    nonce,
-                    &amount,
-                    &[],
-                );
+                let _ = self
+                    .send()
+                    .direct_nft(destination, token, nonce, amount, &[]);
             } else {
-                let _ = self.send().direct_esdt_via_transf_exec(
-                    destination,
-                    token.as_esdt_identifier(),
-                    amount,
-                    &[],
-                );
+                let _ = self.send().direct(destination, token, amount, &[]);
             }
         }
     }
@@ -537,7 +519,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(
                 &self.blockchain().get_sc_address(),
-                token.as_esdt_identifier(),
+                &token,
                 &[
                     EsdtLocalRole::NftCreate,
                     EsdtLocalRole::NftAddQuantity,
@@ -567,7 +549,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
+            &token_id,
             token_nonce,
         );
 
@@ -588,8 +570,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     ) {
         self.send()
             .esdt_nft_create::<FarmTokenAttributes<Self::BigUint>>(
-                self.blockchain().get_gas_left(),
-                token_id.as_esdt_identifier(),
+                token_id,
                 amount,
                 &BoxedBytes::empty(),
                 &Self::BigUint::zero(),
@@ -636,7 +617,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         require!(amount_in > &0, "Zero amount in");
         let farming_pool_token_id = self.farming_pool_token_id().get();
         require!(
-            self.is_accepted_token(&farming_pool_token_id, &token_in),
+            self.is_accepted_token(&farming_pool_token_id, token_in),
             "Token is not accepted for farming"
         );
         if &farming_pool_token_id == token_in {
@@ -645,13 +626,12 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
 
         let pair = self
             .pair_address_for_accepted_lp_token()
-            .get(&token_in)
+            .get(token_in)
             .unwrap();
-        let gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
         let equivalent = self
             .pair_contract_proxy(pair)
             .getTokensForGivenPosition(amount_in.clone())
-            .execute_on_dest_context(gas_limit);
+            .execute_on_dest_context();
 
         let token_amount_pair_tuple = equivalent.0;
         let first_token_amount_pair = token_amount_pair_tuple.0;
@@ -702,10 +682,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         farming_pool_token_id: &TokenIdentifier,
     ) -> Self::BigUint {
         let oracle_pair_to_ask = self.oracle_pair(token_to_ask, farming_pool_token_id).get();
-        let gas_limit = core::cmp::min(self.blockchain().get_gas_left(), EXTERN_QUERY_MAX_GAS);
         self.pair_contract_proxy(oracle_pair_to_ask)
             .getEquivalent(token_to_ask.clone(), token_to_ask_amount.clone())
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context()
     }
 
     #[inline]
@@ -731,11 +710,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         require!(!self.farming_pool_token_id().is_empty(), "Not issued");
         let token = self.farming_pool_token_id().get();
         let vamount = self.virtual_reserves().get();
-        let amount = self.blockchain().get_esdt_balance(
-            &self.blockchain().get_sc_address(),
-            token.as_esdt_identifier(),
-            0,
-        );
+        let amount =
+            self.blockchain()
+                .get_esdt_balance(&self.blockchain().get_sc_address(), &token, 0);
         Ok((token, (vamount, amount)))
     }
 

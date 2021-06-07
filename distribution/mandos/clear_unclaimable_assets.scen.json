@@ -55,7 +55,7 @@
                 "from": "address:owner",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "setPerUserDistributedAssets",
+                "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "50",
                     "address:user1",

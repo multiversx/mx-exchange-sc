@@ -11,7 +11,8 @@ const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 100;
+const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
+const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
 #[elrond_wasm_derive::contract]
 pub trait Router: factory::FactoryModule {
@@ -36,7 +37,7 @@ pub trait Router: factory::FactoryModule {
             self.check_is_pair_sc(&address)?;
             self.pair_contract_proxy(address)
                 .pause()
-                .execute_on_dest_context(self.blockchain().get_gas_left());
+                .execute_on_dest_context();
         }
         Ok(())
     }
@@ -51,7 +52,7 @@ pub trait Router: factory::FactoryModule {
             self.check_is_pair_sc(&address)?;
             self.pair_contract_proxy(address)
                 .resume()
-                .execute_on_dest_context(self.blockchain().get_gas_left());
+                .execute_on_dest_context();
         }
         Ok(())
     }
@@ -86,7 +87,8 @@ pub trait Router: factory::FactoryModule {
             total_fee_percent_requested = fee_percents_vec[0];
             special_fee_percent_requested = fee_percents_vec[1];
             require!(
-                total_fee_percent_requested >= special_fee_percent_requested,
+                total_fee_percent_requested >= special_fee_percent_requested
+                    && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
                 "Bad percents"
             );
         }
@@ -106,11 +108,17 @@ pub trait Router: factory::FactoryModule {
         pair_address: Address,
         tp_token_display_name: BoxedBytes,
         tp_token_ticker: BoxedBytes,
-        #[payment] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address)?;
         let caller = self.blockchain().get_caller();
+        if caller != self.owner().get() {
+            require!(
+                self.pair_creation_enabled().get(),
+                "Pair creation is disabled"
+            );
+        }
+        self.check_is_pair_sc(&pair_address)?;
         let result = self.get_pair_temporary_owner(&pair_address);
 
         match result {
@@ -120,12 +128,10 @@ pub trait Router: factory::FactoryModule {
             }
         };
 
-        let half_gas = self.blockchain().get_gas_left() / 2;
         let result = self
             .pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(half_gas);
-
+            .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
@@ -158,17 +164,16 @@ pub trait Router: factory::FactoryModule {
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
-        let half_gas = self.blockchain().get_gas_left() / 2;
         let pair_token = self
             .pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(half_gas);
+            .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(
                 &pair_address,
-                pair_token.as_esdt_identifier(),
+                &pair_token,
                 &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
             )
             .async_call()
@@ -186,7 +191,7 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "No permissions");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, token.as_esdt_identifier(), &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
     }
@@ -212,10 +217,9 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "Permission denied");
         self.check_is_pair_sc(&pair_address)?;
 
-        let per_execute_gas = self.blockchain().get_gas_left() / 3;
         self.pair_contract_proxy(pair_address)
             .setFeeOn(true, fee_to_address, fee_token)
-            .execute_on_dest_context(per_execute_gas);
+            .execute_on_dest_context();
 
         Ok(())
     }
@@ -231,10 +235,9 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "Permission denied");
         self.check_is_pair_sc(&pair_address)?;
 
-        let per_execute_gas = self.blockchain().get_gas_left() / 3;
         self.pair_contract_proxy(pair_address)
             .setFeeOn(false, fee_to_address, fee_token)
-            .execute_on_dest_context(per_execute_gas);
+            .execute_on_dest_context();
 
         Ok(())
     }
@@ -296,16 +299,15 @@ pub trait Router: factory::FactoryModule {
         caller: &Address,
         address: &Address,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment] returned_tokens: Self::BigUint,
+        #[payment_amount] returned_tokens: Self::BigUint,
         #[call_result] result: AsyncCallResult<()>,
     ) {
-        // let (returned_tokens, token_id) = self.call_value().payment_token_pair();
         match result {
             AsyncCallResult::Ok(()) => {
-                self.pair_temporary_owner().remove(&address);
+                self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .setLpTokenIdentifier(token_id)
-                    .execute_on_dest_context(self.blockchain().get_gas_left());
+                    .execute_on_dest_context();
             }
             AsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0 {
@@ -339,6 +341,7 @@ pub trait Router: factory::FactoryModule {
         Ok(())
     }
 
+    #[view(getPairCreationEnabled)]
     #[storage_mapper("pair_creation_enabled")]
     fn pair_creation_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
 

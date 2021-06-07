@@ -2,17 +2,17 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::amm;
+use super::config;
 use dex_common::*;
 
-const MINIMUM_LIQUIDITY: u64 = 1000;
+const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm_derive::module]
-pub trait LiquidityPoolModule: amm::AmmModule {
-    fn mint(
+pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
+    fn add_liquidity(
         &self,
         first_token_amount: Self::BigUint,
         second_token_amount: Self::BigUint,
-        lp_token_identifier: TokenIdentifier,
     ) -> SCResult<Self::BigUint> {
         let first_token = self.first_token_id().get();
         let second_token = self.second_token_id().get();
@@ -29,24 +29,15 @@ pub trait LiquidityPoolModule: amm::AmmModule {
                 "Pair: first tokens needs to be greater than minimum liquidity"
             );
             liquidity -= &minimum_liquidity;
-            total_supply += minimum_liquidity;
-            self.total_supply().set(&total_supply);
+            total_supply = minimum_liquidity;
         } else {
             liquidity = core::cmp::min(
                 (&first_token_amount * &total_supply) / first_token_reserve.clone(),
                 (&second_token_amount * &total_supply) / second_token_reserve.clone(),
             );
         }
-
         require!(liquidity > 0, "Pair: insufficient_liquidity_minted");
 
-        self.send().esdt_local_mint(
-            self.blockchain().get_gas_left(),
-            lp_token_identifier.as_esdt_identifier(),
-            &liquidity,
-        );
-
-        let mut total_supply = self.total_supply().get();
         total_supply += liquidity.clone();
         self.total_supply().set(&total_supply);
 
@@ -62,55 +53,50 @@ pub trait LiquidityPoolModule: amm::AmmModule {
         Ok(liquidity)
     }
 
-    fn burn_token(
+    fn remove_token(
         &self,
-        token: TokenIdentifier,
-        liquidity: Self::BigUint,
-        total_supply: Self::BigUint,
-        amount_min: Self::BigUint,
+        token: &TokenIdentifier,
+        liquidity: &Self::BigUint,
+        total_supply: &Self::BigUint,
+        amount_min: &Self::BigUint,
     ) -> SCResult<Self::BigUint> {
-        let mut reserve = self.pair_reserve(&token).get();
-        let amount = (&liquidity * &reserve) / total_supply;
+        let mut reserve = self.pair_reserve(token).get();
+        let amount = (liquidity * &reserve) / total_supply.clone();
         require!(amount > 0, "Pair: insufficient_liquidity_burned");
-        require!(amount >= amount_min, "Pair: insufficient_liquidity_burned");
+        require!(&amount >= amount_min, "Pair: insufficient_liquidity_burned");
         require!(reserve > amount, "Not enough reserve");
 
         reserve -= &amount;
-        self.pair_reserve(&token).set(&reserve);
+        self.pair_reserve(token).set(&reserve);
 
         Ok(amount)
     }
 
-    fn burn(
+    fn remove_liquidity(
         &self,
         liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
-        lp_token_identifier: TokenIdentifier,
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
-        let total_supply = self.total_supply().get();
-        require!(total_supply > 0, "No LP tokens supply");
-        let first_token_amount = self.burn_token(
-            self.first_token_id().get(),
-            liquidity.clone(),
-            total_supply.clone(),
-            first_token_amount_min,
-        )?;
-        let second_token_amount = self.burn_token(
-            self.second_token_id().get(),
-            liquidity.clone(),
-            total_supply,
-            second_token_amount_min,
-        )?;
-
-        self.send().esdt_local_burn(
-            self.blockchain().get_gas_left(),
-            lp_token_identifier.as_esdt_identifier(),
-            &liquidity,
+        let mut total_supply = self.total_supply().get();
+        require!(
+            total_supply >= &liquidity + &Self::BigUint::from(MINIMUM_LIQUIDITY),
+            "Not enough LP token supply"
         );
 
-        let mut total_supply = self.total_supply().get();
-        require!(total_supply > liquidity, "Not enough supply");
+        let first_token_amount = self.remove_token(
+            &self.first_token_id().get(),
+            &liquidity,
+            &total_supply,
+            &first_token_amount_min,
+        )?;
+        let second_token_amount = self.remove_token(
+            &self.second_token_id().get(),
+            &liquidity,
+            &total_supply,
+            &second_token_amount_min,
+        )?;
+
         total_supply -= liquidity;
         self.total_supply().set(&total_supply);
 
@@ -241,14 +227,14 @@ pub trait LiquidityPoolModule: amm::AmmModule {
             return big_zero;
         }
 
-        let amount_out = self.get_amount_out_no_fee(&amount_in, &reserve_in, &reserve_out);
+        let amount_out = self.get_amount_out_no_fee(amount_in, &reserve_in, &reserve_out);
         if reserve_out <= amount_out || amount_out == 0 {
             return big_zero;
         }
 
         reserve_in += amount_in;
         reserve_out -= &amount_out;
-        self.update_reserves(&reserve_in, &reserve_out, &token_in, &token_out);
+        self.update_reserves(&reserve_in, &reserve_out, token_in, token_out);
 
         amount_out
     }

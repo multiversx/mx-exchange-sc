@@ -8,22 +8,30 @@ use distrib_common::*;
 use modules::*;
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
-const BURN_TOKENS_GAS_LIMIT: u64 = 5000000;
-const ADD_QUANTITY_GAS_LIMIT: u64 = 5000000;
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+pub struct UnlockSchedule {
+    pub unlock_milestones: Vec<UnlockMilestone>,
+}
 
 #[elrond_wasm_derive::module]
 pub trait LockedAssetModule: asset::AssetModule {
     fn create_and_send_locked_assets(
         &self,
         amount: &Self::BigUint,
-        attributes: &LockedTokenAttributes,
         address: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
-        self.create_tokens(&token_id, amount, attributes);
+        self.create_tokens(&token_id, amount);
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.send()
-            .transfer_tokens(&token_id, last_created_nonce, amount, address);
+        self.send_tokens(
+            &token_id,
+            last_created_nonce,
+            amount,
+            address,
+            opt_accept_funds_func,
+        );
         last_created_nonce
     }
 
@@ -32,65 +40,56 @@ pub trait LockedAssetModule: asset::AssetModule {
         amount: &Self::BigUint,
         sft_nonce: Nonce,
         address: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) {
         let token_id = self.locked_asset_token_id().get();
-        self.add_quantity(&token_id, sft_nonce, amount);
         self.send()
-            .transfer_tokens(&token_id, sft_nonce, amount, address);
+            .esdt_nft_add_quantity(&token_id, sft_nonce, amount);
+        self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
     }
 
-    fn add_quantity(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
-        self.send().esdt_nft_add_quantity(
-            ADD_QUANTITY_GAS_LIMIT,
-            token.as_esdt_identifier(),
+    fn send_tokens(
+        &self,
+        token: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+        destination: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) {
+        let (function, gas_limit) = match opt_accept_funds_func {
+            OptionalArg::Some(accept_funds_func) => (
+                accept_funds_func.as_slice(),
+                self.transfer_exec_gas_limit().get(),
+            ),
+            OptionalArg::None => {
+                let no_func: &[u8] = &[];
+                (no_func, 0u64)
+            }
+        };
+
+        let _ = self.send().direct_esdt_nft_execute(
+            destination,
+            token,
             nonce,
             amount,
+            gas_limit,
+            function,
+            &ArgBuffer::new(),
         );
     }
 
-    fn create_tokens(
-        &self,
-        token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        attributes: &LockedTokenAttributes,
-    ) {
+    fn create_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
         let amount_to_create = amount + &Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE);
-        self.send().esdt_nft_create::<LockedTokenAttributes>(
-            self.blockchain().get_gas_left(),
-            token.as_esdt_identifier(),
+        self.send().esdt_nft_create(
+            token,
             &amount_to_create,
             &BoxedBytes::empty(),
             &Self::BigUint::zero(),
             &BoxedBytes::empty(),
-            attributes,
+            &BoxedBytes::empty(),
             &[BoxedBytes::empty()],
         );
         self.increase_nonce();
-    }
-
-    fn burn_locked_assets(&self, token_id: &TokenIdentifier, amount: &Self::BigUint, nonce: Nonce) {
-        self.send()
-            .burn_tokens(token_id, nonce, amount, BURN_TOKENS_GAS_LIMIT);
-    }
-
-    fn get_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SCResult<LockedTokenAttributes> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
-            token_nonce,
-        );
-
-        let attributes = token_info.decode_attributes::<LockedTokenAttributes>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
     }
 
     fn get_unlock_amount(
@@ -112,7 +111,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         let mut unlock_percent = 0u8;
 
         for milestone in unlock_milestones {
-            if milestone.unlock_epoch < current_epoch {
+            if milestone.unlock_epoch <= current_epoch {
                 unlock_percent += milestone.unlock_percent;
             }
         }
@@ -133,7 +132,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         }
 
         for old_milestone in old_unlock_milestones.iter() {
-            if old_milestone.unlock_epoch >= current_epoch {
+            if old_milestone.unlock_epoch > current_epoch {
                 let new_unlock_percent: u64 =
                     (old_milestone.unlock_percent as u64) * 100u64 / unlock_percent_remaining;
                 new_unlock_milestones.push(UnlockMilestone {
@@ -183,7 +182,18 @@ pub trait LockedAssetModule: asset::AssetModule {
         Ok(())
     }
 
-    #[storage_mapper("locked_token_id")]
+    #[endpoint]
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.transfer_exec_gas_limit().set(&gas_limit);
+        Ok(())
+    }
+
+    #[storage_mapper("transfer_exec_gas_limit")]
+    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[view(getLockedAssetTokenId)]
+    #[storage_mapper("locked_asset_token_id")]
     fn locked_asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
     #[storage_mapper("locked_token_nonce")]

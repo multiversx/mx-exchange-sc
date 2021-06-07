@@ -8,10 +8,10 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.16"
+version = "0.17"
 
 [dependencies.elrond-wasm-derive]
-version = "0.16"
+version = "0.17"
 
 [dependencies.distrib-common]
 path = "../distrib-common"

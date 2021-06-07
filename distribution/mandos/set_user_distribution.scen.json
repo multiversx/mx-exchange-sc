@@ -55,7 +55,7 @@
                 "from": "address:owner",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "setPerUserDistributedAssets",
+                "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "10",
                     "address:user1",
@@ -148,7 +148,7 @@
                 "from": "address:owner",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "setPerUserDistributedAssets",
+                "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "20",
                     "address:user1",
@@ -241,7 +241,7 @@
                 "from": "address:owner",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "setPerUserDistributedAssets",
+                "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "30",
                     "address:user1",
@@ -334,7 +334,7 @@
                 "from": "address:owner",
                 "to": "sc:dist_contract",
                 "value": "0",
-                "function": "setPerUserDistributedAssets",
+                "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "40",
                     "address:user1",

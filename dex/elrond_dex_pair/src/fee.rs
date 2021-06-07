@@ -4,12 +4,10 @@ elrond_wasm::derive_imports!();
 use super::amm;
 use super::config;
 use super::liquidity_pool;
-use core::cmp::min;
+use core::iter::FromIterator;
 use dex_common::*;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
-const EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
-const SEND_FEE_GAS_COST: u64 = 25000000;
 
 mod farm_proxy {
     elrond_wasm::imports!();
@@ -21,7 +19,7 @@ mod farm_proxy {
         fn acceptFee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
-            #[payment] amount: Self::BigUint,
+            #[payment_amount] amount: Self::BigUint,
         );
     }
 }
@@ -93,36 +91,39 @@ pub trait FeeModule:
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
+
         let mut is_removed = self.trusted_swap_pair().remove(&token_pair) != None;
-        let token_pair_reversed = TokenPair {
-            first_token: second_token,
-            second_token: first_token,
-        };
-        is_removed = is_removed || (self.trusted_swap_pair().remove(&token_pair_reversed) != None);
-        require!(is_removed, "Pair was not trusted");
+        if !is_removed {
+            let token_pair_reversed = TokenPair {
+                first_token: second_token,
+                second_token: first_token,
+            };
+            is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
+            require!(is_removed, "Pair does not exist in trusted pair map");
+        }
         Ok(())
     }
 
     fn reinject(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
         let mut reserve = self.pair_reserve(token).get();
         reserve += amount;
-        self.pair_reserve(&token).set(&reserve);
+        self.pair_reserve(token).set(&reserve);
     }
 
-    fn send_fee(&self, fee_token: TokenIdentifier, fee_amount: Self::BigUint) {
+    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: Self::BigUint) {
         if fee_amount == 0 {
             return;
         }
 
         let slices = self.destination_map().len() as u64;
         if slices == 0 {
-            self.reinject(&fee_token, &fee_amount);
+            self.reinject(fee_token, &fee_amount);
             return;
         }
 
         let fee_slice = &fee_amount / &Self::BigUint::from(slices);
         if fee_slice == 0 {
-            self.reinject(&fee_token, &fee_amount);
+            self.reinject(fee_token, &fee_amount);
             return;
         }
 
@@ -131,13 +132,18 @@ pub trait FeeModule:
 
         for (fee_address, fee_token_requested) in self.destination_map().iter() {
             self.send_fee_slice(
-                &fee_token,
+                fee_token,
                 &fee_slice,
                 &fee_address,
                 &fee_token_requested,
                 &first_token_id,
                 &second_token_id,
             );
+        }
+
+        let rounding_error = fee_amount - fee_slice * Self::BigUint::from(slices);
+        if rounding_error > 0 {
+            self.reinject(fee_token, &rounding_error);
         }
     }
 
@@ -192,7 +198,7 @@ pub trait FeeModule:
                     first_token_id
                 };
                 let resolved_externally = self.extern_swap_and_forward(
-                    &to_send_token,
+                    to_send_token,
                     &to_send,
                     requested_fee_token,
                     fee_address,
@@ -239,7 +245,7 @@ pub trait FeeModule:
         fee_token: &TokenIdentifier,
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
-        let pair_address = self.get_extern_swap_pair_address(&fee_token, &requested_fee_token);
+        let pair_address = self.get_extern_swap_pair_address(fee_token, requested_fee_token);
         pair_address != Address::zero()
     }
 
@@ -251,12 +257,10 @@ pub trait FeeModule:
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
         if fee_token == first_token {
-            let pair_address =
-                self.get_extern_swap_pair_address(&second_token, &requested_fee_token);
+            let pair_address = self.get_extern_swap_pair_address(second_token, requested_fee_token);
             pair_address != Address::zero()
         } else if fee_token == second_token {
-            let pair_address =
-                self.get_extern_swap_pair_address(&first_token, &requested_fee_token);
+            let pair_address = self.get_extern_swap_pair_address(first_token, requested_fee_token);
             pair_address != Address::zero()
         } else {
             false
@@ -270,15 +274,15 @@ pub trait FeeModule:
         requested_token: &TokenIdentifier,
         destination_address: &Address,
     ) -> bool {
-        let pair_address = self.get_extern_swap_pair_address(&available_token, &requested_token);
+        let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
         let mut arg_buffer = ArgBuffer::new();
         arg_buffer.push_argument_bytes(requested_token.as_esdt_identifier());
         arg_buffer.push_argument_bytes(destination_address.as_bytes());
         let result = self.send().direct_esdt_execute(
             &pair_address,
-            &available_token.as_esdt_identifier(),
-            &available_amount,
-            min(self.blockchain().get_gas_left(), EXTERN_SWAP_GAS_LIMIT),
+            available_token,
+            available_amount,
+            self.extern_swap_gas_limit().get(),
             SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
             &arg_buffer,
         );
@@ -298,15 +302,11 @@ pub trait FeeModule:
     ) {
         if amount > &0 {
             if destination == &Address::zero() {
-                self.send().esdt_local_burn(
-                    self.blockchain().get_gas_left(),
-                    token.as_esdt_identifier(),
-                    &amount,
-                );
+                self.send().esdt_local_burn(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
                     .acceptFee(token.clone(), amount.clone())
-                    .execute_on_dest_context(SEND_FEE_GAS_COST);
+                    .execute_on_dest_context();
             }
         }
     }
@@ -366,5 +366,25 @@ pub trait FeeModule:
             self.destination_map().remove(&fee_to_address);
         }
         Ok(())
+    }
+
+    #[view(getFeeDestinations)]
+    fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier)> {
+        MultiResultVec::from_iter(
+            self.destination_map()
+                .iter()
+                .map(|x| (x.0, x.1))
+                .collect::<Vec<(Address, TokenIdentifier)>>(),
+        )
+    }
+
+    #[view(getTrustedSwapPairs)]
+    fn get_trusted_swap_pairs(&self) -> MultiResultVec<(TokenPair, Address)> {
+        MultiResultVec::from_iter(
+            self.trusted_swap_pair()
+                .iter()
+                .map(|x| (x.0, x.1))
+                .collect::<Vec<(TokenPair, Address)>>(),
+        )
     }
 }

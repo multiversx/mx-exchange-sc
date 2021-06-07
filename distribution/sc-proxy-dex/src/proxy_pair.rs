@@ -5,8 +5,11 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 type Nonce = u64;
+use core::iter::FromIterator;
 
-use core::cmp::min;
+const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
+const MAX_USER_TEMPORARY_SIZE: usize = 10;
+
 use dex_common::*;
 use distrib_common::*;
 
@@ -21,31 +24,10 @@ type AddLiquidityResultType<BigUint> = MultiResult3<
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
-#[derive(TopEncode, TopDecode, PartialEq, Clone, Copy, TypeAbi)]
-pub struct ProxyPairParams {
-    pub add_liquidity_gas_limit: u64,
-    pub accept_esdt_payment_gas_limit: u64,
-    pub ask_for_lp_token_gas_limit: u64,
-    pub remove_liquidity_gas_limit: u64,
-    pub burn_tokens_gas_limit: u64,
-    pub mint_tokens_gas_limit: u64,
-}
-
 #[elrond_wasm_derive::module]
 pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
-
-    fn init_proxy_pair(&self, proxy_params: ProxyPairParams) {
-        self.proxy_pair_params().set(&proxy_params);
-    }
-
-    #[endpoint(setProxyPairParams)]
-    fn set_proxy_pair_params(&self, proxy_params: ProxyPairParams) -> SCResult<()> {
-        self.require_permissions()?;
-        self.proxy_pair_params().set(&proxy_params);
-        Ok(())
-    }
 
     #[endpoint(addPairToIntermediate)]
     fn add_pair_to_intermediate(&self, pair_address: Address) -> SCResult<()> {
@@ -64,14 +46,26 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
     #[payable("*")]
     #[endpoint(acceptEsdtPaymentProxy)]
-    fn accept_esdt_payment_proxy(&self, pair_address: Address) -> SCResult<()> {
+    fn accept_esdt_payment_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_amount] amount: Self::BigUint,
+        #[payment_nonce] token_nonce: Nonce,
+        pair_address: Address,
+    ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
-
-        let token_nonce = self.call_value().esdt_token_nonce();
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
+        require!(
+            token_id == self.locked_asset_token_id().get() || token_nonce == 0,
+            "Bad input token"
+        );
 
         let caller = self.blockchain().get_caller();
+        require!(
+            self.temporary_funds(&caller).len() <= MAX_USER_TEMPORARY_SIZE,
+            "Temporary funds storage for this address exceeded maximum"
+        );
+
         self.increase_temporary_funds_amount(&caller, &token_id, token_nonce, &amount);
         Ok(())
     }
@@ -84,9 +78,35 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         second_token_id: TokenIdentifier,
         second_token_nonce: Nonce,
     ) -> SCResult<()> {
+        require!(
+            first_token_id != second_token_id || first_token_nonce != second_token_nonce,
+            "Identical tokens"
+        );
         let caller = self.blockchain().get_caller();
-        self.send_temporary_funds_back(&caller, &first_token_id, first_token_nonce);
-        self.send_temporary_funds_back(&caller, &second_token_id, second_token_nonce);
+        let first_token_amount = self
+            .temporary_funds(&caller)
+            .get(&(first_token_id.clone(), first_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
+        let second_token_amount = self
+            .temporary_funds(&caller)
+            .get(&(second_token_id.clone(), second_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
+        self.temporary_funds(&caller)
+            .remove(&(first_token_id.clone(), first_token_nonce));
+        self.temporary_funds(&caller)
+            .remove(&(second_token_id.clone(), second_token_nonce));
+        self.direct_generic_safe(
+            &caller,
+            &first_token_id,
+            first_token_nonce,
+            &first_token_amount,
+        );
+        self.direct_generic_safe(
+            &caller,
+            &second_token_id,
+            second_token_nonce,
+            &second_token_amount,
+        );
         Ok(())
     }
 
@@ -104,9 +124,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         second_token_amount_min: Self::BigUint,
     ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
-        self.require_proxy_pair_params_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
-        let proxy_params = self.proxy_pair_params().get();
 
         let caller = self.blockchain().get_caller();
         require!(first_token_id != second_token_id, "Identical tokens");
@@ -119,23 +137,23 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             first_token_amount_desired > 0 && second_token_amount_desired > 0,
             "Cannot add zero amount"
         );
-        let locked_asset_token_id = if self.accepted_locked_assets().contains(&first_token_id) {
-            first_token_id.clone()
-        } else if self.accepted_locked_assets().contains(&second_token_id) {
-            second_token_id.clone()
-        } else {
-            return sc_error!("One token should be an accepted locked asset token");
-        };
+        let locked_asset_token_id = self.locked_asset_token_id().get();
+        require!(
+            first_token_id == locked_asset_token_id || second_token_id == locked_asset_token_id,
+            "One token should be locked asset"
+        );
         let first_token_amount_temporary = self
-            .temporary_funds(&caller, &first_token_id, first_token_nonce)
-            .get();
+            .temporary_funds(&caller)
+            .get(&(first_token_id.clone(), first_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
         require!(
             first_token_amount_temporary >= first_token_amount_desired,
             "Not enough first temporary funds"
         );
         let second_token_amount_temporary = self
-            .temporary_funds(&caller, &second_token_id, second_token_nonce)
-            .get();
+            .temporary_funds(&caller)
+            .get(&(second_token_id.clone(), second_token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
         require!(
             second_token_amount_temporary >= second_token_amount_desired,
             "Not enough second temporary funds"
@@ -147,24 +165,22 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             &first_token_id,
             first_token_nonce,
             &first_token_amount_desired,
-            &proxy_params,
         );
         self.forward_to_pair(
             &pair_address,
             &second_token_id,
             second_token_nonce,
             &second_token_amount_desired,
-            &proxy_params,
         );
 
         // Actual adding of liquidity
+        self.reset_received_funds_on_current_tx();
         let result = self.actual_add_liquidity(
             &pair_address,
             &first_token_amount_desired,
             &first_token_amount_min,
             &second_token_amount_desired,
             &second_token_amount_min,
-            &proxy_params,
         );
 
         let result_tuple = result.0;
@@ -180,20 +196,36 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 || second_token_used.token_id == second_token_id,
             "Bad token order"
         );
+        require!(
+            first_token_used.amount <= first_token_amount_desired
+                && second_token_used.amount <= second_token_amount_desired,
+            "Used more tokens than provided"
+        );
+        self.validate_received_funds_chunk(
+            [
+                (&lp_received.token_id, 0, &lp_received.amount),
+                (
+                    &first_token_used.token_id,
+                    0,
+                    &(&first_token_amount_desired - &first_token_used.amount),
+                ),
+                (
+                    &second_token_used.token_id,
+                    0,
+                    &(&second_token_amount_desired - &second_token_used.amount),
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         //Recalculate temporary funds and burn unused
         let locked_asset_token_nonce: Nonce;
         let consumed_locked_tokens: Self::BigUint;
         let asset_token_id = self.asset_token_id().get();
+        let unused_minted_assets: Self::BigUint;
         if first_token_used.token_id == asset_token_id {
             consumed_locked_tokens = first_token_used.amount;
-            let unused_minted_assets = first_token_amount_desired - consumed_locked_tokens.clone();
-            self.send().burn_tokens(
-                &asset_token_id,
-                0,
-                &unused_minted_assets,
-                proxy_params.burn_tokens_gas_limit,
-            );
+            unused_minted_assets = first_token_amount_desired - consumed_locked_tokens.clone();
             locked_asset_token_nonce = first_token_nonce;
 
             self.decrease_temporary_funds_amount(
@@ -210,13 +242,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             );
         } else if second_token_used.token_id == asset_token_id {
             consumed_locked_tokens = second_token_used.amount;
-            let unused_minted_assets = second_token_amount_desired - consumed_locked_tokens.clone();
-            self.send().burn_tokens(
-                &asset_token_id,
-                0,
-                &unused_minted_assets,
-                proxy_params.burn_tokens_gas_limit,
-            );
+            unused_minted_assets = second_token_amount_desired - consumed_locked_tokens.clone();
             locked_asset_token_nonce = second_token_nonce;
 
             self.decrease_temporary_funds_amount(
@@ -235,17 +261,23 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             return sc_error!("Add liquidity did not return asset token id");
         }
 
-        self.send_temporary_funds_back(&caller, &first_token_id, first_token_nonce);
-        self.send_temporary_funds_back(&caller, &second_token_id, second_token_nonce);
+        self.reclaim_temporary_funds_proxy(
+            first_token_id,
+            first_token_nonce,
+            second_token_id,
+            second_token_nonce,
+        )?;
         self.create_and_send(
             &lp_received.token_id,
             &lp_received.amount,
-            &locked_asset_token_id,
             &consumed_locked_tokens,
             locked_asset_token_nonce,
             &caller,
-            &proxy_params,
         );
+        if unused_minted_assets > 0 {
+            self.send()
+                .esdt_local_burn(&asset_token_id, &unused_minted_assets);
+        }
 
         Ok(())
     }
@@ -254,30 +286,30 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     #[endpoint(removeLiquidityProxy)]
     fn remove_liquidity_proxy(
         &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_amount] amount: Self::BigUint,
+        #[payment_nonce] token_nonce: Nonce,
         pair_address: Address,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
     ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
-        self.require_proxy_pair_params_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
-        let proxy_params = self.proxy_pair_params().get();
-
-        let token_nonce = self.call_value().esdt_token_nonce();
         require!(token_nonce != 0, "Can only be called with an SFT");
-        let (amount, token_id) = self.call_value().payment_token_pair();
         require!(amount != 0, "Payment amount cannot be zero");
 
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
         require!(token_id == wrapped_lp_token_id, "Wrong input token");
 
         let caller = self.blockchain().get_caller();
-        let lp_token_id = self.ask_for_lp_token_id(&pair_address, &proxy_params);
+        let lp_token_id = self.ask_for_lp_token_id(&pair_address);
         let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
         require!(lp_token_id == attributes.lp_token_id, "Bad input address");
 
-        let locked_asset_token_id = attributes.locked_assets_token_id;
+        let locked_asset_token_id = self.locked_asset_token_id().get();
         let asset_token_id = self.asset_token_id().get();
+
+        self.reset_received_funds_on_current_tx();
         let tokens_for_position = self
             .actual_remove_liquidity(
                 &pair_address,
@@ -285,9 +317,23 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 &amount,
                 &first_token_amount_min,
                 &second_token_amount_min,
-                &proxy_params,
             )
             .into_tuple();
+        self.validate_received_funds_chunk(
+            [
+                (
+                    &tokens_for_position.0.token_id,
+                    0,
+                    &tokens_for_position.0.amount,
+                ),
+                (
+                    &tokens_for_position.1.token_id,
+                    0,
+                    &tokens_for_position.1.amount,
+                ),
+            ]
+            .to_vec(),
+        )?;
 
         let fungible_token_id: TokenIdentifier;
         let fungible_token_amount: Self::BigUint;
@@ -312,56 +358,36 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
         //Send back the tokens removed from pair sc.
         self.send()
-            .transfer_tokens(&fungible_token_id, 0, &fungible_token_amount, &caller);
+            .direct(&caller, &fungible_token_id, &fungible_token_amount, &[]);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.send().transfer_tokens(
+        self.send().direct_nft(
+            &caller,
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
-            &caller,
+            &[],
         );
 
         //Do cleanup
         if assets_received > locked_assets_invested {
-            let difference = assets_received - locked_assets_invested.clone();
+            let difference = assets_received - locked_assets_invested;
             self.send()
-                .transfer_tokens(&asset_token_id, 0, &difference, &caller);
-            self.send().burn_tokens(
-                &asset_token_id,
-                0,
-                &locked_assets_invested,
-                proxy_params.burn_tokens_gas_limit,
-            );
+                .direct(&caller, &asset_token_id, &difference, &[]);
         } else if assets_received < locked_assets_invested {
-            let difference = locked_assets_invested - assets_received.clone();
-            self.send().burn_tokens(
+            let difference = locked_assets_invested - assets_received;
+            self.send().esdt_nft_burn(
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
                 &difference,
-                proxy_params.burn_tokens_gas_limit,
-            );
-            self.send().burn_tokens(
-                &asset_token_id,
-                0,
-                &assets_received,
-                proxy_params.burn_tokens_gas_limit,
-            );
-        } else {
-            self.send().burn_tokens(
-                &asset_token_id,
-                0,
-                &assets_received,
-                proxy_params.burn_tokens_gas_limit,
             );
         }
 
-        self.send().burn_tokens(
-            &wrapped_lp_token_id,
-            token_nonce,
-            &amount,
-            proxy_params.burn_tokens_gas_limit,
-        );
+        self.send()
+            .esdt_local_burn(&asset_token_id, &locked_assets_to_send);
+
+        self.send()
+            .esdt_nft_burn(&wrapped_lp_token_id, token_nonce, &amount);
         Ok(())
     }
 
@@ -372,20 +398,16 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         first_token_amount_min: &Self::BigUint,
         second_token_amount_desired: &Self::BigUint,
         second_token_amount_min: &Self::BigUint,
-        proxy_params: &ProxyPairParams,
     ) -> AddLiquidityResultType<Self::BigUint> {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.add_liquidity_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .addLiquidity(
                 first_token_amount_desired.clone(),
                 second_token_amount_desired.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context()
     }
 
     fn actual_remove_liquidity(
@@ -395,34 +417,22 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         liquidity: &Self::BigUint,
         first_token_amount_min: &Self::BigUint,
         second_token_amount_min: &Self::BigUint,
-        proxy_params: &ProxyPairParams,
     ) -> RemoveLiquidityResultType<Self::BigUint> {
-        let gas_limit = min(
-            self.blockchain().get_gas_left(),
-            proxy_params.remove_liquidity_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .removeLiquidity(
                 lp_token_id.clone(),
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context()
     }
 
-    fn ask_for_lp_token_id(
-        &self,
-        pair_address: &Address,
-        proxy_params: &ProxyPairParams,
-    ) -> TokenIdentifier {
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.ask_for_lp_token_gas_limit,
-        );
+    fn ask_for_lp_token_id(&self, pair_address: &Address) -> TokenIdentifier {
         self.pair_contract_proxy(pair_address.clone())
             .getLpTokenIdentifier()
-            .execute_on_dest_context(gas_limit)
+            .execute_on_dest_context()
     }
 
     fn get_wrapped_lp_token_attributes(
@@ -432,7 +442,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     ) -> SCResult<WrappedLpTokenAttributes<Self::BigUint>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
-            token_id.as_esdt_identifier(),
+            token_id,
             token_nonce,
         );
 
@@ -449,24 +459,20 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         &self,
         lp_token_id: &TokenIdentifier,
         lp_token_amount: &Self::BigUint,
-        locked_token_id: &TokenIdentifier,
         locked_tokens_consumed: &Self::BigUint,
         locked_tokens_nonce: Nonce,
         caller: &Address,
-        proxy_params: &ProxyPairParams,
     ) {
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
         let nonce = self.create_tokens(
             &wrapped_lp_token_id,
             lp_token_id,
             lp_token_amount,
-            locked_token_id,
             locked_tokens_consumed,
             locked_tokens_nonce,
-            proxy_params,
         );
         self.send()
-            .transfer_tokens(&wrapped_lp_token_id, nonce, &lp_token_amount, caller);
+            .direct_nft(caller, &wrapped_lp_token_id, nonce, lp_token_amount, &[]);
     }
 
     fn create_tokens(
@@ -474,26 +480,18 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         wrapped_lp_token_id: &TokenIdentifier,
         lp_token_id: &TokenIdentifier,
         lp_token_amount: &Self::BigUint,
-        locked_token_id: &TokenIdentifier,
         locked_tokens_consumed: &Self::BigUint,
         locked_tokens_nonce: Nonce,
-        proxy_params: &ProxyPairParams,
     ) -> Nonce {
         let attributes = WrappedLpTokenAttributes::<Self::BigUint> {
             lp_token_id: lp_token_id.clone(),
             lp_token_total_amount: lp_token_amount.clone(),
-            locked_assets_token_id: locked_token_id.clone(),
             locked_assets_invested: locked_tokens_consumed.clone(),
             locked_assets_nonce: locked_tokens_nonce,
         };
-        let gas_limit = core::cmp::min(
-            self.blockchain().get_gas_left(),
-            proxy_params.mint_tokens_gas_limit,
-        );
         self.send()
             .esdt_nft_create::<WrappedLpTokenAttributes<Self::BigUint>>(
-                gas_limit,
-                wrapped_lp_token_id.as_esdt_identifier(),
+                wrapped_lp_token_id,
                 lp_token_amount,
                 &BoxedBytes::empty(),
                 &Self::BigUint::zero(),
@@ -504,48 +502,24 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         self.increase_wrapped_lp_token_nonce()
     }
 
-    fn send_temporary_funds_back(
-        &self,
-        caller: &Address,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) {
-        let amount = self.temporary_funds(caller, token_id, token_nonce).get();
-        self.send()
-            .transfer_tokens(token_id, token_nonce, &amount, caller);
-        self.temporary_funds(caller, token_id, token_nonce).clear();
-    }
-
     fn forward_to_pair(
         &self,
         pair_address: &Address,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
         amount: &Self::BigUint,
-        proxy_params: &ProxyPairParams,
     ) {
         let token_to_send: TokenIdentifier;
         if token_nonce == 0 {
             token_to_send = token_id.clone();
         } else {
             let asset_token_id = self.asset_token_id().get();
-            self.send().esdt_local_mint(
-                min(
-                    self.blockchain().get_gas_left(),
-                    proxy_params.mint_tokens_gas_limit,
-                ),
-                &asset_token_id.as_esdt_identifier(),
-                amount,
-            );
+            self.send().esdt_local_mint(&asset_token_id, amount);
             token_to_send = asset_token_id;
         };
-        let gas_limit = min(
-            self.blockchain().get_gas_left(),
-            proxy_params.accept_esdt_payment_gas_limit,
-        );
         self.pair_contract_proxy(pair_address.clone())
             .acceptEsdtPayment(token_to_send, amount.clone())
-            .execute_on_dest_context(gas_limit);
+            .execute_on_dest_context();
     }
 
     fn increase_temporary_funds_amount(
@@ -555,10 +529,14 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         token_nonce: Nonce,
         increase_amount: &Self::BigUint,
     ) {
-        let old_amount = self.temporary_funds(caller, token_id, token_nonce).get();
-        let new_amount = old_amount + increase_amount.clone();
-        self.temporary_funds(caller, token_id, token_nonce)
-            .set(&new_amount);
+        let old_value = self
+            .temporary_funds(caller)
+            .get(&(token_id.clone(), token_nonce))
+            .unwrap_or_else(Self::BigUint::zero);
+        self.temporary_funds(caller).insert(
+            (token_id.clone(), token_nonce),
+            &old_value + increase_amount,
+        );
     }
 
     fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
@@ -574,13 +552,19 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         token_nonce: Nonce,
         decrease_amount: &Self::BigUint,
     ) {
-        let old_amount = self.temporary_funds(caller, token_id, token_nonce).get();
-        let new_amount = old_amount - decrease_amount.clone();
-        if new_amount > 0 {
-            self.temporary_funds(caller, token_id, token_nonce)
-                .set(&new_amount);
+        let old_value = self
+            .temporary_funds(caller)
+            .get(&(token_id.clone(), token_nonce))
+            .unwrap();
+
+        if &old_value != decrease_amount {
+            self.temporary_funds(caller).insert(
+                (token_id.clone(), token_nonce),
+                &old_value - decrease_amount,
+            );
         } else {
-            self.temporary_funds(caller, token_id, token_nonce).clear();
+            self.temporary_funds(caller)
+                .remove(&(token_id.clone(), token_nonce));
         }
     }
 
@@ -592,24 +576,37 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         Ok(())
     }
 
-    fn require_proxy_pair_params_not_empty(&self) -> SCResult<()> {
-        require!(!self.proxy_pair_params().is_empty(), "Empty proxy_params");
-        Ok(())
-    }
-
     fn require_wrapped_lp_token_id_not_empty(&self) -> SCResult<()> {
         require!(!self.wrapped_lp_token_id().is_empty(), "Empty token id");
         Ok(())
     }
 
     #[view(getTemporaryFunds)]
+    fn get_temporary_funds(
+        &self,
+        address: &Address,
+    ) -> MultiResultVec<GenericEsdtAmountPair<Self::BigUint>> {
+        MultiResultVec::from_iter(
+            self.temporary_funds(address)
+                .iter()
+                .map(|x| {
+                    let (key, amount) = x;
+                    let (token_id, token_nonce) = key;
+                    GenericEsdtAmountPair {
+                        token_id,
+                        token_nonce,
+                        amount,
+                    }
+                })
+                .collect::<Vec<GenericEsdtAmountPair<Self::BigUint>>>(),
+        )
+    }
+
     #[storage_mapper("funds")]
     fn temporary_funds(
         &self,
-        caller: &Address,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+        user: &Address,
+    ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
 
     #[view(getIntermediatedPairs)]
     #[storage_mapper("intermediated_pairs")]
@@ -621,7 +618,4 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
 
     #[storage_mapper("wrapped_tp_token_nonce")]
     fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
-
-    #[storage_mapper("proxy_pair_params")]
-    fn proxy_pair_params(&self) -> SingleValueMapper<Self::Storage, ProxyPairParams>;
 }
