@@ -227,14 +227,14 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             return big_zero;
         }
 
-        let amount_out = self.get_amount_out_no_fee(&amount_in, &reserve_in, &reserve_out);
+        let amount_out = self.get_amount_out_no_fee(amount_in, &reserve_in, &reserve_out);
         if reserve_out <= amount_out || amount_out == 0 {
             return big_zero;
         }
 
         reserve_in += amount_in;
         reserve_out -= &amount_out;
-        self.update_reserves(&reserve_in, &reserve_out, &token_in, &token_out);
+        self.update_reserves(&reserve_in, &reserve_out, token_in, token_out);
 
         amount_out
     }

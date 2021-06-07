@@ -338,7 +338,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                 "Cannot send back farming tokens with amount 0"
             );
         }
-        self.decrease_farming_token_reserve(&farming_amount)?;
+        self.decrease_farming_token_reserve(farming_amount)?;
         self.send_fft_tokens(
             farming_token_id,
             farming_amount,
@@ -360,7 +360,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
-                self.send().esdt_local_burn(reward_token_id, &reward_amount);
+                self.send().esdt_local_burn(reward_token_id, reward_amount);
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
                 let result = self
                     .locked_asset_factory(locked_asset_factory_address)
@@ -468,8 +468,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farm_token_supply = self.farm_token_supply().get();
         require!(farm_token_supply >= amount, "Not enough supply");
 
-        let current_block = self.blockchain().get_block_nonce();
-        let to_be_minted = self.calculate_per_block_rewards(current_block);
+        let last_reward_nonce = self.last_reward_block_nonce().get();
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let to_be_minted = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
         let mut fees = self.undistributed_fee_storage().get();
         fees += match self.current_block_fee_storage().get() {

@@ -11,7 +11,8 @@ const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
-const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 100;
+const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
+const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
 #[elrond_wasm_derive::contract]
 pub trait Router: factory::FactoryModule {
@@ -86,7 +87,8 @@ pub trait Router: factory::FactoryModule {
             total_fee_percent_requested = fee_percents_vec[0];
             special_fee_percent_requested = fee_percents_vec[1];
             require!(
-                total_fee_percent_requested >= special_fee_percent_requested,
+                total_fee_percent_requested >= special_fee_percent_requested
+                    && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
                 "Bad percents"
             );
         }
@@ -189,7 +191,7 @@ pub trait Router: factory::FactoryModule {
         only_owner!(self, "No permissions");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
     }
@@ -302,7 +304,7 @@ pub trait Router: factory::FactoryModule {
     ) {
         match result {
             AsyncCallResult::Ok(()) => {
-                self.pair_temporary_owner().remove(&address);
+                self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context();
@@ -339,6 +341,7 @@ pub trait Router: factory::FactoryModule {
         Ok(())
     }
 
+    #[view(getPairCreationEnabled)]
     #[storage_mapper("pair_creation_enabled")]
     fn pair_creation_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
 

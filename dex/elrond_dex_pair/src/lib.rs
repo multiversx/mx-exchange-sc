@@ -174,29 +174,29 @@ pub trait Pair:
             temporary_first_token_amount - first_token_amount.clone();
         let temporary_second_token_unused =
             temporary_second_token_amount - second_token_amount.clone();
-        self.temporary_funds(&caller, &expected_first_token_id)
+        self.temporary_funds(caller, &expected_first_token_id)
             .clear();
-        self.temporary_funds(&caller, &expected_second_token_id)
+        self.temporary_funds(caller, &expected_second_token_id)
             .clear();
 
-        // Once liquidity has been added, the new K should never be lesser than the old K.
+        // Once liquidity has been added, the new K should always be greater than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&old_k, &new_k)?;
 
         let lp_token_id = self.lp_token_identifier().get();
         self.send().esdt_local_mint(&lp_token_id, &liquidity);
 
-        self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
+        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
         self.send_tokens(
             &expected_first_token_id,
             &temporary_first_token_unused,
-            &caller,
+            caller,
             &opt_accept_funds_func,
         )?;
         self.send_tokens(
             &expected_second_token_id,
             &temporary_second_token_unused,
-            &caller,
+            caller,
             &opt_accept_funds_func,
         )?;
 
@@ -223,8 +223,8 @@ pub trait Pair:
         token: &TokenIdentifier,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        let amount = self.temporary_funds(&caller, token).get();
-        self.temporary_funds(&caller, token).clear();
+        let amount = self.temporary_funds(caller, token).get();
+        self.temporary_funds(caller, token).clear();
         self.send_tokens(token, &amount, caller, opt_accept_funds_func)?;
         Ok(())
     }
@@ -274,7 +274,7 @@ pub trait Pair:
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        // Once liquidity has been removed, the new K should never be greater than the old K.
+        // Once liquidity has been removed, the new K should always be lesser than the old K.
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 

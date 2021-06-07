@@ -35,7 +35,10 @@ pub trait LockedAssetFactory:
         self.default_unlock_period().set(&default_unlock_period.0);
         self.transfer_exec_gas_limit()
             .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.init_epoch().set(&self.blockchain().get_block_epoch());
+
+        if self.init_epoch().get() == 0 {
+            self.init_epoch().set(&self.blockchain().get_block_epoch());
+        }
         Ok(())
     }
 
@@ -232,7 +235,7 @@ pub trait LockedAssetFactory:
         require!(!roles.is_empty(), "Empty roles");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, &roles.as_slice())
+            .set_special_roles(&address, &token, roles.as_slice())
             .async_call())
     }
 

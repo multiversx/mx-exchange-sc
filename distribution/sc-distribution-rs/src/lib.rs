@@ -277,7 +277,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
         }
 
         for key in to_remove_keys.iter() {
-            self.user_locked_asset_map().remove(&key);
+            self.user_locked_asset_map().remove(key);
         }
         to_remove_keys.len()
     }

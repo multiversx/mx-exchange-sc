@@ -6,36 +6,45 @@ type Nonce = u64;
 
 #[elrond_wasm_derive::module]
 pub trait RewardsModule: config::ConfigModule {
-    fn calculate_per_block_rewards(&self, block_nonce: Nonce) -> Self::BigUint {
+    fn calculate_per_block_rewards(
+        &self,
+        current_block_nonce: Nonce,
+        last_reward_block_nonce: Nonce,
+    ) -> Self::BigUint {
         let big_zero = Self::BigUint::zero();
 
+        if current_block_nonce <= last_reward_block_nonce {
+            return big_zero;
+        }
+
         if self.produces_per_block_rewards() {
-            let last_reward_nonce = self.last_reward_block_nonce().get();
             let per_block_reward = self.per_block_reward_amount().get();
 
-            if block_nonce > last_reward_nonce {
-                per_block_reward * Self::BigUint::from(block_nonce - last_reward_nonce)
-            } else {
-                big_zero
-            }
+            per_block_reward * Self::BigUint::from(current_block_nonce - last_reward_block_nonce)
         } else {
             big_zero
         }
     }
 
     fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> Self::BigUint {
-        let current_nonce = self.blockchain().get_block_nonce();
-        let to_mint = self.calculate_per_block_rewards(current_nonce);
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let last_reward_nonce = self.last_reward_block_nonce().get();
 
-        if to_mint != 0 {
-            self.send().esdt_local_mint(token_id, &to_mint);
+        if current_block_nonce > last_reward_nonce {
+            let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+
+            if to_mint != 0 {
+                self.send().esdt_local_mint(token_id, &to_mint);
+            }
+            self.last_reward_block_nonce().set(&current_block_nonce);
+            to_mint
+        } else {
+            Self::BigUint::zero()
         }
-        self.last_reward_block_nonce().set(&current_nonce);
-        to_mint
     }
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
-        let reward_minted = self.mint_per_block_rewards(&reward_token_id);
+        let reward_minted = self.mint_per_block_rewards(reward_token_id);
         self.increase_current_block_fee_storage(&Self::BigUint::zero());
         let fees = self.undistributed_fee_storage().get();
         self.undistributed_fee_storage().clear();
@@ -123,6 +132,10 @@ pub trait RewardsModule: config::ConfigModule {
         require!(
             self.per_block_reward_amount().get() != 0,
             "Cannot produce zero reward amount"
+        );
+        require!(
+            !self.produce_rewards_enabled().get(),
+            "Producing rewards is already enabled"
         );
         let current_nonce = self.blockchain().get_block_nonce();
         self.produce_rewards_enabled().set(&true);
