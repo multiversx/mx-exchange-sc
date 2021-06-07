@@ -42,7 +42,7 @@ Some important general properties:
 
 ### Pair Contract
 
-The Pair Contract acts as an AMM for trading two different tokens. The AMM is based on liquidity pools and on the already popular `x*y=k` approach. The total fee percent for each swap can be configured at the init phrase (at deploy time), although the default value (and the value that will be used) will be `0.3%`, from which `0.25`% will stay in the liquidity pool, `0.05%` will be used to buyback and burn MEX tokens.
+The Pair Contract acts as an AMM for trading two different tokens. The AMM is based on liquidity pools and on the already popular `x*y=k` approach. The total fee percent for each swap can be configured at the init phrase (at deploy time), although the default value (and the value that will be used) will be `0.3%`, from which `0.25%` will stay in the liquidity pool, `0.05%` will be used to buyback and burn MEX tokens.
 
 One tehnical subtlety of this contracts is that it only functions with `Fungible Tokens`. It does not handle neither EGLD nor Semi-Fungible tokens (SFTs) nor Non-Fungible Tokens (NFTs).
 
@@ -141,3 +141,5 @@ Proxy Farm Module allows a user to enter a Farm with Wrapped LP Tokens. A user c
 This contract is the only contract that has the ability to create `LOCKED MEX` tokens. Other contract (that are whitelisted) can request creating and forwarding of these tokens.
 
 Locked MEX is an SFT Token. The reasoning behind this is because each Locked Mex, depending on the creating parameters, can have different `Unlock Schedule`.
+
+Each `Locked MEX` has an unlock schedule because its goal is to represent a MEX that can only be unlocked in the future. This unlock will not happen once, it will be in different phases, configurable. For example, it can be configured to be unlocked with for example 10% every month.

@@ -1,29 +1,24 @@
-# Interaction
+# DEX Proxy Smart Contract
 
-## On devnet
+This document presents how one can deploy and configure a DEX Proxy Contract.
+The bigger picture about what a DEX Proxy Contract can do can be found in the Repository's Root Readme.
 
-Deploy & interact with contract:
+## Deployment
 
-```
-python3 ./interaction/playground.py --pem=./testnet/wallets/users/alice.pem --proxy=http://localhost:7950
-```
+The DEX Proxy contract can be deployed using `erdpy` and using the interraction snippets.
 
-Interact with existing contract:
+The init parameters are:
 
-```
-python3 ./interaction/playground.py --pem=./testnet/wallets/users/alice.pem --proxy=http://localhost:7950 --contract=erd1...
-```
+- asset_token_id. The TokenId of the asset that a locked asset represents. In case of Maiar Exchange it will be MEX.
 
-## On testnet
+- locked_asset_token_id. The TokenId of the locked asset represents. In case of Maiar Exchange it will be Locked MEX.
 
-Deploy & interact with contract:
+## Configuration workflow
 
-```
-python3 ./interaction/playground.py --pem=my.pem --proxy=https://testnet-gateway.elrond.com
-```
+1. In order to complete the setup of the dex proxy contracts, Wrapped LP Token and Wrapped Farm token must be issued via `issueSftProxyPair` and `issueSftProxyFarm`. After this, setLocalRoles has to be called once for each of the two tokens, using for address the Proxy Address itself.
 
-Interact with existing contract:
+2. In order to add a pair to intermediate, meaning a pair that is eligible to function with MEX, the admin should use `addPairToIntermediate` and `removeIntermediatedPair`.
 
-```
-python3 ./interaction/playground.py --pem=my.pem --proxy=https://testnet-gateway.elrond.com --contract=erd1...
-```
+3. In order to add a farm to intermediate, meaning a farm that is eligible to function with MEX or with Wrapped LP Tokens, the admin should use `addFarmToIntermediate` and `removeIntermediatedFarm`.
+
+4. In order for the Setup to be complete, LocalMint + LocalBurn roles for MEX and NftBurn role for Locked MEX should be granted to the Proxy Contract.
