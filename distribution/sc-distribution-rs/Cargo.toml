@@ -1,15 +1,30 @@
 [package]
-name = "sc_distribution_rs"
-version = "0.0.0"
-authors = [ "you",]
 edition = "2018"
+name = "sc_distribution_rs"
 publish = false
+version = "0.0.0"
 
 [lib]
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = [ "elrond-wasm-node",]
+wasm-output-mode = [
+  "elrond-wasm-node",
+  "asset/wasm-output-mode",
+  "global-op/wasm-output-mode",
+]
+
+[dependencies.distrib-common]
+path = "../distrib-common"
+
+[dependencies.asset]
+path = "../modules/asset"
+
+[dependencies.global-op]
+path = "../modules/global-op"
+
+[dependencies.sc-locked-asset-factory]
+path = "../../sc-locked-asset-factory"
 
 [dependencies.elrond-wasm]
 version = "0.17"
@@ -18,18 +33,8 @@ version = "0.17"
 version = "0.17"
 
 [dependencies.elrond-wasm-node]
-version = "0.17"
 optional = true
-
-[dependencies.distrib-common]
-path = "../distrib-common"
-
-[dependencies.modules]
-path = "../modules"
-
-[dependencies.sc-locked-asset-factory]
-path = "../../sc-locked-asset-factory"
+version = "0.17"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.17"
-

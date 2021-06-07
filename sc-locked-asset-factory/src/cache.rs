@@ -5,7 +5,6 @@ type Nonce = u64;
 
 use super::locked_asset;
 use super::locked_asset::*;
-use modules::*;
 
 #[elrond_wasm_derive::module]
 pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {

@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use modules::*;
-
 type Epoch = u64;
 
 const GAS_CHECK_FREQUENCY: usize = 100;
