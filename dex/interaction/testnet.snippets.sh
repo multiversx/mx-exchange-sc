@@ -8,8 +8,8 @@ CHAIN_ID="T"
 # CHAIN_ID="local-testnet"
 
 ESDT_ISSUE_ADDRESS="erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"
-ROUTE_ADDRESS="erd1qqqqqqqqqqqqqpgq3ptwtt8uvltaepq8kcjr8vxv22d8rw0a0n4seq3x2r"
-WEGLD_WRAP_ADDRESS="erd1qqqqqqqqqqqqqpgqa7hv0nahgsl8tz0psat46x0tchm0wuyc0n4s6q28ad"
+ROUTE_ADDRESS="erd1qqqqqqqqqqqqqpgq9s7ft5fj72zyt8qn8yd24xcl8rxu9v4m0n4sjlh528"
+WEGLD_WRAP_ADDRESS="erd1qqqqqqqqqqqqqpgq4axqc749vuqr27snr8d8qgvlmz44chsr0n4sm4a72g"
 PAIR_ADDRESS="erd1qqqqqqqqqqqqqpgqr23zlc896w6qc2hw3evmmdmppw6jaucv0n4svx9zhn"
 DEFAULT_GAS_LIMIT=50000000
 
@@ -189,7 +189,7 @@ createPair() {
           --gas-price=1400000000 \
           --gas-limit=1400000000 \
           --function=createPair \
-          --arguments $first_token $second_token \
+          --arguments $first_token $second_token 300 100\
           --send
     sleep 6
 
@@ -203,11 +203,11 @@ createPair() {
 # params:
 #   $1 = Pair Address,
 #   $2 = LP Token Name,
-#   $3 = LP Token Tocker
+#   $3 = LP Token Ticker
 issueLpToken() {
     pair_address="0x$(erdpy wallet bech32 --decode $1)"
-    lp_token_name="0x$(echo -n 'EGLDBUSDLPToken' | xxd -p -u | tr -d '\n')"
-    lp_token_ticker="0x$(echo -n 'EBLPT' | xxd -p -u | tr -d '\n')"
+    lp_token_name="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    lp_token_ticker="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
 
     erdpy --verbose contract call ${ROUTE_ADDRESS} --recall-nonce \
           --pem=${WALLET_PEM} \
@@ -299,8 +299,7 @@ deployPairContract() {
 
     erdpy --verbose contract deploy --recall-nonce \
           --pem=${WALLET_PEM} \
-          --gas-price=1499999999 \
-          --gas-limit=1499999999 \
+          --gas-limit=250000000 \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --bytecode="../elrond_dex_pair/output/elrond_dex_pair.wasm" \
           --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
@@ -325,8 +324,7 @@ upgradePairContract() {
 
     erdpy --verbose contract upgrade $3 --recall-nonce \
           --pem=${WALLET_PEM} \
-          --gas-price=1499999999 \
-          --gas-limit=1499999999 \
+          --gas-limit=250000000 \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --bytecode="../elrond_dex_pair/output/elrond_dex_pair.wasm" \
           --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
@@ -334,6 +332,19 @@ upgradePairContract() {
     
     echo ""
     echo "Pair Smart contract upgraded"
+}
+
+# params
+#   $1 = Pair address
+#   $2 = Gas limit in hex
+setTransferExecGasLimit() {
+    erdpy --verbose contract call $1 --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=20000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function=set_transfer_exec_gas_limit \
+        --arguments $2 \
+        --send || return
 }
 
 # params
@@ -361,7 +372,7 @@ transferTokens() {
 
     erdpy --verbose contract call $1 --recall-nonce \
         --pem=${WALLET_PEM} \
-        --gas-limit=20000000 \
+        --gas-limit=30000000 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --function="ESDTTransfer" \
         --arguments ${token_identifier} $3 ${method_name} \
@@ -488,23 +499,11 @@ addTrustedSwapPair() {
         --send || return
 }
 
-# params
-#   $1 = Pair Address
-setState() {
-    erdpy --verbose contract call $1 --recall-nonce \
-        --pem=${WALLET_PEM} \
-        --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --gas-limit=${DEFAULT_GAS_LIMIT} \
-        --function=setState \
-        --arguments 0x01 \
-        --send || return
-}
-
 #### FARM ####
 
 # params:
-#   $1 = Farm Pool Token Identifier (Rewards)
-#   $2 = Accepted Farming Token Identifier (Farming Token)
+#   $1 = Farmed Pool Token Identifier (Rewards)
+#   $2 = Farming Token Identifier (Farming Token)
 #   $3 = Locked Asset Factory Address
 deployFarmContract() {
     router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
@@ -519,7 +518,7 @@ deployFarmContract() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
         --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
-        --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address \
+        --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address 0xE8D4A51000 \
         --outfile="deploy-farm-internal.interaction.json" --send || return
 
     ADDRESS=$(erdpy data parse --file="deploy-farm-internal.interaction.json" --expression="data['emitted_tx']['address']")
@@ -531,24 +530,24 @@ deployFarmContract() {
 }
 
 # params:
-#   $1 = Farm Pool Token Identifier (Rewards)
-#   $2 = Accepted Farming Token Identifier (Farming Token)
-#   $3 = Locked Asset Factory Address
-#   $4 = Farm Address to upgrade
+#   $1 = Farm Address to upgrade
+#   $2 = Farm Pool Token Identifier (Rewards)
+#   $3 = Accepted Farming Token Identifier (Farming Token)
+#   $4 = Locked Asset Factory Address
 upgradeFarmContract() {
     router_address="0x$(erdpy wallet bech32 --decode $ROUTE_ADDRESS)"
-    farmed_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    farming_token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-    locked_asset_factory_address="0x$(erdpy wallet bech32 --decode $3)"
+    farmed_token="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    farming_token="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
+    locked_asset_factory_address="0x$(erdpy wallet bech32 --decode $4)"
 
-    erdpy --verbose contract upgrade $4 --recall-nonce \
+    erdpy --verbose contract upgrade $1 --recall-nonce \
         --pem=${WALLET_PEM} \
         --gas-price=1499999999 \
         --gas-limit=1499999999 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
         --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
-        --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address \
+        --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address 0xE8D4A51000 \
         --outfile="upgrade-farm-internal.interaction.json" --send || return
 
     echo ""
@@ -581,23 +580,6 @@ setLocalRolesFarmToken() {
           --gas-limit=${DEPLOY_GAS} \
           --function=setLocalRolesFarmToken \
           --send || return
-}
-
-# params:
-#   $1 = farm contract
-#   $2 = Pair Address
-#   $3 = LPToken Identifier for Pair Address
-addAcceptedPairAddressAndLpToken() {
-    pair_address="0x$(erdpy wallet bech32 --decode $2)"
-    lptoken_identifier="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
-    erdpy --verbose contract call $1 --recall-nonce \
-          --pem=${WALLET_PEM} \
-          --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --gas-limit=${DEPLOY_GAS} \
-          --function=addAcceptedPairAddressAndLpToken \
-          --arguments $pair_address $lptoken_identifier \
-          --send || return
-
 }
 
 #params:
@@ -654,6 +636,27 @@ exitFarm() {
         --send || return
 }
 
+#params:
+#   $1 = farm token id,
+#   $2 = farm token nonce in hex,
+#   $3 = farm token amount in hex,
+#   $4 = address of staking contract
+claimRewards() {
+    method_name="0x$(echo -n 'claimRewards' | xxd -p -u | tr -d '\n')"
+    user_address="$(erdpy wallet pem-address $WALLET_PEM)"
+    stake_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    farm_contract="0x$(erdpy wallet bech32 --decode $4)"
+
+    erdpy --verbose contract call $user_address --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=500000000 \
+        --function=ESDTNFTTransfer \
+        --arguments $stake_token $2 $3 $farm_contract $method_name \
+        --send || return
+}
+
+
 # params
 #   $1 = Farm Address
 #   $2 = PerBlockRewards in hex
@@ -665,6 +668,17 @@ setPerBlockRewardAmount() {
         --function=setPerBlockRewardAmount \
         --arguments $2 \
         --send || return
+}
+
+# params
+#   $1 = Farm Address
+startProduceRewards() {
+    erdpy --verbose contract call $1 --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --gas-limit=${DEPLOY_GAS} \
+          --function=start_produce_rewards \
+          --send || return
 }
 
 ##### VIEW FUNCTIONS #####
@@ -695,6 +709,20 @@ getFarmTokenIdentifier() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
         --function=getFarmTokenId || return
+}
+
+# params:
+#   $1 = Pair Address,
+#   $2 = User Address,
+#   $3 = Token Identifier,
+getTemporaryFunds() {
+    user_address="0x$(erdpy wallet bech32 --decode $2)"
+    token_identifier="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract query $1 \
+        --proxy=${PROXY} \
+        --function=getTemporaryFunds \
+        --arguments $user_address $token_identifier || return
 }
 
 # params:
@@ -761,6 +789,8 @@ getTokensForGivenPosition() {
         --arguments $2 || return
 }
 
+# params
+#   $1 = Farm Address
 getPerBlockRewardAmount() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
@@ -769,12 +799,12 @@ getPerBlockRewardAmount() {
 
 # params
 #   $1 = Farm Address
-getTotalSupply() {
+getFarmTokenSupply() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
-        --function=getTotalSupply || return
-
+        --function=getFarmTokenSupply || return
 }
+
 
 # params:
 #   $1 = farm contract,
@@ -791,14 +821,6 @@ getState() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
         --function=getState || return
-}
-
-# params
-#   $1 = Farm Address
-getActualReserves() {
-    erdpy --verbose contract query $1 \
-        --proxy=${PROXY} \
-        --function=getActualReserves || return
 }
 
 ##### UTILS #####
