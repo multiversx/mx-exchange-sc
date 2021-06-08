@@ -309,7 +309,9 @@ pub trait Router: factory::FactoryModule {
                     .setLpTokenIdentifier(token_id)
                     .execute_on_dest_context();
             }
-            AsyncCallResult::Err(_) => {
+            AsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+
                 if token_id.is_egld() && returned_tokens > 0 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
