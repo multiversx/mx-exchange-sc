@@ -557,7 +557,9 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
                     self.farm_token_id().set(&token_id);
                 }
             }
-            AsyncCallResult::Err(_) => {
+            AsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);

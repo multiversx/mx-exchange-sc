@@ -21,6 +21,10 @@ pub trait ProxyCommonModule {
         #[payment_amount] amount: Self::BigUint,
         #[payment_nonce] token_nonce: Nonce,
     ) {
+        if amount == 0 {
+            return;
+        }
+
         if self.current_tx_accepted_funds().len() > MAX_FUNDS_ENTRIES {
             self.current_tx_accepted_funds().clear();
         }
