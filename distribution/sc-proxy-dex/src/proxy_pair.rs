@@ -139,8 +139,9 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         );
         let locked_asset_token_id = self.locked_asset_token_id().get();
         require!(
-            first_token_id == locked_asset_token_id || second_token_id == locked_asset_token_id,
-            "One token should be locked asset"
+            (first_token_nonce != 0 && first_token_id == locked_asset_token_id)
+                || (second_token_nonce != 0 && second_token_id == locked_asset_token_id),
+            "The SemiFungible token should be the locked asset"
         );
         let first_token_amount_temporary = self
             .temporary_funds(&caller)
