@@ -73,7 +73,7 @@ upgradeLockedAssetContract() {
 # params:
 #   $1 = Locked Asset Token Name,
 #   $2 = Locked Asset Token Ticker
-issueNft() {
+issueLockedAssetToken() {
     lp_token_name="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     lp_token_ticker="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
 
@@ -82,24 +82,22 @@ issueNft() {
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --gas-limit=200000000 \
           --value=5000000000000000000 \
-          --function=issueNft \
+          --function=issueLockedAssetToken \
 	      --arguments $lp_token_name $lp_token_ticker \
 	      --send || return
 }
 
 # params:
-#   $1 = Token Identifier
-#   $2 = SC Address,
-setLocalRolesLockedAsset() {
-    token_identifier="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    sc_address="0x$(erdpy wallet bech32 --decode $2)"
+#   $1 = Address,
+setLocalRolesLockedAssetToken() {
+    decoded_address="0x$(erdpy wallet bech32 --decode $1)"
 
     erdpy --verbose contract call ${LOCKED_ASSET_FACTORY_ADDRESS} --recall-nonce \
         --pem=${WALLET_PEM} \
         --gas-limit=200000000 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function=setLocalRoles \
-        --arguments $token_identifier $sc_address 0x05 \
+        --function=setLocalRolesLockedAssetToken \
+        --arguments $decoded_address 0x03 0x04 0x05 \
         --send || return
 }
 
