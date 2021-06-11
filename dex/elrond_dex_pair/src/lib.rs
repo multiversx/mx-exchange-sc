@@ -39,6 +39,14 @@ pub trait Pair:
         special_fee_percent: u64,
     ) -> SCResult<()> {
         require!(
+            first_token_id.is_valid_esdt_identifier(),
+            "First token ID is not a valid ESDT identifier"
+        );
+        require!(
+            second_token_id.is_valid_esdt_identifier(),
+            "Second token ID is not a valid ESDT identifier"
+        );
+        require!(
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
             "Bad percents"
         );
@@ -535,6 +543,16 @@ pub trait Pair:
     fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
         self.require_permissions()?;
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
+        require!(
+            token_identifier != self.first_token_id().get()
+                && token_identifier != self.second_token_id().get(),
+            "LP token should differ from the exchange tokens"
+        );
+        require!(
+            token_identifier.is_valid_esdt_identifier(),
+            "Provided identifier is not a valid ESDT identifier"
+        );
+
         self.lp_token_identifier().set(&token_identifier);
 
         Ok(())

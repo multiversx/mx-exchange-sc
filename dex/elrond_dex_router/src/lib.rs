@@ -58,7 +58,6 @@ pub trait Router: factory::FactoryModule {
         Ok(())
     }
 
-    //ENDPOINTS
     #[endpoint(createPair)]
     fn create_pair_endpoint(
         &self,
@@ -69,20 +68,30 @@ pub trait Router: factory::FactoryModule {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
         let caller = self.blockchain().get_caller();
+
         if caller != owner {
             require!(
                 self.pair_creation_enabled().get(),
                 "Pair creation is disabled"
             );
         }
+
         require!(first_token_id != second_token_id, "Identical tokens");
-        require!(first_token_id.is_esdt(), "Only esdt tokens allowed");
-        require!(second_token_id.is_esdt(), "Only esdt tokens allowed");
+        require!(
+            first_token_id.is_valid_esdt_identifier(),
+            "First Token ID is not a valid esdt token ID"
+        );
+        require!(
+            second_token_id.is_valid_esdt_identifier(),
+            "Second Token ID is not a valid esdt token ID"
+        );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(pair_address == Address::zero(), "Pair already exists");
+
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
         let fee_percents_vec = fee_percents.into_vec();
+
         if caller == owner {
             require!(fee_percents_vec.len() == 2, "Bad percents length");
             total_fee_percent_requested = fee_percents_vec[0];
@@ -93,6 +102,7 @@ pub trait Router: factory::FactoryModule {
                 "Bad percents"
             );
         }
+
         self.create_pair(
             &first_token_id,
             &second_token_id,
