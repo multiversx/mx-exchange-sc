@@ -43,19 +43,11 @@ pub trait Pair:
             "Bad percents"
         );
 
-        if self.state().is_empty() {
-            self.state().set(&State::ActiveNoSwaps);
-        }
-
-        if self.transfer_exec_gas_limit().is_empty() {
-            self.transfer_exec_gas_limit()
-                .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        }
-
-        if self.extern_swap_gas_limit().is_empty() {
-            self.extern_swap_gas_limit()
-                .set(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
-        }
+        self.state().set_if_empty(&State::ActiveNoSwaps);
+        self.transfer_exec_gas_limit()
+            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.extern_swap_gas_limit()
+            .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);

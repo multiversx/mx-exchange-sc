@@ -21,13 +21,8 @@ pub trait Router: factory::FactoryModule {
 
     #[init]
     fn init(&self) {
-        if self.state().is_empty() {
-            self.state().set(&true);
-        }
-
-        if self.pair_creation_enabled().is_empty() {
-            self.pair_creation_enabled().set(&false);
-        }
+        self.state().set_if_empty(&true);
+        self.pair_creation_enabled().set_if_empty(&false);
 
         self.init_factory();
         self.owner().set(&self.blockchain().get_caller());
