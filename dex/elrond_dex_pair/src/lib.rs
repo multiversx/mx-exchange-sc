@@ -50,6 +50,19 @@ pub trait Pair:
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
             "Bad percents"
         );
+        require!(
+            first_token_id != second_token_id,
+            "Exchange tokens cannot be the same"
+        );
+        let lp_token_id = self.lp_token_identifier().get();
+        require!(
+            first_token_id != lp_token_id,
+            "First token ID cannot be the same as LP token ID"
+        );
+        require!(
+            second_token_id != lp_token_id,
+            "Second token ID cannot be the same as LP token ID"
+        );
 
         self.state().set_if_empty(&State::ActiveNoSwaps);
         self.transfer_exec_gas_limit()

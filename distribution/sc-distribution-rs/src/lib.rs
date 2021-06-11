@@ -30,10 +30,20 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
     ) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
 
     #[init]
-    fn init(&self, asset_token_id: TokenIdentifier, locked_asset_factory_address: Address) {
+    fn init(
+        &self,
+        asset_token_id: TokenIdentifier,
+        locked_asset_factory_address: Address,
+    ) -> SCResult<()> {
+        require!(
+            asset_token_id.is_valid_esdt_identifier(),
+            "Asset token ID is not a valid esdt identifier"
+        );
+
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
+        Ok(())
     }
 
     #[endpoint(startGlobalOperation)]
