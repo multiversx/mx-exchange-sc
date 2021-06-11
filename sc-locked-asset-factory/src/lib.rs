@@ -29,14 +29,10 @@ pub trait LockedAssetFactory:
         require!(!default_unlock_period.is_empty(), "Empty param");
         self.validate_unlock_milestones(&default_unlock_period)?;
 
-        if self.transfer_exec_gas_limit().is_empty() {
-            self.transfer_exec_gas_limit()
-                .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        }
-
-        if self.init_epoch().is_empty() {
-            self.init_epoch().set(&self.blockchain().get_block_epoch());
-        }
+        self.transfer_exec_gas_limit()
+            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.init_epoch()
+            .set_if_empty(&self.blockchain().get_block_epoch());
 
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period().set(&default_unlock_period.0);

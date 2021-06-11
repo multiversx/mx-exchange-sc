@@ -48,14 +48,6 @@ pub trait ProxyCommonModule {
         self.current_tx_accepted_funds().clear();
     }
 
-    fn validate_received_funds_on_current_tx_size(&self, desired_size: usize) -> SCResult<()> {
-        require!(
-            self.current_tx_accepted_funds().len() == desired_size,
-            "Bad received funds size"
-        );
-        Ok(())
-    }
-
     fn validate_received_funds_chunk(
         &self,
         received_funds: Vec<(&TokenIdentifier, Nonce, &Self::BigUint)>,
