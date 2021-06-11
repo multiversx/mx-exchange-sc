@@ -46,26 +46,44 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         locked_asset_factory_address: Address,
         division_safety_constant: Self::BigUint,
     ) -> SCResult<()> {
-        self.state().set(&State::Active);
+        if self.state().is_empty() {
+            self.state().set(&State::Active);
+        }
+
+        if self.penalty_percent().is_empty() {
+            self.penalty_percent().set(&DEFAULT_PENALTY_PERCENT);
+        }
+
+        if self.locked_rewards_apr_multiplier().is_empty() {
+            self.locked_rewards_apr_multiplier()
+                .set(&DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER);
+        }
+
+        if self.minimum_farming_epochs().is_empty() {
+            self.minimum_farming_epochs()
+                .set(&DEFAULT_MINUMUM_FARMING_EPOCHS);
+        }
+
+        if self.transfer_exec_gas_limit().is_empty() {
+            self.transfer_exec_gas_limit()
+                .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        }
+
+        if self.transfer_exec_gas_limit().is_empty() {
+            require!(
+                division_safety_constant != 0,
+                "Division constant cannot be 0"
+            );
+            self.division_safety_constant()
+                .set(&division_safety_constant);
+        }
+
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
-        self.penalty_percent().set(&DEFAULT_PENALTY_PERCENT);
-        self.locked_rewards_apr_multiplier()
-            .set(&DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER);
-        self.minimum_farming_epochs()
-            .set(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        require!(
-            division_safety_constant != 0,
-            "Division constant cannot be 0"
-        );
-        self.division_safety_constant()
-            .set(&division_safety_constant);
-        self.transfer_exec_gas_limit()
-            .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         Ok(())
     }
 

@@ -20,10 +20,18 @@ pub struct PairContractMetadata {
 #[elrond_wasm_derive::module]
 pub trait FactoryModule {
     fn init_factory(&self) {
-        self.pair_code_ready().set(&false);
-        self.pair_code().set(&BoxedBytes::empty());
-        self.temporary_owner_period()
-            .set(&TEMPORARY_OWNER_PERIOD_BLOCKS);
+        if self.pair_code_ready().is_empty() {
+            self.pair_code_ready().set(&false);
+        }
+
+        if self.pair_code().is_empty() {
+            self.pair_code().set(&BoxedBytes::empty());
+        }
+
+        if self.temporary_owner_period().is_empty() {
+            self.temporary_owner_period()
+                .set(&TEMPORARY_OWNER_PERIOD_BLOCKS);
+        }
     }
 
     fn create_pair(
