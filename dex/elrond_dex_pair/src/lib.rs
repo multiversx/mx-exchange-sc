@@ -39,23 +39,23 @@ pub trait Pair:
         special_fee_percent: u64,
     ) -> SCResult<()> {
         require!(
+            first_token_id.is_valid_esdt_identifier(),
+            "First token ID is not a valid ESDT identifier"
+        );
+        require!(
+            second_token_id.is_valid_esdt_identifier(),
+            "Second token ID is not a valid ESDT identifier"
+        );
+        require!(
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
             "Bad percents"
         );
 
-        if self.state().is_empty() {
-            self.state().set(&State::ActiveNoSwaps);
-        }
-
-        if self.transfer_exec_gas_limit().is_empty() {
-            self.transfer_exec_gas_limit()
-                .set(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        }
-
-        if self.extern_swap_gas_limit().is_empty() {
-            self.extern_swap_gas_limit()
-                .set(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
-        }
+        self.state().set_if_empty(&State::ActiveNoSwaps);
+        self.transfer_exec_gas_limit()
+            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.extern_swap_gas_limit()
+            .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);
@@ -543,6 +543,16 @@ pub trait Pair:
     fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
         self.require_permissions()?;
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
+        require!(
+            token_identifier != self.first_token_id().get()
+                && token_identifier != self.second_token_id().get(),
+            "LP token should differ from the exchange tokens"
+        );
+        require!(
+            token_identifier.is_valid_esdt_identifier(),
+            "Provided identifier is not a valid ESDT identifier"
+        );
+
         self.lp_token_identifier().set(&token_identifier);
 
         Ok(())
