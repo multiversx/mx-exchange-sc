@@ -124,6 +124,11 @@ fn get_pair_views_go() {
 }
 
 #[test]
+fn multi_pair_swap_go() {
+    elrond_wasm_debug::mandos_go("mandos/multi_pair_swap.scen.json");
+}
+
+#[test]
 fn owner_pause_farm_go() {
     elrond_wasm_debug::mandos_go("mandos/owner_pause_farm.scen.json");
 }
