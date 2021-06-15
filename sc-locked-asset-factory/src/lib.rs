@@ -178,8 +178,8 @@ pub trait LockedAssetFactory:
     }
 
     #[payable("EGLD")]
-    #[endpoint(issueNft)]
-    fn issue_nft(
+    #[endpoint(issueLockedAssetToken)]
+    fn issue_locked_asset_token(
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
@@ -228,17 +228,20 @@ pub trait LockedAssetFactory:
         };
     }
 
-    #[endpoint(setLocalRoles)]
-    fn set_local_roles(
+    #[endpoint(setLocalRolesLockedAssetToken)]
+    fn set_local_roles_locked_asset_token(
         &self,
-        token: TokenIdentifier,
         address: Address,
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
-        require!(token == self.locked_asset_token_id().get(), "Bad token id");
+        require!(
+            !self.locked_asset_token_id().is_empty(),
+            "Locked asset SFT not issued"
+        );
         require!(!roles.is_empty(), "Empty roles");
 
+        let token = self.locked_asset_token_id().get();
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(&address, &token, roles.as_slice())
             .async_call())

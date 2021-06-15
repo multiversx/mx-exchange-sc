@@ -13,7 +13,11 @@ The init parameters are:
 
 - default_unlock_period. A vector of unlock milestones. This represents a period since each epoch in the vector will be added with a starting epoch.
 
+The Contract requires LocalMint and LocalBurn for asset token.
+
 ## Creating and Forwarding SFTs
+
+Before creating LockedAssetLockens, the owner has to issue those tokens using `issueLockedAssetToken` and after this he also has to give the NftCreate, NftAddQuantity and NftBurn roles to the contract unsing `setLocalRolesLockedAssetToken`.
 
 The Contract has an endpoint `createAndForward` that can be called in order to request an amount of Locked MEX. Only those addresses in the `whitelisted_contracts` set can call this endpoint. This whitelist can be configured by the admin using `whitelist` and `removeWhitelist` endpoints.
 
