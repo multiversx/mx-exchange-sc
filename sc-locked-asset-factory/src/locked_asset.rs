@@ -159,6 +159,8 @@ pub trait LockedAssetModule: asset::AssetModule {
         &self,
         unlock_milestones: &VarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
+        require!(!unlock_milestones.is_empty(), "Empty param");
+
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
@@ -175,9 +177,7 @@ pub trait LockedAssetModule: asset::AssetModule {
             percents_sum += milestone.unlock_percent;
         }
 
-        if !unlock_milestones.is_empty() {
-            require!(percents_sum == 100, "Percents do not sum up to 100");
-        }
+        require!(percents_sum == 100, "Percents do not sum up to 100");
         Ok(())
     }
 
@@ -188,6 +188,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         Ok(())
     }
 
+    #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
