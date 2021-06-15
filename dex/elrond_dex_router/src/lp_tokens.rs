@@ -9,7 +9,7 @@ const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
 #[elrond_wasm_derive::module]
-pub trait TokensModule:
+pub trait LpTokensModule:
     pair_manager::PairManagerModule + util::UtilModule + factory::FactoryModule
 {
     #[payable("EGLD")]
@@ -92,8 +92,8 @@ pub trait TokensModule:
         address: Address,
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
+        self.require_owner()?;
         require!(self.is_active(), "Not active");
-        only_owner!(self, "No permissions");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(&address, &token, roles.as_slice())

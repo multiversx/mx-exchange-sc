@@ -5,22 +5,29 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod factory;
+mod lp_tokens;
 mod pair_manager;
-mod tokens;
 mod util;
 
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
+const TRANSFER_EXEC_DEFAULT_GAS_LIMIT: u64 = 100_000;
+
 #[elrond_wasm_derive::contract]
 pub trait Router:
-    factory::FactoryModule + pair_manager::PairManagerModule + tokens::TokensModule + util::UtilModule
+    factory::FactoryModule
+    + pair_manager::PairManagerModule
+    + lp_tokens::LpTokensModule
+    + util::UtilModule
 {
     #[init]
     fn init(&self) {
         self.state().set_if_empty(&true);
         self.pair_creation_enabled().set_if_empty(&false);
+        self.transfer_exec_gas_limit()
+            .set_if_empty(&TRANSFER_EXEC_DEFAULT_GAS_LIMIT);
 
         self.init_factory();
         self.owner().set(&self.blockchain().get_caller());
@@ -82,7 +89,7 @@ pub trait Router:
 
     #[endpoint]
     fn pause(&self, address: Address) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
+        self.require_owner()?;
 
         if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
@@ -95,7 +102,7 @@ pub trait Router:
 
     #[endpoint]
     fn resume(&self, address: Address) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
+        self.require_owner()?;
 
         if address == self.blockchain().get_sc_address() {
             self.state().set(&true);

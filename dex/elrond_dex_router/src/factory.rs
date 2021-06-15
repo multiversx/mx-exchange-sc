@@ -161,8 +161,8 @@ pub trait FactoryModule: util::UtilModule {
 
     #[endpoint(startPairCodeConstruction)]
     fn start_pair_code_construction(&self) -> SCResult<()> {
+        self.require_owner()?;
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
 
         self.start_pair_construct();
         Ok(())
@@ -170,8 +170,8 @@ pub trait FactoryModule: util::UtilModule {
 
     #[endpoint(endPairCodeConstruction)]
     fn end_pair_code_construction(&self) -> SCResult<()> {
+        self.require_owner()?;
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
 
         self.end_pair_construct();
         Ok(())
@@ -179,15 +179,15 @@ pub trait FactoryModule: util::UtilModule {
 
     #[endpoint(appendPairCode)]
     fn apppend_pair_code(&self, part: BoxedBytes) -> SCResult<()> {
+        self.require_owner()?;
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
 
         self.append_pair_code(&part)
     }
 
     #[endpoint(clearPairTemporaryOwnerStorage)]
     fn clear_pair_temporary_owner_storage(&self) -> SCResult<usize> {
-        only_owner!(self, "No permissions");
+        self.require_owner()?;
         let size = self.pair_temporary_owner().len();
         self.pair_temporary_owner().clear();
         Ok(size)
@@ -195,7 +195,7 @@ pub trait FactoryModule: util::UtilModule {
 
     #[endpoint(setTemporaryOwnerPeriod)]
     fn set_temporary_owner_period(&self, period_blocks: u64) -> SCResult<()> {
-        only_owner!(self, "No permissions");
+        self.require_owner()?;
         self.temporary_owner_period().set(&period_blocks);
         Ok(())
     }

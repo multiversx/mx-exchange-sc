@@ -24,6 +24,11 @@ type AddLiquidityResultType<BigUint> = MultiResult3<
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
+type SwapTokensFixedInputResultType<BigUint> = FftTokenAmountPair<BigUint>;
+
+type SwapTokensFixedOutputResultType<BigUint> =
+    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+
 #[elrond_wasm_derive::contract]
 pub trait Pair:
     amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule
@@ -357,15 +362,15 @@ pub trait Pair:
     }
 
     #[payable("*")]
-    #[endpoint(swapTokensFixedInput)]
-    fn swap_tokens_fixed_input(
+    #[endpoint]
+    fn swapTokensFixedInput(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment_amount] amount_in: Self::BigUint,
         token_out: TokenIdentifier,
         amount_out_min: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<SwapTokensFixedInputResultType<Self::BigUint>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
@@ -428,19 +433,22 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        Ok(())
+        Ok(FftTokenAmountPair {
+            token_id: token_out,
+            amount: amount_out_optimal,
+        })
     }
 
     #[payable("*")]
-    #[endpoint(swapTokensFixedOutput)]
-    fn swap_tokens_fixed_output(
+    #[endpoint]
+    fn swapTokensFixedOutput(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment_amount] amount_in_max: Self::BigUint,
         token_out: TokenIdentifier,
         amount_out: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<SwapTokensFixedOutputResultType<Self::BigUint>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
@@ -497,7 +505,17 @@ pub trait Pair:
         self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
         self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
 
-        Ok(())
+        Ok((
+            FftTokenAmountPair {
+                token_id: token_out,
+                amount: amount_out,
+            },
+            FftTokenAmountPair {
+                token_id: token_in,
+                amount: residuum,
+            },
+        )
+            .into())
     }
 
     fn send_tokens(

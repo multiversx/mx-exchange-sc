@@ -10,10 +10,67 @@ pub trait UtilModule {
 
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
+        self.require_owner()?;
         self.pair_creation_enabled().set(&enabled);
         Ok(())
     }
+
+    fn require_owner(&self) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        let owner = self.owner().get();
+        require!(caller == owner, "Permission denied");
+        Ok(())
+    }
+
+    fn send_tokens(
+        &self,
+        token: &TokenIdentifier,
+        amount: &Self::BigUint,
+        destination: &Address,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
+        if amount > &0 {
+            let (function, gas_limit) = match opt_accept_funds_func {
+                OptionalArg::Some(accept_funds_func) => (
+                    accept_funds_func.as_slice(),
+                    self.transfer_exec_gas_limit().get(),
+                ),
+                OptionalArg::None => {
+                    let no_func: &[u8] = &[];
+                    (no_func, 0u64)
+                }
+            };
+
+            let result = self.send().direct_esdt_execute(
+                destination,
+                token,
+                amount,
+                gas_limit,
+                function,
+                &ArgBuffer::new(),
+            );
+
+            match result {
+                Result::Ok(_) => Ok(()),
+                Result::Err(_) => {
+                    sc_error!("Direct esdt nft execute failed")
+                }
+            }
+        } else {
+            Ok(())
+        }
+    }
+
+    #[endpoint]
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
+        self.require_owner()?;
+        self.transfer_exec_gas_limit().set(&gas_limit);
+        Ok(())
+    }
+
+    #[view(getTranferExecGasLimit)]
+    #[storage_mapper("transfer_exec_gas_limit")]
+    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getOwner)]
     #[storage_mapper("owner")]
