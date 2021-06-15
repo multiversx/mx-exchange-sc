@@ -49,14 +49,14 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
     #[endpoint(startGlobalOperation)]
     fn start_planning(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");
-        self.global_op_start();
+        self.global_op_start()?;
         Ok(())
     }
 
     #[endpoint(endGlobalOperation)]
     fn end_planning(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");
-        self.global_op_stop();
+        self.global_op_stop()?;
         Ok(())
     }
 
