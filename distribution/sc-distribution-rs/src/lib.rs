@@ -114,7 +114,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
         let mut cummulated_amount = Self::BigUint::zero();
 
         let locked_assets = self.calculate_user_locked_assets(&caller, true);
-        if locked_assets.len() == 0 {
+        if locked_assets.is_empty() {
             return Ok(cummulated_amount);
         }
 
@@ -298,7 +298,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
                 break;
             }
 
-            removed = removed + 1;
+            removed += 1;
             self.user_locked_asset_map().remove(key);
         }
         removed
