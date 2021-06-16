@@ -380,14 +380,15 @@ pub trait Pair:
             "Pair: Invalid token out"
         );
         let old_k = self.calculate_k_for_reserves();
+        self.update_virtual_reserves_on_block_change();
 
-        let mut reserve_token_out = self.pair_reserve(&token_out).get();
+        let mut reserve_token_out = self.pair_virtual_reserve(&token_in, &token_out).get();
         require!(
             reserve_token_out > amount_out_min,
             "Insufficient reserve for token out"
         );
 
-        let mut reserve_token_in = self.pair_reserve(&token_in).get();
+        let mut reserve_token_in = self.pair_virtual_reserve(&token_in, &token_in).get();
         let amount_out_optimal =
             self.get_amount_out(&amount_in, &reserve_token_in, &reserve_token_out);
         require!(
@@ -411,7 +412,15 @@ pub trait Pair:
 
         reserve_token_in += &amount_in_after_fee;
         reserve_token_out -= &amount_out_optimal;
-        self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
+        self.set_virtual_reserves(
+            &token_in,
+            &token_in,
+            &token_out,
+            &reserve_token_in,
+            &reserve_token_out,
+        );
+        self.increase_token_reserve(&token_in, &amount_in_after_fee);
+        self.decrease_token_reserve(&token_out, &amount_out_optimal);
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
@@ -456,14 +465,15 @@ pub trait Pair:
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
         let old_k = self.calculate_k_for_reserves();
+        self.update_virtual_reserves_on_block_change();
 
-        let mut reserve_token_out = self.pair_reserve(&token_out).get();
+        let mut reserve_token_out = self.pair_virtual_reserve(&token_in, &token_out).get();
         require!(
             reserve_token_out > amount_out,
             "Insufficient reserve for token out"
         );
 
-        let mut reserve_token_in = self.pair_reserve(&token_in).get();
+        let mut reserve_token_in = self.pair_virtual_reserve(&token_in, &token_in).get();
         let amount_in_optimal =
             self.get_amount_in(&amount_out, &reserve_token_in, &reserve_token_out);
         require!(
@@ -483,7 +493,15 @@ pub trait Pair:
 
         reserve_token_in += &amount_in_optimal_after_fee;
         reserve_token_out -= &amount_out;
-        self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
+        self.set_virtual_reserves(
+            &token_in,
+            &token_in,
+            &token_out,
+            &reserve_token_in,
+            &reserve_token_out,
+        );
+        self.increase_token_reserve(&token_in, &amount_in_optimal_after_fee);
+        self.decrease_token_reserve(&token_out, &amount_out);
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
@@ -614,8 +632,8 @@ pub trait Pair:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let first_token_reserve = self.pair_reserve(&first_token_id).get();
-        let second_token_reserve = self.pair_reserve(&second_token_id).get();
+        let (first_token_reserve, second_token_reserve) =
+            self.get_reserves_for_current_block(&token_in, &first_token_id, &second_token_id);
 
         if token_in == first_token_id {
             require!(second_token_reserve > 0, "Zero reserves for second token");
@@ -650,10 +668,13 @@ pub trait Pair:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let first_token_reserve = self.pair_reserve(&first_token_id).get();
-        let second_token_reserve = self.pair_reserve(&second_token_id).get();
 
         if token_wanted == first_token_id {
+            let (first_token_reserve, second_token_reserve) = self.get_reserves_for_current_block(
+                &second_token_id,
+                &first_token_id,
+                &second_token_id,
+            );
             require!(
                 first_token_reserve > amount_wanted,
                 "Not enough reserves for first token"
@@ -662,6 +683,11 @@ pub trait Pair:
                 self.get_amount_in(&amount_wanted, &second_token_reserve, &first_token_reserve);
             Ok(amount_in)
         } else if token_wanted == second_token_id {
+            let (first_token_reserve, second_token_reserve) = self.get_reserves_for_current_block(
+                &first_token_id,
+                &first_token_id,
+                &second_token_id,
+            );
             require!(
                 second_token_reserve > amount_wanted,
                 "Not enough reserves for second token"
@@ -685,8 +711,9 @@ pub trait Pair:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let first_token_reserve = self.pair_reserve(&first_token_id).get();
-        let second_token_reserve = self.pair_reserve(&second_token_id).get();
+        let (first_token_reserve, second_token_reserve) =
+            self.get_reserves_for_current_block(&token_in, &first_token_id, &second_token_id);
+
         if first_token_reserve == 0 || second_token_reserve == 0 {
             return Ok(zero);
         }

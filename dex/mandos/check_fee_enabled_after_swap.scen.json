@@ -49,14 +49,15 @@
 						"str:router_address": "sc:router_contract",
 						"str:state": "1",
 						"str:owner": "address:owner",
-						"str:current_block_fee_storage": "0x01000000000000000000000001c7",
+						"str:current_block_fee_storage": "0x01000000000000000100000001c7",
 						"str:minimum_farming_epochs": "2",
 						"str:burn_tokens_gas_limit": "5,000,000",
 						"str:mint_tokens_gas_limit": "5,000,000",
 						"str:locked_rewards_apr_multiplier": "2",
 						"str:division_safety_constant": "1000000000000",
 						"str:penalty_percent": "10",
-						"str:create_farm_tokens_gas_limit": "5000000"
+						"str:create_farm_tokens_gas_limit": "5000000",
+						"+": ""
 					},
 					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
 				},

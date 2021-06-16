@@ -205,11 +205,11 @@ pub trait FeeModule:
                 );
                 if !resolved_externally {
                     //Revert the previous local swap
-                    self.update_reserves(
-                        &first_token_reserve,
-                        &second_token_reserve,
+                    self.set_reserves(
                         first_token_id,
                         second_token_id,
+                        &first_token_reserve,
+                        &second_token_reserve,
                     );
                     self.reinject(fee_token, fee_slice);
                 }

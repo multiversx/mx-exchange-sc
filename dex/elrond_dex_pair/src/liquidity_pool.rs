@@ -5,6 +5,8 @@ use super::amm;
 use super::config;
 use dex_common::FftTokenAmountPair;
 
+type Nonce = u64;
+
 const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm_derive::module]
@@ -43,11 +45,11 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
 
         first_token_reserve += first_token_amount;
         second_token_reserve += second_token_amount;
-        self.update_reserves(
-            &first_token_reserve,
-            &second_token_reserve,
+        self.set_reserves(
             &first_token,
             &second_token,
+            &first_token_reserve,
+            &second_token_reserve,
         );
 
         Ok(liquidity)
@@ -146,15 +148,39 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         }
     }
 
-    fn update_reserves(
+    fn set_reserves(
         &self,
-        first_token_reserve: &Self::BigUint,
-        second_token_reserve: &Self::BigUint,
         first_token: &TokenIdentifier,
         second_token: &TokenIdentifier,
+        first_token_reserve: &Self::BigUint,
+        second_token_reserve: &Self::BigUint,
     ) {
         self.pair_reserve(first_token).set(first_token_reserve);
         self.pair_reserve(second_token).set(second_token_reserve);
+    }
+
+    fn set_virtual_reserves(
+        &self,
+        token_side_id: &TokenIdentifier,
+        first_token: &TokenIdentifier,
+        second_token: &TokenIdentifier,
+        first_token_reserve: &Self::BigUint,
+        second_token_reserve: &Self::BigUint,
+    ) {
+        self.pair_virtual_reserve(token_side_id, first_token)
+            .set(first_token_reserve);
+        self.pair_virtual_reserve(token_side_id, second_token)
+            .set(second_token_reserve);
+    }
+
+    fn increase_token_reserve(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
+        let new_value = &self.pair_reserve(token_id).get() + amount;
+        self.pair_reserve(token_id).set(&new_value);
+    }
+
+    fn decrease_token_reserve(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
+        let new_value = &self.pair_reserve(token_id).get() - amount;
+        self.pair_reserve(token_id).set(&new_value);
     }
 
     fn get_token_for_given_position(
@@ -234,9 +260,55 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
 
         reserve_in += amount_in;
         reserve_out -= &amount_out;
-        self.update_reserves(&reserve_in, &reserve_out, token_in, token_out);
+        self.set_reserves(token_in, token_out, &reserve_in, &reserve_out);
 
         amount_out
+    }
+
+    fn update_virtual_reserves_on_block_change(&self) {
+        let current_block_nonce = self.blockchain().get_block_nonce();
+
+        if current_block_nonce > self.last_recorded_block_nonce().get() {
+            self.last_recorded_block_nonce().set(&current_block_nonce);
+
+            let first_token_id = self.first_token_id().get();
+            let second_token_id = self.second_token_id().get();
+
+            let first_token_reserve = self.pair_reserve(&first_token_id).get();
+            let second_token_reserve = self.pair_reserve(&second_token_id).get();
+
+            self.pair_virtual_reserve(&first_token_id, &first_token_id)
+                .set(&first_token_reserve);
+            self.pair_virtual_reserve(&second_token_id, &first_token_id)
+                .set(&first_token_reserve);
+            self.pair_virtual_reserve(&first_token_id, &second_token_id)
+                .set(&second_token_reserve);
+            self.pair_virtual_reserve(&second_token_id, &second_token_id)
+                .set(&second_token_reserve);
+        }
+    }
+
+    fn get_reserves_for_current_block(
+        &self,
+        token_side_id: &TokenIdentifier,
+        first_token_id: &TokenIdentifier,
+        second_token_id: &TokenIdentifier,
+    ) -> (Self::BigUint, Self::BigUint) {
+        let last_recorded_block_nonce = self.last_recorded_block_nonce().get();
+
+        if last_recorded_block_nonce == self.blockchain().get_block_nonce() {
+            (
+                self.pair_virtual_reserve(token_side_id, first_token_id)
+                    .get(),
+                self.pair_virtual_reserve(token_side_id, second_token_id)
+                    .get(),
+            )
+        } else {
+            (
+                self.pair_reserve(first_token_id).get(),
+                self.pair_reserve(second_token_id).get(),
+            )
+        }
     }
 
     #[view(getFirstTokenId)]
@@ -251,6 +323,18 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
     #[storage_mapper("reserve")]
     fn pair_reserve(
         &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[view(getLastRecordedBlockNonce)]
+    #[storage_mapper("last_recorded_block_nonce")]
+    fn last_recorded_block_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[view(getVirtualReserve)]
+    #[storage_mapper("virtual_reserve")]
+    fn pair_virtual_reserve(
+        &self,
+        token_side_id: &TokenIdentifier,
         token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
