@@ -178,9 +178,20 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         self.pair_reserve(token_id).set(&new_value);
     }
 
+    fn try_decrease_token_reserve(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &Self::BigUint,
+    ) -> SCResult<()> {
+        let old_value = self.pair_reserve(token_id).get();
+        require!(&old_value > amount, "Not enough reserves");
+        self.pair_reserve(token_id).set(&(&old_value - amount));
+        Ok(())
+    }
+
     fn decrease_token_reserve(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
-        let new_value = &self.pair_reserve(token_id).get() - amount;
-        self.pair_reserve(token_id).set(&new_value);
+        let old_value = self.pair_reserve(token_id).get();
+        self.pair_reserve(token_id).set(&(&old_value - amount));
     }
 
     fn get_token_for_given_position(
@@ -222,6 +233,16 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         self.calculate_k_constant(&first_token_amount, &second_token_amount)
     }
 
+    fn calculate_k_for_virtual_reserves(&self, token_side_id: &TokenIdentifier) -> Self::BigUint {
+        let first_token_amount = self
+            .pair_virtual_reserve(token_side_id, &self.first_token_id().get())
+            .get();
+        let second_token_amount = self
+            .pair_virtual_reserve(token_side_id, &self.second_token_id().get())
+            .get();
+        self.calculate_k_constant(&first_token_amount, &second_token_amount)
+    }
+
     fn swap_safe_no_fee(
         &self,
         first_token_id: &TokenIdentifier,
@@ -230,8 +251,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         amount_in: &Self::BigUint,
     ) -> Self::BigUint {
         let big_zero = Self::BigUint::zero();
-        let first_token_reserve = self.pair_reserve(first_token_id).get();
-        let second_token_reserve = self.pair_reserve(second_token_id).get();
+        let first_token_reserve = self.pair_virtual_reserve(token_in, first_token_id).get();
+        let second_token_reserve = self.pair_virtual_reserve(token_in, second_token_id).get();
 
         let (token_in, mut reserve_in, token_out, mut reserve_out) = if token_in == first_token_id {
             (
@@ -258,9 +279,15 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             return big_zero;
         }
 
+        if self.pair_reserve(token_out).get() <= amount_out {
+            return big_zero;
+        }
+
         reserve_in += amount_in;
         reserve_out -= &amount_out;
-        self.set_reserves(token_in, token_out, &reserve_in, &reserve_out);
+        self.set_virtual_reserves(token_in, token_in, token_out, &reserve_in, &reserve_out);
+        self.increase_token_reserve(token_in, &reserve_in);
+        self.decrease_token_reserve(token_out, &reserve_out);
 
         amount_out
     }

@@ -342,14 +342,14 @@ pub trait Pair:
             "Invalid token out"
         );
 
-        let old_k = self.calculate_k_for_reserves();
+        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
 
         let amount_out =
             self.swap_safe_no_fee(&first_token_id, &second_token_id, &token_in, &amount_in);
         require!(amount_out > 0, "Zero output");
 
         // A swap should not decrease the value of K. Should either be greater or equal.
-        let new_k = self.calculate_k_for_reserves();
+        let new_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.validate_k_invariant(&old_k, &new_k)?;
 
         self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
@@ -379,7 +379,7 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Pair: Invalid token out"
         );
-        let old_k = self.calculate_k_for_reserves();
+        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.update_virtual_reserves_on_block_change();
 
         let mut reserve_token_out = self.pair_virtual_reserve(&token_in, &token_out).get();
@@ -420,10 +420,10 @@ pub trait Pair:
             &reserve_token_out,
         );
         self.increase_token_reserve(&token_in, &amount_in_after_fee);
-        self.decrease_token_reserve(&token_out, &amount_out_optimal);
+        self.try_decrease_token_reserve(&token_out, &amount_out_optimal)?;
 
         // A swap should not decrease the value of K. Should either be greater or equal.
-        let new_k = self.calculate_k_for_reserves();
+        let new_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.validate_k_invariant(&old_k, &new_k)?;
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
@@ -464,7 +464,7 @@ pub trait Pair:
             "Pair: Invalid token out"
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
-        let old_k = self.calculate_k_for_reserves();
+        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.update_virtual_reserves_on_block_change();
 
         let mut reserve_token_out = self.pair_virtual_reserve(&token_in, &token_out).get();
@@ -501,10 +501,10 @@ pub trait Pair:
             &reserve_token_out,
         );
         self.increase_token_reserve(&token_in, &amount_in_optimal_after_fee);
-        self.decrease_token_reserve(&token_out, &amount_out);
+        self.try_decrease_token_reserve(&token_out, &amount_out)?;
 
         // A swap should not decrease the value of K. Should either be greater or equal.
-        let new_k = self.calculate_k_for_reserves();
+        let new_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.validate_k_invariant(&old_k, &new_k)?;
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
