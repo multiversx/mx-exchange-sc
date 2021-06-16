@@ -379,8 +379,8 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Pair: Invalid token out"
         );
-        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.update_virtual_reserves_on_block_change();
+        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
 
         let mut reserve_token_out = self.pair_virtual_reserve(&token_in, &token_out).get();
         require!(
@@ -464,8 +464,8 @@ pub trait Pair:
             "Pair: Invalid token out"
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
-        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
         self.update_virtual_reserves_on_block_change();
+        let old_k = self.calculate_k_for_virtual_reserves(&token_in);
 
         let mut reserve_token_out = self.pair_virtual_reserve(&token_in, &token_out).get();
         require!(
