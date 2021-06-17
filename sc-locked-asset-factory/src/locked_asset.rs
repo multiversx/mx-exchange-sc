@@ -7,6 +7,7 @@ type Epoch = u64;
 use distrib_common::UnlockMilestone;
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
+const PERCENTAGE_TOTAL: u64 = 100;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
 pub struct UnlockSchedule {
@@ -99,7 +100,7 @@ pub trait LockedAssetModule: asset::AssetModule {
     ) -> Self::BigUint {
         amount
             * &Self::BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
-            / Self::BigUint::from(100u64)
+            / Self::BigUint::from(PERCENTAGE_TOTAL)
     }
 
     fn get_unlock_percent(
@@ -124,7 +125,7 @@ pub trait LockedAssetModule: asset::AssetModule {
     ) -> Vec<UnlockMilestone> {
         let mut new_unlock_milestones = Vec::<UnlockMilestone>::new();
         let unlock_percent = self.get_unlock_percent(current_epoch, old_unlock_milestones);
-        let unlock_percent_remaining = 100u64 - (unlock_percent as u64);
+        let unlock_percent_remaining = PERCENTAGE_TOTAL - (unlock_percent as u64);
 
         if unlock_percent_remaining == 0 {
             return new_unlock_milestones;
@@ -132,8 +133,9 @@ pub trait LockedAssetModule: asset::AssetModule {
 
         for old_milestone in old_unlock_milestones.iter() {
             if old_milestone.unlock_epoch > current_epoch {
-                let new_unlock_percent: u64 =
-                    (old_milestone.unlock_percent as u64) * 100u64 / unlock_percent_remaining;
+                let new_unlock_percent: u64 = (old_milestone.unlock_percent as u64)
+                    * PERCENTAGE_TOTAL
+                    / unlock_percent_remaining;
                 new_unlock_milestones.push(UnlockMilestone {
                     unlock_epoch: old_milestone.unlock_epoch,
                     unlock_percent: new_unlock_percent as u8,
@@ -145,7 +147,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         for new_milestone in new_unlock_milestones.iter() {
             sum_of_new_percents += new_milestone.unlock_percent;
         }
-        new_unlock_milestones[0].unlock_percent += 100 - sum_of_new_percents;
+        new_unlock_milestones[0].unlock_percent += PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
         new_unlock_milestones
     }
 
@@ -159,6 +161,8 @@ pub trait LockedAssetModule: asset::AssetModule {
         &self,
         unlock_milestones: &VarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
+        require!(!unlock_milestones.is_empty(), "Empty param");
+
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
@@ -175,9 +179,7 @@ pub trait LockedAssetModule: asset::AssetModule {
             percents_sum += milestone.unlock_percent;
         }
 
-        if !unlock_milestones.is_empty() {
-            require!(percents_sum == 100, "Percents do not sum up to 100");
-        }
+        require!(percents_sum == 100, "Percents do not sum up to 100");
         Ok(())
     }
 
@@ -188,6 +190,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         Ok(())
     }
 
+    #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 

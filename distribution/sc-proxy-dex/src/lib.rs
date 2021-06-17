@@ -18,9 +18,27 @@ pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule + proxy_farm::ProxyFarmModule
 {
     #[init]
-    fn init(&self, asset_token_id: TokenIdentifier, locked_asset_token_id: TokenIdentifier) {
+    fn init(
+        &self,
+        asset_token_id: TokenIdentifier,
+        locked_asset_token_id: TokenIdentifier,
+    ) -> SCResult<()> {
+        require!(
+            asset_token_id.is_valid_esdt_identifier(),
+            "Asset token ID is not a valid esdt identifier"
+        );
+        require!(
+            locked_asset_token_id.is_valid_esdt_identifier(),
+            "Locked asset token ID is not a valid esdt identifier"
+        );
+        require!(
+            asset_token_id != locked_asset_token_id,
+            "Locked asset token ID cannot be the same as Asset token ID"
+        );
+
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_token_id().set(&locked_asset_token_id);
+        Ok(())
     }
 
     #[payable("EGLD")]

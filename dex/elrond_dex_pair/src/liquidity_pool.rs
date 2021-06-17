@@ -28,7 +28,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             let minimum_liquidity = Self::BigUint::from(MINIMUM_LIQUIDITY);
             require!(
                 liquidity > minimum_liquidity,
-                "Pair: first tokens needs to be greater than minimum liquidity"
+                "First tokens needs to be greater than minimum liquidity"
             );
             liquidity -= &minimum_liquidity;
             total_supply = minimum_liquidity;
@@ -38,7 +38,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
                 (&second_token_amount * &total_supply) / second_token_reserve.clone(),
             );
         }
-        require!(liquidity > 0, "Pair: insufficient_liquidity_minted");
+        require!(liquidity > 0, "Insufficient liquidity minted");
 
         total_supply += liquidity.clone();
         self.total_supply().set(&total_supply);
@@ -64,8 +64,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
     ) -> SCResult<Self::BigUint> {
         let mut reserve = self.pair_reserve(token).get();
         let amount = (liquidity * &reserve) / total_supply.clone();
-        require!(amount > 0, "Pair: insufficient_liquidity_burned");
-        require!(&amount >= amount_min, "Pair: insufficient_liquidity_burned");
+        require!(amount > 0, "Insufficient liquidity burned");
+        require!(&amount >= amount_min, "Insufficient liquidity burned");
         require!(reserve > amount, "Not enough reserve");
 
         reserve -= &amount;
@@ -127,7 +127,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         if second_token_amount_optimal <= second_token_amount_desired {
             require!(
                 second_token_amount_optimal >= second_token_amount_min,
-                "Pair: insufficient second token computed amount"
+                "Insufficient second token computed amount"
             );
             Ok((first_token_amount_desired, second_token_amount_optimal))
         } else {
@@ -138,11 +138,11 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             );
             require!(
                 first_token_amount_optimal <= first_token_amount_desired,
-                "Pair: optimal amount greater than desired amount"
+                "Optimal amount greater than desired amount"
             );
             require!(
                 first_token_amount_optimal >= first_token_amount_min,
-                "Pair: insufficient first token computed amount"
+                "Insufficient first token computed amount"
             );
             Ok((first_token_amount_optimal, second_token_amount_desired))
         }
