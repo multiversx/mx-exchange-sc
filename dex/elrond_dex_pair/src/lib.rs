@@ -99,10 +99,7 @@ pub trait Pair:
             self.call_value().esdt_token_nonce() == 0,
             "Only fungible tokens are accepted in liquidity pools"
         );
-        require!(
-            payment > 0,
-            "PAIR: Funds transfer must be a positive number"
-        );
+        require!(payment > 0, "Funds transfer must be a positive number");
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         require!(
@@ -711,8 +708,8 @@ pub trait Pair:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let (first_token_reserve, second_token_reserve) =
-            self.get_reserves_for_current_block(&token_in, &first_token_id, &second_token_id);
+        let first_token_reserve = self.pair_reserve(&first_token_id).get();
+        let second_token_reserve = self.pair_reserve(&second_token_id).get();
 
         if first_token_reserve == 0 || second_token_reserve == 0 {
             return Ok(zero);

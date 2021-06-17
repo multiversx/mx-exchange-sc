@@ -286,8 +286,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         reserve_in += amount_in;
         reserve_out -= &amount_out;
         self.set_virtual_reserves(token_in, token_in, token_out, &reserve_in, &reserve_out);
-        self.increase_token_reserve(token_in, &reserve_in);
-        self.decrease_token_reserve(token_out, &reserve_out);
+        self.increase_token_reserve(token_in, amount_in);
+        self.decrease_token_reserve(token_out, &amount_out);
 
         amount_out
     }
