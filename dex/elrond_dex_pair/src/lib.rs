@@ -362,8 +362,8 @@ pub trait Pair:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn swapTokensFixedInput(
+    #[endpoint(swapTokensFixedInput)]
+    fn swap_tokens_fixed_input(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment_amount] amount_in: Self::BigUint,
@@ -440,8 +440,8 @@ pub trait Pair:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn swapTokensFixedOutput(
+    #[endpoint(swapTokensFixedOutput)]
+    fn swap_tokens_fixed_output(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment_amount] amount_in_max: Self::BigUint,

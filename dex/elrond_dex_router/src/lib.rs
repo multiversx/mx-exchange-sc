@@ -61,7 +61,7 @@ pub trait Router:
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(pair_address == Address::zero(), "Pair already exists");
+        require!(pair_address.is_none(), "Pair already exists");
 
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;

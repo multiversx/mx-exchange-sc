@@ -41,27 +41,20 @@ pub trait UtilModule {
                 }
             };
 
-            let result = self.send().direct_esdt_execute(
+            let _ = self.send().direct_esdt_execute(
                 destination,
                 token,
                 amount,
                 gas_limit,
                 function,
                 &ArgBuffer::new(),
-            );
-
-            match result {
-                Result::Ok(_) => Ok(()),
-                Result::Err(_) => {
-                    sc_error!("Direct esdt nft execute failed")
-                }
-            }
-        } else {
-            Ok(())
+            )?;
         }
+
+        Ok(())
     }
 
-    #[endpoint]
+    #[endpoint(setTransferExecGasLimit)]
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
         self.require_owner()?;
         self.transfer_exec_gas_limit().set(&gas_limit);
