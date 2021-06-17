@@ -35,6 +35,7 @@ pub trait ConfigModule {
     #[endpoint]
     fn set_locked_rewards_apr_multiplier(&self, muliplier: u8) -> SCResult<()> {
         self.require_permissions()?;
+        require!(muliplier > 0, "Multiplier cannot be zero");
         self.locked_rewards_apr_multiplier().set(&muliplier);
         Ok(())
     }

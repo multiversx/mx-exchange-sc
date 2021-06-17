@@ -195,6 +195,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
+        require!(amount > 0, "Payment amount cannot be zero");
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         require!(
