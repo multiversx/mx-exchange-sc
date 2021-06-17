@@ -315,6 +315,8 @@ pub trait Router: factory::FactoryModule {
     ) {
         match result {
             AsyncCallResult::Ok(()) => {
+                self.last_error_message().clear();
+
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .setLpTokenIdentifier(token_id)

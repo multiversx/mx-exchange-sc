@@ -214,10 +214,12 @@ pub trait LockedAssetFactory:
     fn issue_nft_callback(&self, #[call_result] result: AsyncCallResult<TokenIdentifier>) {
         match result {
             AsyncCallResult::Ok(token_id) => {
+                self.last_error_message().clear();
                 self.locked_asset_token_id().set(&token_id);
             }
-            AsyncCallResult::Err(_) => {
-                // return payment to initial caller, which can only be the owner
+            AsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+
                 let (payment, token_id) = self.call_value().payment_token_pair();
                 self.send().direct(
                     &self.blockchain().get_owner_address(),
@@ -245,7 +247,20 @@ pub trait LockedAssetFactory:
         let token = self.locked_asset_token_id().get();
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(&address, &token, roles.as_slice())
-            .async_call())
+            .async_call()
+            .with_callback(self.callbacks().change_roles_callback()))
+    }
+
+    #[callback]
+    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+        match result {
+            AsyncCallResult::Ok(()) => {
+                self.last_error_message().clear();
+            }
+            AsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+            }
+        }
     }
 
     fn create_default_unlock_schedule(&self, start_epoch: Epoch) -> UnlockSchedule {
@@ -261,6 +276,10 @@ pub trait LockedAssetFactory:
                 .collect(),
         }
     }
+
+    #[view(getLastErrorMessage)]
+    #[storage_mapper("last_error_message")]
+    fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 
     #[view(getInitEpoch)]
     #[storage_mapper("init_epoch")]
