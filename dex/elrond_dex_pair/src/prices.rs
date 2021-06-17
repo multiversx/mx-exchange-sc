@@ -76,11 +76,14 @@ pub trait PricesModule {
             observation_block: current_block,
         };
 
-        if self.price_observations().len() < OBSERVATIONS_MAX_LEN {
+        let len = self.price_observations().len();
+        if len < OBSERVATIONS_MAX_LEN {
             self.price_observations().push(&observation);
+            self.last_price_observation_index().set(&len);
         } else {
             let new_obs_index = (last_obs_index + 1) % OBSERVATIONS_MAX_LEN;
             self.price_observations().set(new_obs_index, &observation);
+            self.last_price_observation_index().set(&new_obs_index);
         }
     }
 
