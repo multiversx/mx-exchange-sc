@@ -574,6 +574,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
     ) {
         match result {
             AsyncCallResult::Ok(token_id) => {
+                self.last_error_message().clear();
+
                 if self.farm_token_id().is_empty() {
                     self.farm_token_id().set(&token_id);
                 }
