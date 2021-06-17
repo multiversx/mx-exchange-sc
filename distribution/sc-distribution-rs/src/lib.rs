@@ -292,16 +292,15 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
             }
         }
 
-        let mut removed = 0;
+        let map_len_before = self.user_locked_asset_map().len();
         for key in to_remove_keys.iter() {
             if self.blockchain().get_gas_left() < GAS_THRESHOLD {
                 break;
             }
 
-            removed += 1;
             self.user_locked_asset_map().remove(key);
         }
-        removed
+        map_len_before - self.user_locked_asset_map().len()
     }
 
     fn require_community_distribution_list_not_empty(&self) -> SCResult<()> {
