@@ -26,7 +26,14 @@ pub trait LockedAssetFactory:
         asset_token_id: TokenIdentifier,
         #[var_args] default_unlock_period: VarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
-        require!(!default_unlock_period.is_empty(), "Empty param");
+        require!(
+            asset_token_id.is_valid_esdt_identifier(),
+            "Asset token ID is not a valid esdt identifier"
+        );
+        require!(
+            asset_token_id != self.locked_asset_token_id().get(),
+            "Asset token ID cannot be the same as Locked asset token ID"
+        );
         self.validate_unlock_milestones(&default_unlock_period)?;
 
         self.transfer_exec_gas_limit()
@@ -43,7 +50,8 @@ pub trait LockedAssetFactory:
     fn whitelist(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "Permission denied");
 
-        self.whitelisted_contracts().insert(address);
+        let is_new = self.whitelisted_contracts().insert(address);
+        require!(is_new, "Address already whitelisted");
         Ok(())
     }
 
@@ -51,7 +59,8 @@ pub trait LockedAssetFactory:
     fn remove_whitelist(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "Permission denied");
 
-        self.whitelisted_contracts().remove(&address);
+        let is_removed = self.whitelisted_contracts().remove(&address);
+        require!(is_removed, "Addresss not whitelisted");
         Ok(())
     }
 
