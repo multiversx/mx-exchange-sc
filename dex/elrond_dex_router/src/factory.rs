@@ -140,17 +140,13 @@ pub trait FactoryModule: util::UtilModule {
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) -> Option<Address> {
-        let address = self
-            .pair_map()
-            .get(&PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            });
+        let address = self.pair_map().get(&PairTokens {
+            first_token_id: first_token_id.clone(),
+            second_token_id: second_token_id.clone(),
+        });
 
         if address.is_none() {
-            self
-            .pair_map()
-            .get(&PairTokens {
+            self.pair_map().get(&PairTokens {
                 first_token_id: second_token_id,
                 second_token_id: first_token_id,
             })

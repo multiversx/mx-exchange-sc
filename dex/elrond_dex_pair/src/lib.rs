@@ -11,6 +11,7 @@ mod amm;
 mod config;
 mod fee;
 mod liquidity_pool;
+mod prices;
 
 use config::State;
 use dex_common::FftTokenAmountPair;
@@ -31,7 +32,11 @@ type SwapTokensFixedOutputResultType<BigUint> =
 
 #[elrond_wasm_derive::contract]
 pub trait Pair:
-    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule
+    amm::AmmModule
+    + fee::FeeModule
+    + liquidity_pool::LiquidityPoolModule
+    + config::ConfigModule
+    + prices::PricesModule
 {
     #[init]
     fn init(
@@ -74,8 +79,6 @@ pub trait Pair:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.extern_swap_gas_limit()
             .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
-        self.price_record_start_block()
-            .set_if_empty(&self.blockchain().get_block_nonce());
 
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);
@@ -119,10 +122,7 @@ pub trait Pair:
             self.call_value().esdt_token_nonce() == 0,
             "Only fungible tokens are accepted in liquidity pools"
         );
-        require!(
-            payment > 0,
-            "Funds transfer must be a positive number"
-        );
+        require!(payment > 0, "Funds transfer must be a positive number");
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         require!(
@@ -399,7 +399,6 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Invalid token out"
         );
-        self.update_weighted_price_feed(&first_token_id, &second_token_id);
         let old_k = self.calculate_k_for_reserves();
 
         let mut reserve_token_out = self.pair_reserve(&token_out).get();
@@ -479,7 +478,6 @@ pub trait Pair:
             "Invalid token out"
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
-        self.update_weighted_price_feed(&first_token_id, &second_token_id);
         let old_k = self.calculate_k_for_reserves();
 
         let mut reserve_token_out = self.pair_reserve(&token_out).get();

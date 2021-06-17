@@ -6,7 +6,6 @@ use super::config;
 use dex_common::FftTokenAmountPair;
 
 const MINIMUM_LIQUIDITY: u64 = 1_000;
-const PRICE_DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 
 #[elrond_wasm_derive::module]
 pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
@@ -240,43 +239,6 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         amount_out
     }
 
-    fn update_weighted_price_feed(
-        &self,
-        first_token_id: &TokenIdentifier,
-        second_token_id: &TokenIdentifier,
-    ) {
-        let current_block = self.blockchain().get_block_nonce();
-        let last_record_block = self.last_price_record_block().get();
-        let start_record_block = self.price_record_start_block().get();
-
-        if last_record_block - current_block > 0 {
-            let first_token_reserve = self.pair_reserve(first_token_id).get();
-            let second_token_reserve = self.pair_reserve(second_token_id).get();
-
-            let division_safety_constant = Self::BigUint::from(PRICE_DIVISION_SAFETY_CONSTANT);
-            let blocks_from_last_to_current =
-                Self::BigUint::from(current_block - last_record_block);
-            let blocks_recorded_from_start_to_last =
-                Self::BigUint::from(last_record_block - start_record_block);
-
-            let weighted_price_first_token = &self.weighted_average_price(first_token_id).get()
-                * &blocks_recorded_from_start_to_last
-                + &(&second_token_reserve * &division_safety_constant
-                    / first_token_reserve.clone())
-                    * &blocks_from_last_to_current;
-
-            let weighted_price_second_token = &self.weighted_average_price(second_token_id).get()
-                * &blocks_recorded_from_start_to_last
-                + &(&second_token_reserve * &division_safety_constant / first_token_reserve)
-                    * &blocks_from_last_to_current;
-
-            self.weighted_average_price(first_token_id)
-                .set(&weighted_price_first_token);
-            self.weighted_average_price(second_token_id)
-                .set(&weighted_price_second_token);
-        }
-    }
-
     #[view(getFirstTokenId)]
     #[storage_mapper("first_token_id")]
     fn first_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
@@ -295,19 +257,4 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
     #[view(getTotalSupply)]
     #[storage_mapper("total_supply")]
     fn total_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
-
-    #[view(getWeightedAveragePrice)]
-    #[storage_mapper("weighted_average_price")]
-    fn weighted_average_price(
-        &self,
-        token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
-
-    #[view(priceRecordStartBlock)]
-    #[storage_mapper("price_record_start_block")]
-    fn price_record_start_block(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(lastPriceRecordedBlock)]
-    #[storage_mapper("last_price_record_block")]
-    fn last_price_record_block(&self) -> SingleValueMapper<Self::Storage, u64>;
 }
