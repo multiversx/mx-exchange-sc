@@ -22,7 +22,7 @@
 			},
 			"expect": {
 				"out": [
-					"u1|sc:pair_contract"
+					"0x01|sc:pair_contract"
 				],
 				"status": "0",
 				"message": "",
@@ -47,7 +47,7 @@
 			},
 			"expect": {
 				"out": [
-					"u1|sc:pair_contract"
+					"0x01|sc:pair_contract"
 				],
 				"status": "0",
 				"message": "",
