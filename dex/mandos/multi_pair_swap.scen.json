@@ -10,23 +10,31 @@
 			"txId": "swap-fixed-input",
 			"tx": {
 				"from": "address:user2",
-				"to": "sc:pair_contract",
+				"to": "sc:router_contract",
 				"value": "0",
-				"function": "swapTokensFixedInput",
+				"function": "multiPairSwap",
 				"esdt": {
 					"tokenIdentifier": "str:ALC-abcdef",
 					"value": "100,000"
 				},
 				"arguments": [
+					"sc:pair_contract",
+					"str:swapTokensFixedInput",
 					"str:WEGLD-abcdef",
+					"50,000",
+					"sc:pair_contract",
+					"str:swapTokensFixedOutput",
+					"str:ALC-abcdef",
 					"50,000"
 				],
-				"gasLimit": "100,000,000",
+				"gasLimit": "1,000,000,000",
 				"gasPrice": "0"
 			},
 			"expect": {
 				"out": [
-					"0x0000000c5745474c442d6162636465660000000301856f"
+					"0x0000000c5745474c442d6162636465660000000301856f",
+					"0x0000000a414c432d61626364656600000002c350",
+					"0x0000000c5745474c442d61626364656600000002c18c"
 				],
 				"status": "0",
 				"message": "",
