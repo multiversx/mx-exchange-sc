@@ -71,7 +71,7 @@ pub trait RewardsModule: config::ConfigModule + token_supply::TokenSupplyModule 
 
     fn update_reward_per_share(&self, reward_increase: &Self::BigUint) {
         let current = self.reward_per_share().get();
-        let farm_token_supply = self.farm_token_supply().get();
+        let farm_token_supply = self.get_farm_token_supply();
 
         if farm_token_supply > 0 {
             let increase = self.calculate_reward_per_share_increase(reward_increase);
@@ -86,7 +86,7 @@ pub trait RewardsModule: config::ConfigModule + token_supply::TokenSupplyModule 
         &self,
         reward_increase: &Self::BigUint,
     ) -> Self::BigUint {
-        reward_increase * &self.division_safety_constant().get() / self.farm_token_supply().get()
+        reward_increase * &self.division_safety_constant().get() / self.get_farm_token_supply()
     }
 
     fn calculate_reward(

@@ -614,7 +614,7 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
-        let total_supply = self.total_supply().get();
+        let total_supply = self.get_total_lp_token_supply();
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
 
@@ -737,7 +737,4 @@ pub trait Pair:
         caller: &Address,
         token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
-
-    #[storage_mapper("lpTokenIdentifier")]
-    fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }

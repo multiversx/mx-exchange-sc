@@ -486,7 +486,7 @@ pub trait Farm:
         attributes_raw: BoxedBytes,
     ) -> SCResult<Self::BigUint> {
         require!(amount > 0, "Zero liquidity input");
-        let farm_token_supply = self.farm_token_supply().get();
+        let farm_token_supply = self.get_farm_token_supply();
         require!(farm_token_supply >= amount, "Not enough supply");
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
@@ -668,8 +668,6 @@ pub trait Farm:
         farm_token_id: &TokenIdentifier,
         attributes: &FarmTokenAttributes<Self::BigUint>,
     ) -> Nonce {
-        let amount = self.farm_token_supply().get();
-        self.farm_token_supply().set(&(&amount + farm_amount));
         self.nft_create_tokens(farm_token_id, farm_amount, attributes);
         self.increase_nonce()
     }
@@ -680,9 +678,8 @@ pub trait Farm:
         farm_token_nonce: Nonce,
         amount: &Self::BigUint,
     ) -> SCResult<()> {
-        let farm_amount = self.farm_token_supply().get();
+        let farm_amount = self.get_farm_token_supply();
         require!(&farm_amount >= amount, "Not enough supply");
-        self.farm_token_supply().set(&(&farm_amount - amount));
         self.nft_burn_tokens(farm_token_id, farm_token_nonce, amount);
         Ok(())
     }

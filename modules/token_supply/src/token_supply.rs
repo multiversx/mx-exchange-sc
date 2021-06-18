@@ -64,6 +64,13 @@ pub trait TokenSupplyModule {
             .insert(token_id.clone(), &old_amount + amount);
     }
 
+    fn get_total_supply(&self, token_id: &TokenIdentifier) -> SCResult<Self::BigUint> {
+        let generated_amount = self.get_generated_token_amount(token_id);
+        let burned_amount = self.get_burned_token_amount(token_id);
+        require!(generated_amount >= burned_amount, "Negative total supply");
+        Ok(generated_amount - burned_amount)
+    }
+
     #[view(getGeneratedTokenAmountList)]
     fn get_genereated_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, Self::BigUint)> {
         MultiResultVec::from_iter(
@@ -84,16 +91,12 @@ pub trait TokenSupplyModule {
 
     #[view(getGeneratedTokenAmount)]
     fn get_generated_token_amount(&self, token_id: &TokenIdentifier) -> Self::BigUint {
-        self.generated_tokens()
-            .get(token_id)
-            .unwrap_or_else(Self::BigUint::zero)
+        self.generated_tokens().get(token_id).unwrap_or_default()
     }
 
     #[view(getBurnedTokenAmount)]
     fn get_burned_token_amount(&self, token_id: &TokenIdentifier) -> Self::BigUint {
-        self.generated_tokens()
-            .get(token_id)
-            .unwrap_or_else(Self::BigUint::zero)
+        self.generated_tokens().get(token_id).unwrap_or_default()
     }
 
     #[storage_mapper("generated_tokens")]
