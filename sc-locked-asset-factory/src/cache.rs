@@ -7,7 +7,7 @@ use super::locked_asset;
 use super::locked_asset::UnlockSchedule;
 
 #[elrond_wasm_derive::module]
-pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {
+pub trait CacheModule: locked_asset::LockedAssetModule + token_supply::TokenSupplyModule {
     #[inline(always)]
     fn get_sft_nonce_for_unlock_schedule(&self, unlock_schedule: &UnlockSchedule) -> Option<Nonce> {
         self.nonce_cache().get(unlock_schedule)
