@@ -26,7 +26,7 @@ type RemoveLiquidityResultType<BigUint> =
 
 #[elrond_wasm_derive::contract]
 pub trait Pair:
-    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule
+    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule + token_supply::TokenSupplyModule
 {
     #[init]
     fn init(
@@ -204,7 +204,7 @@ pub trait Pair:
         self.validate_k_invariant_strict(&old_k, &new_k)?;
 
         let lp_token_id = self.lp_token_identifier().get();
-        self.send().esdt_local_mint(&lp_token_id, &liquidity);
+        self.mint_tokens(&lp_token_id, &liquidity);
 
         self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
         self.send_tokens(
@@ -311,7 +311,7 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        self.send().esdt_local_burn(&liquidity_token, &liquidity);
+        self.burn_tokens(&liquidity_token, &liquidity);
 
         Ok((
             FftTokenAmountPair {

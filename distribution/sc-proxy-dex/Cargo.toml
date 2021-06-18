@@ -8,7 +8,10 @@ publish = false
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = [ "elrond-wasm-node",]
+wasm-output-mode = [
+  "elrond-wasm-node",
+  "token_supply/wasm-output-mode",
+]
 
 [dependencies.distrib-common]
 path = "../distrib-common"
@@ -22,6 +25,8 @@ path = "../../dex/elrond_dex_pair"
 [dependencies.elrond_dex_farm]
 path = "../../dex/elrond_dex_farm"
 
+[dependencies.token_supply]
+path = "../../modules/token_supply"
 
 [dependencies.elrond-wasm]
 version = "0.17"

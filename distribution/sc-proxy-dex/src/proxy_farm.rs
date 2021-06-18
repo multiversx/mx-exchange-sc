@@ -21,7 +21,9 @@ type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
 #[elrond_wasm_derive::module]
-pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule {
+pub trait ProxyFarmModule:
+    proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule + token_supply::TokenSupplyModule
+{
     #[proxy]
     fn farm_contract_proxy(&self, to: Address) -> elrond_dex_farm::Proxy<Self::SendApi>;
 
@@ -174,9 +176,9 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
         );
-        self.send().esdt_nft_burn(&token_id, token_nonce, &amount);
+        self.nft_burn_tokens(&token_id, token_nonce, &amount);
         if farming_token_returned.token_id == self.asset_token_id().get() {
-            self.send().esdt_local_burn(
+            self.burn_tokens(
                 &farming_token_returned.token_id,
                 &farming_token_returned.amount,
             );
@@ -258,7 +260,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
             &new_farm_token_total_amount,
             &caller,
         );
-        self.send().esdt_nft_burn(&token_id, token_nonce, &amount);
+        self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
         Ok(())
     }
@@ -302,15 +304,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
         attributes: &WrappedFarmTokenAttributes,
         amount: &Self::BigUint,
     ) {
-        self.send().esdt_nft_create::<WrappedFarmTokenAttributes>(
-            token_id,
-            amount,
-            &BoxedBytes::empty(),
-            &Self::BigUint::zero(),
-            &BoxedBytes::empty(),
-            attributes,
-            &[BoxedBytes::empty()],
-        );
+        self.nft_create_tokens(token_id, amount, attributes);
         self.increase_wrapped_farm_token_nonce();
     }
 
@@ -323,7 +317,7 @@ pub trait ProxyFarmModule: proxy_common::ProxyCommonModule + proxy_pair::ProxyPa
     ) -> EnterFarmResultType<Self::BigUint> {
         let asset_token_id = self.asset_token_id().get();
         if farming_token_id == &asset_token_id {
-            self.send().esdt_local_mint(&asset_token_id, amount);
+            self.mint_tokens(&asset_token_id, amount);
         }
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())

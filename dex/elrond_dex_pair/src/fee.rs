@@ -26,7 +26,7 @@ mod farm_proxy {
 
 #[elrond_wasm_derive::module]
 pub trait FeeModule:
-    config::ConfigModule + liquidity_pool::LiquidityPoolModule + amm::AmmModule
+    config::ConfigModule + liquidity_pool::LiquidityPoolModule + amm::AmmModule + token_supply::TokenSupplyModule
 {
     #[proxy]
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
@@ -302,7 +302,7 @@ pub trait FeeModule:
     ) {
         if amount > &0 {
             if destination == &Address::zero() {
-                self.send().esdt_local_burn(token, amount);
+                self.burn_tokens(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
                     .acceptFee(token.clone(), amount.clone())

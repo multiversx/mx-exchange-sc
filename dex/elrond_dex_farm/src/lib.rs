@@ -33,7 +33,7 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
 }
 
 #[elrond_wasm_derive::contract]
-pub trait Farm: rewards::RewardsModule + config::ConfigModule {
+pub trait Farm: rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
 
@@ -221,15 +221,13 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
             let mut penalty_amount = self.get_penalty_amount(&reward);
             if penalty_amount > 0 {
-                self.send()
-                    .esdt_local_burn(&reward_token_id, &penalty_amount);
+                self.burn_tokens(&reward_token_id, &penalty_amount);
                 reward -= penalty_amount;
             }
 
             penalty_amount = self.get_penalty_amount(&farming_token_amount);
             if penalty_amount > 0 {
-                self.send()
-                    .esdt_local_burn(&farming_token_id, &penalty_amount);
+                self.burn_tokens(&farming_token_id, &penalty_amount);
                 farming_token_amount -= penalty_amount;
             }
         }
@@ -381,7 +379,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
-                self.send().esdt_local_burn(reward_token_id, reward_amount);
+                self.burn_tokens(reward_token_id, reward_amount);
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
                 let result = self
                     .locked_asset_factory(locked_asset_factory_address)
@@ -670,16 +668,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
     ) -> Nonce {
         let amount = self.farm_token_supply().get();
         self.farm_token_supply().set(&(&amount + farm_amount));
-        self.send()
-            .esdt_nft_create::<FarmTokenAttributes<Self::BigUint>>(
-                farm_token_id,
-                farm_amount,
-                &BoxedBytes::empty(),
-                &Self::BigUint::zero(),
-                &BoxedBytes::empty(),
-                attributes,
-                &[BoxedBytes::empty()],
-            );
+        self.nft_create_tokens(farm_token_id, farm_amount, attributes);
         self.increase_nonce()
     }
 
@@ -692,8 +681,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         let farm_amount = self.farm_token_supply().get();
         require!(&farm_amount >= amount, "Not enough supply");
         self.farm_token_supply().set(&(&farm_amount - amount));
-        self.send()
-            .esdt_nft_burn(farm_token_id, farm_token_nonce, amount);
+        self.nft_burn_tokens(farm_token_id, farm_token_nonce, amount);
         Ok(())
     }
 
