@@ -47,8 +47,25 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         division_safety_constant: Self::BigUint,
     ) -> SCResult<()> {
         require!(
+            reward_token_id.is_valid_esdt_identifier(),
+            "Reward token ID is not a valid esdt identifier"
+        );
+        require!(
+            farming_token_id.is_valid_esdt_identifier(),
+            "Farming token ID is not a valid esdt identifier"
+        );
+        require!(
             division_safety_constant != 0,
             "Division constant cannot be 0"
+        );
+        let farm_token = self.farm_token_id().get();
+        require!(
+            reward_token_id != farm_token,
+            "Reward token ID cannot be farm token ID"
+        );
+        require!(
+            farming_token_id != farm_token,
+            "Farming token ID cannot be farm token ID"
         );
 
         self.state().set_if_empty(&State::Active);
@@ -178,6 +195,7 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
+        require!(amount > 0, "Payment amount cannot be zero");
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         require!(
@@ -556,6 +574,8 @@ pub trait Farm: rewards::RewardsModule + config::ConfigModule {
     ) {
         match result {
             AsyncCallResult::Ok(token_id) => {
+                self.last_error_message().clear();
+
                 if self.farm_token_id().is_empty() {
                     self.farm_token_id().set(&token_id);
                 }

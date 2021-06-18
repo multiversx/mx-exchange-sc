@@ -26,7 +26,14 @@ pub trait LockedAssetFactory:
         asset_token_id: TokenIdentifier,
         #[var_args] default_unlock_period: VarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
-        require!(!default_unlock_period.is_empty(), "Empty param");
+        require!(
+            asset_token_id.is_valid_esdt_identifier(),
+            "Asset token ID is not a valid esdt identifier"
+        );
+        require!(
+            asset_token_id != self.locked_asset_token_id().get(),
+            "Asset token ID cannot be the same as Locked asset token ID"
+        );
         self.validate_unlock_milestones(&default_unlock_period)?;
 
         self.transfer_exec_gas_limit()
@@ -43,7 +50,8 @@ pub trait LockedAssetFactory:
     fn whitelist(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "Permission denied");
 
-        self.whitelisted_contracts().insert(address);
+        let is_new = self.whitelisted_contracts().insert(address);
+        require!(is_new, "Address already whitelisted");
         Ok(())
     }
 
@@ -51,7 +59,8 @@ pub trait LockedAssetFactory:
     fn remove_whitelist(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "Permission denied");
 
-        self.whitelisted_contracts().remove(&address);
+        let is_removed = self.whitelisted_contracts().remove(&address);
+        require!(is_removed, "Addresss not whitelisted");
         Ok(())
     }
 
@@ -205,10 +214,12 @@ pub trait LockedAssetFactory:
     fn issue_nft_callback(&self, #[call_result] result: AsyncCallResult<TokenIdentifier>) {
         match result {
             AsyncCallResult::Ok(token_id) => {
+                self.last_error_message().clear();
                 self.locked_asset_token_id().set(&token_id);
             }
-            AsyncCallResult::Err(_) => {
-                // return payment to initial caller, which can only be the owner
+            AsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+
                 let (payment, token_id) = self.call_value().payment_token_pair();
                 self.send().direct(
                     &self.blockchain().get_owner_address(),
@@ -236,7 +247,20 @@ pub trait LockedAssetFactory:
         let token = self.locked_asset_token_id().get();
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .set_special_roles(&address, &token, roles.as_slice())
-            .async_call())
+            .async_call()
+            .with_callback(self.callbacks().change_roles_callback()))
+    }
+
+    #[callback]
+    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+        match result {
+            AsyncCallResult::Ok(()) => {
+                self.last_error_message().clear();
+            }
+            AsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+            }
+        }
     }
 
     fn create_default_unlock_schedule(&self, start_epoch: Epoch) -> UnlockSchedule {
@@ -252,6 +276,10 @@ pub trait LockedAssetFactory:
                 .collect(),
         }
     }
+
+    #[view(getLastErrorMessage)]
+    #[storage_mapper("last_error_message")]
+    fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
 
     #[view(getInitEpoch)]
     #[storage_mapper("init_epoch")]

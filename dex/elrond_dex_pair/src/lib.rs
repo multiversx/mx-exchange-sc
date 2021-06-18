@@ -50,6 +50,19 @@ pub trait Pair:
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
             "Bad percents"
         );
+        require!(
+            first_token_id != second_token_id,
+            "Exchange tokens cannot be the same"
+        );
+        let lp_token_id = self.lp_token_identifier().get();
+        require!(
+            first_token_id != lp_token_id,
+            "First token ID cannot be the same as LP token ID"
+        );
+        require!(
+            second_token_id != lp_token_id,
+            "Second token ID cannot be the same as LP token ID"
+        );
 
         self.state().set_if_empty(&State::ActiveNoSwaps);
         self.transfer_exec_gas_limit()
@@ -99,15 +112,12 @@ pub trait Pair:
             self.call_value().esdt_token_nonce() == 0,
             "Only fungible tokens are accepted in liquidity pools"
         );
-        require!(
-            payment > 0,
-            "PAIR: Funds transfer must be a positive number"
-        );
+        require!(payment > 0, "Funds transfer must be a positive number");
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         require!(
             token == first_token_id || token == second_token_id,
-            "Pair: Invalid token"
+            "Invalid token"
         );
 
         let caller = self.blockchain().get_caller();
@@ -130,11 +140,11 @@ pub trait Pair:
         require!(self.is_active(), "Not active");
         require!(
             first_token_amount_desired > 0,
-            "Pair: insufficient first token funds sent"
+            "Insufficient first token funds sent"
         );
         require!(
             second_token_amount_desired > 0,
-            "Pair: insufficient second token funds sent"
+            "Insufficient second token funds sent"
         );
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -153,19 +163,19 @@ pub trait Pair:
 
         require!(
             temporary_first_token_amount > 0,
-            "Pair: no available first token funds"
+            "No available first token funds"
         );
         require!(
             temporary_second_token_amount > 0,
-            "Pair: no available second token funds"
+            "No available second token funds"
         );
         require!(
             first_token_amount_desired <= temporary_first_token_amount,
-            "Pair: insufficient first token funds to add"
+            "Insufficient first token funds to add"
         );
         require!(
             second_token_amount_desired <= temporary_second_token_amount,
-            "Pair: insufficient second token funds to add"
+            "Insufficient second token funds to add"
         );
 
         let old_k = self.calculate_k_for_reserves();
@@ -271,7 +281,7 @@ pub trait Pair:
         let caller = self.blockchain().get_caller();
         require!(
             liquidity_token == self.lp_token_identifier().get(),
-            "Pair: wrong liquidity token"
+            "Wrong liquidity token"
         );
 
         let old_k = self.calculate_k_for_reserves();
@@ -373,11 +383,11 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         require!(
             token_in == first_token_id || token_in == second_token_id,
-            "Pair: Invalid token in"
+            "Invalid token in"
         );
         require!(
             token_out == first_token_id || token_out == second_token_id,
-            "Pair: Invalid token out"
+            "Invalid token out"
         );
         let old_k = self.calculate_k_for_reserves();
 
@@ -448,11 +458,11 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         require!(
             token_in == first_token_id || token_in == second_token_id,
-            "Pair: Invalid token in"
+            "Invalid token in"
         );
         require!(
             token_out == first_token_id || token_out == second_token_id,
-            "Pair: Invalid token out"
+            "Invalid token out"
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
         let old_k = self.calculate_k_for_reserves();
