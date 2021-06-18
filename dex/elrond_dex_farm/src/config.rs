@@ -59,7 +59,7 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
         let result = self.get_total_supply(&self.farm_token_id().get());
         match result {
             SCResult::Ok(amount) => amount,
-            SCResult::Err(_) => self.send().signal_error(b"Negative supply"),
+            SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
         }
     }
 

@@ -96,7 +96,7 @@ pub trait TokenSupplyModule {
 
     #[view(getBurnedTokenAmount)]
     fn get_burned_token_amount(&self, token_id: &TokenIdentifier) -> Self::BigUint {
-        self.generated_tokens().get(token_id).unwrap_or_default()
+        self.burned_tokens().get(token_id).unwrap_or_default()
     }
 
     #[storage_mapper("generated_tokens")]
