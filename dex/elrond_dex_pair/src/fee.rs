@@ -26,7 +26,10 @@ mod farm_proxy {
 
 #[elrond_wasm_derive::module]
 pub trait FeeModule:
-    config::ConfigModule + liquidity_pool::LiquidityPoolModule + amm::AmmModule + token_supply::TokenSupplyModule
+    config::ConfigModule
+    + liquidity_pool::LiquidityPoolModule
+    + amm::AmmModule
+    + token_supply::TokenSupplyModule
 {
     #[proxy]
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;

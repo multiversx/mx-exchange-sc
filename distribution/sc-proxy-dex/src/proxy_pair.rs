@@ -278,7 +278,7 @@ pub trait ProxyPairModule:
             &caller,
         );
         if unused_minted_assets > 0 {
-            self.burn_tokens(&asset_token_id, &&unused_minted_assets);
+            self.burn_tokens(&asset_token_id, &unused_minted_assets);
         }
 
         Ok(())

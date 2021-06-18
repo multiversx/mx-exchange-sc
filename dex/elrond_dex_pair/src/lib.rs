@@ -26,7 +26,11 @@ type RemoveLiquidityResultType<BigUint> =
 
 #[elrond_wasm_derive::contract]
 pub trait Pair:
-    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule + token_supply::TokenSupplyModule
+    amm::AmmModule
+    + fee::FeeModule
+    + liquidity_pool::LiquidityPoolModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
 {
     #[init]
     fn init(

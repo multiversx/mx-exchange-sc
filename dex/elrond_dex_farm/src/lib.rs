@@ -33,7 +33,9 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
 }
 
 #[elrond_wasm_derive::contract]
-pub trait Farm: rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule {
+pub trait Farm:
+    rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule
+{
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
 
