@@ -129,6 +129,7 @@ pub trait Pair:
             token == first_token_id || token == second_token_id,
             "Invalid token"
         );
+        self.broadcast_pair_reserves();
 
         let caller = self.blockchain().get_caller();
         let mut temporary_funds = self.temporary_funds(&caller, &token).get();
@@ -160,6 +161,7 @@ pub trait Pair:
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
         );
+        self.broadcast_pair_reserves();
 
         let caller = self.blockchain().get_caller();
         let expected_first_token_id = self.first_token_id().get();
@@ -269,6 +271,7 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         self.reclaim_temporary_token(&caller, &first_token_id, &opt_accept_funds_func)?;
         self.reclaim_temporary_token(&caller, &second_token_id, &opt_accept_funds_func)?;
+        self.broadcast_pair_reserves();
 
         Ok(())
     }
@@ -293,6 +296,7 @@ pub trait Pair:
             liquidity_token == self.lp_token_identifier().get(),
             "Wrong liquidity token"
         );
+        self.broadcast_pair_reserves();
 
         let old_k = self.calculate_k_for_reserves();
         let (first_token_amount, second_token_amount) = self.remove_liquidity(
@@ -361,6 +365,7 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Invalid token out"
         );
+        self.broadcast_pair_reserves();
 
         let old_k = self.calculate_k_for_reserves();
 
@@ -399,6 +404,7 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Invalid token out"
         );
+        self.broadcast_pair_reserves();
         let old_k = self.calculate_k_for_reserves();
 
         let mut reserve_token_out = self.pair_reserve(&token_out).get();
@@ -478,6 +484,7 @@ pub trait Pair:
             "Invalid token out"
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
+        self.broadcast_pair_reserves();
         let old_k = self.calculate_k_for_reserves();
 
         let mut reserve_token_out = self.pair_reserve(&token_out).get();
@@ -570,6 +577,13 @@ pub trait Pair:
         } else {
             Ok(())
         }
+    }
+
+    fn broadcast_pair_reserves(&self) {
+        self.update_price_record(
+            &self.pair_reserve(&self.first_token_id().get()).get(),
+            &self.pair_reserve(&self.second_token_id().get()).get(),
+        )
     }
 
     #[endpoint]

@@ -2,96 +2,64 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 const PRICE_DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-const OBSERVATION_FREQUENCY_BLOCKS: u64 = 600;
-const OBSERVATIONS_MAX_LEN: usize = 10_000;
+const RECORD_BLOCKS_FREQUENCY: u64 = 600;
+const RECORD_BUFFER_MAX_LEN: usize = 10_000;
 
 type Nonce = u64;
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct PriceObservation<BigUint: BigUintApi> {
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+pub struct PriceRecord<BigUint: BigUintApi> {
     first_token_price: BigUint,
     second_token_price: BigUint,
-    observation_block: Nonce,
+    start_block: Nonce,
+    end_block: Nonce,
 }
 
 #[elrond_wasm_derive::module]
 pub trait PricesModule {
-    fn update_price_observation(
+    fn update_price_record(
         &self,
         first_token_reserve: &Self::BigUint,
         second_token_reserve: &Self::BigUint,
-    ) -> SCResult<()> {
-        require!(first_token_reserve > &0, "First token reserve is zero");
-        require!(second_token_reserve > &0, "Second token reserve is zero");
+    ) {
+        if first_token_reserve == &0 || second_token_reserve == &0 {
+            return;
+        }
 
         let current_block = self.blockchain().get_block_nonce();
-        let last_index = self.last_price_observation_index().get();
-        let default_value_fn = || PriceObservation::<Self::BigUint> {
-            first_token_price: Self::BigUint::zero(),
-            second_token_price: Self::BigUint::zero(),
-            observation_block: current_block,
-        };
-        let last_price_obs = self
-            .price_observations()
-            .get_or_else(last_index, default_value_fn);
-
-        if self.should_commit_current_price(current_block, last_price_obs.observation_block) {
-            self.commit_current_price(current_block, last_index);
-            self.reset_current_price(first_token_reserve, second_token_reserve);
-            self.last_price_update_block().set(&current_block);
+        if self.known_current_block().get() != current_block {
+            self.known_current_block().set(&current_block);
         } else {
-            let last_price_update_block = self.last_price_update_block().get();
-
-            if self.should_update_current_price(current_block, last_price_update_block) {
-                self.update_current_price(
-                    current_block,
-                    last_price_update_block,
-                    last_price_obs.observation_block,
-                    first_token_reserve,
-                    second_token_reserve,
-                );
-                self.last_price_update_block().set(&current_block);
-            }
+            return;
         }
 
-        Ok(())
-    }
+        let current_info_block = current_block - 1;
+        let mut current_record = self.get_current_record();
 
-    fn should_commit_current_price(&self, current_block: Nonce, last_obs_block: Nonce) -> bool {
-        current_block > last_obs_block + OBSERVATION_FREQUENCY_BLOCKS
-    }
+        self.update_current_record(
+            current_info_block,
+            &mut current_record,
+            first_token_reserve,
+            second_token_reserve,
+        );
 
-    fn should_update_current_price(
-        &self,
-        current_block: Nonce,
-        last_price_update_block: Nonce,
-    ) -> bool {
-        current_block > last_price_update_block
-    }
-
-    fn commit_current_price(&self, current_block: Nonce, last_obs_index: usize) {
-        let observation = PriceObservation::<Self::BigUint> {
-            first_token_price: self.first_token_price().get(),
-            second_token_price: self.second_token_price().get(),
-            observation_block: current_block,
-        };
-
-        let len = self.price_observations().len();
-        if len < OBSERVATIONS_MAX_LEN {
-            self.price_observations().push(&observation);
-            self.last_price_observation_index().set(&len);
-        } else {
-            let new_obs_index = (last_obs_index + 1) % OBSERVATIONS_MAX_LEN;
-            self.price_observations().set(new_obs_index, &observation);
-            self.last_price_observation_index().set(&new_obs_index);
+        if self.should_commit_current_record(&current_record) {
+            self.commit_current_record(&current_record);
+            current_record.start_block = current_block;
+            current_record.end_block = current_info_block;
         }
+
+        self.current_price_record().set(&current_record);
     }
 
-    fn update_current_price(
+    fn should_commit_current_record(&self, current_record: &PriceRecord<Self::BigUint>) -> bool {
+        current_record.end_block >= current_record.start_block + RECORD_BLOCKS_FREQUENCY
+    }
+
+    fn update_current_record(
         &self,
-        current_block: Nonce,
-        last_price_update_block: Nonce,
-        last_obs_block: Nonce,
+        current_info_block: Nonce,
+        current_record: &mut PriceRecord<Self::BigUint>,
         first_token_reserve: &Self::BigUint,
         second_token_reserve: &Self::BigUint,
     ) {
@@ -100,38 +68,38 @@ pub trait PricesModule {
         let instant_second_token_price =
             self.instant_price(first_token_reserve, second_token_reserve);
 
-        let first_token_price = self.first_token_price().get();
-        let second_token_price = self.second_token_price().get();
-
-        let instant_price_period = current_block - last_price_update_block;
-        let price_period = last_price_update_block - last_obs_block;
+        let instant_price_period = current_info_block - current_record.end_block;
+        let old_price_period = current_record.end_block - current_record.start_block;
 
         let weighted_first_token_price = self.calculate_weighted_price(
-            first_token_price,
-            price_period,
+            current_record.first_token_price.clone(),
+            old_price_period,
             instant_first_token_price,
             instant_price_period,
         );
         let weighted_second_token_price = self.calculate_weighted_price(
-            second_token_price,
-            price_period,
+            current_record.second_token_price.clone(),
+            old_price_period,
             instant_second_token_price,
             instant_price_period,
         );
 
-        self.first_token_price().set(&weighted_first_token_price);
-        self.second_token_price().set(&weighted_second_token_price);
+        current_record.first_token_price = weighted_first_token_price;
+        current_record.second_token_price = weighted_second_token_price;
+        current_record.end_block = current_info_block;
     }
 
-    fn reset_current_price(
-        &self,
-        first_token_reserve: &Self::BigUint,
-        second_token_reserve: &Self::BigUint,
-    ) {
-        self.first_token_price()
-            .set(&self.instant_price(second_token_reserve, first_token_reserve));
-        self.second_token_price()
-            .set(&self.instant_price(first_token_reserve, second_token_reserve));
+    fn commit_current_record(&self, record: &PriceRecord<Self::BigUint>) {
+        let len = self.price_records().len();
+        if len < RECORD_BUFFER_MAX_LEN {
+            self.price_records().push(record);
+            self.price_records_head().set(&(len + 1));
+        } else {
+            let old_head = self.price_records_head().get();
+            let new_head = (old_head + 1) % RECORD_BUFFER_MAX_LEN;
+            self.price_records().set(new_head, record);
+            self.price_records_head().set(&new_head);
+        }
     }
 
     fn instant_price(
@@ -154,23 +122,127 @@ pub trait PricesModule {
             / Self::BigUint::from(weight_price_period + instant_price_period)
     }
 
-    #[view(getFirstTokenPrice)]
-    #[storage_mapper("first_token_price")]
-    fn first_token_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn get_current_record(&self) -> PriceRecord<Self::BigUint> {
+        if self.current_price_record().is_empty() {
+            let big_zero = Self::BigUint::zero();
+            PriceRecord::<Self::BigUint> {
+                first_token_price: big_zero.clone(),
+                second_token_price: big_zero,
+                start_block: 0,
+                end_block: 0,
+            }
+        } else {
+            self.current_price_record().get()
+        }
+    }
 
-    #[view(getSecondTokenPrice)]
-    #[storage_mapper("second_token_price")]
-    fn second_token_price(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn circular_binary_search(&self, block: Nonce) -> Option<PriceRecord<Self::BigUint>> {
+        let none = Option::None;
+        let mut low = 1;
+        let mut high = self.price_records().len();
 
-    #[view(getLastPriceUpdateBlock)]
-    #[storage_mapper("last_price_update_block")]
-    fn last_price_update_block(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+        if low > high {
+            return none;
+        }
 
-    #[view(getPriceObservations)]
-    #[storage_mapper("price_observations")]
-    fn price_observations(&self) -> VecMapper<Self::Storage, PriceObservation<Self::BigUint>>;
+        while low <= high {
+            let mid = (low + high) / 2;
+            let mid_elem = self.price_records().get(mid);
 
-    #[view(getLastPriceObservationIndex)]
-    #[storage_mapper("last_price_observation_index")]
-    fn last_price_observation_index(&self) -> SingleValueMapper<Self::Storage, usize>;
+            if self.record_contains_block(&mid_elem, block) {
+                return Option::<PriceRecord<Self::BigUint>>::from(mid_elem);
+            }
+
+            let low_elem = self.price_records().get(low);
+            let high_elem = self.price_records().get(high);
+
+            #[allow(clippy::collapsible_else_if)]
+            if mid_elem.start_block <= high_elem.start_block {
+                if block > mid_elem.start_block && block <= high_elem.end_block {
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+            } else {
+                if block >= low_elem.start_block && block < mid_elem.end_block {
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+
+        none
+    }
+
+    fn record_contains_block(&self, record: &PriceRecord<Self::BigUint>, block: Nonce) -> bool {
+        record.start_block <= block && block <= record.end_block
+    }
+
+    #[view(getPriceRecordForBlock)]
+    fn get_price_record_for_block(&self, block: Nonce) -> Option<PriceRecord<Self::BigUint>> {
+        self.circular_binary_search(block)
+    }
+
+    #[view(getPriceRecordsBetweenRange)]
+    fn get_price_records_starting_between_range(
+        &self,
+        start: usize,
+        end: usize,
+    ) -> MultiResultVec<PriceRecord<Self::BigUint>> {
+        let mut result = MultiResultVec::<PriceRecord<Self::BigUint>>::new();
+        let default_value_fn = || PriceRecord::<Self::BigUint> {
+            first_token_price: Self::BigUint::zero(),
+            second_token_price: Self::BigUint::zero(),
+            start_block: 0u64,
+            end_block: 0u64,
+        };
+
+        let mut current_index = start;
+        while {
+            result.push(
+                self.price_records()
+                    .get_or_else(current_index, default_value_fn),
+            );
+            current_index = (current_index + 1) % RECORD_BUFFER_MAX_LEN;
+            current_index != end
+        } {}
+
+        result
+    }
+
+    #[view(getPriceRecordsLen)]
+    fn get_price_records_len(&self) -> usize {
+        self.price_records().len()
+    }
+
+    #[view(getPriceDivisionSafetyConstant)]
+    fn get_price_division_safety_constant(&self) -> u64 {
+        PRICE_DIVISION_SAFETY_CONSTANT
+    }
+
+    #[view(getPriceRecordsMaxLen)]
+    fn get_price_record_max_len(&self) -> usize {
+        RECORD_BUFFER_MAX_LEN
+    }
+
+    #[view(getPriceRecordBlockFrequency)]
+    fn get_price_record_block_frequency(&self) -> u64 {
+        RECORD_BLOCKS_FREQUENCY
+    }
+
+    #[view(getCurrentPriceRecord)]
+    #[storage_mapper("current_price_record")]
+    fn current_price_record(&self) -> SingleValueMapper<Self::Storage, PriceRecord<Self::BigUint>>;
+
+    #[view(getPriceRecords)]
+    #[storage_mapper("price_records")]
+    fn price_records(&self) -> VecMapper<Self::Storage, PriceRecord<Self::BigUint>>;
+
+    #[view(getPriceRecordsHead)]
+    #[storage_mapper("price_records_head")]
+    fn price_records_head(&self) -> SingleValueMapper<Self::Storage, usize>;
+
+    #[storage_mapper("known_current_block")]
+    fn known_current_block(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 }
