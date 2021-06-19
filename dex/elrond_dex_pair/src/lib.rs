@@ -11,7 +11,7 @@ mod amm;
 mod config;
 mod fee;
 mod liquidity_pool;
-mod prices;
+mod oracle;
 
 use config::State;
 use dex_common::FftTokenAmountPair;
@@ -36,7 +36,7 @@ pub trait Pair:
     + fee::FeeModule
     + liquidity_pool::LiquidityPoolModule
     + config::ConfigModule
-    + prices::PricesModule
+    + oracle::OracleModule
 {
     #[init]
     fn init(

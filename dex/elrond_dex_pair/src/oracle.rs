@@ -16,7 +16,7 @@ pub struct PriceRecord<BigUint: BigUintApi> {
 }
 
 #[elrond_wasm_derive::module]
-pub trait PricesModule {
+pub trait OracleModule {
     fn update_price_record(
         &self,
         first_token_reserve: &Self::BigUint,
