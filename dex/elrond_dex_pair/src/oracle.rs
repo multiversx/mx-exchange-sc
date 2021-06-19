@@ -34,8 +34,16 @@ pub trait OracleModule {
         }
 
         let current_info_block = current_block - 1;
-        let mut current_record = self.get_current_record();
+        if self.current_price_record().is_empty() {
+            self.build_first_price_record(
+                current_info_block,
+                first_token_reserve,
+                second_token_reserve,
+            );
+            return;
+        }
 
+        let mut current_record = self.current_price_record().get();
         self.update_current_record(
             current_info_block,
             &mut current_record,
@@ -50,6 +58,21 @@ pub trait OracleModule {
         }
 
         self.current_price_record().set(&current_record);
+    }
+
+    fn build_first_price_record(
+        &self,
+        current_info_block: Nonce,
+        first_token_reserve: &Self::BigUint,
+        second_token_reserve: &Self::BigUint,
+    ) {
+        self.current_price_record()
+            .set(&PriceRecord::<Self::BigUint> {
+                first_token_price: self.instant_price(second_token_reserve, first_token_reserve),
+                second_token_price: self.instant_price(first_token_reserve, second_token_reserve),
+                start_block: current_info_block,
+                end_block: current_info_block,
+            });
     }
 
     fn should_commit_current_record(&self, current_record: &PriceRecord<Self::BigUint>) -> bool {
@@ -120,20 +143,6 @@ pub trait OracleModule {
         (weight_price * Self::BigUint::from(weight_price_period)
             + instant_price * Self::BigUint::from(instant_price_period))
             / Self::BigUint::from(weight_price_period + instant_price_period)
-    }
-
-    fn get_current_record(&self) -> PriceRecord<Self::BigUint> {
-        if self.current_price_record().is_empty() {
-            let big_zero = Self::BigUint::zero();
-            PriceRecord::<Self::BigUint> {
-                first_token_price: big_zero.clone(),
-                second_token_price: big_zero,
-                start_block: 0,
-                end_block: 0,
-            }
-        } else {
-            self.current_price_record().get()
-        }
     }
 
     fn circular_binary_search(&self, block: Nonce) -> Option<PriceRecord<Self::BigUint>> {
