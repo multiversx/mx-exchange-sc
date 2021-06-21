@@ -105,14 +105,10 @@ pub trait FeeModule:
     }
 
     fn reinject(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
-        let mut reserve = self.pair_reserve(token).get();
-        reserve += amount;
-        self.pair_reserve(token).set(&reserve);
-
-        let mut virtual_reserve = self.pair_virtual_reserve(token, token).get();
-        virtual_reserve += amount;
+        self.pair_reserve(token)
+            .update(|reserve| *reserve += amount);
         self.pair_virtual_reserve(token, token)
-            .set(&virtual_reserve);
+            .update(|reserve| *reserve += amount);
     }
 
     fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: Self::BigUint) {

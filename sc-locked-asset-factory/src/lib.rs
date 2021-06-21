@@ -9,11 +9,8 @@ elrond_wasm::derive_imports!();
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-type Epoch = u64;
-type Nonce = u64;
-
 use dex_common::GenericEsdtAmountPair;
-use distrib_common::UnlockMilestone;
+use distrib_common::{Epoch, Nonce, UnlockMilestone};
 use locked_asset::UnlockSchedule;
 
 #[elrond_wasm_derive::contract]

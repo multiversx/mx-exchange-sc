@@ -435,8 +435,8 @@ pub trait Pair:
             &reserve_token_in,
             &reserve_token_out,
         );
-        self.increase_token_reserve(&token_in, &amount_in_after_fee);
         self.try_decrease_token_reserve(&token_out, &amount_out_optimal)?;
+        self.increase_token_reserve(&token_in, &amount_in_after_fee);
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_virtual_reserves(&token_in);
@@ -519,8 +519,8 @@ pub trait Pair:
             &reserve_token_in,
             &reserve_token_out,
         );
-        self.increase_token_reserve(&token_in, &amount_in_optimal_after_fee);
         self.try_decrease_token_reserve(&token_out, &amount_out)?;
+        self.increase_token_reserve(&token_in, &amount_in_optimal_after_fee);
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_virtual_reserves(&token_in);

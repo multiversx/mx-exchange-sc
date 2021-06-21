@@ -3,9 +3,7 @@ elrond_wasm::derive_imports!();
 
 use super::amm;
 use super::config;
-use dex_common::FftTokenAmountPair;
-
-type Nonce = u64;
+use dex_common::{FftTokenAmountPair, Nonce};
 
 const MINIMUM_LIQUIDITY: u64 = 1_000;
 
@@ -174,8 +172,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
     }
 
     fn increase_token_reserve(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
-        let new_value = &self.pair_reserve(token_id).get() + amount;
-        self.pair_reserve(token_id).set(&new_value);
+        self.pair_reserve(token_id)
+            .update(|reserve| *reserve += amount);
     }
 
     fn try_decrease_token_reserve(
@@ -183,15 +181,16 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         token_id: &TokenIdentifier,
         amount: &Self::BigUint,
     ) -> SCResult<()> {
-        let old_value = self.pair_reserve(token_id).get();
-        require!(&old_value > amount, "Not enough reserves");
-        self.pair_reserve(token_id).set(&(&old_value - amount));
-        Ok(())
+        self.pair_reserve(token_id).update(|reserve| {
+            require!(&*reserve > amount, "Not enough reserves");
+            *reserve -= amount;
+            Ok(())
+        })
     }
 
     fn decrease_token_reserve(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
-        let old_value = self.pair_reserve(token_id).get();
-        self.pair_reserve(token_id).set(&(&old_value - amount));
+        self.pair_reserve(token_id)
+            .update(|reserve| *reserve -= amount);
     }
 
     fn get_token_for_given_position(
