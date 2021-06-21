@@ -15,6 +15,17 @@ pub struct PriceRecord<BigUint: BigUintApi> {
     end_block: Nonce,
 }
 
+impl<BigUint: BigUintApi> Default for PriceRecord<BigUint> {
+    fn default() -> Self {
+        PriceRecord {
+            first_token_price: BigUint::zero(),
+            second_token_price: BigUint::zero(),
+            start_block: 0,
+            end_block: 0,
+        }
+    }
+}
+
 #[elrond_wasm_derive::module]
 pub trait OracleModule {
     fn update_price_record(
@@ -130,7 +141,7 @@ pub trait OracleModule {
         numerator: &Self::BigUint,
         denominator: &Self::BigUint,
     ) -> Self::BigUint {
-        numerator * &Self::BigUint::from(PRICE_DIVISION_SAFETY_CONSTANT) / denominator.clone()
+        &(numerator * &Self::BigUint::from(PRICE_DIVISION_SAFETY_CONSTANT)) / denominator
     }
 
     fn calculate_weighted_price(
@@ -199,25 +210,22 @@ pub trait OracleModule {
         start: usize,
         end: usize,
     ) -> MultiResultVec<PriceRecord<Self::BigUint>> {
-        let mut result = MultiResultVec::<PriceRecord<Self::BigUint>>::new();
-        let default_value_fn = || PriceRecord::<Self::BigUint> {
-            first_token_price: Self::BigUint::zero(),
-            second_token_price: Self::BigUint::zero(),
-            start_block: 0u64,
-            end_block: 0u64,
-        };
+        let mut result = Vec::new();
 
         let mut current_index = start;
-        while {
+        loop {
             result.push(
                 self.price_records()
-                    .get_or_else(current_index, default_value_fn),
+                    .get_or_else(current_index, PriceRecord::default),
             );
             current_index = (current_index + 1) % RECORD_BUFFER_MAX_LEN;
-            current_index != end
-        } {}
 
-        result
+            if current_index == end {
+                break;
+            }
+        }
+
+        result.into()
     }
 
     #[view(getPriceRecordsLen)]
