@@ -147,6 +147,14 @@ pub trait Pair:
             "Insufficient second token funds sent"
         );
         require!(
+            first_token_amount_desired >= first_token_amount_min,
+            "Input first token desired amount is lower than minimul"
+        );
+        require!(
+            second_token_amount_desired >= second_token_amount_min,
+            "Input second token desired amount is lower than minimul"
+        );
+        require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
         );
