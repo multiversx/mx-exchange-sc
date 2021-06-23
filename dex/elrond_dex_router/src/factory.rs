@@ -216,7 +216,7 @@ pub trait FactoryModule: util::UtilModule {
     }
 
     #[view(getPair)]
-    fn get_pair_endpoint(
+    fn get_pair(
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
