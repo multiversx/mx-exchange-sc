@@ -18,7 +18,7 @@ use locked_asset::UnlockSchedule;
 
 #[elrond_wasm_derive::contract]
 pub trait LockedAssetFactory:
-    asset::AssetModule + locked_asset::LockedAssetModule + cache::CacheModule
+    locked_asset::LockedAssetModule + cache::CacheModule + token_supply::TokenSupplyModule
 {
     #[init]
     fn init(
@@ -137,8 +137,7 @@ pub trait LockedAssetFactory:
             );
         }
 
-        self.send()
-            .esdt_nft_burn(&locked_token_id, token_nonce, &amount);
+        self.nft_burn_tokens(&locked_token_id, token_nonce, &amount);
         Ok(())
     }
 

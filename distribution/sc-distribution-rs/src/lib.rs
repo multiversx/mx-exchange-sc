@@ -5,6 +5,8 @@ elrond_wasm::derive_imports!();
 
 type Epoch = u64;
 
+mod global_op;
+
 const GAS_THRESHOLD: u64 = 100_000;
 const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;
 
@@ -22,7 +24,7 @@ pub struct CommunityDistribution<BigUint: BigUintApi> {
 }
 
 #[elrond_wasm_derive::contract]
-pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
+pub trait Distribution: global_op::GlobalOperationModule {
     #[proxy]
     fn locked_asset_factory_proxy(
         &self,
@@ -321,4 +323,8 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
 
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getAssetTokenId)]
+    #[storage_mapper("asset_token_id")]
+    fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }

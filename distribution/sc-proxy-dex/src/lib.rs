@@ -15,7 +15,10 @@ pub enum IssueRequestType {
 
 #[elrond_wasm_derive::contract]
 pub trait ProxyDexImpl:
-    proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule + proxy_farm::ProxyFarmModule
+    proxy_common::ProxyCommonModule
+    + proxy_pair::ProxyPairModule
+    + proxy_farm::ProxyFarmModule
+    + token_supply::TokenSupplyModule
 {
     #[init]
     fn init(

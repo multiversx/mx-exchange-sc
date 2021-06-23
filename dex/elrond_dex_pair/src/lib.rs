@@ -26,7 +26,11 @@ type RemoveLiquidityResultType<BigUint> =
 
 #[elrond_wasm_derive::contract]
 pub trait Pair:
-    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule
+    amm::AmmModule
+    + fee::FeeModule
+    + liquidity_pool::LiquidityPoolModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
 {
     #[init]
     fn init(
@@ -212,7 +216,7 @@ pub trait Pair:
         self.validate_k_invariant_strict(&old_k, &new_k)?;
 
         let lp_token_id = self.lp_token_identifier().get();
-        self.send().esdt_local_mint(&lp_token_id, &liquidity);
+        self.mint_tokens(&lp_token_id, &liquidity);
 
         self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
         self.send_tokens(
@@ -319,7 +323,7 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        self.send().esdt_local_burn(&liquidity_token, &liquidity);
+        self.burn_tokens(&liquidity_token, &liquidity);
 
         Ok((
             FftTokenAmountPair {
@@ -618,7 +622,7 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
-        let total_supply = self.total_supply().get();
+        let total_supply = self.get_total_lp_token_supply();
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
 
@@ -741,7 +745,4 @@ pub trait Pair:
         caller: &Address,
         token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
-
-    #[storage_mapper("lpTokenIdentifier")]
-    fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }

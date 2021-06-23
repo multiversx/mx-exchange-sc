@@ -13,8 +13,6 @@ members = [
 
   "distribution",
   "distribution/distrib-common",
-  "distribution/modules/asset",
-  "distribution/modules/global-op",
   "distribution/sc-distribution-rs",
   "distribution/sc-distribution-rs/abi",
   "distribution/sc-proxy-dex",

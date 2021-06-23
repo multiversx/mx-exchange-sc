@@ -25,7 +25,9 @@ type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
 #[elrond_wasm_derive::module]
-pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
+pub trait ProxyPairModule:
+    proxy_common::ProxyCommonModule + token_supply::TokenSupplyModule
+{
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
 
@@ -276,8 +278,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             &caller,
         );
         if unused_minted_assets > 0 {
-            self.send()
-                .esdt_local_burn(&asset_token_id, &unused_minted_assets);
+            self.burn_tokens(&asset_token_id, &unused_minted_assets);
         }
 
         Ok(())
@@ -377,18 +378,15 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
                 .direct(&caller, &asset_token_id, &difference, &[]);
         } else if assets_received < locked_assets_invested {
             let difference = locked_assets_invested - assets_received;
-            self.send().esdt_nft_burn(
+            self.nft_burn_tokens(
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
                 &difference,
             );
         }
 
-        self.send()
-            .esdt_local_burn(&asset_token_id, &locked_assets_to_send);
-
-        self.send()
-            .esdt_nft_burn(&wrapped_lp_token_id, token_nonce, &amount);
+        self.burn_tokens(&asset_token_id, &locked_assets_to_send);
+        self.nft_burn_tokens(&wrapped_lp_token_id, token_nonce, &amount);
         Ok(())
     }
 
@@ -490,16 +488,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             locked_assets_invested: locked_tokens_consumed.clone(),
             locked_assets_nonce: locked_tokens_nonce,
         };
-        self.send()
-            .esdt_nft_create::<WrappedLpTokenAttributes<Self::BigUint>>(
-                wrapped_lp_token_id,
-                lp_token_amount,
-                &BoxedBytes::empty(),
-                &Self::BigUint::zero(),
-                &BoxedBytes::empty(),
-                &attributes,
-                &[BoxedBytes::empty()],
-            );
+        self.nft_create_tokens(wrapped_lp_token_id, lp_token_amount, &attributes);
         self.increase_wrapped_lp_token_nonce()
     }
 
@@ -515,7 +504,7 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
             token_to_send = token_id.clone();
         } else {
             let asset_token_id = self.asset_token_id().get();
-            self.send().esdt_local_mint(&asset_token_id, amount);
+            self.mint_tokens(&asset_token_id, amount);
             token_to_send = asset_token_id;
         };
         self.pair_contract_proxy(pair_address.clone())

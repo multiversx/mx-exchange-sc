@@ -1,11 +1,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+
 use super::config;
 
 type Nonce = u64;
 
 #[elrond_wasm_derive::module]
-pub trait RewardsModule: config::ConfigModule {
+pub trait RewardsModule: config::ConfigModule + token_supply::TokenSupplyModule {
     fn calculate_per_block_rewards(
         &self,
         current_block_nonce: Nonce,
@@ -34,7 +35,7 @@ pub trait RewardsModule: config::ConfigModule {
             let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
             if to_mint != 0 {
-                self.send().esdt_local_mint(token_id, &to_mint);
+                self.mint_tokens(token_id, &to_mint);
             }
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint
@@ -70,7 +71,7 @@ pub trait RewardsModule: config::ConfigModule {
 
     fn update_reward_per_share(&self, reward_increase: &Self::BigUint) {
         let current = self.reward_per_share().get();
-        let farm_token_supply = self.farm_token_supply().get();
+        let farm_token_supply = self.get_farm_token_supply();
 
         if farm_token_supply > 0 {
             let increase = self.calculate_reward_per_share_increase(reward_increase);
@@ -85,7 +86,7 @@ pub trait RewardsModule: config::ConfigModule {
         &self,
         reward_increase: &Self::BigUint,
     ) -> Self::BigUint {
-        reward_increase * &self.division_safety_constant().get() / self.farm_token_supply().get()
+        reward_increase * &self.division_safety_constant().get() / self.get_farm_token_supply()
     }
 
     fn calculate_reward(

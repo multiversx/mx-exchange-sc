@@ -30,6 +30,9 @@ pub trait ConfigModule {
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
+    #[storage_mapper("lpTokenIdentifier")]
+    fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
     #[endpoint]
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
         self.require_permissions()?;

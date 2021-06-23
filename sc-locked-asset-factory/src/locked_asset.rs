@@ -15,7 +15,7 @@ pub struct UnlockSchedule {
 }
 
 #[elrond_wasm_derive::module]
-pub trait LockedAssetModule: asset::AssetModule {
+pub trait LockedAssetModule: token_supply::TokenSupplyModule {
     fn create_and_send_locked_assets(
         &self,
         amount: &Self::BigUint,
@@ -43,8 +43,7 @@ pub trait LockedAssetModule: asset::AssetModule {
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) {
         let token_id = self.locked_asset_token_id().get();
-        self.send()
-            .esdt_nft_add_quantity(&token_id, sft_nonce, amount);
+        self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
         self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
     }
 
@@ -80,15 +79,7 @@ pub trait LockedAssetModule: asset::AssetModule {
 
     fn create_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
         let amount_to_create = amount + &Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE);
-        self.send().esdt_nft_create(
-            token,
-            &amount_to_create,
-            &BoxedBytes::empty(),
-            &Self::BigUint::zero(),
-            &BoxedBytes::empty(),
-            &BoxedBytes::empty(),
-            &[BoxedBytes::empty()],
-        );
+        self.nft_create_tokens(token, &amount_to_create, &BoxedBytes::empty());
         self.increase_nonce();
     }
 
@@ -190,6 +181,14 @@ pub trait LockedAssetModule: asset::AssetModule {
         Ok(())
     }
 
+    fn mint_and_send_assets(&self, dest: &Address, amount: &Self::BigUint) {
+        if amount > &0 {
+            let asset_token_id = self.asset_token_id().get();
+            self.mint_tokens(&asset_token_id, amount);
+            self.send().direct(dest, &asset_token_id, amount, &[]);
+        }
+    }
+
     #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
@@ -200,4 +199,8 @@ pub trait LockedAssetModule: asset::AssetModule {
 
     #[storage_mapper("locked_token_nonce")]
     fn locked_asset_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[view(getAssetTokenId)]
+    #[storage_mapper("asset_token_id")]
+    fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }

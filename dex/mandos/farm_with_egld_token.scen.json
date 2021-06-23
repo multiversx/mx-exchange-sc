@@ -114,9 +114,9 @@
 						"str:state": "1",
 						"str:farming_token_id": "str:WEGLD-abcdef",
 						"str:reward_token_id": "str:WEGLD-abcdef",
-						"str:farm_token_supply": "100,000,000",
 						"str:create_farm_tokens_gas_limit": "5000000",
-						"str:farming_token_reserve": "100,000,000"
+						"str:farming_token_reserve": "100,000,000",
+						"+": ""
 					},
 					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
 				},
