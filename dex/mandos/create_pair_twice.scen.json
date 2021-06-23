@@ -15,7 +15,9 @@
 				"function": "createPair",
 				"arguments": [
 					"str:ALC-abcdef",
-					"str:WEGLD-abcdef"
+					"str:WEGLD-abcdef",
+					"300",
+					"50"
 				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
@@ -37,7 +39,9 @@
 				"function": "createPair",
 				"arguments": [
 					"str:WEGLD-abcdef",
-					"str:ALC-abcdef"
+					"str:ALC-abcdef",
+					"300",
+					"50"
 				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
@@ -59,7 +63,9 @@
 				"function": "createPair",
 				"arguments": [
 					"str:BLC-abcdef",
-					"str:BLC-abcdef"
+					"str:BLC-abcdef",
+					"300",
+					"50"
 				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"

@@ -15,7 +15,9 @@
 				"function": "getPair",
 				"arguments": [
 					"str:ALC-abcdef",
-					"str:WEGLD-abcdef"
+					"str:WEGLD-abcdef",
+					"300",
+					"50"
 				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
@@ -40,7 +42,9 @@
 				"function": "getPair",
 				"arguments": [
 					"str:WEGLD-abcdef",
-					"str:ALC-abcdef"
+					"str:ALC-abcdef",
+					"300",
+					"50"
 				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"

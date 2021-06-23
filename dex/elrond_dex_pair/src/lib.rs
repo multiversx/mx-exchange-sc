@@ -117,10 +117,7 @@ pub trait Pair:
             self.call_value().esdt_token_nonce() == 0,
             "Only fungible tokens are accepted in liquidity pools"
         );
-        require!(
-            payment > 0,
-            "Funds transfer must be a positive number"
-        );
+        require!(payment > 0, "Funds transfer must be a positive number");
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         require!(
