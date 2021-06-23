@@ -28,6 +28,7 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
     #[endpoint]
     fn set_penalty_percent(&self, percent: u8) -> SCResult<()> {
         self.require_permissions()?;
+        require!(percent < 100, "Percent cannot exceed 100");
         self.penalty_percent().set(&percent);
         Ok(())
     }
