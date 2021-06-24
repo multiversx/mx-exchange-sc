@@ -32,7 +32,7 @@ pub trait FeeModule:
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
 
     #[storage_mapper("fee_destination")]
-    fn destination_map(&self) -> MapMapper<Self::Storage, Address, TokenIdentifier>;
+    fn destination_map(&self) -> MapMapper<Self::Storage, (Address, TokenIdentifier), u64>;
 
     #[storage_mapper("trusted_swap_pair")]
     fn trusted_swap_pair(&self) -> MapMapper<Self::Storage, TokenPair, Address>;
@@ -117,33 +117,27 @@ pub trait FeeModule:
 
         let slices = self.destination_map().len() as u64;
         if slices == 0 {
-            self.reinject(fee_token, &fee_amount);
             return;
         }
 
-        let fee_slice = &fee_amount / &Self::BigUint::from(slices);
-        if fee_slice == 0 {
-            self.reinject(fee_token, &fee_amount);
-            return;
-        }
-
+        let fee_total_percent: u64 = self.destination_map().iter().map(|x| x.1).sum();
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        for (fee_address, fee_token_requested) in self.destination_map().iter() {
-            self.send_fee_slice(
-                fee_token,
-                &fee_slice,
-                &fee_address,
-                &fee_token_requested,
-                &first_token_id,
-                &second_token_id,
-            );
-        }
+        for ((fee_address, fee_token_requested), fee_percent) in self.destination_map().iter() {
+            let fee_slice = &fee_amount * &Self::BigUint::from(fee_percent)
+                / Self::BigUint::from(fee_total_percent);
 
-        let rounding_error = fee_amount - fee_slice * Self::BigUint::from(slices);
-        if rounding_error > 0 {
-            self.reinject(fee_token, &rounding_error);
+            if fee_slice != 0 {
+                self.send_fee_slice(
+                    fee_token,
+                    &fee_slice,
+                    &fee_address,
+                    &fee_token_requested,
+                    &first_token_id,
+                    &second_token_id,
+                );
+            }
         }
     }
 
@@ -348,33 +342,66 @@ pub trait FeeModule:
         enabled: bool,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
+        fee_percent: u64,
     ) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        let is_dest = self
-            .destination_map()
-            .keys()
-            .any(|dest_address| dest_address == fee_to_address);
+        require!(fee_percent != 0, "Fee percent cannot be zero");
+        require!(
+            fee_token.is_valid_esdt_identifier(),
+            "Not a valid esdt identifier"
+        );
+
+        let percent_sum: u64 = self.destination_map().iter().map(|x| x.1).sum();
+        let addr_token = (fee_to_address, fee_token);
+        let destination = self.destination_map().get(&addr_token);
 
         if enabled {
-            require!(!is_dest, "Is already a fee destination");
-            self.destination_map().insert(fee_to_address, fee_token);
+            require!(
+                percent_sum + fee_percent <= self.special_fee_percent().get(),
+                "Percent sum would exceed special fee percent"
+            );
+
+            match destination {
+                Some(old_percent) => {
+                    self.destination_map()
+                        .insert(addr_token, old_percent + fee_percent);
+                }
+                None => {
+                    self.destination_map().insert(addr_token, fee_percent);
+                }
+            }
         } else {
-            require!(is_dest, "Is not a fee destination");
-            let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            require!(fee_token == dest_fee_token, "Destination fee token differs");
-            self.destination_map().remove(&fee_to_address);
+            require!(!destination.is_none(), "Destination does not exist");
+
+            let old_percent = destination.unwrap();
+            require!(
+                old_percent >= fee_percent,
+                "Old percent is less than given argument"
+            );
+
+            if old_percent > fee_percent {
+                self.destination_map()
+                    .insert(addr_token, old_percent - fee_percent);
+            } else {
+                self.destination_map().remove(&addr_token);
+            }
         }
         Ok(())
     }
 
     #[view(getFeeDestinations)]
-    fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier)> {
+    fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier, u64)> {
         MultiResultVec::from_iter(
             self.destination_map()
                 .iter()
-                .map(|x| (x.0, x.1))
-                .collect::<Vec<(Address, TokenIdentifier)>>(),
+                .map(|x| {
+                    let addr_token = x.0;
+                    let addr = addr_token.0;
+                    let token = addr_token.1;
+                    let percent = x.1;
+                    (addr, token, percent)
+                })
+                .collect::<Vec<(Address, TokenIdentifier, u64)>>(),
         )
     }
 

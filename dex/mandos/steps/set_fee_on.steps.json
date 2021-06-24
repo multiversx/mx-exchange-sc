@@ -12,7 +12,8 @@
 				"arguments": [
 					"sc:pair_contract",
 					"sc:farm_contract",
-					"str:WEGLD-abcdef"
+					"str:WEGLD-abcdef",
+					"100"
 				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"

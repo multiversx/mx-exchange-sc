@@ -237,6 +237,7 @@ setLpTokenLocalRoles() {
 #   $1 = pair contract to send fees,
 #   $2 = farm contract to receive fees,
 #   $3 = farm contract expected token
+#   $4 = fee percent
 setFeeOn() {
     pair_address="0x$(erdpy wallet bech32 --decode $1)"
     farm_contract="0x$(erdpy wallet bech32 --decode $2)"
@@ -247,7 +248,7 @@ setFeeOn() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --function=setFeeOn \
-        --arguments $pair_address $farm_contract $farm_token \
+        --arguments $pair_address $farm_contract $farm_token $4 \
         --send || return
 }
 
@@ -255,6 +256,7 @@ setFeeOn() {
 #   $1 = pair contract to send fees,
 #   $2 = farm contract to receive fees,
 #   $3 = farm contract expected token
+#   $4 = fee percent
 setFeeOff() {
     pair_address="0x$(erdpy wallet bech32 --decode $1)"
     farm_contract="0x$(erdpy wallet bech32 --decode $2)"
@@ -265,7 +267,7 @@ setFeeOff() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --function=setFeeOff \
-        --arguments $pair_address $farm_contract $farm_token \
+        --arguments $pair_address $farm_contract $farm_token $4 \
         --send || return
 }
 

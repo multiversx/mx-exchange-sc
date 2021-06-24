@@ -592,8 +592,9 @@ pub trait Pair:
         enabled: bool,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
+        fee_percent: u64,
     ) -> SCResult<()> {
-        self.set_fee_on(enabled, fee_to_address, fee_token)
+        self.set_fee_on(enabled, fee_to_address, fee_token, fee_percent)
     }
 
     #[inline]

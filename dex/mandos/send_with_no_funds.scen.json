@@ -46,16 +46,12 @@
 						"str:total_fee_percent": "300",
 						"str:special_fee_percent": "100",
 						"``ELRONDesdtALC-abcdef": "0x120600012a05f2001a020000220c120a414c432d616263646566",
-						"0x66756e647375736572315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f0000000a414c432d616263646566": "0x012a05f200",
-						"0x6665655f64657374696e6174696f6e2e6d617070656400000000000000006661726d5f636f6e74726163745f5f5f5f5f5f5f5f5f5f5f": "0x5745474c442d616263646566",
-						"0x6665655f64657374696e6174696f6e2e76616c756500000001": "sc:farm_contract",
-						"0x6665655f64657374696e6174696f6e2e6e6f64655f696400000000000000006661726d5f636f6e74726163745f5f5f5f5f5f5f5f5f5f5f": "1",
-						"0x6665655f64657374696e6174696f6e2e6e6f64655f6c696e6b7300000001": "0x0000000000000000",
+						"str:funds|address:user1|nested:str:ALC-abcdef": "5,000,000,000",
 						"``fee_destination.info": "0x00000001000000010000000100000001",
-						"``router_owner_address": "``owner___________________________",
+						"str:router_owner_address": "address:owner",
 						"str:transfer_exec_gas_limit": "25,000,000",
 						"str:extern_swap_gas_limit": "50,000,000",
-						"0x454c524f4e44726f6c65657364744c50544f4b2d616263646566": "0x0a1145534454526f6c654c6f63616c4d696e740a1145534454526f6c654c6f63616c4275726e"
+						"+": ""
 					},
 					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm"
 				},

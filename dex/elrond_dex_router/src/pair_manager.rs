@@ -21,13 +21,14 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         pair_address: Address,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
+        fee_percent: u64,
     ) -> SCResult<()> {
         self.require_owner()?;
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(true, fee_to_address, fee_token)
+            .setFeeOn(true, fee_to_address, fee_token, fee_percent)
             .execute_on_dest_context();
 
         Ok(())
@@ -39,13 +40,14 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         pair_address: Address,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
+        fee_percent: u64,
     ) -> SCResult<()> {
         self.require_owner()?;
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(false, fee_to_address, fee_token)
+            .setFeeOn(false, fee_to_address, fee_token, fee_percent)
             .execute_on_dest_context();
 
         Ok(())
