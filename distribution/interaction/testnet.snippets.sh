@@ -448,20 +448,17 @@ claimRewardsProxy() {
 }
 
 # params
-#   $1 = First Token ID
-#   $2 = First Token Nonce
-#   $3 = Second Token ID
-#   $4 = Second Token Nonce
+#   $1 = Token ID
+#   $2 = Token Nonce
 reclaimTemporaryFundsProxy() {
     first_token="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
-    second_token="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
 
     erdpy --verbose contract call $PROXY_ADDRESS --recall-nonce \
         --pem=${WALLET_PEM} \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=500000000 \
         --function=reclaimTemporaryFundsProxy \
-        --arguments $first_token $2 $second_token $4 \
+        --arguments $first_token $2 \
         --send || return
 }
 

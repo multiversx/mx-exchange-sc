@@ -73,39 +73,21 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
     #[endpoint(reclaimTemporaryFundsProxy)]
     fn reclaim_temporary_funds_proxy(
         &self,
-        first_token_id: TokenIdentifier,
-        first_token_nonce: Nonce,
-        second_token_id: TokenIdentifier,
-        second_token_nonce: Nonce,
+        token_id: TokenIdentifier,
+        token_nonce: Nonce,
     ) -> SCResult<()> {
-        require!(
-            first_token_id != second_token_id || first_token_nonce != second_token_nonce,
-            "Identical tokens"
-        );
         let caller = self.blockchain().get_caller();
-        let first_token_amount = self
+        let token_amount = self
             .temporary_funds(&caller)
-            .get(&(first_token_id.clone(), first_token_nonce))
-            .unwrap_or_else(Self::BigUint::zero);
-        let second_token_amount = self
-            .temporary_funds(&caller)
-            .get(&(second_token_id.clone(), second_token_nonce))
+            .get(&(token_id.clone(), token_nonce))
             .unwrap_or_else(Self::BigUint::zero);
         self.temporary_funds(&caller)
-            .remove(&(first_token_id.clone(), first_token_nonce));
-        self.temporary_funds(&caller)
-            .remove(&(second_token_id.clone(), second_token_nonce));
+            .remove(&(token_id.clone(), token_nonce));
         self.direct_generic_safe(
             &caller,
-            &first_token_id,
-            first_token_nonce,
-            &first_token_amount,
-        );
-        self.direct_generic_safe(
-            &caller,
-            &second_token_id,
-            second_token_nonce,
-            &second_token_amount,
+            &token_id,
+            token_nonce,
+            &token_amount,
         );
         Ok(())
     }
@@ -265,6 +247,8 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         self.reclaim_temporary_funds_proxy(
             first_token_id,
             first_token_nonce,
+        )?;
+        self.reclaim_temporary_funds_proxy(
             second_token_id,
             second_token_nonce,
         )?;

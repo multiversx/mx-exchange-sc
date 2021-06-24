@@ -89,7 +89,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "7",
+                    "nonce": "8",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:LKMEX-abcdef": {
