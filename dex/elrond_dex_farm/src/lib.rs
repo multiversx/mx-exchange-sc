@@ -605,11 +605,15 @@ pub trait Farm:
 
         let attributes = self.decode_attributes(&attributes_raw)?;
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let reward = self.calculate_reward(
+        let mut reward = self.calculate_reward(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
         );
+
+        let compounded_reward = &(&attributes.compounded_reward * &amount)
+            / &attributes.current_farm_amount;
+        reward += compounded_reward;
 
         if self.should_apply_penalty(attributes.entering_epoch) {
             Ok(&reward - &self.get_penalty_amount(&reward))
