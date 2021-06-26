@@ -405,7 +405,8 @@ pub trait Farm:
         }
 
         let farm_token_id = self.farm_token_id().get();
-        let new_farm_contribution = &payment_amount + &reward;
+        let new_farm_contribution = &payment_amount
+            + &(&reward * &Self::BigUint::from(farm_attributes.apr_multiplier as u64));
 
         let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount
             * &payment_amount)
@@ -611,8 +612,8 @@ pub trait Farm:
             &attributes.reward_per_share,
         );
 
-        let compounded_reward = &(&attributes.compounded_reward * &amount)
-            / &attributes.current_farm_amount;
+        let compounded_reward =
+            &(&attributes.compounded_reward * &amount) / &attributes.current_farm_amount;
         reward += compounded_reward;
 
         if self.should_apply_penalty(attributes.entering_epoch) {

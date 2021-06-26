@@ -15,7 +15,9 @@ fn add_liquidity_go() {
 
 #[test]
 fn calculate_rewards_for_given_position_after_compound_go() {
-    elrond_wasm_debug::mandos_go("mandos/calculate_rewards_for_given_position_after_compound.scen.json");
+    elrond_wasm_debug::mandos_go(
+        "mandos/calculate_rewards_for_given_position_after_compound.scen.json",
+    );
 }
 
 #[test]
