@@ -39,6 +39,11 @@ fn complete_setup_go() {
 }
 
 #[test]
+fn compound_rewards_setup_go() {
+    elrond_wasm_debug::mandos_go("mandos/compound_rewards.scen.json");
+}
+
+#[test]
 fn create_pair_twice_go() {
     elrond_wasm_debug::mandos_go("mandos/create_pair_twice.scen.json");
 }

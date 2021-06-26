@@ -19,6 +19,7 @@ const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 
 type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
+type CompoundRewardsResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
     MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 type ExitFarmResultType<BigUint> =
@@ -30,6 +31,9 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     entering_epoch: Epoch,
     apr_multiplier: u8,
     with_locked_rewards: bool,
+    initial_farming_amount: BigUint,
+    compounded_reward: BigUint,
+    current_farm_amount: BigUint,
 }
 
 #[elrond_wasm_derive::contract]
@@ -152,6 +156,9 @@ pub trait Farm:
             entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier,
             with_locked_rewards,
+            initial_farming_amount: enter_amount,
+            compounded_reward: Self::BigUint::zero(),
+            current_farm_amount: farm_contribution.clone(),
         };
 
         let caller = self.blockchain().get_caller();
@@ -219,7 +226,15 @@ pub trait Farm:
         }
 
         let farming_token_id = self.farming_token_id().get();
-        let mut farming_token_amount = amount.clone();
+        let mut initial_farming_token_amount = &(&farm_attributes.initial_farming_amount * &amount)
+            / &farm_attributes.current_farm_amount;
+        reward +=
+            &(&farm_attributes.compounded_reward * &amount) / &farm_attributes.current_farm_amount;
+        require!(
+            initial_farming_token_amount != 0,
+            "Farming token amount is zero"
+        );
+
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
             let mut penalty_amount = self.get_penalty_amount(&reward);
             if penalty_amount > 0 {
@@ -227,10 +242,10 @@ pub trait Farm:
                 reward -= penalty_amount;
             }
 
-            penalty_amount = self.get_penalty_amount(&farming_token_amount);
+            penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
             if penalty_amount > 0 {
                 self.burn_tokens(&farming_token_id, &penalty_amount);
-                farming_token_amount -= penalty_amount;
+                initial_farming_token_amount -= penalty_amount;
             }
         }
 
@@ -238,10 +253,8 @@ pub trait Farm:
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
         self.send_back_farming_tokens(
             &farming_token_id,
-            &mut farming_token_amount,
-            farm_attributes.apr_multiplier,
+            &initial_farming_token_amount,
             &caller,
-            farm_attributes.with_locked_rewards,
             &opt_accept_funds_func,
         )?;
 
@@ -259,7 +272,7 @@ pub trait Farm:
         Ok((
             FftTokenAmountPair {
                 token_id: farming_token_id,
-                amount: farming_token_amount,
+                amount: initial_farming_token_amount,
             },
             GenericEsdtAmountPair {
                 token_id: reward_token_id,
@@ -298,11 +311,23 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
+        let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount * &amount)
+            / &farm_attributes.current_farm_amount;
+        let new_reward_amount =
+            &(&farm_attributes.compounded_reward * &amount) / &farm_attributes.current_farm_amount;
+        require!(
+            new_initial_farming_amount != 0,
+            "Farming token amount is zero"
+        );
+
         let new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
+            initial_farming_amount: new_initial_farming_amount,
+            compounded_reward: new_reward_amount,
+            current_farm_amount: amount.clone(),
         };
 
         let caller = self.blockchain().get_caller();
@@ -343,22 +368,91 @@ pub trait Farm:
             .into())
     }
 
+    #[payable("*")]
+    #[endpoint]
+    fn compoundRewards(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_amount] payment_amount: Self::BigUint,
+        #[payment_nonce] payment_token_nonce: Nonce,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<CompoundRewardsResultType<Self::BigUint>> {
+        require!(self.is_active(), "Not active");
+        require!(payment_amount > 0, "Zero amount");
+
+        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        let farm_token_id = self.farm_token_id().get();
+        require!(payment_token_id == farm_token_id, "Unknown farm token");
+
+        let farming_token = self.farming_token_id().get();
+        let reward_token = self.reward_token_id().get();
+        require!(
+            farming_token == reward_token,
+            "Farming token differ from reward token"
+        );
+        self.generate_aggregated_rewards(&reward_token);
+
+        let current_rps = self.reward_per_share().get();
+        let farm_attributes = self.get_farm_attributes(&payment_token_id, payment_token_nonce)?;
+        let reward = self.calculate_reward(
+            &payment_amount,
+            &current_rps,
+            &farm_attributes.reward_per_share,
+        );
+
+        if reward > 0 {
+            self.decrease_reward_reserve(&reward)?;
+        }
+
+        let farm_token_id = self.farm_token_id().get();
+        let new_farm_contribution = &payment_amount + &reward;
+
+        let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount
+            * &payment_amount)
+            / &farm_attributes.current_farm_amount;
+        let new_reward_amount = &(&farm_attributes.compounded_reward * &payment_amount)
+            / &farm_attributes.current_farm_amount
+            + reward;
+        require!(
+            new_initial_farming_amount != 0,
+            "Farming token amount is zero"
+        );
+
+        let new_attributes = FarmTokenAttributes {
+            reward_per_share: current_rps,
+            entering_epoch: farm_attributes.entering_epoch,
+            apr_multiplier: farm_attributes.apr_multiplier,
+            with_locked_rewards: farm_attributes.with_locked_rewards,
+            initial_farming_amount: new_initial_farming_amount,
+            compounded_reward: new_reward_amount,
+            current_farm_amount: new_farm_contribution.clone(),
+        };
+
+        self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount)?;
+        let new_nonce =
+            self.create_farm_tokens(&new_farm_contribution, &farm_token_id, &new_attributes);
+        self.send_nft_tokens(
+            &farm_token_id,
+            new_nonce,
+            &new_farm_contribution,
+            &self.blockchain().get_caller(),
+            &opt_accept_funds_func,
+        );
+
+        Ok(GenericEsdtAmountPair {
+            token_id: farm_token_id,
+            token_nonce: new_nonce,
+            amount: new_farm_contribution,
+        })
+    }
+
     fn send_back_farming_tokens(
         &self,
         farming_token_id: &TokenIdentifier,
-        farming_amount: &mut Self::BigUint,
-        apr_multiplier: u8,
+        farming_amount: &Self::BigUint,
         destination: &Address,
-        with_locked_rewards: bool,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        if with_locked_rewards {
-            *farming_amount = farming_amount.clone() / Self::BigUint::from(apr_multiplier as u64);
-            require!(
-                farming_amount > &mut 0,
-                "Cannot send back farming tokens with amount 0"
-            );
-        }
         self.decrease_farming_token_reserve(farming_amount)?;
         self.send_fft_tokens(
             farming_token_id,

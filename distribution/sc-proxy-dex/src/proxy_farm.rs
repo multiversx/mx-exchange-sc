@@ -15,6 +15,7 @@ use super::proxy_pair;
 const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
+type CompoundRewardsResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
     MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 type ExitFarmResultType<BigUint> =
@@ -265,6 +266,72 @@ pub trait ProxyFarmModule:
         Ok(())
     }
 
+    #[payable("*")]
+    #[endpoint(compoundRewardsProxy)]
+    fn compound_rewards_proxy(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] payment_token_nonce: Nonce,
+        #[payment_amount] payment_amount: Self::BigUint,
+        farm_address: Address,
+    ) -> SCResult<()> {
+        self.require_is_intermediated_farm(&farm_address)?;
+        self.require_wrapped_farm_token_id_not_empty()?;
+        self.require_wrapped_lp_token_id_not_empty()?;
+        require!(payment_amount != 0, "Payment amount cannot be zero");
+        let wrapped_farm_token = self.wrapped_farm_token_id().get();
+        require!(
+            payment_token_id == wrapped_farm_token,
+            "Should only be used with wrapped farm tokens"
+        );
+
+        let wrapped_farm_token_attrs =
+            self.get_attributes(&payment_token_id, payment_token_nonce)?;
+        let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
+        let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
+        let farm_amount = payment_amount.clone();
+
+        self.reset_received_funds_on_current_tx();
+        let result = self.actual_compound_rewards(
+            &farm_address,
+            &farm_token_id,
+            farm_token_nonce,
+            &farm_amount,
+        );
+
+        let new_farm_token = result;
+        let new_farm_token_id = new_farm_token.token_id;
+        let new_farm_token_nonce = new_farm_token.token_nonce;
+        let new_farm_token_amount = new_farm_token.amount;
+        require!(
+            new_farm_token_amount > 0,
+            "Farm token amount received should be greater than 0"
+        );
+        self.validate_received_funds_chunk(
+            [(
+                &new_farm_token_id,
+                new_farm_token_nonce,
+                &new_farm_token_amount,
+            )]
+            .to_vec(),
+        )?;
+
+        let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
+            farm_token_id: new_farm_token_id,
+            farm_token_nonce: new_farm_token_nonce,
+            farming_token_id: wrapped_farm_token_attrs.farming_token_id,
+            farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
+        };
+        self.create_and_send_wrapped_farm_tokens(
+            &new_wrapped_farm_token_attributes,
+            &new_farm_token_amount,
+            &self.blockchain().get_caller(),
+        );
+        self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
+
+        Ok(())
+    }
+
     fn get_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -370,6 +437,23 @@ pub trait ProxyFarmModule:
                 OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+    }
+
+    fn actual_compound_rewards(
+        &self,
+        farm_address: &Address,
+        farm_token_id: &TokenIdentifier,
+        farm_token_nonce: Nonce,
+        amount: &Self::BigUint,
+    ) -> CompoundRewardsResultType<Self::BigUint> {
+        self.farm_contract_proxy(farm_address.clone())
+            .compoundRewards(
+                farm_token_id.clone(),
+                amount.clone(),
+                farm_token_nonce,
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+            )
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn increase_wrapped_farm_token_nonce(&self) -> Nonce {
