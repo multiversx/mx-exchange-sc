@@ -13,7 +13,7 @@ mod fee;
 mod liquidity_pool;
 
 use config::State;
-use dex_common::FftTokenAmountPair;
+use common_structs::FftTokenAmountPair;
 
 type AddLiquidityResultType<BigUint> = MultiResult3<
     FftTokenAmountPair<BigUint>,

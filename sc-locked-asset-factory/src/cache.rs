@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
 
 use super::locked_asset;
 use super::locked_asset::UnlockSchedule;

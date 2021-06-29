@@ -3,11 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
-
-use dex_common::FftTokenAmountPair;
-use dex_common::GenericEsdtAmountPair;
-use distrib_common::WrappedFarmTokenAttributes;
+use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, WrappedFarmTokenAttributes, Nonce};
 
 use super::proxy_common;
 use super::proxy_pair;

@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
 
 #[elrond_wasm_derive::module]
 pub trait RewardsModule {

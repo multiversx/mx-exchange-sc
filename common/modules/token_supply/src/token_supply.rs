@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use core::iter::FromIterator;
 
-type Nonce = u64;
+use common_structs::Nonce;
 
 #[elrond_wasm_derive::module]
 pub trait TokenSupplyModule {

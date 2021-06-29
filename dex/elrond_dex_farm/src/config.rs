@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::{Nonce};
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -10,7 +10,7 @@ pub enum State {
 }
 
 #[elrond_wasm_derive::module]
-pub trait ConfigModule: token_supply::TokenSupplyModule {
+pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -63,9 +63,6 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
             SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
         }
     }
-
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]

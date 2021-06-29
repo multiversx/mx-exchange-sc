@@ -6,13 +6,11 @@ mod config;
 mod rewards;
 
 use config::State;
-use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
+use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Epoch, Nonce};
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Epoch = u64;
-type Nonce = u64;
 const DEFAULT_PENALTY_PERCENT: u8 = 10;
 const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
@@ -38,7 +36,11 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
 
 #[elrond_wasm_derive::contract]
 pub trait Farm:
-    rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule
+    rewards::RewardsModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + nft_deposit::NftDepositModule
+    + token_send::TokenSendModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
@@ -500,64 +502,6 @@ pub trait Farm:
             }
         }
         Ok(())
-    }
-
-    fn send_fft_tokens(
-        &self,
-        token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
-
-        let _ = self.send().direct_esdt_execute(
-            destination,
-            token,
-            amount,
-            gas_limit,
-            function,
-            &ArgBuffer::new(),
-        );
-    }
-
-    fn send_nft_tokens(
-        &self,
-        token: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
-
-        let _ = self.send().direct_esdt_nft_execute(
-            destination,
-            token,
-            nonce,
-            amount,
-            gas_limit,
-            function,
-            &ArgBuffer::new(),
-        );
     }
 
     #[payable("*")]

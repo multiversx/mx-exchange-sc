@@ -13,14 +13,11 @@ wasm-output-mode = [
   "token_supply/wasm-output-mode",
 ]
 
-[dependencies.distrib-common]
-path = "../distribution/distrib-common"
-
-[dependencies.dex-common]
-path = "../dex/dex-common"
+[dependencies.common_structs]
+path = "../common/common_structs"
 
 [dependencies.token_supply]
-path = "../modules/token_supply"
+path = "../common/modules/token_supply"
 
 [dependencies.elrond-wasm]
 version = "0.17"
