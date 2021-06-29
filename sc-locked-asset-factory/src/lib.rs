@@ -9,12 +9,15 @@ elrond_wasm::derive_imports!();
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-use common_structs::{GenericEsdtAmountPair, UnlockMilestone, Epoch, Nonce};
+use common_structs::{Epoch, GenericEsdtAmountPair, Nonce, UnlockMilestone};
 use locked_asset::UnlockSchedule;
 
 #[elrond_wasm_derive::contract]
 pub trait LockedAssetFactory:
-    locked_asset::LockedAssetModule + cache::CacheModule + token_supply::TokenSupplyModule
+    locked_asset::LockedAssetModule
+    + cache::CacheModule
+    + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
 {
     #[init]
     fn init(

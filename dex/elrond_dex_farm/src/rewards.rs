@@ -6,7 +6,9 @@ use super::config;
 use common_structs::Nonce;
 
 #[elrond_wasm_derive::module]
-pub trait RewardsModule: config::ConfigModule + token_supply::TokenSupplyModule + token_send::TokenSendModule {
+pub trait RewardsModule:
+    config::ConfigModule + token_supply::TokenSupplyModule + token_send::TokenSendModule
+{
     fn calculate_per_block_rewards(
         &self,
         current_block_nonce: Nonce,

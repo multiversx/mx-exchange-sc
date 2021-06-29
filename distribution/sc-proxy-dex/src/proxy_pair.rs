@@ -9,7 +9,7 @@ use core::iter::FromIterator;
 const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
-use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, WrappedLpTokenAttributes, Nonce};
+use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedLpTokenAttributes};
 
 use super::proxy_common;
 

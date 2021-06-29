@@ -12,8 +12,8 @@ mod config;
 mod fee;
 mod liquidity_pool;
 
-use config::State;
 use common_structs::FftTokenAmountPair;
+use config::State;
 
 type AddLiquidityResultType<BigUint> = MultiResult3<
     FftTokenAmountPair<BigUint>,
@@ -31,6 +31,7 @@ pub trait Pair:
     + liquidity_pool::LiquidityPoolModule
     + config::ConfigModule
     + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
 {
     #[init]
     fn init(
@@ -218,19 +219,19 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
+        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func);
         self.send_tokens(
             &expected_first_token_id,
             &temporary_first_token_unused,
             caller,
             &opt_accept_funds_func,
-        )?;
+        );
         self.send_tokens(
             &expected_second_token_id,
             &temporary_second_token_unused,
             caller,
             &opt_accept_funds_func,
-        )?;
+        );
 
         Ok((
             FftTokenAmountPair {
@@ -257,7 +258,7 @@ pub trait Pair:
     ) -> SCResult<()> {
         let amount = self.temporary_funds(caller, token).get();
         self.temporary_funds(caller, token).clear();
-        self.send_tokens(token, &amount, caller, opt_accept_funds_func)?;
+        self.send_tokens(token, &amount, caller, opt_accept_funds_func);
         Ok(())
     }
 
@@ -315,13 +316,13 @@ pub trait Pair:
             &first_token_amount,
             &caller,
             &opt_accept_funds_func,
-        )?;
+        );
         self.send_tokens(
             &second_token_id,
             &second_token_amount,
             &caller,
             &opt_accept_funds_func,
-        )?;
+        );
 
         self.burn_tokens(&liquidity_token, &liquidity);
 
@@ -448,7 +449,7 @@ pub trait Pair:
             &amount_out_optimal,
             &caller,
             &opt_accept_funds_func,
-        )?;
+        );
 
         Ok(())
     }
@@ -516,8 +517,8 @@ pub trait Pair:
             self.send_fee(&token_in, fee_amount);
         }
 
-        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
-        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
+        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func);
+        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func);
 
         Ok(())
     }
@@ -528,36 +529,9 @@ pub trait Pair:
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) {
         if amount > &0 {
-            let (function, gas_limit) = match opt_accept_funds_func {
-                OptionalArg::Some(accept_funds_func) => (
-                    accept_funds_func.as_slice(),
-                    self.transfer_exec_gas_limit().get(),
-                ),
-                OptionalArg::None => {
-                    let no_func: &[u8] = &[];
-                    (no_func, 0u64)
-                }
-            };
-
-            let result = self.send().direct_esdt_execute(
-                destination,
-                token,
-                amount,
-                gas_limit,
-                function,
-                &ArgBuffer::new(),
-            );
-
-            match result {
-                Result::Ok(_) => Ok(()),
-                Result::Err(_) => {
-                    sc_error!("Direct esdt nft execute failed")
-                }
-            }
-        } else {
-            Ok(())
+            self.send_fft_tokens(token, amount, destination, opt_accept_funds_func);
         }
     }
 

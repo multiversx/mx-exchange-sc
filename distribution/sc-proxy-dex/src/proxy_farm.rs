@@ -3,7 +3,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, WrappedFarmTokenAttributes, Nonce};
+use common_structs::{
+    FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedFarmTokenAttributes,
+};
 
 use super::proxy_common;
 use super::proxy_pair;

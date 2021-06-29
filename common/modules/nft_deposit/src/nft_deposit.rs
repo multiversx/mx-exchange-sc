@@ -39,11 +39,14 @@ pub trait NftDepositModule: token_send::TokenSendModule {
                 break;
             }
 
-            index = index + 1;
+            index += 1;
         }
 
         if !entry_updated {
-            require!(deposit_len + 1 < self.nft_deposit_max_len().get(), "Deposit is full");
+            require!(
+                deposit_len + 1 < self.nft_deposit_max_len().get(),
+                "Deposit is full"
+            );
             self.nft_deposit(&caller).push(&payment);
         }
 
@@ -59,12 +62,8 @@ pub trait NftDepositModule: token_send::TokenSendModule {
         let mut deposit_len = self.nft_deposit(&caller).len();
 
         while deposit_len > 0 {
-            self.withdraw_token(
-                deposit_len,
-                &caller,
-                &opt_accept_funds_func,
-            )?;
-            deposit_len = deposit_len - 1;
+            self.withdraw_token(deposit_len, &caller, &opt_accept_funds_func)?;
+            deposit_len -= 1;
         }
 
         Ok(())

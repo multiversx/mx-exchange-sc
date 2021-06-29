@@ -9,7 +9,10 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm_derive::module]
 pub trait LiquidityPoolModule:
-    amm::AmmModule + config::ConfigModule + token_supply::TokenSupplyModule
+    amm::AmmModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
 {
     fn add_liquidity(
         &self,

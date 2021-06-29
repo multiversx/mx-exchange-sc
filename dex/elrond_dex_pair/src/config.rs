@@ -9,7 +9,7 @@ pub enum State {
 }
 
 #[elrond_wasm_derive::module]
-pub trait ConfigModule {
+pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getRouterAddress)]
     #[storage_mapper("router_address")]
     fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
@@ -25,10 +25,6 @@ pub trait ConfigModule {
     #[view(getExternSwapGasLimit)]
     #[storage_mapper("extern_swap_gas_limit")]
     fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(getTranferExecGasLimit)]
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;

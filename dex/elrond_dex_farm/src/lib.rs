@@ -5,8 +5,8 @@
 mod config;
 mod rewards;
 
+use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 use config::State;
-use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Epoch, Nonce};
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();

@@ -7,7 +7,7 @@ mod rewards;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
-use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Nonce, Epoch};
+use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 
 const PENALTY_PERCENT: u64 = 10;
 const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
