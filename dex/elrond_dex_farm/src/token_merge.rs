@@ -31,6 +31,8 @@ pub trait TokenMergeModule:
         let farm_token_id = self.farm_token_id().get();
 
         self.burn_merge_tokens(&caller);
+        self.nft_deposit(&caller).clear();
+
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
 

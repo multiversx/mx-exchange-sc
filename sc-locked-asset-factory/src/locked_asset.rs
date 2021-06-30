@@ -3,12 +3,16 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{Epoch, Nonce, UnlockMilestone};
 
-const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
-const PERCENTAGE_TOTAL: u64 = 100;
+pub const PERCENTAGE_TOTAL: u64 = 100;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
 pub struct UnlockSchedule {
     pub unlock_milestones: Vec<UnlockMilestone>,
+}
+
+#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
+pub struct LockedAssetTokenAttributes {
+    pub unlock_schedule: UnlockSchedule,
 }
 
 #[elrond_wasm_derive::module]
@@ -16,11 +20,19 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     fn create_and_send_locked_assets(
         &self,
         amount: &Self::BigUint,
+        additional_amount_to_create: &Self::BigUint,
         address: &Address,
+        unlock_schedule: &UnlockSchedule,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
-        self.create_tokens(&token_id, amount);
+        self.create_tokens(
+            &token_id,
+            &(amount + additional_amount_to_create),
+            &LockedAssetTokenAttributes {
+                unlock_schedule: unlock_schedule.clone(),
+            },
+        );
         let last_created_nonce = self.locked_asset_token_nonce().get();
         self.send_nft_tokens(
             &token_id,
@@ -44,9 +56,13 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
     }
 
-    fn create_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
-        let amount_to_create = amount + &Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE);
-        self.nft_create_tokens(token, &amount_to_create, &BoxedBytes::empty());
+    fn create_tokens(
+        &self,
+        token: &TokenIdentifier,
+        amount: &Self::BigUint,
+        attributes: &LockedAssetTokenAttributes,
+    ) {
+        self.nft_create_tokens(token, amount, attributes);
         self.increase_nonce();
     }
 
@@ -139,6 +155,26 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
         require!(percents_sum == 100, "Percents do not sum up to 100");
         Ok(())
+    }
+
+    fn get_attributes(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: u64,
+    ) -> SCResult<LockedAssetTokenAttributes> {
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            token_id,
+            token_nonce,
+        );
+
+        let farm_attributes = token_info.decode_attributes::<LockedAssetTokenAttributes>();
+        match farm_attributes {
+            Result::Ok(decoded_obj) => Ok(decoded_obj),
+            Result::Err(_) => {
+                return sc_error!("Decoding error");
+            }
+        }
     }
 
     #[endpoint]
