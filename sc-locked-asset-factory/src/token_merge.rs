@@ -132,9 +132,10 @@ pub trait TokenMergeModule:
         let mut new_unlock_milestones = Vec::new();
         unlock_epoch_amount_merged.iter().for_each(|x| {
             if x.1 != Self::BigUint::zero() {
+                let unlock_percent = &(&x.1 * &Self::BigUint::from(100u64)) / &sum;
                 new_unlock_milestones.push(UnlockMilestone {
                     unlock_epoch: x.0,
-                    unlock_percent: 10, // &(x.1 * Self::BigUint::from(100u64)) / &sum, TODO: change this after framework update
+                    unlock_percent: unlock_percent.to_u64().unwrap() as u8,
                 })
             }
         });
