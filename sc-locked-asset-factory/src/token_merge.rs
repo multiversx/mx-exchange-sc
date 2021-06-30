@@ -84,7 +84,10 @@ pub trait TokenMergeModule:
         Ok((sum_amount, attrs))
     }
 
-    fn aggregated_unlock_schedule(&self, tokens: &[LockedToken<Self::BigUint>]) -> SCResult<UnlockSchedule> {
+    fn aggregated_unlock_schedule(
+        &self,
+        tokens: &[LockedToken<Self::BigUint>],
+    ) -> SCResult<UnlockSchedule> {
         let mut unlock_epoch_amount = Vec::new();
         tokens.iter().for_each(|locked_token| {
             locked_token
@@ -121,17 +124,20 @@ pub trait TokenMergeModule:
 
             sum += &elem.1;
         }
-        require!(unlock_epoch_amount_merged.len() < MAX_MILESTONES_IN_SCHEDULE, "Too many milestones");
+        require!(
+            unlock_epoch_amount_merged.len() < MAX_MILESTONES_IN_SCHEDULE,
+            "Too many milestones"
+        );
 
         let mut new_unlock_milestones = Vec::new();
-        unlock_epoch_amount_merged.iter().for_each(|x|
+        unlock_epoch_amount_merged.iter().for_each(|x| {
             if x.1 != Self::BigUint::zero() {
                 new_unlock_milestones.push(UnlockMilestone {
                     unlock_epoch: x.0,
-                    unlock_percent: 10,// &(x.1 * Self::BigUint::from(100u64)) / &sum, TODO: change this after framework update
+                    unlock_percent: 10, // &(x.1 * Self::BigUint::from(100u64)) / &sum, TODO: change this after framework update
                 })
             }
-        );
+        });
 
         let mut sum_of_new_percents = 0u8;
         for new_milestone in new_unlock_milestones.iter() {
