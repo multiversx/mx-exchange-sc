@@ -207,7 +207,8 @@
                         "str:asset_token_id": "str:MEX-abcdef",
                         "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:default_unlock_period": "0x000000000000001b32000000000000002c32",
-                        "str:transfer_exec_gas_limit": "50000000"
+                        "str:transfer_exec_gas_limit": "50000000",
+                        "str:nft_deposit_max_len": "10"
                     },
                     "code": "file:../../../sc-locked-asset-factory/output/sc-locked-asset-factory.wasm",
                     "owner": "address:owner"

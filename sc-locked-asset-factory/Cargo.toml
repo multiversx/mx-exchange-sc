@@ -12,6 +12,7 @@ wasm-output-mode = [
   "elrond-wasm-node",
   "token_supply/wasm-output-mode",
   "token_send/wasm-output-mode",
+  "nft_deposit/wasm-output-mode",
 ]
 
 [dependencies.common_structs]

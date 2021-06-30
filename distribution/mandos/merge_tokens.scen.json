@@ -1,0 +1,104 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "multiple_claim_assets.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit1",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "depositToken",
+                "esdt": {
+                    "tokenIdentifier": "str:LKMEX-abcdef",
+                    "value": "100",
+                    "nonce": "1"
+                },
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit2",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "depositToken",
+                "esdt": {
+                    "tokenIdentifier": "str:LKMEX-abcdef",
+                    "value": "100",
+                    "nonce": "2"
+                },
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit2",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "mergeTokens",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x03"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "7",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:FARM-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x03",
+                                    "balance": "400",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}
