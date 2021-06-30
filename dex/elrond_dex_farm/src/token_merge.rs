@@ -26,19 +26,11 @@ pub trait TokenMergeModule:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        let attrs = self.get_merged_farm_token_attributes()?;
-
-        let mut index = 1;
         let caller = self.blockchain().get_caller();
-        let deposit_len = self.nft_deposit(&caller).len();
-
-        while index <= deposit_len {
-            let entry = self.nft_deposit(&caller).get(index);
-            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
-            index += 1;
-        }
-
+        let attrs = self.get_merged_farm_token_attributes(&caller, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
+
+        self.burn_merge_tokens(&caller);
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
 
@@ -53,17 +45,31 @@ pub trait TokenMergeModule:
         Ok(())
     }
 
-    fn get_merged_farm_token_attributes(&self) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let caller = self.blockchain().get_caller();
+    fn burn_merge_tokens(&self, caller: &Address) {
         let deposit_len = self.nft_deposit(&caller).len();
-        require!(deposit_len != 0, "No tokens to merge");
+        let mut index = 1;
+
+        while index <= deposit_len {
+            let entry = self.nft_deposit(&caller).get(index);
+            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
+            index += 1;
+        }
+    }
+
+    fn get_merged_farm_token_attributes(
+        &self,
+        caller: &Address,
+        replic: Option<FarmToken<Self::BigUint>>,
+    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
+        let deposit_len = self.nft_deposit(caller).len();
+        require!(deposit_len != 0 || replic.is_some(), "No tokens to merge");
 
         let mut index = 1;
         let mut tokens = Vec::new();
         let farm_token_id = self.farm_token_id().get();
 
         while index <= deposit_len {
-            let entry = self.nft_deposit(&caller).get(index);
+            let entry = self.nft_deposit(caller).get(index);
             require!(entry.token_id == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
@@ -72,6 +78,10 @@ pub trait TokenMergeModule:
             });
 
             index += 1;
+        }
+
+        if replic.is_some() {
+            tokens.push(replic.unwrap());
         }
 
         if tokens.len() == 1 {

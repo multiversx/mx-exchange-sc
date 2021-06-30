@@ -9,7 +9,7 @@ mod token_merge;
 
 use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 use config::State;
-use farm_token::FarmTokenAttributes;
+use farm_token::{FarmToken, FarmTokenAttributes};
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -144,13 +144,13 @@ pub trait Farm:
         require!(enter_amount > 0, "Cannot farm with amount of 0");
         self.increase_farming_token_reserve(&enter_amount);
 
-        let (farm_contribution, apr_multiplier) =
+        let (mut farm_contribution, apr_multiplier) =
             self.get_farm_contribution(&enter_amount, with_locked_rewards);
 
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
-        let attributes = FarmTokenAttributes {
+        let mut attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier,
@@ -162,7 +162,12 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
-        let new_nonce = self.create_farm_tokens(&farm_contribution, &farm_token_id, &attributes);
+        let new_nonce = self.create_farm_tokens_by_merging(
+            &mut farm_contribution,
+            &farm_token_id,
+            &mut attributes,
+            &caller,
+        )?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
@@ -319,7 +324,7 @@ pub trait Farm:
             "Farming token amount is zero"
         );
 
-        let new_attributes = FarmTokenAttributes {
+        let mut new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
@@ -331,7 +336,9 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
-        let new_nonce = self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
+        let mut farm_amount = amount.clone();
+        let new_nonce =
+            self.create_farm_tokens_by_merging(&mut farm_amount, &farm_token_id, &mut new_attributes, &caller)?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
@@ -404,7 +411,7 @@ pub trait Farm:
         }
 
         let farm_token_id = self.farm_token_id().get();
-        let new_farm_contribution = &payment_amount
+        let mut new_farm_contribution = &payment_amount
             + &(&reward * &Self::BigUint::from(farm_attributes.apr_multiplier as u64));
 
         let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount
@@ -418,7 +425,7 @@ pub trait Farm:
             "Farming token amount is zero"
         );
 
-        let new_attributes = FarmTokenAttributes {
+        let mut new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
@@ -429,13 +436,18 @@ pub trait Farm:
         };
 
         self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount)?;
-        let new_nonce =
-            self.create_farm_tokens(&new_farm_contribution, &farm_token_id, &new_attributes);
+        let caller = self.blockchain().get_caller();
+        let new_nonce = self.create_farm_tokens_by_merging(
+            &mut new_farm_contribution,
+            &farm_token_id,
+            &mut new_attributes,
+            &caller,
+        )?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
             &new_farm_contribution,
-            &self.blockchain().get_caller(),
+            &caller,
             &opt_accept_funds_func,
         );
 
@@ -444,6 +456,31 @@ pub trait Farm:
             token_nonce: new_nonce,
             amount: new_farm_contribution,
         })
+    }
+
+    fn create_farm_tokens_by_merging(
+        &self,
+        amount: &mut Self::BigUint,
+        token_id: &TokenIdentifier,
+        attributes: &mut FarmTokenAttributes<Self::BigUint>,
+        caller: &Address,
+    ) -> SCResult<Nonce> {
+        let current_position_replic = FarmToken {
+            token_amount: GenericEsdtAmountPair {
+                token_id: token_id.clone(),
+                token_nonce: 0,
+                amount: amount.clone(),
+            },
+            attributes: attributes.clone(),
+        };
+
+        let merged_attributes = self.get_merged_farm_token_attributes(&caller, Some(current_position_replic))?;
+        self.burn_merge_tokens(&caller);
+        self.nft_deposit(&caller).clear();
+
+        *amount = merged_attributes.current_farm_amount.clone();
+        *attributes = merged_attributes.clone();
+        Ok(self.create_farm_tokens(&amount, token_id, &merged_attributes))
     }
 
     fn send_back_farming_tokens(
