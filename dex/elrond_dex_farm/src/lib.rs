@@ -337,8 +337,12 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
         let mut farm_amount = amount.clone();
-        let new_nonce =
-            self.create_farm_tokens_by_merging(&mut farm_amount, &farm_token_id, &mut new_attributes, &caller)?;
+        let new_nonce = self.create_farm_tokens_by_merging(
+            &mut farm_amount,
+            &farm_token_id,
+            &mut new_attributes,
+            &caller,
+        )?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
@@ -474,13 +478,14 @@ pub trait Farm:
             attributes: attributes.clone(),
         };
 
-        let merged_attributes = self.get_merged_farm_token_attributes(&caller, Some(current_position_replic))?;
-        self.burn_merge_tokens(&caller);
-        self.nft_deposit(&caller).clear();
+        let merged_attributes =
+            self.get_merged_farm_token_attributes(caller, Some(current_position_replic))?;
+        self.burn_merge_tokens(caller);
+        self.nft_deposit(caller).clear();
 
         *amount = merged_attributes.current_farm_amount.clone();
         *attributes = merged_attributes.clone();
-        Ok(self.create_farm_tokens(&amount, token_id, &merged_attributes))
+        Ok(self.create_farm_tokens(amount, token_id, &merged_attributes))
     }
 
     fn send_back_farming_tokens(

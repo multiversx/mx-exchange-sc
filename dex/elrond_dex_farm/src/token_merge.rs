@@ -46,11 +46,11 @@ pub trait TokenMergeModule:
     }
 
     fn burn_merge_tokens(&self, caller: &Address) {
-        let deposit_len = self.nft_deposit(&caller).len();
+        let deposit_len = self.nft_deposit(caller).len();
         let mut index = 1;
 
         while index <= deposit_len {
-            let entry = self.nft_deposit(&caller).get(index);
+            let entry = self.nft_deposit(caller).get(index);
             self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
             index += 1;
         }
