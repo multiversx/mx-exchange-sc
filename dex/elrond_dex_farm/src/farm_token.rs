@@ -5,7 +5,7 @@ use common_structs::{GenericEsdtAmountPair, Nonce};
 
 use super::config;
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     pub reward_per_share: BigUint,
     pub entering_epoch: u64,
@@ -16,6 +16,7 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     pub current_farm_amount: BigUint,
 }
 
+#[derive(Clone)]
 pub struct FarmToken<BigUint: BigUintApi> {
     pub token_amount: GenericEsdtAmountPair<BigUint>,
     pub attributes: FarmTokenAttributes<BigUint>,

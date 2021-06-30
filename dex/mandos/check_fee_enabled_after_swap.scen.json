@@ -56,7 +56,8 @@
 						"str:locked_rewards_apr_multiplier": "2",
 						"str:division_safety_constant": "1000000000000",
 						"str:penalty_percent": "10",
-						"str:create_farm_tokens_gas_limit": "5000000"
+						"str:create_farm_tokens_gas_limit": "5000000",
+						"+": ""
 					},
 					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
 				},

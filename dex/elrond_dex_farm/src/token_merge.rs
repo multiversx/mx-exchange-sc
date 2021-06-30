@@ -21,6 +21,38 @@ pub trait TokenMergeModule:
     + token_supply::TokenSupplyModule
     + config::ConfigModule
 {
+    #[endpoint(mergeTokens)]
+    fn merge_tokens(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
+        let attrs = self.get_merged_farm_token_attributes()?;
+
+        let mut index = 1;
+        let caller = self.blockchain().get_caller();
+        let deposit_len = self.nft_deposit(&caller).len();
+
+        while index <= deposit_len {
+            let entry = self.nft_deposit(&caller).get(index);
+            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
+            index += 1;
+        }
+
+        let farm_token_id = self.farm_token_id().get();
+        self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
+        self.increase_nonce();
+
+        self.send_nft_tokens(
+            &farm_token_id,
+            self.farm_token_nonce().get(),
+            &attrs.current_farm_amount,
+            &caller,
+            &opt_accept_funds_func,
+        );
+
+        Ok(())
+    }
+
     fn get_merged_farm_token_attributes(&self) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         let deposit_len = self.nft_deposit(&caller).len();
@@ -40,6 +72,10 @@ pub trait TokenMergeModule:
             });
 
             index += 1;
+        }
+
+        if tokens.len() == 1 {
+            return Ok(tokens[0].clone().attributes);
         }
 
         let aggregated_attributes = FarmTokenAttributes {
