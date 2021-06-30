@@ -122,8 +122,8 @@ pub trait TokenMergeModule:
                 weight: x.token_amount.amount.clone(),
             })
         });
-        let _avg = self.weighted_average(dataset);
-        0 //TODO: update this after framework update
+        let avg = self.weighted_average(dataset);
+        avg.to_u64().unwrap()
     }
 
     fn aggregated_apr_multiplier(&self, tokens: &[FarmToken<Self::BigUint>]) -> SCResult<u8> {
