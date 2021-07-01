@@ -238,7 +238,11 @@ pub trait LockedAssetFactory:
         match result {
             AsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();
-                self.locked_asset_token_id().set(&token_id);
+
+                if self.locked_asset_token_id().is_empty() {
+                    self.locked_asset_token_id().set(&token_id);
+                    self.nft_deposit_accepted_token_ids().insert(token_id);
+                }
             }
             AsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
