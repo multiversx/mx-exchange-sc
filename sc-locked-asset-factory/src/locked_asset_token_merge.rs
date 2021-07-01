@@ -80,6 +80,7 @@ pub trait LockedAssetTokenMergeModule:
 
         let attrs = LockedAssetTokenAttributes {
             unlock_schedule: self.aggregated_unlock_schedule(&tokens)?,
+            is_merged: true,
         };
 
         Ok((sum_amount, attrs))

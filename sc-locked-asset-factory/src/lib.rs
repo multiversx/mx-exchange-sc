@@ -15,6 +15,8 @@ const EPOCHS_IN_MONTH: u64 = 30;
 use common_structs::{Epoch, GenericEsdtAmountPair, Nonce, UnlockMilestone};
 use locked_asset::UnlockSchedule;
 
+use crate::locked_asset::LockedAssetTokenAttributes;
+
 #[elrond_wasm_derive::contract]
 pub trait LockedAssetFactory:
     locked_asset::LockedAssetModule
@@ -92,13 +94,16 @@ pub trait LockedAssetFactory:
         );
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
-        let do_cache_result = true;
+        let attr = LockedAssetTokenAttributes {
+            unlock_schedule: self.create_default_unlock_schedule(month_start_epoch),
+            is_merged: false,
+        };
+
         self.produce_tokens_and_send(
             &amount,
-            &self.create_default_unlock_schedule(month_start_epoch),
+            &attr,
             &address,
             &opt_accept_funds_func,
-            do_cache_result,
         )
     }
 
@@ -134,16 +139,17 @@ pub trait LockedAssetFactory:
                 month_start_epoch,
                 &unlock_schedule.unlock_milestones,
             );
-            let new_unlock_schedule = UnlockSchedule {
-                unlock_milestones: new_unlock_milestones,
+            let new_attributes = LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: new_unlock_milestones,
+                },
+                is_merged: attributes.is_merged,
             };
-            let do_cache_result = false;
             let _ = self.produce_tokens_and_send(
                 &locked_remaining,
-                &new_unlock_schedule,
+                &new_attributes,
                 &caller,
                 &OptionalArg::None,
-                do_cache_result,
             );
         }
 
@@ -158,12 +164,11 @@ pub trait LockedAssetFactory:
     fn produce_tokens_and_send(
         &self,
         amount: &Self::BigUint,
-        unlock_schedule: &UnlockSchedule,
+        attributes: &LockedAssetTokenAttributes,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-        do_cache_result: bool,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
-        let result = self.get_sft_nonce_for_unlock_schedule(unlock_schedule);
+        let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
                 self.add_quantity_and_send_locked_assets(
@@ -175,6 +180,8 @@ pub trait LockedAssetFactory:
                 cached_nonce
             }
             Option::None => {
+                let do_cache_result = !attributes.is_merged;
+
                 let additional_amount_to_create = if do_cache_result {
                     Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE)
                 } else {
@@ -185,12 +192,12 @@ pub trait LockedAssetFactory:
                     amount,
                     &additional_amount_to_create,
                     address,
-                    unlock_schedule,
+                    attributes,
                     opt_accept_funds_func,
                 );
 
                 if do_cache_result {
-                    self.cache_unlock_schedule_and_nonce(unlock_schedule, new_nonce);
+                    self.cache_unlock_schedule_and_nonce(&attributes.unlock_schedule, new_nonce);
                 }
                 new_nonce
             }
