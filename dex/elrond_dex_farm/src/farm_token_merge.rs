@@ -2,24 +2,20 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use farm_token::{FarmToken, FarmTokenAttributes};
+use token_merge::{ValueWeight};
 
 use super::config;
 
 use super::farm_token;
 
-#[derive(Clone, Copy)]
-pub struct ValueWeight<BigUint: BigUintApi> {
-    value: BigUint,
-    weight: BigUint,
-}
-
 #[elrond_wasm_derive::module]
-pub trait TokenMergeModule:
+pub trait FarmTokenMergeModule:
     nft_deposit::NftDepositModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + token_supply::TokenSupplyModule
     + config::ConfigModule
+    + token_merge::TokenMergeModule
 {
     #[endpoint(mergeTokens)]
     fn merge_tokens(
@@ -43,17 +39,6 @@ pub trait TokenMergeModule:
         );
 
         Ok(())
-    }
-
-    fn burn_merge_tokens(&self, caller: &Address) {
-        let deposit_len = self.nft_deposit(caller).len();
-        let mut index = 1;
-
-        while index <= deposit_len {
-            let entry = self.nft_deposit(caller).get(index);
-            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
-            index += 1;
-        }
     }
 
     fn get_merged_farm_token_attributes(
@@ -183,42 +168,5 @@ pub trait TokenMergeModule:
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
         aggregated_amount
-    }
-
-    fn rule_of_three(
-        &self,
-        part: &Self::BigUint,
-        total: &Self::BigUint,
-        value: &Self::BigUint,
-    ) -> Self::BigUint {
-        &(part * value) / total
-    }
-
-    fn weighted_average(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
-        let mut weight_sum = Self::BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| weight_sum = &weight_sum + &x.weight);
-
-        let mut elem_weight_sum = Self::BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| elem_weight_sum = &weight_sum + &(&x.value * &x.weight));
-
-        elem_weight_sum / weight_sum
-    }
-
-    fn weighted_average_ceil(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
-        let mut weight_sum = Self::BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| weight_sum = &weight_sum + &x.weight);
-
-        let mut elem_weight_sum = Self::BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| elem_weight_sum = &weight_sum + &(&x.value * &x.weight));
-
-        (&elem_weight_sum + &weight_sum - Self::BigUint::from(1u64)) / weight_sum
     }
 }
