@@ -14,6 +14,7 @@ wasm-output-mode = [
   "token_supply/wasm-output-mode",
   "token_send/wasm-output-mode",
   "nft_deposit/wasm-output-mode",
+  "token_merge/wasm-output-mode",
 ]
 
 [dependencies.token_supply]
@@ -24,6 +25,9 @@ path = "../../common/modules/token_send"
 
 [dependencies.nft_deposit]
 path = "../../common/modules/nft_deposit"
+
+[dependencies.token_merge]
+path = "../../common/modules/token_merge"
 
 [dependencies.elrond-wasm]
 version = "0.17"

@@ -5,7 +5,7 @@
 mod config;
 mod farm_token;
 mod rewards;
-mod token_merge;
+mod farm_token_merge;
 
 use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 use config::State;
@@ -36,6 +36,7 @@ pub trait Farm:
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
+    + farm_token_merge::FarmTokenMergeModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;

@@ -6,7 +6,7 @@ elrond_wasm::derive_imports!();
 use common_structs::{GenericEsdtAmountPair, Nonce};
 
 #[elrond_wasm_derive::module]
-pub trait NftDepositModule: token_send::TokenSendModule {
+pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
     #[payable("*")]
     #[endpoint(depositToken)]
     fn deposit_token(
@@ -109,6 +109,17 @@ pub trait NftDepositModule: token_send::TokenSendModule {
         );
 
         Ok(())
+    }
+
+    fn burn_merge_tokens(&self, caller: &Address) {
+        let deposit_len = self.nft_deposit(caller).len();
+        let mut index = 1;
+
+        while index <= deposit_len {
+            let entry = self.nft_deposit(caller).get(index);
+            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
+            index += 1;
+        }
     }
 
     fn equal_token_type(
