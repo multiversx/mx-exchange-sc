@@ -3,7 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
+
 const MAX_FUNDS_ENTRIES: usize = 10;
 
 #[elrond_wasm_derive::module]

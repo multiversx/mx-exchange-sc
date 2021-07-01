@@ -3,20 +3,22 @@
 #![allow(clippy::too_many_arguments)]
 
 mod config;
+mod farm_token;
 mod rewards;
+mod farm_token_merge;
 
+use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 use config::State;
-use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
+use farm_token::{FarmToken, FarmTokenAttributes};
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Epoch = u64;
-type Nonce = u64;
 const DEFAULT_PENALTY_PERCENT: u8 = 10;
 const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
+const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
 type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type CompoundRewardsResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
@@ -25,20 +27,16 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct FarmTokenAttributes<BigUint: BigUintApi> {
-    reward_per_share: BigUint,
-    entering_epoch: Epoch,
-    apr_multiplier: u8,
-    with_locked_rewards: bool,
-    initial_farming_amount: BigUint,
-    compounded_reward: BigUint,
-    current_farm_amount: BigUint,
-}
-
 #[elrond_wasm_derive::contract]
 pub trait Farm:
-    rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule
+    rewards::RewardsModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + nft_deposit::NftDepositModule
+    + token_send::TokenSendModule
+    + token_merge::TokenMergeModule
+    + farm_token::FarmTokenModule
+    + farm_token_merge::FarmTokenMergeModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
@@ -85,6 +83,8 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
+        self.nft_deposit_max_len()
+            .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
 
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
@@ -145,13 +145,13 @@ pub trait Farm:
         require!(enter_amount > 0, "Cannot farm with amount of 0");
         self.increase_farming_token_reserve(&enter_amount);
 
-        let (farm_contribution, apr_multiplier) =
+        let (mut farm_contribution, apr_multiplier) =
             self.get_farm_contribution(&enter_amount, with_locked_rewards);
 
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
-        let attributes = FarmTokenAttributes {
+        let mut attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier,
@@ -163,7 +163,12 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
-        let new_nonce = self.create_farm_tokens(&farm_contribution, &farm_token_id, &attributes);
+        let new_nonce = self.create_farm_tokens_by_merging(
+            &mut farm_contribution,
+            &farm_token_id,
+            &mut attributes,
+            &caller,
+        )?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
@@ -320,7 +325,7 @@ pub trait Farm:
             "Farming token amount is zero"
         );
 
-        let new_attributes = FarmTokenAttributes {
+        let mut new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
@@ -332,7 +337,13 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
-        let new_nonce = self.create_farm_tokens(&amount, &farm_token_id, &new_attributes);
+        let mut farm_amount = amount.clone();
+        let new_nonce = self.create_farm_tokens_by_merging(
+            &mut farm_amount,
+            &farm_token_id,
+            &mut new_attributes,
+            &caller,
+        )?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
@@ -405,7 +416,7 @@ pub trait Farm:
         }
 
         let farm_token_id = self.farm_token_id().get();
-        let new_farm_contribution = &payment_amount
+        let mut new_farm_contribution = &payment_amount
             + &(&reward * &Self::BigUint::from(farm_attributes.apr_multiplier as u64));
 
         let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount
@@ -419,7 +430,7 @@ pub trait Farm:
             "Farming token amount is zero"
         );
 
-        let new_attributes = FarmTokenAttributes {
+        let mut new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
@@ -430,13 +441,18 @@ pub trait Farm:
         };
 
         self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount)?;
-        let new_nonce =
-            self.create_farm_tokens(&new_farm_contribution, &farm_token_id, &new_attributes);
+        let caller = self.blockchain().get_caller();
+        let new_nonce = self.create_farm_tokens_by_merging(
+            &mut new_farm_contribution,
+            &farm_token_id,
+            &mut new_attributes,
+            &caller,
+        )?;
         self.send_nft_tokens(
             &farm_token_id,
             new_nonce,
             &new_farm_contribution,
-            &self.blockchain().get_caller(),
+            &caller,
             &opt_accept_funds_func,
         );
 
@@ -445,6 +461,32 @@ pub trait Farm:
             token_nonce: new_nonce,
             amount: new_farm_contribution,
         })
+    }
+
+    fn create_farm_tokens_by_merging(
+        &self,
+        amount: &mut Self::BigUint,
+        token_id: &TokenIdentifier,
+        attributes: &mut FarmTokenAttributes<Self::BigUint>,
+        caller: &Address,
+    ) -> SCResult<Nonce> {
+        let current_position_replic = FarmToken {
+            token_amount: GenericEsdtAmountPair {
+                token_id: token_id.clone(),
+                token_nonce: 0,
+                amount: amount.clone(),
+            },
+            attributes: attributes.clone(),
+        };
+
+        let merged_attributes =
+            self.get_merged_farm_token_attributes(caller, Some(current_position_replic))?;
+        self.burn_merge_tokens(caller);
+        self.nft_deposit(caller).clear();
+
+        *amount = merged_attributes.current_farm_amount.clone();
+        *attributes = merged_attributes.clone();
+        Ok(self.create_farm_tokens(amount, token_id, &merged_attributes))
     }
 
     fn send_back_farming_tokens(
@@ -500,64 +542,6 @@ pub trait Farm:
             }
         }
         Ok(())
-    }
-
-    fn send_fft_tokens(
-        &self,
-        token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
-
-        let _ = self.send().direct_esdt_execute(
-            destination,
-            token,
-            amount,
-            gas_limit,
-            function,
-            &ArgBuffer::new(),
-        );
-    }
-
-    fn send_nft_tokens(
-        &self,
-        token: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
-
-        let _ = self.send().direct_esdt_nft_execute(
-            destination,
-            token,
-            nonce,
-            amount,
-            gas_limit,
-            function,
-            &ArgBuffer::new(),
-        );
     }
 
     #[payable("*")]
@@ -621,172 +605,6 @@ pub trait Farm:
         } else {
             Ok(reward)
         }
-    }
-
-    #[payable("EGLD")]
-    #[endpoint(issueFarmToken)]
-    fn issue_farm_token(
-        &self,
-        #[payment_amount] issue_cost: Self::BigUint,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
-        require!(self.is_active(), "Not active");
-        self.require_permissions()?;
-        require!(self.farm_token_id().is_empty(), "Already issued");
-
-        Ok(self.issue_token(issue_cost, token_display_name, token_ticker))
-    }
-
-    fn issue_token(
-        &self,
-        issue_cost: Self::BigUint,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-    ) -> AsyncCall<Self::SendApi> {
-        ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .issue_semi_fungible(
-                issue_cost,
-                &token_display_name,
-                &token_ticker,
-                SemiFungibleTokenProperties {
-                    can_freeze: true,
-                    can_wipe: true,
-                    can_pause: true,
-                    can_change_owner: true,
-                    can_upgrade: true,
-                    can_add_special_roles: true,
-                },
-            )
-            .async_call()
-            .with_callback(
-                self.callbacks()
-                    .issue_callback(&self.blockchain().get_caller()),
-            )
-    }
-
-    #[callback]
-    fn issue_callback(
-        &self,
-        caller: &Address,
-        #[call_result] result: AsyncCallResult<TokenIdentifier>,
-    ) {
-        match result {
-            AsyncCallResult::Ok(token_id) => {
-                self.last_error_message().clear();
-
-                if self.farm_token_id().is_empty() {
-                    self.farm_token_id().set(&token_id);
-                }
-            }
-            AsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
-                let (returned_tokens, token_id) = self.call_value().payment_token_pair();
-                if token_id.is_egld() && returned_tokens > 0 {
-                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
-                }
-            }
-        }
-    }
-
-    #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall<Self::SendApi>> {
-        require!(self.is_active(), "Not active");
-        self.require_permissions()?;
-        require!(!self.farm_token_id().is_empty(), "No farm token issued");
-
-        let token = self.farm_token_id().get();
-        Ok(self.set_local_roles(token))
-    }
-
-    fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall<Self::SendApi> {
-        ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(
-                &self.blockchain().get_sc_address(),
-                &token,
-                &[
-                    EsdtLocalRole::NftCreate,
-                    EsdtLocalRole::NftAddQuantity,
-                    EsdtLocalRole::NftBurn,
-                ],
-            )
-            .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
-    }
-
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
-        match result {
-            AsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            AsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-            }
-        }
-    }
-
-    fn decode_attributes(
-        &self,
-        attributes_raw: &BoxedBytes,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let attributes =
-            <FarmTokenAttributes<Self::BigUint>>::top_decode(attributes_raw.as_slice());
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
-    }
-
-    fn get_farm_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        let farm_attributes = token_info.decode_attributes::<FarmTokenAttributes<Self::BigUint>>();
-        match farm_attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
-    }
-
-    fn create_farm_tokens(
-        &self,
-        farm_amount: &Self::BigUint,
-        farm_token_id: &TokenIdentifier,
-        attributes: &FarmTokenAttributes<Self::BigUint>,
-    ) -> Nonce {
-        self.nft_create_tokens(farm_token_id, farm_amount, attributes);
-        self.increase_nonce()
-    }
-
-    fn burn_farm_tokens(
-        &self,
-        farm_token_id: &TokenIdentifier,
-        farm_token_nonce: Nonce,
-        amount: &Self::BigUint,
-    ) -> SCResult<()> {
-        let farm_amount = self.get_farm_token_supply();
-        require!(&farm_amount >= amount, "Not enough supply");
-        self.nft_burn_tokens(farm_token_id, farm_token_nonce, amount);
-        Ok(())
-    }
-
-    fn increase_nonce(&self) -> Nonce {
-        let new_nonce = self.farm_token_nonce().get() + 1;
-        self.farm_token_nonce().set(&new_nonce);
-        new_nonce
     }
 
     #[inline]

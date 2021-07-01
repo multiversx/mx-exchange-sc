@@ -1,14 +1,17 @@
 [package]
-name = "token_supply"
+name = "token_send"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
 edition = "2018"
 
 [lib]
-path = "src/token_supply.rs"
+path = "src/token_send.rs"
 
 [features]
 wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.common_structs]
+path = "../../common_structs"
 
 [dependencies.elrond-wasm]
 version = "0.17"

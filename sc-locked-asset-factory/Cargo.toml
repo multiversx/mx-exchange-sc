@@ -11,16 +11,17 @@ path = "src/lib.rs"
 wasm-output-mode = [
   "elrond-wasm-node",
   "token_supply/wasm-output-mode",
+  "token_send/wasm-output-mode",
 ]
 
-[dependencies.distrib-common]
-path = "../distribution/distrib-common"
-
-[dependencies.dex-common]
-path = "../dex/dex-common"
+[dependencies.common_structs]
+path = "../common/common_structs"
 
 [dependencies.token_supply]
-path = "../modules/token_supply"
+path = "../common/modules/token_supply"
+
+[dependencies.token_send]
+path = "../common/modules/token_send"
 
 [dependencies.elrond-wasm]
 version = "0.17"

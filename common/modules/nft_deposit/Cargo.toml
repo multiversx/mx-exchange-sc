@@ -1,0 +1,30 @@
+[package]
+name = "nft_deposit"
+version = "0.0.0"
+authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/nft_deposit.rs"
+
+[features]
+wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.common_structs]
+path = "../../common_structs"
+
+[dependencies.token_send]
+path = "../token_send"
+
+[dependencies.token_supply]
+path = "../token_supply"
+
+[dependencies.elrond-wasm]
+version = "0.17"
+
+[dependencies.elrond-wasm-derive]
+version = "0.17"
+
+[dependencies.elrond-wasm-node]
+version = "0.17"
+optional = true

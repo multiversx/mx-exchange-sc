@@ -1,5 +1,5 @@
 [package]
-name = "dex-common"
+name = "common_structs"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
 edition = "2018"

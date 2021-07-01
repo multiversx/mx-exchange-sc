@@ -1,12 +1,20 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::farm_token;
+
 use super::config;
 
-type Nonce = u64;
+use common_structs::Nonce;
 
 #[elrond_wasm_derive::module]
-pub trait RewardsModule: config::ConfigModule + token_supply::TokenSupplyModule {
+pub trait RewardsModule:
+    config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
+    + nft_deposit::NftDepositModule
+    + farm_token::FarmTokenModule
+{
     fn calculate_per_block_rewards(
         &self,
         current_block_nonce: Nonce,
@@ -95,8 +103,12 @@ pub trait RewardsModule: config::ConfigModule + token_supply::TokenSupplyModule 
         current_reward_per_share: &Self::BigUint,
         initial_reward_per_share: &Self::BigUint,
     ) -> Self::BigUint {
-        let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
-        amount * &reward_per_share_diff / self.division_safety_constant().get()
+        if current_reward_per_share > initial_reward_per_share {
+            let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
+            amount * &reward_per_share_diff / self.division_safety_constant().get()
+        } else {
+            Self::BigUint::zero()
+        }
     }
 
     fn increase_undistributed_fee_storage(&self, amount: &Self::BigUint) {

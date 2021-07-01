@@ -1,10 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
-type Epoch = u64;
-
-use distrib_common::UnlockMilestone;
+use common_structs::{Epoch, Nonce, UnlockMilestone};
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const PERCENTAGE_TOTAL: u64 = 100;
@@ -15,7 +12,7 @@ pub struct UnlockSchedule {
 }
 
 #[elrond_wasm_derive::module]
-pub trait LockedAssetModule: token_supply::TokenSupplyModule {
+pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     fn create_and_send_locked_assets(
         &self,
         amount: &Self::BigUint,
@@ -25,7 +22,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(&token_id, amount);
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.send_tokens(
+        self.send_nft_tokens(
             &token_id,
             last_created_nonce,
             amount,
@@ -44,37 +41,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule {
     ) {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
-        self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
-    }
-
-    fn send_tokens(
-        &self,
-        token: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
-
-        let _ = self.send().direct_esdt_nft_execute(
-            destination,
-            token,
-            nonce,
-            amount,
-            gas_limit,
-            function,
-            &ArgBuffer::new(),
-        );
+        self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
     }
 
     fn create_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
@@ -188,10 +155,6 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule {
             self.send().direct(dest, &asset_token_id, amount, &[]);
         }
     }
-
-    #[view(getTransferExecGasLimit)]
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]

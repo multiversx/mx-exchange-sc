@@ -4,8 +4,8 @@ elrond_wasm::derive_imports!();
 use super::amm;
 use super::config;
 use super::liquidity_pool;
+use common_structs::TokenPair;
 use core::iter::FromIterator;
-use dex_common::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 
@@ -30,6 +30,7 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
 {
     #[proxy]
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
