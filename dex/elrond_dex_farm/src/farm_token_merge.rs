@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use farm_token::{FarmToken, FarmTokenAttributes};
-use token_merge::{ValueWeight};
+use token_merge::ValueWeight;
 
 use super::config;
 

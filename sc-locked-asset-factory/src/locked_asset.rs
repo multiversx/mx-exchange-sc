@@ -30,7 +30,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         self.create_tokens(
             &token_id,
             &(amount + additional_amount_to_create),
-            &attributes,
+            attributes,
         );
         let last_created_nonce = self.locked_asset_token_nonce().get();
         self.send_nft_tokens(

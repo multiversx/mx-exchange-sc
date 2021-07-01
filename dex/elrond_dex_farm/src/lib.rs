@@ -4,8 +4,8 @@
 
 mod config;
 mod farm_token;
-mod rewards;
 mod farm_token_merge;
+mod rewards;
 
 use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 use config::State;

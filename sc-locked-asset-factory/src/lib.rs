@@ -99,12 +99,7 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        self.produce_tokens_and_send(
-            &amount,
-            &attr,
-            &address,
-            &opt_accept_funds_func,
-        )
+        self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func)
     }
 
     #[payable("*")]
