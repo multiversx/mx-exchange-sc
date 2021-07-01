@@ -21,30 +21,34 @@ pub trait LockedAssetTokenMergeModule:
     + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
 {
-    #[endpoint(mergeTokens)]
     fn merge_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         let (amount, attrs) = self.get_merged_locked_asset_token_amount_and_attributes(&caller)?;
-        let farm_token_id = self.locked_asset_token_id().get();
+        let locked_asset_token = self.locked_asset_token_id().get();
 
-        self.burn_merge_tokens(&caller);
+        self.burn_deposit_tokens(&caller);
         self.nft_deposit(&caller).clear();
 
-        self.nft_create_tokens(&farm_token_id, &amount, &attrs);
+        self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
         self.increase_nonce();
 
+        let new_nonce = self.locked_asset_token_nonce().get();
         self.send_nft_tokens(
-            &farm_token_id,
-            self.locked_asset_token_nonce().get(),
+            &locked_asset_token,
+            new_nonce,
             &amount,
             &caller,
             &opt_accept_funds_func,
         );
 
-        Ok(())
+        Ok(GenericEsdtAmountPair {
+            token_id: locked_asset_token,
+            token_nonce: new_nonce,
+            amount,
+        })
     }
 
     fn get_merged_locked_asset_token_amount_and_attributes(

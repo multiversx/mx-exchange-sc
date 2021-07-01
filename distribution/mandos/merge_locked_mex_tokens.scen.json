@@ -62,14 +62,15 @@
                 "from": "address:user1",
                 "to": "sc:locked_asset_factory",
                 "value": "0",
-                "function": "mergeTokens",
+                "function": "mergeLockedAssetTokens",
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
-                    "0x03"
+                    "0x03",
+                    "0x0000000c4c4b4d45582d616263646566000000000000000300000001c8"
                 ],
                 "status": "0",
                 "message": "",

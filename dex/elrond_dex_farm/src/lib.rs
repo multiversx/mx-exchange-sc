@@ -4,8 +4,8 @@
 
 mod config;
 mod farm_token;
-mod rewards;
 mod farm_token_merge;
+mod rewards;
 
 use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 use config::State;
@@ -481,7 +481,7 @@ pub trait Farm:
 
         let merged_attributes =
             self.get_merged_farm_token_attributes(caller, Some(current_position_replic))?;
-        self.burn_merge_tokens(caller);
+        self.burn_deposit_tokens(caller);
         self.nft_deposit(caller).clear();
 
         *amount = merged_attributes.current_farm_amount.clone();
@@ -605,6 +605,25 @@ pub trait Farm:
         } else {
             Ok(reward)
         }
+    }
+
+    #[payable("*")]
+    #[endpoint]
+    fn depositToken(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] payment_token_nonce: Nonce,
+        #[payment_amount] payment_amount: Self::BigUint,
+    ) -> SCResult<()> {
+        self.deposit_token(payment_token_id, payment_token_nonce, payment_amount)
+    }
+
+    #[endpoint]
+    fn mergeFarmTokens(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
+        self.merge_tokens(opt_accept_funds_func)
     }
 
     #[inline]

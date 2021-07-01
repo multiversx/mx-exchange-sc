@@ -4,8 +4,10 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
+use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
 const MAX_FUNDS_ENTRIES: usize = 10;
+pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 #[elrond_wasm_derive::module]
 pub trait ProxyCommonModule {
@@ -143,6 +145,58 @@ pub trait ProxyCommonModule {
         }
     }
 
+    fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
+        let new_nonce = self.wrapped_lp_token_nonce().get() + 1;
+        self.wrapped_lp_token_nonce().set(&new_nonce);
+        new_nonce
+    }
+
+    fn increase_wrapped_farm_token_nonce(&self) -> Nonce {
+        let new_nonce = self.wrapped_farm_token_nonce().get() + 1;
+        self.wrapped_farm_token_nonce().set(&new_nonce);
+        new_nonce
+    }
+
+    fn get_wrapped_lp_token_attributes(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: Nonce,
+    ) -> SCResult<WrappedLpTokenAttributes<Self::BigUint>> {
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            token_id,
+            token_nonce,
+        );
+
+        let attributes = token_info.decode_attributes::<WrappedLpTokenAttributes<Self::BigUint>>();
+        match attributes {
+            Result::Ok(decoded_obj) => Ok(decoded_obj),
+            Result::Err(_) => {
+                return sc_error!("Decoding error");
+            }
+        }
+    }
+
+    fn get_wrapped_farm_token_attributes(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: Nonce,
+    ) -> SCResult<WrappedFarmTokenAttributes> {
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            token_id,
+            token_nonce,
+        );
+
+        let attributes = token_info.decode_attributes::<WrappedFarmTokenAttributes>();
+        match attributes {
+            Result::Ok(decoded_obj) => Ok(decoded_obj),
+            Result::Err(_) => {
+                return sc_error!("Decoding error");
+            }
+        }
+    }
+
     #[storage_mapper("current_tx_accepted_funds")]
     fn current_tx_accepted_funds(
         &self,
@@ -155,4 +209,21 @@ pub trait ProxyCommonModule {
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
     fn locked_asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[view(getWrappedLpTokenId)]
+    #[storage_mapper("wrapped_lp_token_id")]
+    fn wrapped_lp_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[storage_mapper("wrapped_tp_token_nonce")]
+    fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[view(getWrappedFarmTokenId)]
+    #[storage_mapper("wrapped_farm_token_id")]
+    fn wrapped_farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+
+    #[storage_mapper("wrapped_farm_token_nonce")]
+    fn wrapped_farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[storage_mapper("locked_asset_factory_address")]
+    fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 }

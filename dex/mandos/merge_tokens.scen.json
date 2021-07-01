@@ -62,7 +62,7 @@
 				"from": "address:user1",
 				"to": "sc:farm_contract",
 				"value": "0",
-				"function": "mergeTokens",
+				"function": "mergeFarmTokens",
 				"arguments": [],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"

@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use farm_token::{FarmToken, FarmTokenAttributes};
-use token_merge::{ValueWeight};
+use token_merge::ValueWeight;
 
 use super::config;
 
@@ -17,7 +17,6 @@ pub trait FarmTokenMergeModule:
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
-    #[endpoint(mergeTokens)]
     fn merge_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
@@ -26,7 +25,7 @@ pub trait FarmTokenMergeModule:
         let attrs = self.get_merged_farm_token_attributes(&caller, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
 
-        self.burn_merge_tokens(&caller);
+        self.burn_deposit_tokens(&caller);
         self.nft_deposit(&caller).clear();
 
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);

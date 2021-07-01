@@ -10,7 +10,7 @@ use common_structs::{
 use super::proxy_common;
 use super::proxy_pair;
 
-const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
+use proxy_common::ACCEPT_PAY_FUNC_NAME;
 
 type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
 type CompoundRewardsResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
@@ -134,7 +134,8 @@ pub trait ProxyFarmModule:
             "Should only be used with wrapped farm tokens"
         );
 
-        let wrapped_farm_token_attrs = self.get_attributes(&token_id, token_nonce)?;
+        let wrapped_farm_token_attrs =
+            self.get_wrapped_farm_token_attributes(&token_id, token_nonce)?;
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
@@ -205,7 +206,8 @@ pub trait ProxyFarmModule:
         );
 
         // Read info about wrapped farm token and then burn it.
-        let wrapped_farm_token_attrs = self.get_attributes(&token_id, token_nonce)?;
+        let wrapped_farm_token_attrs =
+            self.get_wrapped_farm_token_attributes(&token_id, token_nonce)?;
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
@@ -284,7 +286,7 @@ pub trait ProxyFarmModule:
         );
 
         let wrapped_farm_token_attrs =
-            self.get_attributes(&payment_token_id, payment_token_nonce)?;
+            self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce)?;
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
         let farm_amount = payment_amount.clone();
@@ -328,26 +330,6 @@ pub trait ProxyFarmModule:
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
         Ok(())
-    }
-
-    fn get_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SCResult<WrappedFarmTokenAttributes> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        let attributes = token_info.decode_attributes::<WrappedFarmTokenAttributes>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
     }
 
     fn create_and_send_wrapped_farm_tokens(
@@ -454,12 +436,6 @@ pub trait ProxyFarmModule:
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
-    fn increase_wrapped_farm_token_nonce(&self) -> Nonce {
-        let new_nonce = self.wrapped_farm_token_nonce().get() + 1;
-        self.wrapped_farm_token_nonce().set(&new_nonce);
-        new_nonce
-    }
-
     fn require_is_intermediated_farm(&self, address: &Address) -> SCResult<()> {
         require!(
             self.intermediated_farms().contains(address),
@@ -476,11 +452,4 @@ pub trait ProxyFarmModule:
     #[view(getIntermediatedFarms)]
     #[storage_mapper("intermediated_farms")]
     fn intermediated_farms(&self) -> SetMapper<Self::Storage, Address>;
-
-    #[view(getWrappedFarmTokenId)]
-    #[storage_mapper("wrapped_farm_token_id")]
-    fn wrapped_farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
-    #[storage_mapper("wrapped_farm_token_nonce")]
-    fn wrapped_farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 }

@@ -6,7 +6,7 @@ elrond_wasm::derive_imports!();
 
 use core::iter::FromIterator;
 
-const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
+use proxy_common::ACCEPT_PAY_FUNC_NAME;
 const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
 use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedLpTokenAttributes};
@@ -432,26 +432,6 @@ pub trait ProxyPairModule:
             .execute_on_dest_context()
     }
 
-    fn get_wrapped_lp_token_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SCResult<WrappedLpTokenAttributes<Self::BigUint>> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        let attributes = token_info.decode_attributes::<WrappedLpTokenAttributes<Self::BigUint>>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
-    }
-
     fn create_and_send(
         &self,
         lp_token_id: &TokenIdentifier,
@@ -527,12 +507,6 @@ pub trait ProxyPairModule:
         );
     }
 
-    fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
-        let new_nonce = self.wrapped_lp_token_nonce().get() + 1;
-        self.wrapped_lp_token_nonce().set(&new_nonce);
-        new_nonce
-    }
-
     fn decrease_temporary_funds_amount(
         &self,
         caller: &Address,
@@ -599,11 +573,4 @@ pub trait ProxyPairModule:
     #[view(getIntermediatedPairs)]
     #[storage_mapper("intermediated_pairs")]
     fn intermediated_pairs(&self) -> SetMapper<Self::Storage, Address>;
-
-    #[view(getWrappedLpTokenId)]
-    #[storage_mapper("wrapped_lp_token_id")]
-    fn wrapped_lp_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
-    #[storage_mapper("wrapped_tp_token_nonce")]
-    fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 }
