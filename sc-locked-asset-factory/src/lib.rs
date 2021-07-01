@@ -2,7 +2,7 @@
 
 mod cache;
 mod locked_asset;
-mod token_merge;
+mod locked_asset_token_merge;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -23,6 +23,7 @@ pub trait LockedAssetFactory:
     + token_send::TokenSendModule
     + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
+    + locked_asset_token_merge::LockedAssetTokenMergeModule
 {
     #[init]
     fn init(

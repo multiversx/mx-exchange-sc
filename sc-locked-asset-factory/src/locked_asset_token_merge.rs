@@ -14,11 +14,12 @@ pub struct LockedToken<BigUint: BigUintApi> {
 }
 
 #[elrond_wasm_derive::module]
-pub trait TokenMergeModule:
+pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
     + nft_deposit::NftDepositModule
+    + token_merge::TokenMergeModule
 {
     #[endpoint(mergeTokens)]
     fn merge_tokens(
@@ -149,25 +150,5 @@ pub trait TokenMergeModule:
         Ok(UnlockSchedule {
             unlock_milestones: new_unlock_milestones,
         })
-    }
-
-    fn burn_merge_tokens(&self, caller: &Address) {
-        let deposit_len = self.nft_deposit(caller).len();
-        let mut index = 1;
-
-        while index <= deposit_len {
-            let entry = self.nft_deposit(caller).get(index);
-            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
-            index += 1;
-        }
-    }
-
-    fn rule_of_three(
-        &self,
-        part: &Self::BigUint,
-        total: &Self::BigUint,
-        value: &Self::BigUint,
-    ) -> Self::BigUint {
-        &(part * value) / total
     }
 }
