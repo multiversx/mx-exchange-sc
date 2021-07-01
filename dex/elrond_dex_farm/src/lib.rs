@@ -85,6 +85,8 @@ pub trait Farm:
         self.nft_deposit_max_len()
             .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
 
+        self.nft_deposit_accepted_token_ids()
+            .insert(reward_token_id.clone());
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
         self.reward_token_id().set(&reward_token_id);

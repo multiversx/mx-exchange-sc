@@ -17,6 +17,11 @@ pub trait NftDepositModule: token_send::TokenSendModule {
     ) -> SCResult<()> {
         require!(payment_amount != 0, "Cannot deposit 0 tokens");
         require!(payment_token_nonce != 0, "Cannot deposit fungible tokens");
+        require!(
+            self.nft_deposit_accepted_token_ids()
+                .contains(&payment_token_id),
+            "Not an accepted token id"
+        );
 
         let payment = GenericEsdtAmountPair {
             token_id: payment_token_id,
@@ -124,4 +129,8 @@ pub trait NftDepositModule: token_send::TokenSendModule {
     #[view(getnftDepositMaxLen)]
     #[storage_mapper("nft_deposit_max_len")]
     fn nft_deposit_max_len(&self) -> SingleValueMapper<Self::Storage, usize>;
+
+    #[view(getNftDepositAcceptedTokenIds)]
+    #[storage_mapper("nft_deposit_accepted_token_ids")]
+    fn nft_deposit_accepted_token_ids(&self) -> SetMapper<Self::Storage, TokenIdentifier>;
 }

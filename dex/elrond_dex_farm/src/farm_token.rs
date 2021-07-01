@@ -83,6 +83,7 @@ pub trait FarmTokenModule:
 
                 if self.farm_token_id().is_empty() {
                     self.farm_token_id().set(&token_id);
+                    self.nft_deposit_accepted_token_ids().insert(token_id);
                 }
             }
             AsyncCallResult::Err(message) => {
