@@ -127,7 +127,12 @@ pub trait ProxyFarmModule:
             farming_token_amount: amount,
         };
         let caller = self.blockchain().get_caller();
-        self.create_by_wrapped_farm_tokens_by_merging_and_send(&attributes, &farm_token_total_amount, &farm_address,&caller)?;
+        self.create_by_wrapped_farm_tokens_by_merging_and_send(
+            &attributes,
+            &farm_token_total_amount,
+            &farm_address,
+            &caller,
+        )?;
 
         Ok(())
     }
