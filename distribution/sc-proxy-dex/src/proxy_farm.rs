@@ -127,7 +127,7 @@ pub trait ProxyFarmModule:
             farming_token_amount: amount,
         };
         let caller = self.blockchain().get_caller();
-        self.create_and_send_wrapped_farm_tokens(&attributes, &farm_token_total_amount, &caller);
+        self.create_by_wrapped_farm_tokens_by_merging_and_send(&attributes, &farm_token_total_amount, &farm_address,&caller)?;
 
         Ok(())
     }
@@ -275,11 +275,12 @@ pub trait ProxyFarmModule:
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
             farming_token_amount: wrapped_farm_token_attrs.farming_token_amount,
         };
-        self.create_and_send_wrapped_farm_tokens(
+        self.create_by_wrapped_farm_tokens_by_merging_and_send(
             &new_wrapped_farm_token_attributes,
             &new_farm_token_total_amount,
+            &farm_address,
             &caller,
-        );
+        )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
         Ok(())
@@ -343,37 +344,38 @@ pub trait ProxyFarmModule:
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
             farming_token_amount: wrapped_farm_token_attrs.farming_token_amount,
         };
-        self.create_and_send_wrapped_farm_tokens(
+        self.create_by_wrapped_farm_tokens_by_merging_and_send(
             &new_wrapped_farm_token_attributes,
             &new_farm_token_amount,
+            &farm_address,
             &self.blockchain().get_caller(),
-        );
+        )?;
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
         Ok(())
     }
 
-    fn create_and_send_wrapped_farm_tokens(
+    fn create_by_wrapped_farm_tokens_by_merging_and_send(
         &self,
         attributes: &WrappedFarmTokenAttributes<Self::BigUint>,
         amount: &Self::BigUint,
-        address: &Address,
-    ) {
+        farm_address: &Address,
+        caller: &Address,
+    ) -> SCResult<()> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
-        self.create_wrapped_farm_tokens(&wrapped_farm_token_id, attributes, amount);
-        let nonce = self.wrapped_farm_token_nonce().get();
-        self.send()
-            .direct_nft(address, &wrapped_farm_token_id, nonce, amount, &[]);
-    }
-
-    fn create_wrapped_farm_tokens(
-        &self,
-        token_id: &TokenIdentifier,
-        attributes: &WrappedFarmTokenAttributes<Self::BigUint>,
-        amount: &Self::BigUint,
-    ) {
-        self.nft_create_tokens(token_id, amount, attributes);
-        self.increase_wrapped_farm_token_nonce();
+        self.merge_wrapped_farm_tokens_and_send(
+            caller,
+            farm_address,
+            Option::Some(WrappedFarmToken {
+                token_amount: GenericEsdtAmountPair {
+                    token_id: wrapped_farm_token_id,
+                    token_nonce: 0,
+                    amount: amount.clone(),
+                },
+                attributes: attributes.clone(),
+            }),
+            OptionalArg::None,
+        )
     }
 
     fn actual_enter_farm(
