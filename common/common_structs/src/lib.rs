@@ -31,7 +31,7 @@ pub struct UnlockMilestone {
     pub unlock_percent: u8,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
 pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
     pub lp_token_id: TokenIdentifier,
     pub lp_token_total_amount: BigUint,

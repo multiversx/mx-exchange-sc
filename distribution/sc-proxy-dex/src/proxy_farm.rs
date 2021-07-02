@@ -7,6 +7,8 @@ use common_structs::{
     FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedFarmTokenAttributes,
 };
 
+use crate::wrapped_token_merge;
+
 use super::proxy_common;
 use super::proxy_pair;
 
@@ -21,7 +23,13 @@ type ExitFarmResultType<BigUint> =
 
 #[elrond_wasm_derive::module]
 pub trait ProxyFarmModule:
-    proxy_common::ProxyCommonModule + proxy_pair::ProxyPairModule + token_supply::TokenSupplyModule
+    proxy_common::ProxyCommonModule
+    + proxy_pair::ProxyPairModule
+    + token_supply::TokenSupplyModule
+    + token_merge::TokenMergeModule
+    + token_send::TokenSendModule
+    + nft_deposit::NftDepositModule
+    + wrapped_token_merge::WrappedTokenMerge
 {
     #[proxy]
     fn farm_contract_proxy(&self, to: Address) -> elrond_dex_farm::Proxy<Self::SendApi>;

@@ -1,4 +1,4 @@
-use common_structs::{GenericEsdtAmountPair, WrappedLpTokenAttributes, WrappedFarmTokenAttributes};
+use common_structs::{GenericEsdtAmountPair, WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -6,10 +6,8 @@ use proxy_common::ACCEPT_PAY_FUNC_NAME;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub struct WrappedLpToken<BigUint: BigUintApi> {
-    pub token_amount: GenericEsdtAmountPair<BigUint>,
-    pub attributes: WrappedLpTokenAttributes<BigUint>,
-}
+use super::proxy_pair;
+use proxy_pair::WrappedLpToken;
 
 pub struct WrappedFarmToken<BigUint: BigUintApi> {
     pub token_amount: GenericEsdtAmountPair<BigUint>,
@@ -33,24 +31,36 @@ pub trait WrappedTokenMerge:
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
+        self.merge_wrapped_lp_tokens_and_send(&caller, Option::None, opt_accept_funds_func)
+    }
 
-        let deposit = self.nft_deposit(&caller).load_as_vec();
-        require!(deposit.len() != 0, "Empty deposit");
+    fn merge_wrapped_lp_tokens_and_send(
+        &self,
+        caller: &Address,
+        replic: Option<WrappedLpToken<Self::BigUint>>,
+        opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<()> {
+        let deposit = self.nft_deposit(caller).load_as_vec();
+        require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
 
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
         self.require_all_tokens_are_wrapped_lp_tokens(&deposit, &wrapped_lp_token_id)?;
 
-        let tokens = self.get_wrapped_lp_tokens_from_deposit(&deposit)?;
+        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(&deposit)?;
+
+        if replic.is_some() {
+            tokens.push(replic.unwrap());
+        }
         self.require_wrapped_lp_tokens_from_same_pair(&tokens)?;
 
-        let merged_locked_token_amount = self.merge_locked_asset_tokens(&tokens);
+        let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens);
 
         let attrs =
             self.get_merged_wrapped_lp_token_attributes(&tokens, &merged_locked_token_amount);
         let amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
 
-        self.burn_deposit_tokens(&caller);
-        self.nft_deposit(&caller).clear();
+        self.burn_deposit_tokens(caller);
+        self.nft_deposit(caller).clear();
 
         self.nft_create_tokens(&wrapped_lp_token_id, &amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();
@@ -59,52 +69,11 @@ pub trait WrappedTokenMerge:
             &wrapped_lp_token_id,
             new_nonce,
             &amount,
-            &caller,
+            caller,
             &opt_accept_funds_func,
         );
 
         Ok(())
-    }
-
-    // #[endpoint(mergeWrappedFarmTokens)]
-    // fn merge_wrapped_farm_tokens(
-    //     &self,
-    //     #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    // ) -> SCResult<()> {
-    //     let caller = self.blockchain().get_caller();
-
-    //     let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
-    //     let deposit = self.nft_deposit(&caller).load_as_vec();
-    //     self.require_all_tokens_are_wrapped_farm_tokens(&deposit, &wrapped_farm_token_id)?;
-
-    //     let tokens = self.get_wrapped_farm_tokens_from_deposit(&deposit)?;
-    //     self.require_wrapped_farm_tokens_from_same_farm(&tokens)?;
-
-    //     let merged_locked_token_amount = self.merge_locked_asset_tokens(&tokens);
-    //     let merged_farm_token_amount = self.merge_farm_tokens(&tokens);
-
-    //     let attrs = self.get_merged_wrapped_farm_token_attributes(
-    //         &tokens,
-    //         &merged_locked_token_amount,
-    //         &merged_farm_token_amount,
-    //     );
-    //     let amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
-
-    //     self.burn_deposit_tokens(&caller);
-    //     self.nft_deposit(&caller).clear();
-
-    //     self.nft_create_tokens(&wrapped_farm_token_id, &amount, &attrs);
-    //     let new_nonce = self.increase_wrapped_lp_token_nonce();
-
-    //     self.send_nft_tokens(
-    //         &wrapped_farm_token_id,
-    //         new_nonce,
-    //         &amount,
-    //         &caller,
-    //         &opt_accept_funds_func,
-    //     );
-
-    //     Ok(())
     }
 
     fn get_wrapped_lp_tokens_from_deposit(
@@ -204,9 +173,11 @@ pub trait WrappedTokenMerge:
     ) -> WrappedLpTokenAttributes<Self::BigUint> {
         let mut lp_token_amount = Self::BigUint::zero();
 
-        tokens.iter().for_each(|x| lp_token_amount += &x.attributes.lp_token_total_amount);
+        tokens
+            .iter()
+            .for_each(|x| lp_token_amount += &x.attributes.lp_token_total_amount);
         WrappedLpTokenAttributes {
-            lp_token_id: tokens[0].token_amount.token_id.clone(),
+            lp_token_id: tokens[0].attributes.lp_token_id.clone(),
             lp_token_total_amount: lp_token_amount,
             locked_assets_invested: merged_locked_asset_token_amount.amount.clone(),
             locked_assets_nonce: merged_locked_asset_token_amount.token_nonce,
@@ -228,6 +199,16 @@ pub trait WrappedTokenMerge:
     ) -> GenericEsdtAmountPair<Self::BigUint> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
+        if tokens.len() == 1 {
+            let token = tokens[0].clone();
+
+            return GenericEsdtAmountPair {
+                token_id: self.locked_asset_token_id().get(),
+                token_nonce: token.attributes.locked_assets_nonce,
+                amount: token.attributes.lp_token_total_amount,
+            };
+        }
+
         let locked_asset_token = self.locked_asset_token_id().get();
         for entry in tokens.iter() {
             self.locked_asset_factory(locked_asset_factory_addr.clone())
@@ -239,8 +220,7 @@ pub trait WrappedTokenMerge:
                 .execute_on_dest_context();
         }
 
-        self
-            .locked_asset_factory(locked_asset_factory_addr.clone())
+        self.locked_asset_factory(locked_asset_factory_addr)
             .mergeLockedAssetTokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
@@ -258,7 +238,9 @@ pub trait WrappedTokenMerge:
     ) -> Self::BigUint {
         let mut token_amount = Self::BigUint::zero();
 
-        tokens.iter().for_each(|x| token_amount += &x.token_amount.amount);
+        tokens
+            .iter()
+            .for_each(|x| token_amount += &x.token_amount.amount);
         token_amount
     }
 }

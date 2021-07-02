@@ -7,6 +7,31 @@
         },
         {
             "step": "scCall",
+            "txId": "deposit1",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "function": "depositToken",
+                "esdt": {
+                    "tokenIdentifier": "str:WLPTOK-abcdef",
+                    "value": "100",
+                    "nonce": "1"
+                },
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "4",
             "tx": {
                 "from": "address:user_with_wegld1",
@@ -85,6 +110,8 @@
                     "0x0000000c4c50544f4b2d616263646566000000022710",
                     "0x0000000c5745474c442d616263646566000000022710",
                     "0x0000000a4d45582d616263646566000000022710",
+                    "0x02",
+                    "0x0000000c4c4b4d45582d6162636465660000000000000002000000024a38",
                     "0x02"
                 ],
                 "status": "0",
@@ -94,84 +121,10 @@
             }
         },
         {
-            "step": "scCall",
-            "txId": "deposit1",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "depositToken",
-                "esdt": {
-                    "tokenIdentifier": "str:WLPTOK-abcdef",
-                    "value": "100",
-                    "nonce": "1"
-                },
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "deposit2",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "depositToken",
-                "esdt": {
-                    "tokenIdentifier": "str:WLPTOK-abcdef",
-                    "value": "100",
-                    "nonce": "2"
-                },
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "deposit2",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "mergeWrappedLpTokens",
-                "arguments": [],
-                "gasLimit": "1,000,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "0x02",
-                    "0x0000000c4c4b4d45582d6162636465660000000000000002000000024a38",
-                    "0x03"
-                ],
-                "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "11",
+                    "nonce": "9",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:FARM-abcdef": {
