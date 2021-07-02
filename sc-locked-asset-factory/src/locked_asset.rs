@@ -13,6 +13,7 @@ pub struct UnlockSchedule {
 #[derive(TopEncode, TopDecode, TypeAbi, Clone)]
 pub struct LockedAssetTokenAttributes {
     pub unlock_schedule: UnlockSchedule,
+    pub is_merged: bool,
 }
 
 #[elrond_wasm_derive::module]
@@ -22,16 +23,14 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         amount: &Self::BigUint,
         additional_amount_to_create: &Self::BigUint,
         address: &Address,
-        unlock_schedule: &UnlockSchedule,
+        attributes: &LockedAssetTokenAttributes,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(
             &token_id,
             &(amount + additional_amount_to_create),
-            &LockedAssetTokenAttributes {
-                unlock_schedule: unlock_schedule.clone(),
-            },
+            attributes,
         );
         let last_created_nonce = self.locked_asset_token_nonce().get();
         self.send_nft_tokens(
