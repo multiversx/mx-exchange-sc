@@ -12,7 +12,7 @@
 				"from": "address:user1",
 				"to": "sc:farm_contract",
 				"value": "0",
-				"function": "depositToken",
+				"function": "depositFarmToken",
 				"esdt": {
 					"tokenIdentifier": "str:FARM-abcdef",
 					"value": "100,000,000",
@@ -37,7 +37,7 @@
 				"from": "address:user1",
 				"to": "sc:farm_contract",
 				"value": "0",
-				"function": "depositToken",
+				"function": "depositFarmToken",
 				"esdt": {
 					"tokenIdentifier": "str:FARM-abcdef",
 					"value": "100,000,000",

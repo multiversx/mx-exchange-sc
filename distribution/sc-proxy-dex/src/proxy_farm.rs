@@ -21,6 +21,12 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
+#[derive(Clone)]
+pub struct WrappedFarmToken<BigUint: BigUintApi> {
+    pub token_amount: GenericEsdtAmountPair<BigUint>,
+    pub attributes: WrappedFarmTokenAttributes,
+}
+
 #[elrond_wasm_derive::module]
 pub trait ProxyFarmModule:
     proxy_common::ProxyCommonModule
@@ -456,8 +462,4 @@ pub trait ProxyFarmModule:
         require!(!self.wrapped_farm_token_id().is_empty(), "Empty token id");
         Ok(())
     }
-
-    #[view(getIntermediatedFarms)]
-    #[storage_mapper("intermediated_farms")]
-    fn intermediated_farms(&self) -> SetMapper<Self::Storage, Address>;
 }

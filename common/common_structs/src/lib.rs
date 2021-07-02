@@ -39,10 +39,21 @@ pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
     pub locked_assets_nonce: Nonce,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
 pub struct WrappedFarmTokenAttributes {
     pub farm_token_id: TokenIdentifier,
     pub farm_token_nonce: Nonce,
     pub farming_token_id: TokenIdentifier,
     pub farming_token_nonce: Nonce,
+}
+
+#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
+pub struct FarmTokenAttributes<BigUint: BigUintApi> {
+    pub reward_per_share: BigUint,
+    pub entering_epoch: u64,
+    pub apr_multiplier: u8,
+    pub with_locked_rewards: bool,
+    pub initial_farming_amount: BigUint,
+    pub compounded_reward: BigUint,
+    pub current_farm_amount: BigUint,
 }

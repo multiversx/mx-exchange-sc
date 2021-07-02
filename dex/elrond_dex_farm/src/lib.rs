@@ -7,9 +7,11 @@ mod farm_token;
 mod farm_token_merge;
 mod rewards;
 
-use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
+use common_structs::{
+    Epoch, FarmTokenAttributes, FftTokenAmountPair, GenericEsdtAmountPair, Nonce,
+};
 use config::State;
-use farm_token::{FarmToken, FarmTokenAttributes};
+use farm_token::FarmToken;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -609,7 +611,7 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint]
-    fn depositToken(
+    fn depositFarmToken(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] payment_token_nonce: Nonce,
@@ -622,7 +624,7 @@ pub trait Farm:
     fn mergeFarmTokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         self.merge_tokens(opt_accept_funds_func)
     }
 

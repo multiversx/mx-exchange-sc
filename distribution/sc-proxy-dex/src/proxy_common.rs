@@ -226,4 +226,8 @@ pub trait ProxyCommonModule {
 
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getIntermediatedFarms)]
+    #[storage_mapper("intermediated_farms")]
+    fn intermediated_farms(&self) -> SetMapper<Self::Storage, Address>;
 }
