@@ -181,14 +181,15 @@ pub trait ProxyCommonModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedFarmTokenAttributes> {
+    ) -> SCResult<WrappedFarmTokenAttributes<Self::BigUint>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        let attributes = token_info.decode_attributes::<WrappedFarmTokenAttributes>();
+        let attributes =
+            token_info.decode_attributes::<WrappedFarmTokenAttributes<Self::BigUint>>();
         match attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {

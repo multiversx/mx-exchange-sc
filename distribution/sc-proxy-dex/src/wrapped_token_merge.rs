@@ -123,30 +123,32 @@ pub trait WrappedTokenMerge:
         let merged_farm_token_amount = self.merge_farm_tokens(farm_contract, &tokens);
         let farming_token_amount = self.merge_farming_tokens(&tokens)?;
 
-        // let new_attrs = WrappedFarmTokenAttributes {
-        //     farm_token_id: merged_farm_token_amount.token_id,
-        //     farm_token_nonce: merged_farm_token_amount.token_nonce,
-        //     farming_token_id: farming_token_amount.token_id,
-        //     farming_token_nonce: farming_token_amount.token_nonce,
-        // };
+        let new_attrs = WrappedFarmTokenAttributes {
+            farm_token_id: merged_farm_token_amount.token_id,
+            farm_token_nonce: merged_farm_token_amount.token_nonce,
+            farm_token_amount: merged_farm_token_amount.amount.clone(),
+            farming_token_id: farming_token_amount.token_id,
+            farming_token_nonce: farming_token_amount.token_nonce,
+            farming_token_amount: farming_token_amount.amount,
+        };
 
-        // self.nft_create_tokens(
-        //     &wrapped_farm_token_id,
-        //     &merged_farm_token_amount.amount,
-        //     &new_attrs,
-        // );
-        // let new_nonce = self.increase_wrapped_farm_token_nonce();
+        self.nft_create_tokens(
+            &wrapped_farm_token_id,
+            &merged_farm_token_amount.amount,
+            &new_attrs,
+        );
+        let new_nonce = self.increase_wrapped_farm_token_nonce();
 
-        // self.burn_deposit_tokens(caller);
-        // self.nft_deposit(caller).clear();
+        self.burn_deposit_tokens(caller);
+        self.nft_deposit(caller).clear();
 
-        // self.send_nft_tokens(
-        //     &wrapped_farm_token_id,
-        //     new_nonce,
-        //     &merged_farm_token_amount.amount,
-        //     caller,
-        //     &opt_accept_funds_func,
-        // );
+        self.send_nft_tokens(
+            &wrapped_farm_token_id,
+            new_nonce,
+            &merged_farm_token_amount.amount,
+            caller,
+            &opt_accept_funds_func,
+        );
 
         Ok(())
     }
@@ -305,27 +307,37 @@ pub trait WrappedTokenMerge:
     fn merge_locked_asset_tokens_from_wrapped_farm(
         &self,
         tokens: &[WrappedFarmToken<Self::BigUint>],
-        apr_multiplier: &Self::BigUint,
     ) -> GenericEsdtAmountPair<Self::BigUint> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
             let token = tokens[0].clone();
+            let locked_token_amount = self.rule_of_three(
+                &token.token_amount.amount,
+                &token.attributes.farm_token_amount,
+                &token.attributes.farming_token_amount,
+            );
 
             return GenericEsdtAmountPair {
                 token_id: self.locked_asset_token_id().get(),
                 token_nonce: token.attributes.farming_token_nonce,
-                amount: &token.token_amount.amount / apr_multiplier,
+                amount: locked_token_amount,
             };
         }
 
         let locked_asset_token = self.locked_asset_token_id().get();
         for entry in tokens.iter() {
+            let locked_token_amount = self.rule_of_three(
+                &entry.token_amount.amount,
+                &entry.attributes.farm_token_amount,
+                &entry.attributes.farming_token_amount,
+            );
+
             self.locked_asset_factory(locked_asset_factory_addr.clone())
                 .depositToken(
                     locked_asset_token.clone(),
                     entry.attributes.farming_token_nonce,
-                    &entry.token_amount.amount / apr_multiplier,
+                    locked_token_amount,
                 )
                 .execute_on_dest_context();
         }
@@ -369,39 +381,43 @@ pub trait WrappedTokenMerge:
         &self,
         tokens: &[WrappedFarmToken<Self::BigUint>],
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
-        let first_token = tokens[0].clone();
-        let farm_token_id = first_token.attributes.farm_token_id.clone();
-        let farm_token_nonce = first_token.attributes.farm_token_nonce;
-        let farm_attrs = self.get_farm_attributes(&farm_token_id, farm_token_nonce)?;
-        let apr_multiplier = Self::BigUint::from(farm_attrs.apr_multiplier as u64);
-
         if tokens.len() == 1 {
+            let first_token = tokens[0].clone();
+            let farming_amount = self.rule_of_three(
+                &first_token.token_amount.amount,
+                &first_token.attributes.farm_token_amount,
+                &first_token.attributes.farming_token_amount,
+            );
+
             return Ok(GenericEsdtAmountPair {
                 token_id: first_token.attributes.farming_token_id,
                 token_nonce: first_token.attributes.farming_token_nonce,
-                amount: first_token.token_amount.amount / apr_multiplier,
+                amount: farming_amount,
             });
         }
 
-        let farming_token_id = first_token.attributes.farming_token_id;
+        let farming_token_id = tokens[0].clone().attributes.farming_token_id;
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
         if farming_token_id == locked_asset_token_id {
-            Ok(self.merge_locked_asset_tokens_from_wrapped_farm(tokens, &apr_multiplier))
+            Ok(self.merge_locked_asset_tokens_from_wrapped_farm(tokens))
         } else {
-            self.merge_wrapped_lp_tokens_from_farm(tokens, &apr_multiplier)
+            self.merge_wrapped_lp_tokens_from_farm(tokens)
         }
     }
 
     fn merge_wrapped_lp_tokens_from_farm(
         &self,
         tokens: &[WrappedFarmToken<Self::BigUint>],
-        apr_multiplier: &Self::BigUint,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let mut wrapped_lp_tokens = Vec::new();
 
         for token in tokens.iter() {
-            let wrapped_lp_token_amount = &token.token_amount.amount / apr_multiplier;
+            let wrapped_lp_token_amount = self.rule_of_three(
+                &token.token_amount.amount,
+                &token.attributes.farming_token_amount,
+                &token.attributes.farm_token_amount,
+            );
             let wrapped_lp_token_id = token.attributes.farming_token_id.clone();
             let wrapped_lp_token_nonce = token.attributes.farming_token_nonce;
 

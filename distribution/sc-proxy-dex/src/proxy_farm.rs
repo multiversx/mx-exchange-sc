@@ -24,7 +24,7 @@ type ExitFarmResultType<BigUint> =
 #[derive(Clone)]
 pub struct WrappedFarmToken<BigUint: BigUintApi> {
     pub token_amount: GenericEsdtAmountPair<BigUint>,
-    pub attributes: WrappedFarmTokenAttributes,
+    pub attributes: WrappedFarmTokenAttributes<BigUint>,
 }
 
 #[elrond_wasm_derive::module]
@@ -121,8 +121,10 @@ pub trait ProxyFarmModule:
         let attributes = WrappedFarmTokenAttributes {
             farm_token_id,
             farm_token_nonce,
+            farm_token_amount: farm_token_total_amount.clone(),
             farming_token_id: token_id,
             farming_token_nonce: token_nonce,
+            farming_token_amount: amount,
         };
         let caller = self.blockchain().get_caller();
         self.create_and_send_wrapped_farm_tokens(&attributes, &farm_token_total_amount, &caller);
@@ -191,6 +193,7 @@ pub trait ProxyFarmModule:
             &reward_token_returned.amount,
         );
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
+
         if farming_token_returned.token_id == self.asset_token_id().get() {
             self.burn_tokens(
                 &farming_token_returned.token_id,
@@ -267,8 +270,10 @@ pub trait ProxyFarmModule:
         let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
             farm_token_id: new_farm_token_id,
             farm_token_nonce: new_farm_token_nonce,
+            farm_token_amount: new_farm_token_total_amount.clone(),
             farming_token_id: wrapped_farm_token_attrs.farming_token_id,
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
+            farming_token_amount: wrapped_farm_token_attrs.farming_token_amount,
         };
         self.create_and_send_wrapped_farm_tokens(
             &new_wrapped_farm_token_attributes,
@@ -333,8 +338,10 @@ pub trait ProxyFarmModule:
         let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
             farm_token_id: new_farm_token_id,
             farm_token_nonce: new_farm_token_nonce,
+            farm_token_amount: new_farm_token_amount.clone(),
             farming_token_id: wrapped_farm_token_attrs.farming_token_id,
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
+            farming_token_amount: wrapped_farm_token_attrs.farming_token_amount,
         };
         self.create_and_send_wrapped_farm_tokens(
             &new_wrapped_farm_token_attributes,
@@ -348,7 +355,7 @@ pub trait ProxyFarmModule:
 
     fn create_and_send_wrapped_farm_tokens(
         &self,
-        attributes: &WrappedFarmTokenAttributes,
+        attributes: &WrappedFarmTokenAttributes<Self::BigUint>,
         amount: &Self::BigUint,
         address: &Address,
     ) {
@@ -362,7 +369,7 @@ pub trait ProxyFarmModule:
     fn create_wrapped_farm_tokens(
         &self,
         token_id: &TokenIdentifier,
-        attributes: &WrappedFarmTokenAttributes,
+        attributes: &WrappedFarmTokenAttributes<Self::BigUint>,
         amount: &Self::BigUint,
     ) {
         self.nft_create_tokens(token_id, amount, attributes);

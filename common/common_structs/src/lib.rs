@@ -40,11 +40,13 @@ pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode, TopDecode, TypeAbi, Clone)]
-pub struct WrappedFarmTokenAttributes {
+pub struct WrappedFarmTokenAttributes<BigUint: BigUintApi> {
     pub farm_token_id: TokenIdentifier,
     pub farm_token_nonce: Nonce,
+    pub farm_token_amount: BigUint,
     pub farming_token_id: TokenIdentifier,
     pub farming_token_nonce: Nonce,
+    pub farming_token_amount: BigUint,
 }
 
 #[derive(TopEncode, TopDecode, TypeAbi, Clone)]
