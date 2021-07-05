@@ -110,6 +110,11 @@ fn exit_mex_farm_proxy_after_mint_rewards_go() {
 }
 
 #[test]
+fn merge_locked_mex_tokens_go() {
+    elrond_wasm_debug::mandos_go("mandos/merge_locked_mex_tokens.scen.json");
+}
+
+#[test]
 fn multiple_claim_assets_go() {
     elrond_wasm_debug::mandos_go("mandos/multiple_claim_assets.scen.json");
 }

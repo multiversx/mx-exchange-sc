@@ -3,7 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-
 #[derive(Clone, Copy)]
 pub struct ValueWeight<BigUint: BigUintApi> {
     pub value: BigUint,
