@@ -625,7 +625,7 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
-        self.merge_tokens(opt_accept_funds_func)
+        self.merge_and_send_tokens(opt_accept_funds_func)
     }
 
     #[inline]

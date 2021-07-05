@@ -11,7 +11,7 @@ const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
 use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedLpTokenAttributes};
 
-use crate::wrapped_token_merge;
+use super::wrapped_lp_token_merge;
 
 use super::proxy_common;
 
@@ -34,7 +34,7 @@ pub struct WrappedLpToken<BigUint: BigUintApi> {
 pub trait ProxyPairModule:
     proxy_common::ProxyCommonModule
     + token_supply::TokenSupplyModule
-    + wrapped_token_merge::WrappedTokenMerge
+    + wrapped_lp_token_merge::WrappedLpTokenMerge
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
     + nft_deposit::NftDepositModule

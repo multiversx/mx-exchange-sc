@@ -21,7 +21,7 @@ pub trait LockedAssetTokenMergeModule:
     + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
 {
-    fn merge_tokens(
+    fn merge_and_send_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {

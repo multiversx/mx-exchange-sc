@@ -7,7 +7,8 @@ elrond_wasm::derive_imports!();
 mod proxy_common;
 mod proxy_farm;
 mod proxy_pair;
-mod wrapped_token_merge;
+mod wrapped_farm_token_merge;
+mod wrapped_lp_token_merge;
 
 use common_structs::Nonce;
 
@@ -28,7 +29,8 @@ pub trait ProxyDexImpl:
     + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
-    + wrapped_token_merge::WrappedTokenMerge
+    + wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + wrapped_lp_token_merge::WrappedLpTokenMerge
 {
     #[init]
     fn init(
@@ -52,7 +54,6 @@ pub trait ProxyDexImpl:
 
         self.nft_deposit_max_len()
             .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
-
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_token_id().set(&locked_asset_token_id);
         self.locked_asset_factory_address()

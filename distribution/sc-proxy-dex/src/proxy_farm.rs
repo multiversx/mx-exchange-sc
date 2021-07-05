@@ -7,7 +7,8 @@ use common_structs::{
     FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedFarmTokenAttributes,
 };
 
-use crate::wrapped_token_merge;
+use super::wrapped_farm_token_merge;
+use super::wrapped_lp_token_merge;
 
 use super::proxy_common;
 use super::proxy_pair;
@@ -35,7 +36,8 @@ pub trait ProxyFarmModule:
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
     + nft_deposit::NftDepositModule
-    + wrapped_token_merge::WrappedTokenMerge
+    + wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + wrapped_lp_token_merge::WrappedLpTokenMerge
 {
     #[proxy]
     fn farm_contract_proxy(&self, to: Address) -> elrond_dex_farm::Proxy<Self::SendApi>;
