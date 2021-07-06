@@ -234,28 +234,25 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
+        let lp_token_amount = FftTokenAmountPair {
+            token_id: lp_token_id,
+            amount: liquidity,
+        };
+        let first_token_amount = FftTokenAmountPair {
+            token_id: expected_first_token_id,
+            amount: first_token_amount,
+        };
+        let second_token_amount = FftTokenAmountPair {
+            token_id: expected_second_token_id,
+            amount: second_token_amount,
+        };
         self.emit_add_liquidity_event(
-            &expected_first_token_id,
-            &expected_second_token_id,
+            caller,
             &first_token_amount,
             &second_token_amount,
-            &liquidity,
+            &lp_token_amount,
         );
-        Ok((
-            FftTokenAmountPair {
-                token_id: lp_token_id,
-                amount: liquidity,
-            },
-            FftTokenAmountPair {
-                token_id: expected_first_token_id,
-                amount: first_token_amount,
-            },
-            FftTokenAmountPair {
-                token_id: expected_second_token_id,
-                amount: second_token_amount,
-            },
-        )
-            .into())
+        Ok((lp_token_amount, first_token_amount, second_token_amount).into())
     }
 
     fn reclaim_temporary_token(
@@ -288,7 +285,7 @@ pub trait Pair:
     #[endpoint]
     fn removeLiquidity(
         &self,
-        #[payment_token] liquidity_token: TokenIdentifier,
+        #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
@@ -300,10 +297,8 @@ pub trait Pair:
         );
 
         let caller = self.blockchain().get_caller();
-        require!(
-            liquidity_token == self.lp_token_identifier().get(),
-            "Wrong liquidity token"
-        );
+        let lp_token_id = self.lp_token_identifier().get();
+        require!(token_id == lp_token_id, "Wrong liquidity token");
 
         let old_k = self.calculate_k_for_reserves();
         let (first_token_amount, second_token_amount) = self.remove_liquidity(
@@ -332,26 +327,27 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        self.burn_tokens(&liquidity_token, &liquidity);
+        self.burn_tokens(&token_id, &liquidity);
 
+        let lp_token_amount = FftTokenAmountPair {
+            token_id: lp_token_id,
+            amount: liquidity,
+        };
+        let first_token_amount = FftTokenAmountPair {
+            token_id: first_token_id,
+            amount: first_token_amount,
+        };
+        let second_token_amount = FftTokenAmountPair {
+            token_id: second_token_id,
+            amount: second_token_amount,
+        };
         self.emit_remove_liquidity_event(
-            &first_token_id,
-            &second_token_id,
+            &caller,
             &first_token_amount,
             &second_token_amount,
-            &liquidity,
+            &lp_token_amount,
         );
-        Ok((
-            FftTokenAmountPair {
-                token_id: first_token_id,
-                amount: first_token_amount,
-            },
-            FftTokenAmountPair {
-                token_id: second_token_id,
-                amount: second_token_amount,
-            },
-        )
-            .into())
+        Ok((first_token_amount, second_token_amount).into())
     }
 
     #[payable("*")]
@@ -466,13 +462,15 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        self.emit_swap_event(
-            &token_in,
-            &token_out,
-            &amount_in,
-            &fee_amount,
-            &amount_out_optimal,
-        );
+        let token_amount_in = FftTokenAmountPair {
+            token_id: token_in,
+            amount: amount_in,
+        };
+        let token_amount_out = FftTokenAmountPair {
+            token_id: token_out,
+            amount: amount_out_optimal,
+        };
+        self.emit_swap_event(&caller, &token_amount_in, &token_amount_out, &fee_amount);
         Ok(())
     }
 
@@ -542,13 +540,15 @@ pub trait Pair:
         self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
         self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
 
-        self.emit_swap_event(
-            &token_in,
-            &token_out,
-            &amount_in_optimal,
-            &fee_amount,
-            &amount_out,
-        );
+        let token_amount_in = FftTokenAmountPair {
+            token_id: token_in,
+            amount: amount_in_optimal,
+        };
+        let token_amount_out = FftTokenAmountPair {
+            token_id: token_out,
+            amount: amount_out,
+        };
+        self.emit_swap_event(&caller, &token_amount_in, &token_amount_out, &fee_amount);
         Ok(())
     }
 

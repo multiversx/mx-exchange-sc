@@ -3,9 +3,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+pub type Nonce = u64;
+pub type Epoch = u64;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Clone)]
 pub struct FftTokenAmountPair<BigUint: BigUintApi> {
     pub token_id: TokenIdentifier,
     pub amount: BigUint,
