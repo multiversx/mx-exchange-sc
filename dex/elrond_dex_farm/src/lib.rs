@@ -4,6 +4,7 @@
 
 mod config;
 mod rewards;
+mod events;
 
 use config::State;
 use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
@@ -24,7 +25,7 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
 
-#[derive(TopEncode, TopDecode, TypeAbi)]
+#[derive(TopEncode, TopDecode, TypeAbi, NestedEncode, NestedDecode, Clone)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     reward_per_share: BigUint,
     entering_epoch: Epoch,
@@ -34,7 +35,7 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
 
 #[elrond_wasm_derive::contract]
 pub trait Farm:
-    rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule
+    rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule + events::EventsModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
