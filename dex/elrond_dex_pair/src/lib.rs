@@ -9,6 +9,7 @@ const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
 mod config;
+mod events;
 mod fee;
 mod liquidity_pool;
 
@@ -31,6 +32,7 @@ pub trait Pair:
     + liquidity_pool::LiquidityPoolModule
     + config::ConfigModule
     + token_supply::TokenSupplyModule
+    + events::EventsModule
 {
     #[init]
     fn init(
@@ -232,6 +234,13 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
+        self.emit_add_liquidity_event(
+            &expected_first_token_id,
+            &expected_second_token_id,
+            &first_token_amount,
+            &second_token_amount,
+            &liquidity,
+        );
         Ok((
             FftTokenAmountPair {
                 token_id: lp_token_id,
@@ -325,6 +334,13 @@ pub trait Pair:
 
         self.burn_tokens(&liquidity_token, &liquidity);
 
+        self.emit_remove_liquidity_event(
+            &first_token_id,
+            &second_token_id,
+            &first_token_amount,
+            &second_token_amount,
+            &liquidity,
+        );
         Ok((
             FftTokenAmountPair {
                 token_id: first_token_id,
@@ -441,7 +457,7 @@ pub trait Pair:
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
-            self.send_fee(&token_in, fee_amount);
+            self.send_fee(&token_in, &fee_amount);
         }
         self.send_tokens(
             &token_out,
@@ -450,6 +466,13 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
+        self.emit_swap_event(
+            &token_in,
+            &token_out,
+            &amount_in,
+            &fee_amount,
+            &amount_out_optimal,
+        );
         Ok(())
     }
 
@@ -513,12 +536,19 @@ pub trait Pair:
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
-            self.send_fee(&token_in, fee_amount);
+            self.send_fee(&token_in, &fee_amount);
         }
 
         self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
         self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
 
+        self.emit_swap_event(
+            &token_in,
+            &token_out,
+            &amount_in_optimal,
+            &fee_amount,
+            &amount_out,
+        );
         Ok(())
     }
 
