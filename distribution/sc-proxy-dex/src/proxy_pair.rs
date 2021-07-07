@@ -572,8 +572,4 @@ pub trait ProxyPairModule:
         &self,
         user: &Address,
     ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
-
-    #[view(getIntermediatedPairs)]
-    #[storage_mapper("intermediated_pairs")]
-    fn intermediated_pairs(&self) -> SetMapper<Self::Storage, Address>;
 }

@@ -215,7 +215,7 @@ pub trait ProxyCommonModule {
     #[storage_mapper("wrapped_lp_token_id")]
     fn wrapped_lp_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 
-    #[storage_mapper("wrapped_tp_token_nonce")]
+    #[storage_mapper("wrapped_lp_token_nonce")]
     fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
     #[view(getWrappedFarmTokenId)]
@@ -231,4 +231,8 @@ pub trait ProxyCommonModule {
     #[view(getIntermediatedFarms)]
     #[storage_mapper("intermediated_farms")]
     fn intermediated_farms(&self) -> SetMapper<Self::Storage, Address>;
+
+    #[view(getIntermediatedPairs)]
+    #[storage_mapper("intermediated_pairs")]
+    fn intermediated_pairs(&self) -> SetMapper<Self::Storage, Address>;
 }
