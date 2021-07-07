@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use dex_common::GenericEsdtAmountPair;
+use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
 
 use crate::FarmTokenAttributes;
 
@@ -9,7 +9,7 @@ use crate::FarmTokenAttributes;
 pub struct EnterFarmEvent<BigUint: BigUintApi> {
     sc_address: Address,
     user_address: Address,
-    farming_token_amount: GenericEsdtAmountPair<BigUint>,
+    farming_token_amount: FftTokenAmountPair<BigUint>,
     farm_token_amount: GenericEsdtAmountPair<BigUint>,
     farm_attributes: FarmTokenAttributes<BigUint>,
     block: u64,
@@ -21,9 +21,9 @@ pub struct EnterFarmEvent<BigUint: BigUintApi> {
 pub struct ExitFarmEvent<BigUint: BigUintApi> {
     sc_address: Address,
     user_address: Address,
-    farming_token_amount: GenericEsdtAmountPair<BigUint>,
+    farming_token_amount: FftTokenAmountPair<BigUint>,
     farm_token_amount: GenericEsdtAmountPair<BigUint>,
-    reward_token_amount: GenericEsdtAmountPair<BigUint>,
+    reward_token_amount: FftTokenAmountPair<BigUint>,
     farm_attributes: FarmTokenAttributes<BigUint>,
     block: u64,
     epoch: u64,
@@ -35,7 +35,7 @@ pub trait EventsModule {
     fn emit_enter_farm_event(
         &self,
         user_address: &Address,
-        farming_token_amount: &GenericEsdtAmountPair<Self::BigUint>,
+        farming_token_amount: &FftTokenAmountPair<Self::BigUint>,
         farm_token_amount: &GenericEsdtAmountPair<Self::BigUint>,
         farm_attributes: &FarmTokenAttributes<Self::BigUint>,
     ) {
@@ -59,9 +59,9 @@ pub trait EventsModule {
     fn emit_exit_farm_event(
         &self,
         user_address: &Address,
-        farming_token_amount: &GenericEsdtAmountPair<Self::BigUint>,
+        farming_token_amount: &FftTokenAmountPair<Self::BigUint>,
         farm_token_amount: &GenericEsdtAmountPair<Self::BigUint>,
-        reward_token_amount: &GenericEsdtAmountPair<Self::BigUint>,
+        reward_token_amount: &FftTokenAmountPair<Self::BigUint>,
         farm_attributes: &FarmTokenAttributes<Self::BigUint>,
     ) {
         let epoch = self.blockchain().get_block_epoch();

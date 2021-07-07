@@ -3,8 +3,8 @@
 #![allow(clippy::too_many_arguments)]
 
 mod config;
-mod rewards;
 mod events;
+mod rewards;
 
 use config::State;
 use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
@@ -35,7 +35,10 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
 
 #[elrond_wasm_derive::contract]
 pub trait Farm:
-    rewards::RewardsModule + config::ConfigModule + token_supply::TokenSupplyModule + events::EventsModule
+    rewards::RewardsModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + events::EventsModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
@@ -166,11 +169,22 @@ pub trait Farm:
             &opt_accept_funds_func,
         );
 
-        Ok(GenericEsdtAmountPair {
+        let farm_token_amount = GenericEsdtAmountPair {
             token_id: farm_token_id,
             token_nonce: new_nonce,
             amount: farm_contribution,
-        })
+        };
+        let farming_token_amount = FftTokenAmountPair {
+            token_id: farming_token_id,
+            amount: enter_amount,
+        };
+        self.emit_enter_farm_event(
+            &caller,
+            &farming_token_amount,
+            &farm_token_amount,
+            &attributes,
+        );
+        Ok(farm_token_amount)
     }
 
     fn get_farm_contribution(
@@ -257,18 +271,16 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        Ok((
-            FftTokenAmountPair {
-                token_id: farming_token_id,
-                amount: farming_token_amount,
-            },
-            GenericEsdtAmountPair {
-                token_id: reward_token_id,
-                token_nonce: reward_nonce,
-                amount: reward,
-            },
-        )
-            .into())
+        let farming_token_amount = FftTokenAmountPair {
+            token_id: farming_token_id,
+            amount: farming_token_amount,
+        };
+        let reward_token_amount = GenericEsdtAmountPair {
+            token_id: reward_token_id,
+            token_nonce: reward_nonce,
+            amount: reward,
+        };
+        Ok((farming_token_amount, reward_token_amount).into())
     }
 
     #[payable("*")]
