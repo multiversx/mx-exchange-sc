@@ -117,8 +117,8 @@ pub trait Router: factory::FactoryModule {
     fn issue_lp_token(
         &self,
         pair_address: Address,
-        tp_token_display_name: BoxedBytes,
-        tp_token_ticker: BoxedBytes,
+        lp_token_display_name: BoxedBytes,
+        lp_token_ticker: BoxedBytes,
         #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
@@ -148,8 +148,8 @@ pub trait Router: factory::FactoryModule {
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .issue_fungible(
                 issue_cost,
-                &tp_token_display_name,
-                &tp_token_ticker,
+                &lp_token_display_name,
+                &lp_token_ticker,
                 &Self::BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,

@@ -1,7 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use farm_token::{FarmToken, FarmTokenAttributes};
+use common_structs::{FarmTokenAttributes, GenericEsdtAmountPair};
+use farm_token::FarmToken;
 use token_merge::ValueWeight;
 
 use super::config;
@@ -17,30 +18,35 @@ pub trait FarmTokenMergeModule:
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
-    #[endpoint(mergeTokens)]
-    fn merge_tokens(
+    fn merge_and_send_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         let attrs = self.get_merged_farm_token_attributes(&caller, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
 
-        self.burn_merge_tokens(&caller);
+        self.burn_deposit_tokens(&caller);
         self.nft_deposit(&caller).clear();
 
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
 
+        let new_amount = attrs.current_farm_amount;
+        let new_nonce = self.farm_token_nonce().get();
         self.send_nft_tokens(
             &farm_token_id,
-            self.farm_token_nonce().get(),
-            &attrs.current_farm_amount,
+            new_nonce,
+            &new_amount,
             &caller,
             &opt_accept_funds_func,
         );
 
-        Ok(())
+        Ok(GenericEsdtAmountPair {
+            token_id: farm_token_id,
+            token_nonce: new_nonce,
+            amount: new_amount,
+        })
     }
 
     fn get_merged_farm_token_attributes(

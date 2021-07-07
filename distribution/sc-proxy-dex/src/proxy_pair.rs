@@ -6,10 +6,12 @@ elrond_wasm::derive_imports!();
 
 use core::iter::FromIterator;
 
-const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
+use proxy_common::ACCEPT_PAY_FUNC_NAME;
 const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
 use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedLpTokenAttributes};
+
+use super::wrapped_lp_token_merge;
 
 use super::proxy_common;
 
@@ -22,9 +24,20 @@ type AddLiquidityResultType<BigUint> = MultiResult3<
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
+#[derive(Clone)]
+pub struct WrappedLpToken<BigUint: BigUintApi> {
+    pub token_amount: GenericEsdtAmountPair<BigUint>,
+    pub attributes: WrappedLpTokenAttributes<BigUint>,
+}
+
 #[elrond_wasm_derive::module]
 pub trait ProxyPairModule:
-    proxy_common::ProxyCommonModule + token_supply::TokenSupplyModule
+    proxy_common::ProxyCommonModule
+    + token_supply::TokenSupplyModule
+    + wrapped_lp_token_merge::WrappedLpTokenMerge
+    + token_merge::TokenMergeModule
+    + token_send::TokenSendModule
+    + nft_deposit::NftDepositModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
@@ -268,13 +281,14 @@ pub trait ProxyPairModule:
             second_token_id,
             second_token_nonce,
         )?;
-        self.create_and_send(
+        self.create_by_merging_and_send(
             &lp_received.token_id,
             &lp_received.amount,
             &consumed_locked_tokens,
             locked_asset_token_nonce,
             &caller,
-        );
+        )?;
+
         if unused_minted_assets > 0 {
             self.burn_tokens(&asset_token_id, &unused_minted_assets);
         }
@@ -432,62 +446,31 @@ pub trait ProxyPairModule:
             .execute_on_dest_context()
     }
 
-    fn get_wrapped_lp_token_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: Nonce,
-    ) -> SCResult<WrappedLpTokenAttributes<Self::BigUint>> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        let attributes = token_info.decode_attributes::<WrappedLpTokenAttributes<Self::BigUint>>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
-    }
-
-    fn create_and_send(
+    fn create_by_merging_and_send(
         &self,
         lp_token_id: &TokenIdentifier,
         lp_token_amount: &Self::BigUint,
         locked_tokens_consumed: &Self::BigUint,
         locked_tokens_nonce: Nonce,
         caller: &Address,
-    ) {
-        let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
-        let nonce = self.create_tokens(
-            &wrapped_lp_token_id,
-            lp_token_id,
-            lp_token_amount,
-            locked_tokens_consumed,
-            locked_tokens_nonce,
-        );
-        self.send()
-            .direct_nft(caller, &wrapped_lp_token_id, nonce, lp_token_amount, &[]);
-    }
-
-    fn create_tokens(
-        &self,
-        wrapped_lp_token_id: &TokenIdentifier,
-        lp_token_id: &TokenIdentifier,
-        lp_token_amount: &Self::BigUint,
-        locked_tokens_consumed: &Self::BigUint,
-        locked_tokens_nonce: Nonce,
-    ) -> Nonce {
-        let attributes = WrappedLpTokenAttributes::<Self::BigUint> {
-            lp_token_id: lp_token_id.clone(),
-            lp_token_total_amount: lp_token_amount.clone(),
-            locked_assets_invested: locked_tokens_consumed.clone(),
-            locked_assets_nonce: locked_tokens_nonce,
-        };
-        self.nft_create_tokens(wrapped_lp_token_id, lp_token_amount, &attributes);
-        self.increase_wrapped_lp_token_nonce()
+    ) -> SCResult<()> {
+        self.merge_wrapped_lp_tokens_and_send(
+            caller,
+            Option::Some(WrappedLpToken {
+                token_amount: GenericEsdtAmountPair {
+                    token_id: self.wrapped_lp_token_id().get(),
+                    token_nonce: 0,
+                    amount: lp_token_amount.clone(),
+                },
+                attributes: WrappedLpTokenAttributes {
+                    lp_token_id: lp_token_id.clone(),
+                    lp_token_total_amount: lp_token_amount.clone(),
+                    locked_assets_invested: locked_tokens_consumed.clone(),
+                    locked_assets_nonce: locked_tokens_nonce,
+                },
+            }),
+            OptionalArg::None,
+        )
     }
 
     fn forward_to_pair(
@@ -525,12 +508,6 @@ pub trait ProxyPairModule:
             (token_id.clone(), token_nonce),
             &old_value + increase_amount,
         );
-    }
-
-    fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
-        let new_nonce = self.wrapped_lp_token_nonce().get() + 1;
-        self.wrapped_lp_token_nonce().set(&new_nonce);
-        new_nonce
     }
 
     fn decrease_temporary_funds_amount(
@@ -595,15 +572,4 @@ pub trait ProxyPairModule:
         &self,
         user: &Address,
     ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
-
-    #[view(getIntermediatedPairs)]
-    #[storage_mapper("intermediated_pairs")]
-    fn intermediated_pairs(&self) -> SetMapper<Self::Storage, Address>;
-
-    #[view(getWrappedLpTokenId)]
-    #[storage_mapper("wrapped_lp_token_id")]
-    fn wrapped_lp_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
-    #[storage_mapper("wrapped_tp_token_nonce")]
-    fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 }

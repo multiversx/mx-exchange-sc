@@ -7,13 +7,11 @@ use common_structs::{GenericEsdtAmountPair, Nonce};
 
 #[elrond_wasm_derive::module]
 pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
-    #[payable("*")]
-    #[endpoint(depositToken)]
-    fn deposit_token(
+    fn deposit_tokens(
         &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] payment_token_nonce: Nonce,
-        #[payment_amount] payment_amount: Self::BigUint,
+        payment_token_id: TokenIdentifier,
+        payment_token_nonce: Nonce,
+        payment_amount: Self::BigUint,
     ) -> SCResult<()> {
         require!(payment_amount != 0, "Cannot deposit 0 tokens");
         require!(payment_token_nonce != 0, "Cannot deposit fungible tokens");
@@ -111,7 +109,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
         Ok(())
     }
 
-    fn burn_merge_tokens(&self, caller: &Address) {
+    fn burn_deposit_tokens(&self, caller: &Address) {
         let deposit_len = self.nft_deposit(caller).len();
         let mut index = 1;
 

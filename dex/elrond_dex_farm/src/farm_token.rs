@@ -1,20 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{GenericEsdtAmountPair, Nonce};
+use common_structs::{FarmTokenAttributes, GenericEsdtAmountPair, Nonce};
 
 use super::config;
-
-#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
-pub struct FarmTokenAttributes<BigUint: BigUintApi> {
-    pub reward_per_share: BigUint,
-    pub entering_epoch: u64,
-    pub apr_multiplier: u8,
-    pub with_locked_rewards: bool,
-    pub initial_farming_amount: BigUint,
-    pub compounded_reward: BigUint,
-    pub current_farm_amount: BigUint,
-}
 
 #[derive(Clone)]
 pub struct FarmToken<BigUint: BigUintApi> {

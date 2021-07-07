@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(non_snake_case)]
 
 mod cache;
 mod locked_asset;
@@ -291,6 +292,32 @@ pub trait LockedAssetFactory:
                 self.last_error_message().set(&message.err_msg);
             }
         }
+    }
+
+    #[payable("*")]
+    #[endpoint]
+    fn depositLockedAssetTokens(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] payment_token_nonce: Nonce,
+        #[payment_amount] payment_amount: Self::BigUint,
+    ) -> SCResult<()> {
+        self.deposit_tokens(payment_token_id, payment_token_nonce, payment_amount)
+    }
+
+    #[endpoint]
+    fn mergeLockedAssetTokens(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+        self.merge_and_send_tokens(opt_accept_funds_func)
+    }
+
+    #[endpoint(setNftDepositMaxLen)]
+    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.nft_deposit_max_len().set(&max_len);
+        Ok(())
     }
 
     fn create_default_unlock_schedule(&self, start_epoch: Epoch) -> UnlockSchedule {

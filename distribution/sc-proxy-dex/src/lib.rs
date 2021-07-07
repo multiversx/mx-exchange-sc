@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -6,6 +7,12 @@ elrond_wasm::derive_imports!();
 mod proxy_common;
 mod proxy_farm;
 mod proxy_pair;
+mod wrapped_farm_token_merge;
+mod wrapped_lp_token_merge;
+
+use common_structs::Nonce;
+
+const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub enum IssueRequestType {
@@ -19,12 +26,18 @@ pub trait ProxyDexImpl:
     + proxy_pair::ProxyPairModule
     + proxy_farm::ProxyFarmModule
     + token_supply::TokenSupplyModule
+    + nft_deposit::NftDepositModule
+    + token_merge::TokenMergeModule
+    + token_send::TokenSendModule
+    + wrapped_farm_token_merge::WrappedFarmTokenMerge
+    + wrapped_lp_token_merge::WrappedLpTokenMerge
 {
     #[init]
     fn init(
         &self,
         asset_token_id: TokenIdentifier,
         locked_asset_token_id: TokenIdentifier,
+        locked_asset_factory_address: Address,
     ) -> SCResult<()> {
         require!(
             asset_token_id.is_valid_esdt_identifier(),
@@ -39,8 +52,12 @@ pub trait ProxyDexImpl:
             "Locked asset token ID cannot be the same as Asset token ID"
         );
 
+        self.nft_deposit_max_len()
+            .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_token_id().set(&locked_asset_token_id);
+        self.locked_asset_factory_address()
+            .set(&locked_asset_factory_address);
         Ok(())
     }
 
@@ -120,10 +137,16 @@ pub trait ProxyDexImpl:
 
                 match request_type {
                     IssueRequestType::ProxyPair => {
-                        self.wrapped_lp_token_id().set(&token_id);
+                        if self.wrapped_lp_token_id().is_empty() {
+                            self.wrapped_lp_token_id().set(&token_id);
+                            self.nft_deposit_accepted_token_ids().insert(token_id);
+                        }
                     }
                     IssueRequestType::ProxyFarm => {
-                        self.wrapped_farm_token_id().set(&token_id);
+                        if self.wrapped_farm_token_id().is_empty() {
+                            self.wrapped_farm_token_id().set(&token_id);
+                            self.nft_deposit_accepted_token_ids().insert(token_id);
+                        }
                     }
                 }
             }
@@ -166,6 +189,24 @@ pub trait ProxyDexImpl:
                 self.last_error_message().set(&message.err_msg);
             }
         }
+    }
+
+    #[payable("*")]
+    #[endpoint]
+    fn depositWrappedTokens(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] payment_token_nonce: Nonce,
+        #[payment_amount] payment_amount: Self::BigUint,
+    ) -> SCResult<()> {
+        self.deposit_tokens(payment_token_id, payment_token_nonce, payment_amount)
+    }
+
+    #[endpoint(setNftDepositMaxLen)]
+    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.nft_deposit_max_len().set(&max_len);
+        Ok(())
     }
 
     #[view(getLastErrorMessage)]
