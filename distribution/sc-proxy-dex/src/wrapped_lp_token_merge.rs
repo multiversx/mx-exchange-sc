@@ -163,7 +163,7 @@ pub trait WrappedLpTokenMerge:
             );
 
             self.locked_asset_factory(locked_asset_factory_addr.clone())
-                .depositToken(
+                .depositLockedAssetTokens(
                     locked_asset_token.clone(),
                     entry.attributes.locked_assets_nonce,
                     amount,

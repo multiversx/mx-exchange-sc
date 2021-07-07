@@ -7,7 +7,7 @@ use common_structs::{GenericEsdtAmountPair, Nonce};
 
 #[elrond_wasm_derive::module]
 pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
-    fn deposit_token(
+    fn deposit_tokens(
         &self,
         payment_token_id: TokenIdentifier,
         payment_token_nonce: Nonce,

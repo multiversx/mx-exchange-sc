@@ -180,7 +180,7 @@ pub trait WrappedFarmTokenMerge:
             );
 
             self.locked_asset_factory_proxy(locked_asset_factory_addr.clone())
-                .depositToken(
+                .depositLockedAssetTokens(
                     locked_asset_token.clone(),
                     entry.attributes.farming_token_nonce,
                     locked_token_amount,
@@ -210,7 +210,7 @@ pub trait WrappedFarmTokenMerge:
 
         for entry in tokens.iter() {
             self.farm_contract_merge_proxy(farm_contract.clone())
-                .depositFarmToken(
+                .depositFarmTokens(
                     entry.attributes.farm_token_id.clone(),
                     entry.attributes.farm_token_nonce,
                     entry.token_amount.amount.clone(),

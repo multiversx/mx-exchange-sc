@@ -296,13 +296,13 @@ pub trait LockedAssetFactory:
 
     #[payable("*")]
     #[endpoint]
-    fn depositToken(
+    fn depositLockedAssetTokens(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] payment_token_nonce: Nonce,
         #[payment_amount] payment_amount: Self::BigUint,
     ) -> SCResult<()> {
-        self.deposit_token(payment_token_id, payment_token_nonce, payment_amount)
+        self.deposit_tokens(payment_token_id, payment_token_nonce, payment_amount)
     }
 
     #[endpoint]
