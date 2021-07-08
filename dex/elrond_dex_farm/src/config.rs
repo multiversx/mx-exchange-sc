@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use dex_common::Nonce;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {

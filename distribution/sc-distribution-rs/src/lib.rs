@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Epoch = u64;
+use distrib_common::Epoch;
 
 const GAS_THRESHOLD: u64 = 100_000;
 const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;

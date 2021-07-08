@@ -60,7 +60,8 @@
 						"0x6665655f64657374696e6174696f6e2e76616c756500000001": "sc:farm_contract",
 						"0x726573657276650000000c5745474c442d616263646566": "1",
 						"str:transfer_exec_gas_limit": "25,000,000",
-						"str:extern_swap_gas_limit": "50,000,000"
+						"str:extern_swap_gas_limit": "50,000,000",
+						"+": ""
 					},
 					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm"
 				},

@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 use super::config;
 
-type Nonce = u64;
+use dex_common::Nonce;
 
 #[elrond_wasm_derive::module]
 pub trait RewardsModule: config::ConfigModule {
