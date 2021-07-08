@@ -371,9 +371,9 @@ pub trait FeeModule:
                 }
             }
         } else {
-            require!(!destination.is_none(), "Destination does not exist");
+            require!(destination.is_some(), "Destination does not exist");
 
-            let old_percent = destination.unwrap();
+            let old_percent = destination.unwrap_or_default();
             require!(
                 old_percent >= fee_percent,
                 "Old percent is less than given argument"
@@ -390,19 +390,14 @@ pub trait FeeModule:
     }
 
     #[view(getFeeDestinations)]
-    fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier, u64)> {
-        MultiResultVec::from_iter(
-            self.destination_map()
-                .iter()
-                .map(|x| {
-                    let addr_token = x.0;
-                    let addr = addr_token.0;
-                    let token = addr_token.1;
-                    let percent = x.1;
-                    (addr, token, percent)
-                })
-                .collect::<Vec<(Address, TokenIdentifier, u64)>>(),
-        )
+    fn get_fee_destinations(&self) -> MultiResultVec<MultiResult3<Address, TokenIdentifier, u64>> {
+        MultiResultVec::from_iter(self.destination_map().iter().map(|x| {
+            let addr_token = x.0;
+            let addr = addr_token.0;
+            let token = addr_token.1;
+            let percent = x.1;
+            (addr, token, percent).into()
+        }))
     }
 
     #[view(getTrustedSwapPairs)]
