@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, GenericEsdtAmountPair};
+use common_structs::{FarmTokenAttributes, GenericTokenAmountPair};
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
 
@@ -21,7 +21,7 @@ pub trait FarmTokenMergeModule:
     fn merge_and_send_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         let deposit = self.nft_deposit(&caller).get();
 
@@ -42,7 +42,7 @@ pub trait FarmTokenMergeModule:
             &opt_accept_funds_func,
         );
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: new_nonce,
             amount: new_amount,
@@ -51,7 +51,7 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
+        deposit: &[GenericTokenAmountPair<Self::BigUint>],
         replic: Option<FarmToken<Self::BigUint>>,
     ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
         require!(

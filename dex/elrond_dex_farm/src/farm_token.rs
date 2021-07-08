@@ -1,13 +1,13 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, GenericEsdtAmountPair, Nonce};
+use common_structs::{FarmTokenAttributes, GenericTokenAmountPair, Nonce};
 
 use super::config;
 
 #[derive(Clone)]
 pub struct FarmToken<BigUint: BigUintApi> {
-    pub token_amount: GenericEsdtAmountPair<BigUint>,
+    pub token_amount: GenericTokenAmountPair<BigUint>,
     pub attributes: FarmTokenAttributes<BigUint>,
 }
 

@@ -9,7 +9,7 @@ use core::iter::FromIterator;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
 const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
-use common_structs::{FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedLpTokenAttributes};
+use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, Nonce, WrappedLpTokenAttributes};
 
 use super::wrapped_lp_token_merge;
 
@@ -26,7 +26,7 @@ type RemoveLiquidityResultType<BigUint> =
 
 #[derive(Clone)]
 pub struct WrappedLpToken<BigUint: BigUintApi> {
-    pub token_amount: GenericEsdtAmountPair<BigUint>,
+    pub token_amount: GenericTokenAmountPair<BigUint>,
     pub attributes: WrappedLpTokenAttributes<BigUint>,
 }
 
@@ -457,7 +457,7 @@ pub trait ProxyPairModule:
         self.merge_wrapped_lp_tokens_and_send(
             caller,
             Option::Some(WrappedLpToken {
-                token_amount: GenericEsdtAmountPair {
+                token_amount: GenericTokenAmountPair {
                     token_id: self.wrapped_lp_token_id().get(),
                     token_nonce: 0,
                     amount: lp_token_amount.clone(),
@@ -550,20 +550,20 @@ pub trait ProxyPairModule:
     fn get_temporary_funds(
         &self,
         address: &Address,
-    ) -> MultiResultVec<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> MultiResultVec<GenericTokenAmountPair<Self::BigUint>> {
         MultiResultVec::from_iter(
             self.temporary_funds(address)
                 .iter()
                 .map(|x| {
                     let (key, amount) = x;
                     let (token_id, token_nonce) = key;
-                    GenericEsdtAmountPair {
+                    GenericTokenAmountPair {
                         token_id,
                         token_nonce,
                         amount,
                     }
                 })
-                .collect::<Vec<GenericEsdtAmountPair<Self::BigUint>>>(),
+                .collect::<Vec<GenericTokenAmountPair<Self::BigUint>>>(),
         )
     }
 

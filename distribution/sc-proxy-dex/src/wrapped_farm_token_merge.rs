@@ -1,4 +1,4 @@
-use common_structs::{FarmTokenAttributes, GenericEsdtAmountPair, WrappedFarmTokenAttributes};
+use common_structs::{FarmTokenAttributes, GenericTokenAmountPair, WrappedFarmTokenAttributes};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -105,7 +105,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
-        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
+        deposit: &[GenericTokenAmountPair<Self::BigUint>],
     ) -> SCResult<Vec<WrappedFarmToken<Self::BigUint>>> {
         let mut result = Vec::new();
 
@@ -136,7 +136,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_all_tokens_are_wrapped_farm_tokens(
         &self,
-        tokens: &[GenericEsdtAmountPair<Self::BigUint>],
+        tokens: &[GenericTokenAmountPair<Self::BigUint>],
         wrapped_farm_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {
@@ -151,7 +151,7 @@ pub trait WrappedFarmTokenMerge:
     fn merge_locked_asset_tokens_from_wrapped_farm(
         &self,
         tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> GenericEsdtAmountPair<Self::BigUint> {
+    ) -> GenericTokenAmountPair<Self::BigUint> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
@@ -162,7 +162,7 @@ pub trait WrappedFarmTokenMerge:
                 &token.attributes.farming_token_amount,
             );
 
-            return GenericEsdtAmountPair {
+            return GenericTokenAmountPair {
                 token_id: self.locked_asset_token_id().get(),
                 token_nonce: token.attributes.farming_token_nonce,
                 amount: locked_token_amount,
@@ -195,11 +195,11 @@ pub trait WrappedFarmTokenMerge:
         &self,
         farm_contract: &Address,
         tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> GenericEsdtAmountPair<Self::BigUint> {
+    ) -> GenericTokenAmountPair<Self::BigUint> {
         if tokens.len() == 1 {
             let token = tokens[0].clone();
 
-            return GenericEsdtAmountPair {
+            return GenericTokenAmountPair {
                 token_id: token.attributes.farm_token_id,
                 token_nonce: token.attributes.farm_token_nonce,
                 amount: token.token_amount.amount,
@@ -224,7 +224,7 @@ pub trait WrappedFarmTokenMerge:
     fn merge_farming_tokens(
         &self,
         tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         if tokens.len() == 1 {
             let first_token = tokens[0].clone();
             let farming_amount = self.rule_of_three(
@@ -233,7 +233,7 @@ pub trait WrappedFarmTokenMerge:
                 &first_token.attributes.farming_token_amount,
             );
 
-            return Ok(GenericEsdtAmountPair {
+            return Ok(GenericTokenAmountPair {
                 token_id: first_token.attributes.farming_token_id,
                 token_nonce: first_token.attributes.farming_token_nonce,
                 amount: farming_amount,
@@ -253,7 +253,7 @@ pub trait WrappedFarmTokenMerge:
     fn merge_wrapped_lp_tokens_from_farm(
         &self,
         tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let mut wrapped_lp_tokens = Vec::new();
 
         for token in tokens.iter() {
@@ -268,7 +268,7 @@ pub trait WrappedFarmTokenMerge:
             let attributes =
                 self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce)?;
             let wrapped_lp_token = WrappedLpToken {
-                token_amount: GenericEsdtAmountPair {
+                token_amount: GenericTokenAmountPair {
                     token_id: wrapped_lp_token_id.clone(),
                     token_nonce: wrapped_lp_token_nonce,
                     amount: wrapped_lp_token_amount,
@@ -299,7 +299,7 @@ pub trait WrappedFarmTokenMerge:
             );
         }
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: wrapped_lp_token_id,
             token_nonce: new_nonce,
             amount,

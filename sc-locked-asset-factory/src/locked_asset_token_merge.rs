@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{GenericEsdtAmountPair, UnlockMilestone};
+use common_structs::{GenericTokenAmountPair, UnlockMilestone};
 
 use super::locked_asset;
 use super::locked_asset::{LockedAssetTokenAttributes, UnlockSchedule, PERCENTAGE_TOTAL};
@@ -9,7 +9,7 @@ use super::locked_asset::{LockedAssetTokenAttributes, UnlockSchedule, PERCENTAGE
 const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 
 pub struct LockedToken<BigUint: BigUintApi> {
-    pub token_amount: GenericEsdtAmountPair<BigUint>,
+    pub token_amount: GenericTokenAmountPair<BigUint>,
     pub attributes: LockedAssetTokenAttributes,
 }
 
@@ -24,7 +24,7 @@ pub trait LockedAssetTokenMergeModule:
     fn merge_and_send_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         let deposit = self.nft_deposit(&caller).get();
         let (amount, attrs) = self.get_merged_locked_asset_token_amount_and_attributes(&deposit)?;
@@ -44,7 +44,7 @@ pub trait LockedAssetTokenMergeModule:
             &opt_accept_funds_func,
         );
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: locked_asset_token,
             token_nonce: new_nonce,
             amount,
@@ -53,7 +53,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
+        deposit: &[GenericTokenAmountPair<Self::BigUint>],
     ) -> SCResult<(Self::BigUint, LockedAssetTokenAttributes)> {
         require!(!deposit.is_empty(), "Cannot merge with 0 tokens");
 

@@ -7,7 +7,7 @@ mod rewards;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
-use common_structs::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
+use common_structs::{Epoch, FftTokenAmountPair, GenericTokenAmountPair, Nonce};
 
 const PENALTY_PERCENT: u64 = 10;
 const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
@@ -173,7 +173,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount: Self::BigUint,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_contribution = self.get_farm_contribution(&token_in, &amount)?;
@@ -213,7 +213,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             &self.blockchain().get_caller(),
         );
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: farm_token_nonce,
             amount: liquidity,
@@ -291,7 +291,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
     ) -> SCResult<
-        MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
+        MultiResult2<GenericTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
     > {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -349,7 +349,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         Ok((
-            GenericEsdtAmountPair {
+            GenericTokenAmountPair {
                 token_id: farm_token_id,
                 token_nonce: farm_token_nonce,
                 amount: re_added_liquidity,

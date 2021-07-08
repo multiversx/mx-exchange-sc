@@ -13,7 +13,7 @@ const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-use common_structs::{Epoch, GenericEsdtAmountPair, Nonce, UnlockMilestone};
+use common_structs::{Epoch, GenericTokenAmountPair, Nonce, UnlockMilestone};
 use locked_asset::UnlockSchedule;
 
 use crate::locked_asset::LockedAssetTokenAttributes;
@@ -81,7 +81,7 @@ pub trait LockedAssetFactory:
         address: Address,
         start_epoch: Epoch,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -163,7 +163,7 @@ pub trait LockedAssetFactory:
         attributes: &LockedAssetTokenAttributes,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
@@ -198,7 +198,7 @@ pub trait LockedAssetFactory:
                 new_nonce
             }
         };
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: self.locked_asset_token_id().get(),
             token_nonce: sent_nonce,
             amount: amount.clone(),
@@ -309,7 +309,7 @@ pub trait LockedAssetFactory:
     fn mergeLockedAssetTokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         self.merge_and_send_tokens(opt_accept_funds_func)
     }
 

@@ -8,7 +8,7 @@ mod farm_token_merge;
 mod rewards;
 
 use common_structs::{
-    Epoch, FarmTokenAttributes, FftTokenAmountPair, GenericEsdtAmountPair, Nonce,
+    Epoch, FarmTokenAttributes, FftTokenAmountPair, GenericTokenAmountPair, Nonce,
 };
 use config::State;
 use farm_token::FarmToken;
@@ -22,12 +22,12 @@ const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
-type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
-type CompoundRewardsResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
+type EnterFarmResultType<BigUint> = GenericTokenAmountPair<BigUint>;
+type CompoundRewardsResultType<BigUint> = GenericTokenAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+    MultiResult2<GenericTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+    MultiResult2<FftTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
 
 #[elrond_wasm_derive::contract]
 pub trait Farm:
@@ -179,7 +179,7 @@ pub trait Farm:
             &opt_accept_funds_func,
         );
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: new_nonce,
             amount: farm_contribution,
@@ -281,7 +281,7 @@ pub trait Farm:
                 token_id: farming_token_id,
                 amount: initial_farming_token_amount,
             },
-            GenericEsdtAmountPair {
+            GenericTokenAmountPair {
                 token_id: reward_token_id,
                 token_nonce: reward_nonce,
                 amount: reward,
@@ -367,12 +367,12 @@ pub trait Farm:
         )?;
 
         Ok((
-            GenericEsdtAmountPair {
+            GenericTokenAmountPair {
                 token_id: farm_token_id,
                 token_nonce: new_nonce,
                 amount,
             },
-            GenericEsdtAmountPair {
+            GenericTokenAmountPair {
                 token_id: reward_token_id,
                 token_nonce: reward_nonce,
                 amount: reward,
@@ -458,7 +458,7 @@ pub trait Farm:
             &opt_accept_funds_func,
         );
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: new_nonce,
             amount: new_farm_contribution,
@@ -473,7 +473,7 @@ pub trait Farm:
         caller: &Address,
     ) -> SCResult<Nonce> {
         let current_position_replic = FarmToken {
-            token_amount: GenericEsdtAmountPair {
+            token_amount: GenericTokenAmountPair {
                 token_id: token_id.clone(),
                 token_nonce: 0,
                 amount: amount.clone(),
@@ -624,7 +624,7 @@ pub trait Farm:
     fn mergeFarmTokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         self.merge_and_send_tokens(opt_accept_funds_func)
     }
 

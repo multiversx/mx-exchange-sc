@@ -1,4 +1,4 @@
-use common_structs::{GenericEsdtAmountPair, WrappedLpTokenAttributes};
+use common_structs::{GenericTokenAmountPair, WrappedLpTokenAttributes};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -69,7 +69,7 @@ pub trait WrappedLpTokenMerge:
     }
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
-        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
+        deposit: &[GenericTokenAmountPair<Self::BigUint>],
     ) -> SCResult<Vec<WrappedLpToken<Self::BigUint>>> {
         let mut result = Vec::new();
 
@@ -100,7 +100,7 @@ pub trait WrappedLpTokenMerge:
 
     fn require_all_tokens_are_wrapped_lp_tokens(
         &self,
-        tokens: &[GenericEsdtAmountPair<Self::BigUint>],
+        tokens: &[GenericTokenAmountPair<Self::BigUint>],
         wrapped_lp_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {
@@ -115,7 +115,7 @@ pub trait WrappedLpTokenMerge:
     fn get_merged_wrapped_lp_token_attributes(
         &self,
         tokens: &[WrappedLpToken<Self::BigUint>],
-        merged_locked_asset_token_amount: &GenericEsdtAmountPair<Self::BigUint>,
+        merged_locked_asset_token_amount: &GenericTokenAmountPair<Self::BigUint>,
     ) -> WrappedLpTokenAttributes<Self::BigUint> {
         let mut lp_token_amount = Self::BigUint::zero();
 
@@ -133,7 +133,7 @@ pub trait WrappedLpTokenMerge:
     fn merge_locked_asset_tokens_from_wrapped_lp(
         &self,
         tokens: &[WrappedLpToken<Self::BigUint>],
-    ) -> GenericEsdtAmountPair<Self::BigUint> {
+    ) -> GenericTokenAmountPair<Self::BigUint> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
         let locked_asset_token = self.locked_asset_token_id().get();
 
@@ -145,7 +145,7 @@ pub trait WrappedLpTokenMerge:
                 &token.attributes.lp_token_total_amount,
                 &token.attributes.locked_assets_invested,
             );
-            return GenericEsdtAmountPair {
+            return GenericTokenAmountPair {
                 token_id: locked_asset_token,
                 token_nonce: token.attributes.locked_assets_nonce,
                 amount,

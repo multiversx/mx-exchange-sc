@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{GenericEsdtAmountPair, Nonce};
+use common_structs::{GenericTokenAmountPair, Nonce};
 
 #[elrond_wasm_derive::module]
 pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
@@ -21,7 +21,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
             "Not an accepted token id"
         );
 
-        let payment = GenericEsdtAmountPair {
+        let payment = GenericTokenAmountPair {
             token_id: payment_token_id,
             token_nonce: payment_token_nonce,
             amount: payment_amount,
@@ -100,7 +100,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
     fn burn_deposit_tokens(
         &self,
         caller: &Address,
-        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
+        deposit: &[GenericTokenAmountPair<Self::BigUint>],
     ) {
         deposit.iter().for_each(|entry| {
             self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount)
@@ -110,8 +110,8 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
 
     fn equal_token_type(
         &self,
-        first: &GenericEsdtAmountPair<Self::BigUint>,
-        second: &GenericEsdtAmountPair<Self::BigUint>,
+        first: &GenericTokenAmountPair<Self::BigUint>,
+        second: &GenericTokenAmountPair<Self::BigUint>,
     ) -> bool {
         first.token_id == second.token_id && first.token_nonce == second.token_nonce
     }
@@ -121,7 +121,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
     fn nft_deposit(
         &self,
         address: &Address,
-    ) -> SingleValueMapper<Self::Storage, Vec<GenericEsdtAmountPair<Self::BigUint>>>;
+    ) -> SingleValueMapper<Self::Storage, Vec<GenericTokenAmountPair<Self::BigUint>>>;
 
     #[view(getnftDepositMaxLen)]
     #[storage_mapper("nft_deposit_max_len")]

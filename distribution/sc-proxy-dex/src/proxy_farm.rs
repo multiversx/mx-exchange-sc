@@ -4,7 +4,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::{
-    FftTokenAmountPair, GenericEsdtAmountPair, Nonce, WrappedFarmTokenAttributes,
+    FftTokenAmountPair, GenericTokenAmountPair, Nonce, WrappedFarmTokenAttributes,
 };
 
 use super::wrapped_farm_token_merge;
@@ -15,16 +15,16 @@ use super::proxy_pair;
 
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
 
-type EnterFarmResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
-type CompoundRewardsResultType<BigUint> = GenericEsdtAmountPair<BigUint>;
+type EnterFarmResultType<BigUint> = GenericTokenAmountPair<BigUint>;
+type CompoundRewardsResultType<BigUint> = GenericTokenAmountPair<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiResult2<GenericEsdtAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+    MultiResult2<GenericTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, GenericEsdtAmountPair<BigUint>>;
+    MultiResult2<FftTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
 
 #[derive(Clone)]
 pub struct WrappedFarmToken<BigUint: BigUintApi> {
-    pub token_amount: GenericEsdtAmountPair<BigUint>,
+    pub token_amount: GenericTokenAmountPair<BigUint>,
     pub attributes: WrappedFarmTokenAttributes<BigUint>,
 }
 
@@ -374,7 +374,7 @@ pub trait ProxyFarmModule:
             caller,
             farm_address,
             Option::Some(WrappedFarmToken {
-                token_amount: GenericEsdtAmountPair {
+                token_amount: GenericTokenAmountPair {
                     token_id: wrapped_farm_token_id,
                     token_nonce: 0,
                     amount: amount.clone(),
