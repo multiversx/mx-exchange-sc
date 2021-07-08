@@ -3,7 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+pub type Nonce = u64;
+pub type Epoch = u64;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi, NestedEncode, NestedDecode, Clone, Copy)]
 pub struct UnlockMilestone {

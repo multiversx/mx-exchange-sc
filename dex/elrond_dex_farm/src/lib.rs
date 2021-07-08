@@ -6,13 +6,11 @@ mod config;
 mod rewards;
 
 use config::State;
-use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
+use dex_common::{Epoch, FftTokenAmountPair, GenericEsdtAmountPair, Nonce};
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Epoch = u64;
-type Nonce = u64;
 const DEFAULT_PENALTY_PERCENT: u8 = 10;
 const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;

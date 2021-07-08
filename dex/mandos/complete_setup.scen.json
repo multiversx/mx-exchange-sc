@@ -40,6 +40,12 @@
 		{
 			"step": "externalSteps",
 			"path": "steps/set_fee_on.steps.json"
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "1"
+			}
 		}
 	]
 }
