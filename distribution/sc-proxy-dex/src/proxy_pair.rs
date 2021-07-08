@@ -77,12 +77,13 @@ pub trait ProxyPairModule: proxy_common::ProxyCommonModule {
         token_nonce: Nonce,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
+        let token_nonce_key = (token_id.clone(), token_nonce);
         let token_amount = self
             .temporary_funds(&caller)
-            .get(&(token_id.clone(), token_nonce))
+            .get(&token_nonce_key)
             .unwrap_or_else(Self::BigUint::zero);
         self.temporary_funds(&caller)
-            .remove(&(token_id.clone(), token_nonce));
+            .remove(&token_nonce_key);
         self.direct_generic_safe(
             &caller,
             &token_id,
