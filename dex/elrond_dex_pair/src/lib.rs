@@ -11,6 +11,7 @@ mod amm;
 mod config;
 mod fee;
 mod liquidity_pool;
+mod oracle;
 
 use config::State;
 use dex_common::FftTokenAmountPair;
@@ -31,7 +32,11 @@ type SwapTokensFixedOutputResultType<BigUint> =
 
 #[elrond_wasm_derive::contract]
 pub trait Pair:
-    amm::AmmModule + fee::FeeModule + liquidity_pool::LiquidityPoolModule + config::ConfigModule
+    amm::AmmModule
+    + fee::FeeModule
+    + liquidity_pool::LiquidityPoolModule
+    + config::ConfigModule
+    + oracle::OracleModule
 {
     #[init]
     fn init(
@@ -117,7 +122,7 @@ pub trait Pair:
             self.call_value().esdt_token_nonce() == 0,
             "Only fungible tokens are accepted in liquidity pools"
         );
-        require!(payment > 0, "Funds transfer must be a positive number");
+        require!(payment > 0, "Payment amount cannot be zero");
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -125,6 +130,7 @@ pub trait Pair:
             token == first_token_id || token == second_token_id,
             "Invalid token"
         );
+        self.broadcast_pair_reserves();
 
         let caller = self.blockchain().get_caller();
         let mut temporary_funds = self.temporary_funds(&caller, &token).get();
@@ -156,6 +162,7 @@ pub trait Pair:
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
         );
+        self.broadcast_pair_reserves();
 
         let caller = self.blockchain().get_caller();
         let expected_first_token_id = self.first_token_id().get();
@@ -265,6 +272,7 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         self.reclaim_temporary_token(&caller, &first_token_id, &opt_accept_funds_func)?;
         self.reclaim_temporary_token(&caller, &second_token_id, &opt_accept_funds_func)?;
+        self.broadcast_pair_reserves();
 
         Ok(())
     }
@@ -289,6 +297,7 @@ pub trait Pair:
             liquidity_token == self.lp_token_identifier().get(),
             "Wrong liquidity token"
         );
+        self.broadcast_pair_reserves();
 
         let old_k = self.calculate_k_for_reserves();
         let (first_token_amount, second_token_amount) = self.remove_liquidity(
@@ -357,6 +366,7 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Invalid token out"
         );
+        self.broadcast_pair_reserves();
 
         let old_k = self.calculate_k_for_virtual_reserves(&token_in);
 
@@ -395,6 +405,7 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Invalid token out"
         );
+        self.broadcast_pair_reserves();
         self.update_virtual_reserves_on_block_change();
         let old_k = self.calculate_k_for_virtual_reserves(&token_in);
 
@@ -483,6 +494,7 @@ pub trait Pair:
             "Invalid token out"
         );
         require!(amount_out != 0, "Desired amount out cannot be zero");
+        self.broadcast_pair_reserves();
         self.update_virtual_reserves_on_block_change();
         let old_k = self.calculate_k_for_virtual_reserves(&token_in);
 
@@ -584,6 +596,13 @@ pub trait Pair:
         } else {
             Ok(())
         }
+    }
+
+    fn broadcast_pair_reserves(&self) {
+        self.update_price_record(
+            &self.pair_reserve(&self.first_token_id().get()).get(),
+            &self.pair_reserve(&self.second_token_id().get()).get(),
+        )
     }
 
     #[endpoint]

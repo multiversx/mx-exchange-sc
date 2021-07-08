@@ -107,10 +107,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         }
 
         while !residuum_vec.is_empty() {
-            let residuum = residuum_vec.pop().unwrap_or(FftTokenAmountPair {
-                token_id: TokenIdentifier::from(BoxedBytes::empty()),
-                amount: Self::BigUint::zero(),
-            });
+            let residuum = residuum_vec.pop().unwrap_or_default();
             self.send_tokens(
                 &residuum.token_id,
                 &residuum.amount,

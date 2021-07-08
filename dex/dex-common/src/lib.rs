@@ -12,6 +12,15 @@ pub struct FftTokenAmountPair<BigUint: BigUintApi> {
     pub amount: BigUint,
 }
 
+impl<BigUint: BigUintApi> Default for FftTokenAmountPair<BigUint> {
+    fn default() -> Self {
+        FftTokenAmountPair {
+            token_id: TokenIdentifier::from(BoxedBytes::empty()),
+            amount: BigUint::zero(),
+        }
+    }
+}
+
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct GenericEsdtAmountPair<BigUint: BigUintApi> {
     pub token_id: TokenIdentifier,
