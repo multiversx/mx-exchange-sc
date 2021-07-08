@@ -35,7 +35,7 @@ pub trait WrappedLpTokenMerge:
         replic: Option<WrappedLpToken<Self::BigUint>>,
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        let deposit = self.nft_deposit(caller).load_as_vec();
+        let deposit = self.nft_deposit(caller).get();
         require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
 
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
@@ -49,13 +49,10 @@ pub trait WrappedLpTokenMerge:
         self.require_wrapped_lp_tokens_from_same_pair(&tokens)?;
 
         let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens);
-
         let attrs =
             self.get_merged_wrapped_lp_token_attributes(&tokens, &merged_locked_token_amount);
         let amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
-
-        self.burn_deposit_tokens(caller);
-        self.nft_deposit(caller).clear();
+        self.burn_deposit_tokens(caller, &deposit);
 
         self.nft_create_tokens(&wrapped_lp_token_id, &amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();

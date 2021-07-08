@@ -481,10 +481,10 @@ pub trait Farm:
             attributes: attributes.clone(),
         };
 
+        let deposit = self.nft_deposit(caller).get();
         let merged_attributes =
-            self.get_merged_farm_token_attributes(caller, Some(current_position_replic))?;
-        self.burn_deposit_tokens(caller);
-        self.nft_deposit(caller).clear();
+            self.get_merged_farm_token_attributes(&deposit, Some(current_position_replic))?;
+        self.burn_deposit_tokens(caller, &deposit);
 
         *amount = merged_attributes.current_farm_amount.clone();
         *attributes = merged_attributes.clone();

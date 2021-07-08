@@ -23,11 +23,11 @@ pub trait FarmTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
-        let attrs = self.get_merged_farm_token_attributes(&caller, Option::None)?;
-        let farm_token_id = self.farm_token_id().get();
+        let deposit = self.nft_deposit(&caller).get();
 
-        self.burn_deposit_tokens(&caller);
-        self.nft_deposit(&caller).clear();
+        let attrs = self.get_merged_farm_token_attributes(&deposit, Option::None)?;
+        let farm_token_id = self.farm_token_id().get();
+        self.burn_deposit_tokens(&caller, &deposit);
 
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
@@ -51,26 +51,24 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        caller: &Address,
+        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
         replic: Option<FarmToken<Self::BigUint>>,
     ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let deposit_len = self.nft_deposit(caller).len();
-        require!(deposit_len != 0 || replic.is_some(), "No tokens to merge");
+        require!(
+            !deposit.is_empty() || replic.is_some(),
+            "No tokens to merge"
+        );
 
-        let mut index = 1;
         let mut tokens = Vec::new();
         let farm_token_id = self.farm_token_id().get();
 
-        while index <= deposit_len {
-            let entry = self.nft_deposit(caller).get(index);
+        for entry in deposit.iter() {
             require!(entry.token_id == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
                 token_amount: entry.clone(),
                 attributes: self.get_farm_attributes(&entry.token_id, entry.token_nonce)?,
             });
-
-            index += 1;
         }
 
         if replic.is_some() {

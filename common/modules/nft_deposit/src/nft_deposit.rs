@@ -27,32 +27,27 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
             amount: payment_amount,
         };
 
-        let mut index = 1;
         let mut entry_updated = false;
         let caller = self.blockchain().get_caller();
-        let deposit_len = self.nft_deposit(&caller).len();
+        let mut deposit = self.nft_deposit(&caller).get();
 
-        while index <= deposit_len {
-            let mut entry = self.nft_deposit(&caller).get(index);
-
-            if self.equal_token_type(&entry, &payment) {
-                entry.amount = &entry.amount + &payment.amount;
-                self.nft_deposit(&caller).set(index, &entry);
+        for entry in deposit.iter_mut() {
+            if self.equal_token_type(entry, &payment) {
+                entry.amount += &payment.amount;
                 entry_updated = true;
                 break;
             }
-
-            index += 1;
         }
 
         if !entry_updated {
             require!(
-                deposit_len + 1 < self.nft_deposit_max_len().get(),
+                deposit.len() < self.nft_deposit_max_len().get(),
                 "Deposit is full"
             );
-            self.nft_deposit(&caller).push(&payment);
+            deposit.push(payment);
         }
 
+        self.nft_deposit(&caller).set(&deposit);
         Ok(())
     }
 
@@ -62,12 +57,18 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        let mut deposit_len = self.nft_deposit(&caller).len();
+        let deposit = self.nft_deposit(&caller).get();
 
-        while deposit_len > 0 {
-            self.withdraw_token(deposit_len, &caller, &opt_accept_funds_func)?;
-            deposit_len -= 1;
-        }
+        self.nft_deposit(&caller).clear();
+        deposit.iter().for_each(|entry| {
+            self.send_nft_tokens(
+                &entry.token_id,
+                entry.token_nonce,
+                &entry.amount,
+                &caller,
+                &opt_accept_funds_func,
+            )
+        });
 
         Ok(())
     }
@@ -78,46 +79,33 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
         index: usize,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        self.withdraw_token(
-            index,
-            &self.blockchain().get_caller(),
-            &opt_accept_funds_func,
-        )
-    }
+        let caller = self.blockchain().get_caller();
+        let mut deposit = self.nft_deposit(&caller).get();
+        require!(index > 0 && index < deposit.len(), "Index out of range");
 
-    fn withdraw_token(
-        &self,
-        index: usize,
-        caller: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        require!(
-            index >= 1 && index <= self.nft_deposit(caller).len(),
-            "Out of range index"
-        );
+        let entry = deposit.remove(index);
+        self.nft_deposit(&caller).set(&deposit);
 
-        let entry = self.nft_deposit(caller).get(index);
-        self.nft_deposit(caller).clear_entry(index);
         self.send_nft_tokens(
             &entry.token_id,
             entry.token_nonce,
             &entry.amount,
-            caller,
-            opt_accept_funds_func,
+            &caller,
+            &opt_accept_funds_func,
         );
 
         Ok(())
     }
 
-    fn burn_deposit_tokens(&self, caller: &Address) {
-        let deposit_len = self.nft_deposit(caller).len();
-        let mut index = 1;
-
-        while index <= deposit_len {
-            let entry = self.nft_deposit(caller).get(index);
-            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount);
-            index += 1;
-        }
+    fn burn_deposit_tokens(
+        &self,
+        caller: &Address,
+        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
+    ) {
+        deposit.iter().for_each(|entry| {
+            self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount)
+        });
+        self.nft_deposit(caller).clear();
     }
 
     fn equal_token_type(
@@ -133,7 +121,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
     fn nft_deposit(
         &self,
         address: &Address,
-    ) -> VecMapper<Self::Storage, GenericEsdtAmountPair<Self::BigUint>>;
+    ) -> SingleValueMapper<Self::Storage, Vec<GenericEsdtAmountPair<Self::BigUint>>>;
 
     #[view(getnftDepositMaxLen)]
     #[storage_mapper("nft_deposit_max_len")]

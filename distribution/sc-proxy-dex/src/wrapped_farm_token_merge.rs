@@ -59,7 +59,7 @@ pub trait WrappedFarmTokenMerge:
         replic: Option<WrappedFarmToken<Self::BigUint>>,
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        let deposit = self.nft_deposit(caller).load_as_vec();
+        let deposit = self.nft_deposit(caller).get();
         require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
 
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
@@ -74,6 +74,7 @@ pub trait WrappedFarmTokenMerge:
 
         let merged_farm_token_amount = self.merge_farm_tokens(farm_contract, &tokens);
         let farming_token_amount = self.merge_farming_tokens(&tokens)?;
+        self.burn_deposit_tokens(caller, &deposit);
 
         let new_attrs = WrappedFarmTokenAttributes {
             farm_token_id: merged_farm_token_amount.token_id,
@@ -90,9 +91,6 @@ pub trait WrappedFarmTokenMerge:
             &new_attrs,
         );
         let new_nonce = self.increase_wrapped_farm_token_nonce();
-
-        self.burn_deposit_tokens(caller);
-        self.nft_deposit(caller).clear();
 
         self.send_nft_tokens(
             &wrapped_farm_token_id,

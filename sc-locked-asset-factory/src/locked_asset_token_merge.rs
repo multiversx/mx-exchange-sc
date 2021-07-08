@@ -26,11 +26,11 @@ pub trait LockedAssetTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
-        let (amount, attrs) = self.get_merged_locked_asset_token_amount_and_attributes(&caller)?;
+        let deposit = self.nft_deposit(&caller).get();
+        let (amount, attrs) = self.get_merged_locked_asset_token_amount_and_attributes(&deposit)?;
         let locked_asset_token = self.locked_asset_token_id().get();
 
-        self.burn_deposit_tokens(&caller);
-        self.nft_deposit(&caller).clear();
+        self.burn_deposit_tokens(&caller, &deposit);
 
         self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
         self.increase_nonce();
@@ -53,18 +53,15 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        caller: &Address,
+        deposit: &[GenericEsdtAmountPair<Self::BigUint>],
     ) -> SCResult<(Self::BigUint, LockedAssetTokenAttributes)> {
-        let mut index = 1;
+        require!(!deposit.is_empty(), "Cannot merge with 0 tokens");
+
         let mut tokens = Vec::new();
-        let deposit_len = self.nft_deposit(caller).len();
-        require!(deposit_len != 0, "Cannot merge with 0 tokens");
-
-        let locked_asset_token_id = self.locked_asset_token_id().get();
         let mut sum_amount = Self::BigUint::zero();
+        let locked_asset_token_id = self.locked_asset_token_id().get();
 
-        while index <= deposit_len {
-            let entry = self.nft_deposit(caller).get(index);
+        for entry in deposit.iter() {
             require!(entry.token_id == locked_asset_token_id, "Bad token id");
 
             tokens.push(LockedToken {
@@ -72,7 +69,6 @@ pub trait LockedAssetTokenMergeModule:
                 attributes: self.get_attributes(&entry.token_id, entry.token_nonce)?,
             });
             sum_amount += &entry.amount;
-            index += 1;
         }
 
         if tokens.len() == 1 {
