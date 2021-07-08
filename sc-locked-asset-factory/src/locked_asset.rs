@@ -1,10 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
-type Epoch = u64;
-
-use distrib_common::UnlockMilestone;
+use distrib_common::{Epoch, Nonce, UnlockMilestone};
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const PERCENTAGE_TOTAL: u64 = 100;

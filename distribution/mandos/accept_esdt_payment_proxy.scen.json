@@ -10,6 +10,12 @@
             "path": "steps/setup_pair_contract.steps.json"
         },
         {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "1"
+            }
+        },
+        {
             "step": "scCall",
             "txId": "3",
             "tx": {

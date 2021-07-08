@@ -1,0 +1,102 @@
+{
+	"name": "swap fixed input",
+	"steps": [
+		{
+			"step": "externalSteps",
+			"path": "add_liquidity.scen.json"
+		},
+		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "4"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "swap-fixed-input",
+			"tx": {
+				"from": "address:user2",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "swapTokensFixedInput",
+				"esdt": {
+					"tokenIdentifier": "str:ALC-abcdef",
+					"value": "1,000,000"
+				},
+				"arguments": [
+					"str:WEGLD-abcdef",
+					"50,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c5745474c442d616263646566000000030f3497"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "swap-fixed-input2",
+			"tx": {
+				"from": "address:user2",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "swapTokensFixedInput",
+				"esdt": {
+					"tokenIdentifier": "str:WEGLD-abcdef",
+					"value": "1,000,000"
+				},
+				"arguments": [
+					"str:ALC-abcdef",
+					"50,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000a414c432d616263646566000000030f3497"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		},
+		{
+			"step": "scCall",
+			"txId": "swap-fixed-input3",
+			"tx": {
+				"from": "address:user2",
+				"to": "sc:pair_contract",
+				"value": "0",
+				"function": "swapTokensFixedInput",
+				"esdt": {
+					"tokenIdentifier": "str:ALC-abcdef",
+					"value": "1,000,000"
+				},
+				"arguments": [
+					"str:WEGLD-abcdef",
+					"50,000"
+				],
+				"gasLimit": "100,000,000",
+				"gasPrice": "0"
+			},
+			"expect": {
+				"out": [
+					"0x0000000c5745474c442d616263646566000000030f30b4"
+				],
+				"status": "0",
+				"message": "",
+				"gas": "*",
+				"refund": "*"
+			}
+		}
+	]
+}
