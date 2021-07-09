@@ -233,10 +233,16 @@ pub trait Farm:
         }
 
         let farming_token_id = self.farming_token_id().get();
-        let mut initial_farming_token_amount = &(&farm_attributes.initial_farming_amount * &amount)
-            / &farm_attributes.current_farm_amount;
-        reward +=
-            &(&farm_attributes.compounded_reward * &amount) / &farm_attributes.current_farm_amount;
+        let mut initial_farming_token_amount = self.rule_of_three(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.initial_farming_amount,
+        );
+        reward += self.rule_of_three(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
+        );
         require!(
             initial_farming_token_amount != 0,
             "Farming token amount is zero"
@@ -318,10 +324,16 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount * &amount)
-            / &farm_attributes.current_farm_amount;
-        let new_reward_amount =
-            &(&farm_attributes.compounded_reward * &amount) / &farm_attributes.current_farm_amount;
+        let new_initial_farming_amount = self.rule_of_three(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.initial_farming_amount,
+        );
+        let new_reward_amount = self.rule_of_three(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
+        );
         require!(
             new_initial_farming_amount != 0,
             "Farming token amount is zero"
@@ -421,12 +433,16 @@ pub trait Farm:
         let mut new_farm_contribution = &payment_amount
             + &(&reward * &Self::BigUint::from(farm_attributes.apr_multiplier as u64));
 
-        let new_initial_farming_amount = &(&farm_attributes.initial_farming_amount
-            * &payment_amount)
-            / &farm_attributes.current_farm_amount;
-        let new_reward_amount = &(&farm_attributes.compounded_reward * &payment_amount)
-            / &farm_attributes.current_farm_amount
-            + reward;
+        let new_initial_farming_amount = self.rule_of_three(
+            &payment_amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.initial_farming_amount,
+        );
+        let new_reward_amount = self.rule_of_three(
+            &payment_amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
+        ) + reward;
         require!(
             new_initial_farming_amount != 0,
             "Farming token amount is zero"
@@ -598,8 +614,11 @@ pub trait Farm:
             &attributes.reward_per_share,
         );
 
-        let compounded_reward =
-            &(&attributes.compounded_reward * &amount) / &attributes.current_farm_amount;
+        let compounded_reward = self.rule_of_three(
+            &amount,
+            &attributes.current_farm_amount,
+            &attributes.compounded_reward,
+        );
         reward += compounded_reward;
 
         if self.should_apply_penalty(attributes.entering_epoch) {

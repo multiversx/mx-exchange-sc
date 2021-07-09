@@ -352,8 +352,11 @@ pub trait ProxyPairModule:
         let fungible_token_id: TokenIdentifier;
         let fungible_token_amount: Self::BigUint;
         let assets_received: Self::BigUint;
-        let locked_assets_invested =
-            amount.clone() * attributes.locked_assets_invested / attributes.lp_token_total_amount;
+        let locked_assets_invested = self.rule_of_three(
+            &amount,
+            &attributes.lp_token_total_amount,
+            &attributes.locked_assets_invested,
+        );
         require!(
             locked_assets_invested > 0,
             "Not enough wrapped lp token provided"
