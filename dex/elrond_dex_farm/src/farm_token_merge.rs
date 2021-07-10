@@ -139,33 +139,27 @@ pub trait FarmTokenMergeModule:
         &self,
         tokens: &[FarmToken<Self::BigUint>],
     ) -> Self::BigUint {
-        let mut dataset = Vec::new();
+        let mut sum = Self::BigUint::zero();
         tokens.iter().for_each(|x| {
-            dataset.push(ValueWeight {
-                value: self.rule_of_three(
-                    &x.token_amount.amount,
-                    &x.attributes.current_farm_amount,
-                    &x.attributes.initial_farming_amount,
-                ),
-                weight: x.token_amount.amount.clone(),
-            })
+            sum += &self.rule_of_three(
+                &x.token_amount.amount,
+                &x.attributes.current_farm_amount,
+                &x.attributes.initial_farming_amount,
+            )
         });
-        self.weighted_average(dataset)
+        sum
     }
 
     fn aggregated_compounded_reward(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
-        let mut dataset = Vec::new();
+        let mut sum = Self::BigUint::zero();
         tokens.iter().for_each(|x| {
-            dataset.push(ValueWeight {
-                value: self.rule_of_three(
-                    &x.token_amount.amount,
-                    &x.attributes.current_farm_amount,
-                    &x.attributes.compounded_reward,
-                ),
-                weight: x.token_amount.amount.clone(),
-            })
+            sum += &self.rule_of_three(
+                &x.token_amount.amount,
+                &x.attributes.current_farm_amount,
+                &x.attributes.compounded_reward,
+            )
         });
-        self.weighted_average(dataset)
+        sum
     }
 
     fn aggregated_current_farm_amount(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
