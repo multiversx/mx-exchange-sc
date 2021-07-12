@@ -14,6 +14,10 @@ use proxy_pair::WrappedLpToken;
 use super::proxy_farm;
 use proxy_farm::WrappedFarmToken;
 
+use elrond_dex_farm::farm_token_merge::ProxyTrait as _;
+use nft_deposit::ProxyTrait as _;
+use sc_locked_asset_factory::locked_asset_token_merge::ProxyTrait as _;
+
 #[elrond_wasm_derive::module]
 pub trait WrappedFarmTokenMerge:
     token_merge::TokenMergeModule
@@ -178,7 +182,7 @@ pub trait WrappedFarmTokenMerge:
             );
 
             self.locked_asset_factory_proxy(locked_asset_factory_addr.clone())
-                .depositLockedAssetTokens(
+                .deposit_tokens(
                     locked_asset_token.clone(),
                     entry.attributes.farming_token_nonce,
                     locked_token_amount,
@@ -187,7 +191,7 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.locked_asset_factory_proxy(locked_asset_factory_addr)
-            .mergeLockedAssetTokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
@@ -208,7 +212,7 @@ pub trait WrappedFarmTokenMerge:
 
         for entry in tokens.iter() {
             self.farm_contract_merge_proxy(farm_contract.clone())
-                .depositFarmTokens(
+                .deposit_tokens(
                     entry.attributes.farm_token_id.clone(),
                     entry.attributes.farm_token_nonce,
                     entry.token_amount.amount.clone(),
@@ -217,7 +221,7 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_merge_proxy(farm_contract.clone())
-            .mergeFarmTokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_farm_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 

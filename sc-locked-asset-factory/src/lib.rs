@@ -3,7 +3,7 @@
 
 mod cache;
 mod locked_asset;
-mod locked_asset_token_merge;
+pub mod locked_asset_token_merge;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -292,25 +292,6 @@ pub trait LockedAssetFactory:
                 self.last_error_message().set(&message.err_msg);
             }
         }
-    }
-
-    #[payable("*")]
-    #[endpoint]
-    fn depositLockedAssetTokens(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] payment_token_nonce: Nonce,
-        #[payment_amount] payment_amount: Self::BigUint,
-    ) -> SCResult<()> {
-        self.deposit_tokens(payment_token_id, payment_token_nonce, payment_amount)
-    }
-
-    #[endpoint]
-    fn mergeLockedAssetTokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
-        self.merge_and_send_tokens(opt_accept_funds_func)
     }
 
     #[endpoint(setNftDepositMaxLen)]

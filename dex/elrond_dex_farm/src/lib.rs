@@ -2,9 +2,9 @@
 #![allow(non_snake_case)]
 #![allow(clippy::too_many_arguments)]
 
-mod config;
+pub mod config;
 mod farm_token;
-mod farm_token_merge;
+pub mod farm_token_merge;
 mod rewards;
 
 use common_structs::{
@@ -97,43 +97,29 @@ pub trait Farm:
         Ok(())
     }
 
-    #[endpoint]
-    fn pause(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        self.state().set(&State::Inactive);
-        Ok(())
-    }
-
-    #[endpoint]
-    fn resume(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        self.state().set(&State::Active);
-        Ok(())
-    }
-
     #[payable("*")]
-    #[endpoint]
-    fn enterFarm(
-        &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] enter_amount: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
-        self.enter_farm(token_in, enter_amount, false, opt_accept_funds_func)
-    }
-
-    #[payable("*")]
-    #[endpoint]
-    fn enterFarmAndLockRewards(
-        &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] enter_amount: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
-        self.enter_farm(token_in, enter_amount, true, opt_accept_funds_func)
-    }
-
+    #[endpoint(enterFarm)]
     fn enter_farm(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_amount] enter_amount: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
+        self.enter_farm_common(token_in, enter_amount, false, opt_accept_funds_func)
+    }
+
+    #[payable("*")]
+    #[endpoint(enterFarmAndLockRewards)]
+    fn enter_farm_and_lock_rewards(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_amount] enter_amount: Self::BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+    ) -> SCResult<EnterFarmResultType<Self::BigUint>> {
+        self.enter_farm_common(token_in, enter_amount, true, opt_accept_funds_func)
+    }
+
+    fn enter_farm_common(
         &self,
         token_in: TokenIdentifier,
         enter_amount: Self::BigUint,
@@ -200,8 +186,8 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn exitFarm(
+    #[endpoint(exitFarm)]
+    fn exit_farm(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_amount] amount: Self::BigUint,
@@ -297,8 +283,8 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn claimRewards(
+    #[endpoint(claimRewards)]
+    fn claim_rewards(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_amount] amount: Self::BigUint,
@@ -394,8 +380,8 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn compoundRewards(
+    #[endpoint(compoundRewards)]
+    fn compound_rewards(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_amount] payment_amount: Self::BigUint,
@@ -563,8 +549,8 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn acceptFee(
+    #[endpoint(acceptFee)]
+    fn accept_fee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment_amount] amount: Self::BigUint,
@@ -626,25 +612,6 @@ pub trait Farm:
         } else {
             Ok(reward)
         }
-    }
-
-    #[payable("*")]
-    #[endpoint]
-    fn depositFarmTokens(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] payment_token_nonce: Nonce,
-        #[payment_amount] payment_amount: Self::BigUint,
-    ) -> SCResult<()> {
-        self.deposit_tokens(payment_token_id, payment_token_nonce, payment_amount)
-    }
-
-    #[endpoint]
-    fn mergeFarmTokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
-        self.merge_and_send_tokens(opt_accept_funds_func)
     }
 
     #[inline]

@@ -64,6 +64,20 @@ pub trait ConfigModule:
         Ok(())
     }
 
+    #[endpoint]
+    fn pause(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Inactive);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn resume(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Active);
+        Ok(())
+    }
+
     #[view(getFarmTokenSupply)]
     fn get_farm_token_supply(&self) -> Self::BigUint {
         let result = self.get_total_supply(&self.farm_token_id().get());

@@ -10,8 +10,6 @@ mod proxy_pair;
 mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;
 
-use common_structs::Nonce;
-
 const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
@@ -189,17 +187,6 @@ pub trait ProxyDexImpl:
                 self.last_error_message().set(&message.err_msg);
             }
         }
-    }
-
-    #[payable("*")]
-    #[endpoint]
-    fn depositWrappedTokens(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] payment_token_nonce: Nonce,
-        #[payment_amount] payment_amount: Self::BigUint,
-    ) -> SCResult<()> {
-        self.deposit_tokens(payment_token_id, payment_token_nonce, payment_amount)
     }
 
     #[endpoint(setNftDepositMaxLen)]

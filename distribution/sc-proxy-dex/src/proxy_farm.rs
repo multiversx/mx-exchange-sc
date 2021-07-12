@@ -398,7 +398,7 @@ pub trait ProxyFarmModule:
         }
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
-                .enterFarmAndLockRewards(
+                .enter_farm_and_lock_rewards(
                     farming_token_id.clone(),
                     amount.clone(),
                     OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
@@ -406,7 +406,7 @@ pub trait ProxyFarmModule:
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         } else {
             self.farm_contract_proxy(farm_address.clone())
-                .enterFarm(
+                .enter_farm(
                     farming_token_id.clone(),
                     amount.clone(),
                     OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
@@ -423,7 +423,7 @@ pub trait ProxyFarmModule:
         amount: &Self::BigUint,
     ) -> ExitFarmResultType<Self::BigUint> {
         self.farm_contract_proxy(farm_address.clone())
-            .exitFarm(
+            .exit_farm(
                 farm_token_id.clone(),
                 amount.clone(),
                 farm_token_nonce,
@@ -440,7 +440,7 @@ pub trait ProxyFarmModule:
         amount: &Self::BigUint,
     ) -> ClaimRewardsResultType<Self::BigUint> {
         self.farm_contract_proxy(farm_address.clone())
-            .claimRewards(
+            .claim_rewards(
                 farm_token_id.clone(),
                 amount.clone(),
                 farm_token_nonce,
@@ -457,7 +457,7 @@ pub trait ProxyFarmModule:
         amount: &Self::BigUint,
     ) -> CompoundRewardsResultType<Self::BigUint> {
         self.farm_contract_proxy(farm_address.clone())
-            .compoundRewards(
+            .compound_rewards(
                 farm_token_id.clone(),
                 amount.clone(),
                 farm_token_nonce,

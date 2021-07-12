@@ -8,8 +8,8 @@ const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
-mod config;
-mod fee;
+pub mod config;
+pub mod fee;
 mod liquidity_pool;
 
 use common_structs::FftTokenAmountPair;
@@ -84,30 +84,9 @@ pub trait Pair:
         Ok(())
     }
 
-    #[endpoint]
-    fn pause(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        self.state().set(&State::Inactive);
-        Ok(())
-    }
-
-    #[endpoint]
-    fn resume(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        self.state().set(&State::Active);
-        Ok(())
-    }
-
-    #[endpoint(setStateActiveNoSwaps)]
-    fn set_state_active_no_swaps(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        self.state().set(&State::ActiveNoSwaps);
-        Ok(())
-    }
-
     #[payable("*")]
-    #[endpoint]
-    fn acceptEsdtPayment(
+    #[endpoint(acceptEsdtPayment)]
+    fn accept_esdt_payment(
         &self,
         #[payment_token] token: TokenIdentifier,
         #[payment_amount] payment: Self::BigUint,
@@ -133,8 +112,8 @@ pub trait Pair:
         Ok(())
     }
 
-    #[endpoint]
-    fn addLiquidity(
+    #[endpoint(addLiquidity)]
+    fn add_liquidity(
         &self,
         first_token_amount_desired: Self::BigUint,
         second_token_amount_desired: Self::BigUint,
@@ -200,7 +179,7 @@ pub trait Pair:
         )?;
 
         let liquidity =
-            self.add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
+            self.pool_add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
 
         let caller = &self.blockchain().get_caller();
         let temporary_first_token_unused =
@@ -277,8 +256,8 @@ pub trait Pair:
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn removeLiquidity(
+    #[endpoint(removeLiquidity)]
+    fn remove_liquidity(
         &self,
         #[payment_token] liquidity_token: TokenIdentifier,
         #[payment_amount] liquidity: Self::BigUint,
@@ -298,7 +277,7 @@ pub trait Pair:
         );
 
         let old_k = self.calculate_k_for_reserves();
-        let (first_token_amount, second_token_amount) = self.remove_liquidity(
+        let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
             liquidity.clone(),
             first_token_amount_min,
             second_token_amount_min,
@@ -535,8 +514,8 @@ pub trait Pair:
         }
     }
 
-    #[endpoint]
-    fn setLpTokenIdentifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
+    #[endpoint(setLpTokenIdentifier)]
+    fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
         self.require_permissions()?;
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         require!(
@@ -552,16 +531,6 @@ pub trait Pair:
         self.lp_token_identifier().set(&token_identifier);
 
         Ok(())
-    }
-
-    #[endpoint]
-    fn setFeeOn(
-        &self,
-        enabled: bool,
-        fee_to_address: Address,
-        fee_token: TokenIdentifier,
-    ) -> SCResult<()> {
-        self.set_fee_on(enabled, fee_to_address, fee_token)
     }
 
     #[inline]
@@ -580,8 +549,8 @@ pub trait Pair:
         Ok(())
     }
 
-    #[view]
-    fn getTokensForGivenPosition(
+    #[view(getTokensForGivenPosition)]
+    fn get_tokens_for_given_position(
         &self,
         liquidity: Self::BigUint,
     ) -> MultiResult2<FftTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>> {
@@ -600,8 +569,8 @@ pub trait Pair:
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
 
-    #[view]
-    fn getAmountOut(
+    #[view(getAmountOut)]
+    fn get_amount_out_view(
         &self,
         token_in: TokenIdentifier,
         amount_in: Self::BigUint,
@@ -636,8 +605,8 @@ pub trait Pair:
         }
     }
 
-    #[view]
-    fn getAmountIn(
+    #[view(getAmountIn)]
+    fn get_amount_in_view(
         &self,
         token_wanted: TokenIdentifier,
         amount_wanted: Self::BigUint,
@@ -670,8 +639,8 @@ pub trait Pair:
         }
     }
 
-    #[view]
-    fn getEquivalent(
+    #[view(getEquivalent)]
+    fn get_equivalent(
         &self,
         token_in: TokenIdentifier,
         amount_in: Self::BigUint,
@@ -705,11 +674,6 @@ pub trait Pair:
     #[inline]
     fn can_swap(&self) -> bool {
         self.state().get() == State::Active
-    }
-
-    #[view]
-    fn getLpTokenIdentifier(&self) -> TokenIdentifier {
-        self.lp_token_identifier().get()
     }
 
     #[view(getTemporaryFunds)]

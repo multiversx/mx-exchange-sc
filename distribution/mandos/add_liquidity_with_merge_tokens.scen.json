@@ -12,7 +12,7 @@
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
                 "value": "0",
-                "function": "depositWrappedTokens",
+                "function": "depositTokens",
                 "esdt": {
                     "tokenIdentifier": "str:WLPTOK-abcdef",
                     "value": "100",

@@ -10,6 +10,7 @@ use proxy_common::ACCEPT_PAY_FUNC_NAME;
 const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
 use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, Nonce, WrappedLpTokenAttributes};
+use elrond_dex_pair::config::ProxyTrait as _;
 
 use super::wrapped_lp_token_merge;
 
@@ -414,7 +415,7 @@ pub trait ProxyPairModule:
         second_token_amount_min: &Self::BigUint,
     ) -> AddLiquidityResultType<Self::BigUint> {
         self.pair_contract_proxy(pair_address.clone())
-            .addLiquidity(
+            .add_liquidity(
                 first_token_amount_desired.clone(),
                 second_token_amount_desired.clone(),
                 first_token_amount_min.clone(),
@@ -433,7 +434,7 @@ pub trait ProxyPairModule:
         second_token_amount_min: &Self::BigUint,
     ) -> RemoveLiquidityResultType<Self::BigUint> {
         self.pair_contract_proxy(pair_address.clone())
-            .removeLiquidity(
+            .remove_liquidity(
                 lp_token_id.clone(),
                 liquidity.clone(),
                 first_token_amount_min.clone(),
@@ -445,7 +446,7 @@ pub trait ProxyPairModule:
 
     fn ask_for_lp_token_id(&self, pair_address: &Address) -> TokenIdentifier {
         self.pair_contract_proxy(pair_address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context()
     }
 
@@ -492,7 +493,7 @@ pub trait ProxyPairModule:
             token_to_send = asset_token_id;
         };
         self.pair_contract_proxy(pair_address.clone())
-            .acceptEsdtPayment(token_to_send, amount.clone())
+            .accept_esdt_payment(token_to_send, amount.clone())
             .execute_on_dest_context();
     }
 

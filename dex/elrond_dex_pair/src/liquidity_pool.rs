@@ -14,7 +14,7 @@ pub trait LiquidityPoolModule:
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
 {
-    fn add_liquidity(
+    fn pool_add_liquidity(
         &self,
         first_token_amount: Self::BigUint,
         second_token_amount: Self::BigUint,
@@ -74,7 +74,7 @@ pub trait LiquidityPoolModule:
         Ok(amount)
     }
 
-    fn remove_liquidity(
+    fn pool_remove_liquidity(
         &self,
         liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,

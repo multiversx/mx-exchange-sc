@@ -18,7 +18,8 @@ pub trait FarmTokenMergeModule:
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
-    fn merge_and_send_tokens(
+    #[endpoint(mergeFarmTokens)]
+    fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {

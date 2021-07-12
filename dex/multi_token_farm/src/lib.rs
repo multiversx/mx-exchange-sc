@@ -627,7 +627,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             .unwrap();
         let equivalent = self
             .pair_contract_proxy(pair)
-            .getTokensForGivenPosition(amount_in.clone())
+            .get_tokens_for_given_position(amount_in.clone())
             .execute_on_dest_context();
 
         let token_amount_pair_tuple = equivalent.0;
@@ -680,7 +680,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     ) -> Self::BigUint {
         let oracle_pair_to_ask = self.oracle_pair(token_to_ask, farming_pool_token_id).get();
         self.pair_contract_proxy(oracle_pair_to_ask)
-            .getEquivalent(token_to_ask.clone(), token_to_ask_amount.clone())
+            .get_equivalent(token_to_ask.clone(), token_to_ask_amount.clone())
             .execute_on_dest_context()
     }
 

@@ -15,8 +15,8 @@ mod farm_proxy {
     #[elrond_wasm_derive::proxy]
     pub trait Farm {
         #[payable("*")]
-        #[endpoint]
-        fn acceptFee(
+        #[endpoint(acceptFee)]
+        fn accept_fee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
             #[payment_amount] amount: Self::BigUint,
@@ -309,7 +309,7 @@ pub trait FeeModule:
                 self.burn_tokens(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
-                    .acceptFee(token.clone(), amount.clone())
+                    .accept_fee(token.clone(), amount.clone())
                     .execute_on_dest_context();
             }
         }
@@ -347,13 +347,13 @@ pub trait FeeModule:
         }
     }
 
+    #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,
         enabled: bool,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
         let is_dest = self
             .destination_map()

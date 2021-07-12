@@ -50,4 +50,30 @@ pub trait ConfigModule: token_send::TokenSendModule {
         require!(caller == owner || caller == router, "Permission denied");
         Ok(())
     }
+
+    #[endpoint]
+    fn pause(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Inactive);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn resume(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Active);
+        Ok(())
+    }
+
+    #[endpoint(setStateActiveNoSwaps)]
+    fn set_state_active_no_swaps(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::ActiveNoSwaps);
+        Ok(())
+    }
+
+    #[view(getLpTokenIdentifier)]
+    fn get_lp_token_identifier(&self) -> TokenIdentifier {
+        self.lp_token_identifier().get()
+    }
 }

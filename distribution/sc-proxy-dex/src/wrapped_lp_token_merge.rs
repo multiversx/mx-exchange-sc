@@ -7,7 +7,9 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::proxy_pair;
+use nft_deposit::ProxyTrait as _;
 use proxy_pair::WrappedLpToken;
+use sc_locked_asset_factory::locked_asset_token_merge::ProxyTrait as _;
 
 #[elrond_wasm_derive::module]
 pub trait WrappedLpTokenMerge:
@@ -160,7 +162,7 @@ pub trait WrappedLpTokenMerge:
             );
 
             self.locked_asset_factory(locked_asset_factory_addr.clone())
-                .depositLockedAssetTokens(
+                .deposit_tokens(
                     locked_asset_token.clone(),
                     entry.attributes.locked_assets_nonce,
                     amount,
@@ -169,7 +171,7 @@ pub trait WrappedLpTokenMerge:
         }
 
         self.locked_asset_factory(locked_asset_factory_addr)
-            .mergeLockedAssetTokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 

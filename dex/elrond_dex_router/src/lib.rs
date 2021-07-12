@@ -7,6 +7,9 @@ elrond_wasm::derive_imports!();
 mod factory;
 use factory::PairTokens;
 
+use elrond_dex_pair::config::ProxyTrait as _;
+use elrond_dex_pair::fee::ProxyTrait as _;
+
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
@@ -141,7 +144,7 @@ pub trait Router: factory::FactoryModule {
 
         let result = self
             .pair_contract_proxy(pair_address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
@@ -177,7 +180,7 @@ pub trait Router: factory::FactoryModule {
 
         let pair_token = self
             .pair_contract_proxy(pair_address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
@@ -229,7 +232,7 @@ pub trait Router: factory::FactoryModule {
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(true, fee_to_address, fee_token)
+            .set_fee_on(true, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
@@ -247,7 +250,7 @@ pub trait Router: factory::FactoryModule {
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(false, fee_to_address, fee_token)
+            .set_fee_on(false, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
@@ -319,7 +322,7 @@ pub trait Router: factory::FactoryModule {
 
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
-                    .setLpTokenIdentifier(token_id)
+                    .set_lp_token_identifier(token_id)
                     .execute_on_dest_context();
             }
             AsyncCallResult::Err(message) => {
