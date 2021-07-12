@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -17,8 +15,8 @@ pub trait ProxyCommonModule {
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn acceptPay(
+    #[endpoint(acceptPay)]
+    fn accept_pay(
         &self,
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] amount: Self::BigUint,

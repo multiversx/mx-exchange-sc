@@ -1,5 +1,4 @@
 #![no_std]
-#![allow(non_snake_case)]
 
 mod cache;
 mod locked_asset;
