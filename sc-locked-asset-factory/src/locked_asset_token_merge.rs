@@ -127,6 +127,7 @@ pub trait LockedAssetTokenMergeModule:
 
             sum += &elem.1;
         }
+        require!(sum != 0, "Sum cannot be zero");
         require!(
             unlock_epoch_amount_merged.len() < MAX_MILESTONES_IN_SCHEDULE,
             "Too many milestones"
@@ -135,11 +136,14 @@ pub trait LockedAssetTokenMergeModule:
         let mut new_unlock_milestones = Vec::new();
         unlock_epoch_amount_merged.iter().for_each(|x| {
             if x.1 != Self::BigUint::zero() {
-                let unlock_percent = &(&x.1 * &Self::BigUint::from(100u64)) / &sum;
-                new_unlock_milestones.push(UnlockMilestone {
-                    unlock_epoch: x.0,
-                    unlock_percent: unlock_percent.to_u64().unwrap() as u8,
-                })
+                let unlock_percent = &(&x.1 * &100u64.into()) / &sum;
+
+                if unlock_percent != 0 {
+                    new_unlock_milestones.push(UnlockMilestone {
+                        unlock_epoch: x.0,
+                        unlock_percent: unlock_percent.to_u64().unwrap() as u8,
+                    })
+                }
             }
         });
 
