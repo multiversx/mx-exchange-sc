@@ -28,6 +28,8 @@ pub trait LockedAssetTokenMergeModule:
     ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let caller = self.blockchain().get_caller();
         let deposit = self.nft_deposit(&caller).get();
+        require!(!deposit.is_empty(), "Empty deposit");
+
         let (amount, attrs) = self.get_merged_locked_asset_token_amount_and_attributes(&deposit)?;
         let locked_asset_token = self.locked_asset_token_id().get();
 

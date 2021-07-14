@@ -263,8 +263,8 @@ pub trait WrappedFarmTokenMerge:
         for token in tokens.iter() {
             let wrapped_lp_token_amount = self.rule_of_three(
                 &token.token_amount.amount,
-                &token.attributes.farming_token_amount,
                 &token.attributes.farm_token_amount,
+                &token.attributes.farming_token_amount,
             );
             let wrapped_lp_token_id = token.attributes.farming_token_id.clone();
             let wrapped_lp_token_nonce = token.attributes.farming_token_nonce;
