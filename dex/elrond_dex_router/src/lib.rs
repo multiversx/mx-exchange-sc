@@ -152,7 +152,7 @@ pub trait Router: factory::FactoryModule {
                 issue_cost,
                 &lp_token_display_name,
                 &lp_token_ticker,
-                &Self::BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+                &LP_TOKEN_INITIAL_SUPPLY.into(),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,

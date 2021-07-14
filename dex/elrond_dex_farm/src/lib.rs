@@ -144,7 +144,7 @@ pub trait Farm:
             apr_multiplier,
             with_locked_rewards,
             initial_farming_amount: enter_amount,
-            compounded_reward: Self::BigUint::zero(),
+            compounded_reward: 0u64.into(),
             current_farm_amount: farm_contribution.clone(),
         };
 
@@ -178,7 +178,7 @@ pub trait Farm:
     ) -> (Self::BigUint, u8) {
         if with_locked_rewards {
             let multiplier = self.locked_rewards_apr_multiplier().get();
-            (amount * &Self::BigUint::from(multiplier as u64), multiplier)
+            (amount * &(multiplier as u64).into(), multiplier)
         } else {
             (amount.clone(), 1u8)
         }
@@ -415,8 +415,8 @@ pub trait Farm:
         }
 
         let farm_token_id = self.farm_token_id().get();
-        let mut new_farm_contribution = &payment_amount
-            + &(&reward * &Self::BigUint::from(farm_attributes.apr_multiplier as u64));
+        let mut new_farm_contribution =
+            &payment_amount + &(&reward * &(farm_attributes.apr_multiplier as u64).into());
 
         let new_initial_farming_amount = self.rule_of_three(
             &payment_amount,
@@ -575,7 +575,7 @@ pub trait Farm:
         let current_block_nonce = self.blockchain().get_block_nonce();
         let to_be_minted = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
-        let big_zero = Self::BigUint::zero();
+        let big_zero = 0u64.into();
         let mut fees = self.undistributed_fee_storage().get();
         fees += match self.current_block_fee_storage().get() {
             Some((block_nonce, fee_amount)) => {
@@ -621,8 +621,7 @@ pub trait Farm:
 
     #[inline]
     fn get_penalty_amount(&self, amount: &Self::BigUint) -> Self::BigUint {
-        amount * &Self::BigUint::from(self.penalty_percent().get() as u64)
-            / Self::BigUint::from(100u64)
+        amount * &(self.penalty_percent().get() as u64).into() / 100u64.into()
     }
 
     fn increase_farming_token_reserve(&self, amount: &Self::BigUint) {

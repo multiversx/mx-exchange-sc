@@ -119,7 +119,7 @@ pub trait WrappedLpTokenMerge:
         tokens: &[WrappedLpToken<Self::BigUint>],
         merged_locked_asset_token_amount: &GenericTokenAmountPair<Self::BigUint>,
     ) -> WrappedLpTokenAttributes<Self::BigUint> {
-        let mut lp_token_amount = Self::BigUint::zero();
+        let mut lp_token_amount = 0u64.into();
 
         tokens
             .iter()
@@ -179,7 +179,7 @@ pub trait WrappedLpTokenMerge:
         &self,
         tokens: &[WrappedLpToken<Self::BigUint>],
     ) -> Self::BigUint {
-        let mut token_amount = Self::BigUint::zero();
+        let mut token_amount = 0u64.into();
 
         tokens
             .iter()

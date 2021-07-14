@@ -125,7 +125,7 @@ pub trait FeeModule:
             return;
         }
 
-        let fee_slice = &fee_amount / &Self::BigUint::from(slices);
+        let fee_slice = &fee_amount / &slices.into();
         if fee_slice == 0 {
             self.reinject(fee_token, &fee_amount);
             return;
@@ -145,7 +145,7 @@ pub trait FeeModule:
             );
         }
 
-        let rounding_error = fee_amount - fee_slice * Self::BigUint::from(slices);
+        let rounding_error = fee_amount - fee_slice * slices.into();
         if rounding_error > 0 {
             self.reinject(fee_token, &rounding_error);
         }

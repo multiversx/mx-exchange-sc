@@ -178,9 +178,9 @@ pub trait LockedAssetFactory:
                 let do_cache_result = !attributes.is_merged;
 
                 let additional_amount_to_create = if do_cache_result {
-                    Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE)
+                    ADDITIONAL_AMOUNT_TO_CREATE.into()
                 } else {
-                    Self::BigUint::zero()
+                    0u64.into()
                 };
 
                 let new_nonce = self.create_and_send_locked_assets(

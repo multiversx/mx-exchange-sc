@@ -108,7 +108,7 @@ pub trait FarmTokenMergeModule:
         let mut dataset = Vec::new();
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
-                value: Self::BigUint::from(x.attributes.entering_epoch),
+                value: x.attributes.entering_epoch.into(),
                 weight: x.token_amount.amount.clone(),
             })
         });
@@ -140,7 +140,7 @@ pub trait FarmTokenMergeModule:
         &self,
         tokens: &[FarmToken<Self::BigUint>],
     ) -> Self::BigUint {
-        let mut sum = Self::BigUint::zero();
+        let mut sum = 0u64.into();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
                 &x.token_amount.amount,
@@ -152,7 +152,7 @@ pub trait FarmTokenMergeModule:
     }
 
     fn aggregated_compounded_reward(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
-        let mut sum = Self::BigUint::zero();
+        let mut sum = 0u64.into();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
                 &x.token_amount.amount,
@@ -164,7 +164,7 @@ pub trait FarmTokenMergeModule:
     }
 
     fn aggregated_current_farm_amount(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
-        let mut aggregated_amount = Self::BigUint::zero();
+        let mut aggregated_amount = 0u64.into();
         tokens
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);

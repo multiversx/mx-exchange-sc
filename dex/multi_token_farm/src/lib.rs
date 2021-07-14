@@ -201,7 +201,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         }
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
-        let farm_tokens_to_create = &liquidity + &Self::BigUint::from(1u64);
+        let farm_tokens_to_create = &liquidity + &1u64.into();
         let farm_token_id = self.farm_token_id().get();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
@@ -336,7 +336,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         };
 
         // Create and send the new farm tokens.
-        let farm_tokens_to_create = &re_added_liquidity + &Self::BigUint::from(1u64);
+        let farm_tokens_to_create = &re_added_liquidity + &1u64.into();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
 
@@ -570,7 +570,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
                 token_id,
                 amount,
                 &BoxedBytes::empty(),
-                &Self::BigUint::zero(),
+                &0u64.into(),
                 &BoxedBytes::empty(),
                 attributes,
                 &[BoxedBytes::empty()],
@@ -691,7 +691,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
 
     #[inline]
     fn get_penalty_amount(&self, amount: Self::BigUint) -> Self::BigUint {
-        amount * Self::BigUint::from(PENALTY_PERCENT) / Self::BigUint::from(100u64)
+        amount * PENALTY_PERCENT.into() / 100u64.into()
     }
 
     #[inline]

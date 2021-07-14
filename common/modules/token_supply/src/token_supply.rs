@@ -20,7 +20,7 @@ pub trait TokenSupplyModule {
             token_id,
             amount,
             &BoxedBytes::empty(),
-            &Self::BigUint::zero(),
+            &0u64.into(),
             &BoxedBytes::empty(),
             attributes,
             &[BoxedBytes::empty()],

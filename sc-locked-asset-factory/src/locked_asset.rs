@@ -71,9 +71,8 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         current_epoch: Epoch,
         unlock_milestones: &[UnlockMilestone],
     ) -> Self::BigUint {
-        amount
-            * &Self::BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
-            / Self::BigUint::from(PERCENTAGE_TOTAL)
+        amount * &(self.get_unlock_percent(current_epoch, unlock_milestones) as u64).into()
+            / PERCENTAGE_TOTAL.into()
     }
 
     fn get_unlock_percent(

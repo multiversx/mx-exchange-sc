@@ -100,11 +100,11 @@ pub trait ProxyPairModule:
         let first_token_amount = self
             .temporary_funds(&caller)
             .get(&(first_token_id.clone(), first_token_nonce))
-            .unwrap_or_else(Self::BigUint::zero);
+            .unwrap_or_else(|| 0u64.into());
         let second_token_amount = self
             .temporary_funds(&caller)
             .get(&(second_token_id.clone(), second_token_nonce))
-            .unwrap_or_else(Self::BigUint::zero);
+            .unwrap_or_else(|| 0u64.into());
         self.temporary_funds(&caller)
             .remove(&(first_token_id.clone(), first_token_nonce));
         self.temporary_funds(&caller)
@@ -160,7 +160,7 @@ pub trait ProxyPairModule:
         let first_token_amount_temporary = self
             .temporary_funds(&caller)
             .get(&(first_token_id.clone(), first_token_nonce))
-            .unwrap_or_else(Self::BigUint::zero);
+            .unwrap_or_else(|| 0u64.into());
         require!(
             first_token_amount_temporary >= first_token_amount_desired,
             "Not enough first temporary funds"
@@ -168,7 +168,7 @@ pub trait ProxyPairModule:
         let second_token_amount_temporary = self
             .temporary_funds(&caller)
             .get(&(second_token_id.clone(), second_token_nonce))
-            .unwrap_or_else(Self::BigUint::zero);
+            .unwrap_or_else(|| 0u64.into());
         require!(
             second_token_amount_temporary >= second_token_amount_desired,
             "Not enough second temporary funds"
@@ -507,7 +507,7 @@ pub trait ProxyPairModule:
         let old_value = self
             .temporary_funds(caller)
             .get(&(token_id.clone(), token_nonce))
-            .unwrap_or_else(Self::BigUint::zero);
+            .unwrap_or_else(|| 0u64.into());
         self.temporary_funds(caller).insert(
             (token_id.clone(), token_nonce),
             &old_value + increase_amount,

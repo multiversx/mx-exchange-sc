@@ -28,7 +28,7 @@ pub trait LiquidityPoolModule:
 
         if total_supply == 0 {
             liquidity = core::cmp::min(first_token_amount.clone(), second_token_amount.clone());
-            let minimum_liquidity = Self::BigUint::from(MINIMUM_LIQUIDITY);
+            let minimum_liquidity = MINIMUM_LIQUIDITY.into();
             require!(
                 liquidity > minimum_liquidity,
                 "First tokens needs to be greater than minimum liquidity"
@@ -82,7 +82,7 @@ pub trait LiquidityPoolModule:
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
         let total_supply = self.get_total_lp_token_supply();
         require!(
-            total_supply >= &liquidity + &Self::BigUint::from(MINIMUM_LIQUIDITY),
+            total_supply >= &liquidity + &MINIMUM_LIQUIDITY.into(),
             "Not enough LP token supply"
         );
 
@@ -171,7 +171,7 @@ pub trait LiquidityPoolModule:
         } else {
             FftTokenAmountPair {
                 token_id,
-                amount: Self::BigUint::zero(),
+                amount: 0u64.into(),
             }
         }
     }
@@ -202,7 +202,7 @@ pub trait LiquidityPoolModule:
         token_in: &TokenIdentifier,
         amount_in: &Self::BigUint,
     ) -> Self::BigUint {
-        let big_zero = Self::BigUint::zero();
+        let big_zero = 0u64.into();
         let first_token_reserve = self.pair_reserve(first_token_id).get();
         let second_token_reserve = self.pair_reserve(second_token_id).get();
 
