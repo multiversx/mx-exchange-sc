@@ -19,4 +19,6 @@ members = [
   "sc-locked-asset-factory",
   "sc-locked-asset-factory/abi",
 
+  "sc-dex-helper",
+  "sc-dex-helper/abi",
 ]

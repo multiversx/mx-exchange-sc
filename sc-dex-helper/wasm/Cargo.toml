@@ -1,0 +1,29 @@
+[package]
+name = "sc-dex-helper-wasm"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = [ "cdylib",]
+
+[workspace]
+members = [ ".",]
+
+[dev-dependencies]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+
+[dependencies.sc-dex-helper]
+features = [ "wasm-output-mode",]
+default-features = false
+path = ".."
+
+[dependencies.elrond-wasm-output]
+version = "0.17"
+features = [ "wasm-output-mode",]
