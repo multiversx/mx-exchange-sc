@@ -67,7 +67,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             "Received zero amount after swap"
         );
 
-        let (liquidity, amount_in_leftover) = self.add_liq(
+        let (liquidity, amount_in_leftover) = self.add_liq_after_swap(
             &token_in,
             &(&amount_in - &swap_amount),
             &swapped_tokens.amount,
@@ -90,6 +90,86 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         Ok(())
     }
 
+    #[payable("EGLD")]
+    #[endpoint(wrapEgldAndAddLiquidity)]
+    fn wrap_egld_and_add_liquidity(
+        &self,
+        #[payment_amount] amount_in: Self::BigUint,
+        first_token_amount: Self::BigUint,
+        second_token_amount: Self::BigUint,
+        first_token_amount_min: Self::BigUint,
+        second_token_amount_min: Self::BigUint,
+        pair_address: Address,
+    ) -> SCResult<()> {
+        require!(amount_in != 0, "Amount in is zero");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+        let wegld_token_id = self.wegld_token_id().get();
+        let caller = self.blockchain().get_caller();
+
+        if pair_info.token_pair.first_token == wegld_token_id {
+            require!(first_token_amount == amount_in, "Bad first amount");
+            let temp = self.temporary_funds(&caller).get();
+            require!(
+                second_token_amount != 0 && second_token_amount == temp.amount,
+                "Bad second amount"
+            );
+        } else if pair_info.token_pair.second_token == wegld_token_id {
+            require!(second_token_amount == amount_in, "Bad first amount");
+            let temp = self.temporary_funds(&caller).get();
+            require!(
+                first_token_amount != 0 && first_token_amount == temp.amount,
+                "Bad second amount"
+            );
+        } else {
+            return sc_error!("Pair does not accept wegld");
+        }
+        self.temporary_funds(&caller).clear();
+
+        let (liquidity, first_token, second_token) = self
+            .pair_proxy(pair_address.clone())
+            .add_liquidity(
+                first_token_amount.clone(),
+                second_token_amount.clone(),
+                first_token_amount_min,
+                second_token_amount_min,
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+            )
+            .execute_on_dest_context()
+            .into_tuple();
+
+        for (received_token_amount, sent_amount) in [
+            (first_token, first_token_amount),
+            (second_token, second_token_amount),
+        ]
+        .iter()
+        {
+            let unused_amount = &received_token_amount.amount - &sent_amount;
+
+            if received_token_amount.token_id == wegld_token_id {
+                self.unwrap_egld(&unused_amount);
+
+                self.send()
+                    .direct(&caller, &TokenIdentifier::egld(), &unused_amount, &[]);
+            } else {
+                self.send().direct(
+                    &caller,
+                    &received_token_amount.token_id,
+                    &unused_amount,
+                    &[],
+                );
+            }
+        }
+
+        self.send()
+            .direct(&caller, &liquidity.token_id, &liquidity.amount, &[]);
+
+        Ok(())
+    }
+
     #[payable("*")]
     #[endpoint(removeLiquiditySingleToken)]
     fn remove_liquidity_single_token(
@@ -104,18 +184,26 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             self.intermediated_pairs().contains_key(&pair_address),
             "Not an intermediated pair"
         );
+        let wegld_token_id = self.wegld_token_id().get();
+
+        let desired_token_esdt = if desired_token.is_egld() {
+            wegld_token_id.clone()
+        } else {
+            desired_token.clone()
+        };
+
         let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
         require!(token_in == pair_info.lp_token_id, "Bad input token");
         require!(
-            desired_token == pair_info.token_pair.first_token
-                || desired_token == pair_info.token_pair.second_token,
+            desired_token_esdt == pair_info.token_pair.first_token
+                || desired_token_esdt == pair_info.token_pair.second_token,
             "Bad desired token"
         );
         let caller = self.blockchain().get_caller();
 
         let (first_token, second_token) = self.rem_liquidity(&token_in, &amount_in, &pair_address);
 
-        let desired_token_amount = if desired_token == first_token.token_id {
+        let desired_token_amount = if desired_token_esdt == first_token.token_id {
             let swapped_token = self.swap(
                 &second_token.token_id,
                 &second_token.amount,
@@ -133,6 +221,9 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             swapped_token.amount + second_token.amount
         };
 
+        if desired_token == TokenIdentifier::egld() {
+            self.unwrap_egld(&desired_token_amount);
+        }
         self.send()
             .direct(&caller, &desired_token, &desired_token_amount, &[]);
 
@@ -239,7 +330,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             .execute_on_dest_context()
     }
 
-    fn add_liq(
+    fn add_liq_after_swap(
         &self,
         payment_token_id: &TokenIdentifier,
         payment_amount_left: &Self::BigUint,
@@ -318,6 +409,39 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         Ok(())
     }
 
+    #[payable("*")]
+    #[endpoint(addTemporaryFunds)]
+    fn add_temporary_funds(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_amount] amount: Self::BigUint,
+    ) -> SCResult<()> {
+        require!(!token_id.is_egld(), "EGLD is not accepted");
+        let caller = self.blockchain().get_caller();
+        let mut token_amount = self.temporary_funds(&caller).get();
+        require!(
+            token_amount.token_id.is_empty() || token_amount.token_id == token_id,
+            "Can hold only one token"
+        );
+
+        token_amount.amount += amount;
+        self.temporary_funds(&caller).set(&token_amount);
+        Ok(())
+    }
+
+    #[endpoint(reclaimTemporaryFunds)]
+    fn reclaim_remporary_funds(&self) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        let token_amount = self.temporary_funds(&caller).get();
+
+        if token_amount.amount != 0 {
+            self.temporary_funds(&caller).clear();
+            self.send()
+                .direct(&caller, &token_amount.token_id, &token_amount.amount, &[]);
+        }
+        Ok(())
+    }
+
     #[endpoint(removeIntermediatedPair)]
     fn remove_intermediated_pair(&self, address: Address) -> SCResult<()> {
         only_owner!(self, "denied");
@@ -327,4 +451,11 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
 
     #[storage_mapper("intermediated_pairs")]
     fn intermediated_pairs(&self) -> MapMapper<Self::Storage, Address, PairContractImmutableInfo>;
+
+    #[view(getTemporaryFunds)]
+    #[storage_mapper("temporary_funds")]
+    fn temporary_funds(
+        &self,
+        address: &Address,
+    ) -> SingleValueMapper<Self::Storage, FftTokenAmountPair<Self::BigUint>>;
 }
