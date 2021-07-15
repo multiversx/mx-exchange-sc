@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::elgd_wrap_proxy;
+
 use common_structs::{FftTokenAmountPair, TokenPair};
 
 pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
@@ -8,13 +10,14 @@ pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct PairContractImmutableInfo {
     token_pair: TokenPair,
+    lp_token_id: TokenIdentifier,
     total_fee_percent: u64,
     special_fee_percent: u64,
     fee_base_points: u64,
 }
 
 #[elrond_wasm_derive::module]
-pub trait PairHelperModule {
+pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
     #[proxy]
     fn pair_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
 
@@ -85,6 +88,116 @@ pub trait PairHelperModule {
             .direct(&caller, &liquidity.token_id, &liquidity.amount, &[]);
 
         Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(removeLiquiditySingleToken)]
+    fn remove_liquidity_single_token(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_amount] amount_in: Self::BigUint,
+        desired_token: TokenIdentifier,
+        pair_address: Address,
+    ) -> SCResult<()> {
+        require!(amount_in != 0, "Amount in is zero");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+        require!(token_in == pair_info.lp_token_id, "Bad input token");
+        require!(
+            desired_token == pair_info.token_pair.first_token
+                || desired_token == pair_info.token_pair.second_token,
+            "Bad desired token"
+        );
+        let caller = self.blockchain().get_caller();
+
+        let (first_token, second_token) = self.rem_liquidity(&token_in, &amount_in, &pair_address);
+
+        let desired_token_amount = if desired_token == first_token.token_id {
+            let swapped_token = self.swap(
+                &second_token.token_id,
+                &second_token.amount,
+                &pair_info,
+                &pair_address,
+            );
+            swapped_token.amount + first_token.amount
+        } else {
+            let swapped_token = self.swap(
+                &first_token.token_id,
+                &first_token.amount,
+                &pair_info,
+                &pair_address,
+            );
+            swapped_token.amount + second_token.amount
+        };
+
+        self.send()
+            .direct(&caller, &desired_token, &desired_token_amount, &[]);
+
+        Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(removeLiquidityAndUnwrapWrappedEgld)]
+    fn remove_liquidity_and_unwrap_wrapped_egld(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_amount] amount_in: Self::BigUint,
+        pair_address: Address,
+    ) -> SCResult<()> {
+        require!(amount_in != 0, "Amount in is zero");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+        require!(token_in == pair_info.lp_token_id, "Bad input token");
+        let wegld_token_id = self.wegld_token_id().get();
+        require!(
+            wegld_token_id == pair_info.token_pair.first_token
+                || wegld_token_id == pair_info.token_pair.second_token,
+            "Pair tokens do not contain wegld"
+        );
+        let caller = self.blockchain().get_caller();
+
+        let (first_token, second_token) = self.rem_liquidity(&token_in, &amount_in, &pair_address);
+
+        let (wegld_token, other_token) = if first_token.token_id == wegld_token_id {
+            (first_token, second_token)
+        } else {
+            (second_token, first_token)
+        };
+
+        self.unwrap_egld(&wegld_token.amount);
+        self.send()
+            .direct(&caller, &TokenIdentifier::egld(), &wegld_token.amount, &[]);
+        self.send()
+            .direct(&caller, &other_token.token_id, &other_token.amount, &[]);
+
+        Ok(())
+    }
+
+    fn rem_liquidity(
+        &self,
+        lp_token_id: &TokenIdentifier,
+        amount: &Self::BigUint,
+        pair_address: &Address,
+    ) -> (
+        FftTokenAmountPair<Self::BigUint>,
+        FftTokenAmountPair<Self::BigUint>,
+    ) {
+        self.pair_proxy(pair_address.clone())
+            .remove_liquidity(
+                lp_token_id.clone(),
+                amount.clone(),
+                1u64.into(),
+                1u64.into(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+            )
+            .execute_on_dest_context()
+            .into_tuple()
     }
 
     /*
@@ -177,11 +290,13 @@ pub trait PairHelperModule {
     }
 
     #[endpoint(addIntermediatedPair)]
+    #[allow(clippy::too_many_arguments)]
     fn add_intermediated_pair(
         &self,
         address: Address,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
+        lp_token_id: TokenIdentifier,
         total_fee_percent: u64,
         special_fee_percent: u64,
         fee_base_points: u64,
@@ -194,6 +309,7 @@ pub trait PairHelperModule {
                     first_token,
                     second_token,
                 },
+                lp_token_id,
                 total_fee_percent,
                 special_fee_percent,
                 fee_base_points,
