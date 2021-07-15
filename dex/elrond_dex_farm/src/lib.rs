@@ -314,14 +314,14 @@ pub trait Farm:
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
         );
-        let new_reward_amount = self.rule_of_three(
-            &amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.compounded_reward,
-        );
         require!(
             new_initial_farming_amount != 0,
             "Farming token amount is zero"
+        );
+        let new_compound_reward_amount = self.rule_of_three(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
         );
 
         let mut new_attributes = FarmTokenAttributes {
@@ -330,7 +330,7 @@ pub trait Farm:
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
-            compounded_reward: new_reward_amount,
+            compounded_reward: new_compound_reward_amount,
             current_farm_amount: amount.clone(),
         };
 
@@ -423,15 +423,15 @@ pub trait Farm:
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
         );
-        let new_reward_amount = self.rule_of_three(
-            &payment_amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.compounded_reward,
-        ) + reward;
         require!(
             new_initial_farming_amount != 0,
             "Farming token amount is zero"
         );
+        let new_compound_reward_amount = self.rule_of_three(
+            &payment_amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
+        ) + reward;
 
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
@@ -439,7 +439,7 @@ pub trait Farm:
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
-            compounded_reward: new_reward_amount,
+            compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farm_contribution.clone(),
         };
 
