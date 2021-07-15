@@ -1,4 +1,4 @@
-use common_structs::{FarmTokenAttributes, GenericTokenAmountPair, WrappedFarmTokenAttributes};
+use common_structs::{GenericTokenAmountPair, WrappedFarmTokenAttributes};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -308,25 +308,5 @@ pub trait WrappedFarmTokenMerge:
             token_nonce: new_nonce,
             amount,
         })
-    }
-
-    fn get_farm_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        let farm_attributes = token_info.decode_attributes::<FarmTokenAttributes<Self::BigUint>>();
-        match farm_attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
     }
 }
