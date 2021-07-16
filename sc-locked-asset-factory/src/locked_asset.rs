@@ -25,7 +25,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         address: &Address,
         attributes: &LockedAssetTokenAttributes,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> Nonce {
+    ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(
             &token_id,
@@ -39,8 +39,8 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
             amount,
             address,
             opt_accept_funds_func,
-        );
-        last_created_nonce
+        )?;
+        Ok(last_created_nonce)
     }
 
     fn add_quantity_and_send_locked_assets(
@@ -49,10 +49,10 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         sft_nonce: Nonce,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
+    ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
-        self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
+        self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func)
     }
 
     fn create_tokens(

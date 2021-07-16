@@ -60,17 +60,17 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let deposit = self.nft_deposit(&caller).get();
-
         self.nft_deposit(&caller).clear();
-        deposit.iter().for_each(|entry| {
+
+        for entry in deposit.iter() {
             self.send_nft_tokens(
                 &entry.token_id,
                 entry.token_nonce,
                 &entry.amount,
                 &caller,
                 &opt_accept_funds_func,
-            )
-        });
+            )?;
+        }
 
         Ok(())
     }
@@ -94,7 +94,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
             &entry.amount,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(())
     }

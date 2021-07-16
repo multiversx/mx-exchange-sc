@@ -41,7 +41,7 @@ pub trait FarmTokenMergeModule:
             &new_amount,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(GenericTokenAmountPair {
             token_id: farm_token_id,

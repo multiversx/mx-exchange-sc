@@ -171,7 +171,7 @@ pub trait LockedAssetFactory:
                     cached_nonce,
                     address,
                     opt_accept_funds_func,
-                );
+                )?;
                 cached_nonce
             }
             Option::None => {
@@ -189,7 +189,7 @@ pub trait LockedAssetFactory:
                     address,
                     attributes,
                     opt_accept_funds_func,
-                );
+                )?;
 
                 if do_cache_result {
                     self.cache_unlock_schedule_and_nonce(&attributes.unlock_schedule, new_nonce);

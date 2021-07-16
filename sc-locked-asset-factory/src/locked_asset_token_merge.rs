@@ -45,7 +45,7 @@ pub trait LockedAssetTokenMergeModule:
             &amount,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(GenericTokenAmountPair {
             token_id: locked_asset_token,

@@ -13,7 +13,7 @@ pub trait TokenSendModule {
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
+    ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
                 accept_funds_func.as_slice(),
@@ -25,7 +25,7 @@ pub trait TokenSendModule {
             }
         };
 
-        let _ = self.send().direct_esdt_execute(
+        let result = self.send().direct_esdt_execute(
             destination,
             token,
             amount,
@@ -33,6 +33,8 @@ pub trait TokenSendModule {
             function,
             &ArgBuffer::new(),
         );
+        require!(result.is_ok(), "Transfer failed");
+        Ok(())
     }
 
     fn send_nft_tokens(
@@ -42,7 +44,7 @@ pub trait TokenSendModule {
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
+    ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
                 accept_funds_func.as_slice(),
@@ -54,7 +56,7 @@ pub trait TokenSendModule {
             }
         };
 
-        let _ = self.send().direct_esdt_nft_execute(
+        let result = self.send().direct_esdt_nft_execute(
             destination,
             token,
             nonce,
@@ -63,6 +65,8 @@ pub trait TokenSendModule {
             function,
             &ArgBuffer::new(),
         );
+        require!(result.is_ok(), "Transfer failed");
+        Ok(())
     }
 
     #[view(getTransferExecGasLimit)]

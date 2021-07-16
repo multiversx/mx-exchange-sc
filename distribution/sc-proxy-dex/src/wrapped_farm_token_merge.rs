@@ -102,7 +102,7 @@ pub trait WrappedFarmTokenMerge:
             &merged_farm_token_amount.amount,
             caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(())
     }

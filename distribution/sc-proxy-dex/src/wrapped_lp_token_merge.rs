@@ -65,7 +65,7 @@ pub trait WrappedLpTokenMerge:
             &amount,
             caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(())
     }

@@ -162,7 +162,7 @@ pub trait Farm:
             &farm_contribution,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
@@ -349,7 +349,7 @@ pub trait Farm:
             &amount,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         // Send rewards
         let mut reward_nonce = 0u64;
@@ -457,7 +457,7 @@ pub trait Farm:
             &new_farm_contribution,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
@@ -505,7 +505,7 @@ pub trait Farm:
             farming_amount,
             destination,
             opt_accept_funds_func,
-        );
+        )?;
         Ok(())
     }
 
@@ -541,7 +541,7 @@ pub trait Farm:
                     reward_amount,
                     destination,
                     opt_accept_funds_func,
-                );
+                )?;
             }
         }
         Ok(())

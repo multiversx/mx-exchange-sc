@@ -197,19 +197,19 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func);
+        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
         self.send_tokens(
             &expected_first_token_id,
             &temporary_first_token_unused,
             caller,
             &opt_accept_funds_func,
-        );
+        )?;
         self.send_tokens(
             &expected_second_token_id,
             &temporary_second_token_unused,
             caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok((
             FftTokenAmountPair {
@@ -236,7 +236,7 @@ pub trait Pair:
     ) -> SCResult<()> {
         let amount = self.temporary_funds(caller, token).get();
         self.temporary_funds(caller, token).clear();
-        self.send_tokens(token, &amount, caller, opt_accept_funds_func);
+        self.send_tokens(token, &amount, caller, opt_accept_funds_func)?;
         Ok(())
     }
 
@@ -294,13 +294,13 @@ pub trait Pair:
             &first_token_amount,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
         self.send_tokens(
             &second_token_id,
             &second_token_amount,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         self.burn_tokens(&liquidity_token, &liquidity);
 
@@ -427,7 +427,7 @@ pub trait Pair:
             &amount_out_optimal,
             &caller,
             &opt_accept_funds_func,
-        );
+        )?;
 
         Ok(())
     }
@@ -495,8 +495,8 @@ pub trait Pair:
             self.send_fee(&token_in, fee_amount);
         }
 
-        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func);
-        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func);
+        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
+        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
 
         Ok(())
     }
@@ -507,10 +507,11 @@ pub trait Pair:
         amount: &Self::BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
+    ) -> SCResult<()> {
         if amount > &0 {
-            self.send_fft_tokens(token, amount, destination, opt_accept_funds_func);
+            self.send_fft_tokens(token, amount, destination, opt_accept_funds_func)?;
         }
+        Ok(())
     }
 
     #[endpoint(setLpTokenIdentifier)]
