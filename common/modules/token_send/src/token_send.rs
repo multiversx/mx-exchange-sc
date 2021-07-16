@@ -25,16 +25,14 @@ pub trait TokenSendModule {
             }
         };
 
-        let result = self.send().direct_esdt_execute(
+        SCResult::from_result(self.send().direct_esdt_execute(
             destination,
             token,
             amount,
             gas_limit,
             function,
             &ArgBuffer::new(),
-        );
-        require!(result.is_ok(), "Transfer failed");
-        Ok(())
+        ))
     }
 
     fn send_nft_tokens(
@@ -56,7 +54,7 @@ pub trait TokenSendModule {
             }
         };
 
-        let result = self.send().direct_esdt_nft_execute(
+        SCResult::from_result(self.send().direct_esdt_nft_execute(
             destination,
             token,
             nonce,
@@ -64,9 +62,7 @@ pub trait TokenSendModule {
             gas_limit,
             function,
             &ArgBuffer::new(),
-        );
-        require!(result.is_ok(), "Transfer failed");
-        Ok(())
+        ))
     }
 
     #[view(getTransferExecGasLimit)]
