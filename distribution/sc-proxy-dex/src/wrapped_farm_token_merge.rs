@@ -266,6 +266,11 @@ pub trait WrappedFarmTokenMerge:
                 &token.attributes.farm_token_amount,
                 &token.attributes.farming_token_amount,
             );
+            require!(
+                wrapped_lp_token_amount != 0,
+                "Wrapped Lp token amount cannot be zero"
+            );
+
             let wrapped_lp_token_id = token.attributes.farming_token_id.clone();
             let wrapped_lp_token_nonce = token.attributes.farming_token_nonce;
 
