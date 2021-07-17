@@ -5,8 +5,6 @@ use super::elgd_wrap_proxy;
 
 use common_structs::{FftTokenAmountPair, TokenPair};
 
-pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
-
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct PairContractImmutableInfo {
     token_pair: TokenPair,
@@ -387,7 +385,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
                 amount.clone(),
                 1u64.into(),
                 1u64.into(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::None,
             )
             .execute_on_dest_context()
             .into_tuple()
@@ -427,7 +425,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
                 amount_in.clone(),
                 desired_token_id.clone(),
                 1u64.into(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::None,
             )
             .execute_on_dest_context()
     }
