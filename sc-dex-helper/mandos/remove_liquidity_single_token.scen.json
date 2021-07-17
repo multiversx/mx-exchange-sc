@@ -93,9 +93,6 @@
                 "gas": "*",
                 "refund": "*"
             }
-        },
-        {
-            "step": "dumpState"
         }
     ]
 }

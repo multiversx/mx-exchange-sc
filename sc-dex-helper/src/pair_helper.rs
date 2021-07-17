@@ -75,10 +75,22 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             swapped_tokens.amount != 0,
             "Received zero amount after swap"
         );
+        let token_in_after_swap = &amount_in - &swap_amount;
+
+        self.pair_proxy(pair_address.clone())
+            .accept_esdt_payment(token_in_esdt.clone(), token_in_after_swap.clone())
+            .execute_on_dest_context_ignore_result();
+
+        self.pair_proxy(pair_address.clone())
+            .accept_esdt_payment(
+                swapped_tokens.token_id.clone(),
+                swapped_tokens.amount.clone(),
+            )
+            .execute_on_dest_context_ignore_result();
 
         let (liquidity, amount_in_leftover) = self.add_liq_after_swap(
-            &token_in,
-            &(&amount_in - &swap_amount),
+            &token_in_esdt,
+            &token_in_after_swap,
             &swapped_tokens.amount,
             &pair_info,
             &pair_address,
@@ -90,7 +102,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
 
         if amount_in_leftover != 0 {
             if token_in.is_egld() {
-                self.unwrap_egld(&amount_in);
+                self.unwrap_egld(&amount_in_leftover);
             }
 
             self.send()
@@ -101,6 +113,56 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             .direct(&caller, &liquidity.token_id, &liquidity.amount, &[]);
 
         Ok(())
+    }
+
+    fn add_liq_after_swap(
+        &self,
+        payment_token_id: &TokenIdentifier,
+        payment_amount_left: &Self::BigUint,
+        swapped_amount: &Self::BigUint,
+        pair_info: &PairContractImmutableInfo,
+        pair_address: &Address,
+    ) -> (FftTokenAmountPair<Self::BigUint>, Self::BigUint) {
+        let (
+            first_token_amount,
+            second_token_amount,
+            first_token_amount_min,
+            second_token_amount_min,
+        ) = if payment_token_id == &pair_info.token_pair.first_token {
+            (
+                payment_amount_left.clone(),
+                swapped_amount.clone(),
+                1u64.into(),
+                swapped_amount.clone(),
+            )
+        } else {
+            (
+                swapped_amount.clone(),
+                payment_amount_left.clone(),
+                swapped_amount.clone(),
+                1u64.into(),
+            )
+        };
+
+        let (liquidity, first_token, second_token) = self
+            .pair_proxy(pair_address.clone())
+            .add_liquidity(
+                first_token_amount,
+                second_token_amount,
+                first_token_amount_min,
+                second_token_amount_min,
+                OptionalArg::None,
+            )
+            .execute_on_dest_context()
+            .into_tuple();
+
+        let payment_leftover = if payment_token_id == &first_token.token_id {
+            payment_amount_left - &first_token.amount
+        } else {
+            payment_amount_left - &second_token.amount
+        };
+
+        (liquidity, payment_leftover)
     }
 
     #[payable("EGLD")]
@@ -343,7 +405,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         _t: u64,
     ) -> Self::BigUint {
         //TODO: Need sqrt
-        0u64.into()
+        100u64.into()
     }
 
     fn swap(
@@ -368,56 +430,6 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
                 OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .execute_on_dest_context()
-    }
-
-    fn add_liq_after_swap(
-        &self,
-        payment_token_id: &TokenIdentifier,
-        payment_amount_left: &Self::BigUint,
-        swapped_amount: &Self::BigUint,
-        pair_info: &PairContractImmutableInfo,
-        pair_address: &Address,
-    ) -> (FftTokenAmountPair<Self::BigUint>, Self::BigUint) {
-        let (
-            first_token_amount,
-            second_token_amount,
-            first_token_amount_min,
-            second_token_amount_min,
-        ) = if payment_token_id == &pair_info.token_pair.first_token {
-            (
-                payment_amount_left.clone(),
-                swapped_amount.clone(),
-                payment_amount_left / &2u64.into() + 1u64.into(),
-                swapped_amount.clone(),
-            )
-        } else {
-            (
-                swapped_amount.clone(),
-                payment_amount_left.clone(),
-                swapped_amount.clone(),
-                payment_amount_left / &2u64.into() + 1u64.into(),
-            )
-        };
-
-        let (liquidity, first_token, second_token) = self
-            .pair_proxy(pair_address.clone())
-            .add_liquidity(
-                first_token_amount,
-                second_token_amount,
-                first_token_amount_min,
-                second_token_amount_min,
-                OptionalArg::None,
-            )
-            .execute_on_dest_context()
-            .into_tuple();
-
-        let payment_leftover = if payment_token_id == &first_token.token_id {
-            payment_amount_left - &first_token.amount
-        } else {
-            payment_amount_left - &second_token.amount
-        };
-
-        (liquidity, payment_leftover)
     }
 
     #[endpoint(addIntermediatedPair)]
