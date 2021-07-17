@@ -1,0 +1,28 @@
+{
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "addTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:dex_helper",
+                "value": "0",
+                "function": "addTemporaryFunds",
+                "esdt": {
+                    "tokenIdentifier": "str:MEX-abcdef",
+                    "value": "10,000"
+                },
+                "arguments": [],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

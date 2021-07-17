@@ -1,0 +1,13 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "steps/deploy.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/add_intermediated.steps.json"
+        }
+    ]
+}

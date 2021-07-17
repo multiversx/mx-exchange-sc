@@ -1,0 +1,74 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "100,000,000",
+                        "str:MEX-abcdef": "100,000,000"
+                    },
+                    "storage": {},
+                    "code": ""
+                },
+                "sc:egld_wrap": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:WEGLD-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:wrappedEgldTokenId": "str:WEGLD-abcdef"
+                    },
+                    "code": "file:../../egld-esdt-swap_output/egld-esdt-swap.wasm",
+                    "owner": "address:owner"
+                },
+                "sc:dex_helper": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:wegld_token_id": "str:WEGLD-abcdef",
+                        "str:egld_wrap_contract_address": "sc:egld_wrap"
+                    },
+                    "code": "file:../../output/sc-dex-helper.wasm",
+                    "owner": "address:owner"
+                },
+                "sc:pair_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LPTOK-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:first_token_id": "str:WEGLD-abcdef",
+                        "str:second_token_id": "str:MEX-abcdef",
+                        "str:state": "1",
+                        "str:lpTokenIdentifier": "str:LPTOK-abcdef",
+                        "str:router_address": "address:owner",
+                        "str:router_owner_address": "address:owner",
+                        "str:total_fee_percent": "300",
+                        "str:special_fee_percent": "100",
+                        "str:transfer_exec_gas_limit": "50000000",
+                        "str:send_fee_gas_limit": "25,000,000",
+                        "str:extern_swap_gas_limit": "50,000,000"
+                    },
+                    "code": "file:../../../dex/elrond_dex_pair/output/elrond_dex_pair.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        }
+    ]
+}

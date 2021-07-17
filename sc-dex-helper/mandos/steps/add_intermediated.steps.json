@@ -1,0 +1,33 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:dex_helper",
+                "value": "0",
+                "function": "addIntermediatedPair",
+                "arguments": [
+                    "sc:pair_contract",
+                    "str:WEGLD-abcdef",
+                    "str:MEX-abcdef",
+                    "str:LPTOK-abcdef",
+                    "300",
+                    "100",
+                    "100000"
+                ],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

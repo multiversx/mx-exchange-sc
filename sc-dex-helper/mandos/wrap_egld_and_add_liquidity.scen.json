@@ -1,0 +1,65 @@
+{
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "complete_setup.scen.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/add_temporary_funds_mex.steps.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:dex_helper",
+                "value": "0",
+                "function": "getTemporaryFunds",
+                "arguments": [
+                    "address:owner"
+                ],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x0000000a4d45582d616263646566000000022710"
+                ],
+                "status": "0",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "wrapEgldAndAddLiquidity",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:dex_helper",
+                "value": "10,000",
+                "function": "wrapEgldAndAddLiquidity",
+                "arguments": [
+                    "10,000",
+                    "10,000",
+                    "1",
+                    "1",
+                    "sc:pair_contract"
+                ],
+                "gasLimit": "1,400,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x0000000c4c50544f4b2d616263646566000000022328",
+                    "0x0000000c5745474c442d616263646566000000022710",
+                    "0x0000000a4d45582d616263646566000000022710"
+                ],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}
