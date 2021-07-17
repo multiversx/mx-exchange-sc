@@ -28,12 +28,16 @@ pub trait EgldWrapProxyModule {
     fn wrap_egld(&self, amount: &Self::BigUint) {
         self.egld_wrap_proxy(self.egld_wrap_contract_address().get())
             .wrap_egld(amount.clone())
+            .with_token_transfer(TokenIdentifier::egld(), amount.clone())
             .execute_on_dest_context_ignore_result();
     }
 
     fn unwrap_egld(&self, amount: &Self::BigUint) {
+        let wegld = self.wegld_token_id().get();
+
         self.egld_wrap_proxy(self.egld_wrap_contract_address().get())
-            .unwrap_egld(amount.clone(), self.wegld_token_id().get())
+            .unwrap_egld(amount.clone(), wegld.clone())
+            .with_token_transfer(wegld, amount.clone())
             .execute_on_dest_context_ignore_result();
     }
 
