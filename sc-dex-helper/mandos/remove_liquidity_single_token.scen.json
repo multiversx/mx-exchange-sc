@@ -18,7 +18,9 @@
                 },
                 "arguments": [
                     "str:WEGLD-abcdef",
-                    "sc:pair_contract"
+                    "sc:pair_contract",
+                    "0x01",
+                    "0x01"
                 ],
                 "gasLimit": "1,400,000,000",
                 "gasPrice": "0"
@@ -48,7 +50,9 @@
                 },
                 "arguments": [
                     "str:MEX-abcdef",
-                    "sc:pair_contract"
+                    "sc:pair_contract",
+                    "0x01",
+                    "0x01"
                 ],
                 "gasLimit": "1,400,000,000",
                 "gasPrice": "0"
@@ -78,7 +82,9 @@
                 },
                 "arguments": [
                     "str:",
-                    "sc:pair_contract"
+                    "sc:pair_contract",
+                    "0x01",
+                    "0x01"
                 ],
                 "gasLimit": "1,400,000,000",
                 "gasPrice": "0"

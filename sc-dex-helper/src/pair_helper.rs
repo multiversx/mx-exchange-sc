@@ -2,8 +2,11 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::elgd_wrap_proxy;
+use super::payment_receiver;
 
 use common_structs::{FftTokenAmountPair, TokenPair};
+
+use payment_receiver::ACCEPT_PAY_FUNC_NAME;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct PairContractImmutableInfo {
@@ -15,13 +18,11 @@ pub struct PairContractImmutableInfo {
 }
 
 #[elrond_wasm_derive::module]
-pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
+pub trait PairHelperModule:
+    elgd_wrap_proxy::EgldWrapProxyModule + payment_receiver::PaymentReceivedModule
+{
     #[proxy]
     fn pair_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
-
-    #[payable("*")]
-    #[endpoint(acceptPay)]
-    fn accept_pay(&self) {}
 
     #[payable("*")]
     #[endpoint(addLiquiditySingleToken)]
@@ -40,7 +41,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         let wegld_token_id = self.wegld_token_id().get();
 
         let token_in_esdt = if token_in.is_egld() {
-            self.wrap_egld(&amount_in);
+            self.wrap_egld(&amount_in)?;
             wegld_token_id
         } else {
             token_in.clone()
@@ -100,7 +101,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
 
         if amount_in_leftover != 0 {
             if token_in.is_egld() {
-                self.unwrap_egld(&amount_in_leftover);
+                self.unwrap_egld(&amount_in_leftover)?;
             }
 
             self.send()
@@ -149,7 +150,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
                 second_token_amount,
                 first_token_amount_min,
                 second_token_amount_min,
-                OptionalArg::None,
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
             )
             .execute_on_dest_context()
             .into_tuple();
@@ -209,7 +210,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             return sc_error!("Pair does not accept wegld");
         }
         self.temporary_funds(&caller).clear();
-        self.wrap_egld(&amount_in);
+        self.wrap_egld(&amount_in)?;
 
         self.pair_proxy(pair_address.clone())
             .accept_esdt_payment(
@@ -232,7 +233,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
                 second_token_amount.clone(),
                 first_token_amount_min,
                 second_token_amount_min,
-                OptionalArg::None,
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
             )
             .execute_on_dest_context()
             .into_tuple();
@@ -250,7 +251,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             }
 
             if received_token_amount.token_id == wegld_token_id {
-                self.unwrap_egld(&unused_amount);
+                self.unwrap_egld(&unused_amount)?;
 
                 self.send()
                     .direct(&caller, &TokenIdentifier::egld(), &unused_amount, &[]);
@@ -278,6 +279,8 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         #[payment_amount] amount_in: Self::BigUint,
         desired_token: TokenIdentifier,
         pair_address: Address,
+        first_token_amount_min: Self::BigUint,
+        second_token_amount_min: Self::BigUint,
     ) -> SCResult<()> {
         require!(amount_in != 0, "Amount in is zero");
         require!(
@@ -301,7 +304,13 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         );
         let caller = self.blockchain().get_caller();
 
-        let (first_token, second_token) = self.rem_liquidity(&token_in, &amount_in, &pair_address);
+        let (first_token, second_token) = self.rem_liquidity(
+            &token_in,
+            &amount_in,
+            &first_token_amount_min,
+            &second_token_amount_min,
+            &pair_address,
+        );
 
         let desired_token_amount = if desired_token_esdt == first_token.token_id {
             let swapped_token = self.swap(
@@ -322,7 +331,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         };
 
         if desired_token == TokenIdentifier::egld() {
-            self.unwrap_egld(&desired_token_amount);
+            self.unwrap_egld(&desired_token_amount)?;
         }
         self.send()
             .direct(&caller, &desired_token, &desired_token_amount, &[]);
@@ -337,6 +346,8 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         #[payment_token] token_in: TokenIdentifier,
         #[payment_amount] amount_in: Self::BigUint,
         pair_address: Address,
+        first_token_amount_min: Self::BigUint,
+        second_token_amount_min: Self::BigUint,
     ) -> SCResult<()> {
         require!(amount_in != 0, "Amount in is zero");
         require!(
@@ -353,7 +364,13 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         );
         let caller = self.blockchain().get_caller();
 
-        let (first_token, second_token) = self.rem_liquidity(&token_in, &amount_in, &pair_address);
+        let (first_token, second_token) = self.rem_liquidity(
+            &token_in,
+            &amount_in,
+            &first_token_amount_min,
+            &second_token_amount_min,
+            &pair_address,
+        );
 
         let (wegld_token, other_token) = if first_token.token_id == wegld_token_id {
             (first_token, second_token)
@@ -361,7 +378,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             (second_token, first_token)
         };
 
-        self.unwrap_egld(&wegld_token.amount);
+        self.unwrap_egld(&wegld_token.amount)?;
         self.send()
             .direct(&caller, &TokenIdentifier::egld(), &wegld_token.amount, &[]);
         self.send()
@@ -374,6 +391,8 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
         &self,
         lp_token_id: &TokenIdentifier,
         amount: &Self::BigUint,
+        first_token_amount_min: &Self::BigUint,
+        second_token_amount_min: &Self::BigUint,
         pair_address: &Address,
     ) -> (
         FftTokenAmountPair<Self::BigUint>,
@@ -383,9 +402,9 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
             .remove_liquidity(
                 lp_token_id.clone(),
                 amount.clone(),
-                1u64.into(),
-                1u64.into(),
-                OptionalArg::None,
+                first_token_amount_min.clone(),
+                second_token_amount_min.clone(),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
             )
             .execute_on_dest_context()
             .into_tuple()
@@ -425,7 +444,7 @@ pub trait PairHelperModule: elgd_wrap_proxy::EgldWrapProxyModule {
                 amount_in.clone(),
                 desired_token_id.clone(),
                 1u64.into(),
-                OptionalArg::None,
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
             )
             .execute_on_dest_context()
     }
