@@ -115,6 +115,7 @@
 					"nonce": "0",
 					"balance": "0",
 					"esdt": {
+						"str:WEGLD-abcdef": "0",
 						"str:FARM-abcdef": {
 							"balance": "0",
 							"roles": [
