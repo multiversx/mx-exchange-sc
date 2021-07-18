@@ -89,15 +89,6 @@
 					"esdt": {
 						"str:WEGLD-abcdef": "100,000,000",
 						"str:FARM-abcdef": {
-							"instances": [
-								{
-									"nonce": "0x01",
-									"balance": "1",
-									"creator": "*",
-									"hash": "*",
-									"attributes": "*"
-								}
-							],
 							"roles": [
 								"ESDTRoleNFTCreate",
 								"ESDTRoleNFTAddQuantity",
