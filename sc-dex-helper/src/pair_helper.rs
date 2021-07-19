@@ -6,6 +6,9 @@ use super::payment_receiver;
 
 use common_structs::{FftTokenAmountPair, TokenPair};
 
+type SwapTokensFixedOutputResultType<BigUint> =
+    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+
 use payment_receiver::ACCEPT_PAY_FUNC_NAME;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
@@ -75,7 +78,7 @@ pub trait PairHelperModule:
             &1u64.into(),
             &pair_info,
             &pair_address,
-        );
+        )?;
         require!(
             swapped_tokens.amount != 0,
             "Received zero amount after swap"
@@ -275,7 +278,7 @@ pub trait PairHelperModule:
                 &1u64.into(),
                 &pair_info,
                 &pair_address,
-            );
+            )?;
             swapped_token.amount + first_token.amount
         } else {
             let swapped_token = self.swap_fixed_input(
@@ -284,7 +287,7 @@ pub trait PairHelperModule:
                 &1u64.into(),
                 &pair_info,
                 &pair_address,
-            );
+            )?;
             swapped_token.amount + second_token.amount
         };
 
@@ -361,7 +364,6 @@ pub trait PairHelperModule:
         );
         let caller = self.blockchain().get_caller();
         let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
-
         let token_in_esdt = self.wegld_token_id().get();
 
         self.wrap_egld(&amount_in)?;
@@ -371,8 +373,11 @@ pub trait PairHelperModule:
             &amount_out_min,
             &pair_info,
             &pair_address,
+        )?;
+        require!(
+            token_out == swapped_tokens.token_id,
+            "Invalid token received"
         );
-        require!(token_out == swapped_tokens.token_id, "Invalid token received");
 
         self.send().direct(
             &caller,
@@ -399,7 +404,10 @@ pub trait PairHelperModule:
             self.intermediated_pairs().contains_key(&pair_address),
             "Not an intermediated pair"
         );
-        require!(token_out == self.wegld_token_id().get(), "Token out should be wrapped egld");
+        require!(
+            token_out == self.wegld_token_id().get(),
+            "Token out should be wrapped egld"
+        );
         let caller = self.blockchain().get_caller();
         let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
 
@@ -409,8 +417,111 @@ pub trait PairHelperModule:
             &amount_out_min,
             &pair_info,
             &pair_address,
+        )?;
+        require!(
+            swapped_tokens.token_id == token_out,
+            "Invalid token received"
         );
-        require!(swapped_tokens.token_id == token_out, "Invalid token received");
+
+        self.unwrap_egld(&swapped_tokens.amount)?;
+        self.send().direct(
+            &caller,
+            &TokenIdentifier::egld(),
+            &swapped_tokens.amount,
+            &[],
+        );
+
+        Ok(())
+    }
+
+    #[payable("EGLD")]
+    #[endpoint(wrapEgldAndSwapTokensFixedOutput)]
+    fn wrap_egld_and_swap_tokens_fixed_output(
+        &self,
+        #[payment_amount] amount_in_max: Self::BigUint,
+        pair_address: Address,
+        token_out: TokenIdentifier,
+        amount_out: Self::BigUint,
+    ) -> SCResult<()> {
+        require!(amount_in_max != 0, "Zero input");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        let caller = self.blockchain().get_caller();
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+        let token_in_esdt = self.wegld_token_id().get();
+
+        self.wrap_egld(&amount_in_max)?;
+        let (swapped_tokens, residuum) = self
+            .swap_fixed_output(
+                &token_in_esdt,
+                &amount_in_max,
+                &amount_out,
+                &pair_info,
+                &pair_address,
+            )?
+            .into_tuple();
+        require!(
+            swapped_tokens.token_id == token_out,
+            "Invalid received token"
+        );
+
+        if residuum.amount != 0 {
+            self.unwrap_egld(&residuum.amount)?;
+            self.send()
+                .direct(&caller, &TokenIdentifier::egld(), &residuum.amount, &[]);
+        }
+        self.send().direct(
+            &caller,
+            &swapped_tokens.token_id,
+            &swapped_tokens.amount,
+            &[],
+        );
+
+        Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(swapTokensFixedOutputAndUnwrapEgld)]
+    fn swap_tokens_fixed_output_and_unwrap_egld(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_amount] amount_in_max: Self::BigUint,
+        pair_address: Address,
+        token_out: TokenIdentifier,
+        amount_out: Self::BigUint,
+    ) -> SCResult<()> {
+        require!(amount_in_max != 0, "Zero input");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        require!(
+            token_out == self.wegld_token_id().get(),
+            "Token out should be wrapped egld"
+        );
+        let caller = self.blockchain().get_caller();
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+
+        let (swapped_tokens, residuum) = self
+            .swap_fixed_output(
+                &token_id,
+                &amount_in_max,
+                &amount_out,
+                &pair_info,
+                &pair_address,
+            )?
+            .into_tuple();
+        require!(
+            swapped_tokens.token_id == token_out,
+            "Invalid token received"
+        );
+
+        if residuum.amount != 0 {
+            self.send()
+                .direct(&caller, &residuum.token_id, &residuum.amount, &[]);
+        }
 
         self.unwrap_egld(&swapped_tokens.amount)?;
         self.send().direct(
@@ -602,14 +713,17 @@ pub trait PairHelperModule:
         amount_out_min: &Self::BigUint,
         pair_info: &PairContractImmutableInfo,
         pair_address: &Address,
-    ) -> FftTokenAmountPair<Self::BigUint> {
-        let desired_token_id = if token_in != &pair_info.token_pair.first_token {
+    ) -> SCResult<FftTokenAmountPair<Self::BigUint>> {
+        let desired_token_id = if token_in == &pair_info.token_pair.first_token {
+            &pair_info.token_pair.second_token
+        } else if token_in == &pair_info.token_pair.second_token {
             &pair_info.token_pair.first_token
         } else {
-            &pair_info.token_pair.second_token
+            return sc_error!("Invalid token in");
         };
 
-        self.pair_proxy(pair_address.clone())
+        Ok(self
+            .pair_proxy(pair_address.clone())
             .swap_tokens_fixed_input(
                 token_in.clone(),
                 amount_in.clone(),
@@ -617,7 +731,35 @@ pub trait PairHelperModule:
                 amount_out_min.clone(),
                 OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
             )
-            .execute_on_dest_context()
+            .execute_on_dest_context())
+    }
+
+    fn swap_fixed_output(
+        &self,
+        token_in: &TokenIdentifier,
+        amount_in_max: &Self::BigUint,
+        amount_out: &Self::BigUint,
+        pair_info: &PairContractImmutableInfo,
+        pair_address: &Address,
+    ) -> SCResult<SwapTokensFixedOutputResultType<Self::BigUint>> {
+        let desired_token_id = if token_in == &pair_info.token_pair.first_token {
+            &pair_info.token_pair.second_token
+        } else if token_in == &pair_info.token_pair.second_token {
+            &pair_info.token_pair.first_token
+        } else {
+            return sc_error!("Invalid token in");
+        };
+
+        Ok(self
+            .pair_proxy(pair_address.clone())
+            .swap_tokens_fixed_output(
+                token_in.clone(),
+                amount_in_max.clone(),
+                desired_token_id.clone(),
+                amount_out.clone(),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
+            )
+            .execute_on_dest_context())
     }
 
     #[storage_mapper("intermediated_pairs")]
