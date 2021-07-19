@@ -189,7 +189,6 @@ pub trait ProxyPairModule:
         );
 
         // Actual adding of liquidity
-        self.reset_received_funds_on_current_tx();
         let result = self.actual_add_liquidity(
             &pair_address,
             &first_token_amount_desired,
@@ -216,22 +215,6 @@ pub trait ProxyPairModule:
                 && second_token_used.amount <= second_token_amount_desired,
             "Used more tokens than provided"
         );
-        self.validate_received_funds_chunk(
-            [
-                (&lp_received.token_id, 0, &lp_received.amount),
-                (
-                    &first_token_used.token_id,
-                    0,
-                    &(&first_token_amount_desired - &first_token_used.amount),
-                ),
-                (
-                    &second_token_used.token_id,
-                    0,
-                    &(&second_token_amount_desired - &second_token_used.amount),
-                ),
-            ]
-            .to_vec(),
-        )?;
 
         //Recalculate temporary funds and burn unused
         let locked_asset_token_nonce: Nonce;
@@ -324,7 +307,6 @@ pub trait ProxyPairModule:
         let locked_asset_token_id = self.locked_asset_token_id().get();
         let asset_token_id = self.asset_token_id().get();
 
-        self.reset_received_funds_on_current_tx();
         let tokens_for_position = self
             .actual_remove_liquidity(
                 &pair_address,
@@ -334,21 +316,6 @@ pub trait ProxyPairModule:
                 &second_token_amount_min,
             )
             .into_tuple();
-        self.validate_received_funds_chunk(
-            [
-                (
-                    &tokens_for_position.0.token_id,
-                    0,
-                    &tokens_for_position.0.amount,
-                ),
-                (
-                    &tokens_for_position.1.token_id,
-                    0,
-                    &tokens_for_position.1.amount,
-                ),
-            ]
-            .to_vec(),
-        )?;
 
         let fungible_token_id: TokenIdentifier;
         let fungible_token_amount: Self::BigUint;

@@ -106,7 +106,6 @@ pub trait ProxyFarmModule:
             return sc_error!("Unknown input Token");
         }
 
-        self.reset_received_funds_on_current_tx();
         let farm_result =
             self.actual_enter_farm(&farm_address, &farming_token_id, &amount, with_lock_rewards);
         let farm_token_id = farm_result.token_id;
@@ -116,9 +115,6 @@ pub trait ProxyFarmModule:
             farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
-        self.validate_received_funds_chunk(
-            [(&farm_token_id, farm_token_nonce, &farm_token_total_amount)].to_vec(),
-        )?;
 
         let attributes = WrappedFarmTokenAttributes {
             farm_token_id,
@@ -162,27 +158,11 @@ pub trait ProxyFarmModule:
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
-        self.reset_received_funds_on_current_tx();
         let farm_result = self
             .actual_exit_farm(farm_address, &farm_token_id, farm_token_nonce, &amount)
             .into_tuple();
         let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
-        self.validate_received_funds_chunk(
-            [
-                (
-                    &farming_token_returned.token_id,
-                    0,
-                    &farming_token_returned.amount,
-                ),
-                (
-                    &reward_token_returned.token_id,
-                    reward_token_returned.token_nonce,
-                    &reward_token_returned.amount,
-                ),
-            ]
-            .to_vec(),
-        )?;
 
         let caller = self.blockchain().get_caller();
         self.send().direct_nft(
@@ -235,7 +215,6 @@ pub trait ProxyFarmModule:
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
-        self.reset_received_funds_on_current_tx();
         let result = self
             .actual_claim_rewards(&farm_address, &farm_token_id, farm_token_nonce, &amount)
             .into_tuple();
@@ -248,21 +227,6 @@ pub trait ProxyFarmModule:
             new_farm_token_total_amount > 0,
             "Farm token amount received should be greater than 0"
         );
-        self.validate_received_funds_chunk(
-            [
-                (
-                    &new_farm_token_id,
-                    new_farm_token_nonce,
-                    &new_farm_token_total_amount,
-                ),
-                (
-                    &reward_token_returned.token_id,
-                    reward_token_returned.token_nonce,
-                    &reward_token_returned.amount,
-                ),
-            ]
-            .to_vec(),
-        )?;
 
         // Send the reward to the caller.
         let caller = self.blockchain().get_caller();
@@ -318,7 +282,6 @@ pub trait ProxyFarmModule:
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
         let farm_amount = payment_amount.clone();
 
-        self.reset_received_funds_on_current_tx();
         let result = self.actual_compound_rewards(
             &farm_address,
             &farm_token_id,
@@ -334,14 +297,6 @@ pub trait ProxyFarmModule:
             new_farm_token_amount > 0,
             "Farm token amount received should be greater than 0"
         );
-        self.validate_received_funds_chunk(
-            [(
-                &new_farm_token_id,
-                new_farm_token_nonce,
-                &new_farm_token_amount,
-            )]
-            .to_vec(),
-        )?;
 
         let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
             farm_token_id: new_farm_token_id,
