@@ -50,7 +50,8 @@
 						"str:FARM-abcdef": {
 							"balance": "100,050,000",
 							"nonce": "2"
-						}
+						},
+						"str:MEX-abcdef": "4,900,000,000"
 					},
 					"storage": {},
 					"code": ""

@@ -99,7 +99,11 @@
 									"attributes": "*"
 								}
 							]
-						}
+						},
+						"str:WEGLD-abcdef": "3,000,000,000",
+						"str:BLC-abcdef": "5,000,000,000",
+						"str:ALC-abcdef": "3,000,000,000",
+						"str:LPTOK-abcdef": "1,699,999,000"
 					}
 				},
 				"+": ""

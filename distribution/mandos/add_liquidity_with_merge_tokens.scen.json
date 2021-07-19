@@ -51,7 +51,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -78,7 +77,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -115,7 +113,6 @@
                     "0x02"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -127,17 +124,36 @@
                     "nonce": "9",
                     "balance": "100,000,000",
                     "esdt": {
-                        "str:FARM-abcdef": {
+                        "str:WLPTOK-abcdef": {
                             "instances": [
                                 {
-                                    "nonce": "0x03",
-                                    "balance": "200",
+                                    "nonce": "0x02",
+                                    "balance": "10100",
                                     "creator": "*",
                                     "hash": "*",
                                     "attributes": "*"
-                                }
+                                },
+								{
+									"nonce": "0x01",
+									"balance": "8900",
+									"creator": "*",
+									"hash": "*",
+									"attributes": "*"
+								}
                             ]
-                        }
+                        },
+						"str:LKMEX-abcdef": {
+							"instances": [
+								{
+									"nonce": "0x01",
+									"balance": "70000",
+									"creator": "*",
+									"hash": "*",
+									"attributes": "*"
+								}
+							]
+						},
+						"str:WEGLD-abcdef": "999,980,000"
                     }
                 },
                 "+": ""

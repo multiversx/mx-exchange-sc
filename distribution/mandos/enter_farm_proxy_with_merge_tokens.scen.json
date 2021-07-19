@@ -24,7 +24,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -60,7 +59,6 @@
                     "0x02"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -105,8 +103,8 @@
                                     "attributes": "*"
                                 },
                                 {
-                                    "nonce": "0x03",
-                                    "balance": "1,100",
+                                    "nonce": "0x02",
+                                    "balance": "1,500",
                                     "creator": "*",
                                     "hash": "*",
                                     "attributes": "*"

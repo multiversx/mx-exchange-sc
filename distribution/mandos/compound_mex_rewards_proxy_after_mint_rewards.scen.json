@@ -38,7 +38,6 @@
                     "0x02"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -63,6 +62,13 @@
                         },
                         "str:WFARM-abcdef": {
                             "instances": [
+								{
+									"nonce": "0x01",
+									"balance": "4,000",
+									"creator": "*",
+									"hash": "*",
+									"attributes": "*"
+								},
                                 {
                                     "nonce": "0x02",
                                     "balance": "36,000",
@@ -71,7 +77,8 @@
                                     "attributes": "*"
                                 }
                             ]
-                        }
+                        },
+						"str:WEGLD-abcdef": "1,000,000,000"
                     },
                     "storage": {},
                     "code": ""
