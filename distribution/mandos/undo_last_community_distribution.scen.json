@@ -20,7 +20,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -43,7 +42,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -63,7 +61,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -86,7 +83,6 @@
                     "10"
                 ],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -106,7 +102,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -126,7 +121,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -146,7 +140,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -169,7 +162,6 @@
                     "0"
                 ],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }

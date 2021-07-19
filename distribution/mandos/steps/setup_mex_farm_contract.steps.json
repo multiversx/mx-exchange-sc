@@ -64,7 +64,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
