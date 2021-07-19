@@ -40,8 +40,9 @@ pub trait PairHelperModule:
             self.intermediated_pairs().contains_key(&pair_address),
             "Not an intermediated pair"
         );
-        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+        let caller = self.blockchain().get_caller();
         let wegld_token_id = self.wegld_token_id().get();
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
 
         let token_in_esdt = if token_in.is_egld() {
             self.wrap_egld(&amount_in)?;
@@ -49,13 +50,6 @@ pub trait PairHelperModule:
         } else {
             token_in.clone()
         };
-
-        require!(
-            token_in_esdt == pair_info.token_pair.first_token
-                || token_in_esdt == pair_info.token_pair.second_token,
-            "Bad input token"
-        );
-        let caller = self.blockchain().get_caller();
 
         let (first_token_reserve, _, _) = self
             .pair_proxy(pair_address.clone())
@@ -103,6 +97,7 @@ pub trait PairHelperModule:
             &pair_info,
             &pair_address,
         );
+        require!(liquidity.token_id == pair_info.lp_token_id, "Bad lp token");
         require!(
             liquidity.amount != 0,
             "Received zero amount after add liquidity"
@@ -139,50 +134,34 @@ pub trait PairHelperModule:
             self.intermediated_pairs().contains_key(&pair_address),
             "Not an intermediated pair"
         );
-        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
-        let wegld_token_id = self.wegld_token_id().get();
         let caller = self.blockchain().get_caller();
+        require!(
+            !self.temporary_funds(&caller).is_empty(),
+            "No temporary funds"
+        );
 
-        if pair_info.token_pair.first_token == wegld_token_id {
-            require!(first_token_amount == amount_in, "Bad first amount");
-            let temp = self.get_temporary_funds_or_default(&caller);
-            require!(
-                pair_info.token_pair.second_token == temp.token_id,
-                "Bad deposit token"
-            );
-            require!(
-                second_token_amount != 0 && second_token_amount == temp.amount,
-                "Bad second amount"
-            );
+        let wegld_token_id = self.wegld_token_id().get();
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+
+        let other_token = if pair_info.token_pair.first_token == wegld_token_id {
+            pair_info.token_pair.second_token
         } else if pair_info.token_pair.second_token == wegld_token_id {
-            require!(second_token_amount == amount_in, "Bad first amount");
-            let temp = self.get_temporary_funds_or_default(&caller);
-            require!(
-                pair_info.token_pair.first_token == temp.token_id,
-                "Bad deposit token"
-            );
-            require!(
-                first_token_amount != 0 && first_token_amount == temp.amount,
-                "Bad second amount"
-            );
+            pair_info.token_pair.first_token
         } else {
-            return sc_error!("Pair does not accept wegld");
-        }
-        self.temporary_funds(&caller).clear();
-        self.wrap_egld(&amount_in)?;
+            return sc_error!("Bad pair");
+        };
 
+        let deposit = self.temporary_funds(&caller).get();
+        require!(deposit.token_id == other_token, "Bad deposit token");
+        self.temporary_funds(&caller).clear();
+
+        self.wrap_egld(&amount_in)?;
         self.pair_proxy(pair_address.clone())
-            .accept_esdt_payment(
-                pair_info.token_pair.first_token.clone(),
-                first_token_amount.clone(),
-            )
+            .accept_esdt_payment(wegld_token_id.clone(), amount_in.clone())
             .execute_on_dest_context_ignore_result();
 
         self.pair_proxy(pair_address.clone())
-            .accept_esdt_payment(
-                pair_info.token_pair.second_token,
-                second_token_amount.clone(),
-            )
+            .accept_esdt_payment(deposit.token_id.clone(), deposit.amount.clone())
             .execute_on_dest_context_ignore_result();
 
         let (liquidity, first_token, second_token) = self
@@ -197,31 +176,34 @@ pub trait PairHelperModule:
             .execute_on_dest_context()
             .into_tuple();
 
-        for (received_token_amount, sent_amount) in [
-            (first_token, first_token_amount),
-            (second_token, second_token_amount),
-        ]
-        .iter()
-        {
-            let unused_amount = sent_amount - &received_token_amount.amount;
+        require!(liquidity.token_id == pair_info.lp_token_id, "Bad lp token");
+        require!(
+            liquidity.amount != 0,
+            "Received zero amount after add liquidity"
+        );
+
+        for received_token_amount in [(first_token), (second_token)].iter() {
+            let unused_amount = if received_token_amount.token_id == wegld_token_id {
+                &amount_in - &received_token_amount.amount
+            } else if received_token_amount.token_id == deposit.token_id {
+                &deposit.amount - &received_token_amount.amount
+            } else {
+                return sc_error!("Bad received tokens");
+            };
 
             if unused_amount == 0 {
                 continue;
             }
 
-            if received_token_amount.token_id == wegld_token_id {
+            let token_to_send = if received_token_amount.token_id == wegld_token_id {
                 self.unwrap_egld(&unused_amount)?;
-
-                self.send()
-                    .direct(&caller, &TokenIdentifier::egld(), &unused_amount, &[]);
+                TokenIdentifier::egld()
             } else {
-                self.send().direct(
-                    &caller,
-                    &received_token_amount.token_id,
-                    &unused_amount,
-                    &[],
-                );
-            }
+                received_token_amount.token_id.clone()
+            };
+
+            self.send()
+                .direct(&caller, &token_to_send, &unused_amount, &[]);
         }
 
         self.send()
@@ -246,6 +228,10 @@ pub trait PairHelperModule:
             self.intermediated_pairs().contains_key(&pair_address),
             "Not an intermediated pair"
         );
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+        require!(token_in == pair_info.lp_token_id, "Bad input token");
+
+        let caller = self.blockchain().get_caller();
         let wegld_token_id = self.wegld_token_id().get();
 
         let desired_token_esdt = if desired_token.is_egld() {
@@ -253,15 +239,6 @@ pub trait PairHelperModule:
         } else {
             desired_token.clone()
         };
-
-        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
-        require!(token_in == pair_info.lp_token_id, "Bad input token");
-        require!(
-            desired_token_esdt == pair_info.token_pair.first_token
-                || desired_token_esdt == pair_info.token_pair.second_token,
-            "Bad desired token"
-        );
-        let caller = self.blockchain().get_caller();
 
         let (first_token, second_token) = self.rem_liquidity(
             &token_in,
@@ -280,7 +257,7 @@ pub trait PairHelperModule:
                 &pair_address,
             )?;
             swapped_token.amount + first_token.amount
-        } else {
+        } else if desired_token_esdt == second_token.token_id {
             let swapped_token = self.swap_fixed_input(
                 &first_token.token_id,
                 &first_token.amount,
@@ -289,6 +266,8 @@ pub trait PairHelperModule:
                 &pair_address,
             )?;
             swapped_token.amount + second_token.amount
+        } else {
+            return sc_error!("Bad desired token");
         };
 
         if desired_token == TokenIdentifier::egld() {
@@ -317,13 +296,9 @@ pub trait PairHelperModule:
         );
         let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
         require!(token_in == pair_info.lp_token_id, "Bad input token");
-        let wegld_token_id = self.wegld_token_id().get();
-        require!(
-            wegld_token_id == pair_info.token_pair.first_token
-                || wegld_token_id == pair_info.token_pair.second_token,
-            "Pair tokens do not contain wegld"
-        );
+
         let caller = self.blockchain().get_caller();
+        let wegld_token_id = self.wegld_token_id().get();
 
         let (first_token, second_token) = self.rem_liquidity(
             &token_in,
@@ -335,8 +310,10 @@ pub trait PairHelperModule:
 
         let (wegld_token, other_token) = if first_token.token_id == wegld_token_id {
             (first_token, second_token)
-        } else {
+        } else if second_token.token_id == wegld_token_id {
             (second_token, first_token)
+        } else {
+            return sc_error!("Bad desired token");
         };
 
         self.unwrap_egld(&wegld_token.amount)?;
