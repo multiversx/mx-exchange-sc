@@ -22,7 +22,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -42,7 +41,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -82,7 +80,6 @@
                     "0x02"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -122,6 +119,13 @@
                                 {
                                     "nonce": "0x02",
                                     "balance": "7,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "9,000",
                                     "creator": "*",
                                     "hash": "*",
                                     "attributes": "*"
