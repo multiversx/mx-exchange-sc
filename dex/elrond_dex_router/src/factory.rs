@@ -67,6 +67,36 @@ pub trait FactoryModule {
         Ok(new_address)
     }
 
+    fn upgrade_pair(
+        &self,
+        pair_address: &Address,
+        first_token_id: &TokenIdentifier,
+        second_token_id: &TokenIdentifier,
+        owner: &Address,
+        total_fee_percent: u64,
+        special_fee_percent: u64,
+    ) -> SCResult<()> {
+        require!(self.pair_code_ready().get(), "Pair code not ready");
+
+        let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
+        arg_buffer.push_argument_bytes(second_token_id.as_esdt_identifier());
+        arg_buffer.push_argument_bytes(self.blockchain().get_sc_address().as_bytes());
+        arg_buffer.push_argument_bytes(owner.as_bytes());
+        arg_buffer.push_argument_bytes(&total_fee_percent.to_be_bytes()[..]);
+        arg_buffer.push_argument_bytes(&special_fee_percent.to_be_bytes()[..]);
+
+        self.send().upgrade_contract(
+            pair_address,
+            self.blockchain().get_gas_left(),
+            &0u64.into(),
+            &self.pair_code().get(),
+            CodeMetadata::DEFAULT,
+            &arg_buffer,
+        );
+        Ok(())
+    }
+
     fn start_pair_construct(&self) {
         self.pair_code_ready().set(&false);
         self.pair_code().set(&BoxedBytes::empty());
