@@ -69,7 +69,13 @@ pub trait PairHelperModule:
         require!(swap_amount != 0, "Swap amount is zero");
         require!(swap_amount < amount_in, "Swap amount too big");
 
-        let swapped_tokens = self.swap(&token_in_esdt, &swap_amount, &pair_info, &pair_address);
+        let swapped_tokens = self.swap_fixed_input(
+            &token_in_esdt,
+            &swap_amount,
+            &1u64.into(),
+            &pair_info,
+            &pair_address,
+        );
         require!(
             swapped_tokens.amount != 0,
             "Received zero amount after swap"
@@ -112,56 +118,6 @@ pub trait PairHelperModule:
             .direct(&caller, &liquidity.token_id, &liquidity.amount, &[]);
 
         Ok(())
-    }
-
-    fn add_liq_after_swap(
-        &self,
-        payment_token_id: &TokenIdentifier,
-        payment_amount_left: &Self::BigUint,
-        swapped_amount: &Self::BigUint,
-        pair_info: &PairContractImmutableInfo,
-        pair_address: &Address,
-    ) -> (FftTokenAmountPair<Self::BigUint>, Self::BigUint) {
-        let (
-            first_token_amount,
-            second_token_amount,
-            first_token_amount_min,
-            second_token_amount_min,
-        ) = if payment_token_id == &pair_info.token_pair.first_token {
-            (
-                payment_amount_left.clone(),
-                swapped_amount.clone(),
-                1u64.into(),
-                swapped_amount.clone(),
-            )
-        } else {
-            (
-                swapped_amount.clone(),
-                payment_amount_left.clone(),
-                swapped_amount.clone(),
-                1u64.into(),
-            )
-        };
-
-        let (liquidity, first_token, second_token) = self
-            .pair_proxy(pair_address.clone())
-            .add_liquidity(
-                first_token_amount,
-                second_token_amount,
-                first_token_amount_min,
-                second_token_amount_min,
-                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
-            )
-            .execute_on_dest_context()
-            .into_tuple();
-
-        let payment_leftover = if payment_token_id == &first_token.token_id {
-            payment_amount_left - &first_token.amount
-        } else {
-            payment_amount_left - &second_token.amount
-        };
-
-        (liquidity, payment_leftover)
     }
 
     #[payable("EGLD")]
@@ -313,17 +269,19 @@ pub trait PairHelperModule:
         );
 
         let desired_token_amount = if desired_token_esdt == first_token.token_id {
-            let swapped_token = self.swap(
+            let swapped_token = self.swap_fixed_input(
                 &second_token.token_id,
                 &second_token.amount,
+                &1u64.into(),
                 &pair_info,
                 &pair_address,
             );
             swapped_token.amount + first_token.amount
         } else {
-            let swapped_token = self.swap(
+            let swapped_token = self.swap_fixed_input(
                 &first_token.token_id,
                 &first_token.amount,
+                &1u64.into(),
                 &pair_info,
                 &pair_address,
             );
@@ -387,66 +345,82 @@ pub trait PairHelperModule:
         Ok(())
     }
 
-    fn rem_liquidity(
+    #[payable("EGLD")]
+    #[endpoint(wrapEgldAndSwapTokensFixedInput)]
+    fn wrap_egld_and_swap_tokens_fixed_input(
         &self,
-        lp_token_id: &TokenIdentifier,
-        amount: &Self::BigUint,
-        first_token_amount_min: &Self::BigUint,
-        second_token_amount_min: &Self::BigUint,
-        pair_address: &Address,
-    ) -> (
-        FftTokenAmountPair<Self::BigUint>,
-        FftTokenAmountPair<Self::BigUint>,
-    ) {
-        self.pair_proxy(pair_address.clone())
-            .remove_liquidity(
-                lp_token_id.clone(),
-                amount.clone(),
-                first_token_amount_min.clone(),
-                second_token_amount_min.clone(),
-                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
-            )
-            .execute_on_dest_context()
-            .into_tuple()
+        #[payment_amount] amount_in: Self::BigUint,
+        pair_address: Address,
+        token_out: TokenIdentifier,
+        amount_out_min: Self::BigUint,
+    ) -> SCResult<()> {
+        require!(amount_in != 0, "Zero input");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        let caller = self.blockchain().get_caller();
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
+
+        let token_in_esdt = self.wegld_token_id().get();
+
+        self.wrap_egld(&amount_in)?;
+        let swapped_tokens = self.swap_fixed_input(
+            &token_in_esdt,
+            &amount_in,
+            &amount_out_min,
+            &pair_info,
+            &pair_address,
+        );
+        require!(token_out == swapped_tokens.token_id, "Invalid token received");
+
+        self.send().direct(
+            &caller,
+            &swapped_tokens.token_id,
+            &swapped_tokens.amount,
+            &[],
+        );
+
+        Ok(())
     }
 
-    /*
-        (r + x) / (s - (s * c * x / (x * c + r * t))) = (a - x) / (s * c * x / (x * c  + r * t)), x > 0, a > x, r > 0, s > 0, c > 0, t > 0
-        a>0, c>0, r>0, s>0, t>0, x = (c sqrt((r (4 a c t + c^2 r + 2 c r t + r t^2))/c^2) + c (-r) - r t)/(2 c)
-    */
-    fn compute_swap_amount(
+    #[payable("*")]
+    #[endpoint(swapTokensFixedInputAndUnwrapEgld)]
+    fn swap_tokens_fixed_input_and_unwrap_egld(
         &self,
-        _a: &Self::BigUint,
-        _r: &Self::BigUint,
-        _c: u64,
-        _t: u64,
-    ) -> Self::BigUint {
-        //TODO: Need sqrt
-        100u64.into()
-    }
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_amount] amount_in: Self::BigUint,
+        pair_address: Address,
+        token_out: TokenIdentifier,
+        amount_out_min: Self::BigUint,
+    ) -> SCResult<()> {
+        require!(amount_in != 0, "Zero input");
+        require!(
+            self.intermediated_pairs().contains_key(&pair_address),
+            "Not an intermediated pair"
+        );
+        require!(token_out == self.wegld_token_id().get(), "Token out should be wrapped egld");
+        let caller = self.blockchain().get_caller();
+        let pair_info = self.intermediated_pairs().get(&pair_address).unwrap();
 
-    fn swap(
-        &self,
-        token_in: &TokenIdentifier,
-        amount_in: &Self::BigUint,
-        pair_info: &PairContractImmutableInfo,
-        pair_address: &Address,
-    ) -> FftTokenAmountPair<Self::BigUint> {
-        let desired_token_id = if token_in != &pair_info.token_pair.first_token {
-            &pair_info.token_pair.first_token
-        } else {
-            &pair_info.token_pair.second_token
-        };
+        let swapped_tokens = self.swap_fixed_input(
+            &token_id,
+            &amount_in,
+            &amount_out_min,
+            &pair_info,
+            &pair_address,
+        );
+        require!(swapped_tokens.token_id == token_out, "Invalid token received");
 
-        self.pair_proxy(pair_address.clone())
-            .swap_tokens_fixed_input(
-                token_in.clone(),
-                amount_in.clone(),
-                desired_token_id.clone(),
-                1u64.into(),
-                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
-            )
-            .execute_on_dest_context()
+        self.unwrap_egld(&swapped_tokens.amount)?;
+        self.send().direct(
+            &caller,
+            &TokenIdentifier::egld(),
+            &swapped_tokens.amount,
+            &[],
+        );
+
+        Ok(())
     }
 
     #[endpoint(addIntermediatedPair)]
@@ -476,20 +450,6 @@ pub trait PairHelperModule:
             },
         );
         Ok(())
-    }
-
-    fn get_temporary_funds_or_default(
-        &self,
-        caller: &Address,
-    ) -> FftTokenAmountPair<Self::BigUint> {
-        if self.temporary_funds(caller).is_empty() {
-            FftTokenAmountPair {
-                token_id: TokenIdentifier::egld(),
-                amount: 0u64.into(),
-            }
-        } else {
-            self.temporary_funds(caller).get()
-        }
     }
 
     #[payable("*")]
@@ -531,6 +491,133 @@ pub trait PairHelperModule:
         only_owner!(self, "denied");
         self.intermediated_pairs().remove(&address);
         Ok(())
+    }
+
+    fn get_temporary_funds_or_default(
+        &self,
+        caller: &Address,
+    ) -> FftTokenAmountPair<Self::BigUint> {
+        if self.temporary_funds(caller).is_empty() {
+            FftTokenAmountPair {
+                token_id: TokenIdentifier::egld(),
+                amount: 0u64.into(),
+            }
+        } else {
+            self.temporary_funds(caller).get()
+        }
+    }
+
+    fn add_liq_after_swap(
+        &self,
+        payment_token_id: &TokenIdentifier,
+        payment_amount_left: &Self::BigUint,
+        swapped_amount: &Self::BigUint,
+        pair_info: &PairContractImmutableInfo,
+        pair_address: &Address,
+    ) -> (FftTokenAmountPair<Self::BigUint>, Self::BigUint) {
+        let (
+            first_token_amount,
+            second_token_amount,
+            first_token_amount_min,
+            second_token_amount_min,
+        ) = if payment_token_id == &pair_info.token_pair.first_token {
+            (
+                payment_amount_left.clone(),
+                swapped_amount.clone(),
+                1u64.into(),
+                swapped_amount.clone(),
+            )
+        } else {
+            (
+                swapped_amount.clone(),
+                payment_amount_left.clone(),
+                swapped_amount.clone(),
+                1u64.into(),
+            )
+        };
+
+        let (liquidity, first_token, second_token) = self
+            .pair_proxy(pair_address.clone())
+            .add_liquidity(
+                first_token_amount,
+                second_token_amount,
+                first_token_amount_min,
+                second_token_amount_min,
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
+            )
+            .execute_on_dest_context()
+            .into_tuple();
+
+        let payment_leftover = if payment_token_id == &first_token.token_id {
+            payment_amount_left - &first_token.amount
+        } else {
+            payment_amount_left - &second_token.amount
+        };
+
+        (liquidity, payment_leftover)
+    }
+
+    fn rem_liquidity(
+        &self,
+        lp_token_id: &TokenIdentifier,
+        amount: &Self::BigUint,
+        first_token_amount_min: &Self::BigUint,
+        second_token_amount_min: &Self::BigUint,
+        pair_address: &Address,
+    ) -> (
+        FftTokenAmountPair<Self::BigUint>,
+        FftTokenAmountPair<Self::BigUint>,
+    ) {
+        self.pair_proxy(pair_address.clone())
+            .remove_liquidity(
+                lp_token_id.clone(),
+                amount.clone(),
+                first_token_amount_min.clone(),
+                second_token_amount_min.clone(),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
+            )
+            .execute_on_dest_context()
+            .into_tuple()
+    }
+
+    /*
+        (r + x) / (s - (s * c * x / (x * c + r * t))) = (a - x) / (s * c * x / (x * c  + r * t)), x > 0, a > x, r > 0, s > 0, c > 0, t > 0
+        a>0, c>0, r>0, s>0, t>0, x = (c sqrt((r (4 a c t + c^2 r + 2 c r t + r t^2))/c^2) + c (-r) - r t)/(2 c)
+    */
+    fn compute_swap_amount(
+        &self,
+        _a: &Self::BigUint,
+        _r: &Self::BigUint,
+        _c: u64,
+        _t: u64,
+    ) -> Self::BigUint {
+        //TODO: Need sqrt
+        100u64.into()
+    }
+
+    fn swap_fixed_input(
+        &self,
+        token_in: &TokenIdentifier,
+        amount_in: &Self::BigUint,
+        amount_out_min: &Self::BigUint,
+        pair_info: &PairContractImmutableInfo,
+        pair_address: &Address,
+    ) -> FftTokenAmountPair<Self::BigUint> {
+        let desired_token_id = if token_in != &pair_info.token_pair.first_token {
+            &pair_info.token_pair.first_token
+        } else {
+            &pair_info.token_pair.second_token
+        };
+
+        self.pair_proxy(pair_address.clone())
+            .swap_tokens_fixed_input(
+                token_in.clone(),
+                amount_in.clone(),
+                desired_token_id.clone(),
+                amount_out_min.clone(),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.into()),
+            )
+            .execute_on_dest_context()
     }
 
     #[storage_mapper("intermediated_pairs")]

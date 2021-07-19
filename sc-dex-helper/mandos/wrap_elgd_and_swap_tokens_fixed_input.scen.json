@@ -1,0 +1,33 @@
+{
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "wrap_egld_and_add_liquidity.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "wrapEgldAndSwapTokensFixedInput",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:dex_helper",
+                "value": "100",
+                "function": "wrapEgldAndSwapTokensFixedInput",
+                "arguments": [
+                    "sc:pair_contract",
+                    "str:MEX-abcdef",
+                    "0x01"
+                ],
+                "gasLimit": "1,400,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x0000000a4d45582d6162636465660000000162"
+                ],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}
