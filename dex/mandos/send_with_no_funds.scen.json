@@ -35,7 +35,14 @@
 					"nonce": "0",
 					"balance": "0",
 					"esdt": {
-						"str:ALC-abcdef": "5,000,000,000"
+						"str:ALC-abcdef": "5,000,000,000",
+						"str:LPTOK-abcdef": {
+							"balance": "0",
+							"roles": [
+								"ESDTRoleLocalMint",
+								"ESDTRoleLocalBurn"
+							]
+						}
 					},
 					"storage": {
 						"str:first_token_id": "str:WEGLD-abcdef",
@@ -70,7 +77,15 @@
 				"sc:pair_contract": {
 					"nonce": "0",
 					"balance": "0",
-					"esdt": {},
+					"esdt": {
+						"str:LPTOK-abcdef": {
+							"balance": "0",
+							"roles": [
+								"ESDTRoleLocalMint",
+								"ESDTRoleLocalBurn"
+							]
+						}
+					},
 					"storage": {
 						"str:first_token_id": "str:WEGLD-abcdef",
 						"str:second_token_id": "str:ALC-abcdef",

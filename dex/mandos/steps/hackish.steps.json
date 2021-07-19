@@ -29,7 +29,8 @@
 						"str:send_fee_gas_limit": "25,000,000",
 						"str:extern_swap_gas_limit": "50,000,000"
 					},
-					"code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm"
+					"code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm",
+					"owner": "sc:router_contract"
 				},
 				"sc:farm_contract": {
 					"nonce": "0",

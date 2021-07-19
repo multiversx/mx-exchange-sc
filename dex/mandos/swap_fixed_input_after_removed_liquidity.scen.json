@@ -38,7 +38,14 @@
 				"sc:pair_contract": {
 					"esdt": {
 						"str:WEGLD-abcdef": "1",
-						"str:ALC-abcdef": "1000001000"
+						"str:ALC-abcdef": "1000001000",
+						"str:LPTOK-abcdef": {
+							"balance": "1000",
+							"roles": [
+								"ESDTRoleLocalMint",
+								"ESDTRoleLocalBurn"
+							]
+						}
 					},
 					"storage": {
 						"str:total_fee_percent": "300",
