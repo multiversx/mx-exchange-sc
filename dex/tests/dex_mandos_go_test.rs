@@ -204,3 +204,8 @@ fn swap_same_token_go() {
 fn swap_wrong_token_go() {
     elrond_wasm_debug::mandos_go("mandos/swap_wrong_token.scen.json");
 }
+
+#[test]
+fn upgrade_contract_go() {
+    elrond_wasm_debug::mandos_go("mandos/upgrade_contract.scen.json");
+}

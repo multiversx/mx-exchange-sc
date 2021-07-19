@@ -35,7 +35,6 @@
                     "0x01"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -97,7 +96,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
