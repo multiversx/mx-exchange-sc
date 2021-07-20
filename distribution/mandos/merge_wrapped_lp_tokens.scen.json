@@ -171,39 +171,39 @@
                     "nonce": "11",
                     "balance": "100,000,000",
                     "esdt": {
-						"str:WEGLD-abcdef": "999,980,000",
-						"str:LKMEX-abcdef": {
-							"instances": [
-								{
-									"nonce": "1",
-									"balance": "70000",
-									"attributes": "*",
-									"creator": "*"
-								}
-							]
-						},
-						"str:WLPTOK-abcdef": {
-							"instances": [
-								{
-									"nonce": "1",
-									"balance": "8900",
-									"attributes": "*",
-									"creator": "*"
-								},
-								{
-									"nonce": "2",
-									"balance": "9900",
-									"attributes": "*",
-									"creator": "*"
-								},
-								{
-									"nonce": "3",
-									"balance": "200",
-									"attributes": "*",
-									"creator": "*"
-								}
-							]
-						}
+                        "str:WEGLD-abcdef": "999,980,000",
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "70000",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                }
+                            ]
+                        },
+                        "str:WLPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "8900",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "9900",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                },
+                                {
+                                    "nonce": "3",
+                                    "balance": "200",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                }
+                            ]
+                        }
                     }
                 },
                 "+": ""

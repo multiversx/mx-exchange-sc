@@ -155,13 +155,13 @@
                                     "hash": "*",
                                     "attributes": "*"
                                 },
-								{
-									"nonce": "0x02",
-									"balance": "400",
-									"creator": "*",
-									"hash": "*",
-									"attributes": "*"
-								}
+                                {
+                                    "nonce": "0x02",
+                                    "balance": "400",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
                             ]
                         }
                     },

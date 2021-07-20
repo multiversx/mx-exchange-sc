@@ -133,27 +133,27 @@
                                     "hash": "*",
                                     "attributes": "*"
                                 },
-								{
-									"nonce": "0x01",
-									"balance": "8900",
-									"creator": "*",
-									"hash": "*",
-									"attributes": "*"
-								}
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "8900",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
                             ]
                         },
-						"str:LKMEX-abcdef": {
-							"instances": [
-								{
-									"nonce": "0x01",
-									"balance": "70000",
-									"creator": "*",
-									"hash": "*",
-									"attributes": "*"
-								}
-							]
-						},
-						"str:WEGLD-abcdef": "999,980,000"
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "70000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        },
+                        "str:WEGLD-abcdef": "999,980,000"
                     }
                 },
                 "+": ""

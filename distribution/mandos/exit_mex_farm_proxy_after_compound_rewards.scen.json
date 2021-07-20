@@ -64,7 +64,7 @@
                                 }
                             ]
                         },
-						"str:WEGLD-abcdef": "1,000,000,000"
+                        "str:WEGLD-abcdef": "1,000,000,000"
                     },
                     "storage": {},
                     "code": ""

@@ -85,28 +85,28 @@
                     "nonce": "7",
                     "balance": "100,000,000",
                     "esdt": {
-						"str:LKMEX-abcdef": {
-							"instances": [
-								{
-									"nonce": "1",
-									"balance": "100",
-									"creator": "*",
-									"attributes": "*"
-								},
-								{
-									"nonce": "2",
-									"balance": "100",
-									"creator": "*",
-									"attributes": "*"
-								},
-								{
-									"nonce": "3",
-									"balance": "200",
-									"creator": "*",
-									"attributes": "*"
-								}
-							]
-						}
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "100",
+                                    "creator": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "100",
+                                    "creator": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "3",
+                                    "balance": "200",
+                                    "creator": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
                     }
                 },
                 "+": ""
