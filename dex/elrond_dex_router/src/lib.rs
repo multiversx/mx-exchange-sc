@@ -115,12 +115,12 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         )?;
 
         self.emit_create_pair_event(
-            &caller,
-            &first_token_id,
-            &second_token_id,
+            caller,
+            first_token_id,
+            second_token_id,
             total_fee_percent_requested,
             special_fee_percent_requested,
-            &address
+            address.clone(),
         );
         Ok(address)
     }

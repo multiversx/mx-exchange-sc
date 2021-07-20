@@ -24,6 +24,11 @@ type AddLiquidityResultType<BigUint> = MultiResult3<
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
+type SwapTokensFixedInputResultType<BigUint> = FftTokenAmountPair<BigUint>;
+
+type SwapTokensFixedOutputResultType<BigUint> =
+    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+
 #[elrond_wasm_derive::contract]
 pub trait Pair:
     amm::AmmModule
@@ -234,11 +239,11 @@ pub trait Pair:
             amount: self.pair_reserve(&expected_second_token_id).get(),
         };
         self.emit_add_liquidity_event(
-            &caller,
-            &first_token_amount,
-            &second_token_amount,
-            &lp_token_amount,
-            &self.get_total_lp_token_supply(),
+            caller,
+            first_token_amount.clone(),
+            second_token_amount.clone(),
+            lp_token_amount.clone(),
+            self.get_total_lp_token_supply(),
             [first_token_reserve, second_token_reserve].to_vec(),
         );
         Ok((lp_token_amount, first_token_amount, second_token_amount).into())
@@ -339,11 +344,11 @@ pub trait Pair:
             amount: self.pair_reserve(&second_token_id).get(),
         };
         self.emit_remove_liquidity_event(
-            &caller,
-            &first_token_amount,
-            &second_token_amount,
-            &lp_token_amount,
-            &self.get_total_lp_token_supply(),
+            caller,
+            first_token_amount.clone(),
+            second_token_amount.clone(),
+            lp_token_amount,
+            self.get_total_lp_token_supply(),
             [first_token_reserve, second_token_reserve].to_vec(),
         );
         Ok((first_token_amount, second_token_amount).into())
@@ -386,6 +391,12 @@ pub trait Pair:
         self.validate_k_invariant(&old_k, &new_k)?;
 
         self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
+
+        let swap_out_token_amount = FftTokenAmountPair {
+            token_id: token_out,
+            amount: amount_out,
+        };
+        self.emit_swap_no_fee_and_forward_event(caller, swap_out_token_amount, destination_address);
         Ok(())
     }
 
@@ -398,7 +409,7 @@ pub trait Pair:
         token_out: TokenIdentifier,
         amount_out_min: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<SwapTokensFixedInputResultType<Self::BigUint>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
@@ -478,13 +489,13 @@ pub trait Pair:
             amount: reserve_token_out,
         };
         self.emit_swap_event(
-            &caller,
-            &token_amount_in,
-            &token_amount_out,
-            &fee_amount,
+            caller,
+            token_amount_in,
+            token_amount_out.clone(),
+            fee_amount,
             [token_in_reserves, token_out_reserves].to_vec(),
         );
-        Ok(())
+        Ok(token_amount_out)
     }
 
     #[payable("*")]
@@ -496,7 +507,7 @@ pub trait Pair:
         token_out: TokenIdentifier,
         amount_out: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<SwapTokensFixedOutputResultType<Self::BigUint>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
@@ -562,21 +573,25 @@ pub trait Pair:
             amount: amount_out,
         };
         let token_in_reserves = FftTokenAmountPair {
-            token_id: token_in,
+            token_id: token_in.clone(),
             amount: reserve_token_in,
         };
         let token_out_reserves = FftTokenAmountPair {
             token_id: token_out,
             amount: reserve_token_out,
         };
+        let residuum_token_amount = FftTokenAmountPair {
+            token_id: token_in,
+            amount: residuum,
+        };
         self.emit_swap_event(
-            &caller,
-            &token_amount_in,
-            &token_amount_out,
-            &fee_amount,
+            caller,
+            token_amount_in,
+            token_amount_out.clone(),
+            fee_amount,
             [token_in_reserves, token_out_reserves].to_vec(),
         );
-        Ok(())
+        Ok((token_amount_out, residuum_token_amount).into())
     }
 
     fn send_tokens(

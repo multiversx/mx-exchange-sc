@@ -5,7 +5,7 @@ use common_structs::FftTokenAmountPair;
 
 #[derive(TopEncode)]
 pub struct SwapEvent<BigUint: BigUintApi> {
-    user_address: Address,
+    caller: Address,
     token_amount_in: FftTokenAmountPair<BigUint>,
     token_amount_out: FftTokenAmountPair<BigUint>,
     fee_amount: BigUint,
@@ -16,8 +16,18 @@ pub struct SwapEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
+pub struct SwapNoFeeAndForwardEvent<BigUint: BigUintApi> {
+    caller: Address,
+    swap_out_token_amount: FftTokenAmountPair<BigUint>,
+    destination: Address,
+    block: u64,
+    epoch: u64,
+    timestamp: u64,
+}
+
+#[derive(TopEncode)]
 pub struct AddLiquidityEvent<BigUint: BigUintApi> {
-    user_address: Address,
+    caller: Address,
     first_token_amount: FftTokenAmountPair<BigUint>,
     second_token_amount: FftTokenAmountPair<BigUint>,
     lp_token_amount: FftTokenAmountPair<BigUint>,
@@ -30,7 +40,7 @@ pub struct AddLiquidityEvent<BigUint: BigUintApi> {
 
 #[derive(TopEncode)]
 pub struct RemoveLiquidityEvent<BigUint: BigUintApi> {
-    user_address: Address,
+    caller: Address,
     first_token_amount: FftTokenAmountPair<BigUint>,
     second_token_amount: FftTokenAmountPair<BigUint>,
     lp_token_amount: FftTokenAmountPair<BigUint>,
@@ -45,24 +55,46 @@ pub struct RemoveLiquidityEvent<BigUint: BigUintApi> {
 pub trait EventsModule {
     fn emit_swap_event(
         &self,
-        user_address: &Address,
-        token_amount_in: &FftTokenAmountPair<Self::BigUint>,
-        token_amount_out: &FftTokenAmountPair<Self::BigUint>,
-        fee_amount: &Self::BigUint,
+        caller: Address,
+        token_amount_in: FftTokenAmountPair<Self::BigUint>,
+        token_amount_out: FftTokenAmountPair<Self::BigUint>,
+        fee_amount: Self::BigUint,
         pair_reserves: Vec<FftTokenAmountPair<Self::BigUint>>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.swap_event(
-            &token_amount_in.token_id,
-            &token_amount_out.token_id,
-            user_address,
+            token_amount_in.token_id.clone(),
+            token_amount_out.token_id.clone(),
+            caller.clone(),
             epoch,
             SwapEvent {
-                user_address: user_address.clone(),
-                token_amount_in: token_amount_in.clone(),
-                token_amount_out: token_amount_out.clone(),
-                fee_amount: fee_amount.clone(),
+                caller,
+                token_amount_in,
+                token_amount_out,
+                fee_amount,
                 pair_reserves,
+                block: self.blockchain().get_block_nonce(),
+                epoch,
+                timestamp: self.blockchain().get_block_timestamp(),
+            },
+        )
+    }
+
+    fn emit_swap_no_fee_and_forward_event(
+        &self,
+        caller: Address,
+        swap_out_token_amount: FftTokenAmountPair<Self::BigUint>,
+        destination: Address,
+    ) {
+        let epoch = self.blockchain().get_block_epoch();
+        self.swap_no_fee_and_forward_event(
+            swap_out_token_amount.token_id.clone(),
+            caller.clone(),
+            epoch,
+            SwapNoFeeAndForwardEvent {
+                caller,
+                swap_out_token_amount,
+                destination,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -72,25 +104,25 @@ pub trait EventsModule {
 
     fn emit_add_liquidity_event(
         &self,
-        user_address: &Address,
-        first_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        second_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        lp_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        lp_supply: &Self::BigUint,
+        caller: Address,
+        first_token_amount: FftTokenAmountPair<Self::BigUint>,
+        second_token_amount: FftTokenAmountPair<Self::BigUint>,
+        lp_token_amount: FftTokenAmountPair<Self::BigUint>,
+        lp_supply: Self::BigUint,
         pair_reserves: Vec<FftTokenAmountPair<Self::BigUint>>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.add_liquidity_event(
-            &first_token_amount.token_id,
-            &second_token_amount.token_id,
-            user_address,
+            first_token_amount.token_id.clone(),
+            second_token_amount.token_id.clone(),
+            caller.clone(),
             epoch,
             AddLiquidityEvent {
-                user_address: user_address.clone(),
-                first_token_amount: first_token_amount.clone(),
-                second_token_amount: second_token_amount.clone(),
-                lp_token_amount: lp_token_amount.clone(),
-                lp_supply: lp_supply.clone(),
+                caller,
+                first_token_amount,
+                second_token_amount,
+                lp_token_amount,
+                lp_supply,
                 pair_reserves,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
@@ -101,25 +133,25 @@ pub trait EventsModule {
 
     fn emit_remove_liquidity_event(
         &self,
-        user_address: &Address,
-        first_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        second_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        lp_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        lp_supply: &Self::BigUint,
+        caller: Address,
+        first_token_amount: FftTokenAmountPair<Self::BigUint>,
+        second_token_amount: FftTokenAmountPair<Self::BigUint>,
+        lp_token_amount: FftTokenAmountPair<Self::BigUint>,
+        lp_supply: Self::BigUint,
         pair_reserves: Vec<FftTokenAmountPair<Self::BigUint>>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.remove_liquidity_event(
-            &first_token_amount.token_id,
-            &second_token_amount.token_id,
-            user_address,
+            first_token_amount.token_id.clone(),
+            second_token_amount.token_id.clone(),
+            caller.clone(),
             epoch,
             RemoveLiquidityEvent {
-                user_address: user_address.clone(),
-                first_token_amount: first_token_amount.clone(),
-                second_token_amount: second_token_amount.clone(),
-                lp_token_amount: lp_token_amount.clone(),
-                lp_supply: lp_supply.clone(),
+                caller,
+                first_token_amount,
+                second_token_amount,
+                lp_token_amount,
+                lp_supply,
                 pair_reserves,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
@@ -131,19 +163,28 @@ pub trait EventsModule {
     #[event("swap")]
     fn swap_event(
         &self,
-        #[indexed] token_in: &TokenIdentifier,
-        #[indexed] token_out: &TokenIdentifier,
-        #[indexed] user_address: &Address,
+        #[indexed] token_in: TokenIdentifier,
+        #[indexed] token_out: TokenIdentifier,
+        #[indexed] caller: Address,
         #[indexed] epoch: u64,
         swap_event: SwapEvent<Self::BigUint>,
+    );
+
+    #[event("swap_no_fee_and_forward")]
+    fn swap_no_fee_and_forward_event(
+        &self,
+        #[indexed] swap_out_token: TokenIdentifier,
+        #[indexed] caller: Address,
+        #[indexed] epoch: u64,
+        swap_no_fee_and_forward_event: SwapNoFeeAndForwardEvent<Self::BigUint>,
     );
 
     #[event("add_liquidity")]
     fn add_liquidity_event(
         &self,
-        #[indexed] first_token: &TokenIdentifier,
-        #[indexed] second_token: &TokenIdentifier,
-        #[indexed] user_address: &Address,
+        #[indexed] first_token: TokenIdentifier,
+        #[indexed] second_token: TokenIdentifier,
+        #[indexed] caller: Address,
         #[indexed] epoch: u64,
         add_liquidity_event: AddLiquidityEvent<Self::BigUint>,
     );
@@ -151,9 +192,9 @@ pub trait EventsModule {
     #[event("remove_liquidity")]
     fn remove_liquidity_event(
         &self,
-        #[indexed] first_token: &TokenIdentifier,
-        #[indexed] second_token: &TokenIdentifier,
-        #[indexed] user_address: &Address,
+        #[indexed] first_token: TokenIdentifier,
+        #[indexed] second_token: TokenIdentifier,
+        #[indexed] caller: Address,
         #[indexed] epoch: u64,
         remove_liquidity_event: RemoveLiquidityEvent<Self::BigUint>,
     );

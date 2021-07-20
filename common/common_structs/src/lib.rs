@@ -31,7 +31,7 @@ pub struct UnlockMilestone {
     pub unlock_percent: u8,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
     pub lp_token_id: TokenIdentifier,
     pub lp_token_total_amount: BigUint,
@@ -39,7 +39,7 @@ pub struct WrappedLpTokenAttributes<BigUint: BigUintApi> {
     pub locked_assets_nonce: Nonce,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedFarmTokenAttributes<BigUint: BigUintApi> {
     pub farm_token_id: TokenIdentifier,
     pub farm_token_nonce: Nonce,

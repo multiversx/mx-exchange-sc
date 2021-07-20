@@ -180,13 +180,13 @@ pub trait Farm:
             amount: self.reward_reserve().get(),
         };
         self.emit_enter_farm_event(
-            &caller,
-            &farming_token_amount,
-            &self.farming_token_reserve().get(),
-            &farm_token_amount,
-            &self.get_farm_token_supply(),
-            &reward_token_reserve,
-            &attributes,
+            caller,
+            farming_token_amount,
+            self.farming_token_reserve().get(),
+            farm_token_amount.clone(),
+            self.get_farm_token_supply(),
+            reward_token_reserve,
+            attributes,
         );
         Ok(farm_token_amount)
     }
@@ -302,14 +302,14 @@ pub trait Farm:
             amount,
         };
         self.emit_exit_farm_event(
-            &caller,
-            &farming_token_amount,
-            &self.farming_token_reserve().get(),
-            &farm_token_amount,
-            &self.get_farm_token_supply(),
-            &reward_token_amount,
-            &self.reward_reserve().get(),
-            &farm_attributes,
+            caller,
+            farming_token_amount.clone(),
+            self.farming_token_reserve().get(),
+            farm_token_amount,
+            self.get_farm_token_supply(),
+            reward_token_amount.clone(),
+            self.reward_reserve().get(),
+            farm_attributes,
         );
         Ok((farming_token_amount, reward_token_amount).into())
     }
@@ -413,14 +413,14 @@ pub trait Farm:
         };
 
         self.emit_claim_rewards_event(
-            &caller,
-            &old_farm_token_amount,
-            &new_farm_token_amount,
-            &self.get_farm_token_supply(),
-            &reward_token_amount,
-            &self.reward_reserve().get(),
-            &farm_attributes,
-            &new_attributes,
+            caller,
+            old_farm_token_amount,
+            new_farm_token_amount.clone(),
+            self.get_farm_token_supply(),
+            reward_token_amount.clone(),
+            self.reward_reserve().get(),
+            farm_attributes,
+            new_attributes,
         );
         Ok((new_farm_token_amount, reward_token_amount).into())
     }
@@ -523,14 +523,14 @@ pub trait Farm:
         };
 
         self.emit_compound_rewards_event(
-            &caller,
-            &old_farm_token_amount,
-            &new_farm_token_amount,
-            &self.get_farm_token_supply(),
-            &reward_token_amount,
-            &self.reward_reserve().get(),
-            &farm_attributes,
-            &new_attributes,
+            caller,
+            old_farm_token_amount,
+            new_farm_token_amount.clone(),
+            self.get_farm_token_supply(),
+            reward_token_amount,
+            self.reward_reserve().get(),
+            farm_attributes,
+            new_attributes,
         );
         Ok(new_farm_token_amount)
     }
