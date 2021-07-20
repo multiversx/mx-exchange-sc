@@ -2,10 +2,10 @@
 #![allow(clippy::too_many_arguments)]
 
 pub mod config;
+mod events;
 mod farm_token;
 pub mod farm_token_merge;
 mod rewards;
-mod events;
 
 use common_structs::{
     Epoch, FarmTokenAttributes, FftTokenAmountPair, GenericTokenAmountPair, Nonce,
@@ -302,13 +302,13 @@ pub trait Farm:
             amount,
         };
         self.emit_exit_farm_event(
-            &caller, 
-            &farming_token_amount, 
-            &self.farming_token_reserve().get(), 
+            &caller,
+            &farming_token_amount,
+            &self.farming_token_reserve().get(),
             &farm_token_amount,
-            &self.get_farm_token_supply(), 
-            &reward_token_amount, 
-            &self.reward_reserve().get(), 
+            &self.get_farm_token_supply(),
+            &reward_token_amount,
+            &self.reward_reserve().get(),
             &farm_attributes,
         );
         Ok((farming_token_amount, reward_token_amount).into())
@@ -396,19 +396,33 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        Ok((
-            GenericTokenAmountPair {
-                token_id: farm_token_id,
-                token_nonce: new_nonce,
-                amount,
-            },
-            GenericTokenAmountPair {
-                token_id: reward_token_id,
-                token_nonce: reward_nonce,
-                amount: reward,
-            },
-        )
-            .into())
+        let old_farm_token_amount = GenericTokenAmountPair {
+            token_id: farm_token_id.clone(),
+            token_nonce,
+            amount: amount.clone(),
+        };
+        let new_farm_token_amount = GenericTokenAmountPair {
+            token_id: farm_token_id,
+            token_nonce: new_nonce,
+            amount,
+        };
+        let reward_token_amount = GenericTokenAmountPair {
+            token_id: reward_token_id,
+            token_nonce: reward_nonce,
+            amount: reward,
+        };
+
+        self.emit_claim_rewards_event(
+            &caller,
+            &old_farm_token_amount,
+            &new_farm_token_amount,
+            &self.get_farm_token_supply(),
+            &reward_token_amount,
+            &self.reward_reserve().get(),
+            &farm_attributes,
+            &new_attributes,
+        );
+        Ok((new_farm_token_amount, reward_token_amount).into())
     }
 
     #[payable("*")]
@@ -460,11 +474,11 @@ pub trait Farm:
             new_initial_farming_amount != 0,
             "Farming token amount is zero"
         );
-        let new_compound_reward_amount = self.rule_of_three(
+        let new_compound_reward_amount = &self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
-        ) + reward;
+        ) + &reward;
 
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
@@ -492,11 +506,33 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        Ok(GenericTokenAmountPair {
+        let old_farm_token_amount = GenericTokenAmountPair {
+            token_id: farm_token_id.clone(),
+            token_nonce: payment_token_nonce,
+            amount: payment_amount,
+        };
+        let new_farm_token_amount = GenericTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: new_nonce,
             amount: new_farm_contribution,
-        })
+        };
+        let reward_token_amount = GenericTokenAmountPair {
+            token_id: self.reward_token_id().get(),
+            token_nonce: 0,
+            amount: reward,
+        };
+
+        self.emit_compound_rewards_event(
+            &caller,
+            &old_farm_token_amount,
+            &new_farm_token_amount,
+            &self.get_farm_token_supply(),
+            &reward_token_amount,
+            &self.reward_reserve().get(),
+            &farm_attributes,
+            &new_attributes,
+        );
+        Ok(new_farm_token_amount)
     }
 
     fn create_farm_tokens_by_merging(

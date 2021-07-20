@@ -8,8 +8,8 @@ const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
 pub mod config;
-pub mod fee;
 mod events;
+pub mod fee;
 mod liquidity_pool;
 
 use common_structs::FftTokenAmountPair;
