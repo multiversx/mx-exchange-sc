@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use dex_common::FftTokenAmountPair;
+use common_structs::FftTokenAmountPair;
 
 #[derive(TopEncode)]
 pub struct SwapEvent<BigUint: BigUintApi> {

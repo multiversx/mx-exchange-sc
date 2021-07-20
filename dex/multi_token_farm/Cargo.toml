@@ -27,5 +27,6 @@ version = "0.17"
 [dependencies.elrond_dex_pair]
 path = "../elrond_dex_pair"
 
-[dependencies.dex-common]
-path = "../dex-common"
+[dependencies.common_structs]
+path = "../../common/common_structs"
+

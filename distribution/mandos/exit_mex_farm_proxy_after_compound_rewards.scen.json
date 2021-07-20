@@ -1,0 +1,76 @@
+{
+    "name": "sc_distribution_rs",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "compound_mex_rewards_proxy_after_mint_rewards.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "14",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "function": "exitFarmProxy",
+                "esdt": {
+                    "tokenIdentifier": "str:WFARM-abcdef",
+                    "nonce": "0x02",
+                    "value": "36,000"
+                },
+                "arguments": [
+                    "sc:mex_farm_contract"
+                ],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x0000000a4d45582d616263646566000000021770",
+                    "0x0000000a4d45582d6162636465660000000000000000000000027530"
+                ],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user_with_wegld1": {
+                    "nonce": "4",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "86,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        },
+                        "str:MEX-abcdef": "30,000",
+                        "str:WFARM-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "4,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        },
+                        "str:WEGLD-abcdef": "1,000,000,000"
+                    },
+                    "storage": {},
+                    "code": ""
+                },
+                "+": ""
+            }
+        }
+    ]
+}

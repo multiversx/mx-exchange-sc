@@ -14,6 +14,13 @@ fn add_liquidity_go() {
 }
 
 #[test]
+fn calculate_rewards_for_given_position_after_compound_go() {
+    elrond_wasm_debug::mandos_go(
+        "mandos/calculate_rewards_for_given_position_after_compound.scen.json",
+    );
+}
+
+#[test]
 fn calculate_rewards_for_given_position_go() {
     elrond_wasm_debug::mandos_go("mandos/calculate_rewards_for_given_position.scen.json");
 }
@@ -36,6 +43,11 @@ fn claim_rewards_go() {
 #[test]
 fn complete_setup_go() {
     elrond_wasm_debug::mandos_go("mandos/complete_setup.scen.json");
+}
+
+#[test]
+fn compound_rewards_setup_go() {
+    elrond_wasm_debug::mandos_go("mandos/compound_rewards.scen.json");
 }
 
 #[test]
@@ -121,6 +133,11 @@ fn get_pair_non_existent_go() {
 #[test]
 fn get_pair_views_go() {
     elrond_wasm_debug::mandos_go("mandos/get_pair_views.scen.json");
+}
+
+#[test]
+fn merge_tokens_go() {
+    elrond_wasm_debug::mandos_go("mandos/merge_tokens.scen.json");
 }
 
 #[test]

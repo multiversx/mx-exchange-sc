@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -10,7 +10,9 @@ pub enum State {
 }
 
 #[elrond_wasm_derive::module]
-pub trait ConfigModule: token_supply::TokenSupplyModule {
+pub trait ConfigModule:
+    token_supply::TokenSupplyModule + token_send::TokenSendModule + nft_deposit::NftDepositModule
+{
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -55,6 +57,27 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
         Ok(())
     }
 
+    #[endpoint(setNftDepositMaxLen)]
+    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
+        self.require_permissions()?;
+        self.nft_deposit_max_len().set(&max_len);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn pause(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Inactive);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn resume(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Active);
+        Ok(())
+    }
+
     #[view(getFarmTokenSupply)]
     fn get_farm_token_supply(&self) -> Self::BigUint {
         let result = self.get_total_supply(&self.farm_token_id().get());
@@ -63,9 +86,6 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
             SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
         }
     }
-
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]

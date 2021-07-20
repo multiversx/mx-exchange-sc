@@ -9,7 +9,7 @@ pub enum State {
 }
 
 #[elrond_wasm_derive::module]
-pub trait ConfigModule {
+pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getRouterAddress)]
     #[storage_mapper("router_address")]
     fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
@@ -25,10 +25,6 @@ pub trait ConfigModule {
     #[view(getExternSwapGasLimit)]
     #[storage_mapper("extern_swap_gas_limit")]
     fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(getTranferExecGasLimit)]
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
@@ -53,5 +49,31 @@ pub trait ConfigModule {
         let router = self.router_address().get();
         require!(caller == owner || caller == router, "Permission denied");
         Ok(())
+    }
+
+    #[endpoint]
+    fn pause(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Inactive);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn resume(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Active);
+        Ok(())
+    }
+
+    #[endpoint(setStateActiveNoSwaps)]
+    fn set_state_active_no_swaps(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::ActiveNoSwaps);
+        Ok(())
+    }
+
+    #[view(getLpTokenIdentifier)]
+    fn get_lp_token_identifier(&self) -> TokenIdentifier {
+        self.lp_token_identifier().get()
     }
 }

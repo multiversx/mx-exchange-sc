@@ -13,7 +13,7 @@ pub struct FftTokenAmountPair<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Clone)]
-pub struct GenericEsdtAmountPair<BigUint: BigUintApi> {
+pub struct GenericTokenAmountPair<BigUint: BigUintApi> {
     pub token_id: TokenIdentifier,
     pub token_nonce: Nonce,
     pub amount: BigUint,

@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
 
 #[elrond_wasm_derive::module]
 pub trait RewardsModule {
@@ -23,10 +23,9 @@ pub trait RewardsModule {
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let per_block_reward = self.per_block_reward_amount().get();
         if block_nonce > last_reward_nonce && per_block_reward > 0 {
-            Self::BigUint::from(per_block_reward)
-                * Self::BigUint::from(block_nonce - last_reward_nonce)
+            Self::BigUint::from(per_block_reward) * (block_nonce - last_reward_nonce).into()
         } else {
-            Self::BigUint::zero()
+            0u64.into()
         }
     }
 
@@ -64,7 +63,7 @@ pub trait RewardsModule {
         let reward = if &worth > initial_worth {
             &worth - initial_worth
         } else {
-            Self::BigUint::zero()
+            0u64.into()
         };
 
         Ok(reward)

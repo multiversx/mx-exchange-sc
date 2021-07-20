@@ -7,10 +7,7 @@ mod rewards;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
-use dex_common::{FftTokenAmountPair, GenericEsdtAmountPair};
-
-type Epoch = u64;
-type Nonce = u64;
+use common_structs::{Epoch, FftTokenAmountPair, GenericTokenAmountPair, Nonce};
 
 const PENALTY_PERCENT: u64 = 10;
 const EXIT_FARM_NO_PENALTY_MIN_EPOCHS: u64 = 3;
@@ -176,7 +173,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         #[payment_token] token_in: TokenIdentifier,
         #[payment] amount: Self::BigUint,
-    ) -> SCResult<GenericEsdtAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_contribution = self.get_farm_contribution(&token_in, &amount)?;
@@ -204,7 +201,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         }
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
-        let farm_tokens_to_create = &liquidity + &Self::BigUint::from(1u64);
+        let farm_tokens_to_create = &liquidity + &1u64.into();
         let farm_token_id = self.farm_token_id().get();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
@@ -216,7 +213,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             &self.blockchain().get_caller(),
         );
 
-        Ok(GenericEsdtAmountPair {
+        Ok(GenericTokenAmountPair {
             token_id: farm_token_id,
             token_nonce: farm_token_nonce,
             amount: liquidity,
@@ -294,7 +291,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment] liquidity: Self::BigUint,
     ) -> SCResult<
-        MultiResult2<GenericEsdtAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
+        MultiResult2<GenericTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
     > {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -339,7 +336,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         };
 
         // Create and send the new farm tokens.
-        let farm_tokens_to_create = &re_added_liquidity + &Self::BigUint::from(1u64);
+        let farm_tokens_to_create = &re_added_liquidity + &1u64.into();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
 
@@ -352,7 +349,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         self.send_tokens(&farming_pool_token_id, 0, &reward, &caller);
 
         Ok((
-            GenericEsdtAmountPair {
+            GenericTokenAmountPair {
                 token_id: farm_token_id,
                 token_nonce: farm_token_nonce,
                 amount: re_added_liquidity,
@@ -573,7 +570,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
                 token_id,
                 amount,
                 &BoxedBytes::empty(),
-                &Self::BigUint::zero(),
+                &0u64.into(),
                 &BoxedBytes::empty(),
                 attributes,
                 &[BoxedBytes::empty()],
@@ -630,7 +627,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             .unwrap();
         let equivalent = self
             .pair_contract_proxy(pair)
-            .getTokensForGivenPosition(amount_in.clone())
+            .get_tokens_for_given_position(amount_in.clone())
             .execute_on_dest_context();
 
         let token_amount_pair_tuple = equivalent.0;
@@ -683,7 +680,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     ) -> Self::BigUint {
         let oracle_pair_to_ask = self.oracle_pair(token_to_ask, farming_pool_token_id).get();
         self.pair_contract_proxy(oracle_pair_to_ask)
-            .getEquivalent(token_to_ask.clone(), token_to_ask_amount.clone())
+            .get_equivalent(token_to_ask.clone(), token_to_ask_amount.clone())
             .execute_on_dest_context()
     }
 
@@ -694,7 +691,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
 
     #[inline]
     fn get_penalty_amount(&self, amount: Self::BigUint) -> Self::BigUint {
-        amount * Self::BigUint::from(PENALTY_PERCENT) / Self::BigUint::from(100u64)
+        amount * PENALTY_PERCENT.into() / 100u64.into()
     }
 
     #[inline]
