@@ -139,6 +139,7 @@ pub trait ProxyPairModule:
     ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
         self.require_wrapped_lp_token_id_not_empty()?;
+        self.require_deposit_empty_or_tokens_are_wrapped_lp_tokens()?;
 
         let caller = self.blockchain().get_caller();
         require!(first_token_id != second_token_id, "Identical tokens");

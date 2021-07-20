@@ -107,6 +107,13 @@ pub trait WrappedFarmTokenMerge:
         Ok(())
     }
 
+    fn require_deposit_empty_or_tokens_are_wrapped_farm_tokens(&self) -> SCResult<()> {
+        let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
+        let caller = self.blockchain().get_caller();
+        let deposit = self.nft_deposit(&caller).get();
+        self.require_all_tokens_are_wrapped_farm_tokens(&deposit, &wrapped_farm_token_id)
+    }
+
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
         deposit: &[GenericTokenAmountPair<Self::BigUint>],
