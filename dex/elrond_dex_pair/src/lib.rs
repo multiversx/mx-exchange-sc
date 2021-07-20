@@ -203,14 +203,14 @@ pub trait Pair:
         let liquidity =
             self.add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
 
-        let caller = &self.blockchain().get_caller();
+        let caller = self.blockchain().get_caller();
         let temporary_first_token_unused =
             temporary_first_token_amount - first_token_amount.clone();
         let temporary_second_token_unused =
             temporary_second_token_amount - second_token_amount.clone();
-        self.temporary_funds(caller, &expected_first_token_id)
+        self.temporary_funds(&caller, &expected_first_token_id)
             .clear();
-        self.temporary_funds(caller, &expected_second_token_id)
+        self.temporary_funds(&caller, &expected_second_token_id)
             .clear();
 
         // Once liquidity has been added, the new K should always be greater than the old K.
@@ -220,17 +220,17 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
+        self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
         self.send_tokens(
             &expected_first_token_id,
             &temporary_first_token_unused,
-            caller,
+            &caller,
             &opt_accept_funds_func,
         )?;
         self.send_tokens(
             &expected_second_token_id,
             &temporary_second_token_unused,
-            caller,
+            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -239,18 +239,28 @@ pub trait Pair:
             amount: liquidity,
         };
         let first_token_amount = FftTokenAmountPair {
-            token_id: expected_first_token_id,
+            token_id: expected_first_token_id.clone(),
             amount: first_token_amount,
         };
         let second_token_amount = FftTokenAmountPair {
-            token_id: expected_second_token_id,
+            token_id: expected_second_token_id.clone(),
             amount: second_token_amount,
         };
+        let first_token_reserve = FftTokenAmountPair {
+            token_id: expected_first_token_id.clone(),
+            amount: self.pair_reserve(&expected_first_token_id).get(),
+        };
+        let second_token_reserve = FftTokenAmountPair {
+            token_id: expected_second_token_id.clone(),
+            amount: self.pair_reserve(&expected_second_token_id).get(),
+        };
         self.emit_add_liquidity_event(
-            caller,
+            &caller,
             &first_token_amount,
             &second_token_amount,
             &lp_token_amount,
+            &self.get_total_lp_token_supply(),
+            [first_token_reserve, second_token_reserve].to_vec(),
         );
         Ok((lp_token_amount, first_token_amount, second_token_amount).into())
     }
@@ -334,18 +344,28 @@ pub trait Pair:
             amount: liquidity,
         };
         let first_token_amount = FftTokenAmountPair {
-            token_id: first_token_id,
+            token_id: first_token_id.clone(),
             amount: first_token_amount,
         };
         let second_token_amount = FftTokenAmountPair {
-            token_id: second_token_id,
+            token_id: second_token_id.clone(),
             amount: second_token_amount,
+        };
+        let first_token_reserve = FftTokenAmountPair {
+            token_id: first_token_id.clone(),
+            amount: self.pair_reserve(&first_token_id).get(),
+        };
+        let second_token_reserve = FftTokenAmountPair {
+            token_id: second_token_id.clone(),
+            amount: self.pair_reserve(&second_token_id).get(),
         };
         self.emit_remove_liquidity_event(
             &caller,
             &first_token_amount,
             &second_token_amount,
             &lp_token_amount,
+            &self.get_total_lp_token_supply(),
+            [first_token_reserve, second_token_reserve].to_vec(),
         );
         Ok((first_token_amount, second_token_amount).into())
     }
@@ -463,14 +483,28 @@ pub trait Pair:
         )?;
 
         let token_amount_in = FftTokenAmountPair {
-            token_id: token_in,
+            token_id: token_in.clone(),
             amount: amount_in,
         };
         let token_amount_out = FftTokenAmountPair {
-            token_id: token_out,
+            token_id: token_out.clone(),
             amount: amount_out_optimal,
         };
-        self.emit_swap_event(&caller, &token_amount_in, &token_amount_out, &fee_amount);
+        let token_in_reserves = FftTokenAmountPair {
+            token_id: token_in,
+            amount: reserve_token_in,
+        };
+        let token_out_reserves = FftTokenAmountPair {
+            token_id: token_out,
+            amount: reserve_token_out,
+        };
+        self.emit_swap_event(
+            &caller,
+            &token_amount_in,
+            &token_amount_out,
+            &fee_amount,
+            [token_in_reserves, token_out_reserves].to_vec(),
+        );
         Ok(())
     }
 
@@ -541,14 +575,28 @@ pub trait Pair:
         self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
 
         let token_amount_in = FftTokenAmountPair {
-            token_id: token_in,
+            token_id: token_in.clone(),
             amount: amount_in_optimal,
         };
         let token_amount_out = FftTokenAmountPair {
-            token_id: token_out,
+            token_id: token_out.clone(),
             amount: amount_out,
         };
-        self.emit_swap_event(&caller, &token_amount_in, &token_amount_out, &fee_amount);
+        let token_in_reserves = FftTokenAmountPair {
+            token_id: token_in,
+            amount: reserve_token_in,
+        };
+        let token_out_reserves = FftTokenAmountPair {
+            token_id: token_out,
+            amount: reserve_token_out,
+        };
+        self.emit_swap_event(
+            &caller,
+            &token_amount_in,
+            &token_amount_out,
+            &fee_amount,
+            [token_in_reserves, token_out_reserves].to_vec(),
+        );
         Ok(())
     }
 
