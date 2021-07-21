@@ -1,6 +1,7 @@
 #![no_std]
 
 mod cache;
+mod events;
 mod locked_asset;
 pub mod locked_asset_token_merge;
 
@@ -12,7 +13,7 @@ const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-use common_structs::{Epoch, GenericTokenAmountPair, Nonce, UnlockMilestone};
+use common_structs::{Epoch, FftTokenAmountPair, GenericTokenAmountPair, Nonce, UnlockMilestone};
 use locked_asset::UnlockSchedule;
 
 use crate::locked_asset::LockedAssetTokenAttributes;
@@ -26,6 +27,7 @@ pub trait LockedAssetFactory:
     + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
     + locked_asset_token_merge::LockedAssetTokenMergeModule
+    + events::EventsModule
 {
     #[init]
     fn init(
@@ -99,7 +101,11 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func)
+        let new_token =
+            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func)?;
+
+        self.emit_create_and_forward_event(caller, address, new_token.clone(), attr, start_epoch);
+        Ok(new_token)
     }
 
     #[payable("*")]
@@ -114,7 +120,7 @@ pub trait LockedAssetFactory:
         require!(token_id == locked_token_id, "Bad payment token");
 
         let attributes = self.get_attributes(&token_id, token_nonce)?;
-        let unlock_schedule = attributes.unlock_schedule;
+        let unlock_schedule = &attributes.unlock_schedule;
 
         let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
         let unlock_amount = self.get_unlock_amount(
@@ -128,27 +134,57 @@ pub trait LockedAssetFactory:
         let caller = self.blockchain().get_caller();
         self.mint_and_send_assets(&caller, &unlock_amount);
 
-        let locked_remaining = amount.clone() - unlock_amount;
+        let mut output_locked_assets_token_amount = GenericTokenAmountPair {
+            token_id: token_id.clone(),
+            token_nonce: 0,
+            amount: 0u64.into(),
+        };
+        let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
+            unlock_schedule: UnlockSchedule {
+                unlock_milestones: Vec::new(),
+            },
+            is_merged: false,
+        };
+
+        let locked_remaining = &amount - &unlock_amount;
         if locked_remaining > 0 {
             let new_unlock_milestones = self.create_new_unlock_milestones(
                 month_start_epoch,
                 &unlock_schedule.unlock_milestones,
             );
-            let new_attributes = LockedAssetTokenAttributes {
+            output_locked_asset_attributes = LockedAssetTokenAttributes {
                 unlock_schedule: UnlockSchedule {
                     unlock_milestones: new_unlock_milestones,
                 },
                 is_merged: attributes.is_merged,
             };
-            let _ = self.produce_tokens_and_send(
+            output_locked_assets_token_amount = self.produce_tokens_and_send(
                 &locked_remaining,
-                &new_attributes,
+                &output_locked_asset_attributes,
                 &caller,
                 &OptionalArg::None,
-            );
+            )?;
         }
 
         self.nft_burn_tokens(&locked_token_id, token_nonce, &amount);
+
+        let input_locked_assets_token_amount = GenericTokenAmountPair {
+            token_id,
+            token_nonce,
+            amount,
+        };
+        let assets_token_amount = FftTokenAmountPair {
+            token_id: self.asset_token_id().get(),
+            amount: unlock_amount,
+        };
+        self.emit_unlock_assets_event(
+            caller,
+            input_locked_assets_token_amount,
+            output_locked_assets_token_amount,
+            assets_token_amount,
+            attributes,
+            output_locked_asset_attributes,
+        );
         Ok(())
     }
 
