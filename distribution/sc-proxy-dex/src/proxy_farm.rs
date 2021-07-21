@@ -204,6 +204,7 @@ pub trait ProxyFarmModule:
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
+        self.require_deposit_empty_or_tokens_are_wrapped_farm_tokens()?;
         require!(amount != 0, "Payment amount cannot be zero");
         require!(
             token_id == self.wrapped_farm_token_id().get(),
@@ -270,6 +271,7 @@ pub trait ProxyFarmModule:
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
+        self.require_deposit_empty_or_tokens_are_wrapped_farm_tokens()?;
         require!(payment_amount != 0, "Payment amount cannot be zero");
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
         require!(
