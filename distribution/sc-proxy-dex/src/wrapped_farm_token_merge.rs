@@ -1,4 +1,4 @@
-use common_structs::{GenericTokenAmountPair, WrappedFarmTokenAttributes, FftTokenAmountPair};
+use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, WrappedFarmTokenAttributes};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -53,7 +53,8 @@ pub trait WrappedFarmTokenMerge:
             &farm_contract,
             Option::None,
             opt_accept_funds_func,
-        )
+        )?;
+        Ok(())
     }
 
     fn merge_wrapped_farm_tokens_and_send(
@@ -62,9 +63,10 @@ pub trait WrappedFarmTokenMerge:
         farm_contract: &Address,
         replic: Option<WrappedFarmToken<Self::BigUint>>,
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<(WrappedFarmToken<Self::BigUint>, bool)> {
         let deposit = self.nft_deposit(caller).get();
         require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
+        let deposit_len = deposit.len();
 
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.require_all_tokens_are_wrapped_farm_tokens(&deposit, &wrapped_farm_token_id)?;
@@ -81,7 +83,7 @@ pub trait WrappedFarmTokenMerge:
         self.burn_deposit_tokens(caller, &deposit);
 
         let new_attrs = WrappedFarmTokenAttributes {
-            farm_token_id: merged_farm_token_amount.token_id,
+            farm_token_id: merged_farm_token_amount.token_id.clone(),
             farm_token_nonce: merged_farm_token_amount.token_nonce,
             farm_token_amount: merged_farm_token_amount.amount.clone(),
             farming_token_id: farming_token_amount.token_id,
@@ -104,7 +106,13 @@ pub trait WrappedFarmTokenMerge:
             &opt_accept_funds_func,
         )?;
 
-        Ok(())
+        let new_token = WrappedFarmToken {
+            token_amount: merged_farm_token_amount,
+            attributes: new_attrs,
+        };
+        let is_merged = deposit_len != 0;
+
+        Ok((new_token, is_merged))
     }
 
     fn require_deposit_empty_or_tokens_are_wrapped_farm_tokens(&self) -> SCResult<()> {
@@ -296,19 +304,22 @@ pub trait WrappedFarmTokenMerge:
 
         let merged_locked_token_amount =
             self.merge_locked_asset_tokens_from_wrapped_lp(&wrapped_lp_tokens);
-        let merged_wrapped_lp_token_amount = self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
+        let merged_wrapped_lp_token_amount =
+            self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
         let lp_token_amount = FftTokenAmountPair {
             token_id: wrapped_lp_tokens[0].attributes.lp_token_id.clone(),
             amount: merged_wrapped_lp_token_amount.clone(),
         };
 
-        let attrs = self.get_merged_wrapped_lp_token_attributes(
-            &lp_token_amount,
-            &merged_locked_token_amount,
-        );
+        let attrs = self
+            .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
 
         let wrapped_lp_token_id = tokens[0].attributes.farming_token_id.clone();
-        self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_token_amount, &attrs);
+        self.nft_create_tokens(
+            &wrapped_lp_token_id,
+            &merged_wrapped_lp_token_amount,
+            &attrs,
+        );
         let new_nonce = self.increase_wrapped_lp_token_nonce();
 
         for wrapped_lp_token in wrapped_lp_tokens.iter() {

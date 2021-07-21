@@ -14,6 +14,7 @@ pub struct EnterFarmEvent<BigUint: BigUintApi> {
     farm_supply: BigUint,
     reward_token_reserve: FftTokenAmountPair<BigUint>,
     farm_attributes: FarmTokenAttributes<BigUint>,
+    created_with_merge: bool,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -44,6 +45,7 @@ pub struct ClaimRewardsEvent<BigUint: BigUintApi> {
     reward_reserve: BigUint,
     old_farm_attributes: FarmTokenAttributes<BigUint>,
     new_farm_attributes: FarmTokenAttributes<BigUint>,
+    created_with_merge: bool,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -59,6 +61,7 @@ pub struct CompoundRewardsEvent<BigUint: BigUintApi> {
     reward_reserve: BigUint,
     old_farm_attributes: FarmTokenAttributes<BigUint>,
     new_farm_attributes: FarmTokenAttributes<BigUint>,
+    created_with_merge: bool,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -75,6 +78,7 @@ pub trait EventsModule {
         farm_supply: Self::BigUint,
         reward_token_reserve: FftTokenAmountPair<Self::BigUint>,
         farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.enter_farm_event(
@@ -90,6 +94,7 @@ pub trait EventsModule {
                 farm_supply,
                 reward_token_reserve,
                 farm_attributes,
+                created_with_merge,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -140,6 +145,7 @@ pub trait EventsModule {
         reward_reserve: Self::BigUint,
         old_farm_attributes: FarmTokenAttributes<Self::BigUint>,
         new_farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.claim_rewards_event(
@@ -156,6 +162,7 @@ pub trait EventsModule {
                 reward_reserve,
                 old_farm_attributes,
                 new_farm_attributes,
+                created_with_merge,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -173,6 +180,7 @@ pub trait EventsModule {
         reward_reserve: Self::BigUint,
         old_farm_attributes: FarmTokenAttributes<Self::BigUint>,
         new_farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.compound_rewards_event(
@@ -189,6 +197,7 @@ pub trait EventsModule {
                 reward_reserve,
                 old_farm_attributes,
                 new_farm_attributes,
+                created_with_merge,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),

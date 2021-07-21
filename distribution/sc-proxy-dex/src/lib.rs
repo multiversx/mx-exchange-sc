@@ -1,8 +1,10 @@
 #![no_std]
+#![allow(clippy::too_many_arguments)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+mod events;
 mod proxy_common;
 mod proxy_farm;
 mod proxy_pair;
@@ -28,6 +30,7 @@ pub trait ProxyDexImpl:
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge
+    + events::EventsModule
 {
     #[init]
     fn init(
