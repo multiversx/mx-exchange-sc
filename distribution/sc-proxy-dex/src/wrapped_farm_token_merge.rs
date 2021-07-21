@@ -1,4 +1,4 @@
-use common_structs::{GenericTokenAmountPair, WrappedFarmTokenAttributes};
+use common_structs::{GenericTokenAmountPair, WrappedFarmTokenAttributes, FftTokenAmountPair};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -296,15 +296,19 @@ pub trait WrappedFarmTokenMerge:
 
         let merged_locked_token_amount =
             self.merge_locked_asset_tokens_from_wrapped_lp(&wrapped_lp_tokens);
+        let merged_wrapped_lp_token_amount = self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
+        let lp_token_amount = FftTokenAmountPair {
+            token_id: wrapped_lp_tokens[0].attributes.lp_token_id.clone(),
+            amount: merged_wrapped_lp_token_amount.clone(),
+        };
 
         let attrs = self.get_merged_wrapped_lp_token_attributes(
-            &wrapped_lp_tokens,
+            &lp_token_amount,
             &merged_locked_token_amount,
         );
-        let amount = self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
 
         let wrapped_lp_token_id = tokens[0].attributes.farming_token_id.clone();
-        self.nft_create_tokens(&wrapped_lp_token_id, &amount, &attrs);
+        self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_token_amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();
 
         for wrapped_lp_token in wrapped_lp_tokens.iter() {
@@ -318,7 +322,7 @@ pub trait WrappedFarmTokenMerge:
         Ok(GenericTokenAmountPair {
             token_id: wrapped_lp_token_id,
             token_nonce: new_nonce,
-            amount,
+            amount: merged_wrapped_lp_token_amount,
         })
     }
 }

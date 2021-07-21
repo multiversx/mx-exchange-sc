@@ -1,4 +1,4 @@
-use common_structs::{GenericTokenAmountPair, WrappedLpTokenAttributes};
+use common_structs::{GenericTokenAmountPair, WrappedLpTokenAttributes, FftTokenAmountPair};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -51,18 +51,23 @@ pub trait WrappedLpTokenMerge:
         self.require_wrapped_lp_tokens_from_same_pair(&tokens)?;
 
         let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens);
+        let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
+        let lp_token_amount = FftTokenAmountPair {
+            token_id: tokens[0].attributes.lp_token_id.clone(),
+            amount: merged_wrapped_lp_amount.clone(),
+        };
+
         let attrs =
-            self.get_merged_wrapped_lp_token_attributes(&tokens, &merged_locked_token_amount);
-        let amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
+            self.get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
         self.burn_deposit_tokens(caller, &deposit);
 
-        self.nft_create_tokens(&wrapped_lp_token_id, &amount, &attrs);
+        self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();
 
         self.send_nft_tokens(
             &wrapped_lp_token_id,
             new_nonce,
-            &amount,
+            &merged_wrapped_lp_amount,
             caller,
             &opt_accept_funds_func,
         )?;
@@ -124,17 +129,12 @@ pub trait WrappedLpTokenMerge:
 
     fn get_merged_wrapped_lp_token_attributes(
         &self,
-        tokens: &[WrappedLpToken<Self::BigUint>],
+        lp_token_amount: &FftTokenAmountPair<Self::BigUint>,
         merged_locked_asset_token_amount: &GenericTokenAmountPair<Self::BigUint>,
     ) -> WrappedLpTokenAttributes<Self::BigUint> {
-        let mut lp_token_amount = 0u64.into();
-
-        tokens
-            .iter()
-            .for_each(|x| lp_token_amount += &x.attributes.lp_token_total_amount);
         WrappedLpTokenAttributes {
-            lp_token_id: tokens[0].attributes.lp_token_id.clone(),
-            lp_token_total_amount: lp_token_amount,
+            lp_token_id: lp_token_amount.token_id.clone(),
+            lp_token_total_amount: lp_token_amount.amount.clone(),
             locked_assets_invested: merged_locked_asset_token_amount.amount.clone(),
             locked_assets_nonce: merged_locked_asset_token_amount.token_nonce,
         }
