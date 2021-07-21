@@ -1,4 +1,4 @@
-use common_structs::{GenericTokenAmountPair, WrappedLpTokenAttributes, FftTokenAmountPair};
+use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, WrappedLpTokenAttributes};
 
 use super::proxy_common;
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
@@ -57,8 +57,8 @@ pub trait WrappedLpTokenMerge:
             amount: merged_wrapped_lp_amount.clone(),
         };
 
-        let attrs =
-            self.get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
+        let attrs = self
+            .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
         self.burn_deposit_tokens(caller, &deposit);
 
         self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_amount, &attrs);
