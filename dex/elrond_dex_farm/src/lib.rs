@@ -218,19 +218,15 @@ pub trait Farm:
         }
 
         let farming_token_id = self.farming_token_id().get();
-        let mut initial_farming_token_amount = self.rule_of_three(
+        let mut initial_farming_token_amount = self.rule_of_three_non_zero_result(
             &amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
-        );
+        )?;
         reward += self.rule_of_three(
             &amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
-        );
-        require!(
-            initial_farming_token_amount != 0,
-            "Farming token amount is zero"
         );
 
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
@@ -309,15 +305,11 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        let new_initial_farming_amount = self.rule_of_three(
+        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
             &amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
-        );
-        require!(
-            new_initial_farming_amount != 0,
-            "Farming token amount is zero"
-        );
+        )?;
         let new_compound_reward_amount = self.rule_of_three(
             &amount,
             &farm_attributes.current_farm_amount,
@@ -418,15 +410,11 @@ pub trait Farm:
         let mut new_farm_contribution =
             &payment_amount + &(&reward * &(farm_attributes.apr_multiplier as u64).into());
 
-        let new_initial_farming_amount = self.rule_of_three(
+        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
             &payment_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
-        );
-        require!(
-            new_initial_farming_amount != 0,
-            "Farming token amount is zero"
-        );
+        )?;
         let new_compound_reward_amount = self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
