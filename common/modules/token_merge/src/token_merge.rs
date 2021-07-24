@@ -20,6 +20,17 @@ pub trait TokenMergeModule {
         &(part * value) / total
     }
 
+    fn rule_of_three_non_zero_result(
+        &self,
+        part: &Self::BigUint,
+        total: &Self::BigUint,
+        value: &Self::BigUint,
+    ) -> SCResult<Self::BigUint> {
+        let res = &(part * value) / total;
+        require!(res != 0, "Rule of three result is zero");
+        Ok(res)
+    }
+
     fn weighted_average(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
         let mut weight_sum = 0u64.into();
         dataset

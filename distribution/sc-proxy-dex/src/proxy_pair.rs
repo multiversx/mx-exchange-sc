@@ -321,15 +321,12 @@ pub trait ProxyPairModule:
         let fungible_token_id: TokenIdentifier;
         let fungible_token_amount: Self::BigUint;
         let assets_received: Self::BigUint;
-        let locked_assets_invested = self.rule_of_three(
+        let locked_assets_invested = self.rule_of_three_non_zero_result(
             &amount,
             &attributes.lp_token_total_amount,
             &attributes.locked_assets_invested,
-        );
-        require!(
-            locked_assets_invested > 0,
-            "Not enough wrapped lp token provided"
-        );
+        )?;
+
         if tokens_for_position.0.token_id == asset_token_id {
             assets_received = tokens_for_position.0.amount;
             fungible_token_id = tokens_for_position.1.token_id;
