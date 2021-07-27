@@ -31,20 +31,6 @@ pub trait TokenMergeModule {
         Ok(res)
     }
 
-    fn weighted_average(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
-        let mut weight_sum = 0u64.into();
-        dataset
-            .iter()
-            .for_each(|x| weight_sum = &weight_sum + &x.weight);
-
-        let mut elem_weight_sum = 0u64.into();
-        dataset
-            .iter()
-            .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));
-
-        elem_weight_sum / weight_sum
-    }
-
     fn weighted_average_ceil(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
         let mut weight_sum = 0u64.into();
         dataset

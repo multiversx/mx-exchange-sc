@@ -15,11 +15,11 @@ use farm_token::FarmToken;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_PENALTY_PERCENT: u8 = 10;
-const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
-const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
-const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
+use crate::config::{
+    DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER, DEFAULT_MINUMUM_FARMING_EPOCHS,
+    DEFAULT_NFT_DEPOSIT_MAX_LEN, DEFAULT_PENALTY_PERCENT, DEFAULT_TRANSFER_EXEC_GAS_LIMIT,
+    MAX_PENALTY_PERCENT,
+};
 
 type EnterFarmResultType<BigUint> = GenericTokenAmountPair<BigUint>;
 type CompoundRewardsResultType<BigUint> = GenericTokenAmountPair<BigUint>;
@@ -199,12 +199,6 @@ pub trait Farm:
         require!(amount > 0, "Payment amount cannot be zero");
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
-        require!(
-            !farm_attributes.with_locked_rewards
-                || !self.should_apply_penalty(farm_attributes.entering_epoch),
-            "Exit too early for lock rewards option"
-        );
-
         let mut reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
@@ -318,7 +312,7 @@ pub trait Farm:
 
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: farm_attributes.entering_epoch,
+            entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
@@ -423,7 +417,7 @@ pub trait Farm:
 
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
-            entering_epoch: farm_attributes.entering_epoch,
+            entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
@@ -602,7 +596,7 @@ pub trait Farm:
 
     #[inline]
     fn get_penalty_amount(&self, amount: &Self::BigUint) -> Self::BigUint {
-        amount * &(self.penalty_percent().get() as u64).into() / 100u64.into()
+        amount * &self.penalty_percent().get().into() / MAX_PENALTY_PERCENT.into()
     }
 
     fn increase_farming_token_reserve(&self, amount: &Self::BigUint) {

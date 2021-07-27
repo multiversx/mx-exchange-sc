@@ -67,7 +67,7 @@
 						"str:mint_tokens_gas_limit": "5,000,000",
 						"str:locked_rewards_apr_multiplier": "2",
 						"str:division_safety_constant": "1000000000000",
-						"str:penalty_percent": "10",
+						"str:penalty_percent": "100",
 						"str:create_farm_tokens_gas_limit": "5000000",
 						"+": ""
 					},
