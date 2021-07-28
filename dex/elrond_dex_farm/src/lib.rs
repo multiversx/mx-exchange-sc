@@ -449,7 +449,7 @@ pub trait Farm:
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
         )?;
-        let new_compound_reward_amount = self.rule_of_three(
+        let new_compound_reward_amount = &self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
