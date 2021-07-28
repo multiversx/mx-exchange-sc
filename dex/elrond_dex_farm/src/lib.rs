@@ -313,7 +313,7 @@ pub trait Farm:
 
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: self.blockchain().get_block_epoch(),
+            entering_epoch: farm_attributes.entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
