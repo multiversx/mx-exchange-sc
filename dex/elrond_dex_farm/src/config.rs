@@ -3,6 +3,13 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
+pub const MAX_PENALTY_PERCENT: u64 = 10_000;
+pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
+pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
+pub const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
+pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
+pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
+
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
     Inactive,
@@ -28,9 +35,12 @@ pub trait ConfigModule:
     }
 
     #[endpoint]
-    fn set_penalty_percent(&self, percent: u8) -> SCResult<()> {
+    fn set_penalty_percent(&self, percent: u64) -> SCResult<()> {
         self.require_permissions()?;
-        require!(percent < 100, "Percent cannot exceed 100");
+        require!(
+            percent < MAX_PENALTY_PERCENT,
+            "Percent cannot exceed max percent"
+        );
         self.penalty_percent().set(&percent);
         Ok(())
     }
@@ -117,7 +127,7 @@ pub trait ConfigModule:
 
     #[view(getPenaltyPercent)]
     #[storage_mapper("penalty_percent")]
-    fn penalty_percent(&self) -> SingleValueMapper<Self::Storage, u8>;
+    fn penalty_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLockedRewardAprMuliplier)]
     #[storage_mapper("locked_rewards_apr_multiplier")]

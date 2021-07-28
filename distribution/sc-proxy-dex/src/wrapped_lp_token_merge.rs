@@ -52,7 +52,7 @@ pub trait WrappedLpTokenMerge:
         }
         self.require_wrapped_lp_tokens_from_same_pair(&tokens)?;
 
-        let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens);
+        let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens)?;
         let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
         let lp_token_amount = FftTokenAmountPair {
             token_id: tokens[0].attributes.lp_token_id.clone(),
@@ -155,31 +155,31 @@ pub trait WrappedLpTokenMerge:
     fn merge_locked_asset_tokens_from_wrapped_lp(
         &self,
         tokens: &[WrappedLpToken<Self::BigUint>],
-    ) -> GenericTokenAmountPair<Self::BigUint> {
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
         let locked_asset_token = self.locked_asset_token_id().get();
 
         if tokens.len() == 1 {
             let token = tokens[0].clone();
 
-            let amount = self.rule_of_three(
+            let amount = self.rule_of_three_non_zero_result(
                 &token.token_amount.amount,
                 &token.attributes.lp_token_total_amount,
                 &token.attributes.locked_assets_invested,
-            );
-            return GenericTokenAmountPair {
+            )?;
+            return Ok(GenericTokenAmountPair {
                 token_id: locked_asset_token,
                 token_nonce: token.attributes.locked_assets_nonce,
                 amount,
-            };
+            });
         }
 
         for entry in tokens.iter() {
-            let amount = self.rule_of_three(
+            let amount = self.rule_of_three_non_zero_result(
                 &entry.token_amount.amount,
                 &entry.attributes.lp_token_total_amount,
                 &entry.attributes.locked_assets_invested,
-            );
+            )?;
 
             self.locked_asset_factory(locked_asset_factory_addr.clone())
                 .deposit_tokens(
@@ -190,9 +190,10 @@ pub trait WrappedLpTokenMerge:
                 .execute_on_dest_context();
         }
 
-        self.locked_asset_factory(locked_asset_factory_addr)
+        Ok(self
+            .locked_asset_factory(locked_asset_factory_addr)
             .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
 
     fn get_merged_wrapped_lp_tokens_amount(

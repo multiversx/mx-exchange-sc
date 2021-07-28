@@ -82,10 +82,10 @@ pub trait FarmTokenMergeModule:
 
         let aggregated_attributes = FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
-            entering_epoch: self.aggregated_entering_epoch(&tokens),
+            entering_epoch: self.blockchain().get_block_epoch(),
             apr_multiplier: self.aggregated_apr_multiplier(&tokens)?,
             with_locked_rewards: self.aggregated_with_lock_rewards(&tokens)?,
-            initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
+            initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
         };
@@ -102,18 +102,6 @@ pub trait FarmTokenMergeModule:
             })
         });
         self.weighted_average_ceil(dataset)
-    }
-
-    fn aggregated_entering_epoch(&self, tokens: &[FarmToken<Self::BigUint>]) -> u64 {
-        let mut dataset = Vec::new();
-        tokens.iter().for_each(|x| {
-            dataset.push(ValueWeight {
-                value: x.attributes.entering_epoch.into(),
-                weight: x.token_amount.amount.clone(),
-            })
-        });
-        let avg = self.weighted_average(dataset);
-        avg.to_u64().unwrap()
     }
 
     fn aggregated_apr_multiplier(&self, tokens: &[FarmToken<Self::BigUint>]) -> SCResult<u8> {
@@ -139,16 +127,16 @@ pub trait FarmTokenMergeModule:
     fn aggregated_initial_farming_amount(
         &self,
         tokens: &[FarmToken<Self::BigUint>],
-    ) -> Self::BigUint {
+    ) -> SCResult<Self::BigUint> {
         let mut sum = 0u64.into();
-        tokens.iter().for_each(|x| {
-            sum += &self.rule_of_three(
+        for x in tokens.iter() {
+            sum += &self.rule_of_three_non_zero_result(
                 &x.token_amount.amount,
                 &x.attributes.current_farm_amount,
                 &x.attributes.initial_farming_amount,
-            )
-        });
-        sum
+            )?;
+        }
+        Ok(sum)
     }
 
     fn aggregated_compounded_reward(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {

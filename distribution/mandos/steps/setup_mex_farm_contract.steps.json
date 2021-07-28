@@ -36,7 +36,7 @@
                         "str:mint_tokens_gas_limit": "5,000,000",
                         "str:locked_rewards_apr_multiplier": "2",
                         "str:division_safety_constant": "1000000000000",
-                        "str:penalty_percent": "10",
+                        "str:penalty_percent": "100",
                         "str:locked_asset_factory_address": "sc:locked_asset_factory",
                         "str:produce_rewards_enabled": "1",
                         "str:transfer_exec_gas_limit": "50000000",
