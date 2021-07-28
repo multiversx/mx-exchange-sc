@@ -232,6 +232,7 @@ pub trait Farm:
 
             penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
             if penalty_amount > 0 {
+                self.decrease_farming_token_reserve(&penalty_amount)?;
                 self.burn_tokens(&farming_token_id, &penalty_amount);
                 initial_farming_token_amount -= penalty_amount;
             }
