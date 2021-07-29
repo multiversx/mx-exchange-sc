@@ -325,6 +325,9 @@ pub trait Pair:
         #[payment_amount] amount_in: Self::BigUint,
         token_to_buyback_and_burn: TokenIdentifier,
     ) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -377,7 +380,8 @@ pub trait Pair:
         destination_address: Address,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        require!(self.whitelist().contains(&caller), "Not whitelisted");
+        self.require_whitelisted(&caller)?;
+
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Zero input");
 
