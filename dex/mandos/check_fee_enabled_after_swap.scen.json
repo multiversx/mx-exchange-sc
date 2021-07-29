@@ -46,11 +46,6 @@
 								"ESDTRoleNFTAddQuantity",
 								"ESDTRoleNFTBurn"
 							]
-						},
-						"str:LPTOK-abcdef": {
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
 						}
 					},
 					"storage": {
@@ -69,6 +64,7 @@
 						"str:division_safety_constant": "1000000000000",
 						"str:penalty_percent": "100",
 						"str:create_farm_tokens_gas_limit": "5000000",
+						"str:pair_contract_address": "sc:pair_contract",
 						"+": ""
 					},
 					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"

@@ -36,6 +36,11 @@
 					"balance": "0",
 					"esdt": {
 						"str:ALC-abcdef": "5,000,000,000",
+						"str:WEGLD-abcdef": {
+							"roles": [
+								"ESDTRoleLocalBurn"
+							]
+						},
 						"str:LPTOK-abcdef": {
 							"balance": "0",
 							"roles": [
@@ -64,7 +69,8 @@
 						"str:mint_tokens_gas_limit": "500000",
 						"str:send_fee_gas_limit": "25,000,000",
 						"str:extern_swap_gas_limit": "50,000,000",
-						"0x454c524f4e44726f6c65657364744c50544f4b2d616263646566": "0x0a1145534454526f6c654c6f63616c4d696e740a1145534454526f6c654c6f63616c4275726e"
+						"0x454c524f4e44726f6c65657364744c50544f4b2d616263646566": "0x0a1145534454526f6c654c6f63616c4d696e740a1145534454526f6c654c6f63616c4275726e",
+						"+": ""
 					},
 					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm"
 				},

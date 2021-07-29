@@ -157,4 +157,8 @@ pub trait ConfigModule:
 
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[view(getPairContractAddress)]
+    #[storage_mapper("pair_contract_address")]
+    fn pair_contract_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 }
