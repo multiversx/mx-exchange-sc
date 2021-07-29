@@ -459,13 +459,13 @@ pub trait Farm:
         farming_amount: &Self::BigUint,
         reward_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
-        self.decrease_farming_token_reserve(&farming_amount)?;
+        self.decrease_farming_token_reserve(farming_amount)?;
 
         let zero_address = Address::zero();
         let pair_contract_address = self.pair_contract_address().get();
 
         if pair_contract_address == zero_address {
-            self.burn_tokens(&farming_token_id, &farming_amount);
+            self.burn_tokens(farming_token_id, farming_amount);
         } else {
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(
