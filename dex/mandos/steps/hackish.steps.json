@@ -13,6 +13,11 @@
 								"ESDTRoleLocalMint",
 								"ESDTRoleLocalBurn"
 							]
+						},
+						"str:WEGLD-abcdef": {
+							"roles": [
+								"ESDTRoleLocalBurn"
+							]
 						}
 					},
 					"storage": {
@@ -42,11 +47,6 @@
 								"ESDTRoleNFTAddQuantity",
 								"ESDTRoleNFTBurn"
 							]
-						},
-						"str:LPTOK-abcdef": {
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
 						}
 					},
 					"storage": {
@@ -67,7 +67,8 @@
 						"str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
 						"str:nft_deposit_accepted_token_ids.node_id|str:FARM-abcdef": "1",
 						"str:nft_deposit_accepted_token_ids.node_links": "0",
-						"str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef"
+						"str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
+						"str:pair_contract_address": "sc:pair_contract"
 					},
 					"code": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm"
 				}
