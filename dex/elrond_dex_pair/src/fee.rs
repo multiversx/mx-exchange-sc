@@ -372,6 +372,11 @@ pub trait FeeModule:
         Ok(())
     }
 
+    fn require_whitelisted(&self, caller: &Address) -> SCResult<()> {
+        require!(self.whitelist().contains(caller), "Not whitelisted");
+        Ok(())
+    }
+
     #[view(getFeeDestinations)]
     fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier)> {
         MultiResultVec::from_iter(

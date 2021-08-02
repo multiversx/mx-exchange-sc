@@ -44,6 +44,9 @@ pub trait Farm:
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
 
+    #[proxy]
+    fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
+
     #[init]
     fn init(
         &self,
@@ -52,6 +55,7 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         locked_asset_factory_address: Address,
         division_safety_constant: Self::BigUint,
+        pair_contract_address: Address,
     ) -> SCResult<()> {
         require!(
             reward_token_id.is_valid_esdt_identifier(),
@@ -95,6 +99,7 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
+        self.pair_contract_address().set(&pair_contract_address);
         Ok(())
     }
 
@@ -140,9 +145,11 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
-        let attributes = FarmTokenAttributes {
+        let epoch = self.blockchain().get_block_epoch();
+        let mut attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: self.blockchain().get_block_epoch(),
+            entering_epoch: epoch,
+            original_entering_epoch: epoch,
             apr_multiplier,
             with_locked_rewards,
             initial_farming_amount: enter_amount.clone(),
@@ -248,8 +255,7 @@ pub trait Farm:
 
             penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
             if penalty_amount > 0 {
-                self.decrease_farming_token_reserve(&penalty_amount)?;
-                self.burn_tokens(&farming_token_id, &penalty_amount);
+                self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
                 initial_farming_token_amount -= penalty_amount;
             }
         }
@@ -270,7 +276,7 @@ pub trait Farm:
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
-            farm_attributes.entering_epoch,
+            farm_attributes.original_entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -342,7 +348,8 @@ pub trait Farm:
 
         let new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: farm_attributes.entering_epoch,
+            entering_epoch: self.blockchain().get_block_epoch(),
+            original_entering_epoch: farm_attributes.original_entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
@@ -375,7 +382,7 @@ pub trait Farm:
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
-            farm_attributes.entering_epoch,
+            farm_attributes.original_entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -458,6 +465,7 @@ pub trait Farm:
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: self.blockchain().get_block_epoch(),
+            original_entering_epoch: farm_attributes.original_entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
@@ -504,6 +512,32 @@ pub trait Farm:
             created_with_merge,
         );
         Ok(new_farm_token.token_amount)
+    }
+
+    fn burn_farming_tokens(
+        &self,
+        farming_token_id: &TokenIdentifier,
+        farming_amount: &Self::BigUint,
+        reward_token_id: &TokenIdentifier,
+    ) -> SCResult<()> {
+        self.decrease_farming_token_reserve(farming_amount)?;
+
+        let zero_address = Address::zero();
+        let pair_contract_address = self.pair_contract_address().get();
+
+        if pair_contract_address == zero_address {
+            self.burn_tokens(farming_token_id, farming_amount);
+        } else {
+            self.pair_contract_proxy(pair_contract_address)
+                .remove_liquidity_and_burn_token(
+                    farming_token_id.clone(),
+                    farming_amount.clone(),
+                    reward_token_id.clone(),
+                )
+                .execute_on_dest_context_ignore_result();
+        }
+
+        Ok(())
     }
 
     fn create_farm_tokens_by_merging(

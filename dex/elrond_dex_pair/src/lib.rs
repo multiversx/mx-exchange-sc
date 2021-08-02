@@ -355,6 +355,59 @@ pub trait Pair:
     }
 
     #[payable("*")]
+    #[endpoint(removeLiquidityAndBuyBackAndBurnToken)]
+    fn remove_liquidity_and_burn_token(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_amount] amount_in: Self::BigUint,
+        token_to_buyback_and_burn: TokenIdentifier,
+    ) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
+        require!(
+            !self.lp_token_identifier().is_empty(),
+            "LP token not issued"
+        );
+        require!(
+            token_in == self.lp_token_identifier().get(),
+            "Wrong liquidity token"
+        );
+
+        let first_token_id = self.first_token_id().get();
+        let second_token_id = self.second_token_id().get();
+
+        let first_token_min_amount = 1u64.into();
+        let second_token_min_amount = 1u64.into();
+        let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
+            amount_in.clone(),
+            first_token_min_amount,
+            second_token_min_amount,
+        )?;
+
+        let dest_address = Address::zero();
+        self.send_fee_slice(
+            &first_token_id,
+            &first_token_amount,
+            &dest_address,
+            &token_to_buyback_and_burn,
+            &first_token_id,
+            &second_token_id,
+        );
+        self.send_fee_slice(
+            &second_token_id,
+            &second_token_amount,
+            &dest_address,
+            &token_to_buyback_and_burn,
+            &first_token_id,
+            &second_token_id,
+        );
+        self.burn_tokens(&token_in, &amount_in);
+
+        Ok(())
+    }
+
+    #[payable("*")]
     #[endpoint(swapNoFeeAndForward)]
     fn swap_no_fee(
         &self,
@@ -364,7 +417,8 @@ pub trait Pair:
         destination_address: Address,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        require!(self.whitelist().contains(&caller), "Not whitelisted");
+        self.require_whitelisted(&caller)?;
+
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Zero input");
 

@@ -39,7 +39,12 @@
 			"accounts": {
 				"sc:pair_contract": {
 					"esdt": {
-						"str:WEGLD-abcdef": "1",
+						"str:WEGLD-abcdef": {
+							"balance": "1",
+							"roles": [
+								"ESDTRoleLocalBurn"
+							]
+						},
 						"str:ALC-abcdef": "1000001000",
 						"str:LPTOK-abcdef": {
 							"balance": "1000",

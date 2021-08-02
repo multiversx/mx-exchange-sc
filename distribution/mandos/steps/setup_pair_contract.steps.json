@@ -8,6 +8,11 @@
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
+                        "str:MEX-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
                         "str:LPTOK-abcdef": {
                             "roles": [
                                 "ESDTRoleLocalMint",
