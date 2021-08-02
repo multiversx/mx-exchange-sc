@@ -12,7 +12,7 @@ const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct UserLockedAssetKey {
-    pub user_address: Address,
+    pub caller: Address,
     pub spread_epoch: u64,
 }
 
@@ -202,14 +202,14 @@ pub trait Distribution: global_op::GlobalOperationModule {
             "Bad spread epoch"
         );
         for user_asset_multiarg in user_assets.into_vec() {
-            let (user_address, asset_amount) = user_asset_multiarg.into_tuple();
+            let (caller, asset_amount) = user_asset_multiarg.into_tuple();
             require!(asset_amount > 0, "Zero amount");
             require!(
                 last_community_distrib.after_planning_amount >= asset_amount,
                 "User assets sums above community total assets"
             );
             last_community_distrib.after_planning_amount -= asset_amount.clone();
-            self.add_user_locked_asset_entry(user_address, asset_amount, spread_epoch)?;
+            self.add_user_locked_asset_entry(caller, asset_amount, spread_epoch)?;
         }
         self.community_distribution_list().pop_front();
         self.community_distribution_list()
@@ -219,12 +219,12 @@ pub trait Distribution: global_op::GlobalOperationModule {
 
     fn add_user_locked_asset_entry(
         &self,
-        user_address: Address,
+        caller: Address,
         asset_amount: Self::BigUint,
         spread_epoch: u64,
     ) -> SCResult<()> {
         let key = UserLockedAssetKey {
-            user_address,
+            caller,
             spread_epoch,
         };
         require!(
@@ -250,7 +250,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
             .filter(|x| x.spread_epoch <= current_epoch)
         {
             let user_asset_key = UserLockedAssetKey {
-                user_address: address.clone(),
+                caller: address.clone(),
                 spread_epoch: community_distrib.spread_epoch,
             };
 

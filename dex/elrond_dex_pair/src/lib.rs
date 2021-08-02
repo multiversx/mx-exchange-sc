@@ -8,6 +8,7 @@ const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
 pub mod config;
+mod events;
 pub mod fee;
 mod liquidity_pool;
 
@@ -23,6 +24,11 @@ type AddLiquidityResultType<BigUint> = MultiResult3<
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
+type SwapTokensFixedInputResultType<BigUint> = FftTokenAmountPair<BigUint>;
+
+type SwapTokensFixedOutputResultType<BigUint> =
+    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+
 #[elrond_wasm_derive::contract]
 pub trait Pair:
     amm::AmmModule
@@ -31,6 +37,7 @@ pub trait Pair:
     + config::ConfigModule
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
+    + events::EventsModule
 {
     #[init]
     fn init(
@@ -180,14 +187,14 @@ pub trait Pair:
         let liquidity =
             self.pool_add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
 
-        let caller = &self.blockchain().get_caller();
+        let caller = self.blockchain().get_caller();
         let temporary_first_token_unused =
             temporary_first_token_amount - first_token_amount.clone();
         let temporary_second_token_unused =
             temporary_second_token_amount - second_token_amount.clone();
-        self.temporary_funds(caller, &expected_first_token_id)
+        self.temporary_funds(&caller, &expected_first_token_id)
             .clear();
-        self.temporary_funds(caller, &expected_second_token_id)
+        self.temporary_funds(&caller, &expected_second_token_id)
             .clear();
 
         // Once liquidity has been added, the new K should always be greater than the old K.
@@ -197,35 +204,49 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        self.send_tokens(&lp_token_id, &liquidity, caller, &opt_accept_funds_func)?;
+        self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
         self.send_tokens(
             &expected_first_token_id,
             &temporary_first_token_unused,
-            caller,
+            &caller,
             &opt_accept_funds_func,
         )?;
         self.send_tokens(
             &expected_second_token_id,
             &temporary_second_token_unused,
-            caller,
+            &caller,
             &opt_accept_funds_func,
         )?;
 
-        Ok((
-            FftTokenAmountPair {
-                token_id: lp_token_id,
-                amount: liquidity,
-            },
-            FftTokenAmountPair {
-                token_id: expected_first_token_id,
-                amount: first_token_amount,
-            },
-            FftTokenAmountPair {
-                token_id: expected_second_token_id,
-                amount: second_token_amount,
-            },
-        )
-            .into())
+        let lp_token_amount = FftTokenAmountPair {
+            token_id: lp_token_id,
+            amount: liquidity,
+        };
+        let first_token_amount = FftTokenAmountPair {
+            token_id: expected_first_token_id.clone(),
+            amount: first_token_amount,
+        };
+        let second_token_amount = FftTokenAmountPair {
+            token_id: expected_second_token_id.clone(),
+            amount: second_token_amount,
+        };
+        let first_token_reserve = FftTokenAmountPair {
+            token_id: expected_first_token_id.clone(),
+            amount: self.pair_reserve(&expected_first_token_id).get(),
+        };
+        let second_token_reserve = FftTokenAmountPair {
+            token_id: expected_second_token_id.clone(),
+            amount: self.pair_reserve(&expected_second_token_id).get(),
+        };
+        self.emit_add_liquidity_event(
+            caller,
+            first_token_amount.clone(),
+            second_token_amount.clone(),
+            lp_token_amount.clone(),
+            self.get_total_lp_token_supply(),
+            [first_token_reserve, second_token_reserve].to_vec(),
+        );
+        Ok((lp_token_amount, first_token_amount, second_token_amount).into())
     }
 
     fn reclaim_temporary_token(
@@ -258,7 +279,7 @@ pub trait Pair:
     #[endpoint(removeLiquidity)]
     fn remove_liquidity(
         &self,
-        #[payment_token] liquidity_token: TokenIdentifier,
+        #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
@@ -270,10 +291,8 @@ pub trait Pair:
         );
 
         let caller = self.blockchain().get_caller();
-        require!(
-            liquidity_token == self.lp_token_identifier().get(),
-            "Wrong liquidity token"
-        );
+        let lp_token_id = self.lp_token_identifier().get();
+        require!(token_id == lp_token_id, "Wrong liquidity token");
 
         let old_k = self.calculate_k_for_reserves();
         let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
@@ -302,19 +321,37 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        self.burn_tokens(&liquidity_token, &liquidity);
+        self.burn_tokens(&token_id, &liquidity);
 
-        Ok((
-            FftTokenAmountPair {
-                token_id: first_token_id,
-                amount: first_token_amount,
-            },
-            FftTokenAmountPair {
-                token_id: second_token_id,
-                amount: second_token_amount,
-            },
-        )
-            .into())
+        let lp_token_amount = FftTokenAmountPair {
+            token_id: lp_token_id,
+            amount: liquidity,
+        };
+        let first_token_amount = FftTokenAmountPair {
+            token_id: first_token_id.clone(),
+            amount: first_token_amount,
+        };
+        let second_token_amount = FftTokenAmountPair {
+            token_id: second_token_id.clone(),
+            amount: second_token_amount,
+        };
+        let first_token_reserve = FftTokenAmountPair {
+            token_id: first_token_id.clone(),
+            amount: self.pair_reserve(&first_token_id).get(),
+        };
+        let second_token_reserve = FftTokenAmountPair {
+            token_id: second_token_id.clone(),
+            amount: self.pair_reserve(&second_token_id).get(),
+        };
+        self.emit_remove_liquidity_event(
+            caller,
+            first_token_amount.clone(),
+            second_token_amount.clone(),
+            lp_token_amount,
+            self.get_total_lp_token_supply(),
+            [first_token_reserve, second_token_reserve].to_vec(),
+        );
+        Ok((first_token_amount, second_token_amount).into())
     }
 
     #[payable("*")]
@@ -408,6 +445,12 @@ pub trait Pair:
         self.validate_k_invariant(&old_k, &new_k)?;
 
         self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
+
+        let swap_out_token_amount = FftTokenAmountPair {
+            token_id: token_out,
+            amount: amount_out,
+        };
+        self.emit_swap_no_fee_and_forward_event(caller, swap_out_token_amount, destination_address);
         Ok(())
     }
 
@@ -420,7 +463,7 @@ pub trait Pair:
         token_out: TokenIdentifier,
         amount_out_min: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<SwapTokensFixedInputResultType<Self::BigUint>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
@@ -474,7 +517,7 @@ pub trait Pair:
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
-            self.send_fee(&token_in, fee_amount);
+            self.send_fee(&token_in, &fee_amount);
         }
         self.send_tokens(
             &token_out,
@@ -483,7 +526,30 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
-        Ok(())
+        let token_amount_in = FftTokenAmountPair {
+            token_id: token_in.clone(),
+            amount: amount_in,
+        };
+        let token_amount_out = FftTokenAmountPair {
+            token_id: token_out.clone(),
+            amount: amount_out_optimal,
+        };
+        let token_in_reserves = FftTokenAmountPair {
+            token_id: token_in,
+            amount: reserve_token_in,
+        };
+        let token_out_reserves = FftTokenAmountPair {
+            token_id: token_out,
+            amount: reserve_token_out,
+        };
+        self.emit_swap_event(
+            caller,
+            token_amount_in,
+            token_amount_out.clone(),
+            fee_amount,
+            [token_in_reserves, token_out_reserves].to_vec(),
+        );
+        Ok(token_amount_out)
     }
 
     #[payable("*")]
@@ -495,7 +561,7 @@ pub trait Pair:
         token_out: TokenIdentifier,
         amount_out: Self::BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<SwapTokensFixedOutputResultType<Self::BigUint>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
@@ -546,13 +612,40 @@ pub trait Pair:
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
-            self.send_fee(&token_in, fee_amount);
+            self.send_fee(&token_in, &fee_amount);
         }
 
         self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
         self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
 
-        Ok(())
+        let token_amount_in = FftTokenAmountPair {
+            token_id: token_in.clone(),
+            amount: amount_in_optimal,
+        };
+        let token_amount_out = FftTokenAmountPair {
+            token_id: token_out.clone(),
+            amount: amount_out,
+        };
+        let token_in_reserves = FftTokenAmountPair {
+            token_id: token_in.clone(),
+            amount: reserve_token_in,
+        };
+        let token_out_reserves = FftTokenAmountPair {
+            token_id: token_out,
+            amount: reserve_token_out,
+        };
+        let residuum_token_amount = FftTokenAmountPair {
+            token_id: token_in,
+            amount: residuum,
+        };
+        self.emit_swap_event(
+            caller,
+            token_amount_in,
+            token_amount_out.clone(),
+            fee_amount,
+            [token_in_reserves, token_out_reserves].to_vec(),
+        );
+        Ok((token_amount_out, residuum_token_amount).into())
     }
 
     fn send_tokens(

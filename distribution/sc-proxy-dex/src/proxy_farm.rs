@@ -7,11 +7,11 @@ use common_structs::{
     FftTokenAmountPair, GenericTokenAmountPair, Nonce, WrappedFarmTokenAttributes,
 };
 
-use super::wrapped_farm_token_merge;
-use super::wrapped_lp_token_merge;
-
+use super::events;
 use super::proxy_common;
 use super::proxy_pair;
+use super::wrapped_farm_token_merge;
+use super::wrapped_lp_token_merge;
 
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
 
@@ -38,6 +38,7 @@ pub trait ProxyFarmModule:
     + nft_deposit::NftDepositModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge
+    + events::EventsModule
 {
     #[proxy]
     fn farm_contract_proxy(&self, to: Address) -> elrond_dex_farm::Proxy<Self::SendApi>;
@@ -121,18 +122,32 @@ pub trait ProxyFarmModule:
             farm_token_id,
             farm_token_nonce,
             farm_token_amount: farm_token_total_amount.clone(),
-            farming_token_id: token_id,
+            farming_token_id: token_id.clone(),
             farming_token_nonce: token_nonce,
-            farming_token_amount: amount,
+            farming_token_amount: amount.clone(),
         };
         let caller = self.blockchain().get_caller();
-        self.create_by_wrapped_farm_tokens_by_merging_and_send(
-            &attributes,
-            &farm_token_total_amount,
-            &farm_address,
-            &caller,
-        )?;
+        let (new_wrapped_farm_token, created_with_merge) = self
+            .create_wrapped_farm_tokens_by_merging_and_send(
+                &attributes,
+                &farm_token_total_amount,
+                &farm_address,
+                &caller,
+            )?;
 
+        let farming_token_amount = GenericTokenAmountPair {
+            token_id,
+            token_nonce,
+            amount,
+        };
+        self.emit_enter_farm_proxy_event(
+            caller,
+            farm_address,
+            farming_token_amount,
+            new_wrapped_farm_token.token_amount,
+            new_wrapped_farm_token.attributes,
+            created_with_merge,
+        );
         Ok(())
     }
 
@@ -156,7 +171,7 @@ pub trait ProxyFarmModule:
 
         let wrapped_farm_token_attrs =
             self.get_wrapped_farm_token_attributes(&token_id, token_nonce)?;
-        let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
+        let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
         let farm_result = self
@@ -189,6 +204,24 @@ pub trait ProxyFarmModule:
             );
         }
 
+        let farming_tokens = GenericTokenAmountPair {
+            token_id: wrapped_farm_token_attrs.farming_token_id.clone(),
+            token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
+            amount: farming_token_returned.amount,
+        };
+        let wrapped_farm_token_amount = GenericTokenAmountPair {
+            token_id,
+            token_nonce,
+            amount,
+        };
+        self.emit_exit_farm_proxy_event(
+            caller,
+            farm_address.clone(),
+            wrapped_farm_token_amount,
+            wrapped_farm_token_attrs,
+            farming_tokens,
+            reward_token_returned,
+        );
         Ok(())
     }
 
@@ -214,7 +247,7 @@ pub trait ProxyFarmModule:
         // Read info about wrapped farm token and then burn it.
         let wrapped_farm_token_attrs =
             self.get_wrapped_farm_token_attributes(&token_id, token_nonce)?;
-        let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
+        let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
         let result = self
@@ -244,7 +277,7 @@ pub trait ProxyFarmModule:
             farm_token_id: new_farm_token_id,
             farm_token_nonce: new_farm_token_nonce,
             farm_token_amount: new_farm_token_total_amount.clone(),
-            farming_token_id: wrapped_farm_token_attrs.farming_token_id,
+            farming_token_id: wrapped_farm_token_attrs.farming_token_id.clone(),
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
             farming_token_amount: self.rule_of_three_non_zero_result(
                 &amount,
@@ -252,14 +285,30 @@ pub trait ProxyFarmModule:
                 &wrapped_farm_token_attrs.farming_token_amount,
             )?,
         };
-        self.create_by_wrapped_farm_tokens_by_merging_and_send(
-            &new_wrapped_farm_token_attributes,
-            &new_farm_token_total_amount,
-            &farm_address,
-            &caller,
-        )?;
+        let (new_wrapped_farm, created_with_merge) = self
+            .create_wrapped_farm_tokens_by_merging_and_send(
+                &new_wrapped_farm_token_attributes,
+                &new_farm_token_total_amount,
+                &farm_address,
+                &caller,
+            )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
+        let old_wrapped_farm_token_amount = GenericTokenAmountPair {
+            token_id,
+            token_nonce,
+            amount,
+        };
+        self.emit_claim_rewards_farm_proxy_event(
+            caller,
+            farm_address,
+            old_wrapped_farm_token_amount,
+            new_wrapped_farm.token_amount,
+            reward_token_returned,
+            wrapped_farm_token_attrs,
+            new_wrapped_farm.attributes,
+            created_with_merge,
+        );
         Ok(())
     }
 
@@ -285,7 +334,7 @@ pub trait ProxyFarmModule:
 
         let wrapped_farm_token_attrs =
             self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce)?;
-        let farm_token_id = wrapped_farm_token_attrs.farm_token_id;
+        let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
         let farm_amount = payment_amount.clone();
 
@@ -309,7 +358,7 @@ pub trait ProxyFarmModule:
             farm_token_id: new_farm_token_id,
             farm_token_nonce: new_farm_token_nonce,
             farm_token_amount: new_farm_token_amount.clone(),
-            farming_token_id: wrapped_farm_token_attrs.farming_token_id,
+            farming_token_id: wrapped_farm_token_attrs.farming_token_id.clone(),
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
             farming_token_amount: self.rule_of_three_non_zero_result(
                 &payment_amount,
@@ -317,24 +366,40 @@ pub trait ProxyFarmModule:
                 &wrapped_farm_token_attrs.farming_token_amount,
             )?,
         };
-        self.create_by_wrapped_farm_tokens_by_merging_and_send(
-            &new_wrapped_farm_token_attributes,
-            &new_farm_token_amount,
-            &farm_address,
-            &self.blockchain().get_caller(),
-        )?;
+        let caller = self.blockchain().get_caller();
+        let (new_wrapped_farm, created_with_merge) = self
+            .create_wrapped_farm_tokens_by_merging_and_send(
+                &new_wrapped_farm_token_attributes,
+                &new_farm_token_amount,
+                &farm_address,
+                &caller,
+            )?;
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
+        let old_wrapped_farm_token_amount = GenericTokenAmountPair {
+            token_id: payment_token_id,
+            token_nonce: payment_token_nonce,
+            amount: payment_amount,
+        };
+        self.emit_compound_rewards_farm_proxy_event(
+            caller,
+            farm_address,
+            old_wrapped_farm_token_amount,
+            new_wrapped_farm.token_amount,
+            wrapped_farm_token_attrs,
+            new_wrapped_farm.attributes,
+            created_with_merge,
+        );
         Ok(())
     }
 
-    fn create_by_wrapped_farm_tokens_by_merging_and_send(
+    fn create_wrapped_farm_tokens_by_merging_and_send(
         &self,
         attributes: &WrappedFarmTokenAttributes<Self::BigUint>,
         amount: &Self::BigUint,
         farm_address: &Address,
         caller: &Address,
-    ) -> SCResult<()> {
+    ) -> SCResult<(WrappedFarmToken<Self::BigUint>, bool)> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
             caller,

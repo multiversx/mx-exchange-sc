@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 
 pub mod config;
+mod events;
 mod farm_token;
 pub mod farm_token_merge;
 mod rewards;
@@ -38,6 +39,7 @@ pub trait Farm:
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
+    + events::EventsModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
@@ -137,7 +139,7 @@ pub trait Farm:
         require!(enter_amount > 0, "Cannot farm with amount of 0");
         self.increase_farming_token_reserve(&enter_amount);
 
-        let (mut farm_contribution, apr_multiplier) =
+        let (farm_contribution, apr_multiplier) =
             self.get_farm_contribution(&enter_amount, with_locked_rewards);
 
         let reward_token_id = self.reward_token_id().get();
@@ -150,32 +152,46 @@ pub trait Farm:
             original_entering_epoch: epoch,
             apr_multiplier,
             with_locked_rewards,
-            initial_farming_amount: enter_amount,
+            initial_farming_amount: enter_amount.clone(),
             compounded_reward: 0u64.into(),
             current_farm_amount: farm_contribution.clone(),
         };
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
-        let new_nonce = self.create_farm_tokens_by_merging(
-            &mut farm_contribution,
+        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+            &farm_contribution,
             &farm_token_id,
-            &mut attributes,
+            &attributes,
             &caller,
         )?;
         self.send_nft_tokens(
             &farm_token_id,
-            new_nonce,
-            &farm_contribution,
+            new_farm_token.token_amount.token_nonce,
+            &new_farm_token.token_amount.amount,
             &caller,
             &opt_accept_funds_func,
         )?;
 
-        Ok(GenericTokenAmountPair {
-            token_id: farm_token_id,
-            token_nonce: new_nonce,
-            amount: farm_contribution,
-        })
+        let farming_token_amount = FftTokenAmountPair {
+            token_id: farming_token_id,
+            amount: enter_amount,
+        };
+        let reward_token_reserve = FftTokenAmountPair {
+            token_id: reward_token_id,
+            amount: self.reward_reserve().get(),
+        };
+        self.emit_enter_farm_event(
+            caller,
+            farming_token_amount,
+            self.farming_token_reserve().get(),
+            new_farm_token.token_amount.clone(),
+            self.get_farm_token_supply(),
+            reward_token_reserve,
+            new_farm_token.attributes,
+            created_with_merge,
+        );
+        Ok(new_farm_token.token_amount)
     }
 
     fn get_farm_contribution(
@@ -264,18 +280,31 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        Ok((
-            FftTokenAmountPair {
-                token_id: farming_token_id,
-                amount: initial_farming_token_amount,
-            },
-            GenericTokenAmountPair {
-                token_id: reward_token_id,
-                token_nonce: reward_nonce,
-                amount: reward,
-            },
-        )
-            .into())
+        let farming_token_amount = FftTokenAmountPair {
+            token_id: farming_token_id,
+            amount: initial_farming_token_amount,
+        };
+        let reward_token_amount = GenericTokenAmountPair {
+            token_id: reward_token_id,
+            token_nonce: reward_nonce,
+            amount: reward,
+        };
+        let farm_token_amount = GenericTokenAmountPair {
+            token_id: farm_token_id,
+            token_nonce,
+            amount,
+        };
+        self.emit_exit_farm_event(
+            caller,
+            farming_token_amount.clone(),
+            self.farming_token_reserve().get(),
+            farm_token_amount,
+            self.get_farm_token_supply(),
+            reward_token_amount.clone(),
+            self.reward_reserve().get(),
+            farm_attributes,
+        );
+        Ok((farming_token_amount, reward_token_amount).into())
     }
 
     #[payable("*")]
@@ -317,7 +346,7 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         );
 
-        let mut new_attributes = FarmTokenAttributes {
+        let new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: self.blockchain().get_block_epoch(),
             original_entering_epoch: farm_attributes.original_entering_epoch,
@@ -330,17 +359,17 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
-        let mut farm_amount = amount.clone();
-        let new_nonce = self.create_farm_tokens_by_merging(
-            &mut farm_amount,
+        let farm_amount = amount.clone();
+        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+            &farm_amount,
             &farm_token_id,
-            &mut new_attributes,
+            &new_attributes,
             &caller,
         )?;
         self.send_nft_tokens(
             &farm_token_id,
-            new_nonce,
-            &amount,
+            new_farm_token.token_amount.token_nonce,
+            &new_farm_token.token_amount.amount,
             &caller,
             &opt_accept_funds_func,
         )?;
@@ -357,19 +386,29 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        Ok((
-            GenericTokenAmountPair {
-                token_id: farm_token_id,
-                token_nonce: new_nonce,
-                amount,
-            },
-            GenericTokenAmountPair {
-                token_id: reward_token_id,
-                token_nonce: reward_nonce,
-                amount: reward,
-            },
-        )
-            .into())
+        let old_farm_token_amount = GenericTokenAmountPair {
+            token_id: farm_token_id,
+            token_nonce,
+            amount,
+        };
+        let reward_token_amount = GenericTokenAmountPair {
+            token_id: reward_token_id,
+            token_nonce: reward_nonce,
+            amount: reward,
+        };
+
+        self.emit_claim_rewards_event(
+            caller,
+            old_farm_token_amount,
+            new_farm_token.token_amount.clone(),
+            self.get_farm_token_supply(),
+            reward_token_amount.clone(),
+            self.reward_reserve().get(),
+            farm_attributes,
+            new_farm_token.attributes,
+            created_with_merge,
+        );
+        Ok((new_farm_token.token_amount, reward_token_amount).into())
     }
 
     #[payable("*")]
@@ -409,7 +448,7 @@ pub trait Farm:
         }
 
         let farm_token_id = self.farm_token_id().get();
-        let mut new_farm_contribution =
+        let new_farm_contribution =
             &payment_amount + &(&reward * &(farm_attributes.apr_multiplier as u64).into());
 
         let new_initial_farming_amount = self.rule_of_three_non_zero_result(
@@ -417,13 +456,13 @@ pub trait Farm:
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
         )?;
-        let new_compound_reward_amount = self.rule_of_three(
+        let new_compound_reward_amount = &self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
-        ) + reward;
+        ) + &reward;
 
-        let mut new_attributes = FarmTokenAttributes {
+        let new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: self.blockchain().get_block_epoch(),
             original_entering_epoch: farm_attributes.original_entering_epoch,
@@ -436,25 +475,43 @@ pub trait Farm:
 
         self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount)?;
         let caller = self.blockchain().get_caller();
-        let new_nonce = self.create_farm_tokens_by_merging(
-            &mut new_farm_contribution,
+        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+            &new_farm_contribution,
             &farm_token_id,
-            &mut new_attributes,
+            &new_attributes,
             &caller,
         )?;
         self.send_nft_tokens(
             &farm_token_id,
-            new_nonce,
-            &new_farm_contribution,
+            new_farm_token.token_amount.token_nonce,
+            &new_farm_token.token_amount.amount,
             &caller,
             &opt_accept_funds_func,
         )?;
 
-        Ok(GenericTokenAmountPair {
+        let old_farm_token_amount = GenericTokenAmountPair {
             token_id: farm_token_id,
-            token_nonce: new_nonce,
-            amount: new_farm_contribution,
-        })
+            token_nonce: payment_token_nonce,
+            amount: payment_amount,
+        };
+        let reward_token_amount = GenericTokenAmountPair {
+            token_id: self.reward_token_id().get(),
+            token_nonce: 0,
+            amount: reward,
+        };
+
+        self.emit_compound_rewards_event(
+            caller,
+            old_farm_token_amount,
+            new_farm_token.token_amount.clone(),
+            self.get_farm_token_supply(),
+            reward_token_amount,
+            self.reward_reserve().get(),
+            farm_attributes,
+            new_farm_token.attributes,
+            created_with_merge,
+        );
+        Ok(new_farm_token.token_amount)
     }
 
     fn burn_farming_tokens(
@@ -485,11 +542,11 @@ pub trait Farm:
 
     fn create_farm_tokens_by_merging(
         &self,
-        amount: &mut Self::BigUint,
+        amount: &Self::BigUint,
         token_id: &TokenIdentifier,
-        attributes: &mut FarmTokenAttributes<Self::BigUint>,
+        attributes: &FarmTokenAttributes<Self::BigUint>,
         caller: &Address,
-    ) -> SCResult<Nonce> {
+    ) -> SCResult<(FarmToken<Self::BigUint>, bool)> {
         let current_position_replic = FarmToken {
             token_amount: GenericTokenAmountPair {
                 token_id: token_id.clone(),
@@ -500,13 +557,26 @@ pub trait Farm:
         };
 
         let deposit = self.nft_deposit(caller).get();
+        let deposit_len = deposit.len();
         let merged_attributes =
             self.get_merged_farm_token_attributes(&deposit, Some(current_position_replic))?;
         self.burn_deposit_tokens(caller, &deposit);
 
-        *amount = merged_attributes.current_farm_amount.clone();
-        *attributes = merged_attributes.clone();
-        Ok(self.create_farm_tokens(amount, token_id, &merged_attributes))
+        let new_amount = merged_attributes.current_farm_amount.clone();
+        let new_attributes = merged_attributes;
+        let new_nonce = self.create_farm_tokens(&new_amount, token_id, &new_attributes);
+
+        let new_farm_token = FarmToken {
+            token_amount: GenericTokenAmountPair {
+                token_id: token_id.clone(),
+                token_nonce: new_nonce,
+                amount: new_amount,
+            },
+            attributes: new_attributes,
+        };
+        let is_merged = deposit_len != 0;
+
+        Ok((new_farm_token, is_merged))
     }
 
     fn send_back_farming_tokens(

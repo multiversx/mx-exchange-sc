@@ -53,7 +53,8 @@ pub trait WrappedFarmTokenMerge:
             &farm_contract,
             Option::None,
             opt_accept_funds_func,
-        )
+        )?;
+        Ok(())
     }
 
     fn merge_wrapped_farm_tokens_and_send(
@@ -62,9 +63,10 @@ pub trait WrappedFarmTokenMerge:
         farm_contract: &Address,
         replic: Option<WrappedFarmToken<Self::BigUint>>,
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
+    ) -> SCResult<(WrappedFarmToken<Self::BigUint>, bool)> {
         let deposit = self.nft_deposit(caller).get();
         require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
+        let deposit_len = deposit.len();
 
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.require_all_tokens_are_wrapped_farm_tokens(&deposit, &wrapped_farm_token_id)?;
@@ -81,7 +83,7 @@ pub trait WrappedFarmTokenMerge:
         self.burn_deposit_tokens(caller, &deposit);
 
         let new_attrs = WrappedFarmTokenAttributes {
-            farm_token_id: merged_farm_token_amount.token_id,
+            farm_token_id: merged_farm_token_amount.token_id.clone(),
             farm_token_nonce: merged_farm_token_amount.token_nonce,
             farm_token_amount: merged_farm_token_amount.amount.clone(),
             farming_token_id: farming_token_amount.token_id,
@@ -104,7 +106,13 @@ pub trait WrappedFarmTokenMerge:
             &opt_accept_funds_func,
         )?;
 
-        Ok(())
+        let new_token = WrappedFarmToken {
+            token_amount: merged_farm_token_amount,
+            attributes: new_attrs,
+        };
+        let is_merged = deposit_len != 0;
+
+        Ok((new_token, is_merged))
     }
 
     fn require_deposit_empty_or_tokens_are_wrapped_farm_tokens(&self) -> SCResult<()> {

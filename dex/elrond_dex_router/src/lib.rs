@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+mod events;
 mod factory;
 use factory::PairTokens;
 
@@ -17,7 +18,7 @@ const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
 #[elrond_wasm_derive::contract]
-pub trait Router: factory::FactoryModule {
+pub trait Router: factory::FactoryModule + events::EventsModule {
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
 
@@ -105,13 +106,23 @@ pub trait Router: factory::FactoryModule {
             );
         }
 
-        self.create_pair(
+        let address = self.create_pair(
             &first_token_id,
             &second_token_id,
             &owner,
             total_fee_percent_requested,
             special_fee_percent_requested,
-        )
+        )?;
+
+        self.emit_create_pair_event(
+            caller,
+            first_token_id,
+            second_token_id,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
+            address.clone(),
+        );
+        Ok(address)
     }
 
     #[endpoint(upgradePair)]

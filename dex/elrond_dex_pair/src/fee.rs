@@ -114,20 +114,20 @@ pub trait FeeModule:
         self.pair_reserve(token).set(&reserve);
     }
 
-    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: Self::BigUint) {
-        if fee_amount == 0 {
+    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: &Self::BigUint) {
+        if fee_amount == &0 {
             return;
         }
 
         let slices = self.destination_map().len() as u64;
         if slices == 0 {
-            self.reinject(fee_token, &fee_amount);
+            self.reinject(fee_token, fee_amount);
             return;
         }
 
-        let fee_slice = &fee_amount / &slices.into();
+        let fee_slice = fee_amount / &slices.into();
         if fee_slice == 0 {
-            self.reinject(fee_token, &fee_amount);
+            self.reinject(fee_token, fee_amount);
             return;
         }
 
@@ -145,7 +145,7 @@ pub trait FeeModule:
             );
         }
 
-        let rounding_error = fee_amount - fee_slice * slices.into();
+        let rounding_error = fee_amount - &(fee_slice * slices.into());
         if rounding_error > 0 {
             self.reinject(fee_token, &rounding_error);
         }

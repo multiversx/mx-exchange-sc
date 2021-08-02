@@ -10,7 +10,7 @@ pub struct UnlockSchedule {
     pub unlock_milestones: Vec<UnlockMilestone>,
 }
 
-#[derive(TopEncode, TopDecode, TypeAbi, Clone)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct LockedAssetTokenAttributes {
     pub unlock_schedule: UnlockSchedule,
     pub is_merged: bool,
