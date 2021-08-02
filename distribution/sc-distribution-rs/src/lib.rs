@@ -113,7 +113,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.require_community_distribution_list_not_empty()?;
 
         let caller = self.blockchain().get_caller();
-        let mut cummulated_amount = Self::BigUint::zero();
+        let mut cummulated_amount = 0u64.into();
 
         let locked_assets = self.calculate_user_locked_assets(&caller, true);
         if locked_assets.is_empty() {
@@ -170,7 +170,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.require_community_distribution_list_not_empty()?;
         let locked_assets = self.calculate_user_locked_assets(&address, false);
 
-        let mut cummulated_amount = Self::BigUint::zero();
+        let mut cummulated_amount = 0u64.into();
         for (amount, _) in locked_assets.iter() {
             cummulated_amount += amount;
         }
@@ -187,7 +187,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
                     last_community_distrib.spread_epoch,
                 )
             })
-            .unwrap_or((Self::BigUint::zero(), 0u64))
+            .unwrap_or((0u64.into(), 0u64))
             .into()
     }
 

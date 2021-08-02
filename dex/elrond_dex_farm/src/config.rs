@@ -1,7 +1,14 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
+
+pub const MAX_PENALTY_PERCENT: u64 = 10_000;
+pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
+pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
+pub const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
+pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
+pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -10,7 +17,9 @@ pub enum State {
 }
 
 #[elrond_wasm_derive::module]
-pub trait ConfigModule: token_supply::TokenSupplyModule {
+pub trait ConfigModule:
+    token_supply::TokenSupplyModule + token_send::TokenSendModule + nft_deposit::NftDepositModule
+{
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -26,9 +35,12 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
     }
 
     #[endpoint]
-    fn set_penalty_percent(&self, percent: u8) -> SCResult<()> {
+    fn set_penalty_percent(&self, percent: u64) -> SCResult<()> {
         self.require_permissions()?;
-        require!(percent < 100, "Percent cannot exceed 100");
+        require!(
+            percent < MAX_PENALTY_PERCENT,
+            "Percent cannot exceed max percent"
+        );
         self.penalty_percent().set(&percent);
         Ok(())
     }
@@ -55,6 +67,27 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
         Ok(())
     }
 
+    #[endpoint(setNftDepositMaxLen)]
+    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
+        self.require_permissions()?;
+        self.nft_deposit_max_len().set(&max_len);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn pause(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Inactive);
+        Ok(())
+    }
+
+    #[endpoint]
+    fn resume(&self) -> SCResult<()> {
+        self.require_permissions()?;
+        self.state().set(&State::Active);
+        Ok(())
+    }
+
     #[view(getFarmTokenSupply)]
     fn get_farm_token_supply(&self) -> Self::BigUint {
         let result = self.get_total_supply(&self.farm_token_id().get());
@@ -63,9 +96,6 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
             SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
         }
     }
-
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
@@ -97,7 +127,7 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
 
     #[view(getPenaltyPercent)]
     #[storage_mapper("penalty_percent")]
-    fn penalty_percent(&self) -> SingleValueMapper<Self::Storage, u8>;
+    fn penalty_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getLockedRewardAprMuliplier)]
     #[storage_mapper("locked_rewards_apr_multiplier")]
@@ -127,4 +157,8 @@ pub trait ConfigModule: token_supply::TokenSupplyModule {
 
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[view(getPairContractAddress)]
+    #[storage_mapper("pair_contract_address")]
+    fn pair_contract_address(&self) -> SingleValueMapper<Self::Storage, Address>;
 }

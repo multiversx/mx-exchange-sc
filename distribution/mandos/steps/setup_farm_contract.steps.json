@@ -15,11 +15,6 @@
                                 "ESDTRoleNFTBurn"
                             ]
                         },
-                        "str:LPTOK-abcdef": {
-                            "roles": [
-                                "ESDTRoleLocalBurn"
-                            ]
-                        },
                         "str:MEX-abcdef": {
                             "roles": [
                                 "ESDTRoleLocalMint",
@@ -38,11 +33,17 @@
                         "str:burn_tokens_gas_limit": "5,000,000",
                         "str:mint_tokens_gas_limit": "5,000,000",
                         "str:locked_rewards_apr_multiplier": "2",
-                        "str:penalty_percent": "10",
+                        "str:penalty_percent": "100",
                         "str:locked_asset_factory_address": "sc:locked_asset_factory",
                         "str:division_safety_constant": "1000000000000",
                         "str:transfer_exec_gas_limit": "50000000",
-                        "str:create_farm_tokens_gas_limit": "5000000"
+                        "str:create_farm_tokens_gas_limit": "5000000",
+                        "str:nft_deposit_max_len": "10",
+                        "str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:nft_deposit_accepted_token_ids.node_id|str:FARM-abcdef": "1",
+                        "str:nft_deposit_accepted_token_ids.node_links": "0",
+                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
+                        "str:pair_contract_address": "sc:pair_contract"
                     },
                     "code": "file:../../../dex/elrond_dex_farm/output/elrond_dex_farm.wasm",
                     "owner": "address:owner"
@@ -55,6 +56,27 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "whitelist",
+                "arguments": [
+                    "sc:farm_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "5",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:pair_contract",
                 "value": "0",
                 "function": "whitelist",
                 "arguments": [

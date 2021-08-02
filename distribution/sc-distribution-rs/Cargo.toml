@@ -13,11 +13,11 @@ wasm-output-mode = [
   "token_supply/wasm-output-mode",
 ]
 
-[dependencies.distrib-common]
-path = "../distrib-common"
+[dependencies.common_structs]
+path = "../../common/common_structs"
 
 [dependencies.token_supply]
-path = "../../modules/token_supply"
+path = "../../common/modules/token_supply"
 
 [dependencies.sc-locked-asset-factory]
 path = "../../sc-locked-asset-factory"

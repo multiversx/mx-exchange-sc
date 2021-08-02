@@ -1,11 +1,13 @@
 #![no_std]
-#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod factory;
 use factory::PairTokens;
+
+use elrond_dex_pair::config::ProxyTrait as _;
+use elrond_dex_pair::fee::ProxyTrait as _;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
@@ -160,8 +162,8 @@ pub trait Router: factory::FactoryModule {
     fn issue_lp_token(
         &self,
         pair_address: Address,
-        tp_token_display_name: BoxedBytes,
-        tp_token_ticker: BoxedBytes,
+        lp_token_display_name: BoxedBytes,
+        lp_token_ticker: BoxedBytes,
         #[payment_amount] issue_cost: Self::BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
@@ -184,16 +186,16 @@ pub trait Router: factory::FactoryModule {
 
         let result = self
             .pair_contract_proxy(pair_address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
             .issue_fungible(
                 issue_cost,
-                &tp_token_display_name,
-                &tp_token_ticker,
-                &Self::BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
+                &lp_token_display_name,
+                &lp_token_ticker,
+                &LP_TOKEN_INITIAL_SUPPLY.into(),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -220,7 +222,7 @@ pub trait Router: factory::FactoryModule {
 
         let pair_token = self
             .pair_contract_proxy(pair_address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
@@ -272,7 +274,7 @@ pub trait Router: factory::FactoryModule {
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(true, fee_to_address, fee_token)
+            .set_fee_on(true, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
@@ -290,7 +292,7 @@ pub trait Router: factory::FactoryModule {
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(false, fee_to_address, fee_token)
+            .set_fee_on(false, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
@@ -362,7 +364,7 @@ pub trait Router: factory::FactoryModule {
 
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
-                    .setLpTokenIdentifier(token_id)
+                    .set_lp_token_identifier(token_id)
                     .execute_on_dest_context();
             }
             AsyncCallResult::Err(message) => {

@@ -4,8 +4,8 @@ elrond_wasm::derive_imports!();
 use super::amm;
 use super::config;
 use super::liquidity_pool;
+use common_structs::TokenPair;
 use core::iter::FromIterator;
-use dex_common::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 
@@ -15,8 +15,8 @@ mod farm_proxy {
     #[elrond_wasm_derive::proxy]
     pub trait Farm {
         #[payable("*")]
-        #[endpoint]
-        fn acceptFee(
+        #[endpoint(acceptFee)]
+        fn accept_fee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
             #[payment_amount] amount: Self::BigUint,
@@ -30,6 +30,7 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
 {
     #[proxy]
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
@@ -124,7 +125,7 @@ pub trait FeeModule:
             return;
         }
 
-        let fee_slice = &fee_amount / &Self::BigUint::from(slices);
+        let fee_slice = &fee_amount / &slices.into();
         if fee_slice == 0 {
             self.reinject(fee_token, &fee_amount);
             return;
@@ -144,7 +145,7 @@ pub trait FeeModule:
             );
         }
 
-        let rounding_error = fee_amount - fee_slice * Self::BigUint::from(slices);
+        let rounding_error = fee_amount - fee_slice * slices.into();
         if rounding_error > 0 {
             self.reinject(fee_token, &rounding_error);
         }
@@ -308,7 +309,7 @@ pub trait FeeModule:
                 self.burn_tokens(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
-                    .acceptFee(token.clone(), amount.clone())
+                    .accept_fee(token.clone(), amount.clone())
                     .execute_on_dest_context();
             }
         }
@@ -346,13 +347,13 @@ pub trait FeeModule:
         }
     }
 
+    #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,
         enabled: bool,
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        //require!(self.is_active(), "Not active");
         self.require_permissions()?;
         let is_dest = self
             .destination_map()
@@ -368,6 +369,11 @@ pub trait FeeModule:
             require!(fee_token == dest_fee_token, "Destination fee token differs");
             self.destination_map().remove(&fee_to_address);
         }
+        Ok(())
+    }
+
+    fn require_whitelisted(&self, caller: &Address) -> SCResult<()> {
+        require!(self.whitelist().contains(caller), "Not whitelisted");
         Ok(())
     }
 

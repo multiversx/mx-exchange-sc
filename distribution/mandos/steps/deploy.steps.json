@@ -143,7 +143,8 @@
                 "contractCode": "file:../../sc-proxy-dex/output/sc-proxy-dex.wasm",
                 "arguments": [
                     "str:MEX-abcdef",
-                    "str:LKMEX-abcdef"
+                    "str:LKMEX-abcdef",
+                    "sc:locked_asset_factory"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
@@ -205,7 +206,12 @@
                         "str:asset_token_id": "str:MEX-abcdef",
                         "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:default_unlock_period": "0x000000000000001b32000000000000002c32",
-                        "str:transfer_exec_gas_limit": "50000000"
+                        "str:transfer_exec_gas_limit": "50000000",
+                        "str:nft_deposit_max_len": "10",
+                        "str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:nft_deposit_accepted_token_ids.node_id|str:LKMEX-abcdef": "1",
+                        "str:nft_deposit_accepted_token_ids.node_links": "0",
+                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:LKMEX-abcdef"
                     },
                     "code": "file:../../../sc-locked-asset-factory/output/sc-locked-asset-factory.wasm",
                     "owner": "address:owner"
@@ -255,7 +261,16 @@
                         "str:accepted_locked_assets.node_links|u32:1": "2",
                         "str:accepted_locked_assets.node_links|u32:2": "0x0000000100000000",
                         "str:accepted_locked_assets.value|u32:1": "str:LKMEX-abcdef",
-                        "str:accepted_locked_assets.value|u32:2": "str:LKMEX2-abcdef"
+                        "str:accepted_locked_assets.value|u32:2": "str:LKMEX2-abcdef",
+                        "str:nft_deposit_accepted_token_ids.info": "u32:2|u32:1|u32:2|u32:2",
+                        "str:nft_deposit_accepted_token_ids.node_id|str:WLPTOK-abcdef": "1",
+                        "str:nft_deposit_accepted_token_ids.node_id|str:WFARM-abcdef": "2",
+                        "str:nft_deposit_accepted_token_ids.node_links|u32:1": "u32:0|u32:2",
+                        "str:nft_deposit_accepted_token_ids.node_links": "u32:1|u32:0",
+                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:WLPTOK-abcdef",
+                        "str:nft_deposit_accepted_token_ids.value|u32:2": "str:WFARM-abcdef",
+                        "str:locked_asset_factory_address": "sc:locked_asset_factory",
+                        "str:nft_deposit_max_len": "10"
                     },
                     "code": "file:../../sc-proxy-dex/output/sc-proxy-dex.wasm",
                     "owner": "address:owner"
