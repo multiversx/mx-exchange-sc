@@ -83,6 +83,7 @@ pub trait FarmTokenMergeModule:
         let aggregated_attributes = FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: self.blockchain().get_block_epoch(),
+            original_entering_epoch: self.aggregated_original_entering_epoch(&tokens),
             apr_multiplier: self.aggregated_apr_multiplier(&tokens)?,
             with_locked_rewards: self.aggregated_with_lock_rewards(&tokens)?,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
@@ -157,5 +158,31 @@ pub trait FarmTokenMergeModule:
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
         aggregated_amount
+    }
+
+    fn aggregated_original_entering_epoch(&self, tokens: &[FarmToken<Self::BigUint>]) -> u64 {
+        let mut dataset = Vec::new();
+        tokens.iter().for_each(|x| {
+            dataset.push(ValueWeight {
+                value: x.attributes.original_entering_epoch.into(),
+                weight: x.token_amount.amount.clone(),
+            })
+        });
+        let avg = self.weighted_average(dataset);
+        avg.to_u64().unwrap()
+    }
+
+    fn weighted_average(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
+        let mut weight_sum = 0u64.into();
+        dataset
+            .iter()
+            .for_each(|x| weight_sum = &weight_sum + &x.weight);
+
+        let mut elem_weight_sum = 0u64.into();
+        dataset
+            .iter()
+            .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));
+
+        elem_weight_sum / weight_sum
     }
 }
