@@ -143,9 +143,11 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
+        let epoch = self.blockchain().get_block_epoch();
         let mut attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: self.blockchain().get_block_epoch(),
+            entering_epoch: epoch,
+            original_entering_epoch: epoch,
             apr_multiplier,
             with_locked_rewards,
             initial_farming_amount: enter_amount,
@@ -258,7 +260,7 @@ pub trait Farm:
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
-            farm_attributes.entering_epoch,
+            farm_attributes.original_entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -317,7 +319,8 @@ pub trait Farm:
 
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: farm_attributes.entering_epoch,
+            entering_epoch: self.blockchain().get_block_epoch(),
+            original_entering_epoch: farm_attributes.original_entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
@@ -350,7 +353,7 @@ pub trait Farm:
             &mut reward,
             &caller,
             farm_attributes.with_locked_rewards,
-            farm_attributes.entering_epoch,
+            farm_attributes.original_entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -423,6 +426,7 @@ pub trait Farm:
         let mut new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: self.blockchain().get_block_epoch(),
+            original_entering_epoch: farm_attributes.original_entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,

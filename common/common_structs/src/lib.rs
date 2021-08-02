@@ -52,6 +52,7 @@ pub struct WrappedFarmTokenAttributes<BigUint: BigUintApi> {
 #[derive(TopEncode, TopDecode, TypeAbi, Clone)]
 pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     pub reward_per_share: BigUint,
+    pub original_entering_epoch: u64,
     pub entering_epoch: u64,
     pub apr_multiplier: u8,
     pub with_locked_rewards: bool,
