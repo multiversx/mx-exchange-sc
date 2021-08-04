@@ -146,7 +146,7 @@ pub trait Farm:
         self.generate_aggregated_rewards(&reward_token_id);
 
         let epoch = self.blockchain().get_block_epoch();
-        let mut attributes = FarmTokenAttributes {
+        let attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: epoch,
             original_entering_epoch: epoch,
@@ -247,13 +247,7 @@ pub trait Farm:
         );
 
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
-            let mut penalty_amount = self.get_penalty_amount(&reward);
-            if penalty_amount > 0 {
-                self.burn_tokens(&reward_token_id, &penalty_amount);
-                reward -= penalty_amount;
-            }
-
-            penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
+            let penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
             if penalty_amount > 0 {
                 self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
                 initial_farming_token_amount -= penalty_amount;
