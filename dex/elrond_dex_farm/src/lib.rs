@@ -456,10 +456,16 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         ) + &reward;
 
+        let compound_original_entering_epoch = self.aggregated_original_entering_epoch_on_compound(
+            &payment_token_id,
+            &payment_amount,
+            &farm_attributes,
+            &reward,
+        );
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: self.blockchain().get_block_epoch(),
-            original_entering_epoch: farm_attributes.original_entering_epoch,
+            original_entering_epoch: compound_original_entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
             initial_farming_amount: new_initial_farming_amount,
@@ -506,6 +512,33 @@ pub trait Farm:
             created_with_merge,
         );
         Ok(new_farm_token.token_amount)
+    }
+
+    fn aggregated_original_entering_epoch_on_compound(
+        &self,
+        farm_token_id: &TokenIdentifier,
+        position_amount: &Self::BigUint,
+        position_attributes: &FarmTokenAttributes<Self::BigUint>,
+        reward_amount: &Self::BigUint,
+    ) -> u64 {
+        if reward_amount == &0 {
+            return position_attributes.original_entering_epoch;
+        }
+
+        let initial_position = FarmToken {
+            token_amount: GenericTokenAmountPair {
+                token_id: farm_token_id.clone(),
+                token_nonce: 0,
+                amount: position_amount.clone(),
+            },
+            attributes: position_attributes.clone(),
+        };
+
+        let mut reward_position = initial_position.clone();
+        reward_position.token_amount.amount = reward_amount.clone();
+        reward_position.attributes.original_entering_epoch = self.blockchain().get_block_epoch();
+
+        self.aggregated_original_entering_epoch(&[initial_position, reward_position])
     }
 
     fn burn_farming_tokens(
