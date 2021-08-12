@@ -33,8 +33,8 @@ pub trait CacheModule:
     }
 
     #[storage_mapper("nonce_cache")]
-    fn nonce_cache(&self) -> MapMapper<Self::Storage, UnlockSchedule, Nonce>;
+    fn nonce_cache(&self) -> SafeMapMapper<Self::Storage, UnlockSchedule, Nonce>;
 
     #[storage_mapper("unlock_schedule_cache")]
-    fn unlock_schedule_cache(&self) -> MapMapper<Self::Storage, Nonce, UnlockSchedule>;
+    fn unlock_schedule_cache(&self) -> SafeMapMapper<Self::Storage, Nonce, UnlockSchedule>;
 }

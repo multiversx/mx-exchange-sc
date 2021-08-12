@@ -33,7 +33,7 @@ pub trait RewardsModule {
         let current_nonce = self.blockchain().get_block_nonce();
         let to_mint = self.calculate_reward_amount(current_nonce);
         if to_mint != 0 {
-            self.send().esdt_local_mint(token_id, &to_mint);
+            self.send().esdt_local_mint(token_id, 0, &to_mint);
             self.last_reward_block_nonce().set(&current_nonce);
         }
     }

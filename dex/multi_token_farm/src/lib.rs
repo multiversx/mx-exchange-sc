@@ -380,11 +380,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[inline]
     fn burn_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
         if amount > &0 {
-            if nonce > 0 {
-                self.send().esdt_nft_burn(token, nonce, amount);
-            } else {
-                self.send().esdt_local_burn(token, amount);
-            }
+            self.send().esdt_local_burn(token, nonce, amount);
         }
     }
 
@@ -398,11 +394,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     ) {
         if amount > &0 {
             if nonce > 0 {
-                let _ = self
-                    .send()
-                    .direct_nft(destination, token, nonce, amount, &[]);
+                let _ = self.send().direct(destination, token, nonce, amount, &[]);
             } else {
-                let _ = self.send().direct(destination, token, amount, &[]);
+                let _ = self.send().direct(destination, token, 0, amount, &[]);
             }
         }
     }
@@ -727,7 +721,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[storage_mapper("pair_address_for_accepted_lp_token")]
     fn pair_address_for_accepted_lp_token(
         &self,
-    ) -> MapMapper<Self::Storage, TokenIdentifier, Address>;
+    ) -> SafeMapMapper<Self::Storage, TokenIdentifier, Address>;
 
     #[storage_mapper("oracle_pair")]
     fn oracle_pair(

@@ -157,6 +157,7 @@ pub trait ProxyDexImpl:
                 self.send().direct(
                     &self.blockchain().get_owner_address(),
                     &token_id,
+                    0,
                     &payment,
                     &[],
                 );

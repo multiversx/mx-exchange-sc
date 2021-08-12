@@ -18,7 +18,7 @@ use locked_asset::UnlockSchedule;
 
 use crate::locked_asset::LockedAssetTokenAttributes;
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait LockedAssetFactory:
     locked_asset::LockedAssetModule
     + cache::CacheModule
@@ -290,6 +290,7 @@ pub trait LockedAssetFactory:
                 self.send().direct(
                     &self.blockchain().get_owner_address(),
                     &token_id,
+                    0,
                     &payment,
                     &[],
                 );
@@ -360,7 +361,7 @@ pub trait LockedAssetFactory:
 
     #[view(getWhitelistedContracts)]
     #[storage_mapper("whitelist")]
-    fn whitelisted_contracts(&self) -> SetMapper<Self::Storage, Address>;
+    fn whitelisted_contracts(&self) -> SafeSetMapper<Self::Storage, Address>;
 
     #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]

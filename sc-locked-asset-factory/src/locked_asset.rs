@@ -186,7 +186,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         if amount > &0 {
             let asset_token_id = self.asset_token_id().get();
             self.mint_tokens(&asset_token_id, amount);
-            self.send().direct(dest, &asset_token_id, amount, &[]);
+            self.send().direct(dest, &asset_token_id, 0, amount, &[]);
         }
     }
 

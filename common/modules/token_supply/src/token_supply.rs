@@ -34,22 +34,22 @@ pub trait TokenSupplyModule {
         amount: &Self::BigUint,
     ) {
         self.increase_generated_amount(token_id, amount);
-        self.send().esdt_nft_add_quantity(token_id, nonce, amount);
+        self.send().esdt_local_mint(token_id, nonce, amount);
     }
 
     fn nft_burn_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
         self.increase_burned_amount(token_id, amount);
-        self.send().esdt_nft_burn(token_id, nonce, amount);
+        self.send().esdt_local_burn(token_id, nonce, amount);
     }
 
     fn mint_tokens(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
         self.increase_generated_amount(token_id, amount);
-        self.send().esdt_local_mint(token_id, amount);
+        self.send().esdt_local_mint(token_id, 0, amount);
     }
 
     fn burn_tokens(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
         self.increase_burned_amount(token_id, amount);
-        self.send().esdt_local_burn(token_id, amount);
+        self.send().esdt_local_burn(token_id, 0, amount);
     }
 
     fn increase_generated_amount(&self, token_id: &TokenIdentifier, amount: &Self::BigUint) {
@@ -100,8 +100,8 @@ pub trait TokenSupplyModule {
     }
 
     #[storage_mapper("generated_tokens")]
-    fn generated_tokens(&self) -> MapMapper<Self::Storage, TokenIdentifier, Self::BigUint>;
+    fn generated_tokens(&self) -> SafeMapMapper<Self::Storage, TokenIdentifier, Self::BigUint>;
 
     #[storage_mapper("burned_tokens")]
-    fn burned_tokens(&self) -> MapMapper<Self::Storage, TokenIdentifier, Self::BigUint>;
+    fn burned_tokens(&self) -> SafeMapMapper<Self::Storage, TokenIdentifier, Self::BigUint>;
 }

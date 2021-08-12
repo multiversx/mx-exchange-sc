@@ -40,7 +40,7 @@
                         "str:create_farm_tokens_gas_limit": "5000000",
                         "str:nft_deposit_max_len": "10",
                         "str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
-                        "str:nft_deposit_accepted_token_ids.node_id|str:FARM-abcdef": "1",
+                        "str:nft_deposit_accepted_token_ids.node_id|nested:str:FARM-abcdef": "1",
                         "str:nft_deposit_accepted_token_ids.node_links": "0",
                         "str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
                         "str:pair_contract_address": "sc:pair_contract"
