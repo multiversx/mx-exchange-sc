@@ -17,7 +17,7 @@ pub struct PairContractMetadata {
     address: Address,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FactoryModule {
     fn init_factory(&self) {
         self.pair_code_ready().set_if_empty(&false);
@@ -55,10 +55,10 @@ pub trait FactoryModule {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             },
-            new_address.clone().unwrap().clone(),
+            new_address.clone().unwrap(),
         );
         self.pair_temporary_owner().insert(
-            new_address.clone().unwrap().clone(),
+            new_address.clone().unwrap(),
             (
                 self.blockchain().get_caller(),
                 self.blockchain().get_block_nonce(),

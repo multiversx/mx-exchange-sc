@@ -11,7 +11,7 @@ pub struct FarmToken<BigUint: BigUintApi> {
     pub attributes: FarmTokenAttributes<BigUint>,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FarmTokenModule:
     config::ConfigModule
     + token_send::TokenSendModule

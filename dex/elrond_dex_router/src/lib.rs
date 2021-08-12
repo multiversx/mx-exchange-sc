@@ -17,7 +17,7 @@ const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Router: factory::FactoryModule + events::EventsModule {
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;

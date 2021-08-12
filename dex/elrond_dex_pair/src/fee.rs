@@ -12,7 +12,7 @@ const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 mod farm_proxy {
     elrond_wasm::imports!();
 
-    #[elrond_wasm_derive::proxy]
+    #[elrond_wasm::proxy]
     pub trait Farm {
         #[payable("*")]
         #[endpoint(acceptFee)]
@@ -24,7 +24,7 @@ mod farm_proxy {
     }
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FeeModule:
     config::ConfigModule
     + liquidity_pool::LiquidityPoolModule

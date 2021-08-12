@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{GenericTokenAmountPair, Nonce};
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
     #[payable("*")]
     #[endpoint(depositTokens)]

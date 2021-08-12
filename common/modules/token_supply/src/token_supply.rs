@@ -7,7 +7,7 @@ use core::iter::FromIterator;
 
 use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait TokenSupplyModule {
     fn nft_create_tokens<T: elrond_codec::TopEncode>(
         &self,

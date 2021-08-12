@@ -6,7 +6,7 @@ use common_structs::Nonce;
 use super::locked_asset;
 use super::locked_asset::UnlockSchedule;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait CacheModule:
     locked_asset::LockedAssetModule + token_supply::TokenSupplyModule + token_send::TokenSendModule
 {

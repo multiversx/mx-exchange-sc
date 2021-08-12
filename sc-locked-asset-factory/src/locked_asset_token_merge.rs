@@ -13,7 +13,7 @@ pub struct LockedToken<BigUint: BigUintApi> {
     pub attributes: LockedAssetTokenAttributes,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
     + token_supply::TokenSupplyModule

@@ -31,7 +31,7 @@ pub struct WrappedLpToken<BigUint: BigUintApi> {
     pub attributes: WrappedLpTokenAttributes<BigUint>,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ProxyPairModule:
     proxy_common::ProxyCommonModule
     + token_supply::TokenSupplyModule

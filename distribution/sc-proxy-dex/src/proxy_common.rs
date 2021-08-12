@@ -6,7 +6,7 @@ use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
 pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ProxyCommonModule {
     fn require_permissions(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");

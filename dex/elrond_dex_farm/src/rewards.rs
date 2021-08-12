@@ -7,7 +7,7 @@ use super::config;
 
 use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait RewardsModule:
     config::ConfigModule
     + token_supply::TokenSupplyModule

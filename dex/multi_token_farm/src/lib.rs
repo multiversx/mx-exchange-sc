@@ -35,7 +35,7 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
         -> change calculate_rewards_for_given_position so it receives token attributes
 */
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;

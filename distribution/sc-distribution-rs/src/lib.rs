@@ -23,7 +23,7 @@ pub struct CommunityDistribution<BigUint: BigUintApi> {
     pub after_planning_amount: BigUint,
 }
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Distribution: global_op::GlobalOperationModule {
     #[proxy]
     fn locked_asset_factory_proxy(

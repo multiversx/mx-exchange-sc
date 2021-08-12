@@ -19,7 +19,7 @@ pub enum IssueRequestType {
     ProxyPair,
 }
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule

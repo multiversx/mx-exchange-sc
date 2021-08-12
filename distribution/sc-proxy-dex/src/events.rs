@@ -87,7 +87,7 @@ pub struct CompoundRewardsProxyEvent<BigUint: BigUintApi> {
     timestamp: u64,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait EventsModule {
     fn emit_add_liquidity_proxy_event(
         self,

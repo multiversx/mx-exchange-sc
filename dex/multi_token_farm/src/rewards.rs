@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait RewardsModule {
     #[endpoint(setPerBlockRewardAmount)]
     fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {

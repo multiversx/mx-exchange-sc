@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait TokenSendModule {
     fn send_fft_tokens(
         &self,

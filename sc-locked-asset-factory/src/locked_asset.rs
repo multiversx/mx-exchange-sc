@@ -16,7 +16,7 @@ pub struct LockedAssetTokenAttributes {
     pub is_merged: bool,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     fn create_and_send_locked_assets(
         &self,

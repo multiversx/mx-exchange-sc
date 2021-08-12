@@ -8,7 +8,7 @@ pub enum State {
     ActiveNoSwaps,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getRouterAddress)]
     #[storage_mapper("router_address")]

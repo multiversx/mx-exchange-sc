@@ -29,7 +29,7 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule

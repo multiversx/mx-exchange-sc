@@ -28,7 +28,7 @@ pub struct WrappedFarmToken<BigUint: BigUintApi> {
     pub attributes: WrappedFarmTokenAttributes<BigUint>,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ProxyFarmModule:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
