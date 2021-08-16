@@ -9,7 +9,13 @@ publish = false
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = ["elrond-wasm-node"]
+wasm-output-mode = [
+  "elrond-wasm-node",
+  "token_send/wasm-output-mode",
+]
+
+[dependencies.token_send]
+path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
 version = "0.18"

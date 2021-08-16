@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::FftTokenAmountPair;
 
 use super::factory;
-use super::util;
+use super::state;
 
 type Nonce = u64;
 type SwapOperationType<BigUint> = MultiArg4<Address, BoxedBytes, TokenIdentifier, BigUint>;
@@ -16,8 +16,11 @@ const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 use elrond_dex_pair::config::ProxyTrait as _;
 use elrond_dex_pair::fee::ProxyTrait as _;
 
-#[elrond_wasm_derive::module]
-pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
+#[elrond_wasm::module]
+pub trait PairManagerModule:
+    state::StateModule + factory::FactoryModule + token_send::TokenSendModule
+{
+    #[only_owner]
     #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,
@@ -25,7 +28,6 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_owner()?;
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
@@ -36,6 +38,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setFeeOff)]
     fn set_fee_off(
         &self,
@@ -43,7 +46,6 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_owner()?;
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
@@ -115,7 +117,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
                 token_id: TokenIdentifier::from(BoxedBytes::empty()),
                 amount: Self::BigUint::zero(),
             });
-            self.send_tokens(
+            self.send_fft_tokens(
                 &residuum.token_id,
                 &residuum.amount,
                 &caller,
@@ -123,7 +125,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
             )?;
         }
 
-        self.send_tokens(
+        self.send_fft_tokens(
             &last_received_token_id,
             &last_received_amount,
             &caller,

@@ -7,10 +7,7 @@ mod events;
 mod factory;
 mod lp_tokens;
 mod pair_manager;
-mod util;
-
-const LP_TOKEN_DECIMALS: usize = 18;
-const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
+mod state;
 
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
@@ -21,8 +18,9 @@ pub trait Router:
     factory::FactoryModule
     + pair_manager::PairManagerModule
     + lp_tokens::LpTokensModule
-    + util::UtilModule
+    + state::StateModule
     + events::EventsModule
+    + token_send::TokenSendModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
@@ -143,10 +141,9 @@ pub trait Router:
         )
     }
 
+    #[only_owner]
     #[endpoint]
     fn pause(&self, address: Address) -> SCResult<()> {
-        self.require_owner()?;
-
         if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
         } else {
@@ -156,10 +153,9 @@ pub trait Router:
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint]
     fn resume(&self, address: Address) -> SCResult<()> {
-        self.require_owner()?;
-
         if address == self.blockchain().get_sc_address() {
             self.state().set(&true);
         } else {

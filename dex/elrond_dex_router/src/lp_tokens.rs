@@ -3,14 +3,17 @@ elrond_wasm::derive_imports!();
 
 use super::factory;
 use super::pair_manager;
-use super::util;
+use super::state;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait LpTokensModule:
-    pair_manager::PairManagerModule + util::UtilModule + factory::FactoryModule
+    pair_manager::PairManagerModule
+    + state::StateModule
+    + factory::FactoryModule
+    + token_send::TokenSendModule
 {
     #[payable("EGLD")]
     #[endpoint(issueLpToken)]
@@ -85,6 +88,7 @@ pub trait LpTokensModule:
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
+    #[only_owner]
     #[endpoint(setLocalRolesOwner)]
     fn set_local_roles_owner(
         &self,
@@ -92,7 +96,6 @@ pub trait LpTokensModule:
         address: Address,
         #[var_args] roles: VarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
-        self.require_owner()?;
         require!(self.is_active(), "Not active");
         require!(!roles.is_empty(), "Empty roles");
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
