@@ -47,7 +47,14 @@
 					"nonce": "0",
 					"balance": "0",
 					"esdt": {
-						"str:WEGLD-abcdef": "199"
+						"str:WEGLD-abcdef": "199",
+						"str:FARM-abcdef": {
+							"roles": [
+								"ESDTRoleNFTCreate",
+								"ESDTRoleNFTAddQuantity",
+								"ESDTRoleNFTBurn"
+							]
+						}
 					},
 					"storage": {
 						"``ELRONDroleesdtFARM-abcdef": "0x0a1145534454526f6c654e46544372656174650a1645534454526f6c654e46544164645175616e746974790a0f45534454526f6c654e46544275726e",
@@ -62,8 +69,9 @@
 						"str:mint_tokens_gas_limit": "5,000,000",
 						"str:locked_rewards_apr_multiplier": "2",
 						"str:division_safety_constant": "1000000000000",
-						"str:penalty_percent": "10",
+						"str:penalty_percent": "100",
 						"str:create_farm_tokens_gas_limit": "5000000",
+						"str:pair_contract_address": "sc:pair_contract",
 						"+": ""
 					},
 					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"

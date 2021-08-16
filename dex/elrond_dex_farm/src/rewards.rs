@@ -1,17 +1,26 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+
+use crate::farm_token;
+
 use super::config;
 
-use dex_common::Nonce;
+use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
-pub trait RewardsModule: config::ConfigModule {
+#[elrond_wasm::module]
+pub trait RewardsModule:
+    config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
+    + nft_deposit::NftDepositModule
+    + farm_token::FarmTokenModule
+{
     fn calculate_per_block_rewards(
         &self,
         current_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
     ) -> Self::BigUint {
-        let big_zero = Self::BigUint::zero();
+        let big_zero = 0u64.into();
 
         if current_block_nonce <= last_reward_block_nonce {
             return big_zero;
@@ -20,7 +29,7 @@ pub trait RewardsModule: config::ConfigModule {
         if self.produces_per_block_rewards() {
             let per_block_reward = self.per_block_reward_amount().get();
 
-            per_block_reward * Self::BigUint::from(current_block_nonce - last_reward_block_nonce)
+            per_block_reward * (current_block_nonce - last_reward_block_nonce).into()
         } else {
             big_zero
         }
@@ -34,18 +43,18 @@ pub trait RewardsModule: config::ConfigModule {
             let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
             if to_mint != 0 {
-                self.send().esdt_local_mint(token_id, &to_mint);
+                self.mint_tokens(token_id, &to_mint);
             }
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint
         } else {
-            Self::BigUint::zero()
+            0u64.into()
         }
     }
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
         let reward_minted = self.mint_per_block_rewards(reward_token_id);
-        self.increase_current_block_fee_storage(&Self::BigUint::zero());
+        self.increase_current_block_fee_storage(&0u64.into());
         let fees = self.undistributed_fee_storage().get();
         self.undistributed_fee_storage().clear();
         let total_reward = reward_minted + fees;
@@ -70,7 +79,7 @@ pub trait RewardsModule: config::ConfigModule {
 
     fn update_reward_per_share(&self, reward_increase: &Self::BigUint) {
         let current = self.reward_per_share().get();
-        let farm_token_supply = self.farm_token_supply().get();
+        let farm_token_supply = self.get_farm_token_supply();
 
         if farm_token_supply > 0 {
             let increase = self.calculate_reward_per_share_increase(reward_increase);
@@ -85,7 +94,7 @@ pub trait RewardsModule: config::ConfigModule {
         &self,
         reward_increase: &Self::BigUint,
     ) -> Self::BigUint {
-        reward_increase * &self.division_safety_constant().get() / self.farm_token_supply().get()
+        reward_increase * &self.division_safety_constant().get() / self.get_farm_token_supply()
     }
 
     fn calculate_reward(
@@ -94,8 +103,12 @@ pub trait RewardsModule: config::ConfigModule {
         current_reward_per_share: &Self::BigUint,
         initial_reward_per_share: &Self::BigUint,
     ) -> Self::BigUint {
-        let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
-        amount * &reward_per_share_diff / self.division_safety_constant().get()
+        if current_reward_per_share > initial_reward_per_share {
+            let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
+            amount * &reward_per_share_diff / self.division_safety_constant().get()
+        } else {
+            0u64.into()
+        }
     }
 
     fn increase_undistributed_fee_storage(&self, amount: &Self::BigUint) {
@@ -111,7 +124,7 @@ pub trait RewardsModule: config::ConfigModule {
 
         let (known_block_nonce, fee_amount) = match current_block_fee_storage {
             Some(value) => (value.0, value.1),
-            None => (0, Self::BigUint::zero()),
+            None => (0, 0u64.into()),
         };
 
         if known_block_nonce == current_block {
@@ -121,8 +134,10 @@ pub trait RewardsModule: config::ConfigModule {
             }
         } else {
             self.increase_undistributed_fee_storage(&fee_amount);
-            self.current_block_fee_storage()
-                .set(&Some((current_block, amount.clone())));
+            if amount > &0 || fee_amount > 0 {
+                self.current_block_fee_storage()
+                    .set(&Some((current_block, amount.clone())));
+            }
         }
     }
 

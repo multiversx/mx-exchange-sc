@@ -14,6 +14,13 @@ fn add_liquidity_go() {
 }
 
 #[test]
+fn calculate_rewards_for_given_position_after_compound_go() {
+    elrond_wasm_debug::mandos_go(
+        "mandos/calculate_rewards_for_given_position_after_compound.scen.json",
+    );
+}
+
+#[test]
 fn calculate_rewards_for_given_position_go() {
     elrond_wasm_debug::mandos_go("mandos/calculate_rewards_for_given_position.scen.json");
 }
@@ -36,6 +43,11 @@ fn claim_rewards_go() {
 #[test]
 fn complete_setup_go() {
     elrond_wasm_debug::mandos_go("mandos/complete_setup.scen.json");
+}
+
+#[test]
+fn compound_rewards_setup_go() {
+    elrond_wasm_debug::mandos_go("mandos/compound_rewards.scen.json");
 }
 
 #[test]
@@ -129,6 +141,11 @@ fn multi_pair_swap_go() {
 }
 
 #[test]
+fn merge_tokens_go() {
+    elrond_wasm_debug::mandos_go("mandos/merge_tokens.scen.json");
+}
+
+#[test]
 fn owner_pause_farm_go() {
     elrond_wasm_debug::mandos_go("mandos/owner_pause_farm.scen.json");
 }
@@ -191,4 +208,9 @@ fn swap_same_token_go() {
 #[test]
 fn swap_wrong_token_go() {
     elrond_wasm_debug::mandos_go("mandos/swap_wrong_token.scen.json");
+}
+
+#[test]
+fn upgrade_contract_go() {
+    elrond_wasm_debug::mandos_go("mandos/upgrade_contract.scen.json");
 }

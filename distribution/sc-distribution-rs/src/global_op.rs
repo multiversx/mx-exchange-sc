@@ -1,9 +1,7 @@
-#![no_std]
-
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait GlobalOperationModule {
     fn global_op_start(&self) -> SCResult<()> {
         require!(

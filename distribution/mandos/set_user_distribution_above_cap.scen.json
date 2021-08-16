@@ -20,7 +20,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -43,7 +42,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -70,7 +68,6 @@
                 "out": [],
                 "status": "4",
                 "message": "*",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -90,7 +87,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }

@@ -39,11 +39,22 @@
 			"accounts": {
 				"sc:pair_contract": {
 					"esdt": {
-						"str:WEGLD-abcdef": "1",
-						"str:ALC-abcdef": "1000001000"
+						"str:WEGLD-abcdef": {
+							"balance": "1",
+							"roles": [
+								"ESDTRoleLocalBurn"
+							]
+						},
+						"str:ALC-abcdef": "1000001000",
+						"str:LPTOK-abcdef": {
+							"balance": "1000",
+							"roles": [
+								"ESDTRoleLocalMint",
+								"ESDTRoleLocalBurn"
+							]
+						}
 					},
 					"storage": {
-						"str:total_supply": "1000",
 						"str:total_fee_percent": "300",
 						"str:router_address": "sc:router_contract",
 						"str:router_owner_address": "address:owner",
@@ -59,7 +70,6 @@
 						"str:lpTokenIdentifier": "str:LPTOK-abcdef",
 						"0x6665655f64657374696e6174696f6e2e76616c756500000001": "sc:farm_contract",
 						"0x726573657276650000000c5745474c442d616263646566": "1",
-						"str:transfer_exec_gas_limit": "25,000,000",
 						"str:extern_swap_gas_limit": "50,000,000",
 						"+": ""
 					},

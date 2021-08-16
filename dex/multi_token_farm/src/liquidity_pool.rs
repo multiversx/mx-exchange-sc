@@ -5,7 +5,7 @@ const MINIMUM_INITIAL_FARM_AMOUNT: u64 = 1000;
 
 use super::rewards;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait LiquidityPoolModule: rewards::RewardsModule {
     fn add_liquidity(
         &self,

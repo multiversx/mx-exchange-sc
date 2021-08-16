@@ -41,7 +41,6 @@
                     "0x0000000a4d45582d616263646566000000021d51"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -56,7 +55,7 @@
                         "str:LKMEX-abcdef": {
                             "instances": [
                                 {
-                                    "nonce": "0x02",
+                                    "nonce": "0x01",
                                     "balance": "87,505",
                                     "creator": "*",
                                     "hash": "*",

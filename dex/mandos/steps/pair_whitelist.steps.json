@@ -1,0 +1,49 @@
+{
+    "name": "whitelist",
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "whitelist1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:pair_contract",
+                "value": "0",
+                "function": "whitelist",
+                "arguments": [
+                    "sc:farm_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "whitelist2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:pair_contract",
+                "value": "0",
+                "function": "whitelist",
+                "arguments": [
+                    "address:user_with_lp"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

@@ -1,12 +1,15 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_structs::Nonce;
+
 use super::locked_asset;
 use super::locked_asset::UnlockSchedule;
-use distrib_common::Nonce;
 
-#[elrond_wasm_derive::module]
-pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {
+#[elrond_wasm::module]
+pub trait CacheModule:
+    locked_asset::LockedAssetModule + token_supply::TokenSupplyModule + token_send::TokenSendModule
+{
     #[inline(always)]
     fn get_sft_nonce_for_unlock_schedule(&self, unlock_schedule: &UnlockSchedule) -> Option<Nonce> {
         self.nonce_cache().get(unlock_schedule)
@@ -30,8 +33,8 @@ pub trait CacheModule: asset::AssetModule + locked_asset::LockedAssetModule {
     }
 
     #[storage_mapper("nonce_cache")]
-    fn nonce_cache(&self) -> MapMapper<Self::Storage, UnlockSchedule, Nonce>;
+    fn nonce_cache(&self) -> SafeMapMapper<Self::Storage, UnlockSchedule, Nonce>;
 
     #[storage_mapper("unlock_schedule_cache")]
-    fn unlock_schedule_cache(&self) -> MapMapper<Self::Storage, Nonce, UnlockSchedule>;
+    fn unlock_schedule_cache(&self) -> SafeMapMapper<Self::Storage, Nonce, UnlockSchedule>;
 }
