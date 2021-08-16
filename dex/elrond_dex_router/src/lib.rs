@@ -1,33 +1,36 @@
 #![no_std]
-#![allow(non_snake_case)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+mod events;
 mod factory;
 mod lp_tokens;
 mod pair_manager;
 mod util;
 
+const LP_TOKEN_DECIMALS: usize = 18;
+const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
+
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
-const TRANSFER_EXEC_DEFAULT_GAS_LIMIT: u64 = 100_000;
-
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Router:
     factory::FactoryModule
     + pair_manager::PairManagerModule
     + lp_tokens::LpTokensModule
     + util::UtilModule
+    + events::EventsModule
 {
+    #[proxy]
+    fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
+
     #[init]
     fn init(&self) {
         self.state().set_if_empty(&true);
         self.pair_creation_enabled().set_if_empty(&false);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&TRANSFER_EXEC_DEFAULT_GAS_LIMIT);
 
         self.init_factory();
         self.owner().set(&self.blockchain().get_caller());
@@ -78,10 +81,63 @@ pub trait Router:
             );
         }
 
-        self.create_pair(
+        let address = self.create_pair(
             &first_token_id,
             &second_token_id,
             &owner,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
+        )?;
+
+        self.emit_create_pair_event(
+            caller,
+            first_token_id,
+            second_token_id,
+            total_fee_percent_requested,
+            special_fee_percent_requested,
+            address.clone(),
+        );
+        Ok(address)
+    }
+
+    #[endpoint(upgradePair)]
+    fn upgrade_pair_endpoint(
+        &self,
+        first_token_id: TokenIdentifier,
+        second_token_id: TokenIdentifier,
+        #[var_args] fee_percents: VarArgs<u64>,
+    ) -> SCResult<()> {
+        only_owner!(self, "No permissions");
+        require!(self.is_active(), "Not active");
+
+        require!(first_token_id != second_token_id, "Identical tokens");
+        require!(
+            first_token_id.is_valid_esdt_identifier(),
+            "First Token ID is not a valid esdt token ID"
+        );
+        require!(
+            second_token_id.is_valid_esdt_identifier(),
+            "Second Token ID is not a valid esdt token ID"
+        );
+        let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
+        require!(pair_address.is_some(), "Pair does not exists");
+
+        let fee_percents_vec = fee_percents.into_vec();
+        require!(fee_percents_vec.len() == 2, "Bad percents length");
+
+        let total_fee_percent_requested = fee_percents_vec[0];
+        let special_fee_percent_requested = fee_percents_vec[1];
+        require!(
+            total_fee_percent_requested >= special_fee_percent_requested
+                && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
+            "Bad percents"
+        );
+
+        self.upgrade_pair(
+            &pair_address.unwrap(),
+            &first_token_id,
+            &second_token_id,
+            &self.owner().get(),
             total_fee_percent_requested,
             special_fee_percent_requested,
         )

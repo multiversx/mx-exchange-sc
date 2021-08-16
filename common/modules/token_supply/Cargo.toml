@@ -1,24 +1,25 @@
 [package]
-name = "asset"
+name = "token_supply"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
 edition = "2018"
 
 [lib]
-path = "src/asset.rs"
+path = "src/token_supply.rs"
 
 [features]
 wasm-output-mode = [ "elrond-wasm-node",]
 
-[dependencies.distrib-common]
-path = "../../distrib-common"
+[dependencies.common_structs]
+path = "../../common_structs"
 
 [dependencies.elrond-wasm]
-version = "0.17"
+version = "0.18"
+features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
-version = "0.17"
+version = "0.18"
 
 [dependencies.elrond-wasm-node]
-version = "0.17"
+version = "0.18"
 optional = true

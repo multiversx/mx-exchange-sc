@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use dex_common::FftTokenAmountPair;
+use common_structs::FftTokenAmountPair;
 
 use super::factory;
 use super::util;
@@ -12,6 +12,9 @@ type SwapOperationType<BigUint> = MultiArg4<Address, BoxedBytes, TokenIdentifier
 const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
 const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
+
+use elrond_dex_pair::config::ProxyTrait as _;
+use elrond_dex_pair::fee::ProxyTrait as _;
 
 #[elrond_wasm_derive::module]
 pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
@@ -27,7 +30,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(true, fee_to_address, fee_token)
+            .set_fee_on(true, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
@@ -45,15 +48,15 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(false, fee_to_address, fee_token)
+            .set_fee_on(false, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn acceptPay(&self) {}
+    #[endpoint(acceptPay)]
+    fn accept_pay(&self) {}
 
     #[payable("*")]
     #[endpoint(multiPairSwap)]
@@ -108,12 +111,10 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         }
 
         while !residuum_vec.is_empty() {
-            let residuum = residuum_vec.pop().unwrap_or(
-                FftTokenAmountPair{
-                    token_id: TokenIdentifier::from(BoxedBytes::empty()),
-                    amount: Self::BigUint::zero(),
-                }
-            );
+            let residuum = residuum_vec.pop().unwrap_or(FftTokenAmountPair {
+                token_id: TokenIdentifier::from(BoxedBytes::empty()),
+                amount: Self::BigUint::zero(),
+            });
             self.send_tokens(
                 &residuum.token_id,
                 &residuum.amount,
@@ -188,13 +189,13 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
 
     fn get_lp_token_for_pair(&self, address: &Address) -> TokenIdentifier {
         self.pair_contract_proxy(address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context()
     }
 
     fn set_lp_token_for_pair(&self, address: &Address, token_id: &TokenIdentifier) {
         self.pair_contract_proxy(address.clone())
-            .setLpTokenIdentifier(token_id.clone())
+            .set_lp_token_identifier(token_id.clone())
             .execute_on_dest_context();
     }
 

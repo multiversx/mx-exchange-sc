@@ -3,43 +3,45 @@ elrond_wasm::derive_imports!();
 
 use super::amm;
 use super::config;
-use dex_common::FftTokenAmountPair;
+use common_structs::FftTokenAmountPair;
 
 const MINIMUM_LIQUIDITY: u64 = 1_000;
 
-#[elrond_wasm_derive::module]
-pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
-    fn add_liquidity(
+#[elrond_wasm::module]
+pub trait LiquidityPoolModule:
+    amm::AmmModule
+    + config::ConfigModule
+    + token_supply::TokenSupplyModule
+    + token_send::TokenSendModule
+{
+    fn pool_add_liquidity(
         &self,
         first_token_amount: Self::BigUint,
         second_token_amount: Self::BigUint,
     ) -> SCResult<Self::BigUint> {
         let first_token = self.first_token_id().get();
         let second_token = self.second_token_id().get();
-        let mut total_supply = self.total_supply().get();
+        let total_supply = self.get_total_lp_token_supply();
         let mut first_token_reserve = self.pair_reserve(&first_token).get();
         let mut second_token_reserve = self.pair_reserve(&second_token).get();
         let mut liquidity: Self::BigUint;
 
         if total_supply == 0 {
             liquidity = core::cmp::min(first_token_amount.clone(), second_token_amount.clone());
-            let minimum_liquidity = Self::BigUint::from(MINIMUM_LIQUIDITY);
+            let minimum_liquidity = MINIMUM_LIQUIDITY.into();
             require!(
                 liquidity > minimum_liquidity,
-                "Pair: first tokens needs to be greater than minimum liquidity"
+                "First tokens needs to be greater than minimum liquidity"
             );
             liquidity -= &minimum_liquidity;
-            total_supply = minimum_liquidity;
+            self.mint_tokens(&self.lp_token_identifier().get(), &minimum_liquidity);
         } else {
             liquidity = core::cmp::min(
                 (&first_token_amount * &total_supply) / first_token_reserve.clone(),
                 (&second_token_amount * &total_supply) / second_token_reserve.clone(),
             );
         }
-        require!(liquidity > 0, "Pair: insufficient_liquidity_minted");
-
-        total_supply += liquidity.clone();
-        self.total_supply().set(&total_supply);
+        require!(liquidity > 0, "Insufficient liquidity minted");
 
         first_token_reserve += first_token_amount;
         second_token_reserve += second_token_amount;
@@ -62,8 +64,8 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
     ) -> SCResult<Self::BigUint> {
         let mut reserve = self.pair_reserve(token).get();
         let amount = (liquidity * &reserve) / total_supply.clone();
-        require!(amount > 0, "Pair: insufficient_liquidity_burned");
-        require!(&amount >= amount_min, "Pair: insufficient_liquidity_burned");
+        require!(amount > 0, "Insufficient liquidity burned");
+        require!(&amount >= amount_min, "Insufficient liquidity burned");
         require!(reserve > amount, "Not enough reserve");
 
         reserve -= &amount;
@@ -72,15 +74,15 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         Ok(amount)
     }
 
-    fn remove_liquidity(
+    fn pool_remove_liquidity(
         &self,
         liquidity: Self::BigUint,
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
-        let mut total_supply = self.total_supply().get();
+        let total_supply = self.get_total_lp_token_supply();
         require!(
-            total_supply >= &liquidity + &Self::BigUint::from(MINIMUM_LIQUIDITY),
+            total_supply >= &liquidity + &MINIMUM_LIQUIDITY.into(),
             "Not enough LP token supply"
         );
 
@@ -96,9 +98,6 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             &total_supply,
             &second_token_amount_min,
         )?;
-
-        total_supply -= liquidity;
-        self.total_supply().set(&total_supply);
 
         Ok((first_token_amount, second_token_amount))
     }
@@ -125,7 +124,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         if second_token_amount_optimal <= second_token_amount_desired {
             require!(
                 second_token_amount_optimal >= second_token_amount_min,
-                "Pair: insufficient second token computed amount"
+                "Insufficient second token computed amount"
             );
             Ok((first_token_amount_desired, second_token_amount_optimal))
         } else {
@@ -136,11 +135,11 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
             );
             require!(
                 first_token_amount_optimal <= first_token_amount_desired,
-                "Pair: optimal amount greater than desired amount"
+                "Optimal amount greater than desired amount"
             );
             require!(
                 first_token_amount_optimal >= first_token_amount_min,
-                "Pair: insufficient first token computed amount"
+                "Insufficient first token computed amount"
             );
             Ok((first_token_amount_optimal, second_token_amount_desired))
         }
@@ -163,7 +162,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         token_id: TokenIdentifier,
     ) -> FftTokenAmountPair<Self::BigUint> {
         let reserve = self.pair_reserve(&token_id).get();
-        let total_supply = self.total_supply().get();
+        let total_supply = self.get_total_lp_token_supply();
         if total_supply != 0 {
             FftTokenAmountPair {
                 token_id,
@@ -172,7 +171,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         } else {
             FftTokenAmountPair {
                 token_id,
-                amount: Self::BigUint::zero(),
+                amount: 0u64.into(),
             }
         }
     }
@@ -203,7 +202,7 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         token_in: &TokenIdentifier,
         amount_in: &Self::BigUint,
     ) -> Self::BigUint {
-        let big_zero = Self::BigUint::zero();
+        let big_zero = 0u64.into();
         let first_token_reserve = self.pair_reserve(first_token_id).get();
         let second_token_reserve = self.pair_reserve(second_token_id).get();
 
@@ -239,6 +238,15 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         amount_out
     }
 
+    #[view(getTotalSupply)]
+    fn get_total_lp_token_supply(&self) -> Self::BigUint {
+        let result = self.get_total_supply(&self.lp_token_identifier().get());
+        match result {
+            SCResult::Ok(amount) => amount,
+            SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
+        }
+    }
+
     #[view(getFirstTokenId)]
     #[storage_mapper("first_token_id")]
     fn first_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
@@ -253,8 +261,4 @@ pub trait LiquidityPoolModule: amm::AmmModule + config::ConfigModule {
         &self,
         token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
-
-    #[view(getTotalSupply)]
-    #[storage_mapper("total_supply")]
-    fn total_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }

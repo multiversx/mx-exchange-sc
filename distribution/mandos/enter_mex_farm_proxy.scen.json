@@ -26,7 +26,6 @@
             "expect": {
                 "out": [],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -57,7 +56,6 @@
                     "0x01"
                 ],
                 "status": "0",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -69,6 +67,7 @@
                     "nonce": "2",
                     "balance": "100,000,000",
                     "esdt": {
+                        "str:WEGLD-abcdef": "1,000,000,000",
                         "str:LKMEX-abcdef": {
                             "instances": [
                                 {

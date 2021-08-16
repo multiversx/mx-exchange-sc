@@ -20,27 +20,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
-                "value": "0",
-                "function": "startGlobalOperation",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -63,7 +42,6 @@
             "expect": {
                 "out": [],
                 "status": "",
-                "logs": [],
                 "gas": "*",
                 "refund": "*"
             }
@@ -90,7 +68,25 @@
                 "out": [],
                 "status": "4",
                 "message": "*",
-                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:dist_contract",
+                "value": "0",
+                "function": "endGlobalOperation",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
                 "gas": "*",
                 "refund": "*"
             }

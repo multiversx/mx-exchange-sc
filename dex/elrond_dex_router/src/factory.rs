@@ -19,7 +19,7 @@ pub struct PairContractMetadata {
     address: Address,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FactoryModule: util::UtilModule {
     fn init_factory(&self) {
         self.pair_code_ready().set_if_empty(&false);
@@ -39,7 +39,7 @@ pub trait FactoryModule: util::UtilModule {
         require!(self.pair_code_ready().get(), "Pair code not ready");
         let code_metadata = CodeMetadata::UPGRADEABLE;
         let gas_left = self.blockchain().get_gas_left();
-        let amount = Self::BigUint::zero();
+        let amount = 0u64.into();
         let mut arg_buffer = ArgBuffer::new();
         let code = self.pair_code().get();
         arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
@@ -51,22 +51,52 @@ pub trait FactoryModule: util::UtilModule {
         let new_address =
             self.send()
                 .deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
-        require!(new_address != Address::zero(), "deploy failed");
+        require!(new_address.is_some(), "deploy failed");
         self.pair_map().insert(
             PairTokens {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             },
-            new_address.clone(),
+            new_address.clone().unwrap(),
         );
         self.pair_temporary_owner().insert(
-            new_address.clone(),
+            new_address.clone().unwrap(),
             (
                 self.blockchain().get_caller(),
                 self.blockchain().get_block_nonce(),
             ),
         );
-        Ok(new_address)
+        Ok(new_address.unwrap())
+    }
+
+    fn upgrade_pair(
+        &self,
+        pair_address: &Address,
+        first_token_id: &TokenIdentifier,
+        second_token_id: &TokenIdentifier,
+        owner: &Address,
+        total_fee_percent: u64,
+        special_fee_percent: u64,
+    ) -> SCResult<()> {
+        require!(self.pair_code_ready().get(), "Pair code not ready");
+
+        let mut arg_buffer = ArgBuffer::new();
+        arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
+        arg_buffer.push_argument_bytes(second_token_id.as_esdt_identifier());
+        arg_buffer.push_argument_bytes(self.blockchain().get_sc_address().as_bytes());
+        arg_buffer.push_argument_bytes(owner.as_bytes());
+        arg_buffer.push_argument_bytes(&total_fee_percent.to_be_bytes()[..]);
+        arg_buffer.push_argument_bytes(&special_fee_percent.to_be_bytes()[..]);
+
+        self.send().upgrade_contract(
+            pair_address,
+            self.blockchain().get_gas_left(),
+            &0u64.into(),
+            &self.pair_code().get(),
+            CodeMetadata::DEFAULT,
+            &arg_buffer,
+        );
+        Ok(())
     }
 
     fn start_pair_construct(&self) {
@@ -90,7 +120,7 @@ pub trait FactoryModule: util::UtilModule {
     }
 
     #[storage_mapper("pair_map")]
-    fn pair_map(&self) -> MapMapper<Self::Storage, PairTokens, Address>;
+    fn pair_map(&self) -> SafeMapMapper<Self::Storage, PairTokens, Address>;
 
     #[view(getAllPairsAddresses)]
     fn get_all_pairs_addresses(&self) -> MultiResultVec<Address> {
@@ -140,17 +170,13 @@ pub trait FactoryModule: util::UtilModule {
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) -> Option<Address> {
-        let address = self
-            .pair_map()
-            .get(&PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            });
+        let address = self.pair_map().get(&PairTokens {
+            first_token_id: first_token_id.clone(),
+            second_token_id: second_token_id.clone(),
+        });
 
         if address.is_none() {
-            self
-            .pair_map()
-            .get(&PairTokens {
+            self.pair_map().get(&PairTokens {
                 first_token_id: second_token_id,
                 second_token_id: first_token_id,
             })
@@ -223,5 +249,5 @@ pub trait FactoryModule: util::UtilModule {
     fn temporary_owner_period(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[storage_mapper("pair_temporary_owner")]
-    fn pair_temporary_owner(&self) -> MapMapper<Self::Storage, Address, (Address, u64)>;
+    fn pair_temporary_owner(&self) -> SafeMapMapper<Self::Storage, Address, (Address, u64)>;
 }

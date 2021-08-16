@@ -5,12 +5,14 @@ elrond_wasm::derive_imports!();
 
 type Epoch = u64;
 
-const GAS_CHECK_FREQUENCY: usize = 100;
+mod global_op;
+
+const GAS_THRESHOLD: u64 = 100_000;
 const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
 pub struct UserLockedAssetKey {
-    pub user_address: Address,
+    pub caller: Address,
     pub spread_epoch: u64,
 }
 
@@ -21,8 +23,8 @@ pub struct CommunityDistribution<BigUint: BigUintApi> {
     pub after_planning_amount: BigUint,
 }
 
-#[elrond_wasm_derive::contract]
-pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
+#[elrond_wasm::contract]
+pub trait Distribution: global_op::GlobalOperationModule {
     #[proxy]
     fn locked_asset_factory_proxy(
         &self,
@@ -30,23 +32,33 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
     ) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
 
     #[init]
-    fn init(&self, asset_token_id: TokenIdentifier, locked_asset_factory_address: Address) {
+    fn init(
+        &self,
+        asset_token_id: TokenIdentifier,
+        locked_asset_factory_address: Address,
+    ) -> SCResult<()> {
+        require!(
+            asset_token_id.is_valid_esdt_identifier(),
+            "Asset token ID is not a valid esdt identifier"
+        );
+
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
+        Ok(())
     }
 
     #[endpoint(startGlobalOperation)]
     fn start_planning(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");
-        self.global_op_start();
+        self.global_op_start()?;
         Ok(())
     }
 
     #[endpoint(endGlobalOperation)]
     fn end_planning(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");
-        self.global_op_stop();
+        self.global_op_stop()?;
         Ok(())
     }
 
@@ -58,6 +70,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
     ) -> SCResult<()> {
         only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
+        require!(total_amount > 0, "Zero amount");
         require!(
             spread_epoch >= self.blockchain().get_block_epoch(),
             "Spread epoch in the past"
@@ -100,12 +113,17 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
         self.require_community_distribution_list_not_empty()?;
 
         let caller = self.blockchain().get_caller();
+        let mut cummulated_amount = 0u64.into();
+
         let locked_assets = self.calculate_user_locked_assets(&caller, true);
+        if locked_assets.is_empty() {
+            return Ok(cummulated_amount);
+        }
+
         let to = self.locked_asset_factory_address().get();
         let gas_limit_per_execute =
             self.blockchain().get_gas_left() / (locked_assets.len() as u64 + 1);
 
-        let mut cummulated_amount = Self::BigUint::zero();
         for (amount, spread_epoch) in locked_assets.iter() {
             self.locked_asset_factory_proxy(to.clone())
                 .create_and_forward(
@@ -152,7 +170,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
         self.require_community_distribution_list_not_empty()?;
         let locked_assets = self.calculate_user_locked_assets(&address, false);
 
-        let mut cummulated_amount = Self::BigUint::zero();
+        let mut cummulated_amount = 0u64.into();
         for (amount, _) in locked_assets.iter() {
             cummulated_amount += amount;
         }
@@ -169,7 +187,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
                     last_community_distrib.spread_epoch,
                 )
             })
-            .unwrap_or((Self::BigUint::zero(), 0u64))
+            .unwrap_or((0u64.into(), 0u64))
             .into()
     }
 
@@ -184,13 +202,14 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
             "Bad spread epoch"
         );
         for user_asset_multiarg in user_assets.into_vec() {
-            let (user_address, asset_amount) = user_asset_multiarg.into_tuple();
+            let (caller, asset_amount) = user_asset_multiarg.into_tuple();
+            require!(asset_amount > 0, "Zero amount");
             require!(
                 last_community_distrib.after_planning_amount >= asset_amount,
                 "User assets sums above community total assets"
             );
             last_community_distrib.after_planning_amount -= asset_amount.clone();
-            self.add_user_locked_asset_entry(user_address, asset_amount, spread_epoch)?;
+            self.add_user_locked_asset_entry(caller, asset_amount, spread_epoch)?;
         }
         self.community_distribution_list().pop_front();
         self.community_distribution_list()
@@ -200,12 +219,12 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
 
     fn add_user_locked_asset_entry(
         &self,
-        user_address: Address,
+        caller: Address,
         asset_amount: Self::BigUint,
         spread_epoch: u64,
     ) -> SCResult<()> {
         let key = UserLockedAssetKey {
-            user_address,
+            caller,
             spread_epoch,
         };
         require!(
@@ -231,7 +250,7 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
             .filter(|x| x.spread_epoch <= current_epoch)
         {
             let user_asset_key = UserLockedAssetKey {
-                user_address: address.clone(),
+                caller: address.clone(),
                 spread_epoch: community_distrib.spread_epoch,
             };
 
@@ -265,21 +284,25 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
 
         let mut to_remove_keys = Vec::new();
         let search_gas_limit = self.blockchain().get_gas_left() / 2;
-        for (user_asset_index, user_asset_key) in self.user_locked_asset_map().keys().enumerate() {
-            if (user_asset_index + 1) % GAS_CHECK_FREQUENCY == 0
-                && self.blockchain().get_gas_left() < search_gas_limit
-            {
+        for user_asset_key in self.user_locked_asset_map().keys() {
+            if self.blockchain().get_gas_left() < search_gas_limit {
                 break;
             }
+
             if lower <= user_asset_key.spread_epoch && user_asset_key.spread_epoch <= higher {
                 to_remove_keys.push(user_asset_key);
             }
         }
 
+        let map_len_before = self.user_locked_asset_map().len();
         for key in to_remove_keys.iter() {
+            if self.blockchain().get_gas_left() < GAS_THRESHOLD {
+                break;
+            }
+
             self.user_locked_asset_map().remove(key);
         }
-        to_remove_keys.len()
+        map_len_before - self.user_locked_asset_map().len()
     }
 
     fn require_community_distribution_list_not_empty(&self) -> SCResult<()> {
@@ -296,8 +319,14 @@ pub trait Distribution: asset::AssetModule + global_op::GlobalOperationModule {
     ) -> LinkedListMapper<Self::Storage, CommunityDistribution<Self::BigUint>>;
 
     #[storage_mapper("user_locked_asset_map")]
-    fn user_locked_asset_map(&self) -> MapMapper<Self::Storage, UserLockedAssetKey, Self::BigUint>;
+    fn user_locked_asset_map(
+        &self,
+    ) -> SafeMapMapper<Self::Storage, UserLockedAssetKey, Self::BigUint>;
 
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getAssetTokenId)]
+    #[storage_mapper("asset_token_id")]
+    fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }
