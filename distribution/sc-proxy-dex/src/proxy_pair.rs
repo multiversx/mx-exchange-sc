@@ -31,7 +31,7 @@ pub struct WrappedLpToken<BigUint: BigUintApi> {
     pub attributes: WrappedLpTokenAttributes<BigUint>,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ProxyPairModule:
     proxy_common::ProxyCommonModule
     + token_supply::TokenSupplyModule
@@ -361,10 +361,10 @@ pub trait ProxyPairModule:
 
         //Send back the tokens removed from pair sc.
         self.send()
-            .direct(&caller, &fungible_token_id, &fungible_token_amount, &[]);
+            .direct(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.send().direct_nft(
+        self.send().direct(
             &caller,
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
@@ -376,7 +376,7 @@ pub trait ProxyPairModule:
         if assets_received > locked_assets_invested {
             let difference = assets_received - locked_assets_invested;
             self.send()
-                .direct(&caller, &asset_token_id, &difference, &[]);
+                .direct(&caller, &asset_token_id, 0, &difference, &[]);
         } else if assets_received < locked_assets_invested {
             let difference = locked_assets_invested - assets_received;
             self.nft_burn_tokens(
@@ -584,5 +584,5 @@ pub trait ProxyPairModule:
     fn temporary_funds(
         &self,
         user: &Address,
-    ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
+    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
 }

@@ -29,7 +29,7 @@ type SwapTokensFixedInputResultType<BigUint> = FftTokenAmountPair<BigUint>;
 type SwapTokensFixedOutputResultType<BigUint> =
     MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Pair:
     amm::AmmModule
     + fee::FeeModule

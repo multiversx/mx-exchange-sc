@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{GenericTokenAmountPair, Nonce};
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
     #[payable("*")]
     #[endpoint(depositTokens)]
@@ -131,5 +131,5 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
 
     #[view(getNftDepositAcceptedTokenIds)]
     #[storage_mapper("nft_deposit_accepted_token_ids")]
-    fn nft_deposit_accepted_token_ids(&self) -> SetMapper<Self::Storage, TokenIdentifier>;
+    fn nft_deposit_accepted_token_ids(&self) -> SafeSetMapper<Self::Storage, TokenIdentifier>;
 }

@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait RewardsModule {
     #[endpoint(setPerBlockRewardAmount)]
     fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {
@@ -33,7 +33,7 @@ pub trait RewardsModule {
         let current_nonce = self.blockchain().get_block_nonce();
         let to_mint = self.calculate_reward_amount(current_nonce);
         if to_mint != 0 {
-            self.send().esdt_local_mint(token_id, &to_mint);
+            self.send().esdt_local_mint(token_id, 0, &to_mint);
             self.last_reward_block_nonce().set(&current_nonce);
         }
     }

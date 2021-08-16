@@ -19,7 +19,7 @@ pub enum IssueRequestType {
     ProxyPair,
 }
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
@@ -157,6 +157,7 @@ pub trait ProxyDexImpl:
                 self.send().direct(
                     &self.blockchain().get_owner_address(),
                     &token_id,
+                    0,
                     &payment,
                     &[],
                 );

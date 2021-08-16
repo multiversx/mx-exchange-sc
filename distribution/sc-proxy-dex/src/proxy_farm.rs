@@ -28,7 +28,7 @@ pub struct WrappedFarmToken<BigUint: BigUintApi> {
     pub attributes: WrappedFarmTokenAttributes<BigUint>,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ProxyFarmModule:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
@@ -181,7 +181,7 @@ pub trait ProxyFarmModule:
         let reward_token_returned = farm_result.1;
 
         let caller = self.blockchain().get_caller();
-        self.send().direct_nft(
+        self.send().direct(
             &caller,
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,

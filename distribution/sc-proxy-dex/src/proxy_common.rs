@@ -6,7 +6,7 @@ use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
 pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ProxyCommonModule {
     fn require_permissions(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");
@@ -17,22 +17,6 @@ pub trait ProxyCommonModule {
     #[endpoint(acceptPay)]
     fn accept_pay(&self) {}
 
-    fn direct_generic(
-        &self,
-        to: &Address,
-        token_id: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &Self::BigUint,
-    ) {
-        if nonce == 0 {
-            let _ =
-                self.send()
-                    .direct_esdt_execute(to, token_id, amount, 0, &[], &ArgBuffer::new());
-        } else {
-            self.send().direct_nft(to, token_id, nonce, amount, &[]);
-        }
-    }
-
     fn direct_generic_safe(
         &self,
         to: &Address,
@@ -41,7 +25,7 @@ pub trait ProxyCommonModule {
         amount: &Self::BigUint,
     ) {
         if amount > &0 {
-            self.direct_generic(to, token_id, nonce, amount);
+            self.send().direct(to, token_id, nonce, amount, &[]);
         }
     }
 
@@ -101,7 +85,7 @@ pub trait ProxyCommonModule {
     #[storage_mapper("current_tx_accepted_funds")]
     fn current_tx_accepted_funds(
         &self,
-    ) -> MapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
+    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]
@@ -130,9 +114,9 @@ pub trait ProxyCommonModule {
 
     #[view(getIntermediatedFarms)]
     #[storage_mapper("intermediated_farms")]
-    fn intermediated_farms(&self) -> SetMapper<Self::Storage, Address>;
+    fn intermediated_farms(&self) -> SafeSetMapper<Self::Storage, Address>;
 
     #[view(getIntermediatedPairs)]
     #[storage_mapper("intermediated_pairs")]
-    fn intermediated_pairs(&self) -> SetMapper<Self::Storage, Address>;
+    fn intermediated_pairs(&self) -> SafeSetMapper<Self::Storage, Address>;
 }

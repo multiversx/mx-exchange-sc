@@ -6,7 +6,7 @@ use common_structs::Nonce;
 use super::locked_asset;
 use super::locked_asset::UnlockSchedule;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait CacheModule:
     locked_asset::LockedAssetModule + token_supply::TokenSupplyModule + token_send::TokenSendModule
 {
@@ -33,8 +33,8 @@ pub trait CacheModule:
     }
 
     #[storage_mapper("nonce_cache")]
-    fn nonce_cache(&self) -> MapMapper<Self::Storage, UnlockSchedule, Nonce>;
+    fn nonce_cache(&self) -> SafeMapMapper<Self::Storage, UnlockSchedule, Nonce>;
 
     #[storage_mapper("unlock_schedule_cache")]
-    fn unlock_schedule_cache(&self) -> MapMapper<Self::Storage, Nonce, UnlockSchedule>;
+    fn unlock_schedule_cache(&self) -> SafeMapMapper<Self::Storage, Nonce, UnlockSchedule>;
 }

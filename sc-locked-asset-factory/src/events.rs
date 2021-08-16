@@ -29,7 +29,7 @@ pub struct UnlockAssetsEvent<BigUint: BigUintApi> {
     timestamp: u64,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait EventsModule {
     fn emit_create_and_forward_event(
         self,

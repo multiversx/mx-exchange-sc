@@ -17,7 +17,7 @@ pub struct PairContractMetadata {
     address: Address,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FactoryModule {
     fn init_factory(&self) {
         self.pair_code_ready().set_if_empty(&false);
@@ -49,22 +49,22 @@ pub trait FactoryModule {
         let new_address =
             self.send()
                 .deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
-        require!(new_address != Address::zero(), "deploy failed");
+        require!(new_address.is_some(), "deploy failed");
         self.pair_map().insert(
             PairTokens {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             },
-            new_address.clone(),
+            new_address.clone().unwrap(),
         );
         self.pair_temporary_owner().insert(
-            new_address.clone(),
+            new_address.clone().unwrap(),
             (
                 self.blockchain().get_caller(),
                 self.blockchain().get_block_nonce(),
             ),
         );
-        Ok(new_address)
+        Ok(new_address.unwrap())
     }
 
     fn upgrade_pair(
@@ -118,7 +118,7 @@ pub trait FactoryModule {
     }
 
     #[storage_mapper("pair_map")]
-    fn pair_map(&self) -> MapMapper<Self::Storage, PairTokens, Address>;
+    fn pair_map(&self) -> SafeMapMapper<Self::Storage, PairTokens, Address>;
 
     #[view(getAllPairsAddresses)]
     fn get_all_pairs_addresses(&self) -> MultiResultVec<Address> {
@@ -190,5 +190,5 @@ pub trait FactoryModule {
     fn temporary_owner_period(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[storage_mapper("pair_temporary_owner")]
-    fn pair_temporary_owner(&self) -> MapMapper<Self::Storage, Address, (Address, u64)>;
+    fn pair_temporary_owner(&self) -> SafeMapMapper<Self::Storage, Address, (Address, u64)>;
 }

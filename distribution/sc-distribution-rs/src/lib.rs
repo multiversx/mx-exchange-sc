@@ -10,7 +10,7 @@ mod global_op;
 const GAS_THRESHOLD: u64 = 100_000;
 const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
 pub struct UserLockedAssetKey {
     pub caller: Address,
     pub spread_epoch: u64,
@@ -23,7 +23,7 @@ pub struct CommunityDistribution<BigUint: BigUintApi> {
     pub after_planning_amount: BigUint,
 }
 
-#[elrond_wasm_derive::contract]
+#[elrond_wasm::contract]
 pub trait Distribution: global_op::GlobalOperationModule {
     #[proxy]
     fn locked_asset_factory_proxy(
@@ -319,7 +319,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
     ) -> LinkedListMapper<Self::Storage, CommunityDistribution<Self::BigUint>>;
 
     #[storage_mapper("user_locked_asset_map")]
-    fn user_locked_asset_map(&self) -> MapMapper<Self::Storage, UserLockedAssetKey, Self::BigUint>;
+    fn user_locked_asset_map(
+        &self,
+    ) -> SafeMapMapper<Self::Storage, UserLockedAssetKey, Self::BigUint>;
 
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;

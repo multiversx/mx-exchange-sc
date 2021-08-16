@@ -18,7 +18,7 @@ use elrond_dex_farm::farm_token_merge::ProxyTrait as _;
 use nft_deposit::ProxyTrait as _;
 use sc_locked_asset_factory::locked_asset_token_merge::ProxyTrait as _;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait WrappedFarmTokenMerge:
     token_merge::TokenMergeModule
     + token_send::TokenSendModule

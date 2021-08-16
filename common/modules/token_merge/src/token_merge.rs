@@ -9,7 +9,7 @@ pub struct ValueWeight<BigUint: BigUintApi> {
     pub weight: BigUint,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait TokenMergeModule {
     fn rule_of_three(
         &self,

@@ -20,11 +20,12 @@ path = "../token_send"
 path = "../token_supply"
 
 [dependencies.elrond-wasm]
-version = "0.17"
+version = "0.18"
+features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
-version = "0.17"
+version = "0.18"
 
 [dependencies.elrond-wasm-node]
-version = "0.17"
+version = "0.18"
 optional = true

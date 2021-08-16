@@ -11,7 +11,7 @@ use nft_deposit::ProxyTrait as _;
 use proxy_pair::WrappedLpToken;
 use sc_locked_asset_factory::locked_asset_token_merge::ProxyTrait as _;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait WrappedLpTokenMerge:
     token_merge::TokenMergeModule
     + token_send::TokenSendModule

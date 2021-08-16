@@ -9,7 +9,7 @@ use super::config;
 
 use super::farm_token;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     nft_deposit::NftDepositModule
     + token_send::TokenSendModule

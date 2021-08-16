@@ -12,7 +12,7 @@ const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 mod farm_proxy {
     elrond_wasm::imports!();
 
-    #[elrond_wasm_derive::proxy]
+    #[elrond_wasm::proxy]
     pub trait Farm {
         #[payable("*")]
         #[endpoint(acceptFee)]
@@ -24,7 +24,7 @@ mod farm_proxy {
     }
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait FeeModule:
     config::ConfigModule
     + liquidity_pool::LiquidityPoolModule
@@ -36,14 +36,14 @@ pub trait FeeModule:
     fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
 
     #[storage_mapper("fee_destination")]
-    fn destination_map(&self) -> MapMapper<Self::Storage, Address, TokenIdentifier>;
+    fn destination_map(&self) -> SafeMapMapper<Self::Storage, Address, TokenIdentifier>;
 
     #[storage_mapper("trusted_swap_pair")]
-    fn trusted_swap_pair(&self) -> MapMapper<Self::Storage, TokenPair, Address>;
+    fn trusted_swap_pair(&self) -> SafeMapMapper<Self::Storage, TokenPair, Address>;
 
     #[view(getWhitelistedAddresses)]
     #[storage_mapper("whitelist")]
-    fn whitelist(&self) -> SetMapper<Self::Storage, Address>;
+    fn whitelist(&self) -> SafeSetMapper<Self::Storage, Address>;
 
     #[view(getFeeState)]
     fn is_fee_enabled(&self) -> bool {

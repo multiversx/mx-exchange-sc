@@ -16,7 +16,7 @@ pub enum State {
     Active,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait ConfigModule:
     token_supply::TokenSupplyModule + token_send::TokenSendModule + nft_deposit::NftDepositModule
 {
