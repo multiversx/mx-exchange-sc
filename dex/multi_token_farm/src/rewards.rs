@@ -1,9 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
+use common_structs::Nonce;
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait RewardsModule {
     #[endpoint(setPerBlockRewardAmount)]
     fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {
@@ -23,10 +23,9 @@ pub trait RewardsModule {
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let per_block_reward = self.per_block_reward_amount().get();
         if block_nonce > last_reward_nonce && per_block_reward > 0 {
-            Self::BigUint::from(per_block_reward)
-                * Self::BigUint::from(block_nonce - last_reward_nonce)
+            Self::BigUint::from(per_block_reward) * (block_nonce - last_reward_nonce).into()
         } else {
-            Self::BigUint::zero()
+            0u64.into()
         }
     }
 
@@ -34,7 +33,7 @@ pub trait RewardsModule {
         let current_nonce = self.blockchain().get_block_nonce();
         let to_mint = self.calculate_reward_amount(current_nonce);
         if to_mint != 0 {
-            self.send().esdt_local_mint(token_id, &to_mint);
+            self.send().esdt_local_mint(token_id, 0, &to_mint);
             self.last_reward_block_nonce().set(&current_nonce);
         }
     }
@@ -64,7 +63,7 @@ pub trait RewardsModule {
         let reward = if &worth > initial_worth {
             &worth - initial_worth
         } else {
-            Self::BigUint::zero()
+            0u64.into()
         };
 
         Ok(reward)

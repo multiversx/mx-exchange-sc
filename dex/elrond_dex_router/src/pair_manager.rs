@@ -1,10 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use dex_common::FftTokenAmountPair;
+use common_structs::FftTokenAmountPair;
 
 use super::factory;
-use super::util;
+use super::state;
 
 type Nonce = u64;
 type SwapOperationType<BigUint> = MultiArg4<Address, BoxedBytes, TokenIdentifier, BigUint>;
@@ -13,8 +13,14 @@ const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
 const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 
-#[elrond_wasm_derive::module]
-pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
+use elrond_dex_pair::config::ProxyTrait as _;
+use elrond_dex_pair::fee::ProxyTrait as _;
+
+#[elrond_wasm::module]
+pub trait PairManagerModule:
+    state::StateModule + factory::FactoryModule + token_send::TokenSendModule
+{
+    #[only_owner]
     #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,
@@ -22,17 +28,17 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_owner()?;
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(true, fee_to_address, fee_token)
+            .set_fee_on(true, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setFeeOff)]
     fn set_fee_off(
         &self,
@@ -40,20 +46,19 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
         fee_to_address: Address,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_owner()?;
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
-            .setFeeOn(false, fee_to_address, fee_token)
+            .set_fee_on(false, fee_to_address, fee_token)
             .execute_on_dest_context();
 
         Ok(())
     }
 
     #[payable("*")]
-    #[endpoint]
-    fn acceptPay(&self) {}
+    #[endpoint(acceptPay)]
+    fn accept_pay(&self) {}
 
     #[payable("*")]
     #[endpoint(multiPairSwap)]
@@ -109,7 +114,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
 
         while !residuum_vec.is_empty() {
             let residuum = residuum_vec.pop().unwrap_or_default();
-            self.send_tokens(
+            self.send_fft_tokens(
                 &residuum.token_id,
                 &residuum.amount,
                 &caller,
@@ -117,7 +122,7 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
             )?;
         }
 
-        self.send_tokens(
+        self.send_fft_tokens(
             &last_received_token_id,
             &last_received_amount,
             &caller,
@@ -183,13 +188,13 @@ pub trait PairManagerModule: util::UtilModule + factory::FactoryModule {
 
     fn get_lp_token_for_pair(&self, address: &Address) -> TokenIdentifier {
         self.pair_contract_proxy(address.clone())
-            .getLpTokenIdentifier()
+            .get_lp_token_identifier()
             .execute_on_dest_context()
     }
 
     fn set_lp_token_for_pair(&self, address: &Address, token_id: &TokenIdentifier) {
         self.pair_contract_proxy(address.clone())
-            .setLpTokenIdentifier(token_id.clone())
+            .set_lp_token_identifier(token_id.clone())
             .execute_on_dest_context();
     }
 

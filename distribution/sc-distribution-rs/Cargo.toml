@@ -10,31 +10,28 @@ path = "src/lib.rs"
 [features]
 wasm-output-mode = [
   "elrond-wasm-node",
-  "asset/wasm-output-mode",
-  "global-op/wasm-output-mode",
+  "token_supply/wasm-output-mode",
 ]
 
-[dependencies.distrib-common]
-path = "../distrib-common"
+[dependencies.common_structs]
+path = "../../common/common_structs"
 
-[dependencies.asset]
-path = "../modules/asset"
-
-[dependencies.global-op]
-path = "../modules/global-op"
+[dependencies.token_supply]
+path = "../../common/modules/token_supply"
 
 [dependencies.sc-locked-asset-factory]
 path = "../../sc-locked-asset-factory"
 
 [dependencies.elrond-wasm]
-version = "0.17"
+version = "0.18"
+features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
-version = "0.17"
+version = "0.18"
 
 [dependencies.elrond-wasm-node]
 optional = true
-version = "0.17"
+version = "0.18"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.17"
+version = "0.18"

@@ -1,38 +1,46 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Nonce = u64;
-type Epoch = u64;
+use common_structs::{Epoch, Nonce, UnlockMilestone};
 
-use distrib_common::UnlockMilestone;
-
-const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
-const PERCENTAGE_TOTAL: u64 = 100;
+pub const PERCENTAGE_TOTAL: u64 = 100;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
 pub struct UnlockSchedule {
     pub unlock_milestones: Vec<UnlockMilestone>,
 }
 
-#[elrond_wasm_derive::module]
-pub trait LockedAssetModule: asset::AssetModule {
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct LockedAssetTokenAttributes {
+    pub unlock_schedule: UnlockSchedule,
+    pub is_merged: bool,
+}
+
+#[elrond_wasm::module]
+pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     fn create_and_send_locked_assets(
         &self,
         amount: &Self::BigUint,
+        additional_amount_to_create: &Self::BigUint,
         address: &Address,
+        attributes: &LockedAssetTokenAttributes,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> Nonce {
+    ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
-        self.create_tokens(&token_id, amount);
+        self.create_tokens(
+            &token_id,
+            &(amount + additional_amount_to_create),
+            attributes,
+        );
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.send_tokens(
+        self.send_nft_tokens(
             &token_id,
             last_created_nonce,
             amount,
             address,
             opt_accept_funds_func,
-        );
-        last_created_nonce
+        )?;
+        Ok(last_created_nonce)
     }
 
     fn add_quantity_and_send_locked_assets(
@@ -41,54 +49,19 @@ pub trait LockedAssetModule: asset::AssetModule {
         sft_nonce: Nonce,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) {
+    ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
-        self.send()
-            .esdt_nft_add_quantity(&token_id, sft_nonce, amount);
-        self.send_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func);
+        self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
+        self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func)
     }
 
-    fn send_tokens(
+    fn create_tokens(
         &self,
         token: &TokenIdentifier,
-        nonce: Nonce,
         amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        attributes: &LockedAssetTokenAttributes,
     ) {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
-
-        let _ = self.send().direct_esdt_nft_execute(
-            destination,
-            token,
-            nonce,
-            amount,
-            gas_limit,
-            function,
-            &ArgBuffer::new(),
-        );
-    }
-
-    fn create_tokens(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
-        let amount_to_create = amount + &Self::BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE);
-        self.send().esdt_nft_create(
-            token,
-            &amount_to_create,
-            &BoxedBytes::empty(),
-            &Self::BigUint::zero(),
-            &BoxedBytes::empty(),
-            &BoxedBytes::empty(),
-            &[BoxedBytes::empty()],
-        );
+        self.nft_create_tokens(token, amount, attributes);
         self.increase_nonce();
     }
 
@@ -98,9 +71,8 @@ pub trait LockedAssetModule: asset::AssetModule {
         current_epoch: Epoch,
         unlock_milestones: &[UnlockMilestone],
     ) -> Self::BigUint {
-        amount
-            * &Self::BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
-            / Self::BigUint::from(PERCENTAGE_TOTAL)
+        amount * &(self.get_unlock_percent(current_epoch, unlock_milestones) as u64).into()
+            / PERCENTAGE_TOTAL.into()
     }
 
     fn get_unlock_percent(
@@ -183,6 +155,26 @@ pub trait LockedAssetModule: asset::AssetModule {
         Ok(())
     }
 
+    fn get_attributes(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: u64,
+    ) -> SCResult<LockedAssetTokenAttributes> {
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            token_id,
+            token_nonce,
+        );
+
+        let farm_attributes = token_info.decode_attributes::<LockedAssetTokenAttributes>();
+        match farm_attributes {
+            Result::Ok(decoded_obj) => Ok(decoded_obj),
+            Result::Err(_) => {
+                return sc_error!("Decoding error");
+            }
+        }
+    }
+
     #[endpoint]
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
         only_owner!(self, "Permission denied");
@@ -190,9 +182,13 @@ pub trait LockedAssetModule: asset::AssetModule {
         Ok(())
     }
 
-    #[view(getTransferExecGasLimit)]
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn mint_and_send_assets(&self, dest: &Address, amount: &Self::BigUint) {
+        if amount > &0 {
+            let asset_token_id = self.asset_token_id().get();
+            self.mint_tokens(&asset_token_id, amount);
+            self.send().direct(dest, &asset_token_id, 0, amount, &[]);
+        }
+    }
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
@@ -200,4 +196,8 @@ pub trait LockedAssetModule: asset::AssetModule {
 
     #[storage_mapper("locked_token_nonce")]
     fn locked_asset_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+
+    #[view(getAssetTokenId)]
+    #[storage_mapper("asset_token_id")]
+    fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }

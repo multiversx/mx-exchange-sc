@@ -9,23 +9,30 @@ publish = false
 path = "src/lib.rs"
 
 [features]
-wasm-output-mode = ["elrond-wasm-node"]
+wasm-output-mode = [
+  "elrond-wasm-node",
+  "token_send/wasm-output-mode",
+]
+
+[dependencies.token_send]
+path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.17"
+version = "0.18"
+features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
-version = "0.17"
+version = "0.18"
 
 [dependencies.elrond-wasm-node]
-version = "0.17"
+version = "0.18"
 optional = true
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.17"
+version = "0.18"
 
 [dependencies.elrond_dex_pair]
 path = "../elrond_dex_pair"
 
-[dependencies.dex-common]
-path = "../dex-common"
+[dependencies.common_structs]
+path = "../../common/common_structs"
