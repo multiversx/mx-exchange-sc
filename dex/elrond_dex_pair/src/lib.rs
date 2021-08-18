@@ -58,10 +58,6 @@ pub trait Pair:
             "Second token ID is not a valid ESDT identifier"
         );
         require!(
-            total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
-            "Bad percents"
-        );
-        require!(
             first_token_id != second_token_id,
             "Exchange tokens cannot be the same"
         );
@@ -74,6 +70,7 @@ pub trait Pair:
             second_token_id != lp_token_id,
             "Second token ID cannot be the same as LP token ID"
         );
+        self.try_set_fee_percents(total_fee_percent, special_fee_percent)?;
 
         self.state().set_if_empty(&State::ActiveNoSwaps);
         self.transfer_exec_gas_limit()
@@ -85,8 +82,6 @@ pub trait Pair:
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
-        self.total_fee_percent().set(&total_fee_percent);
-        self.special_fee_percent().set(&special_fee_percent);
         Ok(())
     }
 

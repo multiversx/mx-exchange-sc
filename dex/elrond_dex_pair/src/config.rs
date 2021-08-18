@@ -10,25 +10,6 @@ pub enum State {
 
 #[elrond_wasm::module]
 pub trait ConfigModule: token_send::TokenSendModule {
-    #[view(getRouterAddress)]
-    #[storage_mapper("router_address")]
-    fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
-
-    #[view(getRouterOwnerAddress)]
-    #[storage_mapper("router_owner_address")]
-    fn router_owner_address(&self) -> SingleValueMapper<Self::Storage, Address>;
-
-    #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
-
-    #[view(getExternSwapGasLimit)]
-    #[storage_mapper("extern_swap_gas_limit")]
-    fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[storage_mapper("lpTokenIdentifier")]
-    fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
-
     #[endpoint]
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
         self.require_permissions()?;
@@ -76,4 +57,51 @@ pub trait ConfigModule: token_send::TokenSendModule {
     fn get_lp_token_identifier(&self) -> TokenIdentifier {
         self.lp_token_identifier().get()
     }
+
+    #[endpoint(setFeePercents)]
+    fn set_fee_percent(&self, total_fee_percent: u64, special_fee_percent: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.try_set_fee_percents(total_fee_percent, special_fee_percent)
+    }
+
+    fn try_set_fee_percents(
+        &self,
+        total_fee_percent: u64,
+        special_fee_percent: u64,
+    ) -> SCResult<()> {
+        require!(
+            total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
+            "Bad percents"
+        );
+        self.total_fee_percent().set(&total_fee_percent);
+        self.special_fee_percent().set(&special_fee_percent);
+        Ok(())
+    }
+
+    #[view(getTotalFeePercent)]
+    #[storage_mapper("total_fee_percent")]
+    fn total_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[view(getSpecialFee)]
+    #[storage_mapper("special_fee_percent")]
+    fn special_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[view(getRouterAddress)]
+    #[storage_mapper("router_address")]
+    fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getRouterOwnerAddress)]
+    #[storage_mapper("router_owner_address")]
+    fn router_owner_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+
+    #[view(getState)]
+    #[storage_mapper("state")]
+    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
+
+    #[view(getExternSwapGasLimit)]
+    #[storage_mapper("extern_swap_gas_limit")]
+    fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[storage_mapper("lpTokenIdentifier")]
+    fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
 }
