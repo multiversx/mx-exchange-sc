@@ -226,13 +226,14 @@ pub trait WrappedFarmTokenMerge:
             };
         }
 
+        let caller = self.blockchain().get_caller();
         for entry in tokens.iter() {
             self.farm_contract_merge_proxy(farm_contract.clone())
                 .claim_rewards_and_deposit_tokens(
                     entry.attributes.farm_token_id.clone(),
                     entry.attributes.farm_token_nonce,
                     entry.token_amount.amount.clone(),
-                    OptionalArg::Some(self.blockchain().get_caller()),
+                    OptionalArg::Some(caller.clone()),
                 )
                 .execute_on_dest_context();
         }
