@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
-#![allow(clippy::type_complexity)]
 
 pub mod config;
 mod events;
@@ -609,9 +608,9 @@ pub trait Farm:
         self.emit_claim_rewards_event(
             caller,
             old_farm_token_amount,
-            new_farm_token.clone(),
+            new_farm_token,
             self.get_farm_token_supply(),
-            reward_token_amount.clone(),
+            reward_token_amount,
             self.reward_reserve().get(),
             farm_attributes,
             new_attributes,
