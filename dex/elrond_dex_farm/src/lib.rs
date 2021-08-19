@@ -1,5 +1,6 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::type_complexity)]
 
 pub mod config;
 mod events;
@@ -512,6 +513,111 @@ pub trait Farm:
             created_with_merge,
         );
         Ok(new_farm_token.token_amount)
+    }
+
+    #[payable("*")]
+    #[endpoint(claimRewardsAndDepositTokens)]
+    fn claim_rewards_and_deposit_tokens(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: Self::BigUint,
+        #[var_args] opt_reward_destination: OptionalArg<Address>,
+    ) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        require!(amount > 0, "Zero amount");
+        let farm_token_id = self.farm_token_id().get();
+        require!(payment_token_id == farm_token_id, "Unknown farm token");
+        let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
+
+        let caller = self.blockchain().get_caller();
+        let reward_destination = match opt_reward_destination {
+            OptionalArg::Some(address) => address,
+            OptionalArg::None => caller.clone(),
+        };
+
+        let mut reward_token_id = self.reward_token_id().get();
+        self.generate_aggregated_rewards(&reward_token_id);
+
+        let mut reward = self.calculate_reward(
+            &amount,
+            &self.reward_per_share().get(),
+            &farm_attributes.reward_per_share,
+        );
+        if reward > 0 {
+            self.decrease_reward_reserve(&reward)?;
+        }
+
+        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.initial_farming_amount,
+        )?;
+        let new_compound_reward_amount = self.rule_of_three(
+            &amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
+        );
+
+        let new_attributes = FarmTokenAttributes {
+            reward_per_share: self.reward_per_share().get(),
+            entering_epoch: self.blockchain().get_block_epoch(),
+            original_entering_epoch: farm_attributes.original_entering_epoch,
+            apr_multiplier: farm_attributes.apr_multiplier,
+            with_locked_rewards: farm_attributes.with_locked_rewards,
+            initial_farming_amount: new_initial_farming_amount,
+            compounded_reward: new_compound_reward_amount,
+            current_farm_amount: amount.clone(),
+        };
+
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
+        let farm_amount = amount.clone();
+
+        // no merging here
+        let new_nonce = self.create_farm_tokens(&farm_amount, &farm_token_id, &new_attributes);
+        self.deposit_tokens(farm_token_id.clone(), new_nonce, farm_amount.clone())?;
+
+        // Send rewards
+        let mut reward_nonce = 0u64;
+        self.send_rewards(
+            &mut reward_token_id,
+            &mut reward_nonce,
+            &mut reward,
+            &reward_destination,
+            farm_attributes.with_locked_rewards,
+            farm_attributes.original_entering_epoch,
+            &OptionalArg::None, //Send directly to user
+        )?;
+
+        let old_farm_token_amount = GenericTokenAmountPair {
+            token_id: farm_token_id.clone(),
+            token_nonce,
+            amount,
+        };
+        let reward_token_amount = GenericTokenAmountPair {
+            token_id: reward_token_id,
+            token_nonce: reward_nonce,
+            amount: reward,
+        };
+        let new_farm_token = GenericTokenAmountPair {
+            token_id: farm_token_id,
+            token_nonce: new_nonce,
+            amount: farm_amount,
+        };
+
+        self.emit_claim_rewards_event(
+            caller,
+            old_farm_token_amount,
+            new_farm_token.clone(),
+            self.get_farm_token_supply(),
+            reward_token_amount.clone(),
+            self.reward_reserve().get(),
+            farm_attributes,
+            new_attributes,
+            false,
+        );
+        Ok(())
     }
 
     fn aggregated_original_entering_epoch_on_compound(
