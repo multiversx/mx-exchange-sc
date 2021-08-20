@@ -1,8 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::config;
+
 #[elrond_wasm::module]
-pub trait AmmModule {
+pub trait AmmModule: config::ConfigModule + token_send::TokenSendModule {
     fn calculate_k_constant(
         &self,
         first_token_amount: &Self::BigUint,
@@ -61,12 +63,4 @@ pub trait AmmModule {
     fn get_special_fee_from_input(&self, amount_in: &Self::BigUint) -> Self::BigUint {
         amount_in * &self.special_fee_percent().get().into() / 100000u64.into()
     }
-
-    #[view(getTotalFeePercent)]
-    #[storage_mapper("total_fee_percent")]
-    fn total_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[view(getSpecialFee)]
-    #[storage_mapper("special_fee_percent")]
-    fn special_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
 }
