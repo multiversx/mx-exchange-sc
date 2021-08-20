@@ -6,6 +6,12 @@
 			"path": "swap_fixed_input.scen.json"
 		},
 		{
+			"step": "setState",
+			"currentBlockInfo": {
+				"blockNonce": "5"
+			}
+		},
+		{
 			"step": "scCall",
 			"txId": "swap-fixed-input",
 			"tx": {
@@ -58,7 +64,6 @@
 						"str:router_address": "sc:router_contract",
 						"str:state": "1",
 						"str:owner": "address:owner",
-						"str:current_block_fee_storage": "0x01000000000000000000000001c7",
 						"str:minimum_farming_epochs": "2",
 						"str:burn_tokens_gas_limit": "5,000,000",
 						"str:mint_tokens_gas_limit": "5,000,000",

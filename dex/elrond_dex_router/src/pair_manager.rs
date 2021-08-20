@@ -1,12 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FftTokenAmountPair;
+use common_structs::{FftTokenAmountPair, Nonce};
 
 use super::factory;
 use super::state;
 
-type Nonce = u64;
 type SwapOperationType<BigUint> = MultiArg4<Address, BoxedBytes, TokenIdentifier, BigUint>;
 
 const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
