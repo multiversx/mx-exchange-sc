@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Epoch = u64;
+use common_structs::Epoch;
 
 mod global_op;
 
