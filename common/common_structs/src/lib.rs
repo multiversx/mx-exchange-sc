@@ -60,3 +60,18 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     pub compounded_reward: BigUint,
     pub current_farm_amount: BigUint,
 }
+
+impl<BigUint: BigUintApi> FftTokenAmountPair<BigUint> {
+    pub fn new() -> Self {
+        FftTokenAmountPair {
+            token_id: TokenIdentifier::egld(),
+            amount: BigUint::zero(),
+        }
+    }
+}
+
+impl<BigUint: BigUintApi> Default for FftTokenAmountPair<BigUint> {
+    fn default() -> Self {
+        FftTokenAmountPair::new()
+    }
+}

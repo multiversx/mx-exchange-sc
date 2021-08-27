@@ -72,7 +72,7 @@
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": {
-							"balance": "1,998,000,500",
+							"balance": "1,999,000,000",
 							"roles": [
 								"ESDTRoleLocalBurn"
 							]

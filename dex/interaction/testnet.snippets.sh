@@ -466,6 +466,36 @@ swapFixedOutput() {
       --send || return
 }
 
+# params:
+#   $1  = Payment Token Identifier in hex
+#   $2  = Payment amount in hex
+#
+#   $3  = Pair Address in hex
+#   $4  = Swap Function to call in hex
+#   $5  = Arg 1 to Swap Function in hex
+#   $6  = Arg 2 to Swap Function in hex
+#
+#   $7  = Pair Address in hex
+#   $8  = Swap Function to call in hex
+#   $9  = Arg 1 to Swap Function in hex
+#   $10 = Arg 2 to Swap Function in hex
+#
+# Swap Function should be either "swapTokensFixedInput" or "swapTokensFixedOutput"
+#   Arg 1 to Swap Function is always a TokenIdentifier
+#   Arg 2 to Swap Function is always a BigUint
+#
+multiPairSwap() {
+    method_name="0x$(echo -n 'multiPairSwap' | xxd -p -u | tr -d '\n')"
+
+    erdpy --verbose contract call $ROUTE_ADDRESS --recall-nonce \
+      --pem=${WALLET_PEM} \
+      --gas-limit=100000000 \
+      --proxy=${PROXY} --chain=${CHAIN_ID} \
+      --function="ESDTTransfer" \
+      --arguments $1 $2 $method_name $3 $4 $5 $6 $7 $8 $9 ${10} \
+      --send || return
+}
+
 # params
 #   $1 = destination pair contract,
 #   $2 = pair contract to be whitelisted.

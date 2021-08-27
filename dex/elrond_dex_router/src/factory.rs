@@ -1,7 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::state;
 use core::iter::FromIterator;
+
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
@@ -18,7 +20,7 @@ pub struct PairContractMetadata {
 }
 
 #[elrond_wasm::module]
-pub trait FactoryModule {
+pub trait FactoryModule: state::StateModule {
     fn init_factory(&self) {
         self.pair_code_ready().set_if_empty(&false);
         self.pair_code().set_if_empty(&BoxedBytes::empty());
@@ -162,18 +164,75 @@ pub trait FactoryModule {
         }
     }
 
+    #[view(getPair)]
+    fn get_pair(
+        &self,
+        first_token_id: TokenIdentifier,
+        second_token_id: TokenIdentifier,
+    ) -> Option<Address> {
+        let address = self.pair_map().get(&PairTokens {
+            first_token_id: first_token_id.clone(),
+            second_token_id: second_token_id.clone(),
+        });
+
+        if address.is_none() {
+            self.pair_map().get(&PairTokens {
+                first_token_id: second_token_id,
+                second_token_id: first_token_id,
+            })
+        } else {
+            address
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(startPairCodeConstruction)]
+    fn start_pair_code_construction(&self) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+
+        self.start_pair_construct();
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(endPairCodeConstruction)]
+    fn end_pair_code_construction(&self) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+
+        self.end_pair_construct();
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(appendPairCode)]
+    fn apppend_pair_code(&self, part: BoxedBytes) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+
+        self.append_pair_code(&part)
+    }
+
+    #[only_owner]
     #[endpoint(clearPairTemporaryOwnerStorage)]
     fn clear_pair_temporary_owner_storage(&self) -> SCResult<usize> {
-        only_owner!(self, "No permissions");
         let size = self.pair_temporary_owner().len();
         self.pair_temporary_owner().clear();
         Ok(size)
     }
 
+    #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
     fn set_temporary_owner_period(&self, period_blocks: u64) -> SCResult<()> {
-        only_owner!(self, "No permissions");
         self.temporary_owner_period().set(&period_blocks);
+        Ok(())
+    }
+
+    fn check_is_pair_sc(&self, pair_address: &Address) -> SCResult<()> {
+        require!(
+            self.pair_map()
+                .values()
+                .any(|address| &address == pair_address),
+            "Not a pair SC"
+        );
         Ok(())
     }
 
