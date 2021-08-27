@@ -91,7 +91,7 @@ pub trait FactoryModule {
             self.blockchain().get_gas_left(),
             &0u64.into(),
             &self.pair_code().get(),
-            CodeMetadata::DEFAULT,
+            CodeMetadata::UPGRADEABLE,
             &arg_buffer,
         );
         Ok(())
