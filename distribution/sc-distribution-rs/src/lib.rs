@@ -218,7 +218,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
 
         for milestone in unlock_milestones.0.clone() {
             require!(
-                milestone.unlock_epoch > last_milestone_unlock_epoch,
+                milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"
             );
             require!(
