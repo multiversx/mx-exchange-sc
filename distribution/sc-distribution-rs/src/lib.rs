@@ -1,5 +1,7 @@
 #![no_std]
 
+use common_structs::{UnlockMilestone, UnlockPeriod};
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -110,6 +112,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     #[endpoint(claimLockedAssets)]
     fn claim_locked_assets(&self) -> SCResult<Self::BigUint> {
         self.require_global_op_not_ongoing()?;
+        self.require_unlock_period_not_empty()?;
         self.require_community_distribution_list_not_empty()?;
 
         let caller = self.blockchain().get_caller();
@@ -124,13 +127,14 @@ pub trait Distribution: global_op::GlobalOperationModule {
         let gas_limit_per_execute =
             self.blockchain().get_gas_left() / (locked_assets.len() as u64 + 1);
 
+        let unlock_period = self.unlock_period().get();
         for (amount, spread_epoch) in locked_assets.iter() {
             self.locked_asset_factory_proxy(to.clone())
-                .create_and_forward(
+                .create_and_forward_custom_period(
                     amount.clone(),
                     caller.clone(),
                     *spread_epoch,
-                    OptionalArg::None,
+                    unlock_period.clone(),
                 )
                 .with_gas_limit(gas_limit_per_execute)
                 .execute_on_dest_context_ignore_result();
@@ -164,6 +168,18 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(self.remove_asset_entries_between_epochs(lower, higher))
     }
 
+    #[only_owner]
+    #[endpoint(setUnlockPeriod)]
+    fn set_unlock_period(
+        &self,
+        #[var_args] milestones: MultiArgVec<UnlockMilestone>,
+    ) -> SCResult<()> {
+        self.validate_unlock_milestones(&milestones)?;
+        self.unlock_period()
+            .set(&UnlockPeriod::from(milestones.into_vec()));
+        Ok(())
+    }
+
     #[view(calculateLockedAssets)]
     fn calculate_locked_assets_view(&self, address: Address) -> SCResult<Self::BigUint> {
         self.require_global_op_not_ongoing()?;
@@ -189,6 +205,32 @@ pub trait Distribution: global_op::GlobalOperationModule {
             })
             .unwrap_or((0u64.into(), 0u64))
             .into()
+    }
+
+    fn validate_unlock_milestones(
+        &self,
+        unlock_milestones: &VarArgs<UnlockMilestone>,
+    ) -> SCResult<()> {
+        require!(!unlock_milestones.is_empty(), "Empty param");
+
+        let mut percents_sum: u8 = 0;
+        let mut last_milestone_unlock_epoch: u64 = 0;
+
+        for milestone in unlock_milestones.0.clone() {
+            require!(
+                milestone.unlock_epoch > last_milestone_unlock_epoch,
+                "Unlock epochs not in order"
+            );
+            require!(
+                milestone.unlock_percent <= 100,
+                "Unlock percent more than 100"
+            );
+            last_milestone_unlock_epoch = milestone.unlock_epoch;
+            percents_sum += milestone.unlock_percent;
+        }
+
+        require!(percents_sum == 100, "Percents do not sum up to 100");
+        Ok(())
     }
 
     fn add_all_user_assets_to_map(
@@ -312,6 +354,14 @@ pub trait Distribution: global_op::GlobalOperationModule {
         );
         Ok(())
     }
+
+    fn require_unlock_period_not_empty(&self) -> SCResult<()> {
+        require!(!self.unlock_period().is_empty(), "Empty unlock schedule");
+        Ok(())
+    }
+
+    #[storage_mapper("unlock_period")]
+    fn unlock_period(&self) -> SingleValueMapper<Self::Storage, UnlockPeriod>;
 
     #[storage_mapper("community_distribution_list")]
     fn community_distribution_list(

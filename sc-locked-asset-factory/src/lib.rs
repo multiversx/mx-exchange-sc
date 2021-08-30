@@ -13,10 +13,10 @@ const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-use common_structs::{Epoch, FftTokenAmountPair, GenericTokenAmountPair, Nonce, UnlockMilestone};
-use locked_asset::UnlockSchedule;
-
-use crate::locked_asset::LockedAssetTokenAttributes;
+use common_structs::{
+    Epoch, FftTokenAmountPair, GenericTokenAmountPair, LockedAssetTokenAttributes, Nonce,
+    UnlockMilestone, UnlockPeriod, UnlockSchedule,
+};
 
 #[elrond_wasm::contract]
 pub trait LockedAssetFactory:
@@ -53,7 +53,8 @@ pub trait LockedAssetFactory:
             .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
 
         self.asset_token_id().set(&asset_token_id);
-        self.default_unlock_period().set(&default_unlock_period.0);
+        self.default_unlock_period()
+            .set(&UnlockPeriod::from(default_unlock_period.into_vec()));
         Ok(())
     }
 
@@ -73,6 +74,40 @@ pub trait LockedAssetFactory:
         let is_removed = self.whitelisted_contracts().remove(&address);
         require!(is_removed, "Addresss not whitelisted");
         Ok(())
+    }
+
+    #[endpoint(createAndForwardCustomPeriod)]
+    fn create_and_forward_custom_period(
+        &self,
+        amount: Self::BigUint,
+        address: Address,
+        start_epoch: Epoch,
+        unlock_period: UnlockPeriod,
+    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+        let caller = self.blockchain().get_caller();
+        require!(
+            self.whitelisted_contracts().contains(&caller),
+            "Permission denied"
+        );
+        require!(!unlock_period.unlock_milestones.is_empty(), "Empty arg");
+
+        let month_start_epoch = self.get_month_start_epoch(start_epoch);
+        let attr = LockedAssetTokenAttributes {
+            unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
+            is_merged: false,
+        };
+
+        let new_token =
+            self.produce_tokens_and_send(&amount, &attr, &address, &OptionalArg::None)?;
+
+        self.emit_create_and_forward_event(
+            caller,
+            address,
+            new_token.clone(),
+            attr,
+            month_start_epoch,
+        );
+        Ok(new_token)
     }
 
     #[endpoint(createAndForward)]
@@ -96,8 +131,9 @@ pub trait LockedAssetFactory:
         );
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
+        let unlock_period = self.default_unlock_period().get();
         let attr = LockedAssetTokenAttributes {
-            unlock_schedule: self.create_default_unlock_schedule(month_start_epoch),
+            unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
             is_merged: false,
         };
 
@@ -185,6 +221,18 @@ pub trait LockedAssetFactory:
             attributes,
             output_locked_asset_attributes,
         );
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(setUnlockPeriod)]
+    fn set_unlock_period(
+        &self,
+        #[var_args] milestones: MultiArgVec<UnlockMilestone>,
+    ) -> SCResult<()> {
+        self.validate_unlock_milestones(&milestones)?;
+        self.default_unlock_period()
+            .set(&UnlockPeriod::from(milestones.into_vec()));
         Ok(())
     }
 
@@ -337,11 +385,14 @@ pub trait LockedAssetFactory:
         Ok(())
     }
 
-    fn create_default_unlock_schedule(&self, start_epoch: Epoch) -> UnlockSchedule {
+    fn create_unlock_schedule(
+        &self,
+        start_epoch: Epoch,
+        unlock_period: UnlockPeriod,
+    ) -> UnlockSchedule {
         UnlockSchedule {
-            unlock_milestones: self
-                .default_unlock_period()
-                .get()
+            unlock_milestones: unlock_period
+                .unlock_milestones
                 .iter()
                 .map(|x| UnlockMilestone {
                     unlock_epoch: x.unlock_epoch + start_epoch,
@@ -365,5 +416,5 @@ pub trait LockedAssetFactory:
 
     #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]
-    fn default_unlock_period(&self) -> SingleValueMapper<Self::Storage, Vec<UnlockMilestone>>;
+    fn default_unlock_period(&self) -> SingleValueMapper<Self::Storage, UnlockPeriod>;
 }

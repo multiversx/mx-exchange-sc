@@ -1,10 +1,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{GenericTokenAmountPair, UnlockMilestone};
+use common_structs::{
+    GenericTokenAmountPair, LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule,
+};
 
 use super::locked_asset;
-use super::locked_asset::{LockedAssetTokenAttributes, UnlockSchedule, PERCENTAGE_TOTAL};
+use super::locked_asset::PERCENTAGE_TOTAL;
 
 const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 

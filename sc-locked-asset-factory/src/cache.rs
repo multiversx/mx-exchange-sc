@@ -1,10 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Nonce;
+use common_structs::{Nonce, UnlockSchedule};
 
 use super::locked_asset;
-use super::locked_asset::UnlockSchedule;
 
 #[elrond_wasm::module]
 pub trait CacheModule:
