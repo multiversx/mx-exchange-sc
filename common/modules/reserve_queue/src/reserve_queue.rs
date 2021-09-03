@@ -7,8 +7,9 @@ const DEFAULT_PRECISION: u64 = 1000;
 
 mod reserve_node;
 use reserve_node::{Nonce, NonceAmountPair, ReserveNode};
+
 #[elrond_wasm::module]
-pub trait SftQueueModule {
+pub trait ReserveQueueModule {
     #[endpoint]
     fn pop(
         &self,
@@ -76,6 +77,45 @@ pub trait SftQueueModule {
         queues: &mut Vec<u64>,
         queue_id: u64,
     ) -> SCResult<Vec<NonceAmountPair<Self::BigUint>>> {
+        let is_fungible = !self.reserve(token_id, 0).is_empty();
+
+        if is_fungible {
+            self.pop_from_queue_fungible(token_id, amount, precision, queues, queue_id)
+        } else {
+            self.pop_from_queue_non_fungible(token_id, amount, precision, queues, queue_id)
+        }
+    }
+
+    fn pop_from_queue_fungible(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &Self::BigUint,
+        _precision: u64,
+        _queues: &mut Vec<u64>,
+        _queue_id: u64,
+    ) -> SCResult<Vec<NonceAmountPair<Self::BigUint>>> {
+        let reserve = self.reserve(token_id, 0).get();
+        let mut result = Vec::new();
+
+        if &reserve.amount > amount {
+            self.reserve(token_id, 0).update(|x| x.amount -= amount);
+            result.push(NonceAmountPair::from(0, amount.clone()));
+        } else {
+            self.reserve(token_id, 0).clear();
+            result.push(NonceAmountPair::from(0, reserve.amount));
+        }
+
+        Ok(result)
+    }
+
+    fn pop_from_queue_non_fungible(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &Self::BigUint,
+        precision: u64,
+        queues: &mut Vec<u64>,
+        queue_id: u64,
+    ) -> SCResult<Vec<NonceAmountPair<Self::BigUint>>> {
         let head = self.head(token_id, queue_id).get();
         require!(head != 0, "Empty reserve");
 
@@ -99,7 +139,7 @@ pub trait SftQueueModule {
 
                 if self.should_change_queue(current_queue_id, new_queue_id) {
                     self.reserve(token_id, current_nonce).clear();
-                    self.push_single_new(
+                    self.push_single_non_fungible_new(
                         token_id,
                         current_nonce,
                         current_amount,
@@ -143,18 +183,60 @@ pub trait SftQueueModule {
         precision: u64,
         queues: &mut Vec<u64>,
     ) -> SCResult<()> {
-        require!(nonce != 0, "Nonce cannot be zero");
+        let is_fungible = nonce == 0;
 
-        if self.reserve(token_id, nonce).is_empty() {
-            self.push_single_new(token_id, nonce, amount, precision, queues, Option::None);
+        if is_fungible {
+            self.push_single_fungible(token_id, nonce, amount, precision, queues)
         } else {
-            self.push_single_existing(token_id, nonce, amount, precision, queues);
+            self.push_single_non_fungible(token_id, nonce, amount, precision, queues)
+        }
+    }
+
+    fn push_single_fungible(
+        &self,
+        token_id: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+        _precision: u64,
+        _queues: &mut Vec<u64>,
+    ) -> SCResult<()> {
+        let exists = !self.reserve(token_id, nonce).is_empty();
+
+        if exists {
+            self.reserve(token_id, nonce).update(|x| x.amount += amount);
+        } else {
+            self.reserve(token_id, nonce)
+                .set(&ReserveNode::from(amount.clone(), 0));
         }
 
         Ok(())
     }
 
-    //Below funcs should be private
+    fn push_single_non_fungible(
+        &self,
+        token_id: &TokenIdentifier,
+        nonce: Nonce,
+        amount: &Self::BigUint,
+        precision: u64,
+        queues: &mut Vec<u64>,
+    ) -> SCResult<()> {
+        require!(nonce != 0, "Nonce cannot be zero");
+
+        if self.reserve(token_id, nonce).is_empty() {
+            self.push_single_non_fungible_new(
+                token_id,
+                nonce,
+                amount,
+                precision,
+                queues,
+                Option::None,
+            );
+        } else {
+            self.push_single_non_fungible_existing(token_id, nonce, amount, precision, queues);
+        }
+
+        Ok(())
+    }
 
     fn should_change_queue(&self, current: u64, new: u64) -> bool {
         current != new
@@ -199,7 +281,7 @@ pub trait SftQueueModule {
         queue_id
     }
 
-    fn push_single_new(
+    fn push_single_non_fungible_new(
         &self,
         token_id: &TokenIdentifier,
         nonce: Nonce,
@@ -220,7 +302,7 @@ pub trait SftQueueModule {
         }
     }
 
-    fn push_single_existing(
+    fn push_single_non_fungible_existing(
         &self,
         token_id: &TokenIdentifier,
         nonce: Nonce,
@@ -259,7 +341,7 @@ pub trait SftQueueModule {
             }
 
             self.reserve(token_id, nonce).clear();
-            self.push_single_new(
+            self.push_single_non_fungible_new(
                 token_id,
                 nonce,
                 &elem.amount,
@@ -332,7 +414,4 @@ pub trait SftQueueModule {
 
     #[storage_mapper("precision")]
     fn precision(&self, token_id: &TokenIdentifier) -> SingleValueMapper<Self::Storage, u64>;
-
-    #[storage_mapper("debug")]
-    fn debug(&self) -> SingleValueMapper<Self::Storage, u64>;
 }

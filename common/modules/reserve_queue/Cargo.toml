@@ -1,11 +1,11 @@
 [package]
-name = "sft_reserve"
+name = "reserve_queue"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
 edition = "2018"
 
 [lib]
-path = "src/sft_reserve.rs"
+path = "src/reserve_queue.rs"
 
 [features]
 wasm-output-mode = [ "elrond-wasm-node",]
