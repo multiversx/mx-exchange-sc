@@ -1,20 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Epoch, Nonce, UnlockMilestone};
+use common_structs::{Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone};
 
 pub const PERCENTAGE_TOTAL: u64 = 100;
-
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
-pub struct UnlockSchedule {
-    pub unlock_milestones: Vec<UnlockMilestone>,
-}
-
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
-pub struct LockedAssetTokenAttributes {
-    pub unlock_schedule: UnlockSchedule,
-    pub is_merged: bool,
-}
 
 #[elrond_wasm::module]
 pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
@@ -140,7 +129,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
         for milestone in unlock_milestones.0.clone() {
             require!(
-                milestone.unlock_epoch > last_milestone_unlock_epoch,
+                milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"
             );
             require!(

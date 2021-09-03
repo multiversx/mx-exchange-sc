@@ -1,8 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use super::locked_asset::LockedAssetTokenAttributes;
-use common_structs::{FftTokenAmountPair, GenericTokenAmountPair};
+use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, LockedAssetTokenAttributes};
 
 #[derive(TopEncode)]
 pub struct CreateAndForwardEvent<BigUint: BigUintApi> {

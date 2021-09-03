@@ -60,3 +60,47 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
     pub compounded_reward: BigUint,
     pub current_farm_amount: BigUint,
 }
+
+/*
+    The two below structs (UnlockPeriod and UnlockSchedule)
+    have similar structures (both of them keep a vector of
+    (epoch, unlock-percent).
+
+    The difference between them is that Period is desided
+    to be used as [(number-of-epochs-until-unlock, unlock-percent)]
+    whereas Schedule is [(unlock-epoch, unlock-percent)] with unlock-epoch
+    being equal with current-epoch + number-of-epochs-until-unlock.
+
+    For example:
+    If current epoch is 200 and Period is [(10, 100)] (meaning that with
+    a waiting time of 10 epochs, 100% of the amount will be unlocked),
+    Schedule will be [(210, 100)] (meaning that at epoch 210, 100% of the
+    amount will be unlocked).
+*/
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+pub struct UnlockPeriod {
+    pub unlock_milestones: Vec<UnlockMilestone>,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+pub struct UnlockSchedule {
+    pub unlock_milestones: Vec<UnlockMilestone>,
+}
+
+impl UnlockPeriod {
+    pub fn from(unlock_milestones: Vec<UnlockMilestone>) -> Self {
+        UnlockPeriod { unlock_milestones }
+    }
+}
+
+impl UnlockSchedule {
+    pub fn from(unlock_milestones: Vec<UnlockMilestone>) -> Self {
+        UnlockSchedule { unlock_milestones }
+    }
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct LockedAssetTokenAttributes {
+    pub unlock_schedule: UnlockSchedule,
+    pub is_merged: bool,
+}
