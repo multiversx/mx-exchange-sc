@@ -1,0 +1,396 @@
+{
+    "name": "test_struct",
+    "comment": "add then check",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "init.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "push",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "biguint:1000|u64:1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:2": "1",
+                        "str:tail|nested:str:TOK-abcdef|u64:2": "1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:1000|u64:2|u64:0|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:2"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "push",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "biguint:1000|u64:1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:2": "1",
+                        "str:tail|nested:str:TOK-abcdef|u64:2": "1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:2000|u64:2|u64:0|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:2"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "push",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "biguint:1,000,000|u64:1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:3": "1",
+                        "str:tail|nested:str:TOK-abcdef|u64:3": "1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:1,002,000|u64:3|u64:0|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:3"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "push",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "biguint:1,000,000|u64:2"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:3": "1",
+                        "str:tail|nested:str:TOK-abcdef|u64:3": "2",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:1,002,000|u64:3|u64:2|u64:0",
+                        "str:reserve|nested:str:TOK-abcdef|u64:2": "biguint:1,000,000|u64:3|u64:0|u64:1",
+                        "str:queues|nested:str:TOK-abcdef": "u64:3"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "push",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "biguint:1000|u64:3"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:2": "3",
+                        "str:tail|nested:str:TOK-abcdef|u64:2": "3",
+                        "str:head|nested:str:TOK-abcdef|u64:3": "1",
+                        "str:tail|nested:str:TOK-abcdef|u64:3": "2",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:1,002,000|u64:3|u64:2|u64:0",
+                        "str:reserve|nested:str:TOK-abcdef|u64:2": "biguint:1,000,000|u64:3|u64:0|u64:1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:3": "biguint:1,000|u64:2|u64:0|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:2|u64:3"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "pop",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "1,000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "*"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:2": "3",
+                        "str:tail|nested:str:TOK-abcdef|u64:2": "3",
+                        "str:head|nested:str:TOK-abcdef|u64:3": "1",
+                        "str:tail|nested:str:TOK-abcdef|u64:3": "2",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:1,001,000|u64:3|u64:2|u64:0",
+                        "str:reserve|nested:str:TOK-abcdef|u64:2": "biguint:1,000,000|u64:3|u64:0|u64:1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:3": "biguint:1,000|u64:2|u64:0|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:2|u64:3"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "pop",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "2,000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "*"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:2": "3",
+                        "str:tail|nested:str:TOK-abcdef|u64:2": "1",
+                        "str:head|nested:str:TOK-abcdef|u64:3": "2",
+                        "str:tail|nested:str:TOK-abcdef|u64:3": "2",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:999,000|u64:2|u64:0|u64:3",
+                        "str:reserve|nested:str:TOK-abcdef|u64:2": "biguint:1,000,000|u64:3|u64:0|u64:1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:3": "biguint:1,000|u64:2|u64:1|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:2|u64:3"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "pop",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "1,000,000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "*"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {
+                        "str:head|nested:str:TOK-abcdef|u64:2": "3",
+                        "str:tail|nested:str:TOK-abcdef|u64:2": "1",
+                        "str:reserve|nested:str:TOK-abcdef|u64:1": "biguint:999,000|u64:2|u64:0|u64:3",
+                        "str:reserve|nested:str:TOK-abcdef|u64:3": "biguint:1,000|u64:2|u64:1|u64:0",
+                        "str:queues|nested:str:TOK-abcdef": "u64:2"
+                    },
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "1",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:contract",
+                "value": "0",
+                "function": "pop",
+                "arguments": [
+                    "str:TOK-abcdef",
+                    "1,000,000"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "*"
+                ],
+                "status": "",
+                "logs": [],
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "storage": {},
+                    "code": "file:../output/test_struct.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        }
+    ]
+}
