@@ -64,6 +64,13 @@ pub trait ConfigModule: token_send::TokenSendModule {
         self.try_set_fee_percents(total_fee_percent, special_fee_percent)
     }
 
+    #[endpoint(setInfoShareMinEpochs)]
+    fn set_info_share_min_epochs(&self, min_epochs: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.info_share_min_blocks().set(&min_epochs);
+        Ok(())
+    }
+
     fn try_set_fee_percents(
         &self,
         total_fee_percent: u64,
@@ -77,6 +84,14 @@ pub trait ConfigModule: token_send::TokenSendModule {
         self.special_fee_percent().set(&special_fee_percent);
         Ok(())
     }
+
+    #[view(getLastInfoShareEpoch)]
+    #[storage_mapper("last_info_share_block")]
+    fn last_info_share_block(&self) -> SingleValueMapper<Self::Storage, u64>;
+
+    #[view(getInfoShareMinEpochs)]
+    #[storage_mapper("info_share_min_blocks")]
+    fn info_share_min_blocks(&self) -> SingleValueMapper<Self::Storage, u64>;
 
     #[view(getTotalFeePercent)]
     #[storage_mapper("total_fee_percent")]
