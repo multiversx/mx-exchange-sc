@@ -11,6 +11,7 @@ pub mod config;
 mod events;
 pub mod fee;
 mod liquidity_pool;
+mod sharer;
 
 use common_structs::FftTokenAmountPair;
 use config::State;
@@ -38,6 +39,8 @@ pub trait Pair:
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
     + events::EventsModule
+    + sharer::SharerModule
+    + info_sync::InfoSyncModule
 {
     #[init]
     fn init(
@@ -198,6 +201,8 @@ pub trait Pair:
 
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
+        let total_liquidity = &self.liquidity().get() + &liquidity;
+        self.liquidity().set(&total_liquidity);
 
         self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
         self.send_tokens(
@@ -238,7 +243,7 @@ pub trait Pair:
             first_token_amount.clone(),
             second_token_amount.clone(),
             lp_token_amount.clone(),
-            self.get_total_lp_token_supply(),
+            total_liquidity,
             [first_token_reserve, second_token_reserve].to_vec(),
         );
         Ok((lp_token_amount, first_token_amount, second_token_amount).into())
@@ -317,6 +322,8 @@ pub trait Pair:
         )?;
 
         self.burn_tokens(&token_id, &liquidity);
+        let total_liquidity = &self.liquidity().get() - &liquidity;
+        self.liquidity().set(&total_liquidity);
 
         let lp_token_amount = FftTokenAmountPair {
             token_id: lp_token_id,
@@ -343,7 +350,7 @@ pub trait Pair:
             first_token_amount.clone(),
             second_token_amount.clone(),
             lp_token_amount,
-            self.get_total_lp_token_supply(),
+            total_liquidity,
             [first_token_reserve, second_token_reserve].to_vec(),
         );
         Ok((first_token_amount, second_token_amount).into())
@@ -707,7 +714,7 @@ pub trait Pair:
         let second_token_id = self.second_token_id().get();
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.liquidity().get();
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
 

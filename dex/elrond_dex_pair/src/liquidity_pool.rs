@@ -21,7 +21,7 @@ pub trait LiquidityPoolModule:
     ) -> SCResult<Self::BigUint> {
         let first_token = self.first_token_id().get();
         let second_token = self.second_token_id().get();
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.liquidity().get();
         let mut first_token_reserve = self.pair_reserve(&first_token).get();
         let mut second_token_reserve = self.pair_reserve(&second_token).get();
         let mut liquidity: Self::BigUint;
@@ -34,6 +34,7 @@ pub trait LiquidityPoolModule:
                 "First tokens needs to be greater than minimum liquidity"
             );
             liquidity -= &minimum_liquidity;
+            self.liquidity().set(&minimum_liquidity);
             self.mint_tokens(&self.lp_token_identifier().get(), &minimum_liquidity);
         } else {
             liquidity = core::cmp::min(
@@ -80,7 +81,7 @@ pub trait LiquidityPoolModule:
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.liquidity().get();
         require!(
             total_supply >= &liquidity + &MINIMUM_LIQUIDITY.into(),
             "Not enough LP token supply"
@@ -162,7 +163,7 @@ pub trait LiquidityPoolModule:
         token_id: TokenIdentifier,
     ) -> FftTokenAmountPair<Self::BigUint> {
         let reserve = self.pair_reserve(&token_id).get();
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.liquidity().get();
         if total_supply != 0 {
             FftTokenAmountPair {
                 token_id,
@@ -238,15 +239,6 @@ pub trait LiquidityPoolModule:
         amount_out
     }
 
-    #[view(getTotalSupply)]
-    fn get_total_lp_token_supply(&self) -> Self::BigUint {
-        let result = self.get_total_supply(&self.lp_token_identifier().get());
-        match result {
-            SCResult::Ok(amount) => amount,
-            SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
-        }
-    }
-
     #[view(getFirstTokenId)]
     #[storage_mapper("first_token_id")]
     fn first_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
@@ -261,4 +253,8 @@ pub trait LiquidityPoolModule:
         &self,
         token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[view(getLiquidity)]
+    #[storage_mapper("liquidity")]
+    fn liquidity(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }
