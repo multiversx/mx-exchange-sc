@@ -1,0 +1,22 @@
+[package]
+name = "info_sync"
+version = "0.0.0"
+authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/info_sync.rs"
+
+[features]
+wasm-output-mode = [ "elrond-wasm-node",]
+
+[dependencies.elrond-wasm]
+version = "0.18"
+features = ["derive"]
+
+[dependencies.elrond-wasm-derive]
+version = "0.18"
+
+[dependencies.elrond-wasm-node]
+version = "0.18"
+optional = true
