@@ -5,7 +5,7 @@ The bigger picture about what a DEX Proxy Contract can do can be found in the Re
 
 ## Deployment
 
-The DEX Proxy contract can be deployed using `erdpy` and using the interraction snippets.
+The DEX Proxy contract can be deployed using `erdpy` and using the interaction snippets.
 
 The init parameters are:
 

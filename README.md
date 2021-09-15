@@ -2,12 +2,12 @@
 
 This repository contains the principal Smart Contract components of Maiar Exchange.
 
-This document will contain an overview of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
+This document will contain an overview of the Smart Contracts. It covers the basic workflows that a user may do in order to successfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
 
 - [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
   - [DEX Contracts](#dex-contracts)
     - [Pair Contract](#pair-contract)
-      - [Adding liquidty](#adding-liquidty)
+      - [Adding liquidity](#adding-liquidity)
       - [Removing liquidity](#removing-liquidity)
       - [Swapping](#swapping)
     - [Router Contract](#router-contract)
@@ -44,13 +44,13 @@ Some important general properties:
 
 The Pair Contract acts as an AMM for trading two different tokens. The AMM is based on liquidity pools and on the already popular `x*y=k` approach. The total fee percent for each swap can be configured at the init phrase (at deploy time), although the default value (and the value that will be used) will be `0.3%`, from which `0.25%` will stay in the liquidity pool, `0.05%` will be used to buyback and burn MEX tokens.
 
-One tehnical subtlety of this contracts is that it only functions with `Fungible Tokens`. It does not handle neither EGLD nor Semi-Fungible tokens (SFTs) nor Non-Fungible Tokens (NFTs).
+One technical subtlety of these contracts is that it only functions with `Fungible Tokens`. It does not handle neither EGLD nor Semi-Fungible tokens (SFTs) nor Non-Fungible Tokens (NFTs).
 
-#### Adding liquidty
+#### Adding liquidity
 
 A user can become a Liquidity Provider by adding liquidity to the pool. For doing that, a user has to transfer tokens for both types to the contract. By doing this, the user will receive an `LP token`, which will represent his position in the liquidity pool. From now on, the user will gain a part of the fees accumulated by swap transactions, until of course, he decides to exit the liquidity pool.
 
-A user can sell his position or part of his position in the pool at his own willing. This can be done by simply transferring LP tokens to another account. The LP token is a fungible token and as any other ESDT tokens, it can be transferred directly anywhere whithout the need to interact with any contract.
+A user can sell his position or part of his position in the pool at his own willing. This can be done by simply transferring LP tokens to another account. The LP token is a fungible token and as any other ESDT tokens, it can be transferred directly anywhere without the need to interact with any contract.
 
 #### Removing liquidity
 
@@ -60,17 +60,17 @@ The amount of each type of token that will receive depends on the current state 
 
 #### Swapping
 
-The primary functionality that the Pair Contracts offers is allowing users to swap tokens. The user can configure a minimum amount of tokens that he wants to get back in exchange for his fixed amount of input tokens and also he can configure the maximum amount of tokens that he wants to spend in order to get a fixed amount in exchange. This is particulary useful because a FrontEnd may use this parameters to expose a slippage percent to the user, much like we already saw in a lot of exchanges.
+The primary functionality that the Pair Contracts offers is allowing users to swap tokens. The user can configure a minimum amount of tokens that he wants to get back in exchange for his fixed amount of input tokens, and also he can configure the maximum amount of tokens that he wants to spend in order to get a fixed amount in exchange. This is particularly useful because a FrontEnd may use these parameters to expose a slippage percent to the user, much like we already saw in a lot of exchanges.
 
-A fee of 0.3% will be deduced from each swap. Part the each swap (0.25%) fee will go to the Liquidity Providers and the other part (0.05%) will be used to buyback and burn MEX tokens.
+A fee of 0.3% will be deduced from each swap. Part of each swap (0.25%) fee will go to the Liquidity Providers and the other part (0.05%) will be used to buyback and burn MEX tokens.
 
 ### Router Contract
 
-The Router Contract is a manager for the pair contracts. All the Pair Contracts in this DEX will be deploied through the router.
+The Router Contract is a manager for the pair contracts. All the Pair Contracts in this DEX will be deployed through the router.
 
 It was the permission to configure pair contracts and to set their state. It also contains the Table where a user can query the contract address for a specific swap pair.
 
-It's also ment to be used by any user to create and deploy a Pair Contract, although there is a setting to turn this option On and Off.
+It's also meant to be used by any user to create and deploy a Pair Contract, although there is a setting to turn this option On and Off.
 
 ### Farm Contract
 
@@ -78,15 +78,15 @@ The Farm Contract is a contract where a user can block his tokens in order to re
 
 The differences include:
 
-- The token that you use in order to be able to enter a Farm is not necesarry the same as the reward token. Hence, in the contract we named the first one `Farming token` and the second one `Reward token`.
+- The token that you use in order to be able to enter a Farm is not necessary the same as the reward token. Hence, in the contract we named the first one `Farming token` and the second one `Reward token`.
 
 - The farm position is always tokenized. This allows the farm contract to be stateless in the sense that no user information will be held in the contract. When entering a farm, a `Farm Token` will be granted to the user, and it will represent his position in the Farm. This farm token can be used to claim rewards and to get back the Farming Tokens. The amount of farming tokens that he will get back are the same as the amount that he entered.
 
-- There are two possible sources of rewards. First is from the swap fees. The pair will automatically send the fees in the requested token type (MEX tokens) to the farm and Farm's reposnsability is to distribute them fairly between the farmers. The other source of rewards is by minting. The contract can also mint per block rewards, this value being configurable.
+- There are two possible sources of rewards. First is from the swap fees. The pair will automatically send the fees in the requested token type (MEX tokens) to the farm and Farm's responsibility is to distribute them fairly between the farmers. The other source of rewards is by minting. The contract can also mint per block rewards, this value being configurable.
 
 - The Farm position, represented by the Farm Token, will be a Semi-Fungible Token. The reasoning behind this is that in order to correctly calculate the reward each farmer should get, some metadata needs to stored in the SFT's attributes.
 
-- The Farm position, similar with the liquidity pool position, can be sold by just transferring the SFTs to another account without any need to intrract with any contract.
+- The Farm position, similar with the liquidity pool position, can be sold by just transferring the SFTs to another account without any need to interact with any contract.
 
 #### Entering Farm
 
@@ -102,7 +102,7 @@ On constraint here is that:
 
 - A user cannot exit farm earlier than `3 epochs` after he entered if the user went for the Double APR option. This is because these rewards are designed to be long term rewards hence entering and exiting with this option too frequently should be discouraged.
 
-- A user that did not went for the long term reward can exit farm at any time, but exiting before 3 epochs were reached after entering will be penalised with 10% of both rewards and farming tokens.
+- A user that did not go for the long term reward can exit farm at any time, but exiting before 3 epochs were reached after entering will be penalised with 10% of both rewards and farming tokens.
 
 Entering a farm should be a proof that a user wants to get more tokens by locking his own for at least a minimum amount of epochs.
 
@@ -120,15 +120,15 @@ This contract can receive information from the snapshots of eGLD holder and will
 
 ### DEX Proxy Contract
 
-The DEX Proxy Contract can be used by the user to interract with the DEX contracts with Locked MEX. The principal idea is that a user can use his Locked MEX as if it was MEX for adding liquidity.
+The DEX Proxy Contract can be used by the user to interact with the DEX contracts with Locked MEX. The principal idea is that a user can use his Locked MEX as if it was MEX for adding liquidity.
 
 There are two major components in this contract and we'll explain them separately.
 
 #### Proxy Pair Module
 
-Proxy Pair Module allows a user to add and remove liqudity using Locked MEX in the pair contracts that have MEX as one of the pair tokens.
+Proxy Pair Module allows a user to add and remove liquidity using Locked MEX in the pair contracts that have MEX as one of the pair tokens.
 
-This contract is also stateless, will not keep track of any -per-user-data- and the position in the pools will be also tokenized. By entering a liquidty pool with a regular token and a Locked MEX, a user will receive `Wrapped LP Tokens`. The Wrapped LP Token, as the name suggest, is just a Wrapper over the regular LP Token, and it exists because a user cannot receive the LP Tokens directly, otherwise he could remove liquidity and get back MEX tokens, instead of his Locked MEX provided.
+This contract is also stateless, will not keep track of any -per-user-data- and the position in the pools will be also tokenized. By entering a liquidity pool with a regular token and a Locked MEX, a user will receive `Wrapped LP Tokens`. The Wrapped LP Token, as the name suggest, is just a Wrapper over the regular LP Token, and it exists because a user cannot receive the LP Tokens directly, otherwise he could remove liquidity and get back MEX tokens, instead of his Locked MEX provided.
 
 Trading Wrapped LP Tokens can be done by transferring directly. The Wrapped LP Token can be used for either removing liquidity or for entering a Farm.
 
