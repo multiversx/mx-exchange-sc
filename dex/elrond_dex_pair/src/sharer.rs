@@ -141,20 +141,26 @@ pub trait SharerModule:
             }
         }
 
+        let per_transfer_gas_limit =
+            self.blockchain().get_gas_left() / (transfers.len() as u64 + 1);
+        require!(
+            per_transfer_gas_limit > 100_000_000u64,
+            "Not enough gas for each transfer"
+        );
+
         let endpoint = BoxedBytes::from(&b"acceptLiquidity"[..]);
         for (index, transfer) in transfers.iter().enumerate() {
             let liquidity = &liq_transfers[index];
             let address = &transfers_addresses[index];
-            let arg = self.boxed_bytes_from_biguint(&liquidity);
+            let arg = self.arg_buffer_from_biguint(&liquidity);
 
-            self.multi_transfer_via_async_call(
+            self.direct_multi_esdt_transfer_execute(
                 address,
                 transfer,
+                per_transfer_gas_limit,
                 &endpoint,
-                &[arg],
-                &BoxedBytes::empty(),
-                &[],
-            )
+                &arg,
+            )?;
         }
 
         self.liquidity().set(&(my_liquidity - liq_to_share));
@@ -167,8 +173,10 @@ pub trait SharerModule:
         Ok(())
     }
 
-    fn boxed_bytes_from_biguint(&self, biguint: &Self::BigUint) -> BoxedBytes {
-        BoxedBytes::from(biguint.to_bytes_be().as_slice())
+    fn arg_buffer_from_biguint(&self, biguint: &Self::BigUint) -> ArgBuffer {
+        let mut args = ArgBuffer::new();
+        args.push_argument_bytes(biguint.to_bytes_be().as_slice());
+        args
     }
 
     #[payable("*")]

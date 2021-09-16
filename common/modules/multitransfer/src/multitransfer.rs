@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::HexCallDataSerializer;
-
 // Temporary until the next version is released
 // In 0.19, this entire file will be removed
 
@@ -20,6 +18,19 @@ extern "C" {
     fn getESDTTokenNameByIndex(resultOffset: *const u8, index: i32) -> i32;
     fn getESDTTokenNonceByIndex(index: i32) -> i64;
     fn getESDTTokenTypeByIndex(index: i32) -> i32;
+
+    fn multiTransferESDTNFTExecute(
+        dstOffset: *const u8,
+        numTokenTransfers: i32,
+        tokenTransfersArgsLengthOffset: *const u8,
+        tokenTransferDataOffset: *const u8,
+        gasLimit: i64,
+        functionOffset: *const u8,
+        functionLength: i32,
+        numArguments: i32,
+        argumentsLengthOffset: *const u8,
+        dataOffset: *const u8,
+    ) -> i32;
 }
 
 pub struct EsdtTokenPayment<BigUint: BigUintApi> {
@@ -89,48 +100,48 @@ pub trait MultiTransferModule {
         transfers
     }
 
-    fn multi_transfer_via_async_call(
+    fn direct_multi_esdt_transfer_execute(
         &self,
         to: &Address,
-        transfers: &[EsdtTokenPayment<Self::BigUint>],
+        payments: &[EsdtTokenPayment<Self::BigUint>],
+        gas_limit: u64,
         endpoint_name: &BoxedBytes,
-        args: &[BoxedBytes],
-        callback_name: &BoxedBytes,
-        callback_args: &[BoxedBytes],
-    ) -> ! {
-        let mut serializer = HexCallDataSerializer::new(ESDT_MULTI_TRANSFER_STRING);
-        serializer.push_argument_bytes(to.as_bytes());
-        serializer.push_argument_bytes(&transfers.len().to_be_bytes()[..]);
+        arg_buffer: &ArgBuffer,
+    ) -> SCResult<()> {
+        unsafe {
+            let nr_transfers = payments.len();
+            let mut transfer_arg_lengths = Vec::with_capacity(nr_transfers * 3);
+            let mut transfer_args = Vec::new();
 
-        for transf in transfers {
-            serializer.push_argument_bytes(transf.token_name.as_esdt_identifier());
-            serializer.push_argument_bytes(&transf.token_nonce.to_be_bytes()[..]);
-            serializer.push_argument_bytes(transf.amount.to_bytes_be().as_slice());
-        }
+            for token in payments {
+                let token_id_bytes = token.token_name.as_esdt_identifier();
+                let nonce_bytes = &token.token_nonce.to_be_bytes()[..];
+                let amount_bytes = token.amount.to_bytes_be();
 
-        if !endpoint_name.is_empty() {
-            serializer.push_argument_bytes(endpoint_name.as_slice());
+                transfer_arg_lengths.push(token_id_bytes.len() as i32);
+                transfer_arg_lengths.push(nonce_bytes.len() as i32);
+                transfer_arg_lengths.push(amount_bytes.len() as i32);
 
-            for arg in args {
-                serializer.push_argument_bytes(arg.as_slice());
-            }
-        }
-
-        if !callback_name.is_empty() {
-            let mut callback_data_serializer = HexCallDataSerializer::new(callback_name.as_slice());
-
-            for cb_arg in callback_args {
-                callback_data_serializer.push_argument_bytes(cb_arg.as_slice());
+                transfer_args.extend_from_slice(token_id_bytes);
+                transfer_args.extend_from_slice(nonce_bytes);
+                transfer_args.extend_from_slice(amount_bytes.as_slice());
             }
 
-            self.send()
-                .storage_store_tx_hash_key(callback_data_serializer.as_slice());
-        }
+            let result = multiTransferESDTNFTExecute(
+                to.as_ptr(),
+                nr_transfers as i32,
+                transfer_arg_lengths.as_ptr() as *const u8,
+                transfer_args.as_ptr(),
+                gas_limit as i64,
+                endpoint_name.as_ptr(),
+                endpoint_name.len() as i32,
+                arg_buffer.num_args() as i32,
+                arg_buffer.arg_lengths_bytes_ptr(),
+                arg_buffer.arg_data_ptr(),
+            );
 
-        self.send().async_call_raw(
-            &self.blockchain().get_sc_address(),
-            &Self::BigUint::zero(),
-            serializer.as_slice(),
-        );
+            require!(result == 0, "multiTransferESDTNFTExecute failed");
+            Ok(())
+        }
     }
 }
