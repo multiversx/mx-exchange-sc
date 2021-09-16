@@ -41,6 +41,7 @@ pub trait Pair:
     + events::EventsModule
     + sharer::SharerModule
     + info_sync::InfoSyncModule
+    + multitransfer::MultiTransferModule
 {
     #[init]
     fn init(

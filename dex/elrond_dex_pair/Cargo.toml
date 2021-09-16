@@ -14,6 +14,7 @@ wasm-output-mode = [
   "token_supply/wasm-output-mode",
   "token_send/wasm-output-mode",
   "info_sync/wasm-output-mode",
+  "multitransfer/wasm-output-mode",
 ]
 
 [dependencies.token_supply]
@@ -24,6 +25,9 @@ path = "../../common/modules/token_send"
 
 [dependencies.info_sync]
 path = "../../common/modules/info_sync"
+
+[dependencies.multitransfer]
+path = "../../common/modules/multitransfer"
 
 [dependencies.elrond-wasm]
 version = "0.18"

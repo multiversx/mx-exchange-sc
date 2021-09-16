@@ -53,7 +53,7 @@ pub trait InfoSyncModule {
                 &clone,
                 &big_zero,
                 per_clone_gas,
-                &endpoint.as_slice(),
+                endpoint.as_slice(),
                 &arg_buffer,
             )?;
         }
@@ -90,7 +90,7 @@ pub trait InfoSyncModule {
             self.blockchain().get_gas_left(),
             &self.blockchain().get_sc_address(),
             &Self::BigUint::zero(),
-            &BoxedBytes::from(ACTION_CALLBACK_NAME).as_slice(),
+            BoxedBytes::from(ACTION_CALLBACK_NAME).as_slice(),
             &collected_info,
         );
     }
