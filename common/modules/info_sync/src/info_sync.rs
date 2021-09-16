@@ -26,6 +26,7 @@ pub trait InfoSyncModule {
         let my_shard = self.blockchain().get_shard_of_address(&my_address);
         let clone_shard = self.blockchain().get_shard_of_address(&clone_address);
 
+        //Comment this when mandos testing otherwise nothing will work
         require!(my_shard != clone_shard, "Same shard as own shard");
         for element in self.clones().iter() {
             let element_shard = self.blockchain().get_shard_of_address(&element);
@@ -58,6 +59,12 @@ pub trait InfoSyncModule {
             )?;
         }
 
+        if self.received_info().len() == self.clones().len() {
+            self.take_action();
+        } else {
+            self.sent_info().set(&true);
+        }
+
         Ok(())
     }
 
@@ -67,10 +74,8 @@ pub trait InfoSyncModule {
         require!(self.clones().contains(&caller), "Not a clone");
         self.received_info().insert(caller, info);
 
-        if self.received_info().len() == self.clones().len() {
-            let collected_info = self.collect_info();
-            self.received_info().clear();
-            self.take_action(collected_info);
+        if self.received_info().len() == self.clones().len() && self.sent_info().get() {
+            self.take_action();
         }
 
         Ok(())
@@ -85,7 +90,11 @@ pub trait InfoSyncModule {
         collected_info
     }
 
-    fn take_action(&self, collected_info: ArgBuffer) {
+    fn take_action(&self) {
+        let collected_info = self.collect_info();
+        self.received_info().clear();
+        self.sent_info().clear();
+
         self.send().execute_on_dest_context_raw(
             self.blockchain().get_gas_left(),
             &self.blockchain().get_sc_address(),
@@ -100,4 +109,7 @@ pub trait InfoSyncModule {
 
     #[storage_mapper("InfoSync:clones")]
     fn clones(&self) -> SafeSetMapper<Self::Storage, Address>;
+
+    #[storage_mapper("InfoSync:sent_info")]
+    fn sent_info(&self) -> SingleValueMapper<Self::Storage, bool>;
 }

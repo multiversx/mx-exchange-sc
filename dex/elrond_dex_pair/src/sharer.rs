@@ -55,12 +55,13 @@ pub trait SharerModule:
         for liq in liquidities.iter() {
             liq_sum += liq;
         }
+        liq_sum += &my_liquidity;
 
         if liq_sum == 0 {
             return Ok(());
         }
 
-        if my_liquidity > &liq_sum / &liquidities.len().into() {
+        if my_liquidity > &liq_sum / &(liquidities.len() + 1).into() {
             self.send_liquidity(my_liquidity, liq_sum, addresses, liquidities)
         } else {
             Ok(())
@@ -74,13 +75,13 @@ pub trait SharerModule:
         addresses: Vec<Address>,
         liquidities: Vec<Self::BigUint>,
     ) -> SCResult<()> {
-        let avg_liq = &liq_sum / &liquidities.len().into();
-        let liq_to_share = &avg_liq - &my_liquidity;
+        let avg_liq = &liq_sum / &(liquidities.len() + 1).into();
+        let liq_to_share = &my_liquidity - &avg_liq;
         if liq_to_share == 0 {
             return Ok(());
         }
 
-        let bp = Self::BigUint::from(100_000u64);
+        let bp = Self::BigUint::from(1_000_000u64);
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         let first_token_reserves = self.pair_reserve(&first_token_id).get();
