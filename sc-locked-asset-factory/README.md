@@ -17,7 +17,7 @@ The Contract requires LocalMint and LocalBurn for asset token.
 
 ## Creating and Forwarding SFTs
 
-Before creating LockedAssetTokens, the owner has to issue those tokens using `issueLockedAssetToken` and after this he also has to give the NftCreate, NftAddQuantity and NftBurn roles to the contract using `setLocalRolesLockedAssetToken`.
+Before creating LockedAssetTokens, the owner has to issue those tokens using `issueLockedAssetToken` and after this, he also has to give the NftCreate, NftAddQuantity and NftBurn roles to the contract using `setLocalRolesLockedAssetToken`.
 
 The Contract has an endpoint `createAndForward` that can be called in order to request an amount of Locked MEX. Only those addresses in the `whitelisted_contracts` set can call this endpoint. This whitelist can be configured by the admin using `whitelist` and `removeWhitelist` endpoints.
 

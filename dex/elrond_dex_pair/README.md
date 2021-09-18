@@ -23,7 +23,7 @@ The init parameters are:
 
 - Total Fee Percent. Must be a number between 0 (0%) and 99_999(99.999%). This is the total fee applied to each swap
 
-- Special Fee percent. Must be a number between 0 (0%) and Total Fee Percent. It's the fee that will not remain in the pool (i.e. will can be burned or send somewhere else).
+- Special Fee percent. Must be a number between 0 (0%) and Total Fee Percent. It's the fee that will not remain in the pool (i.e. will can be burned or sent somewhere else).
 
 ## Interaction
 
@@ -39,4 +39,4 @@ A pair only allows certain addresses to use the external swap with no fees, othe
 
 ## Roles
 
-The Pair should have at least LocalMint and LocalBurn roles for the LP Token. Those roles should be set by either Router SC or by the user manually. In addition, if fee is desired to be burned, the LocalBurn role should be granted for the specific token type.
+The Pair should have at least LocalMint and LocalBurn roles for the LP Token. Those roles should be set by either Router SC or by the user manually. In addition, if the fee is desired to be burned, the LocalBurn role should be granted for the specific token type.

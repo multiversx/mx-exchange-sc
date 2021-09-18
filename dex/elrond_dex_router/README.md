@@ -5,7 +5,7 @@ The bigger picture about what a Router contract can do can be found in the Repos
 
 ## Deployment
 
-The Router can be deployed using `erdpy` and using interaction snippets. It takes no arguments. Pair creation is by default disable for normal users.
+The Router can be deployed using `erdpy` and using interaction snippets. It takes no arguments. Pair creation is by default disabled for normal users.
 
 ## LP Tokens
 
@@ -20,4 +20,4 @@ The admin should do the following for constructing the pair contract code:
 
 ## Pair Contract Deployment
 
-The basic deployment scenario of a Pair Contract by a user (assuming this option is enabled) is done with 3 transactions: `createPair`, `issueLpToken`, `setLocalRoles`. Issuing an LP Token for a specific pair can be done only by the initiator of the pair (same user that called createPair) in the first 5 minutes. If that user did not issue an LP Token, any user can continue the creating process.
+The basic deployment scenario of a Pair Contract by a user (assuming this option is enabled) is done with 3 transactions: `createPair`, `issueLpToken`, `setLocalRoles`. Issuing an LP Token for a specific pair can be done only by the initiator of the pair (the same user that called createPair) in the first 5 minutes. If that user did not issue an LP Token, any user can continue the creating process.
