@@ -112,6 +112,10 @@ pub trait FeeModule:
         let mut reserve = self.pair_reserve(token).get();
         reserve += amount;
         self.pair_reserve(token).set(&reserve);
+
+        let mut virtual_reserve = self.pair_virtual_reserve(token).get();
+        virtual_reserve += amount;
+        self.pair_virtual_reserve(token).set(&virtual_reserve);
     }
 
     fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: &Self::BigUint) {
@@ -191,8 +195,8 @@ pub trait FeeModule:
             fee_token,
             requested_fee_token,
         ) {
-            let first_token_reserve = self.pair_reserve(first_token_id).get();
-            let second_token_reserve = self.pair_reserve(second_token_id).get();
+            let first_token_reserve = self.pair_virtual_reserve(first_token_id).get();
+            let second_token_reserve = self.pair_virtual_reserve(second_token_id).get();
             let to_send =
                 self.swap_safe_no_fee(first_token_id, second_token_id, fee_token, fee_slice);
             if to_send > 0 {

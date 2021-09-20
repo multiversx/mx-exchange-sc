@@ -21,12 +21,14 @@ pub trait LiquidityPoolModule:
     ) -> SCResult<Self::BigUint> {
         let first_token = self.first_token_id().get();
         let second_token = self.second_token_id().get();
-        let total_supply = self.liquidity().get();
+        let total_virtual_supply = self.virtual_liquitiy().get();
         let mut first_token_reserve = self.pair_reserve(&first_token).get();
         let mut second_token_reserve = self.pair_reserve(&second_token).get();
+        let mut first_token_virtual_reserve = self.pair_virtual_reserve(&first_token).get();
+        let mut second_token_virtual_reserve = self.pair_virtual_reserve(&second_token).get();
         let mut liquidity: Self::BigUint;
 
-        if total_supply == 0 {
+        if total_virtual_supply == 0 {
             liquidity = core::cmp::min(first_token_amount.clone(), second_token_amount.clone());
             let minimum_liquidity = MINIMUM_LIQUIDITY.into();
             require!(
@@ -35,20 +37,31 @@ pub trait LiquidityPoolModule:
             );
             liquidity -= &minimum_liquidity;
             self.liquidity().set(&minimum_liquidity);
+            self.virtual_liquitiy().set(&minimum_liquidity);
             self.mint_tokens(&self.lp_token_identifier().get(), &minimum_liquidity);
         } else {
             liquidity = core::cmp::min(
-                (&first_token_amount * &total_supply) / first_token_reserve.clone(),
-                (&second_token_amount * &total_supply) / second_token_reserve.clone(),
+                (&first_token_amount * &total_virtual_supply) / first_token_virtual_reserve.clone(),
+                (&second_token_amount * &total_virtual_supply)
+                    / second_token_virtual_reserve.clone(),
             );
         }
         require!(liquidity > 0, "Insufficient liquidity minted");
 
-        first_token_reserve += first_token_amount;
-        second_token_reserve += second_token_amount;
+        first_token_reserve += &first_token_amount;
+        second_token_reserve += &second_token_amount;
         self.update_reserves(
             &first_token_reserve,
             &second_token_reserve,
+            &first_token,
+            &second_token,
+        );
+
+        first_token_virtual_reserve += &first_token_amount;
+        second_token_virtual_reserve += &second_token_amount;
+        self.update_virtual_reserves(
+            &first_token_virtual_reserve,
+            &second_token_virtual_reserve,
             &first_token,
             &second_token,
         );
@@ -64,13 +77,18 @@ pub trait LiquidityPoolModule:
         amount_min: &Self::BigUint,
     ) -> SCResult<Self::BigUint> {
         let mut reserve = self.pair_reserve(token).get();
-        let amount = (liquidity * &reserve) / total_supply.clone();
+        let mut virtual_reserve = self.pair_virtual_reserve(token).get();
+        let amount = (liquidity * &virtual_reserve) / total_supply.clone();
         require!(amount > 0, "Insufficient liquidity burned");
         require!(&amount >= amount_min, "Insufficient liquidity burned");
+        require!(virtual_reserve > amount, "Not enough virtual reserve");
         require!(reserve > amount, "Not enough reserve");
 
         reserve -= &amount;
         self.pair_reserve(token).set(&reserve);
+
+        virtual_reserve -= &amount;
+        self.pair_virtual_reserve(token).set(&virtual_reserve);
 
         Ok(amount)
     }
@@ -81,10 +99,10 @@ pub trait LiquidityPoolModule:
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
-        let total_supply = self.liquidity().get();
+        let total_supply = self.virtual_liquitiy().get();
         require!(
             total_supply >= &liquidity + &MINIMUM_LIQUIDITY.into(),
-            "Not enough LP token supply"
+            "Not enough LP token virtual supply"
         );
 
         let first_token_amount = self.remove_token(
@@ -110,8 +128,12 @@ pub trait LiquidityPoolModule:
         first_token_amount_min: Self::BigUint,
         second_token_amount_min: Self::BigUint,
     ) -> SCResult<(Self::BigUint, Self::BigUint)> {
-        let first_token_reserve = self.pair_reserve(&self.first_token_id().get()).get();
-        let second_token_reserve = self.pair_reserve(&self.second_token_id().get()).get();
+        let first_token_reserve = self
+            .pair_virtual_reserve(&self.first_token_id().get())
+            .get();
+        let second_token_reserve = self
+            .pair_virtual_reserve(&self.second_token_id().get())
+            .get();
 
         if first_token_reserve == 0 && second_token_reserve == 0 {
             return Ok((first_token_amount_desired, second_token_amount_desired));
@@ -157,6 +179,19 @@ pub trait LiquidityPoolModule:
         self.pair_reserve(second_token).set(second_token_reserve);
     }
 
+    fn update_virtual_reserves(
+        &self,
+        first_token_reserve: &Self::BigUint,
+        second_token_reserve: &Self::BigUint,
+        first_token: &TokenIdentifier,
+        second_token: &TokenIdentifier,
+    ) {
+        self.pair_virtual_reserve(first_token)
+            .set(first_token_reserve);
+        self.pair_virtual_reserve(second_token)
+            .set(second_token_reserve);
+    }
+
     fn get_token_for_given_position(
         &self,
         liquidity: Self::BigUint,
@@ -191,8 +226,12 @@ pub trait LiquidityPoolModule:
     }
 
     fn calculate_k_for_reserves(&self) -> Self::BigUint {
-        let first_token_amount = self.pair_reserve(&self.first_token_id().get()).get();
-        let second_token_amount = self.pair_reserve(&self.second_token_id().get()).get();
+        let first_token_amount = self
+            .pair_virtual_reserve(&self.first_token_id().get())
+            .get();
+        let second_token_amount = self
+            .pair_virtual_reserve(&self.second_token_id().get())
+            .get();
         self.calculate_k_constant(&first_token_amount, &second_token_amount)
     }
 
@@ -206,20 +245,33 @@ pub trait LiquidityPoolModule:
         let big_zero = 0u64.into();
         let first_token_reserve = self.pair_reserve(first_token_id).get();
         let second_token_reserve = self.pair_reserve(second_token_id).get();
+        let first_token_virtual_reserve = self.pair_virtual_reserve(first_token_id).get();
+        let second_token_virtual_reserve = self.pair_virtual_reserve(second_token_id).get();
 
-        let (token_in, mut reserve_in, token_out, mut reserve_out) = if token_in == first_token_id {
+        let (
+            token_in,
+            mut reserve_in,
+            mut virtual_reserve_in,
+            token_out,
+            mut reserve_out,
+            mut virtual_reserve_out,
+        ) = if token_in == first_token_id {
             (
                 first_token_id,
                 first_token_reserve,
+                first_token_virtual_reserve,
                 second_token_id,
                 second_token_reserve,
+                second_token_virtual_reserve,
             )
         } else {
             (
                 second_token_id,
                 second_token_reserve,
+                second_token_virtual_reserve,
                 first_token_id,
                 first_token_reserve,
+                first_token_virtual_reserve,
             )
         };
 
@@ -227,14 +279,24 @@ pub trait LiquidityPoolModule:
             return big_zero;
         }
 
-        let amount_out = self.get_amount_out_no_fee(amount_in, &reserve_in, &reserve_out);
-        if reserve_out <= amount_out || amount_out == 0 {
+        let amount_out =
+            self.get_amount_out_no_fee(amount_in, &virtual_reserve_in, &virtual_reserve_out);
+        if virtual_reserve_out <= amount_out && reserve_out <= amount_out || amount_out == 0 {
             return big_zero;
         }
 
         reserve_in += amount_in;
         reserve_out -= &amount_out;
         self.update_reserves(&reserve_in, &reserve_out, token_in, token_out);
+
+        virtual_reserve_in += amount_in;
+        virtual_reserve_out -= &amount_out;
+        self.update_virtual_reserves(
+            &virtual_reserve_in,
+            &virtual_reserve_out,
+            token_in,
+            token_out,
+        );
 
         amount_out
     }
@@ -254,7 +316,18 @@ pub trait LiquidityPoolModule:
         token_id: &TokenIdentifier,
     ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
+    #[view(getVirtualReserve)]
+    #[storage_mapper("virtual_reserve")]
+    fn pair_virtual_reserve(
+        &self,
+        token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
     #[view(getLiquidity)]
     #[storage_mapper("liquidity")]
     fn liquidity(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[view(getVirtualLiquidity)]
+    #[storage_mapper("virtual_liquitiy")]
+    fn virtual_liquitiy(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }
