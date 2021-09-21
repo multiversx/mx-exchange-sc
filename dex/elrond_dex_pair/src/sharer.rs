@@ -314,6 +314,7 @@ pub trait SharerModule:
         liq_sum
     }
 
+    #[view(getOwnInfo)]
     #[storage_mapper("Sharer:own_info")]
     fn own_info(&self) -> SingleValueMapper<Self::Storage, SharedInformation<Self::BigUint>>;
 }

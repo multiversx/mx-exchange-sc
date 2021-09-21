@@ -3,6 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use core::iter::FromIterator;
+
 const ACCEPT_INFO_ENDPOINT_NAME: &[u8] = b"acceptInformation";
 const ACTION_CALLBACK_NAME: &[u8] = b"takeActionOnInformationReceive";
 
@@ -20,15 +22,15 @@ pub trait InfoSyncModule {
         let my_shard = self.blockchain().get_shard_of_address(&my_address);
         let clone_shard = self.blockchain().get_shard_of_address(&clone_address);
 
-        //Comment this when mandos testing otherwise nothing will work
-        // require!(my_shard != clone_shard, "Same shard as own shard");
-        // for element in self.clones().iter() {
-        //     let element_shard = self.blockchain().get_shard_of_address(&element);
-        //     require!(
-        //         element_shard != clone_shard,
-        //         "Same shard as another clone address"
-        //     );
-        // }
+        // Comment this when mandos testing otherwise nothing will work
+        require!(my_shard != clone_shard, "Same shard as own shard");
+        for element in self.clones().iter() {
+            let element_shard = self.blockchain().get_shard_of_address(&element);
+            require!(
+                element_shard != clone_shard,
+                "Same shard as another clone address"
+            );
+        }
 
         self.clones().insert(clone_address);
         Ok(())
@@ -80,9 +82,19 @@ pub trait InfoSyncModule {
         self.received_info().clear();
     }
 
+    #[view(getReceivedInfo)]
+    fn get_received_info(&self) -> MultiResultVec<(Address, BoxedBytes)> {
+        MultiResultVec::from_iter(
+            self.received_info()
+                .iter()
+                .collect::<Vec<(Address, BoxedBytes)>>(),
+        )
+    }
+
     #[storage_mapper("InfoSync:received_info")]
     fn received_info(&self) -> SafeMapMapper<Self::Storage, Address, BoxedBytes>;
 
+    #[view(getClones)]
     #[storage_mapper("InfoSync:clones")]
     fn clones(&self) -> SafeSetMapper<Self::Storage, Address>;
 }
