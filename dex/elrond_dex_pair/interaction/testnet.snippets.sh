@@ -7,11 +7,11 @@ SHARD_2_SC="erd1qqqqqqqqqqqqqpgqqnk346q2l335jcwdujkr3zkqdtphvsgkh8dq0e2d8j"
 
 first_token_id_str="FIRST-2cdb98"
 second_token_id_str="SECOND-f1339e"
-first_token_id_hex="0x$(echo -n $test_first_token_id | xxd -p -u | tr -d '\n')"
-second_token_id_hex="0x$(echo -n $test_second_token_id | xxd -p -u | tr -d '\n')"
+first_token_id_hex="0x$(echo -n $first_token_id_str | xxd -p -u | tr -d '\n')"
+second_token_id_hex="0x$(echo -n $second_token_id_str | xxd -p -u | tr -d '\n')"
     
 deployPair() {
-   router_address="0x$(erdpy wallet pem-address-hex $1 | tr -d '\n')"
+    router_address="0x$(erdpy wallet pem-address-hex $1 | tr -d '\n')"
     router_owner_address=$router_address
     total_fee_percent=300
     special_fee_percent=100

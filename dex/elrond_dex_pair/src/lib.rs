@@ -533,7 +533,7 @@ pub trait Pair:
 
         virtual_reserve_token_in += &amount_in_after_fee;
         virtual_reserve_token_out -= &amount_out_optimal;
-        self.update_reserves(
+        self.update_virtual_reserves(
             &virtual_reserve_token_in,
             &virtual_reserve_token_out,
             &token_in,
@@ -646,7 +646,7 @@ pub trait Pair:
 
         virtual_reserve_token_in += &amount_in_optimal_after_fee;
         virtual_reserve_token_out -= &amount_out;
-        self.update_reserves(
+        self.update_virtual_reserves(
             &virtual_reserve_token_in,
             &virtual_reserve_token_out,
             &token_in,
