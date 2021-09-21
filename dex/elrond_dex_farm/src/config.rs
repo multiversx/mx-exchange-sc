@@ -144,7 +144,7 @@ pub trait ConfigModule:
     #[storage_mapper("produce_rewards_enabled")]
     fn produce_rewards_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
 
-    #[view(getLastRewardEpoch)]
+    #[view(getLastRewardBlockNonce)]
     #[storage_mapper("last_reward_block_nonce")]
     fn last_reward_block_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
@@ -155,6 +155,7 @@ pub trait ConfigModule:
     #[storage_mapper("farm_token_nonce")]
     fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
+    #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
