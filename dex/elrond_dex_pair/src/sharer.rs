@@ -216,7 +216,7 @@ pub trait SharerModule:
         for (index, transfer) in payments.iter().enumerate() {
             let liquidity = &liquidity_amounts[index];
             let address = &addresses[index];
-            let arg = self.arg_buffer_from_biguint(&liquidity);
+            let arg = self.arg_buffer_from_biguint(liquidity);
 
             self.direct_multi_esdt_transfer_execute(
                 address,
