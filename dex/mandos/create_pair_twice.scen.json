@@ -17,7 +17,7 @@
 					"str:ALC-abcdef",
 					"str:WEGLD-abcdef"
 				],
-				"gasLimit": "100,000,000",
+				"gasLimit": "1,000,000,000",
 				"gasPrice": "0"
 			},
 			"expect": {
@@ -39,7 +39,7 @@
 					"str:WEGLD-abcdef",
 					"str:ALC-abcdef"
 				],
-				"gasLimit": "100,000,000",
+				"gasLimit": "1,000,000,000",
 				"gasPrice": "0"
 			},
 			"expect": {
@@ -61,7 +61,7 @@
 					"str:BLC-abcdef",
 					"str:BLC-abcdef"
 				],
-				"gasLimit": "100,000,000",
+				"gasLimit": "1,000,000,000",
 				"gasPrice": "0"
 			},
 			"expect": {
