@@ -16,7 +16,7 @@ pub trait LiquidityPoolModule: rewards::RewardsModule {
         require!(amount > 0, "Amount needs to be greater than 0");
 
         let liquidity = self.calculate_liquidity(&amount, &farming_pool_token_id, &farmed_token_id);
-        require!(liquidity > 0, "Insuficient liquidity minted");
+        require!(liquidity > 0, "Insufficient liquidity minted");
 
         let mut total_supply = self.total_supply().get();
         if total_supply == 0 {
