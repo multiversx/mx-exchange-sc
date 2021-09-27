@@ -80,7 +80,7 @@ pub trait LiquidityPoolModule:
         let mut virtual_reserve = self.pair_virtual_reserve(token).get();
         let amount = (liquidity * &virtual_reserve) / total_supply.clone();
         require!(amount > 0, "Insufficient liquidity burned");
-        require!(&amount >= amount_min, "Insufficient liquidity burned");
+        require!(&amount >= amount_min, "Slippage amount does not match");
         require!(virtual_reserve > amount, "Not enough virtual reserve");
         require!(reserve > amount, "Not enough reserve");
 

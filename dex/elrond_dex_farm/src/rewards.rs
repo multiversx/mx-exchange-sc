@@ -190,6 +190,7 @@ pub trait RewardsModule:
     #[storage_mapper("reward_reserve")]
     fn reward_reserve(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
+    #[view(getUndistributedFees)]
     #[storage_mapper("undistributed_fee_storage")]
     fn undistributed_fee_storage(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
