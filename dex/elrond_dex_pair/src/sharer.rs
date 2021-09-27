@@ -100,6 +100,12 @@ pub trait SharerModule:
             self.try_send_liquidity(&own_info, recv_info, all_liquidity_avg)?;
         }
 
+        self.virtual_liquitiy()
+            .set(&all_liquidity_sum.liquidity_amount);
+        self.pair_virtual_reserve(&self.first_token_id().get())
+            .set(&all_liquidity_sum.first_token_amount);
+        self.pair_virtual_reserve(&self.second_token_id().get())
+            .set(&all_liquidity_sum.second_token_amount);
         self.own_shared_info_set_if_empty_or_clear(own_info);
         Ok(())
     }
