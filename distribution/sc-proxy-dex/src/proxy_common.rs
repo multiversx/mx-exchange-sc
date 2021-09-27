@@ -52,13 +52,7 @@ pub trait ProxyCommonModule {
             token_nonce,
         );
 
-        let attributes = token_info.decode_attributes::<WrappedLpTokenAttributes<Self::BigUint>>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        token_info.decode_attributes().into()
     }
 
     fn get_wrapped_farm_token_attributes(
@@ -72,14 +66,7 @@ pub trait ProxyCommonModule {
             token_nonce,
         );
 
-        let attributes =
-            token_info.decode_attributes::<WrappedFarmTokenAttributes<Self::BigUint>>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        token_info.decode_attributes().into()
     }
 
     #[storage_mapper("current_tx_accepted_funds")]

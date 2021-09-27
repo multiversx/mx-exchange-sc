@@ -127,14 +127,7 @@ pub trait FarmTokenModule:
         &self,
         attributes_raw: &BoxedBytes,
     ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
-        let attributes =
-            <FarmTokenAttributes<Self::BigUint>>::top_decode(attributes_raw.as_slice());
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        FarmTokenAttributes::top_decode(attributes_raw.as_slice()).into()
     }
 
     fn get_farm_attributes(
@@ -148,13 +141,7 @@ pub trait FarmTokenModule:
             token_nonce,
         );
 
-        let farm_attributes = token_info.decode_attributes::<FarmTokenAttributes<Self::BigUint>>();
-        match farm_attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        token_info.decode_attributes().into()
     }
 
     fn create_farm_tokens(
