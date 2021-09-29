@@ -464,7 +464,7 @@ pub trait Farm:
         );
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
-            entering_epoch: farm_attributes.entering_epoch,
+            entering_epoch: self.blockchain().get_block_epoch(),
             original_entering_epoch: compound_original_entering_epoch,
             apr_multiplier: farm_attributes.apr_multiplier,
             with_locked_rewards: farm_attributes.with_locked_rewards,
