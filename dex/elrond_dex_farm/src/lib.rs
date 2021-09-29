@@ -6,6 +6,7 @@ mod events;
 mod farm_token;
 pub mod farm_token_merge;
 mod rewards;
+mod sharer;
 
 use common_structs::{
     Epoch, FarmTokenAttributes, FftTokenAmountPair, GenericTokenAmountPair, Nonce,
@@ -40,6 +41,9 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule
+    + multitransfer::MultiTransferModule
+    + info_sync::InfoSyncModule
+    + sharer::SharerModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;

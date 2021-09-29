@@ -85,10 +85,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
         Ok(())
     }
 
-    #[view(getLastInfoShareEpoch)]
-    #[storage_mapper("last_info_share_block")]
-    fn last_info_share_block(&self) -> SingleValueMapper<Self::Storage, u64>;
-
     #[view(getInfoShareMinEpochs)]
     #[storage_mapper("info_share_min_blocks")]
     fn info_share_min_blocks(&self) -> SingleValueMapper<Self::Storage, u64>;
