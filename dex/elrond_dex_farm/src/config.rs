@@ -97,14 +97,14 @@ pub trait ConfigModule:
         }
     }
 
-    #[endpoint(setInfoShareMinEpochs)]
-    fn set_info_share_min_epochs(&self, min_epochs: u64) -> SCResult<()> {
+    #[endpoint(setInfoShareMinBlocks)]
+    fn set_info_share_min_blocks(&self, min_blocks: u64) -> SCResult<()> {
         self.require_permissions()?;
-        self.info_share_min_blocks().set(&min_epochs);
+        self.info_share_min_blocks().set(&min_blocks);
         Ok(())
     }
 
-    #[view(getInfoShareMinEpochs)]
+    #[view(getInfoShareMinBlocks)]
     #[storage_mapper("info_share_min_blocks")]
     fn info_share_min_blocks(&self) -> SingleValueMapper<Self::Storage, u64>;
 
