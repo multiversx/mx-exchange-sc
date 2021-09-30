@@ -11,6 +11,7 @@ pub mod config;
 mod events;
 pub mod fee;
 mod liquidity_pool;
+mod safe_reserves;
 mod sharer;
 
 use common_structs::FftTokenAmountPair;
@@ -42,6 +43,7 @@ pub trait Pair:
     + sharer::SharerModule
     + info_sync::InfoSyncModule
     + multitransfer::MultiTransferModule
+    + safe_reserves::SafeReserveModule
 {
     #[init]
     fn init(
@@ -243,6 +245,8 @@ pub trait Pair:
             token_id: expected_second_token_id.clone(),
             amount: self.pair_reserve(&expected_second_token_id).get(),
         };
+
+        self.update_safe_reserve();
         self.emit_add_liquidity_event(
             caller,
             first_token_amount.clone(),
@@ -350,6 +354,8 @@ pub trait Pair:
             token_id: second_token_id.clone(),
             amount: self.pair_reserve(&second_token_id).get(),
         };
+
+        self.update_safe_reserve();
         self.emit_remove_liquidity_event(
             caller,
             first_token_amount.clone(),
@@ -457,6 +463,8 @@ pub trait Pair:
             token_id: token_out,
             amount: amount_out,
         };
+
+        self.update_safe_reserve();
         self.emit_swap_no_fee_and_forward_event(caller, swap_out_token_amount, destination_address);
         Ok(())
     }
@@ -571,6 +579,8 @@ pub trait Pair:
             token_id: token_out,
             amount: reserve_token_out,
         };
+
+        self.update_safe_reserve();
         self.emit_swap_event(
             caller,
             token_amount_in,
@@ -685,6 +695,8 @@ pub trait Pair:
             token_id: token_in,
             amount: residuum,
         };
+
+        self.update_safe_reserve();
         self.emit_swap_event(
             caller,
             token_amount_in,
