@@ -276,7 +276,7 @@ pub trait SharerModule:
                 timestamp: self.blockchain().get_block_timestamp(),
             },
             liquidity_info: LiquidityInformation {
-                liquidity_amount: self.liquidity().get(),
+                liquidity_amount: self.safe_liquidity().get(),
                 first_token_amount: self.safe_reserves_first().get(),
                 second_token_amount: self.safe_reserves_second().get(),
             },

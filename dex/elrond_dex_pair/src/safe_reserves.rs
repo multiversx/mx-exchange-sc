@@ -21,20 +21,27 @@ pub trait SafeReserveModule:
             return;
         }
 
+        let liquidity = self.liquidity().get();
         let first_reserve = self.pair_reserve(&self.first_token_id().get()).get();
         let second_reserve = self.pair_reserve(&self.second_token_id().get()).get();
 
         let num_blocks = self.num_blocks().get();
         if num_blocks == 0 {
             self.num_blocks().set(&1u64);
+            self.safe_liquidity().set(&liquidity);
             self.safe_reserves_first().set(&first_reserve);
             self.safe_reserves_second().set(&second_reserve);
             return;
         }
 
         let blocks_passed = current_block - last_block;
+        let safe_liquidity = self.safe_liquidity().get();
         let safe_reserve_first = self.safe_reserves_first().get();
         let safe_reserve_second = self.safe_reserves_second().get();
+
+        let new_safe_liquidity = (safe_liquidity * num_blocks.into()
+            + liquidity * blocks_passed.into())
+            / (num_blocks + blocks_passed).into();
 
         let new_safe_reserve_first = (safe_reserve_first * num_blocks.into()
             + first_reserve * blocks_passed.into())
@@ -46,12 +53,14 @@ pub trait SafeReserveModule:
 
         self.last_block().set(&last_block);
         self.num_blocks().set(&(num_blocks + blocks_passed));
+        self.safe_liquidity().set(&new_safe_liquidity);
         self.safe_reserves_first().set(&new_safe_reserve_first);
         self.safe_reserves_second().set(&new_safe_reserve_second);
     }
 
     fn reset_safe_reserve(&self) {
         self.num_blocks().clear();
+        self.safe_liquidity().clear();
         self.safe_reserves_first().clear();
         self.safe_reserves_second().clear();
     }
@@ -67,4 +76,7 @@ pub trait SafeReserveModule:
 
     #[storage_mapper("SafeReserveModule:reserves_second")]
     fn safe_reserves_second(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+
+    #[storage_mapper("SafeReserveModule:liquidity")]
+    fn safe_liquidity(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 }
