@@ -12,28 +12,8 @@ const ACTION_CALLBACK_NAME: &[u8] = b"takeActionOnInformationReceive";
 pub trait InfoSyncModule {
     #[only_owner]
     #[endpoint(addClone)]
-    fn add_clone(&self, clone_address: Address) -> SCResult<()> {
-        require!(
-            !self.clones().contains(&clone_address),
-            "Adress already added"
-        );
-
-        let my_address = self.blockchain().get_sc_address();
-        let my_shard = self.blockchain().get_shard_of_address(&my_address);
-        let clone_shard = self.blockchain().get_shard_of_address(&clone_address);
-
-        // Comment this when mandos testing otherwise nothing will work
-        require!(my_shard != clone_shard, "Same shard as own shard");
-        for element in self.clones().iter() {
-            let element_shard = self.blockchain().get_shard_of_address(&element);
-            require!(
-                element_shard != clone_shard,
-                "Same shard as another clone address"
-            );
-        }
-
+    fn add_clone(&self, clone_address: Address) {
         self.clones().insert(clone_address);
-        Ok(())
     }
 
     fn broadcast_information(&self, info: BoxedBytes) -> SCResult<()> {

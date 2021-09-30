@@ -65,7 +65,10 @@ pub trait SharerModule:
     fn share_information(&self) -> SCResult<()> {
         let block = self.blockchain().get_block_nonce();
 
-        if block > self.last_info_share_block().get() + self.info_share_min_blocks().get() {
+        if self.min_blocks_passed(block)
+            || self.has_received_info()
+            || self.local_and_virtual_price_differ_too_much()
+        {
             self.last_info_share_block().set(&block);
             let shared_info = self.own_shared_info_get_or_create();
             let shared_info_bytes = shared_info.to_boxed_bytes();
@@ -234,6 +237,14 @@ pub trait SharerModule:
         }
 
         Ok(())
+    }
+
+    fn min_blocks_passed(&self, block: u64) -> bool {
+        block > self.last_info_share_block().get() + self.info_share_min_blocks().get()
+    }
+
+    fn has_received_info(&self) -> bool {
+        !self.received_info().is_empty()
     }
 
     fn arg_buffer_from_biguint(&self, biguint: &Self::BigUint) -> ArgBuffer {

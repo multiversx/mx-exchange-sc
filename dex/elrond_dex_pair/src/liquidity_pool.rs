@@ -301,6 +301,40 @@ pub trait LiquidityPoolModule:
         amount_out
     }
 
+    fn local_and_virtual_price_differ_too_much(&self) -> bool {
+        let price_bp = Self::BigUint::from(100_000_000u64);
+        let price_threshold_percent = 10u64;
+        let price_percent_total = 100u64;
+        let first_token_id = self.first_token_id().get();
+        let second_token_id = self.second_token_id().get();
+
+        let first_token_reserve_local = self.pair_reserve(&first_token_id).get();
+        let second_token_reserve_local = self.pair_reserve(&second_token_id).get();
+        let first_token_reserve_virtual = self.pair_virtual_reserve(&first_token_id).get();
+        let second_token_reserve_virtual = self.pair_virtual_reserve(&second_token_id).get();
+
+        let first_token_price_local =
+            first_token_reserve_local * price_bp.clone() / second_token_reserve_local;
+
+        let first_token_price_virtual =
+            first_token_reserve_virtual * price_bp.clone() / second_token_reserve_virtual;
+
+        let first_token_price_virtual_min = first_token_price_virtual.clone()
+            * (price_percent_total - price_threshold_percent).into()
+            / price_percent_total.into();
+
+        let first_token_price_virtual_max = first_token_price_virtual.clone()
+            * (price_percent_total + price_threshold_percent).into()
+            / price_percent_total.into();
+
+        first_token_price_local > first_token_price_virtual_min
+            && first_token_price_local < first_token_price_virtual_max
+    }
+
+    fn swap_too_big(&self, amount: &Self::BigUint, reserve: &Self::BigUint) -> bool {
+        amount > &(reserve / &10u64.into())
+    }
+
     #[view(getFirstTokenId)]
     #[storage_mapper("first_token_id")]
     fn first_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
