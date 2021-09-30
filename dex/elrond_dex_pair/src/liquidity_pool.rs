@@ -317,13 +317,13 @@ pub trait LiquidityPoolModule:
             first_token_reserve_local * price_bp.clone() / second_token_reserve_local;
 
         let first_token_price_virtual =
-            first_token_reserve_virtual * price_bp.clone() / second_token_reserve_virtual;
+            first_token_reserve_virtual * price_bp / second_token_reserve_virtual;
 
         let first_token_price_virtual_min = first_token_price_virtual.clone()
             * (price_percent_total - price_threshold_percent).into()
             / price_percent_total.into();
 
-        let first_token_price_virtual_max = first_token_price_virtual.clone()
+        let first_token_price_virtual_max = first_token_price_virtual
             * (price_percent_total + price_threshold_percent).into()
             / price_percent_total.into();
 
