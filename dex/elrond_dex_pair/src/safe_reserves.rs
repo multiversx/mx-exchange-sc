@@ -51,7 +51,7 @@ pub trait SafeReserveModule:
             + second_reserve * blocks_passed.into())
             / (num_blocks + blocks_passed).into();
 
-        self.last_block().set(&last_block);
+        self.last_block().set(&current_block);
         self.num_blocks().set(&(num_blocks + blocks_passed));
         self.safe_liquidity().set(&new_safe_liquidity);
         self.safe_reserves_first().set(&new_safe_reserve_first);
