@@ -7,6 +7,7 @@ use multitransfer::EsdtTokenPayment;
 
 use super::amm;
 use super::config;
+use super::safe_reserves;
 
 const BP: u64 = 100_000;
 const GAS_COST_FOR_SEND_LIQUIDITY: u64 = 100_000_000u64;
@@ -60,6 +61,7 @@ pub trait SharerModule:
     + token_send::TokenSendModule
     + liquidity_pool::LiquidityPoolModule
     + multitransfer::MultiTransferModule
+    + safe_reserves::SafeReserveModule
 {
     #[endpoint(shareInformation)]
     fn share_information(&self) -> SCResult<()> {
@@ -261,7 +263,9 @@ pub trait SharerModule:
         if !self.own_info().is_empty() {
             self.own_info().get()
         } else {
-            self.new_own_shared_info()
+            let res = self.new_own_shared_info();
+            self.reset_safe_reserve();
+            res
         }
     }
 
@@ -272,9 +276,9 @@ pub trait SharerModule:
                 timestamp: self.blockchain().get_block_timestamp(),
             },
             liquidity_info: LiquidityInformation {
-                liquidity_amount: self.liquidity().get(),
-                first_token_amount: self.pair_reserve(&self.first_token_id().get()).get(),
-                second_token_amount: self.pair_reserve(&self.second_token_id().get()).get(),
+                liquidity_amount: self.safe_liquidity().get(),
+                first_token_amount: self.safe_reserves_first().get(),
+                second_token_amount: self.safe_reserves_second().get(),
             },
             swap_stats: SwapStatistics {
                 _placeholder: Self::BigUint::zero(),
