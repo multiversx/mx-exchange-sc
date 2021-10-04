@@ -507,10 +507,20 @@ pub trait Pair:
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
         let mut virtual_reserve_token_in = self.pair_reserve(&token_in).get();
+
+        let (reserve_token_in_to_use_for_price, reserve_token_out_to_use_for_price) = if self
+            .local_and_virtual_price_differ_too_much()
+            || self.swap_too_big(&amount_in, &reserve_token_in)
+        {
+            (&reserve_token_in, &reserve_token_out)
+        } else {
+            (&virtual_reserve_token_in, &virtual_reserve_token_out)
+        };
+
         let amount_out_optimal = self.get_amount_out(
             &amount_in,
-            &virtual_reserve_token_in,
-            &virtual_reserve_token_out,
+            reserve_token_in_to_use_for_price,
+            reserve_token_out_to_use_for_price,
         );
         require!(
             amount_out_optimal >= amount_out_min,
@@ -630,10 +640,20 @@ pub trait Pair:
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
         let mut virtual_reserve_token_in = self.pair_virtual_reserve(&token_in).get();
+
+        let (reserve_token_in_to_use_for_price, reserve_token_out_to_use_for_price) = if self
+            .local_and_virtual_price_differ_too_much()
+            || self.swap_too_big(&amount_out, &reserve_token_out)
+        {
+            (&reserve_token_in, &reserve_token_out)
+        } else {
+            (&virtual_reserve_token_in, &virtual_reserve_token_out)
+        };
+
         let amount_in_optimal = self.get_amount_in(
             &amount_out,
-            &virtual_reserve_token_in,
-            &virtual_reserve_token_out,
+            reserve_token_in_to_use_for_price,
+            reserve_token_out_to_use_for_price,
         );
         require!(
             amount_in_optimal <= amount_in_max,
