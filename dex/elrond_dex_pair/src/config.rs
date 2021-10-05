@@ -80,28 +80,28 @@ pub trait ConfigModule: token_send::TokenSendModule {
 
     #[view(getTotalFeePercent)]
     #[storage_mapper("total_fee_percent")]
-    fn total_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn total_fee_percent(&self) -> SingleValueMapper<u64>;
 
     #[view(getSpecialFee)]
     #[storage_mapper("special_fee_percent")]
-    fn special_fee_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn special_fee_percent(&self) -> SingleValueMapper<u64>;
 
-    #[view(getRouterAddress)]
+    #[view(getRouterManagedAddress)]
     #[storage_mapper("router_address")]
-    fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[view(getRouterOwnerAddress)]
+    #[view(getRouterOwnerManagedAddress)]
     #[storage_mapper("router_owner_address")]
-    fn router_owner_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn router_owner_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getState)]
     #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
+    fn state(&self) -> SingleValueMapper<State>;
 
     #[view(getExternSwapGasLimit)]
     #[storage_mapper("extern_swap_gas_limit")]
-    fn extern_swap_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn extern_swap_gas_limit(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("lpTokenIdentifier")]
-    fn lp_token_identifier(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn lp_token_identifier(&self) -> SingleValueMapper<TokenIdentifier>;
 }

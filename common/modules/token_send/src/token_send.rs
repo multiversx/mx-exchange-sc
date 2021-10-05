@@ -10,28 +10,25 @@ pub trait TokenSendModule {
     fn send_fft_tokens(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        amount: &BigUint,
+        destination: &ManagedAddress,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
+                accept_funds_func.clone(),
                 self.transfer_exec_gas_limit().get(),
             ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
+            OptionalArg::None => (self.types().managed_buffer_new(), 0u64),
         };
 
-        SCResult::from_result(self.send().direct_esdt_execute(
+        SCResult::from_result(self.raw_vm_api().direct_esdt_execute(
             destination,
             token,
             amount,
             gas_limit,
-            function,
-            &ArgBuffer::new(),
+            &function,
+            &ManagedArgBuffer::new_empty(self.type_manager()),
         ))
     }
 
@@ -39,33 +36,30 @@ pub trait TokenSendModule {
         &self,
         token: &TokenIdentifier,
         nonce: Nonce,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        amount: &BigUint,
+        destination: &ManagedAddress,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
+                accept_funds_func.clone(),
                 self.transfer_exec_gas_limit().get(),
             ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
+            OptionalArg::None => (self.types().managed_buffer_new(), 0u64),
         };
 
-        SCResult::from_result(self.send().direct_esdt_nft_execute(
+        SCResult::from_result(self.raw_vm_api().direct_esdt_nft_execute(
             destination,
             token,
             nonce,
             amount,
             gas_limit,
-            function,
-            &ArgBuffer::new(),
+            &function,
+            &ManagedArgBuffer::new_empty(self.type_manager()),
         ))
     }
 
     #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<u64>;
 }

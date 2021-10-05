@@ -30,18 +30,18 @@ path = "../../common/modules/nft_deposit"
 path = "../../common/modules/token_merge"
 
 [dependencies.elrond-wasm]
-version = "0.18"
+version = "0.20"
 features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
-version = "0.18"
+version = "0.20"
 
 [dependencies.elrond-wasm-node]
-version = "0.18"
+version = "0.20"
 optional = true
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.18"
+version = "0.20"
 
 [dependencies.sc-locked-asset-factory]
 path = "../../sc-locked-asset-factory"

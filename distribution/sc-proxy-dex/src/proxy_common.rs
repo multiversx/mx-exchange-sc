@@ -19,10 +19,10 @@ pub trait ProxyCommonModule {
 
     fn direct_generic_safe(
         &self,
-        to: &Address,
+        to: &ManagedAddress,
         token_id: &TokenIdentifier,
         nonce: Nonce,
-        amount: &Self::BigUint,
+        amount: &BigUint,
     ) {
         if amount > &0 {
             self.send().direct(to, token_id, nonce, amount, &[]);
@@ -45,78 +45,71 @@ pub trait ProxyCommonModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedLpTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<WrappedLpTokenAttributes<Self::Api>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        let attributes = token_info.decode_attributes::<WrappedLpTokenAttributes<Self::BigUint>>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        Ok(self
+            .serializer()
+            .top_decode_from_managed_buffer::<WrappedLpTokenAttributes<Self::Api>>(
+                &token_info.attributes,
+            ))
     }
 
     fn get_wrapped_farm_token_attributes(
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedFarmTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<WrappedFarmTokenAttributes<Self::Api>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        let attributes =
-            token_info.decode_attributes::<WrappedFarmTokenAttributes<Self::BigUint>>();
-        match attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        Ok(self
+            .serializer()
+            .top_decode_from_managed_buffer::<WrappedFarmTokenAttributes<Self::Api>>(
+                &token_info.attributes,
+            ))
     }
 
     #[storage_mapper("current_tx_accepted_funds")]
-    fn current_tx_accepted_funds(
-        &self,
-    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
+    fn current_tx_accepted_funds(&self) -> MapMapper<(TokenIdentifier, Nonce), BigUint>;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]
-    fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
-    fn locked_asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn locked_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getWrappedLpTokenId)]
     #[storage_mapper("wrapped_lp_token_id")]
-    fn wrapped_lp_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn wrapped_lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("wrapped_lp_token_nonce")]
-    fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+    fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getWrappedFarmTokenId)]
     #[storage_mapper("wrapped_farm_token_id")]
-    fn wrapped_farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn wrapped_farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("wrapped_farm_token_nonce")]
-    fn wrapped_farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+    fn wrapped_farm_token_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[storage_mapper("locked_asset_factory_address")]
-    fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getIntermediatedFarms)]
     #[storage_mapper("intermediated_farms")]
-    fn intermediated_farms(&self) -> SafeSetMapper<Self::Storage, Address>;
+    fn intermediated_farms(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getIntermediatedPairs)]
     #[storage_mapper("intermediated_pairs")]
-    fn intermediated_pairs(&self) -> SafeSetMapper<Self::Storage, Address>;
+    fn intermediated_pairs(&self) -> SetMapper<ManagedAddress>;
 }

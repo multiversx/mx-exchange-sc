@@ -6,13 +6,13 @@ use common_structs::{
 };
 
 #[derive(TopEncode)]
-pub struct AddLiquidityProxyEvent<BigUint: BigUintApi> {
-    caller: Address,
-    pair_address: Address,
-    first_token_amount: GenericTokenAmountPair<BigUint>,
-    second_token_amount: GenericTokenAmountPair<BigUint>,
-    wrapped_lp_token_amount: GenericTokenAmountPair<BigUint>,
-    wrapped_lp_attributes: WrappedLpTokenAttributes<BigUint>,
+pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    pair_address: ManagedAddress<M>,
+    first_token_amount: GenericTokenAmountPair<M>,
+    second_token_amount: GenericTokenAmountPair<M>,
+    wrapped_lp_token_amount: GenericTokenAmountPair<M>,
+    wrapped_lp_attributes: WrappedLpTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -20,25 +20,25 @@ pub struct AddLiquidityProxyEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
-pub struct RemoveLiquidityProxyEvent<BigUint: BigUintApi> {
-    caller: Address,
-    pair_address: Address,
-    wrapped_lp_token_amount: GenericTokenAmountPair<BigUint>,
-    wrapped_lp_attributes: WrappedLpTokenAttributes<BigUint>,
-    first_token_amount: GenericTokenAmountPair<BigUint>,
-    second_token_amount: GenericTokenAmountPair<BigUint>,
+pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    pair_address: ManagedAddress<M>,
+    wrapped_lp_token_amount: GenericTokenAmountPair<M>,
+    wrapped_lp_attributes: WrappedLpTokenAttributes<M>,
+    first_token_amount: GenericTokenAmountPair<M>,
+    second_token_amount: GenericTokenAmountPair<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
 }
 
 #[derive(TopEncode)]
-pub struct EnterFarmProxyEvent<BigUint: BigUintApi> {
-    caller: Address,
-    farm_address: Address,
-    farming_token_amount: GenericTokenAmountPair<BigUint>,
-    wrapped_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    wrapped_farm_attributes: WrappedFarmTokenAttributes<BigUint>,
+pub struct EnterFarmProxyEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    farm_address: ManagedAddress<M>,
+    farming_token_amount: GenericTokenAmountPair<M>,
+    wrapped_farm_token_amount: GenericTokenAmountPair<M>,
+    wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -46,27 +46,27 @@ pub struct EnterFarmProxyEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
-pub struct ExitFarmProxyEvent<BigUint: BigUintApi> {
-    caller: Address,
-    farm_address: Address,
-    wrapped_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    wrapped_farm_attributes: WrappedFarmTokenAttributes<BigUint>,
-    farming_token_amount: GenericTokenAmountPair<BigUint>,
-    reward_token_amount: GenericTokenAmountPair<BigUint>,
+pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    farm_address: ManagedAddress<M>,
+    wrapped_farm_token_amount: GenericTokenAmountPair<M>,
+    wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
+    farming_token_amount: GenericTokenAmountPair<M>,
+    reward_token_amount: GenericTokenAmountPair<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
 }
 
 #[derive(TopEncode)]
-pub struct ClaimRewardsProxyEvent<BigUint: BigUintApi> {
-    caller: Address,
-    farm_address: Address,
-    old_wrapped_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    new_wrapped_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    reward_token_amount: GenericTokenAmountPair<BigUint>,
-    old_wrapped_farm_attributes: WrappedFarmTokenAttributes<BigUint>,
-    new_wrapped_farm_attributes: WrappedFarmTokenAttributes<BigUint>,
+pub struct ClaimRewardsProxyEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    farm_address: ManagedAddress<M>,
+    old_wrapped_farm_token_amount: GenericTokenAmountPair<M>,
+    new_wrapped_farm_token_amount: GenericTokenAmountPair<M>,
+    reward_token_amount: GenericTokenAmountPair<M>,
+    old_wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
+    new_wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -74,13 +74,13 @@ pub struct ClaimRewardsProxyEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
-pub struct CompoundRewardsProxyEvent<BigUint: BigUintApi> {
-    caller: Address,
-    farm_address: Address,
-    old_wrapped_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    new_wrapped_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    old_wrapped_farm_attributes: WrappedFarmTokenAttributes<BigUint>,
-    new_wrapped_farm_attributes: WrappedFarmTokenAttributes<BigUint>,
+pub struct CompoundRewardsProxyEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    farm_address: ManagedAddress<M>,
+    old_wrapped_farm_token_amount: GenericTokenAmountPair<M>,
+    new_wrapped_farm_token_amount: GenericTokenAmountPair<M>,
+    old_wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
+    new_wrapped_farm_attributes: WrappedFarmTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -91,12 +91,12 @@ pub struct CompoundRewardsProxyEvent<BigUint: BigUintApi> {
 pub trait EventsModule {
     fn emit_add_liquidity_proxy_event(
         self,
-        caller: Address,
-        pair_address: Address,
-        first_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        second_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        wrapped_lp_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::BigUint>,
+        caller: ManagedAddress,
+        pair_address: ManagedAddress,
+        first_token_amount: GenericTokenAmountPair<Self::Api>,
+        second_token_amount: GenericTokenAmountPair<Self::Api>,
+        wrapped_lp_token_amount: GenericTokenAmountPair<Self::Api>,
+        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -123,12 +123,12 @@ pub trait EventsModule {
 
     fn emit_remove_liquidity_proxy_event(
         self,
-        caller: Address,
-        pair_address: Address,
-        wrapped_lp_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::BigUint>,
-        first_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        second_token_amount: GenericTokenAmountPair<Self::BigUint>,
+        caller: ManagedAddress,
+        pair_address: ManagedAddress,
+        wrapped_lp_token_amount: GenericTokenAmountPair<Self::Api>,
+        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api>,
+        first_token_amount: GenericTokenAmountPair<Self::Api>,
+        second_token_amount: GenericTokenAmountPair<Self::Api>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.remove_liquidity_proxy_event(
@@ -153,11 +153,11 @@ pub trait EventsModule {
 
     fn emit_enter_farm_proxy_event(
         self,
-        caller: Address,
-        farm_address: Address,
-        farming_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        wrapped_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::BigUint>,
+        caller: ManagedAddress,
+        farm_address: ManagedAddress,
+        farming_token_amount: GenericTokenAmountPair<Self::Api>,
+        wrapped_farm_token_amount: GenericTokenAmountPair<Self::Api>,
+        wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -182,12 +182,12 @@ pub trait EventsModule {
 
     fn emit_exit_farm_proxy_event(
         self,
-        caller: Address,
-        farm_address: Address,
-        wrapped_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::BigUint>,
-        farming_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        reward_token_amount: GenericTokenAmountPair<Self::BigUint>,
+        caller: ManagedAddress,
+        farm_address: ManagedAddress,
+        wrapped_farm_token_amount: GenericTokenAmountPair<Self::Api>,
+        wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api>,
+        farming_token_amount: GenericTokenAmountPair<Self::Api>,
+        reward_token_amount: GenericTokenAmountPair<Self::Api>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.exit_farm_proxy_event(
@@ -211,13 +211,13 @@ pub trait EventsModule {
 
     fn emit_claim_rewards_farm_proxy_event(
         self,
-        caller: Address,
-        farm_address: Address,
-        old_wrapped_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        new_wrapped_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        reward_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        old_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::BigUint>,
-        new_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::BigUint>,
+        caller: ManagedAddress,
+        farm_address: ManagedAddress,
+        old_wrapped_farm_token_amount: GenericTokenAmountPair<Self::Api>,
+        new_wrapped_farm_token_amount: GenericTokenAmountPair<Self::Api>,
+        reward_token_amount: GenericTokenAmountPair<Self::Api>,
+        old_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api>,
+        new_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -244,12 +244,12 @@ pub trait EventsModule {
 
     fn emit_compound_rewards_farm_proxy_event(
         self,
-        caller: Address,
-        farm_address: Address,
-        old_wrapped_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        new_wrapped_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        old_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::BigUint>,
-        new_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::BigUint>,
+        caller: ManagedAddress,
+        farm_address: ManagedAddress,
+        old_wrapped_farm_token_amount: GenericTokenAmountPair<Self::Api>,
+        new_wrapped_farm_token_amount: GenericTokenAmountPair<Self::Api>,
+        old_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api>,
+        new_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -278,10 +278,10 @@ pub trait EventsModule {
         self,
         #[indexed] first_token: TokenIdentifier,
         #[indexed] second_token: TokenIdentifier,
-        #[indexed] caller: Address,
-        #[indexed] pair_address: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] pair_address: ManagedAddress,
         #[indexed] epoch: u64,
-        add_liquidity_proxy_event: AddLiquidityProxyEvent<Self::BigUint>,
+        add_liquidity_proxy_event: AddLiquidityProxyEvent<Self::Api>,
     );
 
     #[event("remove_liquidity_proxy")]
@@ -289,49 +289,49 @@ pub trait EventsModule {
         self,
         #[indexed] first_token: TokenIdentifier,
         #[indexed] second_token: TokenIdentifier,
-        #[indexed] caller: Address,
-        #[indexed] pair_address: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] pair_address: ManagedAddress,
         #[indexed] epoch: u64,
-        remove_liquidity_proxy_event: RemoveLiquidityProxyEvent<Self::BigUint>,
+        remove_liquidity_proxy_event: RemoveLiquidityProxyEvent<Self::Api>,
     );
 
     #[event("enter_farm_proxy")]
     fn enter_farm_proxy_event(
         self,
         #[indexed] farming_token: TokenIdentifier,
-        #[indexed] caller: Address,
-        #[indexed] farm_address: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] farm_address: ManagedAddress,
         #[indexed] epoch: u64,
-        enter_farm_proxy_event: EnterFarmProxyEvent<Self::BigUint>,
+        enter_farm_proxy_event: EnterFarmProxyEvent<Self::Api>,
     );
 
     #[event("exit_farm_proxy")]
     fn exit_farm_proxy_event(
         self,
         #[indexed] farm_token: TokenIdentifier,
-        #[indexed] caller: Address,
-        #[indexed] farm_address: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] farm_address: ManagedAddress,
         #[indexed] epoch: u64,
-        exit_farm_proxy_event: ExitFarmProxyEvent<Self::BigUint>,
+        exit_farm_proxy_event: ExitFarmProxyEvent<Self::Api>,
     );
 
     #[event("claim_rewards_farm_proxy")]
     fn claim_rewards_farm_proxy_event(
         self,
         #[indexed] farm_token: TokenIdentifier,
-        #[indexed] caller: Address,
-        #[indexed] farm_address: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] farm_address: ManagedAddress,
         #[indexed] epoch: u64,
-        claim_rewards_farm_proxy_event: ClaimRewardsProxyEvent<Self::BigUint>,
+        claim_rewards_farm_proxy_event: ClaimRewardsProxyEvent<Self::Api>,
     );
 
     #[event("compound_rewards_farm_proxy")]
     fn compound_rewards_farm_proxy_event(
         self,
         #[indexed] farm_token: TokenIdentifier,
-        #[indexed] caller: Address,
-        #[indexed] farm_address: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] farm_address: ManagedAddress,
         #[indexed] epoch: u64,
-        compound_rewards_farm_proxy_event: CompoundRewardsProxyEvent<Self::BigUint>,
+        compound_rewards_farm_proxy_event: CompoundRewardsProxyEvent<Self::Api>,
     );
 }

@@ -23,15 +23,15 @@ path = "../../common/modules/token_supply"
 path = "../../sc-locked-asset-factory"
 
 [dependencies.elrond-wasm]
-version = "0.18"
+version = "0.20"
 features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
-version = "0.18"
+version = "0.20"
 
 [dependencies.elrond-wasm-node]
 optional = true
-version = "0.18"
+version = "0.20"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.18"
+version = "0.20"

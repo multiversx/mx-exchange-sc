@@ -20,12 +20,13 @@ pub trait WrappedLpTokenMerge:
     + nft_deposit::NftDepositModule
 {
     #[proxy]
-    fn locked_asset_factory(&self, to: Address) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
+    fn locked_asset_factory(&self, to: ManagedAddress)
+        -> sc_locked_asset_factory::Proxy<Self::Api>;
 
     #[endpoint(mergeWrappedLpTokens)]
     fn merge_wrapped_lp_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         self.merge_wrapped_lp_tokens_and_send(&caller, Option::None, opt_accept_funds_func)?;
@@ -34,10 +35,10 @@ pub trait WrappedLpTokenMerge:
 
     fn merge_wrapped_lp_tokens_and_send(
         &self,
-        caller: &Address,
-        replic: Option<WrappedLpToken<Self::BigUint>>,
-        opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<(WrappedLpToken<Self::BigUint>, bool)> {
+        caller: &ManagedAddress,
+        replic: Option<WrappedLpToken<Self::Api>>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         let deposit = self.nft_deposit(caller).get();
         require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = deposit.len();
@@ -96,8 +97,8 @@ pub trait WrappedLpTokenMerge:
 
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
-        deposit: &[GenericTokenAmountPair<Self::BigUint>],
-    ) -> SCResult<Vec<WrappedLpToken<Self::BigUint>>> {
+        deposit: &[GenericTokenAmountPair<Self::Api>],
+    ) -> SCResult<Vec<WrappedLpToken<Self::Api>>> {
         let mut result = Vec::new();
 
         for elem in deposit.iter() {
@@ -112,7 +113,7 @@ pub trait WrappedLpTokenMerge:
 
     fn require_wrapped_lp_tokens_from_same_pair(
         &self,
-        tokens: &[WrappedLpToken<Self::BigUint>],
+        tokens: &[WrappedLpToken<Self::Api>],
     ) -> SCResult<()> {
         let lp_token_id = tokens[0].attributes.lp_token_id.clone();
 
@@ -127,7 +128,7 @@ pub trait WrappedLpTokenMerge:
 
     fn require_all_tokens_are_wrapped_lp_tokens(
         &self,
-        tokens: &[GenericTokenAmountPair<Self::BigUint>],
+        tokens: &[GenericTokenAmountPair<Self::Api>],
         wrapped_lp_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {
@@ -141,9 +142,9 @@ pub trait WrappedLpTokenMerge:
 
     fn get_merged_wrapped_lp_token_attributes(
         &self,
-        lp_token_amount: &FftTokenAmountPair<Self::BigUint>,
-        merged_locked_asset_token_amount: &GenericTokenAmountPair<Self::BigUint>,
-    ) -> WrappedLpTokenAttributes<Self::BigUint> {
+        lp_token_amount: &FftTokenAmountPair<Self::Api>,
+        merged_locked_asset_token_amount: &GenericTokenAmountPair<Self::Api>,
+    ) -> WrappedLpTokenAttributes<Self::Api> {
         WrappedLpTokenAttributes {
             lp_token_id: lp_token_amount.token_id.clone(),
             lp_token_total_amount: lp_token_amount.amount.clone(),
@@ -154,8 +155,8 @@ pub trait WrappedLpTokenMerge:
 
     fn merge_locked_asset_tokens_from_wrapped_lp(
         &self,
-        tokens: &[WrappedLpToken<Self::BigUint>],
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+        tokens: &[WrappedLpToken<Self::Api>],
+    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
         let locked_asset_token = self.locked_asset_token_id().get();
 
@@ -192,15 +193,14 @@ pub trait WrappedLpTokenMerge:
 
         Ok(self
             .locked_asset_factory(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(
+                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
+            ))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
 
-    fn get_merged_wrapped_lp_tokens_amount(
-        &self,
-        tokens: &[WrappedLpToken<Self::BigUint>],
-    ) -> Self::BigUint {
-        let mut token_amount = 0u64.into();
+    fn get_merged_wrapped_lp_tokens_amount(&self, tokens: &[WrappedLpToken<Self::Api>]) -> BigUint {
+        let mut token_amount = self.types().big_uint_zero();
 
         tokens
             .iter()

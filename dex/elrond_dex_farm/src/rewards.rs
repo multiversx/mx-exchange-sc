@@ -19,8 +19,8 @@ pub trait RewardsModule:
         &self,
         current_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
-    ) -> Self::BigUint {
-        let big_zero = 0u64.into();
+    ) -> BigUint {
+        let big_zero = self.types().big_uint_zero();
 
         if current_block_nonce <= last_reward_block_nonce {
             return big_zero;
@@ -29,13 +29,13 @@ pub trait RewardsModule:
         if self.produces_per_block_rewards() {
             let per_block_reward = self.per_block_reward_amount().get();
 
-            per_block_reward * (current_block_nonce - last_reward_block_nonce).into()
+            per_block_reward * (current_block_nonce - last_reward_block_nonce)
         } else {
             big_zero
         }
     }
 
-    fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> Self::BigUint {
+    fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
@@ -48,13 +48,13 @@ pub trait RewardsModule:
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint
         } else {
-            0u64.into()
+            self.types().big_uint_zero()
         }
     }
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
         let reward_minted = self.mint_per_block_rewards(reward_token_id);
-        self.increase_current_block_fee_storage(&0u64.into());
+        self.increase_current_block_fee_storage(&self.types().big_uint_zero());
         let fees = self.undistributed_fee_storage().get();
         self.undistributed_fee_storage().clear();
         let total_reward = reward_minted + fees;
@@ -65,19 +65,19 @@ pub trait RewardsModule:
         }
     }
 
-    fn increase_reward_reserve(&self, amount: &Self::BigUint) {
+    fn increase_reward_reserve(&self, amount: &BigUint) {
         let current = self.reward_reserve().get();
         self.reward_reserve().set(&(&current + amount));
     }
 
-    fn decrease_reward_reserve(&self, amount: &Self::BigUint) -> SCResult<()> {
+    fn decrease_reward_reserve(&self, amount: &BigUint) -> SCResult<()> {
         let current = self.reward_reserve().get();
         require!(&current >= amount, "Not enough reserves");
         self.reward_reserve().set(&(&current - amount));
         Ok(())
     }
 
-    fn update_reward_per_share(&self, reward_increase: &Self::BigUint) {
+    fn update_reward_per_share(&self, reward_increase: &BigUint) {
         let current = self.reward_per_share().get();
         let farm_token_supply = self.get_farm_token_supply();
 
@@ -90,41 +90,38 @@ pub trait RewardsModule:
         }
     }
 
-    fn calculate_reward_per_share_increase(
-        &self,
-        reward_increase: &Self::BigUint,
-    ) -> Self::BigUint {
+    fn calculate_reward_per_share_increase(&self, reward_increase: &BigUint) -> BigUint {
         reward_increase * &self.division_safety_constant().get() / self.get_farm_token_supply()
     }
 
     fn calculate_reward(
         &self,
-        amount: &Self::BigUint,
-        current_reward_per_share: &Self::BigUint,
-        initial_reward_per_share: &Self::BigUint,
-    ) -> Self::BigUint {
+        amount: &BigUint,
+        current_reward_per_share: &BigUint,
+        initial_reward_per_share: &BigUint,
+    ) -> BigUint {
         if current_reward_per_share > initial_reward_per_share {
             let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
             amount * &reward_per_share_diff / self.division_safety_constant().get()
         } else {
-            0u64.into()
+            self.types().big_uint_zero()
         }
     }
 
-    fn increase_undistributed_fee_storage(&self, amount: &Self::BigUint) {
+    fn increase_undistributed_fee_storage(&self, amount: &BigUint) {
         if amount > &0 {
             let current = self.undistributed_fee_storage().get();
             self.undistributed_fee_storage().set(&(&current + amount));
         }
     }
 
-    fn increase_current_block_fee_storage(&self, amount: &Self::BigUint) {
+    fn increase_current_block_fee_storage(&self, amount: &BigUint) {
         let current_block = self.blockchain().get_block_nonce();
         let current_block_fee_storage = self.current_block_fee_storage().get();
 
         let (known_block_nonce, fee_amount) = match current_block_fee_storage {
             Some(value) => (value.0, value.1),
-            None => (0, 0u64.into()),
+            None => (0, self.types().big_uint_zero()),
         };
 
         if known_block_nonce == current_block {
@@ -168,7 +165,7 @@ pub trait RewardsModule:
     }
 
     #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(&self, per_block_amount: Self::BigUint) -> SCResult<()> {
+    fn set_per_block_rewards(&self, per_block_amount: BigUint) -> SCResult<()> {
         self.require_permissions()?;
         require!(per_block_amount != 0, "Amount cannot be zero");
         let reward_token_id = self.reward_token_id().get();
@@ -184,18 +181,16 @@ pub trait RewardsModule:
 
     #[view(getRewardPerShare)]
     #[storage_mapper("reward_per_share")]
-    fn reward_per_share(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn reward_per_share(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getRewardReserve)]
     #[storage_mapper("reward_reserve")]
-    fn reward_reserve(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn reward_reserve(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getUndistributedFees)]
     #[storage_mapper("undistributed_fee_storage")]
-    fn undistributed_fee_storage(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn undistributed_fee_storage(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("current_block_fee_storage")]
-    fn current_block_fee_storage(
-        &self,
-    ) -> SingleValueMapper<Self::Storage, Option<(Nonce, Self::BigUint)>>;
+    fn current_block_fee_storage(&self) -> SingleValueMapper<Option<(Nonce, BigUint)>>;
 }

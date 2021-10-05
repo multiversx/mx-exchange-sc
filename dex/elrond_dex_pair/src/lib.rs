@@ -44,8 +44,8 @@ pub trait Pair:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        router_address: Address,
-        router_owner_address: Address,
+        router_address: ManagedAddress,
+        router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) -> SCResult<()> {
@@ -90,7 +90,7 @@ pub trait Pair:
     fn accept_esdt_payment(
         &self,
         #[payment_token] token: TokenIdentifier,
-        #[payment_amount] payment: Self::BigUint,
+        #[payment_amount] payment: BigUint,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         require!(
@@ -116,12 +116,12 @@ pub trait Pair:
     #[endpoint(addLiquidity)]
     fn add_liquidity(
         &self,
-        first_token_amount_desired: Self::BigUint,
-        second_token_amount_desired: Self::BigUint,
-        first_token_amount_min: Self::BigUint,
-        second_token_amount_min: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<AddLiquidityResultType<Self::BigUint>> {
+        first_token_amount_desired: BigUint,
+        second_token_amount_desired: BigUint,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<AddLiquidityResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(
             first_token_amount_desired > 0,
@@ -246,9 +246,9 @@ pub trait Pair:
 
     fn reclaim_temporary_token(
         &self,
-        caller: &Address,
+        caller: &ManagedAddress,
         token: &TokenIdentifier,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let amount = self.temporary_funds(caller, token).get();
         self.temporary_funds(caller, token).clear();
@@ -259,7 +259,7 @@ pub trait Pair:
     #[endpoint(reclaimTemporaryFunds)]
     fn reclaim_temporary_funds(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let first_token_id = self.first_token_id().get();
@@ -275,11 +275,11 @@ pub trait Pair:
     fn remove_liquidity(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] liquidity: Self::BigUint,
-        first_token_amount_min: Self::BigUint,
-        second_token_amount_min: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<RemoveLiquidityResultType<Self::BigUint>> {
+        #[payment_amount] liquidity: BigUint,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -354,7 +354,7 @@ pub trait Pair:
     fn remove_liquidity_and_burn_token(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] amount_in: Self::BigUint,
+        #[payment_amount] amount_in: BigUint,
         token_to_buyback_and_burn: TokenIdentifier,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
@@ -372,15 +372,15 @@ pub trait Pair:
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        let first_token_min_amount = 1u64.into();
-        let second_token_min_amount = 1u64.into();
+        let first_token_min_amount = self.types().big_uint_from(1u64);
+        let second_token_min_amount = self.types().big_uint_from(1u64);
         let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
             amount_in.clone(),
             first_token_min_amount,
             second_token_min_amount,
         )?;
 
-        let dest_address = Address::zero();
+        let dest_address = self.types().managed_address_zero();
         self.send_fee_slice(
             &first_token_id,
             &first_token_amount,
@@ -407,9 +407,9 @@ pub trait Pair:
     fn swap_no_fee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] amount_in: Self::BigUint,
+        #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
-        destination_address: Address,
+        destination_address: ManagedAddress,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller)?;
@@ -454,11 +454,11 @@ pub trait Pair:
     fn swap_tokens_fixed_input(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] amount_in: Self::BigUint,
+        #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
-        amount_out_min: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<SwapTokensFixedInputResultType<Self::BigUint>> {
+        amount_out_min: BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
@@ -495,7 +495,7 @@ pub trait Pair:
 
         let caller = self.blockchain().get_caller();
 
-        let mut fee_amount = 0u64.into();
+        let mut fee_amount = self.types().big_uint_zero();
         let mut amount_in_after_fee = amount_in.clone();
         if self.is_fee_enabled() {
             fee_amount = self.get_special_fee_from_input(&amount_in);
@@ -552,11 +552,11 @@ pub trait Pair:
     fn swap_tokens_fixed_output(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] amount_in_max: Self::BigUint,
+        #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
-        amount_out: Self::BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<SwapTokensFixedOutputResultType<Self::BigUint>> {
+        amount_out: BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<SwapTokensFixedOutputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
@@ -590,7 +590,7 @@ pub trait Pair:
         let caller = self.blockchain().get_caller();
         let residuum = &amount_in_max - &amount_in_optimal;
 
-        let mut fee_amount = 0u64.into();
+        let mut fee_amount = self.types().big_uint_zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
         if self.is_fee_enabled() {
             fee_amount = self.get_special_fee_from_input(&amount_in_optimal);
@@ -646,9 +646,9 @@ pub trait Pair:
     fn send_tokens(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        destination: &Address,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        amount: &BigUint,
+        destination: &ManagedAddress,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         if amount > &0 {
             self.send_fft_tokens(token, amount, destination, opt_accept_funds_func)?;
@@ -676,17 +676,13 @@ pub trait Pair:
     }
 
     #[inline]
-    fn validate_k_invariant(&self, lower: &Self::BigUint, greater: &Self::BigUint) -> SCResult<()> {
+    fn validate_k_invariant(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
         require!(lower <= greater, "K invariant failed");
         Ok(())
     }
 
     #[inline]
-    fn validate_k_invariant_strict(
-        &self,
-        lower: &Self::BigUint,
-        greater: &Self::BigUint,
-    ) -> SCResult<()> {
+    fn validate_k_invariant_strict(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
         require!(lower < greater, "K invariant failed");
         Ok(())
     }
@@ -694,15 +690,13 @@ pub trait Pair:
     #[view(getTokensForGivenPosition)]
     fn get_tokens_for_given_position(
         &self,
-        liquidity: Self::BigUint,
-    ) -> MultiResult2<FftTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>> {
+        liquidity: BigUint,
+    ) -> MultiResult2<FftTokenAmountPair<Self::Api>, FftTokenAmountPair<Self::Api>> {
         self.get_both_tokens_for_given_position(liquidity)
     }
 
     #[view(getReservesAndTotalSupply)]
-    fn get_reserves_and_total_supply(
-        &self,
-    ) -> MultiResult3<Self::BigUint, Self::BigUint, Self::BigUint> {
+    fn get_reserves_and_total_supply(&self) -> MultiResult3<BigUint, BigUint, BigUint> {
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
@@ -715,8 +709,8 @@ pub trait Pair:
     fn get_amount_out_view(
         &self,
         token_in: TokenIdentifier,
-        amount_in: Self::BigUint,
-    ) -> SCResult<Self::BigUint> {
+        amount_in: BigUint,
+    ) -> SCResult<BigUint> {
         require!(amount_in > 0, "Zero input");
 
         let first_token_id = self.first_token_id().get();
@@ -751,8 +745,8 @@ pub trait Pair:
     fn get_amount_in_view(
         &self,
         token_wanted: TokenIdentifier,
-        amount_wanted: Self::BigUint,
-    ) -> SCResult<Self::BigUint> {
+        amount_wanted: BigUint,
+    ) -> SCResult<BigUint> {
         require!(amount_wanted > 0, "Zero input");
 
         let first_token_id = self.first_token_id().get();
@@ -782,13 +776,9 @@ pub trait Pair:
     }
 
     #[view(getEquivalent)]
-    fn get_equivalent(
-        &self,
-        token_in: TokenIdentifier,
-        amount_in: Self::BigUint,
-    ) -> SCResult<Self::BigUint> {
+    fn get_equivalent(&self, token_in: TokenIdentifier, amount_in: BigUint) -> SCResult<BigUint> {
         require!(amount_in > 0, "Zero input");
-        let zero = 0u64.into();
+        let zero = self.types().big_uint_zero();
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -822,7 +812,7 @@ pub trait Pair:
     #[storage_mapper("funds")]
     fn temporary_funds(
         &self,
-        caller: &Address,
+        caller: &ManagedAddress,
         token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    ) -> SingleValueMapper<BigUint>;
 }

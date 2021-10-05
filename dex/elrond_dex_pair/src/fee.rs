@@ -19,7 +19,7 @@ mod farm_proxy {
         fn accept_fee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
-            #[payment_amount] amount: Self::BigUint,
+            #[payment_amount] amount: BigUint,
         );
     }
 }
@@ -33,17 +33,17 @@ pub trait FeeModule:
     + token_send::TokenSendModule
 {
     #[proxy]
-    fn farm_proxy(&self, to: Address) -> farm_proxy::Proxy<Self::SendApi>;
+    fn farm_proxy(&self, to: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
 
     #[storage_mapper("fee_destination")]
-    fn destination_map(&self) -> SafeMapMapper<Self::Storage, Address, TokenIdentifier>;
+    fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
 
     #[storage_mapper("trusted_swap_pair")]
-    fn trusted_swap_pair(&self) -> SafeMapMapper<Self::Storage, TokenPair, Address>;
+    fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
 
-    #[view(getWhitelistedAddresses)]
+    #[view(getWhitelistedManagedAddresses)]
     #[storage_mapper("whitelist")]
-    fn whitelist(&self) -> SafeSetMapper<Self::Storage, Address>;
+    fn whitelist(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getFeeState)]
     fn is_fee_enabled(&self) -> bool {
@@ -51,25 +51,25 @@ pub trait FeeModule:
     }
 
     #[endpoint(whitelist)]
-    fn whitelist_endpoint(&self, address: Address) -> SCResult<()> {
+    fn whitelist_endpoint(&self, address: ManagedAddress) -> SCResult<()> {
         self.require_permissions()?;
         let is_new = self.whitelist().insert(address);
-        require!(is_new, "Address already whitelisted");
+        require!(is_new, "ManagedAddress already whitelisted");
         Ok(())
     }
 
     #[endpoint(removeWhitelist)]
-    fn remove_whitelist(&self, address: Address) -> SCResult<()> {
+    fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
         self.require_permissions()?;
         let is_removed = self.whitelist().remove(&address);
-        require!(is_removed, "Addresss not whitelisted");
+        require!(is_removed, "ManagedAddresss not whitelisted");
         Ok(())
     }
 
     #[endpoint(addTrustedSwapPair)]
     fn add_trusted_swap_pair(
         &self,
-        pair_address: Address,
+        pair_address: ManagedAddress,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
@@ -108,13 +108,13 @@ pub trait FeeModule:
         Ok(())
     }
 
-    fn reinject(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
+    fn reinject(&self, token: &TokenIdentifier, amount: &BigUint) {
         let mut reserve = self.pair_reserve(token).get();
         reserve += amount;
         self.pair_reserve(token).set(&reserve);
     }
 
-    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: &Self::BigUint) {
+    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: &BigUint) {
         if fee_amount == &0 {
             return;
         }
@@ -125,7 +125,7 @@ pub trait FeeModule:
             return;
         }
 
-        let fee_slice = fee_amount / &slices.into();
+        let fee_slice = fee_amount / slices;
         if fee_slice == 0 {
             self.reinject(fee_token, fee_amount);
             return;
@@ -145,7 +145,7 @@ pub trait FeeModule:
             );
         }
 
-        let rounding_error = fee_amount - &(fee_slice * slices.into());
+        let rounding_error = fee_amount - &(fee_slice * slices);
         if rounding_error > 0 {
             self.reinject(fee_token, &rounding_error);
         }
@@ -154,8 +154,8 @@ pub trait FeeModule:
     fn send_fee_slice(
         &self,
         fee_token: &TokenIdentifier,
-        fee_slice: &Self::BigUint,
-        fee_address: &Address,
+        fee_slice: &BigUint,
+        fee_address: &ManagedAddress,
         requested_fee_token: &TokenIdentifier,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
@@ -250,7 +250,7 @@ pub trait FeeModule:
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
         let pair_address = self.get_extern_swap_pair_address(fee_token, requested_fee_token);
-        pair_address != Address::zero()
+        pair_address != self.types().managed_address_zero()
     }
 
     fn can_extern_swap_after_local_swap(
@@ -262,10 +262,10 @@ pub trait FeeModule:
     ) -> bool {
         if fee_token == first_token {
             let pair_address = self.get_extern_swap_pair_address(second_token, requested_fee_token);
-            pair_address != Address::zero()
+            pair_address != self.types().managed_address_zero()
         } else if fee_token == second_token {
             let pair_address = self.get_extern_swap_pair_address(first_token, requested_fee_token);
-            pair_address != Address::zero()
+            pair_address != self.types().managed_address_zero()
         } else {
             false
         }
@@ -274,20 +274,20 @@ pub trait FeeModule:
     fn extern_swap_and_forward(
         &self,
         available_token: &TokenIdentifier,
-        available_amount: &Self::BigUint,
+        available_amount: &BigUint,
         requested_token: &TokenIdentifier,
-        destination_address: &Address,
+        destination_address: &ManagedAddress,
     ) -> bool {
         let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
-        let mut arg_buffer = ArgBuffer::new();
-        arg_buffer.push_argument_bytes(requested_token.as_esdt_identifier());
-        arg_buffer.push_argument_bytes(destination_address.as_bytes());
-        let result = self.send().direct_esdt_execute(
+        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        arg_buffer.push_arg(requested_token);
+        arg_buffer.push_arg(destination_address);
+        let result = self.raw_vm_api().direct_esdt_execute(
             &pair_address,
             available_token,
             available_amount,
             self.extern_swap_gas_limit().get(),
-            SWAP_NO_FEE_AND_FORWARD_FUNC_NAME,
+            &ManagedBuffer::from(SWAP_NO_FEE_AND_FORWARD_FUNC_NAME),
             &arg_buffer,
         );
 
@@ -301,11 +301,11 @@ pub trait FeeModule:
     fn send_fee_or_burn_on_zero_address(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
-        destination: &Address,
+        amount: &BigUint,
+        destination: &ManagedAddress,
     ) {
         if amount > &0 {
-            if destination == &Address::zero() {
+            if destination == &self.types().managed_address_zero() {
                 self.burn_tokens(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
@@ -319,12 +319,14 @@ pub trait FeeModule:
         &self,
         first_token: &TokenIdentifier,
         second_token: &TokenIdentifier,
-    ) -> Address {
+    ) -> ManagedAddress {
         let token_pair = TokenPair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
-        let is_cached = self.trusted_swap_pair().keys().any(|key| key == token_pair);
+        let is_cached = self.trusted_swap_pair().keys().any(|key| {
+            key.first_token == token_pair.first_token && key.second_token == token_pair.second_token
+        });
 
         if is_cached {
             self.trusted_swap_pair().get(&token_pair).unwrap()
@@ -334,15 +336,15 @@ pub trait FeeModule:
                 second_token: first_token.clone(),
             };
 
-            let is_cached_reversed = self
-                .trusted_swap_pair()
-                .keys()
-                .any(|key| key == token_pair_reversed);
+            let is_cached_reversed = self.trusted_swap_pair().keys().any(|key| {
+                key.first_token == token_pair_reversed.first_token
+                    && key.second_token == token_pair_reversed.second_token
+            });
 
             if is_cached_reversed {
                 self.trusted_swap_pair().get(&token_pair_reversed).unwrap()
             } else {
-                Address::zero()
+                self.types().managed_address_zero()
             }
         }
     }
@@ -351,7 +353,7 @@ pub trait FeeModule:
     fn set_fee_on(
         &self,
         enabled: bool,
-        fee_to_address: Address,
+        fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         self.require_permissions()?;
@@ -372,28 +374,28 @@ pub trait FeeModule:
         Ok(())
     }
 
-    fn require_whitelisted(&self, caller: &Address) -> SCResult<()> {
+    fn require_whitelisted(&self, caller: &ManagedAddress) -> SCResult<()> {
         require!(self.whitelist().contains(caller), "Not whitelisted");
         Ok(())
     }
 
     #[view(getFeeDestinations)]
-    fn get_fee_destinations(&self) -> MultiResultVec<(Address, TokenIdentifier)> {
+    fn get_fee_destinations(&self) -> MultiResultVec<(ManagedAddress, TokenIdentifier)> {
         MultiResultVec::from_iter(
             self.destination_map()
                 .iter()
                 .map(|x| (x.0, x.1))
-                .collect::<Vec<(Address, TokenIdentifier)>>(),
+                .collect::<Vec<(ManagedAddress, TokenIdentifier)>>(),
         )
     }
 
     #[view(getTrustedSwapPairs)]
-    fn get_trusted_swap_pairs(&self) -> MultiResultVec<(TokenPair, Address)> {
+    fn get_trusted_swap_pairs(&self) -> MultiResultVec<(TokenPair<Self::Api>, ManagedAddress)> {
         MultiResultVec::from_iter(
             self.trusted_swap_pair()
                 .iter()
                 .map(|x| (x.0, x.1))
-                .collect::<Vec<(TokenPair, Address)>>(),
+                .collect::<Vec<(TokenPair<Self::Api>, ManagedAddress)>>(),
         )
     }
 }

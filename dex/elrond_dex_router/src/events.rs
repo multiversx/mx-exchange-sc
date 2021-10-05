@@ -2,13 +2,13 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 #[derive(TopEncode)]
-pub struct CreatePairEvent {
-    caller: Address,
-    first_token_id: TokenIdentifier,
-    second_token_id: TokenIdentifier,
+pub struct CreatePairEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    first_token_id: TokenIdentifier<M>,
+    second_token_id: TokenIdentifier<M>,
     total_fee_percent: u64,
     special_fee_percent: u64,
-    pair_address: Address,
+    pair_address: ManagedAddress<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -18,12 +18,12 @@ pub struct CreatePairEvent {
 pub trait EventsModule {
     fn emit_create_pair_event(
         self,
-        caller: Address,
+        caller: ManagedAddress,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        pair_address: Address,
+        pair_address: ManagedAddress,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.create_pair_event(
@@ -50,8 +50,8 @@ pub trait EventsModule {
         self,
         #[indexed] first_token_id: TokenIdentifier,
         #[indexed] second_token_id: TokenIdentifier,
-        #[indexed] caller: Address,
+        #[indexed] caller: ManagedAddress,
         #[indexed] epoch: u64,
-        swap_event: CreatePairEvent,
+        swap_event: CreatePairEvent<Self::Api>,
     );
 }

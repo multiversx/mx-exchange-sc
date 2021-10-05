@@ -89,77 +89,73 @@ pub trait ConfigModule:
     }
 
     #[view(getFarmTokenSupply)]
-    fn get_farm_token_supply(&self) -> Self::BigUint {
-        let result = self.get_total_supply(&self.farm_token_id().get());
-        match result {
-            SCResult::Ok(amount) => amount,
-            SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
-        }
+    fn get_farm_token_supply(&self) -> BigUint {
+        self.get_total_supply(&self.farm_token_id().get()).unwrap()
     }
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 
-    #[view(getRouterAddress)]
+    #[view(getRouterManagedAddress)]
     #[storage_mapper("router_address")]
-    fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getState)]
     #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
+    fn state(&self) -> SingleValueMapper<State>;
 
     #[view(getOwner)]
     #[storage_mapper("owner")]
-    fn owner(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn owner(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getFarmingTokenId)]
     #[storage_mapper("farming_token_id")]
-    fn farming_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn farming_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getRewardTokenId)]
     #[storage_mapper("reward_token_id")]
-    fn reward_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn reward_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[view(getLockedAssetFactoryAddress)]
+    #[view(getLockedAssetFactoryManagedAddress)]
     #[storage_mapper("locked_asset_factory_address")]
-    fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getPenaltyPercent)]
     #[storage_mapper("penalty_percent")]
-    fn penalty_percent(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn penalty_percent(&self) -> SingleValueMapper<u64>;
 
     #[view(getLockedRewardAprMuliplier)]
     #[storage_mapper("locked_rewards_apr_multiplier")]
-    fn locked_rewards_apr_multiplier(&self) -> SingleValueMapper<Self::Storage, u8>;
+    fn locked_rewards_apr_multiplier(&self) -> SingleValueMapper<u8>;
 
     #[view(getMinimumFarmingEpoch)]
     #[storage_mapper("minimum_farming_epochs")]
-    fn minimum_farming_epochs(&self) -> SingleValueMapper<Self::Storage, u8>;
+    fn minimum_farming_epochs(&self) -> SingleValueMapper<u8>;
 
     #[view(getPerBlockRewardAmount)]
     #[storage_mapper("per_block_reward_amount")]
-    fn per_block_reward_amount(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn per_block_reward_amount(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("produce_rewards_enabled")]
-    fn produce_rewards_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn produce_rewards_enabled(&self) -> SingleValueMapper<bool>;
 
     #[view(getLastRewardBlockNonce)]
     #[storage_mapper("last_reward_block_nonce")]
-    fn last_reward_block_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+    fn last_reward_block_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
-    fn farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("farm_token_nonce")]
-    fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+    fn farm_token_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
-    fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getPairContractAddress)]
+    #[view(getPairContractManagedAddress)]
     #[storage_mapper("pair_contract_address")]
-    fn pair_contract_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

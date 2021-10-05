@@ -9,10 +9,10 @@ use super::rewards;
 pub trait LiquidityPoolModule: rewards::RewardsModule {
     fn add_liquidity(
         &self,
-        amount: Self::BigUint,
+        amount: BigUint,
         farming_pool_token_id: TokenIdentifier,
         farmed_token_id: TokenIdentifier,
-    ) -> SCResult<Self::BigUint> {
+    ) -> SCResult<BigUint> {
         require!(amount > 0, "Amount needs to be greater than 0");
 
         let liquidity = self.calculate_liquidity(&amount, &farming_pool_token_id, &farmed_token_id);
@@ -41,11 +41,11 @@ pub trait LiquidityPoolModule: rewards::RewardsModule {
 
     fn remove_liquidity(
         &self,
-        liquidity: Self::BigUint,
-        initial_worth: Self::BigUint,
+        liquidity: BigUint,
+        initial_worth: BigUint,
         farming_pool_token_id: TokenIdentifier,
         farmed_token_id: TokenIdentifier,
-    ) -> SCResult<Self::BigUint> {
+    ) -> SCResult<BigUint> {
         let mut total_supply = self.total_supply().get();
         let mut virtual_reserves = self.virtual_reserves().get();
 
@@ -75,10 +75,10 @@ pub trait LiquidityPoolModule: rewards::RewardsModule {
 
     fn calculate_liquidity(
         &self,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         farming_pool_token_id: &TokenIdentifier,
         farmed_token_id: &TokenIdentifier,
-    ) -> Self::BigUint {
+    ) -> BigUint {
         let is_virtual_amount = farming_pool_token_id != farmed_token_id;
         let total_supply = self.total_supply().get();
         let virtual_reserves = self.virtual_reserves().get();
@@ -111,9 +111,9 @@ pub trait LiquidityPoolModule: rewards::RewardsModule {
 
     #[view(getTotalSupply)]
     #[storage_mapper("total_supply")]
-    fn total_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn total_supply(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getVirtualReserves)]
     #[storage_mapper("virtual_reserves")]
-    fn virtual_reserves(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn virtual_reserves(&self) -> SingleValueMapper<BigUint>;
 }

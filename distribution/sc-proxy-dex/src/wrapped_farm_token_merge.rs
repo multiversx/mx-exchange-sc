@@ -30,17 +30,17 @@ pub trait WrappedFarmTokenMerge:
     #[proxy]
     fn locked_asset_factory_proxy(
         &self,
-        to: Address,
-    ) -> sc_locked_asset_factory::Proxy<Self::SendApi>;
+        to: ManagedAddress,
+    ) -> sc_locked_asset_factory::Proxy<Self::Api>;
 
     #[proxy]
-    fn farm_contract_merge_proxy(&self, to: Address) -> elrond_dex_farm::Proxy<Self::SendApi>;
+    fn farm_contract_merge_proxy(&self, to: ManagedAddress) -> elrond_dex_farm::Proxy<Self::Api>;
 
     #[endpoint(mergeWrappedFarmTokens)]
     fn merge_wrapped_farm_tokens(
         &self,
-        farm_contract: Address,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        farm_contract: ManagedAddress,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -59,11 +59,11 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_wrapped_farm_tokens_and_send(
         &self,
-        caller: &Address,
-        farm_contract: &Address,
-        replic: Option<WrappedFarmToken<Self::BigUint>>,
-        opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<(WrappedFarmToken<Self::BigUint>, bool)> {
+        caller: &ManagedAddress,
+        farm_contract: &ManagedAddress,
+        replic: Option<WrappedFarmToken<Self::Api>>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         let deposit = self.nft_deposit(caller).get();
         require!(!deposit.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = deposit.len();
@@ -124,8 +124,8 @@ pub trait WrappedFarmTokenMerge:
 
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
-        deposit: &[GenericTokenAmountPair<Self::BigUint>],
-    ) -> SCResult<Vec<WrappedFarmToken<Self::BigUint>>> {
+        deposit: &[GenericTokenAmountPair<Self::Api>],
+    ) -> SCResult<Vec<WrappedFarmToken<Self::Api>>> {
         let mut result = Vec::new();
 
         for elem in deposit.iter() {
@@ -140,7 +140,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_wrapped_farm_tokens_from_same_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::BigUint>],
+        tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<()> {
         let farm_token_id = tokens[0].attributes.farm_token_id.clone();
 
@@ -155,7 +155,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_all_tokens_are_wrapped_farm_tokens(
         &self,
-        tokens: &[GenericTokenAmountPair<Self::BigUint>],
+        tokens: &[GenericTokenAmountPair<Self::Api>],
         wrapped_farm_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {
@@ -169,8 +169,8 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_locked_asset_tokens_from_wrapped_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+        tokens: &[WrappedFarmToken<Self::Api>],
+    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
@@ -207,15 +207,17 @@ pub trait WrappedFarmTokenMerge:
 
         Ok(self
             .locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(
+                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
+            ))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
 
     fn merge_farm_tokens(
         &self,
-        farm_contract: &Address,
-        tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> GenericTokenAmountPair<Self::BigUint> {
+        farm_contract: &ManagedAddress,
+        tokens: &[WrappedFarmToken<Self::Api>],
+    ) -> GenericTokenAmountPair<Self::Api> {
         if tokens.len() == 1 {
             let token = tokens[0].clone();
 
@@ -237,14 +239,16 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_merge_proxy(farm_contract.clone())
-            .merge_farm_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_farm_tokens(OptionalArg::Some(
+                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
+            ))
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn merge_farming_tokens(
         &self,
-        tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+        tokens: &[WrappedFarmToken<Self::Api>],
+    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         if tokens.len() == 1 {
             let first_token = tokens[0].clone();
             let farming_amount = self.rule_of_three_non_zero_result(
@@ -272,8 +276,8 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_wrapped_lp_tokens_from_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::BigUint>],
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+        tokens: &[WrappedFarmToken<Self::Api>],
+    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let mut wrapped_lp_tokens = Vec::new();
 
         for token in tokens.iter() {

@@ -37,7 +37,7 @@ pub trait ProxyDexImpl:
         &self,
         asset_token_id: TokenIdentifier,
         locked_asset_token_id: TokenIdentifier,
-        locked_asset_factory_address: Address,
+        locked_asset_factory_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
             asset_token_id.is_valid_esdt_identifier(),
@@ -65,10 +65,10 @@ pub trait ProxyDexImpl:
     #[endpoint(issueSftProxyPair)]
     fn issue_sft_proxy_pair(
         &self,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        #[payment_amount] issue_cost: BigUint,
+    ) -> SCResult<AsyncCall> {
         only_owner!(self, "Permission denied");
         require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
         self.issue_nft(
@@ -83,10 +83,10 @@ pub trait ProxyDexImpl:
     #[endpoint(issueSftProxyFarm)]
     fn issue_sft_proxy_farm(
         &self,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        #[payment_amount] issue_cost: BigUint,
+    ) -> SCResult<AsyncCall> {
         only_owner!(self, "Permission denied");
         require!(
             self.wrapped_farm_token_id().is_empty(),
@@ -102,12 +102,14 @@ pub trait ProxyDexImpl:
 
     fn issue_nft(
         &self,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-        issue_cost: Self::BigUint,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        issue_cost: BigUint,
         request_type: IssueRequestType,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
-        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
+    ) -> SCResult<AsyncCall> {
+        Ok(self
+            .send()
+            .esdt_system_sc_proxy()
             .issue_semi_fungible(
                 issue_cost,
                 &token_display_name,
@@ -129,10 +131,10 @@ pub trait ProxyDexImpl:
     fn issue_nft_callback(
         &self,
         request_type: IssueRequestType,
-        #[call_result] result: AsyncCallResult<TokenIdentifier>,
+        #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
     ) {
         match result {
-            AsyncCallResult::Ok(token_id) => {
+            ManagedAsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();
 
                 match request_type {
@@ -150,7 +152,7 @@ pub trait ProxyDexImpl:
                     }
                 }
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
 
                 let (payment, token_id) = self.call_value().payment_token_pair();
@@ -169,24 +171,25 @@ pub trait ProxyDexImpl:
     fn set_local_roles(
         &self,
         token: TokenIdentifier,
-        address: Address,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
+        address: ManagedAddress,
+        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+    ) -> SCResult<AsyncCall> {
         only_owner!(self, "Permission denied");
-        require!(!roles.is_empty(), "Empty roles");
-        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, roles.as_slice())
+        Ok(self
+            .send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
     #[callback]
-    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
-            AsyncCallResult::Ok(()) => {
+            ManagedAsyncCallResult::Ok(()) => {
                 self.last_error_message().clear();
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
             }
         }
@@ -201,5 +204,5 @@ pub trait ProxyDexImpl:
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 }
