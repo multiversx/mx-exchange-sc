@@ -366,6 +366,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         spread_epoch: u64,
         address: Address,
     ) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.user_locked_asset_map().remove(&UserLockedAssetKey {
             caller: address,
