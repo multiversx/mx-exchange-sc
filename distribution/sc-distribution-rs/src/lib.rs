@@ -370,7 +370,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.require_global_op_ongoing()?;
         self.user_locked_asset_map().remove(&UserLockedAssetKey {
             caller: address,
-            spread_epoch: spread_epoch,
+            spread_epoch,
         });
         Ok(())
     }
