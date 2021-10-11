@@ -194,6 +194,7 @@ pub trait RewardsModule:
     #[storage_mapper("undistributed_fee_storage")]
     fn undistributed_fee_storage(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
+    #[view(getCurrentBlockFee)]
     #[storage_mapper("current_block_fee_storage")]
     fn current_block_fee_storage(
         &self,

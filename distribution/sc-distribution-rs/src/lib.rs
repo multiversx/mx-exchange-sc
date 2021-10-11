@@ -360,9 +360,38 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
+    #[endpoint(deleteUserDistributedLockedAssets)]
+    fn delete_user_distributed_locked_assets(
+        &self,
+        spread_epoch: u64,
+        address: Address,
+    ) -> SCResult<()> {
+        only_owner!(self, "Permission denied");
+        self.require_global_op_ongoing()?;
+        self.user_locked_asset_map().remove(&UserLockedAssetKey {
+            caller: address,
+            spread_epoch,
+        });
+        Ok(())
+    }
+
+    #[view(getAllUsersDistributedLockedAssets)]
+    fn get_all_users_distributed_locked_assets(
+        &self,
+        spread_epoch: u64,
+    ) -> MultiResultVec<UserLockedAssetKey> {
+        self.user_locked_asset_map()
+            .iter()
+            .filter(|x| x.0.spread_epoch == spread_epoch)
+            .map(|x| x.0)
+            .collect()
+    }
+
+    #[view(getUnlockPeriod)]
     #[storage_mapper("unlock_period")]
     fn unlock_period(&self) -> SingleValueMapper<Self::Storage, UnlockPeriod>;
 
+    #[view(getCommunityDistributionList)]
     #[storage_mapper("community_distribution_list")]
     fn community_distribution_list(
         &self,
