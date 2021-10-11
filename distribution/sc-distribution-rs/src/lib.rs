@@ -360,6 +360,20 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
+    #[endpoint(deleteUserDistributedLockedAssets)]
+    fn delete_user_distributed_locked_assets(
+        &self,
+        spread_epoch: u64,
+        address: Address,
+    ) -> SCResult<()> {
+        self.require_global_op_ongoing()?;
+        self.user_locked_asset_map().remove(&UserLockedAssetKey {
+            caller: address,
+            spread_epoch: spread_epoch,
+        });
+        Ok(())
+    }
+
     #[view(getAllUsersDistributedLockedAssets)]
     fn get_all_users_distributed_locked_assets(
         &self,
