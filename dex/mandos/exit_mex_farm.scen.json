@@ -44,7 +44,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user_with_mex": {
-					"nonce": "2",
+					"nonce": "*",
 					"balance": "100,000,000",
 					"esdt": {
 						"str:MEX-abcdef": "5000050000"

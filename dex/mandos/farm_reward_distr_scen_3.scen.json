@@ -305,7 +305,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:alice": {
-					"nonce": "3",
+					"nonce": "*",
 					"balance": "1,000,000,000,000",
 					"esdt": {
 						"str:LPTOK-abcdef": "1,000",
@@ -313,7 +313,7 @@
 					}
 				},
 				"address:bob": {
-					"nonce": "2",
+					"nonce": "*",
 					"balance": "1,000,000,000,000",
 					"esdt": {
 						"str:LPTOK-abcdef": "2,000",
@@ -321,7 +321,7 @@
 					}
 				},
 				"address:eve": {
-					"nonce": "2",
+					"nonce": "*",
 					"balance": "1,000,000,000,000",
 					"esdt": {
 						"str:LPTOK-abcdef": "500",

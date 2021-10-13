@@ -30,33 +30,20 @@ issueToken() {
 
 # params:
 #   $1 = Pair Address,
-#   $2 = Token Identifier,
-#   $3 = Token Amount in hex
-transferTokens() {
-    method_name="0x$(echo -n 'acceptEsdtPayment' | xxd -p -u | tr -d '\n')"
-    token_identifier="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-
-    erdpy --verbose contract call $1 --recall-nonce \
-        --pem=${WALLET_PEM} \
-        --gas-limit=20000000 \
-        --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function="ESDTTransfer" \
-        --arguments ${token_identifier} $3 ${method_name} \
-        --send || return
-}
-
-# params:
-#   $1 = Pair Address,
-#   $2 = First Token Amount in hex,
-#   $3 = Second Token Amount in hex,
-#   $4 = Minimum First Token Amount in hex,
-#   $5 = Minimum Second Token Amount in hex
+#   $2 = First Token Identifier,
+#   $3 = First Token Amount in hex,
+#   $4 = Second Token Identifier,
+#   $5 = Second Token Amount in hex,
+#   $6 = Minimum First Token Amount in hex,
+#   $7 = Minimum Second Token Amount in hex
 addLiquidity() {
+    method_name="0x$(echo -n 'acceptEsdtPayment' | xxd -p -u | tr -d '\n')"
+
     erdpy --verbose contract call $1 --recall-nonce \
         --pem=${WALLET_PEM} \
         --gas-limit=30000000 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function=addLiquidity \
+        --function="multiESDTNFTTransfer" 2 $2 0 $3 $4 0 $5 ${method_name} $6 $7 \
         --arguments $2 $3 $4 $5 \
         --send || return
 }

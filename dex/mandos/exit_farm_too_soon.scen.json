@@ -9,7 +9,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user1": {
-					"nonce": "8",
+					"nonce": "*",
 					"balance": "1,000,000,000,000,000,000,000,000,000,000",
 					"esdt": {
 						"str:WEGLD-abcdef": "3,000,000,000",
@@ -71,7 +71,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user1": {
-					"nonce": "9",
+					"nonce": "*",
 					"balance": "1,000,000,000,000,000,000,000,000,000,000",
 					"esdt": {
 						"str:WEGLD-abcdef": "3,000,000,000",
@@ -139,7 +139,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user1": {
-					"nonce": "10",
+					"nonce": "*",
 					"balance": "1,000,000,000,000,000,000,000,000,000,000",
 					"esdt": {
 						"str:WEGLD-abcdef": "3,000,000,000",

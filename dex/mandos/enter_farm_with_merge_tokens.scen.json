@@ -86,7 +86,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user1": {
-					"nonce": "11",
+					"nonce": "*",
 					"balance": "1000000000000000000000000000000",
 					"esdt": {
 						"str:FARM-abcdef": {
