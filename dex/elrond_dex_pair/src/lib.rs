@@ -333,6 +333,7 @@ pub trait Pair:
         self.burn_tokens(&token_id, &liquidity);
         let total_liquidity = &self.liquidity().get() - &liquidity;
         self.liquidity().set(&total_liquidity);
+        self.virtual_liquitiy().update(|x| *x -= &liquidity);
 
         let lp_token_amount = FftTokenAmountPair {
             token_id: lp_token_id,
@@ -506,7 +507,7 @@ pub trait Pair:
         );
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
-        let mut virtual_reserve_token_in = self.pair_reserve(&token_in).get();
+        let mut virtual_reserve_token_in = self.pair_virtual_reserve(&token_in).get();
 
         let (reserve_token_in_to_use_for_price, reserve_token_out_to_use_for_price) = if self
             .local_and_virtual_price_differ_too_much()

@@ -327,8 +327,10 @@ pub trait LiquidityPoolModule:
             * (price_percent_total + price_threshold_percent).into()
             / price_percent_total.into();
 
-        first_token_price_local > first_token_price_virtual_min
-            && first_token_price_local < first_token_price_virtual_max
+        let local_price_in_range = first_token_price_local > first_token_price_virtual_min
+            && first_token_price_local < first_token_price_virtual_max;
+
+        !local_price_in_range
     }
 
     fn swap_too_big(&self, amount: &Self::BigUint, reserve: &Self::BigUint) -> bool {

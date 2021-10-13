@@ -76,16 +76,6 @@ setLpTokenIdentifier() {
         --send || return
 }
 
-setLpTokenIdentifier() {
-    erdpy --verbose contract call $1 --recall-nonce \
-        --pem=$2 \
-        --gas-limit=300000000 \
-        --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function=setLpTokenIdentifier \
-        --arguments $3 \
-        --send || return
-}
-
 getLiquidity() {
     erdpy --verbose contract call $1 --recall-nonce \
         --pem=$2 \
