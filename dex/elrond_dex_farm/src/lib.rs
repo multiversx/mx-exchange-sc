@@ -441,7 +441,6 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        let farm_token_id = self.farm_token_id().get();
         let new_farm_contribution =
             &payment_amount + &(&reward * &(farm_attributes.apr_multiplier as u64).into());
 
