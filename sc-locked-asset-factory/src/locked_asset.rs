@@ -76,6 +76,11 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
                 unlock_percent += milestone.unlock_percent;
             }
         }
+
+        if unlock_percent > 100 {
+            self.send().signal_error(b"unlock percent greater than 100");
+        }
+
         unlock_percent
     }
 
