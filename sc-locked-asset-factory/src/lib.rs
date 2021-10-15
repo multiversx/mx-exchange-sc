@@ -9,7 +9,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
-const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
@@ -24,7 +23,6 @@ pub trait LockedAssetFactory:
     + cache::CacheModule
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
-    + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
@@ -49,8 +47,6 @@ pub trait LockedAssetFactory:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.init_epoch()
             .set_if_empty(&self.blockchain().get_block_epoch());
-        self.nft_deposit_max_len()
-            .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
 
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period()
@@ -330,7 +326,6 @@ pub trait LockedAssetFactory:
 
                 if self.locked_asset_token_id().is_empty() {
                     self.locked_asset_token_id().set(&token_id);
-                    self.nft_deposit_accepted_token_ids().insert(token_id);
                 }
             }
             ManagedAsyncCallResult::Err(message) => {
@@ -382,13 +377,6 @@ pub trait LockedAssetFactory:
                 self.last_error_message().set(&message.err_msg);
             }
         }
-    }
-
-    #[endpoint(setNftDepositMaxLen)]
-    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-        self.nft_deposit_max_len().set(&max_len);
-        Ok(())
     }
 
     fn create_unlock_schedule(
