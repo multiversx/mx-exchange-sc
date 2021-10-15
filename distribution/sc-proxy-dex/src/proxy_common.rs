@@ -77,6 +77,16 @@ pub trait ProxyCommonModule {
             ))
     }
 
+    fn burn_payment_tokens(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
+        for payment in payments.iter() {
+            self.send().esdt_local_burn(
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
+        }
+    }
+
     #[storage_mapper("current_tx_accepted_funds")]
     fn current_tx_accepted_funds(&self) -> MapMapper<(TokenIdentifier, Nonce), BigUint>;
 

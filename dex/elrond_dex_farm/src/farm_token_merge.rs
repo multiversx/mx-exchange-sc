@@ -32,7 +32,7 @@ pub trait FarmTokenMergeModule:
 
         let attrs = self.get_merged_farm_token_attributes(&payments, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
-        self.burn_farm_tokens_from_payments(&payments);
+        self.burn_farm_tokens_from_payments(&payments)?;
 
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
@@ -52,13 +52,6 @@ pub trait FarmTokenMergeModule:
             token_nonce: new_nonce,
             amount: new_amount,
         })
-    }
-
-    fn burn_farm_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
-        for entry in payments {
-            self.send()
-                .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
-        }
     }
 
     fn get_merged_farm_token_attributes(

@@ -11,8 +11,6 @@ mod proxy_pair;
 mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;
 
-const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
-
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub enum IssueRequestType {
     ProxyFarm,
@@ -25,7 +23,6 @@ pub trait ProxyDexImpl:
     + proxy_pair::ProxyPairModule
     + proxy_farm::ProxyFarmModule
     + token_supply::TokenSupplyModule
-    + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
@@ -52,8 +49,6 @@ pub trait ProxyDexImpl:
             "Locked asset token ID cannot be the same as Asset token ID"
         );
 
-        self.nft_deposit_max_len()
-            .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_token_id().set(&locked_asset_token_id);
         self.locked_asset_factory_address()
@@ -141,13 +136,11 @@ pub trait ProxyDexImpl:
                     IssueRequestType::ProxyPair => {
                         if self.wrapped_lp_token_id().is_empty() {
                             self.wrapped_lp_token_id().set(&token_id);
-                            self.nft_deposit_accepted_token_ids().insert(token_id);
                         }
                     }
                     IssueRequestType::ProxyFarm => {
                         if self.wrapped_farm_token_id().is_empty() {
                             self.wrapped_farm_token_id().set(&token_id);
-                            self.nft_deposit_accepted_token_ids().insert(token_id);
                         }
                     }
                 }
@@ -193,13 +186,6 @@ pub trait ProxyDexImpl:
                 self.last_error_message().set(&message.err_msg);
             }
         }
-    }
-
-    #[endpoint(setNftDepositMaxLen)]
-    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-        self.nft_deposit_max_len().set(&max_len);
-        Ok(())
     }
 
     #[view(getLastErrorMessage)]

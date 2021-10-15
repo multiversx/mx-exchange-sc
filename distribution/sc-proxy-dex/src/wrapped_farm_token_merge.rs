@@ -24,7 +24,6 @@ pub trait WrappedFarmTokenMerge:
     + token_send::TokenSendModule
     + token_supply::TokenSupplyModule
     + proxy_common::ProxyCommonModule
-    + nft_deposit::NftDepositModule
     + wrapped_lp_token_merge::WrappedLpTokenMerge
 {
     #[proxy]

@@ -8,7 +8,12 @@ members = [
   "dex/elrond_dex_router",
   "dex/elrond_dex_router/abi",
 
+  "distribution",
+  "distribution/sc-distribution-rs",
+  "distribution/sc-distribution-rs/abi",
+  "distribution/sc-proxy-dex",
+  "distribution/sc-proxy-dex/abi",
+
   "sc-locked-asset-factory",
   "sc-locked-asset-factory/abi",
-
 ]

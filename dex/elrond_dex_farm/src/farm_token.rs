@@ -162,6 +162,16 @@ pub trait FarmTokenModule:
         self.increase_nonce()
     }
 
+    fn burn_farm_tokens_from_payments(
+        &self,
+        payments: &[EsdtTokenPayment<Self::Api>],
+    ) -> SCResult<()> {
+        for entry in payments {
+            self.burn_farm_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount)?;
+        }
+        Ok(())
+    }
+
     fn burn_farm_tokens(
         &self,
         farm_token_id: &TokenIdentifier,

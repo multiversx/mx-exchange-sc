@@ -609,7 +609,7 @@ pub trait Farm:
             &additional_payments,
             Some(current_position_replic),
         )?;
-        self.burn_farm_tokens_from_payments(&additional_payments);
+        self.burn_farm_tokens_from_payments(&additional_payments)?;
 
         let new_amount = merged_attributes.current_farm_amount.clone();
         let new_attributes = merged_attributes;

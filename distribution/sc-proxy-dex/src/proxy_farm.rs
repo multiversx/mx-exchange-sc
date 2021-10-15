@@ -35,7 +35,6 @@ pub trait ProxyFarmModule:
     + token_supply::TokenSupplyModule
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
-    + nft_deposit::NftDepositModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge
     + events::EventsModule
