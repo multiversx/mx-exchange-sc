@@ -131,7 +131,7 @@ pub trait Farm:
             .get_all_esdt_transfers()
             .into_iter()
             .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-        require!(!payments.is_empty(), "empty payments");
+        require!(payments.len() >= 1, "empty payments");
 
         let token_in = payments[0].token_identifier.clone();
         let enter_amount = payments[0].amount.clone();
@@ -318,7 +318,7 @@ pub trait Farm:
             .get_all_esdt_transfers()
             .into_iter()
             .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-        require!(payments.len() == 1, "bad payment len");
+        require!(payments.len() >= 1, "bad payment len");
 
         let payment_token_id = payments[0].token_identifier.clone();
         let amount = payments[0].amount.clone();
@@ -426,7 +426,7 @@ pub trait Farm:
             .get_all_esdt_transfers()
             .into_iter()
             .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-        require!(payments.len() == 1, "bad payment len");
+        require!(payments.len() >= 1, "bad payment len");
 
         let payment_token_id = payments[0].token_identifier.clone();
         let payment_amount = payments[0].amount.clone();

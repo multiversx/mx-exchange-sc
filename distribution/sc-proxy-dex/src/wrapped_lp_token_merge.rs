@@ -7,7 +7,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::proxy_pair;
-use nft_deposit::ProxyTrait as _;
 use proxy_pair::WrappedLpToken;
 use sc_locked_asset_factory::locked_asset_token_merge::ProxyTrait as _;
 
@@ -107,9 +106,9 @@ pub trait WrappedLpTokenMerge:
         for payment in payments.iter() {
             result.push(WrappedLpToken {
                 token_amount: GenericTokenAmountPair {
-                    token_id: payment.token_identifier,
+                    token_id: payment.token_identifier.clone(),
                     token_nonce: payment.token_nonce,
-                    amount: payment.amount,
+                    amount: payment.amount.clone(),
                 },
                 attributes: self.get_wrapped_lp_token_attributes(
                     &payment.token_identifier,

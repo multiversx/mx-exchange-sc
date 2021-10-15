@@ -5,7 +5,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
-const MAX_USER_TEMPORARY_SIZE: usize = 10;
 
 use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, Nonce, WrappedLpTokenAttributes};
 use elrond_dex_pair::config::ProxyTrait as _;
@@ -138,12 +137,12 @@ pub trait ProxyPairModule:
 
         let mut surplus_payments = Vec::new();
         surplus_payments.push(EsdtTokenPayment::from(
-            first_token_id,
+            first_token_id.clone(),
             0,
             &first_token_amount_desired - &first_token_used.amount,
         ));
         surplus_payments.push(EsdtTokenPayment::from(
-            second_token_id,
+            second_token_id.clone(),
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
@@ -151,7 +150,7 @@ pub trait ProxyPairModule:
             &surplus_payments,
             &caller.to_address(),
             &OptionalArg::None,
-        );
+        )?;
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -226,11 +225,7 @@ pub trait ProxyPairModule:
             &attributes.locked_assets_invested,
         )?;
 
-        if tokens_for_position.0.token_id == asset_token_id {
-            assets_received = tokens_for_position.0.amount.clone();
-            fungible_token_id = tokens_for_position.1.token_id.clone();
-            fungible_token_amount = tokens_for_position.1.amount.clone();
-        } else if tokens_for_position.1.token_id == asset_token_id {
+        if tokens_for_position.1.token_id == asset_token_id {
             assets_received = tokens_for_position.1.amount.clone();
             fungible_token_id = tokens_for_position.0.token_id.clone();
             fungible_token_amount = tokens_for_position.0.amount.clone();
