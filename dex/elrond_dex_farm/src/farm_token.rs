@@ -13,10 +13,7 @@ pub struct FarmToken<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule:
-    config::ConfigModule
-    + token_send::TokenSendModule
-    + token_supply::TokenSupplyModule
-    + nft_deposit::NftDepositModule
+    config::ConfigModule + token_send::TokenSendModule + token_supply::TokenSupplyModule
 {
     #[payable("EGLD")]
     #[endpoint(issueFarmToken)]
@@ -73,7 +70,6 @@ pub trait FarmTokenModule:
 
                 if self.farm_token_id().is_empty() {
                     self.farm_token_id().set(&token_id);
-                    self.nft_deposit_accepted_token_ids().insert(token_id);
                 }
             }
             ManagedAsyncCallResult::Err(message) => {

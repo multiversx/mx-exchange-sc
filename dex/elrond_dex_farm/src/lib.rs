@@ -18,8 +18,7 @@ elrond_wasm::derive_imports!();
 
 use crate::config::{
     DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER, DEFAULT_MINUMUM_FARMING_EPOCHS,
-    DEFAULT_NFT_DEPOSIT_MAX_LEN, DEFAULT_PENALTY_PERCENT, DEFAULT_TRANSFER_EXEC_GAS_LIMIT,
-    MAX_PENALTY_PERCENT,
+    DEFAULT_PENALTY_PERCENT, DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = GenericTokenAmountPair<BigUint>;
@@ -34,7 +33,6 @@ pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
     + token_supply::TokenSupplyModule
-    + nft_deposit::NftDepositModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
@@ -91,8 +89,6 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
-        self.nft_deposit_max_len()
-            .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
 
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
@@ -108,33 +104,38 @@ pub trait Farm:
     #[endpoint(enterFarm)]
     fn enter_farm(
         &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] enter_amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
-        self.enter_farm_common(token_in, enter_amount, false, opt_accept_funds_func)
+        self.enter_farm_common(false, opt_accept_funds_func)
     }
 
     #[payable("*")]
     #[endpoint(enterFarmAndLockRewards)]
     fn enter_farm_and_lock_rewards(
         &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] enter_amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
-        self.enter_farm_common(token_in, enter_amount, true, opt_accept_funds_func)
+        self.enter_farm_common(true, opt_accept_funds_func)
     }
 
     fn enter_farm_common(
         &self,
-        token_in: TokenIdentifier,
-        enter_amount: BigUint,
         with_locked_rewards: bool,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
+
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        require!(!payments.is_empty(), "empty payments");
+
+        let token_in = payments[0].token_identifier.clone();
+        let enter_amount = payments[0].amount.clone();
+
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
@@ -160,12 +161,8 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &farm_contribution,
-            &farm_token_id,
-            &attributes,
-            &caller,
-        )?;
+        let (new_farm_token, created_with_merge) =
+            self.create_farm_tokens_by_merging(&farm_contribution, &farm_token_id, &attributes)?;
         self.send_nft_tokens(
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
@@ -208,12 +205,21 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm(
         &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_amount] amount: BigUint,
-        #[payment_nonce] token_nonce: Nonce,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
+
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        require!(payments.len() == 1, "bad payment len");
+
+        let payment_token_id = payments[0].token_identifier.clone();
+        let amount = payments[0].amount.clone();
+        let token_nonce = payments[0].token_nonce;
+
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(amount > 0, "Payment amount cannot be zero");
@@ -302,13 +308,22 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_amount] amount: BigUint,
-        #[payment_nonce] token_nonce: Nonce,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
+
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        require!(payments.len() == 1, "bad payment len");
+
+        let payment_token_id = payments[0].token_identifier.clone();
+        let amount = payments[0].amount.clone();
+        let token_nonce = payments[0].token_nonce;
+
         require!(amount > 0, "Zero amount");
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
@@ -351,12 +366,8 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
         let farm_amount = amount.clone();
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &farm_amount,
-            &farm_token_id,
-            &new_attributes,
-            &caller,
-        )?;
+        let (new_farm_token, created_with_merge) =
+            self.create_farm_tokens_by_merging(&farm_amount, &farm_token_id, &new_attributes)?;
         self.send_nft_tokens(
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
@@ -406,12 +417,20 @@ pub trait Farm:
     #[endpoint(compoundRewards)]
     fn compound_rewards(
         &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_amount] payment_amount: BigUint,
-        #[payment_nonce] payment_token_nonce: Nonce,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
+
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        require!(payments.len() == 1, "bad payment len");
+
+        let payment_token_id = payments[0].token_identifier.clone();
+        let payment_amount = payments[0].amount.clone();
+        let payment_token_nonce = payments[0].token_nonce;
         require!(payment_amount > 0, "Zero amount");
 
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
@@ -476,7 +495,6 @@ pub trait Farm:
             &new_farm_contribution,
             &farm_token_id,
             &new_attributes,
-            &caller,
         )?;
         self.send_nft_tokens(
             &farm_token_id,
@@ -569,7 +587,6 @@ pub trait Farm:
         amount: &BigUint,
         token_id: &TokenIdentifier,
         attributes: &FarmTokenAttributes<Self::Api>,
-        caller: &ManagedAddress,
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
             token_amount: GenericTokenAmountPair {
@@ -580,11 +597,19 @@ pub trait Farm:
             attributes: attributes.clone(),
         };
 
-        let deposit = self.nft_deposit(caller).get();
-        let deposit_len = deposit.len();
-        let merged_attributes =
-            self.get_merged_farm_token_attributes(&deposit, Some(current_position_replic))?;
-        self.burn_deposit_tokens(caller, &deposit);
+        let mut additional_payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        additional_payments.remove(0);
+
+        let additional_payments_len = additional_payments.len();
+        let merged_attributes = self.get_merged_farm_token_attributes(
+            &additional_payments,
+            Some(current_position_replic),
+        )?;
+        self.burn_farm_tokens_from_payments(&additional_payments);
 
         let new_amount = merged_attributes.current_farm_amount.clone();
         let new_attributes = merged_attributes;
@@ -598,7 +623,7 @@ pub trait Farm:
             },
             attributes: new_attributes,
         };
-        let is_merged = deposit_len != 0;
+        let is_merged = additional_payments_len != 0;
 
         Ok((new_farm_token, is_merged))
     }

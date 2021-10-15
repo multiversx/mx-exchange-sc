@@ -17,9 +17,7 @@ pub enum State {
 }
 
 #[elrond_wasm::module]
-pub trait ConfigModule:
-    token_supply::TokenSupplyModule + token_send::TokenSendModule + nft_deposit::NftDepositModule
-{
+pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -64,13 +62,6 @@ pub trait ConfigModule:
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
         self.require_permissions()?;
         self.transfer_exec_gas_limit().set(&gas_limit);
-        Ok(())
-    }
-
-    #[endpoint(setNftDepositMaxLen)]
-    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
-        self.require_permissions()?;
-        self.nft_deposit_max_len().set(&max_len);
         Ok(())
     }
 

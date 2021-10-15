@@ -99,26 +99,28 @@ pub trait Pair:
             "LP token not issued"
         );
 
-        let payments = self.raw_vm_api().get_all_esdt_transfers();
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
         require!(payments.len() == 2, "bad payments len");
-        let payment_0 = payments.get(0).unwrap();
-        let payment_1 = payments.get(1).unwrap();
 
         let expected_first_token_id = self.first_token_id().get();
         let expected_second_token_id = self.second_token_id().get();
         require!(
-            payment_0.token_identifier == expected_first_token_id,
+            payments[0].token_identifier == expected_first_token_id,
             "bad first payment"
         );
         require!(
-            payment_1.token_identifier == expected_second_token_id,
+            payments[1].token_identifier == expected_second_token_id,
             "bad second payment"
         );
-        require!(payment_0.token_nonce == 0, "non zero first token nonce");
-        require!(payment_1.token_nonce == 0, "non zero first token nonce");
+        require!(payments[0].token_nonce == 0, "non zero first token nonce");
+        require!(payments[1].token_nonce == 0, "non zero second token nonce");
 
-        let first_token_amount_desired = payment_0.amount;
-        let second_token_amount_desired = payment_1.amount;
+        let first_token_amount_desired = payments[0].amount.clone();
+        let second_token_amount_desired = payments[1].amount.clone();
         require!(
             first_token_amount_desired > 0,
             "Insufficient first token funds sent"
