@@ -74,9 +74,9 @@ pub trait WrappedFarmTokenMerge:
         let deposit_len = payments.len();
 
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
-        self.require_all_tokens_are_wrapped_farm_tokens(&payments, &wrapped_farm_token_id)?;
+        self.require_all_tokens_are_wrapped_farm_tokens(payments, &wrapped_farm_token_id)?;
 
-        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(&payments)?;
+        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments)?;
 
         if replic.is_some() {
             tokens.push(replic.unwrap());
@@ -85,7 +85,7 @@ pub trait WrappedFarmTokenMerge:
 
         let merged_farm_token_amount = self.merge_farm_tokens(farm_contract, &tokens);
         let farming_token_amount = self.merge_farming_tokens(&tokens)?;
-        self.burn_payment_tokens(&payments);
+        self.burn_payment_tokens(payments);
 
         let new_attrs = WrappedFarmTokenAttributes {
             farm_token_id: merged_farm_token_amount.token_id.clone(),

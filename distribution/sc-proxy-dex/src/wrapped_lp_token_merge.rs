@@ -54,9 +54,9 @@ pub trait WrappedLpTokenMerge:
         let payments_len = payments.len();
 
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
-        self.require_all_tokens_are_wrapped_lp_tokens(&payments, &wrapped_lp_token_id)?;
+        self.require_all_tokens_are_wrapped_lp_tokens(payments, &wrapped_lp_token_id)?;
 
-        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(&payments)?;
+        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(payments)?;
 
         if replic.is_some() {
             tokens.push(replic.unwrap());
@@ -72,7 +72,7 @@ pub trait WrappedLpTokenMerge:
 
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
-        self.burn_payment_tokens(&payments);
+        self.burn_payment_tokens(payments);
 
         self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();

@@ -600,11 +600,9 @@ pub trait Farm:
         };
 
         let additional_payments_len = additional_payments.len();
-        let merged_attributes = self.get_merged_farm_token_attributes(
-            &additional_payments,
-            Some(current_position_replic),
-        )?;
-        self.burn_farm_tokens_from_payments(&additional_payments)?;
+        let merged_attributes = self
+            .get_merged_farm_token_attributes(additional_payments, Some(current_position_replic))?;
+        self.burn_farm_tokens_from_payments(additional_payments)?;
 
         let new_amount = merged_attributes.current_farm_amount.clone();
         let new_attributes = merged_attributes;
