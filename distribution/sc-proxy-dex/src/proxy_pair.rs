@@ -134,6 +134,7 @@ pub trait ProxyPairModule:
             &second_token_used.amount,
             second_token_nonce,
             &caller,
+            &payments[2..],
         )?;
 
         let mut surplus_payments = Vec::new();
@@ -148,8 +149,8 @@ pub trait ProxyPairModule:
             &second_token_amount_desired - &second_token_used.amount,
         ));
         self.send_multiple_tokens_compact(
-            &surplus_payments,
             &caller.to_address(),
+            &surplus_payments,
             &OptionalArg::None,
         )?;
 
@@ -240,10 +241,10 @@ pub trait ProxyPairModule:
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
-            &caller,
             &OptionalArg::None,
         )?;
 
@@ -358,9 +359,11 @@ pub trait ProxyPairModule:
         locked_tokens_consumed: &BigUint,
         locked_tokens_nonce: Nonce,
         caller: &ManagedAddress,
+        additional_payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         self.merge_wrapped_lp_tokens_and_send(
             caller,
+            additional_payments,
             Option::Some(WrappedLpToken {
                 token_amount: GenericTokenAmountPair {
                     token_id: self.wrapped_lp_token_id().get(),

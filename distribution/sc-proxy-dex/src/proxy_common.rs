@@ -25,7 +25,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
         amount: &BigUint,
     ) -> SCResult<()> {
         if amount > &0 {
-            self.direct_esdt_nft_execute_custom(token_id, nonce, amount, to, &OptionalArg::None)
+            self.direct_esdt_nft_execute_custom(to, token_id, nonce, amount, &OptionalArg::None)
         } else {
             Ok(())
         }

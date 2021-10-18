@@ -21,6 +21,10 @@ extern "C" {
     fn bigIntGetUnsignedBytes(reference: i32, byte_ptr: *mut u8) -> i32;
 }
 
+pub type Handle = i32;
+const BUFFER_SIZE: usize = 32;
+static mut BUFFER_CUSTOM: [u8; BUFFER_SIZE] = [b'u'; BUFFER_SIZE];
+
 unsafe fn clear_buffer_custom() {
     core::ptr::write_bytes(BUFFER_CUSTOM.as_mut_ptr(), 0u8, BUFFER_SIZE);
 }
@@ -41,20 +45,15 @@ unsafe fn unsafe_buffer_load_be_pad_right_custom(bi_handle: Handle, nr_bytes: us
     buffer_ptr_custom()
 }
 
-const BUFFER_SIZE: usize = 32;
-static mut BUFFER_CUSTOM: [u8; BUFFER_SIZE] = [b'u'; BUFFER_SIZE];
-
-pub type Handle = i32;
-
 use common_structs::Nonce;
 
 #[elrond_wasm::module]
 pub trait TokenSendModule {
     fn send_fft_tokens(
         &self,
+        destination: &ManagedAddress,
         token: &TokenIdentifier,
         amount: &BigUint,
-        destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
@@ -77,10 +76,10 @@ pub trait TokenSendModule {
 
     fn send_nft_tokens(
         &self,
+        destination: &ManagedAddress,
         token: &TokenIdentifier,
         nonce: Nonce,
         amount: &BigUint,
-        destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
@@ -104,8 +103,8 @@ pub trait TokenSendModule {
 
     fn send_multiple_tokens(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
         destination: &Address,
+        payments: &[EsdtTokenPayment<Self::Api>],
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
@@ -130,8 +129,8 @@ pub trait TokenSendModule {
 
     fn send_multiple_tokens_compact(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
         destination: &Address,
+        payments: &[EsdtTokenPayment<Self::Api>],
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let mut compact_payments = Vec::<EsdtTokenPayment<Self::Api>>::new();
@@ -149,39 +148,36 @@ pub trait TokenSendModule {
             }
         }
 
-        let len = compact_payments.len();
-        if len == 1 {
-            let payment = &compact_payments[0];
-
-            if payment.token_nonce == 0 {
-                self.send_fft_tokens(
-                    &payment.token_identifier,
-                    &payment.amount,
-                    &ManagedAddress::managed_from(self.type_manager(), destination),
-                    opt_accept_funds_func,
-                )
-            } else {
-                self.send_nft_tokens(
-                    &payment.token_identifier,
-                    payment.token_nonce,
-                    &payment.amount,
-                    &ManagedAddress::managed_from(self.type_manager(), destination),
-                    opt_accept_funds_func,
-                )
+        match compact_payments.len() {
+            1 => {
+                let payment = &compact_payments[0];
+                match payment.token_nonce {
+                    0 => self.send_fft_tokens(
+                        &ManagedAddress::managed_from(self.type_manager(), destination),
+                        &payment.token_identifier,
+                        &payment.amount,
+                        opt_accept_funds_func,
+                    ),
+                    _ => self.send_nft_tokens(
+                        &ManagedAddress::managed_from(self.type_manager(), destination),
+                        &payment.token_identifier,
+                        payment.token_nonce,
+                        &payment.amount,
+                        opt_accept_funds_func,
+                    ),
+                }
             }
-        } else if len > 1 {
-            self.send_multiple_tokens(&compact_payments, destination, opt_accept_funds_func)
-        } else {
-            Ok(())
+            0 => Ok(()),
+            _ => self.send_multiple_tokens(destination, &compact_payments, opt_accept_funds_func),
         }
     }
 
     fn direct_esdt_nft_execute_custom(
         &self,
+        to: &ManagedAddress,
         token: &TokenIdentifier,
         nonce: u64,
         amount: &BigUint,
-        to: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let to_address = to.to_address();

@@ -585,7 +585,7 @@ pub trait Pair:
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         if amount > &0 {
-            self.send_fft_tokens(token, amount, destination, opt_accept_funds_func)?;
+            self.send_fft_tokens(destination, token, amount, opt_accept_funds_func)?;
         }
         Ok(())
     }

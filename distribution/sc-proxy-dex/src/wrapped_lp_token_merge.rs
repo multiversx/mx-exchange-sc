@@ -28,27 +28,28 @@ pub trait WrappedLpTokenMerge:
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        self.merge_wrapped_lp_tokens_and_send(&caller, Option::None, opt_accept_funds_func)?;
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+
+        self.merge_wrapped_lp_tokens_and_send(
+            &caller,
+            &payments,
+            Option::None,
+            opt_accept_funds_func,
+        )?;
         Ok(())
     }
 
     fn merge_wrapped_lp_tokens_and_send(
         &self,
         caller: &ManagedAddress,
+        payments: &[EsdtTokenPayment<Self::Api>],
         replic: Option<WrappedLpToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
-        let mut payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-
-        if replic.is_some() {
-            payments.remove(1);
-            payments.remove(0);
-        }
-
         require!(!payments.is_empty() || replic.is_some(), "Empty payments");
         let payments_len = payments.len();
 
@@ -77,10 +78,10 @@ pub trait WrappedLpTokenMerge:
         let new_nonce = self.increase_wrapped_lp_token_nonce();
 
         self.direct_esdt_nft_execute_custom(
+            caller,
             &wrapped_lp_token_id,
             new_nonce,
             &merged_wrapped_lp_amount,
-            caller,
             &opt_accept_funds_func,
         )?;
 

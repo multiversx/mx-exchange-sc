@@ -47,10 +47,10 @@ pub trait LockedAssetTokenMergeModule:
 
         let new_nonce = self.locked_asset_token_nonce().get();
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &locked_asset_token,
             new_nonce,
             &amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 

@@ -23,10 +23,10 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         );
         let last_created_nonce = self.locked_asset_token_nonce().get();
         self.direct_esdt_nft_execute_custom(
+            address,
             &token_id,
             last_created_nonce,
             amount,
-            address,
             opt_accept_funds_func,
         )?;
         Ok(last_created_nonce)
@@ -42,10 +42,10 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
         self.direct_esdt_nft_execute_custom(
+            address,
             &token_id,
             sft_nonce,
             amount,
-            address,
             opt_accept_funds_func,
         )
     }

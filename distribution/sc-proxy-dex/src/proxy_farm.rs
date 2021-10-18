@@ -130,6 +130,7 @@ pub trait ProxyFarmModule:
                 &farm_token_total_amount,
                 &farm_address,
                 &caller,
+                &payments[1..],
             )?;
 
         let farming_token_amount = GenericTokenAmountPair {
@@ -150,23 +151,18 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(exitFarmProxy)]
-    fn exit_farm_proxy(&self, farm_address: &ManagedAddress) -> SCResult<()> {
+    fn exit_farm_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: BigUint,
+        farm_address: &ManagedAddress,
+    ) -> SCResult<()> {
         self.require_is_intermediated_farm(farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-        require!(payments.len() == 1, "bad payment len");
-
-        let token_id = payments[0].token_identifier.clone();
-        let token_nonce = payments[0].token_nonce;
-        let amount = payments[0].amount.clone();
         require!(amount != 0, "Payment amount cannot be zero");
-
         require!(
             token_id == self.wrapped_farm_token_id().get(),
             "Should only be used with wrapped farm tokens"
@@ -185,10 +181,10 @@ pub trait ProxyFarmModule:
 
         let caller = self.blockchain().get_caller();
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
             &farming_token_returned.amount,
-            &caller,
             &OptionalArg::None,
         )?;
 
@@ -299,6 +295,7 @@ pub trait ProxyFarmModule:
                 &new_farm_token_total_amount,
                 &farm_address,
                 &caller,
+                &payments[1..],
             )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
@@ -386,6 +383,7 @@ pub trait ProxyFarmModule:
                 &new_farm_token_amount,
                 &farm_address,
                 &caller,
+                &payments[1..],
             )?;
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
@@ -412,11 +410,13 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
         farm_address: &ManagedAddress,
         caller: &ManagedAddress,
+        additional_payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
             caller,
             farm_address,
+            additional_payments,
             Option::Some(WrappedFarmToken {
                 token_amount: GenericTokenAmountPair {
                     token_id: wrapped_farm_token_id,
@@ -470,16 +470,13 @@ pub trait ProxyFarmModule:
         farm_token_nonce: Nonce,
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
-        let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
-            farm_token_id.clone(),
-            farm_token_nonce,
-            amount.clone(),
-        ));
-
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
-            .with_multi_token_transfer(payments)
+            .exit_farm(
+                farm_token_id.clone(),
+                farm_token_nonce,
+                amount.clone(),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+            )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
 

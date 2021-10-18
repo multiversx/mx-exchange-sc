@@ -40,10 +40,10 @@ pub trait FarmTokenMergeModule:
         let new_amount = attrs.current_farm_amount;
         let new_nonce = self.farm_token_nonce().get();
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &farm_token_id,
             new_nonce,
             &new_amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 

@@ -161,13 +161,17 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
-        let (new_farm_token, created_with_merge) =
-            self.create_farm_tokens_by_merging(&farm_contribution, &farm_token_id, &attributes)?;
+        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+            &farm_contribution,
+            &farm_token_id,
+            &attributes,
+            &payments[1..],
+        )?;
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -205,20 +209,12 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm(
         &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
-
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-        require!(payments.len() == 1, "bad payment len");
-
-        let payment_token_id = payments[0].token_identifier.clone();
-        let amount = payments[0].amount.clone();
-        let token_nonce = payments[0].token_nonce;
 
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
@@ -366,13 +362,17 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
         let farm_amount = amount.clone();
-        let (new_farm_token, created_with_merge) =
-            self.create_farm_tokens_by_merging(&farm_amount, &farm_token_id, &new_attributes)?;
+        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+            &farm_amount,
+            &farm_token_id,
+            &new_attributes,
+            &payments[1..],
+        )?;
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -495,12 +495,13 @@ pub trait Farm:
             &new_farm_contribution,
             &farm_token_id,
             &new_attributes,
+            &payments[1..],
         )?;
         self.direct_esdt_nft_execute_custom(
+            &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -587,6 +588,7 @@ pub trait Farm:
         amount: &BigUint,
         token_id: &TokenIdentifier,
         attributes: &FarmTokenAttributes<Self::Api>,
+        additional_payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
             token_amount: GenericTokenAmountPair {
@@ -596,13 +598,6 @@ pub trait Farm:
             },
             attributes: attributes.clone(),
         };
-
-        let mut additional_payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-        additional_payments.remove(0);
 
         let additional_payments_len = additional_payments.len();
         let merged_attributes = self.get_merged_farm_token_attributes(
@@ -637,9 +632,9 @@ pub trait Farm:
     ) -> SCResult<()> {
         self.decrease_farming_token_reserve(farming_amount)?;
         self.send_fft_tokens(
+            destination,
             farming_token_id,
             farming_amount,
-            destination,
             opt_accept_funds_func,
         )?;
         Ok(())
@@ -673,9 +668,9 @@ pub trait Farm:
                 *reward_amount = result.amount;
             } else {
                 self.send_fft_tokens(
+                    destination,
                     reward_token_id,
                     reward_amount,
-                    destination,
                     opt_accept_funds_func,
                 )?;
             }

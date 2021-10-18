@@ -46,10 +46,16 @@ pub trait WrappedFarmTokenMerge:
             self.intermediated_farms().contains(&farm_contract),
             "Invalid farm contract address"
         );
+        let payments = self
+            .raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
 
         self.merge_wrapped_farm_tokens_and_send(
             &caller,
             &farm_contract,
+            &payments,
             Option::None,
             opt_accept_funds_func,
         )?;
@@ -60,19 +66,10 @@ pub trait WrappedFarmTokenMerge:
         &self,
         caller: &ManagedAddress,
         farm_contract: &ManagedAddress,
+        payments: &[EsdtTokenPayment<Self::Api>],
         replic: Option<WrappedFarmToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
-        let mut payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
-
-        if replic.is_some() {
-            payments.remove(0);
-        }
-
         require!(!payments.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = payments.len();
 
@@ -107,10 +104,10 @@ pub trait WrappedFarmTokenMerge:
         let new_nonce = self.increase_wrapped_farm_token_nonce();
 
         self.direct_esdt_nft_execute_custom(
+            caller,
             &wrapped_farm_token_id,
             new_nonce,
             &merged_farm_token_amount.amount,
-            caller,
             &opt_accept_funds_func,
         )?;
 
