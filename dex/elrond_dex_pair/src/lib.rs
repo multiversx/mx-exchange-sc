@@ -91,7 +91,7 @@ pub trait Pair:
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<AddLiquidityResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(
@@ -212,7 +212,7 @@ pub trait Pair:
         #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -391,7 +391,7 @@ pub trait Pair:
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Invalid amount_in");
@@ -489,7 +489,7 @@ pub trait Pair:
         #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
         amount_out: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<SwapTokensFixedOutputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
@@ -582,7 +582,7 @@ pub trait Pair:
         token: &TokenIdentifier,
         amount: &BigUint,
         destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         if amount > &0 {
             self.send_fft_tokens(token, amount, destination, opt_accept_funds_func)?;

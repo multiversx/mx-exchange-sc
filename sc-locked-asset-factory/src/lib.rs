@@ -112,7 +112,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -241,7 +241,7 @@ pub trait LockedAssetFactory:
         amount: &BigUint,
         attributes: &LockedAssetTokenAttributes,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {

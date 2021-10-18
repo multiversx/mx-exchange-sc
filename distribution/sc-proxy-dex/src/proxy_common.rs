@@ -7,7 +7,7 @@ use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule {
+pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn require_permissions(&self) -> SCResult<()> {
         only_owner!(self, "Permission denied");
         Ok(())
@@ -23,9 +23,11 @@ pub trait ProxyCommonModule {
         token_id: &TokenIdentifier,
         nonce: Nonce,
         amount: &BigUint,
-    ) {
+    ) -> SCResult<()> {
         if amount > &0 {
-            self.send().direct(to, token_id, nonce, amount, &[]);
+            self.direct_esdt_nft_execute_custom(token_id, nonce, amount, to, &OptionalArg::None)
+        } else {
+            Ok(())
         }
     }
 

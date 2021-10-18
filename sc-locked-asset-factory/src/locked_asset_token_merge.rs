@@ -26,7 +26,7 @@ pub trait LockedAssetTokenMergeModule:
     #[endpoint(mergeLockedAssetTokens)]
     fn merge_locked_asset_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let caller = self.blockchain().get_caller();
         let payments = self
@@ -46,7 +46,7 @@ pub trait LockedAssetTokenMergeModule:
         self.increase_nonce();
 
         let new_nonce = self.locked_asset_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
             &locked_asset_token,
             new_nonce,
             &amount,

@@ -25,7 +25,7 @@ pub trait WrappedLpTokenMerge:
     #[endpoint(mergeWrappedLpTokens)]
     fn merge_wrapped_lp_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         self.merge_wrapped_lp_tokens_and_send(&caller, Option::None, opt_accept_funds_func)?;
@@ -36,7 +36,7 @@ pub trait WrappedLpTokenMerge:
         &self,
         caller: &ManagedAddress,
         replic: Option<WrappedLpToken<Self::Api>>,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         let mut payments = self
             .raw_vm_api()
@@ -76,7 +76,7 @@ pub trait WrappedLpTokenMerge:
         self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();
 
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
             &wrapped_lp_token_id,
             new_nonce,
             &merged_wrapped_lp_amount,
@@ -200,9 +200,7 @@ pub trait WrappedLpTokenMerge:
 
         Ok(self
             .locked_asset_factory(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(
-                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
-            ))
+            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }

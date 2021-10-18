@@ -238,13 +238,13 @@ pub trait ProxyPairModule:
             .direct(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.send().direct(
-            &caller,
+        self.direct_esdt_nft_execute_custom(
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
-            &[],
-        );
+            &caller,
+            &OptionalArg::None,
+        )?;
 
         //Do cleanup
         if assets_received > locked_assets_invested {
@@ -319,7 +319,7 @@ pub trait ProxyPairModule:
             .add_liquidity(
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .with_multi_token_transfer(all_token_payments)
             .execute_on_dest_context()
@@ -339,7 +339,7 @@ pub trait ProxyPairModule:
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .execute_on_dest_context()
     }

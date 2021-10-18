@@ -21,7 +21,7 @@ pub trait FarmTokenMergeModule:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let caller = self.blockchain().get_caller();
         let payments = self
@@ -39,7 +39,7 @@ pub trait FarmTokenMergeModule:
 
         let new_amount = attrs.current_farm_amount;
         let new_nonce = self.farm_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
             &farm_token_id,
             new_nonce,
             &new_amount,

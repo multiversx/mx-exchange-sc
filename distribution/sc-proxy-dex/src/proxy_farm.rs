@@ -184,20 +184,20 @@ pub trait ProxyFarmModule:
         let reward_token_returned = farm_result.1;
 
         let caller = self.blockchain().get_caller();
-        self.send().direct(
-            &caller,
+        self.direct_esdt_nft_execute_custom(
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
             &farming_token_returned.amount,
-            &[],
-        );
+            &caller,
+            &OptionalArg::None,
+        )?;
 
         self.direct_generic_safe(
             &caller,
             &reward_token_returned.token_id,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-        );
+        )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
         if farming_token_returned.token_id == self.asset_token_id().get() {
@@ -278,7 +278,7 @@ pub trait ProxyFarmModule:
             &reward_token_returned.token_id,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-        );
+        )?;
 
         // Create new Wrapped tokens and send them.
         let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
@@ -450,16 +450,14 @@ pub trait ProxyFarmModule:
 
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm_and_lock_rewards(OptionalArg::Some(
-                    self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
-                ))
+                .enter_farm_and_lock_rewards(OptionalArg::Some(BoxedBytes::from(
+                    ACCEPT_PAY_FUNC_NAME,
+                )))
                 .with_multi_token_transfer(payments)
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         } else {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm(OptionalArg::Some(
-                    self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
-                ))
+                .enter_farm(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
                 .with_multi_token_transfer(payments)
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         }
@@ -480,9 +478,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm(OptionalArg::Some(
-                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
-            ))
+            .exit_farm(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -502,9 +498,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards(OptionalArg::Some(
-                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
-            ))
+            .claim_rewards(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -524,9 +518,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards(OptionalArg::Some(
-                self.types().managed_buffer_from(ACCEPT_PAY_FUNC_NAME),
-            ))
+            .compound_rewards(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }

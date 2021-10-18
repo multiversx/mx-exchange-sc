@@ -37,52 +37,6 @@
         },
         {
             "step": "scCall",
-            "txId": "4",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "depositTokens",
-                "esdt": {
-                    "tokenIdentifier": "str:WFARM-abcdef",
-                    "value": "1,000",
-                    "nonce": "1"
-                },
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "4",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "depositTokens",
-                "esdt": {
-                    "tokenIdentifier": "str:WFARM-abcdef",
-                    "value": "100",
-                    "nonce": "2"
-                },
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
             "txId": "41",
             "tx": {
                 "from": "address:user_with_wegld1",
@@ -91,6 +45,18 @@
                 "function": "mergeWrappedFarmTokens",
                 "arguments": [
                     "sc:farm_contract"
+                ],
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:WFARM-abcdef",
+                        "value": "1,000",
+                        "nonce": "1"
+                    },
+                    {
+                        "tokenIdentifier": "str:WFARM-abcdef",
+                        "value": "100",
+                        "nonce": "2"
+                    }
                 ],
                 "gasLimit": "1,000,000,000",
                 "gasPrice": "0"
@@ -113,7 +79,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "10",
+                    "nonce": "*",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:LKMEX-abcdef": {
