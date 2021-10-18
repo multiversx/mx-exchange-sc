@@ -81,11 +81,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 1, "bad payment len");
 
         let token_id = payments[0].token_identifier.clone();
@@ -231,11 +227,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 1, "bad payment len");
 
         let token_id = payments[0].token_identifier.clone();
@@ -324,11 +316,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 1, "bad payment len");
 
         let payment_token_id = payments[0].token_identifier.clone();

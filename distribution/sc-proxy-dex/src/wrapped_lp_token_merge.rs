@@ -28,11 +28,7 @@ pub trait WrappedLpTokenMerge:
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
 
         self.merge_wrapped_lp_tokens_and_send(
             &caller,

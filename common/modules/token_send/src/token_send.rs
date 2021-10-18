@@ -155,24 +155,6 @@ pub trait TokenSendModule {
         }
 
         match compact_payments.len() {
-            1 => {
-                let payment = &compact_payments[0];
-                match payment.token_nonce {
-                    0 => self.send_fft_tokens(
-                        &ManagedAddress::managed_from(self.type_manager(), destination),
-                        &payment.token_identifier,
-                        &payment.amount,
-                        opt_accept_funds_func,
-                    ),
-                    _ => self.send_nft_tokens(
-                        &ManagedAddress::managed_from(self.type_manager(), destination),
-                        &payment.token_identifier,
-                        payment.token_nonce,
-                        &payment.amount,
-                        opt_accept_funds_func,
-                    ),
-                }
-            }
             0 => Ok(()),
             _ => self.send_multiple_tokens(destination, &compact_payments, opt_accept_funds_func),
         }
@@ -220,6 +202,13 @@ pub trait TokenSendModule {
             require!(result == 0, "bad result");
             Ok(())
         }
+    }
+
+    fn get_all_payments(&self) -> Vec<EsdtTokenPayment<Self::Api>> {
+        self.raw_vm_api()
+            .get_all_esdt_transfers()
+            .into_iter()
+            .collect()
     }
 
     #[view(getTransferExecGasLimit)]

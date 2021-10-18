@@ -126,11 +126,7 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 1, "empty payments");
 
         let token_in = payments[0].token_identifier.clone();
@@ -309,11 +305,7 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 1, "bad payment len");
 
         let payment_token_id = payments[0].token_identifier.clone();
@@ -421,11 +413,7 @@ pub trait Farm:
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 1, "bad payment len");
 
         let payment_token_id = payments[0].token_identifier.clone();

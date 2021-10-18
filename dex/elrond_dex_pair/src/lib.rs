@@ -99,11 +99,7 @@ pub trait Pair:
             "LP token not issued"
         );
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() == 2, "bad payments len");
 
         let expected_first_token_id = self.first_token_id().get();

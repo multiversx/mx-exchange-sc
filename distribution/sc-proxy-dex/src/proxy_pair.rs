@@ -67,11 +67,7 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address)?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self
-            .raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect::<Vec<EsdtTokenPayment<Self::Api>>>();
+        let payments = self.get_all_payments();
         require!(payments.len() >= 2, "bad payment len");
 
         let first_token_id = payments[0].token_identifier.clone();
