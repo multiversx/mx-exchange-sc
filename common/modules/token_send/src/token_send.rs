@@ -64,14 +64,16 @@ pub trait TokenSendModule {
             OptionalArg::None => (BoxedBytes::empty(), 0u64),
         };
 
-        SCResult::from_result(self.raw_vm_api().direct_esdt_execute(
-            destination,
-            token,
-            amount,
-            gas_limit,
-            &ManagedBuffer::managed_from(self.type_manager(), function),
-            &ManagedArgBuffer::new_empty(self.type_manager()),
-        ))
+        self.raw_vm_api()
+            .direct_esdt_execute(
+                destination,
+                token,
+                amount,
+                gas_limit,
+                &ManagedBuffer::managed_from(self.type_manager(), function),
+                &ManagedArgBuffer::new_empty(self.type_manager()),
+            )
+            .into()
     }
 
     fn send_nft_tokens(
@@ -90,15 +92,17 @@ pub trait TokenSendModule {
             OptionalArg::None => (BoxedBytes::empty(), 0u64),
         };
 
-        SCResult::from_result(self.raw_vm_api().direct_esdt_nft_execute(
-            destination,
-            token,
-            nonce,
-            amount,
-            gas_limit,
-            &ManagedBuffer::managed_from(self.type_manager(), function),
-            &ManagedArgBuffer::new_empty(self.type_manager()),
-        ))
+        self.raw_vm_api()
+            .direct_esdt_nft_execute(
+                destination,
+                token,
+                nonce,
+                amount,
+                gas_limit,
+                &ManagedBuffer::managed_from(self.type_manager(), function),
+                &ManagedArgBuffer::new_empty(self.type_manager()),
+            )
+            .into()
     }
 
     fn send_multiple_tokens(
@@ -118,13 +122,15 @@ pub trait TokenSendModule {
             }
         };
 
-        SCResult::from_result(self.raw_vm_api().direct_multi_esdt_transfer_execute(
-            &ManagedAddress::managed_from(self.type_manager(), destination),
-            &ManagedVec::managed_from(self.type_manager(), payments.to_vec()),
-            gas_limit,
-            &ManagedBuffer::managed_from(self.type_manager(), function),
-            &ManagedArgBuffer::new_empty(self.type_manager()),
-        ))
+        self.raw_vm_api()
+            .direct_multi_esdt_transfer_execute(
+                &ManagedAddress::managed_from(self.type_manager(), destination),
+                &ManagedVec::managed_from(self.type_manager(), payments.to_vec()),
+                gas_limit,
+                &ManagedBuffer::managed_from(self.type_manager(), function),
+                &ManagedArgBuffer::new_empty(self.type_manager()),
+            )
+            .into()
     }
 
     fn send_multiple_tokens_compact(
