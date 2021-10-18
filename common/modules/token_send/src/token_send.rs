@@ -162,7 +162,7 @@ pub trait TokenSendModule {
             if result == 0 {
                 Ok(()).into()
             } else {
-                core::result::Result::Err(&b"multiTransferESDTNFTExecute failed"[..]).into()
+                sc_error!("multiTransferESDTNFTExecute failed")
             }
         }
     }
