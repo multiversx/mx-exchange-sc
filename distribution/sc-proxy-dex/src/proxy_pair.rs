@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::comparison_chain)]
+#![allow(clippy::vec_init_then_push)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();

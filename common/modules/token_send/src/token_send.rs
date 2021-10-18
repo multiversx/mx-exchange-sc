@@ -158,7 +158,7 @@ pub trait TokenSendModule {
                     &payment.token_identifier,
                     &payment.amount,
                     &ManagedAddress::managed_from(self.type_manager(), destination),
-                    &opt_accept_funds_func,
+                    opt_accept_funds_func,
                 )
             } else {
                 self.send_nft_tokens(
@@ -166,7 +166,7 @@ pub trait TokenSendModule {
                     payment.token_nonce,
                     &payment.amount,
                     &ManagedAddress::managed_from(self.type_manager(), destination),
-                    &opt_accept_funds_func,
+                    opt_accept_funds_func,
                 )
             }
         } else if len > 1 {

@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::type_complexity)]
 
 use common_structs::{UnlockMilestone, UnlockPeriod};
 
