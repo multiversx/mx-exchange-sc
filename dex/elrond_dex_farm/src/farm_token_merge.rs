@@ -11,35 +11,35 @@ use super::farm_token;
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
-    nft_deposit::NftDepositModule
-    + token_send::TokenSendModule
+    token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + token_supply::TokenSupplyModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
+    #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let deposit = self.nft_deposit(&caller).get();
+        let payments = self.get_all_payments();
 
-        let attrs = self.get_merged_farm_token_attributes(&deposit, Option::None)?;
+        let attrs = self.get_merged_farm_token_attributes(&payments, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
-        self.burn_deposit_tokens(&caller, &deposit);
+        self.burn_farm_tokens_from_payments(&payments)?;
 
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
 
         let new_amount = attrs.current_farm_amount;
         let new_nonce = self.farm_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
+            &caller,
             &farm_token_id,
             new_nonce,
             &new_amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -52,23 +52,28 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        deposit: &[GenericTokenAmountPair<Self::Api>],
+        payments: &[EsdtTokenPayment<Self::Api>],
         replic: Option<FarmToken<Self::Api>>,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         require!(
-            !deposit.is_empty() || replic.is_some(),
+            !payments.is_empty() || replic.is_some(),
             "No tokens to merge"
         );
 
         let mut tokens = Vec::new();
         let farm_token_id = self.farm_token_id().get();
 
-        for entry in deposit.iter() {
-            require!(entry.token_id == farm_token_id, "Not a farm token");
+        for entry in payments {
+            require!(entry.amount != 0, "zero entry amount");
+            require!(entry.token_identifier == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
-                token_amount: entry.clone(),
-                attributes: self.get_farm_attributes(&entry.token_id, entry.token_nonce)?,
+                token_amount: GenericTokenAmountPair {
+                    token_id: entry.token_identifier.clone(),
+                    token_nonce: entry.token_nonce,
+                    amount: entry.amount.clone(),
+                },
+                attributes: self.get_farm_attributes(&entry.token_identifier, entry.token_nonce)?,
             });
         }
 

@@ -1,9 +1,4 @@
 #[test]
-fn accept_esdt_payment_proxy_go() {
-    elrond_wasm_debug::mandos_go("mandos/accept_esdt_payment_proxy.scen.json");
-}
-
-#[test]
 fn add_liquidity_proxy_go() {
     elrond_wasm_debug::mandos_go("mandos/add_liquidity_proxy.scen.json");
 }
@@ -117,11 +112,6 @@ fn merge_locked_mex_tokens_go() {
 #[test]
 fn multiple_claim_assets_go() {
     elrond_wasm_debug::mandos_go("mandos/multiple_claim_assets.scen.json");
-}
-
-#[test]
-fn reclaim_temporary_funds_proxy_go() {
-    elrond_wasm_debug::mandos_go("mandos/reclaim_temporary_funds_proxy.scen.json");
 }
 
 #[test]

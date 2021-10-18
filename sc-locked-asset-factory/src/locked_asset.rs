@@ -13,7 +13,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         additional_amount_to_create: &BigUint,
         address: &ManagedAddress,
         attributes: &LockedAssetTokenAttributes,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(
@@ -22,11 +22,11 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
             attributes,
         );
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
+            address,
             &token_id,
             last_created_nonce,
             amount,
-            address,
             opt_accept_funds_func,
         )?;
         Ok(last_created_nonce)
@@ -37,11 +37,17 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         amount: &BigUint,
         sft_nonce: Nonce,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
-        self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func)
+        self.direct_esdt_nft_execute_custom(
+            address,
+            &token_id,
+            sft_nonce,
+            amount,
+            opt_accept_funds_func,
+        )
     }
 
     fn create_tokens(

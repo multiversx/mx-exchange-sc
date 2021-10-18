@@ -64,7 +64,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user1": {
-					"nonce": "1",
+					"nonce": "*",
 					"balance": "1,000,000,000,000,000,000,000,000,000,000",
 					"esdt": {
 						"str:WEGLD-abcdef": "4,900,000,000",
@@ -84,7 +84,7 @@
 					}
 				},
 				"sc:egld_farm_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": "100,000,000",

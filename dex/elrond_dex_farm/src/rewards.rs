@@ -12,7 +12,6 @@ pub trait RewardsModule:
     config::ConfigModule
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
-    + nft_deposit::NftDepositModule
     + farm_token::FarmTokenModule
 {
     fn calculate_per_block_rewards(

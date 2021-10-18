@@ -11,61 +11,23 @@
 		},
 		{
 			"step": "scCall",
-			"txId": "acceptEsdtPayment",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"esdt": {
-					"tokenIdentifier": "str:ALC-abcdef",
-					"value": "2,000,000,000"
-				},
-				"function": "acceptEsdtPayment",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "acceptEsdtPayment",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"esdt": {
-					"tokenIdentifier": "str:WEGLD-abcdef",
-					"value": "2,000,000,000"
-				},
-				"function": "acceptEsdtPayment",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
 			"txId": "add-liquidity",
 			"tx": {
 				"from": "address:user1",
 				"to": "sc:pair_contract",
 				"value": "0",
 				"function": "addLiquidity",
+				"esdt": [
+					{
+						"tokenIdentifier": "str:WEGLD-abcdef",
+						"value": "2,000,000,000"
+					},
+					{
+						"tokenIdentifier": "str:ALC-abcdef",
+						"value": "2,000,000,000"
+					}
+				],
 				"arguments": [
-					"2,000,000,000",
-					"2,000,000,000",
 					"1,000,000,000",
 					"1,000,000,000"
 				],
@@ -85,34 +47,10 @@
 			}
 		},
 		{
-			"step": "scCall",
-			"txId": "getTemporaryFunds",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"function": "getTemporaryFunds",
-				"arguments": [
-					"address:user1",
-					"str:WEGLD-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0"
-				],
-				"status": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
 			"step": "checkState",
 			"accounts": {
 				"sc:farm_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": "0",

@@ -20,32 +20,33 @@ pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
     + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
-    + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
 {
+    #[payable("*")]
     #[endpoint(mergeLockedAssetTokens)]
     fn merge_locked_asset_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let deposit = self.nft_deposit(&caller).get();
-        require!(!deposit.is_empty(), "Empty deposit");
+        let payments = self.get_all_payments();
+        require!(!payments.is_empty(), "Empty payment vec");
 
-        let (amount, attrs) = self.get_merged_locked_asset_token_amount_and_attributes(&deposit)?;
+        let (amount, attrs) =
+            self.get_merged_locked_asset_token_amount_and_attributes(&payments)?;
         let locked_asset_token = self.locked_asset_token_id().get();
 
-        self.burn_deposit_tokens(&caller, &deposit);
+        self.burn_tokens_from_payments(&payments);
 
         self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
         self.increase_nonce();
 
         let new_nonce = self.locked_asset_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
+            &caller,
             &locked_asset_token,
             new_nonce,
             &amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -56,22 +57,36 @@ pub trait LockedAssetTokenMergeModule:
         })
     }
 
+    fn burn_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
+        for entry in payments {
+            self.send()
+                .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
+        }
+    }
+
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        deposit: &[GenericTokenAmountPair<Self::Api>],
+        payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(BigUint, LockedAssetTokenAttributes)> {
-        require!(!deposit.is_empty(), "Cannot merge with 0 tokens");
+        require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
         let mut tokens = Vec::new();
         let mut sum_amount = self.types().big_uint_zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
-        for entry in deposit.iter() {
-            require!(entry.token_id == locked_asset_token_id, "Bad token id");
+        for entry in payments.iter() {
+            require!(
+                entry.token_identifier == locked_asset_token_id,
+                "Bad token id"
+            );
 
             tokens.push(LockedToken {
-                token_amount: entry.clone(),
-                attributes: self.get_attributes(&entry.token_id, entry.token_nonce)?,
+                token_amount: GenericTokenAmountPair {
+                    token_id: entry.token_identifier.clone(),
+                    token_nonce: entry.token_nonce,
+                    amount: entry.amount.clone(),
+                },
+                attributes: self.get_attributes(&entry.token_identifier, entry.token_nonce)?,
             });
             sum_amount += &entry.amount;
         }

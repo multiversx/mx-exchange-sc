@@ -18,5 +18,4 @@ members = [
 
   "sc-locked-asset-factory",
   "sc-locked-asset-factory/abi",
-
 ]

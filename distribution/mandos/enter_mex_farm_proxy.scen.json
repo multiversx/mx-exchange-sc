@@ -64,7 +64,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "2",
+                    "nonce": "*",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:WEGLD-abcdef": "1,000,000,000",

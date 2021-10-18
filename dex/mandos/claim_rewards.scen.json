@@ -38,7 +38,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user1": {
-					"nonce": "9",
+					"nonce": "*",
 					"balance": "1,000,000,000,000,000,000,000,000,000,000",
 					"esdt": {
 						"str:WEGLD-abcdef": "3000000000",

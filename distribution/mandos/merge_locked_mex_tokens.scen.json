@@ -12,57 +12,19 @@
                 "from": "address:user1",
                 "to": "sc:locked_asset_factory",
                 "value": "0",
-                "function": "depositTokens",
-                "esdt": {
-                    "tokenIdentifier": "str:LKMEX-abcdef",
-                    "value": "100",
-                    "nonce": "1"
-                },
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "deposit2",
-            "tx": {
-                "from": "address:user1",
-                "to": "sc:locked_asset_factory",
-                "value": "0",
-                "function": "depositTokens",
-                "esdt": {
-                    "tokenIdentifier": "str:LKMEX-abcdef",
-                    "value": "100",
-                    "nonce": "2"
-                },
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "deposit2",
-            "tx": {
-                "from": "address:user1",
-                "to": "sc:locked_asset_factory",
-                "value": "0",
                 "function": "mergeLockedAssetTokens",
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "value": "100",
+                        "nonce": "1"
+                    },
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "value": "100",
+                        "nonce": "2"
+                    }
+                ],
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
@@ -82,7 +44,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user1": {
-                    "nonce": "7",
+                    "nonce": "*",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:LKMEX-abcdef": {

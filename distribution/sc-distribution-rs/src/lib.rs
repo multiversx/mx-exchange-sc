@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::type_complexity)]
 
 use common_structs::{UnlockMilestone, UnlockPeriod};
 
@@ -234,29 +235,31 @@ pub trait Distribution: global_op::GlobalOperationModule {
         spread_epoch: u64,
         user_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
-        let last_community_distrib = self.community_distribution_list().front().unwrap();
+        let mut last_community_distrib = self
+            .community_distribution_list()
+            .front()
+            .unwrap()
+            .get_value_cloned();
         require!(
-            spread_epoch == last_community_distrib.get_value_as_ref().spread_epoch,
+            spread_epoch == last_community_distrib.spread_epoch,
             "Bad spread epoch"
         );
+
         for user_asset_multiarg in user_assets.into_vec() {
             let (caller, asset_amount) = user_asset_multiarg.into_tuple();
             require!(asset_amount > 0, "Zero amount");
             require!(
-                last_community_distrib
-                    .get_value_as_ref()
-                    .after_planning_amount
-                    >= asset_amount,
+                last_community_distrib.after_planning_amount >= asset_amount,
                 "User assets sums above community total assets"
             );
-            last_community_distrib
-                .get_value_cloned()
-                .after_planning_amount -= asset_amount.clone();
+            last_community_distrib.after_planning_amount -= &asset_amount;
             self.add_user_locked_asset_entry(caller, asset_amount, spread_epoch)?;
         }
+
         self.community_distribution_list().pop_front();
         self.community_distribution_list()
-            .push_front(last_community_distrib.get_value_cloned());
+            .push_front(last_community_distrib);
+
         Ok(())
     }
 

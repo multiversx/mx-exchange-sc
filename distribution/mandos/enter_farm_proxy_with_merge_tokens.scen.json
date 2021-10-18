@@ -7,40 +7,24 @@
         },
         {
             "step": "scCall",
-            "txId": "4",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "depositTokens",
-                "esdt": {
-                    "tokenIdentifier": "str:WFARM-abcdef",
-                    "value": "1,000",
-                    "nonce": "1"
-                },
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
             "txId": "14",
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
                 "value": "0",
                 "function": "enterFarmProxy",
-                "esdt": {
-                    "tokenIdentifier": "str:WLPTOK-abcdef",
-                    "nonce": "0x01",
-                    "value": "500"
-                },
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:WLPTOK-abcdef",
+                        "nonce": "0x01",
+                        "value": "500"
+                    },
+                    {
+                        "tokenIdentifier": "str:WFARM-abcdef",
+                        "value": "1,000",
+                        "nonce": "1"
+                    }
+                ],
                 "arguments": [
                     "sc:farm_contract"
                 ],
@@ -67,7 +51,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "8",
+                    "nonce": "*",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:LKMEX-abcdef": {
