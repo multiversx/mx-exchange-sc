@@ -19,7 +19,7 @@ pub trait RewardsModule:
         current_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
     ) -> BigUint {
-        let big_zero = self.types().big_uint_zero();
+        let big_zero = BigUint::zero();
 
         if current_block_nonce <= last_reward_block_nonce {
             return big_zero;
@@ -47,13 +47,13 @@ pub trait RewardsModule:
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint
         } else {
-            self.types().big_uint_zero()
+            BigUint::zero()
         }
     }
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
         let reward_minted = self.mint_per_block_rewards(reward_token_id);
-        self.increase_current_block_fee_storage(&self.types().big_uint_zero());
+        self.increase_current_block_fee_storage(&BigUint::zero());
         let fees = self.undistributed_fee_storage().get();
         self.undistributed_fee_storage().clear();
         let total_reward = reward_minted + fees;
@@ -103,7 +103,7 @@ pub trait RewardsModule:
             let reward_per_share_diff = current_reward_per_share - initial_reward_per_share;
             amount * &reward_per_share_diff / self.division_safety_constant().get()
         } else {
-            self.types().big_uint_zero()
+            BigUint::zero()
         }
     }
 
@@ -120,7 +120,7 @@ pub trait RewardsModule:
 
         let (known_block_nonce, fee_amount) = match current_block_fee_storage {
             Some(value) => (value.0, value.1),
-            None => (0, self.types().big_uint_zero()),
+            None => (0, BigUint::zero()),
         };
 
         if known_block_nonce == current_block {

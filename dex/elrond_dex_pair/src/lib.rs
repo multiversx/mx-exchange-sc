@@ -425,7 +425,7 @@ pub trait Pair:
 
         let caller = self.blockchain().get_caller();
 
-        let mut fee_amount = self.types().big_uint_zero();
+        let mut fee_amount = BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
         if self.is_fee_enabled() {
             fee_amount = self.get_special_fee_from_input(&amount_in);
@@ -520,7 +520,7 @@ pub trait Pair:
         let caller = self.blockchain().get_caller();
         let residuum = &amount_in_max - &amount_in_optimal;
 
-        let mut fee_amount = self.types().big_uint_zero();
+        let mut fee_amount = BigUint::zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
         if self.is_fee_enabled() {
             fee_amount = self.get_special_fee_from_input(&amount_in_optimal);
@@ -708,7 +708,7 @@ pub trait Pair:
     #[view(getEquivalent)]
     fn get_equivalent(&self, token_in: TokenIdentifier, amount_in: BigUint) -> SCResult<BigUint> {
         require!(amount_in > 0, "Zero input");
-        let zero = self.types().big_uint_zero();
+        let zero = BigUint::zero();
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();

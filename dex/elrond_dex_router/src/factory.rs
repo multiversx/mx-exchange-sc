@@ -20,9 +20,8 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 #[elrond_wasm::module]
 pub trait FactoryModule {
     fn init_factory(&self, pair_template_address_opt: Option<ManagedAddress>) {
-        if pair_template_address_opt.is_some() {
-            self.pair_template_address()
-                .set(&pair_template_address_opt.unwrap());
+        if let Some(addr) = pair_template_address_opt {
+            self.pair_template_address().set(&addr);
         }
 
         self.temporary_owner_period()
@@ -52,7 +51,7 @@ pub trait FactoryModule {
 
         let (new_address, _) = self.raw_vm_api().deploy_from_source_contract(
             self.blockchain().get_gas_left(),
-            &self.types().big_uint_zero(),
+            &BigUint::zero(),
             &self.pair_template_address().get(),
             CodeMetadata::UPGRADEABLE,
             &arg_buffer,
@@ -95,7 +94,7 @@ pub trait FactoryModule {
         self.raw_vm_api().upgrade_from_source_contract(
             pair_address,
             self.blockchain().get_gas_left(),
-            &self.types().big_uint_zero(),
+            &BigUint::zero(),
             &self.pair_template_address().get(),
             CodeMetadata::UPGRADEABLE,
             &arg_buffer,
@@ -149,24 +148,22 @@ pub trait FactoryModule {
 
     #[only_owner]
     #[endpoint(clearPairTemporaryOwnerStorage)]
-    fn clear_pair_temporary_owner_storage(&self) -> SCResult<usize> {
+    fn clear_pair_temporary_owner_storage(&self) -> usize {
         let size = self.pair_temporary_owner().len();
         self.pair_temporary_owner().clear();
-        Ok(size)
+        size
     }
 
     #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
-    fn set_temporary_owner_period(&self, period_blocks: u64) -> SCResult<()> {
+    fn set_temporary_owner_period(&self, period_blocks: u64) {
         self.temporary_owner_period().set(&period_blocks);
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(setPairTemplateAddress)]
-    fn set_pair_template_address(&self, address: ManagedAddress) -> SCResult<()> {
+    fn set_pair_template_address(&self, address: ManagedAddress) {
         self.pair_template_address().set(&address);
-        Ok(())
     }
 
     #[view(getPairTemplateAddress)]

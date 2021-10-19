@@ -399,9 +399,8 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
     #[only_owner]
     #[endpoint(setPairCreationEnabled)]
-    fn set_pair_creation_enabled(&self, enabled: bool) -> SCResult<()> {
+    fn set_pair_creation_enabled(&self, enabled: bool) {
         self.pair_creation_enabled().set(&enabled);
-        Ok(())
     }
 
     #[view(getPairCreationEnabled)]

@@ -44,9 +44,8 @@ pub trait ProxyFarmModule:
 
     #[only_owner]
     #[endpoint(addFarmToIntermediate)]
-    fn add_farm_to_intermediate(&self, farm_address: ManagedAddress) -> SCResult<()> {
+    fn add_farm_to_intermediate(&self, farm_address: ManagedAddress) {
         self.intermediated_farms().insert(farm_address);
-        Ok(())
     }
 
     #[only_owner]

@@ -167,7 +167,7 @@ pub trait LockedAssetFactory:
         let mut output_locked_assets_token_amount = GenericTokenAmountPair {
             token_id: token_id.clone(),
             token_nonce: 0,
-            amount: self.types().big_uint_zero(),
+            amount: BigUint::zero(),
         };
         let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
             unlock_schedule: UnlockSchedule {
@@ -258,7 +258,7 @@ pub trait LockedAssetFactory:
                 let additional_amount_to_create = if do_cache_result {
                     self.types().big_uint_from(ADDITIONAL_AMOUNT_TO_CREATE)
                 } else {
-                    self.types().big_uint_zero()
+                    BigUint::zero()
                 };
 
                 let new_nonce = self.create_and_send_locked_assets(

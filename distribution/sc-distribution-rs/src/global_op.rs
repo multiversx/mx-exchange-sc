@@ -3,6 +3,8 @@ elrond_wasm::derive_imports!();
 
 #[elrond_wasm::module]
 pub trait GlobalOperationModule {
+    #[only_owner]
+    #[endpoint(startGlobalOperation)]
     fn global_op_start(&self) -> SCResult<()> {
         require!(
             !self.global_op_is_ongoing().get(),
@@ -12,6 +14,8 @@ pub trait GlobalOperationModule {
         Ok(())
     }
 
+    #[only_owner]
+    #[endpoint(endGlobalOperation)]
     fn global_op_stop(&self) -> SCResult<()> {
         require!(
             self.global_op_is_ongoing().get(),

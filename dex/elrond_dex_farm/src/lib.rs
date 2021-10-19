@@ -151,7 +151,7 @@ pub trait Farm:
             apr_multiplier,
             with_locked_rewards,
             initial_farming_amount: enter_amount.clone(),
-            compounded_reward: self.types().big_uint_zero(),
+            compounded_reward: BigUint::zero(),
             current_farm_amount: farm_contribution.clone(),
         };
 
@@ -692,7 +692,7 @@ pub trait Farm:
         let current_block_nonce = self.blockchain().get_block_nonce();
         let to_be_minted = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
-        let big_zero = self.types().big_uint_zero();
+        let big_zero = BigUint::zero();
         let mut fees = self.undistributed_fee_storage().get();
         fees += match self.current_block_fee_storage().get() {
             Some((block_nonce, fee_amount)) => {

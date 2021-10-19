@@ -43,9 +43,8 @@ pub trait ProxyPairModule:
 
     #[only_owner]
     #[endpoint(addPairToIntermediate)]
-    fn add_pair_to_intermediate(&self, pair_address: ManagedAddress) -> SCResult<()> {
+    fn add_pair_to_intermediate(&self, pair_address: ManagedAddress) {
         self.intermediated_pairs().insert(pair_address);
-        Ok(())
     }
 
     #[only_owner]

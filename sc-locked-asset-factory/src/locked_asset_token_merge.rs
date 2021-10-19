@@ -71,7 +71,7 @@ pub trait LockedAssetTokenMergeModule:
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
         let mut tokens = Vec::new();
-        let mut sum_amount = self.types().big_uint_zero();
+        let mut sum_amount = BigUint::zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
         for entry in payments.iter() {
@@ -130,8 +130,8 @@ pub trait LockedAssetTokenMergeModule:
         });
         unlock_epoch_amount.sort_by(|a, b| a.0.cmp(&b.0));
 
-        let mut sum = self.types().big_uint_zero();
-        let default = (0u64, self.types().big_uint_zero());
+        let mut sum = BigUint::zero();
+        let default = (0u64, BigUint::zero());
         let mut unlock_epoch_amount_merged: Vec<(u64, BigUint)> = Vec::new();
         for elem in unlock_epoch_amount.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
