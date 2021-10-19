@@ -5,9 +5,9 @@ use common_structs::Nonce;
 
 #[elrond_wasm::module]
 pub trait RewardsModule {
+    #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.per_block_reward_amount().set(&per_block_amount);
         self.last_reward_block_nonce()
             .set(&self.blockchain().get_block_nonce());

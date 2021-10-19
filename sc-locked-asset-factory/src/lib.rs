@@ -54,19 +54,17 @@ pub trait LockedAssetFactory:
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint]
     fn whitelist(&self, address: ManagedAddress) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-
         let is_new = self.whitelisted_contracts().insert(address);
         require!(is_new, "ManagedAddress already whitelisted");
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-
         let is_removed = self.whitelisted_contracts().remove(&address);
         require!(is_removed, "ManagedAddresss not whitelisted");
         Ok(())
@@ -284,6 +282,7 @@ pub trait LockedAssetFactory:
         })
     }
 
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueLockedAssetToken)]
     fn issue_locked_asset_token(
@@ -292,7 +291,6 @@ pub trait LockedAssetFactory:
         token_ticker: ManagedBuffer,
         #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         require!(
             self.locked_asset_token_id().is_empty(),
             "NFT already issued"
@@ -343,13 +341,13 @@ pub trait LockedAssetFactory:
         };
     }
 
+    #[only_owner]
     #[endpoint(setLocalRolesLockedAssetToken)]
     fn set_local_roles_locked_asset_token(
         &self,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         require!(
             !self.locked_asset_token_id().is_empty(),
             "Locked asset SFT not issued"

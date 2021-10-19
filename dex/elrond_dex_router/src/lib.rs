@@ -23,18 +23,17 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
     fn pair_contract_proxy(&self, to: ManagedAddress) -> elrond_dex_pair::Proxy<Self::Api>;
 
     #[init]
-    fn init(&self) {
+    fn init(&self, #[var_args] pair_template_address_opt: OptionalArg<ManagedAddress>) {
         self.state().set_if_empty(&true);
         self.pair_creation_enabled().set_if_empty(&false);
 
-        self.init_factory();
+        self.init_factory(pair_template_address_opt.into_option());
         self.owner().set(&self.blockchain().get_caller());
     }
 
+    #[only_owner]
     #[endpoint]
     fn pause(&self, address: ManagedAddress) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-
         if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
         } else {
@@ -46,10 +45,9 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint]
     fn resume(&self, address: ManagedAddress) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-
         if address == self.blockchain().get_sc_address() {
             self.state().set(&true);
         } else {
@@ -128,6 +126,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         Ok(address)
     }
 
+    #[only_owner]
     #[endpoint(upgradePair)]
     fn upgrade_pair_endpoint(
         &self,
@@ -135,7 +134,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         second_token_id: TokenIdentifier,
         #[var_args] fee_percents: VarArgs<u64>,
     ) -> SCResult<()> {
-        only_owner!(self, "No permissions");
         require!(self.is_active(), "Not active");
 
         require!(first_token_id != second_token_id, "Identical tokens");
@@ -171,7 +169,8 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             &self.owner().get(),
             total_fee_percent_requested,
             special_fee_percent_requested,
-        )
+        );
+        Ok(())
     }
 
     #[payable("EGLD")]
@@ -263,6 +262,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
+    #[only_owner]
     #[endpoint(setLocalRolesOwner)]
     fn set_local_roles_owner(
         &self,
@@ -271,7 +271,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "No permissions");
 
         Ok(self
             .send()
@@ -291,6 +290,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setFeeOn)]
     fn set_fee_on(
         &self,
@@ -299,7 +299,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
@@ -309,6 +308,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setFeeOff)]
     fn set_fee_off(
         &self,
@@ -317,7 +317,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
         self.check_is_pair_sc(&pair_address)?;
 
         self.pair_contract_proxy(pair_address)
@@ -325,32 +324,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             .execute_on_dest_context();
 
         Ok(())
-    }
-
-    #[endpoint(startPairCodeConstruction)]
-    fn start_pair_code_construction(&self) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
-
-        self.start_pair_construct();
-        Ok(())
-    }
-
-    #[endpoint(endPairCodeConstruction)]
-    fn end_pair_code_construction(&self) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
-
-        self.end_pair_construct();
-        Ok(())
-    }
-
-    #[endpoint(appendPairCode)]
-    fn apppend_pair_code(&self, part: ManagedBuffer) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        only_owner!(self, "Permission denied");
-
-        self.append_pair_code(&part)
     }
 
     #[view(getPair)]
@@ -424,9 +397,9 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         self.state().get()
     }
 
+    #[only_owner]
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.pair_creation_enabled().set(&enabled);
         Ok(())
     }

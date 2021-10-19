@@ -51,23 +51,23 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(startGlobalOperation)]
     fn start_planning(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.global_op_start()?;
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(endGlobalOperation)]
     fn end_planning(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.global_op_stop()?;
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setCommunityDistribution)]
     fn set_community_distribution(&self, total_amount: BigUint, spread_epoch: u64) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         require!(total_amount > 0, "Zero amount");
         require!(
@@ -92,13 +92,13 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setPerUserDistributedLockedAssets)]
     fn set_per_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
         #[var_args] user_locked_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
 
@@ -147,18 +147,18 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.undo_user_assets_between_epochs(0, biggest_unclaimable_asset_epoch)
     }
 
+    #[only_owner]
     #[endpoint(undoLastCommunityDistribution)]
     fn undo_last_community_distrib(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
         self.community_distribution_list().pop_front();
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(undoUserDistributedAssetsBetweenEpochs)]
     fn undo_user_assets_between_epochs(&self, lower: u64, higher: u64) -> SCResult<usize> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
         require!(lower <= higher, "Bad input values");

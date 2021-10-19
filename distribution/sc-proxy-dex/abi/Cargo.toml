@@ -12,8 +12,10 @@ path = ".."
 [dependencies.elrond-wasm]
 version = "0.20"
 features = ["derive"]
+path = "../../../../elrond-wasm-rs/elrond-wasm"
 
 
 [dependencies.elrond-wasm-debug]
 version = "0.20"
+path = "../../../../elrond-wasm-rs/elrond-wasm-debug"
 

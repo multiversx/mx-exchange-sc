@@ -41,16 +41,16 @@ pub trait ProxyPairModule:
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> elrond_dex_pair::Proxy<Self::Api>;
 
+    #[only_owner]
     #[endpoint(addPairToIntermediate)]
     fn add_pair_to_intermediate(&self, pair_address: ManagedAddress) -> SCResult<()> {
-        self.require_permissions()?;
         self.intermediated_pairs().insert(pair_address);
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(removeIntermediatedPair)]
     fn remove_intermediated_pair(&self, pair_address: ManagedAddress) -> SCResult<()> {
-        self.require_permissions()?;
         self.require_is_intermediated_pair(&pair_address)?;
         self.intermediated_pairs().remove(&pair_address);
         Ok(())

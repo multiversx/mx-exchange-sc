@@ -19,9 +19,12 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait FactoryModule {
-    fn init_factory(&self) {
-        self.pair_code_ready().set_if_empty(&false);
-        self.pair_code().set_if_empty(&ManagedBuffer::new());
+    fn init_factory(&self, pair_template_address_opt: Option<ManagedAddress>) {
+        if pair_template_address_opt.is_some() {
+            self.pair_template_address()
+                .set(&pair_template_address_opt.unwrap());
+        }
+
         self.temporary_owner_period()
             .set_if_empty(&TEMPORARY_OWNER_PERIOD_BLOCKS);
     }
@@ -34,13 +37,12 @@ pub trait FactoryModule {
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) -> SCResult<ManagedAddress> {
-        require!(self.pair_code_ready().get(), "Pair code not ready");
-        let code_metadata = CodeMetadata::UPGRADEABLE;
-        let gas_left = self.blockchain().get_gas_left();
-        let amount = self.types().big_uint_zero();
+        require!(
+            !self.pair_template_address().is_empty(),
+            "pair contract template is empty"
+        );
 
         let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
-        let code = self.pair_code().get();
         arg_buffer.push_arg(first_token_id);
         arg_buffer.push_arg(second_token_id);
         arg_buffer.push_arg(self.blockchain().get_sc_address());
@@ -48,9 +50,13 @@ pub trait FactoryModule {
         arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
         arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
 
-        let (new_address, _) =
-            self.raw_vm_api()
-                .deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
+        let (new_address, _) = self.raw_vm_api().deploy_from_source_contract(
+            self.blockchain().get_gas_left(),
+            &self.types().big_uint_zero(),
+            &self.pair_template_address().get(),
+            CodeMetadata::UPGRADEABLE,
+            &arg_buffer,
+        );
 
         self.pair_map().insert(
             PairTokens {
@@ -77,9 +83,7 @@ pub trait FactoryModule {
         owner: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-    ) -> SCResult<()> {
-        require!(self.pair_code_ready().get(), "Pair code not ready");
-
+    ) {
         let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
         arg_buffer.push_arg(first_token_id);
         arg_buffer.push_arg(second_token_id);
@@ -88,37 +92,14 @@ pub trait FactoryModule {
         arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
         arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
 
-        self.raw_vm_api().upgrade_contract(
+        self.raw_vm_api().upgrade_from_source_contract(
             pair_address,
             self.blockchain().get_gas_left(),
             &self.types().big_uint_zero(),
-            &self.pair_code().get(),
+            &self.pair_template_address().get(),
             CodeMetadata::UPGRADEABLE,
             &arg_buffer,
         );
-        Ok(())
-    }
-
-    fn start_pair_construct(&self) {
-        self.pair_code_ready().set(&false);
-        self.pair_code().set(&ManagedBuffer::new());
-    }
-
-    fn end_pair_construct(&self) {
-        self.pair_code_ready().set(&true);
-    }
-
-    fn append_pair_code(&self, part: &ManagedBuffer) -> SCResult<()> {
-        require!(
-            !self.pair_code_ready().get(),
-            "Pair construction not started"
-        );
-
-        let mut existent = self.pair_code().get();
-        existent.append(part);
-
-        self.pair_code().set(&existent);
-        Ok(())
     }
 
     #[storage_mapper("pair_map")]
@@ -166,28 +147,31 @@ pub trait FactoryModule {
         }
     }
 
+    #[only_owner]
     #[endpoint(clearPairTemporaryOwnerStorage)]
     fn clear_pair_temporary_owner_storage(&self) -> SCResult<usize> {
-        only_owner!(self, "No permissions");
         let size = self.pair_temporary_owner().len();
         self.pair_temporary_owner().clear();
         Ok(size)
     }
 
+    #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
     fn set_temporary_owner_period(&self, period_blocks: u64) -> SCResult<()> {
-        only_owner!(self, "No permissions");
         self.temporary_owner_period().set(&period_blocks);
         Ok(())
     }
 
-    #[view(getPairCode)]
-    #[storage_mapper("pair_code")]
-    fn pair_code(&self) -> SingleValueMapper<ManagedBuffer>;
+    #[only_owner]
+    #[endpoint(setPairTemplateAddress)]
+    fn set_pair_template_address(&self, address: ManagedAddress) -> SCResult<()> {
+        self.pair_template_address().set(&address);
+        Ok(())
+    }
 
-    #[view(getPairCodeReady)]
-    #[storage_mapper("pair_code_ready")]
-    fn pair_code_ready(&self) -> SingleValueMapper<bool>;
+    #[view(getPairTemplateAddress)]
+    #[storage_mapper("pair_template_address")]
+    fn pair_template_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getTemporaryOwnerPeriod)]
     #[storage_mapper("temporary_owner_period")]

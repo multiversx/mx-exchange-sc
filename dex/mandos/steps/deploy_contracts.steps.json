@@ -3,6 +3,11 @@
 	"steps": [
 		{
 			"step": "setState",
+			"accounts": {
+				"sc:pair_template": {
+					"code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm"
+				}
+			},
 			"newAddresses": [
 				{
 					"creatorAddress": "address:owner",
@@ -23,7 +28,9 @@
 				"from": "address:owner",
 				"value": "0",
 				"contractCode": "file:../../elrond_dex_router/output/elrond_dex_router.wasm",
-				"arguments": [],
+				"arguments": [
+					"sc:pair_template"
+				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
 			},

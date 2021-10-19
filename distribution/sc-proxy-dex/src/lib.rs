@@ -56,6 +56,7 @@ pub trait ProxyDexImpl:
         Ok(())
     }
 
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueSftProxyPair)]
     fn issue_sft_proxy_pair(
@@ -64,7 +65,6 @@ pub trait ProxyDexImpl:
         token_ticker: ManagedBuffer,
         #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
         self.issue_nft(
             token_display_name,
@@ -74,6 +74,7 @@ pub trait ProxyDexImpl:
         )
     }
 
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueSftProxyFarm)]
     fn issue_sft_proxy_farm(
@@ -82,7 +83,6 @@ pub trait ProxyDexImpl:
         token_ticker: ManagedBuffer,
         #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         require!(
             self.wrapped_farm_token_id().is_empty(),
             "SFT already issued"
@@ -160,6 +160,7 @@ pub trait ProxyDexImpl:
         };
     }
 
+    #[only_owner]
     #[endpoint(setLocalRoles)]
     fn set_local_roles(
         &self,
@@ -167,7 +168,6 @@ pub trait ProxyDexImpl:
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         Ok(self
             .send()
             .esdt_system_sc_proxy()

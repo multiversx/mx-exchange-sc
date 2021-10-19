@@ -42,16 +42,16 @@ pub trait ProxyFarmModule:
     #[proxy]
     fn farm_contract_proxy(&self, to: ManagedAddress) -> elrond_dex_farm::Proxy<Self::Api>;
 
+    #[only_owner]
     #[endpoint(addFarmToIntermediate)]
     fn add_farm_to_intermediate(&self, farm_address: ManagedAddress) -> SCResult<()> {
-        self.require_permissions()?;
         self.intermediated_farms().insert(farm_address);
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(removeIntermediatedFarm)]
     fn remove_intermediated_farm(&self, farm_address: ManagedAddress) -> SCResult<()> {
-        self.require_permissions()?;
         self.require_is_intermediated_farm(&farm_address)?;
         self.intermediated_farms().remove(&farm_address);
         Ok(())
