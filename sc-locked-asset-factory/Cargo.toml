@@ -30,13 +30,17 @@ path = "../common/modules/token_merge"
 [dependencies.elrond-wasm]
 version = "0.20"
 features = ["derive"]
+path = "../../elrond-wasm-rs/elrond-wasm"
 
 [dependencies.elrond-wasm-derive]
 version = "0.20"
+path = "../../elrond-wasm-rs/elrond-wasm-derive"
 
 [dependencies.elrond-wasm-node]
 optional = true
 version = "0.20"
+path = "../../elrond-wasm-rs/elrond-wasm-node"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.20"
+path = "../../elrond-wasm-rs/elrond-wasm-debug"

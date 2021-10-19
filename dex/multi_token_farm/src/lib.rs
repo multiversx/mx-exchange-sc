@@ -576,7 +576,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
                 token_id,
                 amount,
                 &self.types().managed_buffer_new(),
-                &self.types().big_uint_zero(),
+                &BigUint::zero(),
                 &self.types().managed_buffer_new(),
                 attributes,
                 &uris,

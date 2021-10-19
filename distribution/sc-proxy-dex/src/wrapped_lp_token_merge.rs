@@ -203,7 +203,7 @@ pub trait WrappedLpTokenMerge:
     }
 
     fn get_merged_wrapped_lp_tokens_amount(&self, tokens: &[WrappedLpToken<Self::Api>]) -> BigUint {
-        let mut token_amount = self.types().big_uint_zero();
+        let mut token_amount = BigUint::zero();
 
         tokens
             .iter()

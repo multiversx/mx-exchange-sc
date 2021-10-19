@@ -51,23 +51,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
-    #[endpoint(startGlobalOperation)]
-    fn start_planning(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-        self.global_op_start()?;
-        Ok(())
-    }
-
-    #[endpoint(endGlobalOperation)]
-    fn end_planning(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-        self.global_op_stop()?;
-        Ok(())
-    }
-
+    #[only_owner]
     #[endpoint(setCommunityDistribution)]
     fn set_community_distribution(&self, total_amount: BigUint, spread_epoch: u64) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         require!(total_amount > 0, "Zero amount");
         require!(
@@ -92,13 +78,13 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(setPerUserDistributedLockedAssets)]
     fn set_per_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
         #[var_args] user_locked_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
 
@@ -113,7 +99,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.require_community_distribution_list_not_empty()?;
 
         let caller = self.blockchain().get_caller();
-        let mut cummulated_amount = self.types().big_uint_zero();
+        let mut cummulated_amount = BigUint::zero();
 
         let locked_assets = self.calculate_user_locked_assets(&caller, true);
         if locked_assets.is_empty() {
@@ -147,18 +133,18 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.undo_user_assets_between_epochs(0, biggest_unclaimable_asset_epoch)
     }
 
+    #[only_owner]
     #[endpoint(undoLastCommunityDistribution)]
     fn undo_last_community_distrib(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
         self.community_distribution_list().pop_front();
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(undoUserDistributedAssetsBetweenEpochs)]
     fn undo_user_assets_between_epochs(&self, lower: u64, higher: u64) -> SCResult<usize> {
-        only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
         require!(lower <= higher, "Bad input values");
@@ -183,7 +169,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.require_community_distribution_list_not_empty()?;
         let locked_assets = self.calculate_user_locked_assets(&address, false);
 
-        let mut cummulated_amount = self.types().big_uint_zero();
+        let mut cummulated_amount = BigUint::zero();
         for (amount, _) in locked_assets.iter() {
             cummulated_amount += amount;
         }
@@ -200,7 +186,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
                     last_community_distrib.get_value_cloned().spread_epoch,
                 )
             })
-            .unwrap_or((self.types().big_uint_zero(), 0u64))
+            .unwrap_or((BigUint::zero(), 0u64))
             .into()
     }
 

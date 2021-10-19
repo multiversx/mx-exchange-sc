@@ -54,19 +54,17 @@ pub trait LockedAssetFactory:
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint]
     fn whitelist(&self, address: ManagedAddress) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-
         let is_new = self.whitelisted_contracts().insert(address);
         require!(is_new, "ManagedAddress already whitelisted");
         Ok(())
     }
 
+    #[only_owner]
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-
         let is_removed = self.whitelisted_contracts().remove(&address);
         require!(is_removed, "ManagedAddresss not whitelisted");
         Ok(())
@@ -169,7 +167,7 @@ pub trait LockedAssetFactory:
         let mut output_locked_assets_token_amount = GenericTokenAmountPair {
             token_id: token_id.clone(),
             token_nonce: 0,
-            amount: self.types().big_uint_zero(),
+            amount: BigUint::zero(),
         };
         let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
             unlock_schedule: UnlockSchedule {
@@ -260,7 +258,7 @@ pub trait LockedAssetFactory:
                 let additional_amount_to_create = if do_cache_result {
                     self.types().big_uint_from(ADDITIONAL_AMOUNT_TO_CREATE)
                 } else {
-                    self.types().big_uint_zero()
+                    BigUint::zero()
                 };
 
                 let new_nonce = self.create_and_send_locked_assets(
@@ -284,6 +282,7 @@ pub trait LockedAssetFactory:
         })
     }
 
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueLockedAssetToken)]
     fn issue_locked_asset_token(
@@ -292,7 +291,6 @@ pub trait LockedAssetFactory:
         token_ticker: ManagedBuffer,
         #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         require!(
             self.locked_asset_token_id().is_empty(),
             "NFT already issued"
@@ -343,13 +341,13 @@ pub trait LockedAssetFactory:
         };
     }
 
+    #[only_owner]
     #[endpoint(setLocalRolesLockedAssetToken)]
     fn set_local_roles_locked_asset_token(
         &self,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
-        only_owner!(self, "Permission denied");
         require!(
             !self.locked_asset_token_id().is_empty(),
             "Locked asset SFT not issued"

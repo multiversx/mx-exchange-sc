@@ -171,7 +171,7 @@ pub trait LiquidityPoolModule:
         } else {
             FftTokenAmountPair {
                 token_id,
-                amount: self.types().big_uint_zero(),
+                amount: BigUint::zero(),
             }
         }
     }
@@ -202,7 +202,7 @@ pub trait LiquidityPoolModule:
         token_in: &TokenIdentifier,
         amount_in: &BigUint,
     ) -> BigUint {
-        let big_zero = self.types().big_uint_zero();
+        let big_zero = BigUint::zero();
         let first_token_reserve = self.pair_reserve(first_token_id).get();
         let second_token_reserve = self.pair_reserve(second_token_id).get();
 

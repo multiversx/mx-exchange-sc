@@ -8,11 +8,6 @@ pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 #[elrond_wasm::module]
 pub trait ProxyCommonModule: token_send::TokenSendModule {
-    fn require_permissions(&self) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-        Ok(())
-    }
-
     #[payable("*")]
     #[endpoint(acceptPay)]
     fn accept_pay(&self) {}

@@ -5,13 +5,12 @@ use common_structs::Nonce;
 
 #[elrond_wasm::module]
 pub trait RewardsModule {
+    #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
-    fn start_produce_per_block_rewards(&self, per_block_amount: u64) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
+    fn start_produce_per_block_rewards(&self, per_block_amount: u64) {
         self.per_block_reward_amount().set(&per_block_amount);
         self.last_reward_block_nonce()
             .set(&self.blockchain().get_block_nonce());
-        Ok(())
     }
 
     fn calculate_reward_amount_current_block(&self) -> BigUint {
@@ -25,7 +24,7 @@ pub trait RewardsModule {
         if block_nonce > last_reward_nonce && per_block_reward > 0 {
             BigUint::from(per_block_reward) * (block_nonce - last_reward_nonce)
         } else {
-            self.types().big_uint_zero()
+            BigUint::zero()
         }
     }
 
@@ -63,7 +62,7 @@ pub trait RewardsModule {
         let reward = if &worth > initial_worth {
             &worth - initial_worth
         } else {
-            self.types().big_uint_zero()
+            BigUint::zero()
         };
 
         Ok(reward)

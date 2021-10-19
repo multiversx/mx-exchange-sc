@@ -134,7 +134,7 @@ pub trait FarmTokenMergeModule:
         &self,
         tokens: &[FarmToken<Self::Api>],
     ) -> SCResult<BigUint> {
-        let mut sum = self.types().big_uint_zero();
+        let mut sum = BigUint::zero();
         for x in tokens.iter() {
             sum += &self.rule_of_three_non_zero_result(
                 &x.token_amount.amount,
@@ -146,7 +146,7 @@ pub trait FarmTokenMergeModule:
     }
 
     fn aggregated_compounded_reward(&self, tokens: &[FarmToken<Self::Api>]) -> BigUint {
-        let mut sum = self.types().big_uint_zero();
+        let mut sum = BigUint::zero();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
                 &x.token_amount.amount,
@@ -158,7 +158,7 @@ pub trait FarmTokenMergeModule:
     }
 
     fn aggregated_current_farm_amount(&self, tokens: &[FarmToken<Self::Api>]) -> BigUint {
-        let mut aggregated_amount = self.types().big_uint_zero();
+        let mut aggregated_amount = BigUint::zero();
         tokens
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
@@ -180,12 +180,12 @@ pub trait FarmTokenMergeModule:
     }
 
     fn weighted_average(&self, dataset: Vec<ValueWeight<Self::Api>>) -> BigUint {
-        let mut weight_sum = self.types().big_uint_zero();
+        let mut weight_sum = BigUint::zero();
         dataset
             .iter()
             .for_each(|x| weight_sum = &weight_sum + &x.weight);
 
-        let mut elem_weight_sum = self.types().big_uint_zero();
+        let mut elem_weight_sum = BigUint::zero();
         dataset
             .iter()
             .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));

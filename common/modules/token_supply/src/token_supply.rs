@@ -22,7 +22,7 @@ pub trait TokenSupplyModule {
             token_id,
             amount,
             &self.types().managed_buffer_new(),
-            &self.types().big_uint_zero(),
+            &BigUint::zero(),
             &self.types().managed_buffer_new(),
             attributes,
             &uris,
@@ -90,14 +90,14 @@ pub trait TokenSupplyModule {
     fn get_generated_token_amount(&self, token_id: &TokenIdentifier) -> BigUint {
         self.generated_tokens()
             .get(token_id)
-            .unwrap_or(self.types().big_uint_zero())
+            .unwrap_or(BigUint::zero())
     }
 
     #[view(getBurnedTokenAmount)]
     fn get_burned_token_amount(&self, token_id: &TokenIdentifier) -> BigUint {
         self.burned_tokens()
             .get(token_id)
-            .unwrap_or(self.types().big_uint_zero())
+            .unwrap_or(BigUint::zero())
     }
 
     #[storage_mapper("generated_tokens")]

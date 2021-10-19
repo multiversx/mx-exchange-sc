@@ -169,11 +169,10 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
             .top_decode_from_managed_buffer::<LockedAssetTokenAttributes>(&token_info.attributes))
     }
 
+    #[only_owner]
     #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
         self.transfer_exec_gas_limit().set(&gas_limit);
-        Ok(())
     }
 
     fn mint_and_send_assets(&self, dest: &ManagedAddress, amount: &BigUint) {
