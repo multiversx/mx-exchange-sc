@@ -11,7 +11,7 @@ The init parameters are:
 
 - asset_token_id. The TokenId of the asset that a locked asset represents. In case of Maiar Exchange it will be MEX.
 
-- locked_asset_factory_address. Address of the locked asset factory which is used to request creation of Locked MEX tokens.
+- locked_asset_factory_address. ManagedAddress of the locked asset factory which is used to request creation of Locked MEX tokens.
 
 ## Configuring Distribution
 

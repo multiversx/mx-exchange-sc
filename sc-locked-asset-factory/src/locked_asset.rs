@@ -9,9 +9,9 @@ pub const PERCENTAGE_TOTAL: u64 = 100;
 pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     fn create_and_send_locked_assets(
         &self,
-        amount: &Self::BigUint,
-        additional_amount_to_create: &Self::BigUint,
-        address: &Address,
+        amount: &BigUint,
+        additional_amount_to_create: &BigUint,
+        address: &ManagedAddress,
         attributes: &LockedAssetTokenAttributes,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<Nonce> {
@@ -22,11 +22,11 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
             attributes,
         );
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
+            address,
             &token_id,
             last_created_nonce,
             amount,
-            address,
             opt_accept_funds_func,
         )?;
         Ok(last_created_nonce)
@@ -34,20 +34,26 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     fn add_quantity_and_send_locked_assets(
         &self,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         sft_nonce: Nonce,
-        address: &Address,
+        address: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
-        self.send_nft_tokens(&token_id, sft_nonce, amount, address, opt_accept_funds_func)
+        self.direct_esdt_nft_execute_custom(
+            address,
+            &token_id,
+            sft_nonce,
+            amount,
+            opt_accept_funds_func,
+        )
     }
 
     fn create_tokens(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         attributes: &LockedAssetTokenAttributes,
     ) {
         self.nft_create_tokens(token, amount, attributes);
@@ -56,12 +62,15 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     fn get_unlock_amount(
         &self,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         current_epoch: Epoch,
         unlock_milestones: &[UnlockMilestone],
-    ) -> Self::BigUint {
-        amount * &(self.get_unlock_percent(current_epoch, unlock_milestones) as u64).into()
-            / PERCENTAGE_TOTAL.into()
+    ) -> BigUint {
+        amount
+            * &self
+                .types()
+                .big_uint_from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
+            / PERCENTAGE_TOTAL
     }
 
     fn get_unlock_percent(
@@ -160,23 +169,18 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
             token_nonce,
         );
 
-        let farm_attributes = token_info.decode_attributes::<LockedAssetTokenAttributes>();
-        match farm_attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        Ok(self
+            .serializer()
+            .top_decode_from_managed_buffer::<LockedAssetTokenAttributes>(&token_info.attributes))
     }
 
+    #[only_owner]
     #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
         self.transfer_exec_gas_limit().set(&gas_limit);
-        Ok(())
     }
 
-    fn mint_and_send_assets(&self, dest: &Address, amount: &Self::BigUint) {
+    fn mint_and_send_assets(&self, dest: &ManagedAddress, amount: &BigUint) {
         if amount > &0 {
             let asset_token_id = self.asset_token_id().get();
             self.mint_tokens(&asset_token_id, amount);
@@ -186,12 +190,12 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
-    fn locked_asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn locked_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("locked_token_nonce")]
-    fn locked_asset_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+    fn locked_asset_token_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]
-    fn asset_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

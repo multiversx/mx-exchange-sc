@@ -4,10 +4,10 @@ elrond_wasm::derive_imports!();
 use common_structs::{FftTokenAmountPair, GenericTokenAmountPair, LockedAssetTokenAttributes};
 
 #[derive(TopEncode)]
-pub struct CreateAndForwardEvent<BigUint: BigUintApi> {
-    caller: Address,
-    destination: Address,
-    locked_assets_token_amount: GenericTokenAmountPair<BigUint>,
+pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    destination: ManagedAddress<M>,
+    locked_assets_token_amount: GenericTokenAmountPair<M>,
     locked_assets_attributes: LockedAssetTokenAttributes,
     start_epoch: u64,
     block: u64,
@@ -16,11 +16,11 @@ pub struct CreateAndForwardEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
-pub struct UnlockAssetsEvent<BigUint: BigUintApi> {
-    caller: Address,
-    input_locked_assets_token_amount: GenericTokenAmountPair<BigUint>,
-    output_locked_assets_token_amount: GenericTokenAmountPair<BigUint>,
-    assets_token_amount: FftTokenAmountPair<BigUint>,
+pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    input_locked_assets_token_amount: GenericTokenAmountPair<M>,
+    output_locked_assets_token_amount: GenericTokenAmountPair<M>,
+    assets_token_amount: FftTokenAmountPair<M>,
     input_assets_attributes: LockedAssetTokenAttributes,
     output_assets_attributes: LockedAssetTokenAttributes,
     block: u64,
@@ -32,9 +32,9 @@ pub struct UnlockAssetsEvent<BigUint: BigUintApi> {
 pub trait EventsModule {
     fn emit_create_and_forward_event(
         self,
-        caller: Address,
-        destination: Address,
-        locked_assets_token_amount: GenericTokenAmountPair<Self::BigUint>,
+        caller: ManagedAddress,
+        destination: ManagedAddress,
+        locked_assets_token_amount: GenericTokenAmountPair<Self::Api>,
         locked_assets_attributes: LockedAssetTokenAttributes,
         start_epoch: u64,
     ) {
@@ -58,10 +58,10 @@ pub trait EventsModule {
 
     fn emit_unlock_assets_event(
         self,
-        caller: Address,
-        input_locked_assets_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        output_locked_assets_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        assets_token_amount: FftTokenAmountPair<Self::BigUint>,
+        caller: ManagedAddress,
+        input_locked_assets_token_amount: GenericTokenAmountPair<Self::Api>,
+        output_locked_assets_token_amount: GenericTokenAmountPair<Self::Api>,
+        assets_token_amount: FftTokenAmountPair<Self::Api>,
         input_assets_attributes: LockedAssetTokenAttributes,
         output_assets_attributes: LockedAssetTokenAttributes,
     ) {
@@ -86,17 +86,17 @@ pub trait EventsModule {
     #[event("create_and_forward")]
     fn create_and_forward_event(
         self,
-        #[indexed] caller: Address,
-        #[indexed] destination: Address,
+        #[indexed] caller: ManagedAddress,
+        #[indexed] destination: ManagedAddress,
         #[indexed] epoch: u64,
-        swap_event: CreateAndForwardEvent<Self::BigUint>,
+        swap_event: CreateAndForwardEvent<Self::Api>,
     );
 
     #[event("unlock_assets")]
     fn unlock_assets_event(
         self,
-        #[indexed] caller: Address,
+        #[indexed] caller: ManagedAddress,
         #[indexed] epoch: u64,
-        swap_event: UnlockAssetsEvent<Self::BigUint>,
+        swap_event: UnlockAssetsEvent<Self::Api>,
     );
 }

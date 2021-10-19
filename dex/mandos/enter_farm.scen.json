@@ -13,10 +13,12 @@
 				"to": "sc:farm_contract",
 				"value": "0",
 				"function": "enterFarm",
-				"esdt": {
-					"tokenIdentifier": "str:LPTOK-abcdef",
-					"value": "100,000,000"
-				},
+				"esdt": [
+					{
+						"tokenIdentifier": "str:LPTOK-abcdef",
+						"value": "100,000,000"
+					}
+				],
 				"arguments": [],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
@@ -40,10 +42,12 @@
 				"to": "sc:farm_contract",
 				"value": "0",
 				"function": "enterFarm",
-				"esdt": {
-					"tokenIdentifier": "str:LPTOK-abcdef",
-					"value": "100,000,000"
-				},
+				"esdt": [
+					{
+						"tokenIdentifier": "str:LPTOK-abcdef",
+						"value": "100,000,000"
+					}
+				],
 				"arguments": [],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"

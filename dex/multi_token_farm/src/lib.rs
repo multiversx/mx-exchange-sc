@@ -19,11 +19,11 @@ pub enum State {
 }
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
-pub struct FarmTokenAttributes<BigUint: BigUintApi> {
-    farmed_token_id: TokenIdentifier,
-    total_farmed_tokens: BigUint,
-    total_initial_worth: BigUint,
-    total_amount_liquidity: BigUint,
+pub struct FarmTokenAttributes<M: ManagedTypeApi> {
+    farmed_token_id: TokenIdentifier<M>,
+    total_farmed_tokens: BigUint<M>,
+    total_initial_worth: BigUint<M>,
+    total_amount_liquidity: BigUint<M>,
     entering_epoch: Epoch,
 }
 
@@ -38,13 +38,13 @@ pub struct FarmTokenAttributes<BigUint: BigUintApi> {
 #[elrond_wasm::contract]
 pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[proxy]
-    fn pair_contract_proxy(&self, to: Address) -> elrond_dex_pair::Proxy<Self::SendApi>;
+    fn pair_contract_proxy(&self, to: ManagedAddress) -> elrond_dex_pair::Proxy<Self::Api>;
 
     #[init]
     fn init(
         &self,
         farming_pool_token_id: TokenIdentifier,
-        router_address: Address,
+        router_address: ManagedAddress,
         farm_with_lp_tokens: bool,
     ) {
         self.farming_pool_token_id().set(&farming_pool_token_id);
@@ -73,7 +73,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
-        address: Address,
+        address: ManagedAddress,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
@@ -96,7 +96,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
-        address: Address,
+        address: ManagedAddress,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
@@ -122,12 +122,15 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         Ok(())
     }
 
-    #[endpoint(addAcceptedPairAddressAndLpToken)]
-    fn add_accepted_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
+    #[endpoint(addAcceptedPairManagedAddressAndLpToken)]
+    fn add_accepted_pair(&self, address: ManagedAddress, token: TokenIdentifier) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
-        require!(address != Address::zero(), "Zero Address");
+        require!(
+            address != self.types().managed_address_zero(),
+            "Zero ManagedAddress"
+        );
         require!(token.is_esdt(), "Not an ESDT token");
         require!(
             !self
@@ -144,24 +147,31 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         Ok(())
     }
 
-    #[endpoint(removeAcceptedPairAddressAndLpToken)]
-    fn remove_accepted_pair(&self, address: Address, token: TokenIdentifier) -> SCResult<()> {
+    #[endpoint(removeAcceptedPairManagedAddressAndLpToken)]
+    fn remove_accepted_pair(
+        &self,
+        address: ManagedAddress,
+        token: TokenIdentifier,
+    ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(self.farm_with_lp_tokens().get(), "Not an LP token farm");
-        require!(address != Address::zero(), "Zero Address");
+        require!(
+            address != self.types().managed_address_zero(),
+            "Zero ManagedAddress"
+        );
         require!(token.is_esdt(), "Not an ESDT token");
         require!(
             self.pair_address_for_accepted_lp_token()
                 .contains_key(&token),
-            "No Pair Address for given LP token"
+            "No Pair ManagedAddress for given LP token"
         );
         require!(
             self.pair_address_for_accepted_lp_token()
                 .get(&token)
                 .unwrap()
                 == address,
-            "Address does not match Lp token equivalent"
+            "ManagedAddress does not match Lp token equivalent"
         );
         self.pair_address_for_accepted_lp_token().remove(&token);
         Ok(())
@@ -172,8 +182,8 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn enterFarm(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] amount: Self::BigUint,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+        #[payment] amount: BigUint,
+    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let farm_contribution = self.get_farm_contribution(&token_in, &amount)?;
@@ -186,7 +196,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             farming_pool_token_id,
             token_in.clone(),
         )?;
-        let farm_attributes = FarmTokenAttributes::<Self::BigUint> {
+        let farm_attributes = FarmTokenAttributes::<Self::Api> {
             farmed_token_id: token_in,
             total_farmed_tokens: amount,
             total_initial_worth: farm_contribution,
@@ -197,11 +207,11 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         // Do the actual permanent lock of first minimum liquidity
         // only after the token attributes are crafted for the user.
         if is_first_provider {
-            liquidity -= Self::BigUint::from(self.minimum_liquidity_farm_amount());
+            liquidity -= BigUint::from(self.minimum_liquidity_farm_amount());
         }
 
         // This 1 is necessary to get_esdt_token_data needed for calculateRewardsForGivenPosition
-        let farm_tokens_to_create = &liquidity + &1u64.into();
+        let farm_tokens_to_create = &liquidity + 1u64;
         let farm_token_id = self.farm_token_id().get();
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
@@ -225,9 +235,8 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn exitFarm(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment] liquidity: Self::BigUint,
-    ) -> SCResult<MultiResult2<FftTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>>
-    {
+        #[payment] liquidity: BigUint,
+    ) -> SCResult<MultiResult2<FftTokenAmountPair<Self::Api>, FftTokenAmountPair<Self::Api>>> {
         //require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();
@@ -289,10 +298,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn claimRewards(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment] liquidity: Self::BigUint,
-    ) -> SCResult<
-        MultiResult2<GenericTokenAmountPair<Self::BigUint>, FftTokenAmountPair<Self::BigUint>>,
-    > {
+        #[payment] liquidity: BigUint,
+    ) -> SCResult<MultiResult2<GenericTokenAmountPair<Self::Api>, FftTokenAmountPair<Self::Api>>>
+    {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No issued farm token");
         let token_nonce = self.call_value().esdt_token_nonce();
@@ -327,7 +335,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             farming_pool_token_id.clone(),
             farm_attributes.farmed_token_id.clone(),
         )?;
-        let new_farm_attributes = FarmTokenAttributes::<Self::BigUint> {
+        let new_farm_attributes = FarmTokenAttributes::<Self::Api> {
             farmed_token_id: farm_attributes.farmed_token_id,
             total_farmed_tokens: farmed_token_amount,
             total_initial_worth: initial_worth,
@@ -336,7 +344,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         };
 
         // Create and send the new farm tokens.
-        let farm_tokens_to_create = &re_added_liquidity + &1u64.into();
+        let farm_tokens_to_create = &re_added_liquidity + 1u64;
         self.create_farm_tokens(&farm_token_id, &farm_tokens_to_create, &new_farm_attributes);
         let farm_token_nonce = self.farm_token_nonce().get();
 
@@ -367,7 +375,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn acceptFee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
-        #[payment] _amount: Self::BigUint,
+        #[payment] _amount: BigUint,
     ) -> SCResult<()> {
         let farming_pool_token_id = self.farming_pool_token_id().get();
         require!(
@@ -378,7 +386,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     }
 
     #[inline]
-    fn burn_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &Self::BigUint) {
+    fn burn_tokens(&self, token: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
         if amount > &0 {
             self.send().esdt_local_burn(token, nonce, amount);
         }
@@ -389,8 +397,8 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         token: &TokenIdentifier,
         nonce: Nonce,
-        amount: &Self::BigUint,
-        destination: &Address,
+        amount: &BigUint,
+        destination: &ManagedAddress,
     ) {
         if amount > &0 {
             if nonce > 0 {
@@ -405,8 +413,8 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn calculate_rewards_for_given_position(
         &self,
         token_nonce: u64,
-        liquidity: Self::BigUint,
-    ) -> SCResult<Self::BigUint> {
+        liquidity: BigUint,
+    ) -> SCResult<BigUint> {
         let token_id = self.farm_token_id().get();
         let token_current_nonce = self.farm_token_nonce().get();
         require!(token_nonce <= token_current_nonce, "Invalid nonce");
@@ -437,10 +445,10 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[endpoint(issueFarmToken)]
     fn issue_farm_token(
         &self,
-        #[payment] issue_cost: Self::BigUint,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
+        #[payment] issue_cost: BigUint,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+    ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(self.farm_token_id().is_empty(), "Already issued");
@@ -450,11 +458,12 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
 
     fn issue_token(
         &self,
-        issue_cost: Self::BigUint,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-    ) -> AsyncCall<Self::SendApi> {
-        ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
+        issue_cost: BigUint,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+    ) -> AsyncCall {
+        self.send()
+            .esdt_system_sc_proxy()
             .issue_semi_fungible(
                 issue_cost,
                 &token_display_name,
@@ -478,16 +487,16 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[callback]
     fn issue_callback(
         &self,
-        caller: &Address,
-        #[call_result] result: AsyncCallResult<TokenIdentifier>,
+        caller: &ManagedAddress,
+        #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
     ) {
         match result {
-            AsyncCallResult::Ok(token_id) => {
+            ManagedAsyncCallResult::Ok(token_id) => {
                 if self.farm_token_id().is_empty() {
                     self.farm_token_id().set(&token_id);
                 }
             }
-            AsyncCallResult::Err(_) => {
+            ManagedAsyncCallResult::Err(_) => {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
@@ -497,7 +506,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     }
 
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall<Self::SendApi>> {
+    fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(!self.farm_token_id().is_empty(), "No farm token issued");
@@ -506,28 +515,31 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         Ok(self.set_local_roles(token))
     }
 
-    fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall<Self::SendApi> {
-        ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
+    fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall {
+        let roles = [
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ];
+
+        self.send()
+            .esdt_system_sc_proxy()
             .set_special_roles(
                 &self.blockchain().get_sc_address(),
                 &token,
-                &[
-                    EsdtLocalRole::NftCreate,
-                    EsdtLocalRole::NftAddQuantity,
-                    EsdtLocalRole::NftBurn,
-                ],
+                (&roles[..]).into_iter().cloned(),
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
     }
 
     #[callback]
-    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
-            AsyncCallResult::Ok(()) => {
+            ManagedAsyncCallResult::Ok(()) => {
                 self.last_error_message().clear();
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
             }
         }
@@ -537,37 +549,37 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
         &self,
         token_id: TokenIdentifier,
         token_nonce: u64,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             &token_id,
             token_nonce,
         );
 
-        let farm_attributes = token_info.decode_attributes::<FarmTokenAttributes<Self::BigUint>>();
-        match farm_attributes {
-            Result::Ok(decoded_obj) => Ok(decoded_obj),
-            Result::Err(_) => {
-                return sc_error!("Decoding error");
-            }
-        }
+        Ok(self
+            .serializer()
+            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(
+                &token_info.attributes,
+            ))
     }
 
     fn create_farm_tokens(
         &self,
         token_id: &TokenIdentifier,
-        amount: &Self::BigUint,
-        attributes: &FarmTokenAttributes<Self::BigUint>,
+        amount: &BigUint,
+        attributes: &FarmTokenAttributes<Self::Api>,
     ) {
+        let mut uris = ManagedVec::new(self.type_manager());
+        uris.push(self.types().managed_buffer_new());
         self.send()
-            .esdt_nft_create::<FarmTokenAttributes<Self::BigUint>>(
+            .esdt_nft_create::<FarmTokenAttributes<Self::Api>>(
                 token_id,
                 amount,
-                &BoxedBytes::empty(),
-                &0u64.into(),
-                &BoxedBytes::empty(),
+                &self.types().managed_buffer_new(),
+                &BigUint::zero(),
+                &self.types().managed_buffer_new(),
                 attributes,
-                &[BoxedBytes::empty()],
+                &uris,
             );
 
         self.increase_nonce();
@@ -603,8 +615,8 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn get_farm_contribution(
         &self,
         token_in: &TokenIdentifier,
-        amount_in: &Self::BigUint,
-    ) -> SCResult<Self::BigUint> {
+        amount_in: &BigUint,
+    ) -> SCResult<BigUint> {
         require!(amount_in > &0, "Zero amount in");
         let farming_pool_token_id = self.farming_pool_token_id().get();
         require!(
@@ -634,7 +646,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
             return Ok(second_token_amount_pair.amount);
         }
 
-        let zero = Self::BigUint::zero();
+        let zero = BigUint::zero();
         let first_query_amount = if !self
             .oracle_pair(&first_token_amount_pair.token_id, &farming_pool_token_id)
             .is_empty()
@@ -669,9 +681,9 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     fn ask_for_equivalent(
         &self,
         token_to_ask: &TokenIdentifier,
-        token_to_ask_amount: &Self::BigUint,
+        token_to_ask_amount: &BigUint,
         farming_pool_token_id: &TokenIdentifier,
-    ) -> Self::BigUint {
+    ) -> BigUint {
         let oracle_pair_to_ask = self.oracle_pair(token_to_ask, farming_pool_token_id).get();
         self.pair_contract_proxy(oracle_pair_to_ask)
             .get_equivalent(token_to_ask.clone(), token_to_ask_amount.clone())
@@ -684,8 +696,8 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     }
 
     #[inline]
-    fn get_penalty_amount(&self, amount: Self::BigUint) -> Self::BigUint {
-        amount * PENALTY_PERCENT.into() / 100u64.into()
+    fn get_penalty_amount(&self, amount: BigUint) -> BigUint {
+        amount * PENALTY_PERCENT / 100u64
     }
 
     #[inline]
@@ -697,7 +709,7 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     #[view(getFarmingPoolTokenIdAndAmounts)]
     fn get_farming_pool_token_id_and_amounts(
         &self,
-    ) -> SCResult<(TokenIdentifier, (Self::BigUint, Self::BigUint))> {
+    ) -> SCResult<(TokenIdentifier, (BigUint, BigUint))> {
         require!(!self.farming_pool_token_id().is_empty(), "Not issued");
         let token = self.farming_pool_token_id().get();
         let vamount = self.virtual_reserves().get();
@@ -719,44 +731,42 @@ pub trait Farm: liquidity_pool::LiquidityPoolModule + rewards::RewardsModule {
     }
 
     #[storage_mapper("pair_address_for_accepted_lp_token")]
-    fn pair_address_for_accepted_lp_token(
-        &self,
-    ) -> SafeMapMapper<Self::Storage, TokenIdentifier, Address>;
+    fn pair_address_for_accepted_lp_token(&self) -> MapMapper<TokenIdentifier, ManagedAddress>;
 
     #[storage_mapper("oracle_pair")]
     fn oracle_pair(
         &self,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<Self::Storage, Address>;
+    ) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getFarmingPoolTokenId)]
     #[storage_mapper("farming_pool_token_id")]
-    fn farming_pool_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn farming_pool_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
-    fn farm_token_id(&self) -> SingleValueMapper<Self::Storage, TokenIdentifier>;
+    fn farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[storage_mapper("farm_token_nonce")]
-    fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
+    fn farm_token_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 
-    #[view(getRouterAddress)]
+    #[view(getRouterManagedAddress)]
     #[storage_mapper("router_address")]
-    fn router_address(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getState)]
     #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<Self::Storage, State>;
+    fn state(&self) -> SingleValueMapper<State>;
 
     #[view(getOwner)]
     #[storage_mapper("owner")]
-    fn owner(&self) -> SingleValueMapper<Self::Storage, Address>;
+    fn owner(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[storage_mapper("farm_with_lp_tokens")]
-    fn farm_with_lp_tokens(&self) -> SingleValueMapper<Self::Storage, bool>;
+    fn farm_with_lp_tokens(&self) -> SingleValueMapper<bool>;
 }

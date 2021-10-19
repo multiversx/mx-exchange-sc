@@ -5,23 +5,25 @@ use core::iter::FromIterator;
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
-pub struct PairTokens {
-    pub first_token_id: TokenIdentifier,
-    pub second_token_id: TokenIdentifier,
+pub struct PairTokens<M: ManagedTypeApi> {
+    pub first_token_id: TokenIdentifier<M>,
+    pub second_token_id: TokenIdentifier<M>,
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct PairContractMetadata {
-    first_token_id: TokenIdentifier,
-    second_token_id: TokenIdentifier,
-    address: Address,
+pub struct PairContractMetadata<M: ManagedTypeApi> {
+    first_token_id: TokenIdentifier<M>,
+    second_token_id: TokenIdentifier<M>,
+    address: ManagedAddress<M>,
 }
 
 #[elrond_wasm::module]
 pub trait FactoryModule {
-    fn init_factory(&self) {
-        self.pair_code_ready().set_if_empty(&false);
-        self.pair_code().set_if_empty(&BoxedBytes::empty());
+    fn init_factory(&self, pair_template_address_opt: Option<ManagedAddress>) {
+        if let Some(addr) = pair_template_address_opt {
+            self.pair_template_address().set(&addr);
+        }
+
         self.temporary_owner_period()
             .set_if_empty(&TEMPORARY_OWNER_PERIOD_BLOCKS);
     }
@@ -30,109 +32,91 @@ pub trait FactoryModule {
         &self,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
-        owner: &Address,
+        owner: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-    ) -> SCResult<Address> {
-        require!(self.pair_code_ready().get(), "Pair code not ready");
-        let code_metadata = CodeMetadata::UPGRADEABLE;
-        let gas_left = self.blockchain().get_gas_left();
-        let amount = 0u64.into();
-        let mut arg_buffer = ArgBuffer::new();
-        let code = self.pair_code().get();
-        arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
-        arg_buffer.push_argument_bytes(second_token_id.as_esdt_identifier());
-        arg_buffer.push_argument_bytes(self.blockchain().get_sc_address().as_bytes());
-        arg_buffer.push_argument_bytes(owner.as_bytes());
-        arg_buffer.push_argument_bytes(&total_fee_percent.to_be_bytes()[..]);
-        arg_buffer.push_argument_bytes(&special_fee_percent.to_be_bytes()[..]);
-        let new_address =
-            self.send()
-                .deploy_contract(gas_left, &amount, &code, code_metadata, &arg_buffer);
-        require!(new_address.is_some(), "deploy failed");
+    ) -> SCResult<ManagedAddress> {
+        require!(
+            !self.pair_template_address().is_empty(),
+            "pair contract template is empty"
+        );
+
+        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        arg_buffer.push_arg(first_token_id);
+        arg_buffer.push_arg(second_token_id);
+        arg_buffer.push_arg(self.blockchain().get_sc_address());
+        arg_buffer.push_arg(owner);
+        arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
+        arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
+
+        let (new_address, _) = self.raw_vm_api().deploy_from_source_contract(
+            self.blockchain().get_gas_left(),
+            &BigUint::zero(),
+            &self.pair_template_address().get(),
+            CodeMetadata::UPGRADEABLE,
+            &arg_buffer,
+        );
+
         self.pair_map().insert(
             PairTokens {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             },
-            new_address.clone().unwrap(),
+            new_address.clone(),
         );
         self.pair_temporary_owner().insert(
-            new_address.clone().unwrap(),
+            new_address.clone(),
             (
                 self.blockchain().get_caller(),
                 self.blockchain().get_block_nonce(),
             ),
         );
-        Ok(new_address.unwrap())
+        Ok(new_address)
     }
 
     fn upgrade_pair(
         &self,
-        pair_address: &Address,
+        pair_address: &ManagedAddress,
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
-        owner: &Address,
+        owner: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-    ) -> SCResult<()> {
-        require!(self.pair_code_ready().get(), "Pair code not ready");
+    ) {
+        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        arg_buffer.push_arg(first_token_id);
+        arg_buffer.push_arg(second_token_id);
+        arg_buffer.push_arg(self.blockchain().get_sc_address());
+        arg_buffer.push_arg(owner);
+        arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
+        arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
 
-        let mut arg_buffer = ArgBuffer::new();
-        arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
-        arg_buffer.push_argument_bytes(second_token_id.as_esdt_identifier());
-        arg_buffer.push_argument_bytes(self.blockchain().get_sc_address().as_bytes());
-        arg_buffer.push_argument_bytes(owner.as_bytes());
-        arg_buffer.push_argument_bytes(&total_fee_percent.to_be_bytes()[..]);
-        arg_buffer.push_argument_bytes(&special_fee_percent.to_be_bytes()[..]);
-
-        self.send().upgrade_contract(
+        self.raw_vm_api().upgrade_from_source_contract(
             pair_address,
             self.blockchain().get_gas_left(),
-            &0u64.into(),
-            &self.pair_code().get(),
+            &BigUint::zero(),
+            &self.pair_template_address().get(),
             CodeMetadata::UPGRADEABLE,
             &arg_buffer,
         );
-        Ok(())
-    }
-
-    fn start_pair_construct(&self) {
-        self.pair_code_ready().set(&false);
-        self.pair_code().set(&BoxedBytes::empty());
-    }
-
-    fn end_pair_construct(&self) {
-        self.pair_code_ready().set(&true);
-    }
-
-    fn append_pair_code(&self, part: &BoxedBytes) -> SCResult<()> {
-        require!(
-            !self.pair_code_ready().get(),
-            "Pair construction not started"
-        );
-        let existent = self.pair_code().get();
-        let new_code = BoxedBytes::from_concat(&[existent.as_slice(), part.as_slice()]);
-        self.pair_code().set(&new_code);
-        Ok(())
     }
 
     #[storage_mapper("pair_map")]
-    fn pair_map(&self) -> SafeMapMapper<Self::Storage, PairTokens, Address>;
+    fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
 
-    #[view(getAllPairsAddresses)]
-    fn get_all_pairs_addresses(&self) -> MultiResultVec<Address> {
+    #[view(getAllPairsManagedAddresses)]
+    fn get_all_pairs_addresses(&self) -> MultiResultVec<ManagedAddress> {
         self.pair_map().values().collect()
     }
 
     #[view(getAllPairTokens)]
-    fn get_all_token_pairs(&self) -> MultiResultVec<PairTokens> {
+    fn get_all_token_pairs(&self) -> MultiResultVec<PairTokens<Self::Api>> {
         self.pair_map().keys().collect()
     }
 
     #[view(getAllPairContractMetadata)]
-    fn get_all_pair_contract_metadata(&self) -> MultiResultVec<PairContractMetadata> {
-        let map: Vec<PairContractMetadata> = self
+    fn get_all_pair_contract_metadata(&self) -> MultiResultVec<PairContractMetadata<Self::Api>> {
+        let map: Vec<PairContractMetadata<Self::Api>> = self
             .pair_map()
             .iter()
             .map(|x| PairContractMetadata {
@@ -144,7 +128,7 @@ pub trait FactoryModule {
         MultiResultVec::from_iter(map)
     }
 
-    fn get_pair_temporary_owner(&self, pair_address: &Address) -> Option<Address> {
+    fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {
         let result = self.pair_temporary_owner().get(pair_address);
 
         match result {
@@ -162,33 +146,34 @@ pub trait FactoryModule {
         }
     }
 
+    #[only_owner]
     #[endpoint(clearPairTemporaryOwnerStorage)]
-    fn clear_pair_temporary_owner_storage(&self) -> SCResult<usize> {
-        only_owner!(self, "No permissions");
+    fn clear_pair_temporary_owner_storage(&self) -> usize {
         let size = self.pair_temporary_owner().len();
         self.pair_temporary_owner().clear();
-        Ok(size)
+        size
     }
 
+    #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
-    fn set_temporary_owner_period(&self, period_blocks: u64) -> SCResult<()> {
-        only_owner!(self, "No permissions");
+    fn set_temporary_owner_period(&self, period_blocks: u64) {
         self.temporary_owner_period().set(&period_blocks);
-        Ok(())
     }
 
-    #[view(getPairCode)]
-    #[storage_mapper("pair_code")]
-    fn pair_code(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+    #[only_owner]
+    #[endpoint(setPairTemplateAddress)]
+    fn set_pair_template_address(&self, address: ManagedAddress) {
+        self.pair_template_address().set(&address);
+    }
 
-    #[view(getPairCodeReady)]
-    #[storage_mapper("pair_code_ready")]
-    fn pair_code_ready(&self) -> SingleValueMapper<Self::Storage, bool>;
+    #[view(getPairTemplateAddress)]
+    #[storage_mapper("pair_template_address")]
+    fn pair_template_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getTemporaryOwnerPeriod)]
     #[storage_mapper("temporary_owner_period")]
-    fn temporary_owner_period(&self) -> SingleValueMapper<Self::Storage, u64>;
+    fn temporary_owner_period(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("pair_temporary_owner")]
-    fn pair_temporary_owner(&self) -> SafeMapMapper<Self::Storage, Address, (Address, u64)>;
+    fn pair_temporary_owner(&self) -> MapMapper<ManagedAddress, (ManagedAddress, u64)>;
 }

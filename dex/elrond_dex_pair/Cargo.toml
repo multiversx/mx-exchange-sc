@@ -22,18 +22,22 @@ path = "../../common/modules/token_supply"
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.18"
+version = "0.20"
 features = ["derive"]
+path = "../../../elrond-wasm-rs/elrond-wasm"
 
 [dependencies.elrond-wasm-derive]
-version = "0.18"
+version = "0.20"
+path = "../../../elrond-wasm-rs/elrond-wasm-derive"
 
 [dependencies.elrond-wasm-node]
-version = "0.18"
+version = "0.20"
 optional = true
+path = "../../../elrond-wasm-rs/elrond-wasm-node"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.18"
+version = "0.20"
+path = "../../../elrond-wasm-rs/elrond-wasm-debug"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"

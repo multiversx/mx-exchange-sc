@@ -3,7 +3,32 @@
     "steps": [
         {
             "step": "externalSteps",
-            "path": "accept_esdt_payment_proxy.scen.json"
+            "path": "claim_locked_assets_basic.scen.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/setup_pair_contract.steps.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "3",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "function": "addPairToIntermediate",
+                "arguments": [
+                    "sc:pair_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
         },
         {
             "step": "scCall",
@@ -13,15 +38,20 @@
                 "to": "sc:proxy_dex_contract",
                 "value": "0",
                 "function": "addLiquidityProxy",
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:WEGLD-abcdef",
+                        "value": "10,000"
+                    },
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "nonce": "1",
+                        "value": "10,000"
+                    }
+                ],
                 "arguments": [
                     "sc:pair_contract",
-                    "str:WEGLD-abcdef",
-                    "0",
-                    "10,000",
                     "100",
-                    "str:LKMEX-abcdef",
-                    "1",
-                    "10,000",
                     "100"
                 ],
                 "gasLimit": "1,000,000,000",
@@ -43,68 +73,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "4",
-                    "balance": "100,000,000",
-                    "esdt": {
-                        "str:LKMEX-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x01",
-                                    "balance": "80,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
-                                }
-                            ]
-                        },
-                        "str:WEGLD-abcdef": "999,990,000",
-                        "str:WLPTOK-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x01",
-                                    "balance": "9,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
-                                }
-                            ]
-                        }
-                    },
-                    "storage": {},
-                    "code": ""
-                },
-                "+": ""
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "reclaimTemporaryFundsProxy",
-            "tx": {
-                "from": "address:user_with_wegld1",
-                "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "reclaimTemporaryFundsProxy",
-                "arguments": [
-                    "str:WEGLD-abcdef",
-                    "0",
-                    "str:LKMEX-abcdef",
-                    "1"
-                ],
-                "gasLimit": "50,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [],
-                "status": "0",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "checkState",
-            "accounts": {
-                "address:user_with_wegld1": {
-                    "nonce": "5",
+                    "nonce": "*",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:LKMEX-abcdef": {

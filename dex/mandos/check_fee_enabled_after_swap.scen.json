@@ -38,7 +38,7 @@
 			"step": "checkState",
 			"accounts": {
 				"sc:farm_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": "199",

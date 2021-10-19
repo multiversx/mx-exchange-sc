@@ -11,8 +11,6 @@ mod proxy_pair;
 mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;
 
-const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
-
 #[derive(TopEncode, TopDecode, TypeAbi)]
 pub enum IssueRequestType {
     ProxyFarm,
@@ -25,7 +23,6 @@ pub trait ProxyDexImpl:
     + proxy_pair::ProxyPairModule
     + proxy_farm::ProxyFarmModule
     + token_supply::TokenSupplyModule
-    + nft_deposit::NftDepositModule
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
@@ -37,7 +34,7 @@ pub trait ProxyDexImpl:
         &self,
         asset_token_id: TokenIdentifier,
         locked_asset_token_id: TokenIdentifier,
-        locked_asset_factory_address: Address,
+        locked_asset_factory_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
             asset_token_id.is_valid_esdt_identifier(),
@@ -52,8 +49,6 @@ pub trait ProxyDexImpl:
             "Locked asset token ID cannot be the same as Asset token ID"
         );
 
-        self.nft_deposit_max_len()
-            .set_if_empty(&DEFAULT_NFT_DEPOSIT_MAX_LEN);
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_token_id().set(&locked_asset_token_id);
         self.locked_asset_factory_address()
@@ -61,15 +56,15 @@ pub trait ProxyDexImpl:
         Ok(())
     }
 
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueSftProxyPair)]
     fn issue_sft_proxy_pair(
         &self,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
-        only_owner!(self, "Permission denied");
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        #[payment_amount] issue_cost: BigUint,
+    ) -> SCResult<AsyncCall> {
         require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
         self.issue_nft(
             token_display_name,
@@ -79,15 +74,15 @@ pub trait ProxyDexImpl:
         )
     }
 
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueSftProxyFarm)]
     fn issue_sft_proxy_farm(
         &self,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
-        only_owner!(self, "Permission denied");
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        #[payment_amount] issue_cost: BigUint,
+    ) -> SCResult<AsyncCall> {
         require!(
             self.wrapped_farm_token_id().is_empty(),
             "SFT already issued"
@@ -102,12 +97,14 @@ pub trait ProxyDexImpl:
 
     fn issue_nft(
         &self,
-        token_display_name: BoxedBytes,
-        token_ticker: BoxedBytes,
-        issue_cost: Self::BigUint,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        issue_cost: BigUint,
         request_type: IssueRequestType,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
-        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
+    ) -> SCResult<AsyncCall> {
+        Ok(self
+            .send()
+            .esdt_system_sc_proxy()
             .issue_semi_fungible(
                 issue_cost,
                 &token_display_name,
@@ -129,28 +126,26 @@ pub trait ProxyDexImpl:
     fn issue_nft_callback(
         &self,
         request_type: IssueRequestType,
-        #[call_result] result: AsyncCallResult<TokenIdentifier>,
+        #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
     ) {
         match result {
-            AsyncCallResult::Ok(token_id) => {
+            ManagedAsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();
 
                 match request_type {
                     IssueRequestType::ProxyPair => {
                         if self.wrapped_lp_token_id().is_empty() {
                             self.wrapped_lp_token_id().set(&token_id);
-                            self.nft_deposit_accepted_token_ids().insert(token_id);
                         }
                     }
                     IssueRequestType::ProxyFarm => {
                         if self.wrapped_farm_token_id().is_empty() {
                             self.wrapped_farm_token_id().set(&token_id);
-                            self.nft_deposit_accepted_token_ids().insert(token_id);
                         }
                     }
                 }
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
 
                 let (payment, token_id) = self.call_value().payment_token_pair();
@@ -165,41 +160,35 @@ pub trait ProxyDexImpl:
         };
     }
 
+    #[only_owner]
     #[endpoint(setLocalRoles)]
     fn set_local_roles(
         &self,
         token: TokenIdentifier,
-        address: Address,
-        #[var_args] roles: VarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall<Self::SendApi>> {
-        only_owner!(self, "Permission denied");
-        require!(!roles.is_empty(), "Empty roles");
-        Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())
-            .set_special_roles(&address, &token, roles.as_slice())
+        address: ManagedAddress,
+        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+    ) -> SCResult<AsyncCall> {
+        Ok(self
+            .send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback()))
     }
 
     #[callback]
-    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
-            AsyncCallResult::Ok(()) => {
+            ManagedAsyncCallResult::Ok(()) => {
                 self.last_error_message().clear();
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
             }
         }
     }
 
-    #[endpoint(setNftDepositMaxLen)]
-    fn set_nft_deposit_max_len(&self, max_len: usize) -> SCResult<()> {
-        only_owner!(self, "Permission denied");
-        self.nft_deposit_max_len().set(&max_len);
-        Ok(())
-    }
-
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<Self::Storage, BoxedBytes>;
+    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 }

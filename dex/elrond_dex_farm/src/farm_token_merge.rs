@@ -11,35 +11,35 @@ use super::farm_token;
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
-    nft_deposit::NftDepositModule
-    + token_send::TokenSendModule
+    token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + token_supply::TokenSupplyModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
+    #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let deposit = self.nft_deposit(&caller).get();
+        let payments = self.get_all_payments();
 
-        let attrs = self.get_merged_farm_token_attributes(&deposit, Option::None)?;
+        let attrs = self.get_merged_farm_token_attributes(&payments, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
-        self.burn_deposit_tokens(&caller, &deposit);
+        self.burn_farm_tokens_from_payments(&payments)?;
 
         self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         self.increase_nonce();
 
         let new_amount = attrs.current_farm_amount;
         let new_nonce = self.farm_token_nonce().get();
-        self.send_nft_tokens(
+        self.direct_esdt_nft_execute_custom(
+            &caller,
             &farm_token_id,
             new_nonce,
             &new_amount,
-            &caller,
             &opt_accept_funds_func,
         )?;
 
@@ -52,23 +52,28 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        deposit: &[GenericTokenAmountPair<Self::BigUint>],
-        replic: Option<FarmToken<Self::BigUint>>,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
+        payments: &[EsdtTokenPayment<Self::Api>],
+        replic: Option<FarmToken<Self::Api>>,
+    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         require!(
-            !deposit.is_empty() || replic.is_some(),
+            !payments.is_empty() || replic.is_some(),
             "No tokens to merge"
         );
 
         let mut tokens = Vec::new();
         let farm_token_id = self.farm_token_id().get();
 
-        for entry in deposit.iter() {
-            require!(entry.token_id == farm_token_id, "Not a farm token");
+        for entry in payments {
+            require!(entry.amount != 0, "zero entry amount");
+            require!(entry.token_identifier == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
-                token_amount: entry.clone(),
-                attributes: self.get_farm_attributes(&entry.token_id, entry.token_nonce)?,
+                token_amount: GenericTokenAmountPair {
+                    token_id: entry.token_identifier.clone(),
+                    token_nonce: entry.token_nonce,
+                    amount: entry.amount.clone(),
+                },
+                attributes: self.get_farm_attributes(&entry.token_identifier, entry.token_nonce)?,
             });
         }
 
@@ -94,7 +99,7 @@ pub trait FarmTokenMergeModule:
         Ok(aggregated_attributes)
     }
 
-    fn aggregated_reward_per_share(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
+    fn aggregated_reward_per_share(&self, tokens: &[FarmToken<Self::Api>]) -> BigUint {
         let mut dataset = Vec::new();
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
@@ -105,7 +110,7 @@ pub trait FarmTokenMergeModule:
         self.weighted_average_ceil(dataset)
     }
 
-    fn aggregated_apr_multiplier(&self, tokens: &[FarmToken<Self::BigUint>]) -> SCResult<u8> {
+    fn aggregated_apr_multiplier(&self, tokens: &[FarmToken<Self::Api>]) -> SCResult<u8> {
         let first_elem_value = tokens.get(1).unwrap().attributes.apr_multiplier;
         let mut same_value = true;
         tokens
@@ -115,7 +120,7 @@ pub trait FarmTokenMergeModule:
         Ok(first_elem_value)
     }
 
-    fn aggregated_with_lock_rewards(&self, tokens: &[FarmToken<Self::BigUint>]) -> SCResult<bool> {
+    fn aggregated_with_lock_rewards(&self, tokens: &[FarmToken<Self::Api>]) -> SCResult<bool> {
         let first_elem_value = tokens.get(1).unwrap().attributes.with_locked_rewards;
         let mut same_value = true;
         tokens
@@ -127,9 +132,9 @@ pub trait FarmTokenMergeModule:
 
     fn aggregated_initial_farming_amount(
         &self,
-        tokens: &[FarmToken<Self::BigUint>],
-    ) -> SCResult<Self::BigUint> {
-        let mut sum = 0u64.into();
+        tokens: &[FarmToken<Self::Api>],
+    ) -> SCResult<BigUint> {
+        let mut sum = BigUint::zero();
         for x in tokens.iter() {
             sum += &self.rule_of_three_non_zero_result(
                 &x.token_amount.amount,
@@ -140,8 +145,8 @@ pub trait FarmTokenMergeModule:
         Ok(sum)
     }
 
-    fn aggregated_compounded_reward(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
-        let mut sum = 0u64.into();
+    fn aggregated_compounded_reward(&self, tokens: &[FarmToken<Self::Api>]) -> BigUint {
+        let mut sum = BigUint::zero();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
                 &x.token_amount.amount,
@@ -152,19 +157,21 @@ pub trait FarmTokenMergeModule:
         sum
     }
 
-    fn aggregated_current_farm_amount(&self, tokens: &[FarmToken<Self::BigUint>]) -> Self::BigUint {
-        let mut aggregated_amount = 0u64.into();
+    fn aggregated_current_farm_amount(&self, tokens: &[FarmToken<Self::Api>]) -> BigUint {
+        let mut aggregated_amount = BigUint::zero();
         tokens
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
         aggregated_amount
     }
 
-    fn aggregated_original_entering_epoch(&self, tokens: &[FarmToken<Self::BigUint>]) -> u64 {
+    fn aggregated_original_entering_epoch(&self, tokens: &[FarmToken<Self::Api>]) -> u64 {
         let mut dataset = Vec::new();
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
-                value: x.attributes.original_entering_epoch.into(),
+                value: self
+                    .types()
+                    .big_uint_from(x.attributes.original_entering_epoch),
                 weight: x.token_amount.amount.clone(),
             })
         });
@@ -172,13 +179,13 @@ pub trait FarmTokenMergeModule:
         avg.to_u64().unwrap()
     }
 
-    fn weighted_average(&self, dataset: Vec<ValueWeight<Self::BigUint>>) -> Self::BigUint {
-        let mut weight_sum = 0u64.into();
+    fn weighted_average(&self, dataset: Vec<ValueWeight<Self::Api>>) -> BigUint {
+        let mut weight_sum = BigUint::zero();
         dataset
             .iter()
             .for_each(|x| weight_sum = &weight_sum + &x.weight);
 
-        let mut elem_weight_sum = 0u64.into();
+        let mut elem_weight_sum = BigUint::zero();
         dataset
             .iter()
             .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));

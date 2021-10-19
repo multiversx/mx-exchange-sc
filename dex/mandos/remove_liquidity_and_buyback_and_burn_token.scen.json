@@ -9,7 +9,7 @@
 			"step": "checkState",
 			"accounts": {
 				"sc:pair_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": {
@@ -68,7 +68,7 @@
 			"step": "checkState",
 			"accounts": {
 				"sc:pair_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": {
