@@ -143,11 +143,7 @@ pub trait ProxyPairModule:
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
-        self.send_multiple_tokens_compact(
-            &caller.to_address(),
-            &surplus_payments,
-            &OptionalArg::None,
-        )?;
+        self.send_multiple_tokens_compact(&caller, &surplus_payments, &OptionalArg::None)?;
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -235,7 +231,7 @@ pub trait ProxyPairModule:
             .direct(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &locked_asset_token_id,
             attributes.locked_assets_nonce,

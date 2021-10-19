@@ -22,7 +22,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
             attributes,
         );
         let last_created_nonce = self.locked_asset_token_nonce().get();
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             address,
             &token_id,
             last_created_nonce,
@@ -41,13 +41,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
-        self.direct_esdt_nft_execute_custom(
-            address,
-            &token_id,
-            sft_nonce,
-            amount,
-            opt_accept_funds_func,
-        )
+        self.transfer_execute_custom(address, &token_id, sft_nonce, amount, opt_accept_funds_func)
     }
 
     fn create_tokens(
@@ -87,7 +81,9 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         }
 
         if unlock_percent > 100 {
-            self.send().signal_error(b"unlock percent greater than 100");
+            let mut err = self.error().new_error();
+            err.append_bytes(&b"unlock percent greater than 100"[..]);
+            err.exit_now();
         }
 
         unlock_percent

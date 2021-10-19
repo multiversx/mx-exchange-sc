@@ -12,20 +12,6 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     #[endpoint(acceptPay)]
     fn accept_pay(&self) {}
 
-    fn direct_generic_safe(
-        &self,
-        to: &ManagedAddress,
-        token_id: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &BigUint,
-    ) -> SCResult<()> {
-        if amount > &0 {
-            self.direct_esdt_nft_execute_custom(to, token_id, nonce, amount, &OptionalArg::None)
-        } else {
-            Ok(())
-        }
-    }
-
     fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
         let new_nonce = self.wrapped_lp_token_nonce().get() + 1;
         self.wrapped_lp_token_nonce().set(&new_nonce);

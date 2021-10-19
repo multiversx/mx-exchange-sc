@@ -13,8 +13,7 @@ const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
 use common_structs::{
-    Epoch, FftTokenAmountPair, GenericTokenAmountPair, LockedAssetTokenAttributes, Nonce,
-    UnlockMilestone, UnlockPeriod, UnlockSchedule,
+    Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone, UnlockPeriod, UnlockSchedule,
 };
 
 #[elrond_wasm::contract]
@@ -77,7 +76,7 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
         unlock_period: UnlockPeriod,
-    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -95,10 +94,12 @@ pub trait LockedAssetFactory:
             self.produce_tokens_and_send(&amount, &attr, &address, &OptionalArg::None)?;
 
         self.emit_create_and_forward_event(
-            caller,
-            address,
-            new_token.clone(),
-            attr,
+            &caller,
+            &address,
+            &new_token.token_identifier,
+            new_token.token_nonce,
+            &new_token.amount,
+            &attr,
             month_start_epoch,
         );
         Ok(new_token)
@@ -111,7 +112,7 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -134,7 +135,15 @@ pub trait LockedAssetFactory:
         let new_token =
             self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func)?;
 
-        self.emit_create_and_forward_event(caller, address, new_token.clone(), attr, start_epoch);
+        self.emit_create_and_forward_event(
+            &caller,
+            &address,
+            &new_token.token_identifier,
+            new_token.token_nonce,
+            &new_token.amount,
+            &attr,
+            start_epoch,
+        );
         Ok(new_token)
     }
 
@@ -164,10 +173,11 @@ pub trait LockedAssetFactory:
         let caller = self.blockchain().get_caller();
         self.mint_and_send_assets(&caller, &unlock_amount);
 
-        let mut output_locked_assets_token_amount = GenericTokenAmountPair {
-            token_id: token_id.clone(),
+        let mut output_locked_assets_token_amount = EsdtTokenPayment {
+            token_identifier: token_id.clone(),
             token_nonce: 0,
             amount: BigUint::zero(),
+            token_type: EsdtTokenType::Invalid,
         };
         let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
             unlock_schedule: UnlockSchedule {
@@ -198,22 +208,18 @@ pub trait LockedAssetFactory:
 
         self.nft_burn_tokens(&locked_token_id, token_nonce, &amount);
 
-        let input_locked_assets_token_amount = GenericTokenAmountPair {
-            token_id,
-            token_nonce,
-            amount,
-        };
-        let assets_token_amount = FftTokenAmountPair {
-            token_id: self.asset_token_id().get(),
-            amount: unlock_amount,
-        };
         self.emit_unlock_assets_event(
-            caller,
-            input_locked_assets_token_amount,
-            output_locked_assets_token_amount,
-            assets_token_amount,
-            attributes,
-            output_locked_asset_attributes,
+            &caller,
+            &token_id,
+            token_nonce,
+            &amount,
+            &output_locked_assets_token_amount.token_identifier,
+            output_locked_assets_token_amount.token_nonce,
+            &output_locked_assets_token_amount.amount,
+            &self.asset_token_id().get(),
+            &unlock_amount,
+            &attributes,
+            &output_locked_asset_attributes,
         );
         Ok(())
     }
@@ -240,7 +246,7 @@ pub trait LockedAssetFactory:
         attributes: &LockedAssetTokenAttributes,
         address: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
@@ -275,11 +281,9 @@ pub trait LockedAssetFactory:
                 new_nonce
             }
         };
-        Ok(GenericTokenAmountPair {
-            token_id: self.locked_asset_token_id().get(),
-            token_nonce: sent_nonce,
-            amount: amount.clone(),
-        })
+
+        let token_id = self.locked_asset_token_id().get();
+        Ok(self.nonfungible_payment(&token_id, sent_nonce, &amount))
     }
 
     #[only_owner]

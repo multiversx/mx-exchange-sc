@@ -12,22 +12,18 @@ mod events;
 pub mod fee;
 mod liquidity_pool;
 
-use common_structs::FftTokenAmountPair;
 use config::State;
 
-type AddLiquidityResultType<BigUint> = MultiResult3<
-    FftTokenAmountPair<BigUint>,
-    FftTokenAmountPair<BigUint>,
-    FftTokenAmountPair<BigUint>,
->;
+type AddLiquidityResultType<BigUint> =
+    MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 type RemoveLiquidityResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-type SwapTokensFixedInputResultType<BigUint> = FftTokenAmountPair<BigUint>;
+type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 type SwapTokensFixedOutputResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Pair:
@@ -154,50 +150,31 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        let caller = self.blockchain().get_caller();
-        self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
-        self.send_tokens(
-            &expected_first_token_id,
-            &first_token_unused,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
-        self.send_tokens(
-            &expected_second_token_id,
-            &second_token_unused,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        let mut payments = Vec::new();
+        payments.push(self.fungible_payment(&lp_token_id, &liquidity));
+        payments.push(self.fungible_payment(&expected_first_token_id, &first_token_unused));
+        payments.push(self.fungible_payment(&expected_second_token_id, &second_token_unused));
 
-        let lp_token_amount = FftTokenAmountPair {
-            token_id: lp_token_id,
-            amount: liquidity,
-        };
-        let first_token_amount = FftTokenAmountPair {
-            token_id: expected_first_token_id.clone(),
-            amount: first_token_amount,
-        };
-        let second_token_amount = FftTokenAmountPair {
-            token_id: expected_second_token_id.clone(),
-            amount: second_token_amount,
-        };
-        let first_token_reserve = FftTokenAmountPair {
-            token_id: expected_first_token_id.clone(),
-            amount: self.pair_reserve(&expected_first_token_id).get(),
-        };
-        let second_token_reserve = FftTokenAmountPair {
-            token_id: expected_second_token_id.clone(),
-            amount: self.pair_reserve(&expected_second_token_id).get(),
-        };
+        let caller = self.blockchain().get_caller();
+        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
+
         self.emit_add_liquidity_event(
-            caller,
-            first_token_amount.clone(),
-            second_token_amount.clone(),
-            lp_token_amount.clone(),
-            self.get_total_lp_token_supply(),
-            [first_token_reserve, second_token_reserve].to_vec(),
+            &caller,
+            &expected_first_token_id,
+            &first_token_amount,
+            &expected_second_token_id,
+            &second_token_amount,
+            &lp_token_id,
+            &liquidity,
+            &self.get_total_lp_token_supply(),
+            &self.pair_reserve(&expected_first_token_id).get(),
+            &self.pair_reserve(&expected_second_token_id).get(),
         );
-        Ok((lp_token_amount, first_token_amount, second_token_amount).into())
+        Ok(MultiResult3::from((
+            self.fungible_payment(&lp_token_id, &liquidity),
+            self.fungible_payment(&expected_first_token_id, &first_token_amount),
+            self.fungible_payment(&expected_second_token_id, &second_token_amount),
+        )))
     }
 
     #[payable("*")]
@@ -233,50 +210,29 @@ pub trait Pair:
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 
-        self.send_tokens(
-            &first_token_id,
-            &first_token_amount,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
-        self.send_tokens(
-            &second_token_id,
-            &second_token_amount,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        let mut payments = Vec::new();
+        payments.push(self.fungible_payment(&first_token_id, &first_token_amount));
+        payments.push(self.fungible_payment(&second_token_id, &second_token_amount));
+        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
 
         self.burn_tokens(&token_id, &liquidity);
 
-        let lp_token_amount = FftTokenAmountPair {
-            token_id: lp_token_id,
-            amount: liquidity,
-        };
-        let first_token_amount = FftTokenAmountPair {
-            token_id: first_token_id.clone(),
-            amount: first_token_amount,
-        };
-        let second_token_amount = FftTokenAmountPair {
-            token_id: second_token_id.clone(),
-            amount: second_token_amount,
-        };
-        let first_token_reserve = FftTokenAmountPair {
-            token_id: first_token_id.clone(),
-            amount: self.pair_reserve(&first_token_id).get(),
-        };
-        let second_token_reserve = FftTokenAmountPair {
-            token_id: second_token_id.clone(),
-            amount: self.pair_reserve(&second_token_id).get(),
-        };
         self.emit_remove_liquidity_event(
-            caller,
-            first_token_amount.clone(),
-            second_token_amount.clone(),
-            lp_token_amount,
-            self.get_total_lp_token_supply(),
-            [first_token_reserve, second_token_reserve].to_vec(),
+            &caller,
+            &first_token_id,
+            &first_token_amount,
+            &second_token_id,
+            &second_token_amount,
+            &lp_token_id,
+            &liquidity,
+            &self.get_total_lp_token_supply(),
+            &self.pair_reserve(&first_token_id).get(),
+            &self.pair_reserve(&second_token_id).get(),
         );
-        Ok((first_token_amount, second_token_amount).into())
+        Ok(MultiResult2::from((
+            self.fungible_payment(&first_token_id, &first_token_amount),
+            self.fungible_payment(&second_token_id, &second_token_amount),
+        )))
     }
 
     #[payable("*")]
@@ -371,11 +327,14 @@ pub trait Pair:
 
         self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
 
-        let swap_out_token_amount = FftTokenAmountPair {
-            token_id: token_out,
-            amount: amount_out,
-        };
-        self.emit_swap_no_fee_and_forward_event(caller, swap_out_token_amount, destination_address);
+        self.emit_swap_no_fee_and_forward_event(
+            &caller,
+            &token_in,
+            &amount_in,
+            &token_out,
+            &amount_out,
+            &destination_address,
+        );
         Ok(())
     }
 
@@ -444,37 +403,25 @@ pub trait Pair:
         if self.is_fee_enabled() {
             self.send_fee(&token_in, &fee_amount);
         }
-        self.send_tokens(
-            &token_out,
-            &amount_out_optimal,
+        self.transfer_execute_custom(
             &caller,
+            &token_out,
+            0,
+            &amount_out_optimal,
             &opt_accept_funds_func,
         )?;
 
-        let token_amount_in = FftTokenAmountPair {
-            token_id: token_in.clone(),
-            amount: amount_in,
-        };
-        let token_amount_out = FftTokenAmountPair {
-            token_id: token_out.clone(),
-            amount: amount_out_optimal,
-        };
-        let token_in_reserves = FftTokenAmountPair {
-            token_id: token_in,
-            amount: reserve_token_in,
-        };
-        let token_out_reserves = FftTokenAmountPair {
-            token_id: token_out,
-            amount: reserve_token_out,
-        };
         self.emit_swap_event(
-            caller,
-            token_amount_in,
-            token_amount_out.clone(),
-            fee_amount,
-            [token_in_reserves, token_out_reserves].to_vec(),
+            &caller,
+            &token_in,
+            &amount_in,
+            &token_out,
+            &amount_out_optimal,
+            &fee_amount,
+            &reserve_token_in,
+            &reserve_token_out,
         );
-        Ok(token_amount_out)
+        Ok(self.fungible_payment(&token_out, &amount_out_optimal))
     }
 
     #[payable("*")]
@@ -540,50 +487,25 @@ pub trait Pair:
             self.send_fee(&token_in, &fee_amount);
         }
 
-        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
-        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
+        let mut payments = Vec::new();
+        payments.push(self.fungible_payment(&token_out, &amount_out));
+        payments.push(self.fungible_payment(&token_in, &residuum));
+        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
 
-        let token_amount_in = FftTokenAmountPair {
-            token_id: token_in.clone(),
-            amount: amount_in_optimal,
-        };
-        let token_amount_out = FftTokenAmountPair {
-            token_id: token_out.clone(),
-            amount: amount_out,
-        };
-        let token_in_reserves = FftTokenAmountPair {
-            token_id: token_in.clone(),
-            amount: reserve_token_in,
-        };
-        let token_out_reserves = FftTokenAmountPair {
-            token_id: token_out,
-            amount: reserve_token_out,
-        };
-        let residuum_token_amount = FftTokenAmountPair {
-            token_id: token_in,
-            amount: residuum,
-        };
         self.emit_swap_event(
-            caller,
-            token_amount_in,
-            token_amount_out.clone(),
-            fee_amount,
-            [token_in_reserves, token_out_reserves].to_vec(),
+            &caller,
+            &token_in,
+            &amount_in_optimal,
+            &token_out,
+            &amount_out,
+            &fee_amount,
+            &reserve_token_in,
+            &reserve_token_out,
         );
-        Ok((token_amount_out, residuum_token_amount).into())
-    }
-
-    fn send_tokens(
-        &self,
-        token: &TokenIdentifier,
-        amount: &BigUint,
-        destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        if amount > &0 {
-            self.send_fft_tokens(destination, token, amount, opt_accept_funds_func)?;
-        }
-        Ok(())
+        Ok(MultiResult2::from((
+            self.fungible_payment(&token_out, &amount_out),
+            self.fungible_payment(&token_in, &residuum),
+        )))
     }
 
     #[endpoint(setLpTokenIdentifier)]
@@ -621,7 +543,7 @@ pub trait Pair:
     fn get_tokens_for_given_position(
         &self,
         liquidity: BigUint,
-    ) -> MultiResult2<FftTokenAmountPair<Self::Api>, FftTokenAmountPair<Self::Api>> {
+    ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         self.get_both_tokens_for_given_position(liquidity)
     }
 

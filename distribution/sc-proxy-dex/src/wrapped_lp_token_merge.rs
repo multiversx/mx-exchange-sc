@@ -73,7 +73,7 @@ pub trait WrappedLpTokenMerge:
         self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_amount, &attrs);
         let new_nonce = self.increase_wrapped_lp_token_nonce();
 
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             caller,
             &wrapped_lp_token_id,
             new_nonce,

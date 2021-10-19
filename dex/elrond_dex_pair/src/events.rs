@@ -1,15 +1,16 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FftTokenAmountPair;
-
 #[derive(TopEncode)]
 pub struct SwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
-    token_amount_in: FftTokenAmountPair<M>,
-    token_amount_out: FftTokenAmountPair<M>,
+    token_id_in: TokenIdentifier<M>,
+    token_amount_in: BigUint<M>,
+    token_id_out: TokenIdentifier<M>,
+    token_amount_out: BigUint<M>,
     fee_amount: BigUint<M>,
-    pair_reserves: Vec<FftTokenAmountPair<M>>,
+    token_in_reserve: BigUint<M>,
+    token_out_reserve: BigUint<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -18,7 +19,10 @@ pub struct SwapEvent<M: ManagedTypeApi> {
 #[derive(TopEncode)]
 pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
-    swap_out_token_amount: FftTokenAmountPair<M>,
+    token_id_in: TokenIdentifier<M>,
+    token_amount_in: BigUint<M>,
+    token_id_out: TokenIdentifier<M>,
+    token_amount_out: BigUint<M>,
     destination: ManagedAddress<M>,
     block: u64,
     epoch: u64,
@@ -28,11 +32,15 @@ pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
 #[derive(TopEncode)]
 pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
-    first_token_amount: FftTokenAmountPair<M>,
-    second_token_amount: FftTokenAmountPair<M>,
-    lp_token_amount: FftTokenAmountPair<M>,
+    first_token_id: TokenIdentifier<M>,
+    first_token_amount: BigUint<M>,
+    second_token_id: TokenIdentifier<M>,
+    second_token_amount: BigUint<M>,
+    lp_token_id: TokenIdentifier<M>,
+    lp_token_amount: BigUint<M>,
     lp_supply: BigUint<M>,
-    pair_reserves: Vec<FftTokenAmountPair<M>>,
+    first_token_reserves: BigUint<M>,
+    second_token_reserves: BigUint<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -41,11 +49,15 @@ pub struct AddLiquidityEvent<M: ManagedTypeApi> {
 #[derive(TopEncode)]
 pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
-    first_token_amount: FftTokenAmountPair<M>,
-    second_token_amount: FftTokenAmountPair<M>,
-    lp_token_amount: FftTokenAmountPair<M>,
+    first_token_id: TokenIdentifier<M>,
+    first_token_amount: BigUint<M>,
+    second_token_id: TokenIdentifier<M>,
+    second_token_amount: BigUint<M>,
+    lp_token_id: TokenIdentifier<M>,
+    lp_token_amount: BigUint<M>,
     lp_supply: BigUint<M>,
-    pair_reserves: Vec<FftTokenAmountPair<M>>,
+    first_token_reserves: BigUint<M>,
+    second_token_reserves: BigUint<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -55,24 +67,30 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
 pub trait EventsModule {
     fn emit_swap_event(
         &self,
-        caller: ManagedAddress,
-        token_amount_in: FftTokenAmountPair<Self::Api>,
-        token_amount_out: FftTokenAmountPair<Self::Api>,
-        fee_amount: BigUint,
-        pair_reserves: Vec<FftTokenAmountPair<Self::Api>>,
+        caller: &ManagedAddress,
+        token_id_in: &TokenIdentifier,
+        token_amount_in: &BigUint,
+        token_id_out: &TokenIdentifier,
+        token_amount_out: &BigUint,
+        fee_amount: &BigUint,
+        token_in_reserve: &BigUint,
+        token_out_reserve: &BigUint,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.swap_event(
-            token_amount_in.token_id.clone(),
-            token_amount_out.token_id.clone(),
-            caller.clone(),
+            token_id_in,
+            token_id_out,
+            caller,
             epoch,
-            SwapEvent {
-                caller,
-                token_amount_in,
-                token_amount_out,
-                fee_amount,
-                pair_reserves,
+            &SwapEvent {
+                caller: caller.clone(),
+                token_id_in: token_id_in.clone(),
+                token_amount_in: token_amount_in.clone(),
+                token_id_out: token_id_out.clone(),
+                token_amount_out: token_amount_out.clone(),
+                fee_amount: fee_amount.clone(),
+                token_in_reserve: token_in_reserve.clone(),
+                token_out_reserve: token_out_reserve.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -82,19 +100,25 @@ pub trait EventsModule {
 
     fn emit_swap_no_fee_and_forward_event(
         &self,
-        caller: ManagedAddress,
-        swap_out_token_amount: FftTokenAmountPair<Self::Api>,
-        destination: ManagedAddress,
+        caller: &ManagedAddress,
+        token_id_in: &TokenIdentifier,
+        token_amount_in: &BigUint,
+        token_id_out: &TokenIdentifier,
+        token_amount_out: &BigUint,
+        destination: &ManagedAddress,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.swap_no_fee_and_forward_event(
-            swap_out_token_amount.token_id.clone(),
-            caller.clone(),
+            token_id_out,
+            caller,
             epoch,
-            SwapNoFeeAndForwardEvent {
-                caller,
-                swap_out_token_amount,
-                destination,
+            &SwapNoFeeAndForwardEvent {
+                caller: caller.clone(),
+                token_id_in: token_id_in.clone(),
+                token_amount_in: token_amount_in.clone(),
+                token_id_out: token_id_out.clone(),
+                token_amount_out: token_amount_out.clone(),
+                destination: destination.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -104,26 +128,34 @@ pub trait EventsModule {
 
     fn emit_add_liquidity_event(
         &self,
-        caller: ManagedAddress,
-        first_token_amount: FftTokenAmountPair<Self::Api>,
-        second_token_amount: FftTokenAmountPair<Self::Api>,
-        lp_token_amount: FftTokenAmountPair<Self::Api>,
-        lp_supply: BigUint,
-        pair_reserves: Vec<FftTokenAmountPair<Self::Api>>,
+        caller: &ManagedAddress,
+        first_token_id: &TokenIdentifier,
+        first_token_amount: &BigUint,
+        second_token_id: &TokenIdentifier,
+        second_token_amount: &BigUint,
+        lp_token_id: &TokenIdentifier,
+        lp_token_amount: &BigUint,
+        lp_supply: &BigUint,
+        first_token_reserves: &BigUint,
+        second_token_reserves: &BigUint,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.add_liquidity_event(
-            first_token_amount.token_id.clone(),
-            second_token_amount.token_id.clone(),
-            caller.clone(),
+            first_token_id,
+            second_token_id,
+            caller,
             epoch,
-            AddLiquidityEvent {
-                caller,
-                first_token_amount,
-                second_token_amount,
-                lp_token_amount,
-                lp_supply,
-                pair_reserves,
+            &AddLiquidityEvent {
+                caller: caller.clone(),
+                first_token_id: first_token_id.clone(),
+                first_token_amount: first_token_amount.clone(),
+                second_token_id: second_token_id.clone(),
+                second_token_amount: second_token_amount.clone(),
+                lp_token_id: lp_token_id.clone(),
+                lp_token_amount: lp_token_amount.clone(),
+                lp_supply: lp_supply.clone(),
+                first_token_reserves: first_token_reserves.clone(),
+                second_token_reserves: second_token_reserves.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -133,26 +165,34 @@ pub trait EventsModule {
 
     fn emit_remove_liquidity_event(
         &self,
-        caller: ManagedAddress,
-        first_token_amount: FftTokenAmountPair<Self::Api>,
-        second_token_amount: FftTokenAmountPair<Self::Api>,
-        lp_token_amount: FftTokenAmountPair<Self::Api>,
-        lp_supply: BigUint,
-        pair_reserves: Vec<FftTokenAmountPair<Self::Api>>,
+        caller: &ManagedAddress,
+        first_token_id: &TokenIdentifier,
+        first_token_amount: &BigUint,
+        second_token_id: &TokenIdentifier,
+        second_token_amount: &BigUint,
+        lp_token_id: &TokenIdentifier,
+        lp_token_amount: &BigUint,
+        lp_supply: &BigUint,
+        first_token_reserves: &BigUint,
+        second_token_reserves: &BigUint,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.remove_liquidity_event(
-            first_token_amount.token_id.clone(),
-            second_token_amount.token_id.clone(),
-            caller.clone(),
+            first_token_id,
+            second_token_id,
+            caller,
             epoch,
-            RemoveLiquidityEvent {
-                caller,
-                first_token_amount,
-                second_token_amount,
-                lp_token_amount,
-                lp_supply,
-                pair_reserves,
+            &RemoveLiquidityEvent {
+                caller: caller.clone(),
+                first_token_id: first_token_id.clone(),
+                first_token_amount: first_token_amount.clone(),
+                second_token_id: second_token_id.clone(),
+                second_token_amount: second_token_amount.clone(),
+                lp_token_id: lp_token_id.clone(),
+                lp_token_amount: lp_token_amount.clone(),
+                lp_supply: lp_supply.clone(),
+                first_token_reserves: first_token_reserves.clone(),
+                second_token_reserves: second_token_reserves.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -163,39 +203,39 @@ pub trait EventsModule {
     #[event("swap")]
     fn swap_event(
         &self,
-        #[indexed] token_in: TokenIdentifier,
-        #[indexed] token_out: TokenIdentifier,
-        #[indexed] caller: ManagedAddress,
+        #[indexed] token_in: &TokenIdentifier,
+        #[indexed] token_out: &TokenIdentifier,
+        #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
-        swap_event: SwapEvent<Self::Api>,
+        swap_event: &SwapEvent<Self::Api>,
     );
 
     #[event("swap_no_fee_and_forward")]
     fn swap_no_fee_and_forward_event(
         &self,
-        #[indexed] swap_out_token: TokenIdentifier,
-        #[indexed] caller: ManagedAddress,
+        #[indexed] token_id_out: &TokenIdentifier,
+        #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
-        swap_no_fee_and_forward_event: SwapNoFeeAndForwardEvent<Self::Api>,
+        swap_no_fee_and_forward_event: &SwapNoFeeAndForwardEvent<Self::Api>,
     );
 
     #[event("add_liquidity")]
     fn add_liquidity_event(
         &self,
-        #[indexed] first_token: TokenIdentifier,
-        #[indexed] second_token: TokenIdentifier,
-        #[indexed] caller: ManagedAddress,
+        #[indexed] first_token: &TokenIdentifier,
+        #[indexed] second_token: &TokenIdentifier,
+        #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
-        add_liquidity_event: AddLiquidityEvent<Self::Api>,
+        add_liquidity_event: &AddLiquidityEvent<Self::Api>,
     );
 
     #[event("remove_liquidity")]
     fn remove_liquidity_event(
         &self,
-        #[indexed] first_token: TokenIdentifier,
-        #[indexed] second_token: TokenIdentifier,
-        #[indexed] caller: ManagedAddress,
+        #[indexed] first_token: &TokenIdentifier,
+        #[indexed] second_token: &TokenIdentifier,
+        #[indexed] caller: &ManagedAddress,
         #[indexed] epoch: u64,
-        remove_liquidity_event: RemoveLiquidityEvent<Self::Api>,
+        remove_liquidity_event: &RemoveLiquidityEvent<Self::Api>,
     );
 }

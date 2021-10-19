@@ -135,7 +135,7 @@ pub trait FactoryModule {
             Some((temporary_owner, creation_block)) => {
                 let expire_block = creation_block + self.temporary_owner_period().get();
 
-                if expire_block >= self.blockchain().get_block_nonce() {
+                if expire_block <= self.blockchain().get_block_nonce() {
                     self.pair_temporary_owner().remove(pair_address);
                     None
                 } else {

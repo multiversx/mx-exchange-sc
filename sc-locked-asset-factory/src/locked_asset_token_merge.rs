@@ -1,9 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{
-    GenericTokenAmountPair, LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule,
-};
+use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
 
 use super::locked_asset;
 use super::locked_asset::PERCENTAGE_TOTAL;
@@ -11,7 +9,7 @@ use super::locked_asset::PERCENTAGE_TOTAL;
 const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 
 pub struct LockedToken<M: ManagedTypeApi> {
-    pub token_amount: GenericTokenAmountPair<M>,
+    pub token_amount: EsdtTokenPayment<M>,
     pub attributes: LockedAssetTokenAttributes,
 }
 
@@ -27,7 +25,7 @@ pub trait LockedAssetTokenMergeModule:
     fn merge_locked_asset_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_all_payments();
         require!(!payments.is_empty(), "Empty payment vec");
@@ -42,7 +40,7 @@ pub trait LockedAssetTokenMergeModule:
         self.increase_nonce();
 
         let new_nonce = self.locked_asset_token_nonce().get();
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &locked_asset_token,
             new_nonce,
@@ -50,11 +48,7 @@ pub trait LockedAssetTokenMergeModule:
             &opt_accept_funds_func,
         )?;
 
-        Ok(GenericTokenAmountPair {
-            token_id: locked_asset_token,
-            token_nonce: new_nonce,
-            amount,
-        })
+        Ok(self.nonfungible_payment(&locked_asset_token, new_nonce, &amount))
     }
 
     fn burn_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
@@ -81,11 +75,11 @@ pub trait LockedAssetTokenMergeModule:
             );
 
             tokens.push(LockedToken {
-                token_amount: GenericTokenAmountPair {
-                    token_id: entry.token_identifier.clone(),
-                    token_nonce: entry.token_nonce,
-                    amount: entry.amount.clone(),
-                },
+                token_amount: self.nonfungible_payment(
+                    &entry.token_identifier,
+                    entry.token_nonce,
+                    &entry.amount,
+                ),
                 attributes: self.get_attributes(&entry.token_identifier, entry.token_nonce)?,
             });
             sum_amount += &entry.amount;

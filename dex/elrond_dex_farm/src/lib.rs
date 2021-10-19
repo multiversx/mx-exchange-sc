@@ -7,9 +7,7 @@ mod farm_token;
 pub mod farm_token_merge;
 mod rewards;
 
-use common_structs::{
-    Epoch, FarmTokenAttributes, FftTokenAmountPair, GenericTokenAmountPair, Nonce,
-};
+use common_structs::{Epoch, FarmTokenAttributes, Nonce};
 use config::State;
 use farm_token::FarmToken;
 
@@ -21,12 +19,12 @@ use crate::config::{
     DEFAULT_PENALTY_PERCENT, DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
 
-type EnterFarmResultType<BigUint> = GenericTokenAmountPair<BigUint>;
-type CompoundRewardsResultType<BigUint> = GenericTokenAmountPair<BigUint>;
+type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
+type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiResult2<GenericTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
+    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
+    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -163,7 +161,7 @@ pub trait Farm:
             &attributes,
             &payments[1..],
         )?;
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
@@ -171,22 +169,18 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let farming_token_amount = FftTokenAmountPair {
-            token_id: farming_token_id,
-            amount: enter_amount,
-        };
-        let reward_token_reserve = FftTokenAmountPair {
-            token_id: reward_token_id,
-            amount: self.reward_reserve().get(),
-        };
         self.emit_enter_farm_event(
-            caller,
-            farming_token_amount,
-            self.farming_token_reserve().get(),
-            new_farm_token.token_amount.clone(),
-            self.get_farm_token_supply(),
-            reward_token_reserve,
-            new_farm_token.attributes,
+            &caller,
+            &farming_token_id,
+            &enter_amount,
+            &self.farming_token_reserve().get(),
+            &new_farm_token.token_amount.token_identifier,
+            new_farm_token.token_amount.token_nonce,
+            &new_farm_token.token_amount.amount,
+            &self.get_farm_token_supply(),
+            &reward_token_id,
+            &self.reward_reserve().get(),
+            &new_farm_token.attributes,
             created_with_merge,
         );
         Ok(new_farm_token.token_amount)
@@ -269,31 +263,25 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let farming_token_amount = FftTokenAmountPair {
-            token_id: farming_token_id,
-            amount: initial_farming_token_amount,
-        };
-        let reward_token_amount = GenericTokenAmountPair {
-            token_id: reward_token_id,
-            token_nonce: reward_nonce,
-            amount: reward,
-        };
-        let farm_token_amount = GenericTokenAmountPair {
-            token_id: farm_token_id,
-            token_nonce,
-            amount,
-        };
         self.emit_exit_farm_event(
-            caller,
-            farming_token_amount.clone(),
-            self.farming_token_reserve().get(),
-            farm_token_amount,
-            self.get_farm_token_supply(),
-            reward_token_amount.clone(),
-            self.reward_reserve().get(),
-            farm_attributes,
+            &caller,
+            &farming_token_id,
+            &initial_farming_token_amount,
+            &self.farming_token_reserve().get(),
+            &farm_token_id,
+            token_nonce,
+            &amount,
+            &self.get_farm_token_supply(),
+            &reward_token_id,
+            reward_nonce,
+            &reward,
+            &self.reward_reserve().get(),
+            &farm_attributes,
         );
-        Ok((farming_token_amount, reward_token_amount).into())
+        Ok(MultiResult2::from((
+            self.fungible_payment(&farming_token_id, &initial_farming_token_amount),
+            self.nonfungible_payment(&reward_token_id, reward_nonce, &reward),
+        )))
     }
 
     #[payable("*")]
@@ -360,7 +348,7 @@ pub trait Farm:
             &new_attributes,
             &payments[1..],
         )?;
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
@@ -380,29 +368,27 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let old_farm_token_amount = GenericTokenAmountPair {
-            token_id: farm_token_id,
-            token_nonce,
-            amount,
-        };
-        let reward_token_amount = GenericTokenAmountPair {
-            token_id: reward_token_id,
-            token_nonce: reward_nonce,
-            amount: reward,
-        };
-
         self.emit_claim_rewards_event(
-            caller,
-            old_farm_token_amount,
-            new_farm_token.token_amount.clone(),
-            self.get_farm_token_supply(),
-            reward_token_amount.clone(),
-            self.reward_reserve().get(),
-            farm_attributes,
-            new_farm_token.attributes,
+            &caller,
+            &farm_token_id,
+            token_nonce,
+            &amount,
+            &new_farm_token.token_amount.token_identifier,
+            new_farm_token.token_amount.token_nonce,
+            &new_farm_token.token_amount.amount,
+            &self.get_farm_token_supply(),
+            &reward_token_id,
+            reward_nonce,
+            &reward,
+            &self.reward_reserve().get(),
+            &farm_attributes,
+            &new_farm_token.attributes,
             created_with_merge,
         );
-        Ok((new_farm_token.token_amount, reward_token_amount).into())
+        Ok(MultiResult2::from((
+            new_farm_token.token_amount,
+            self.nonfungible_payment(&reward_token_id, reward_nonce, &reward),
+        )))
     }
 
     #[payable("*")]
@@ -484,7 +470,7 @@ pub trait Farm:
             &new_attributes,
             &payments[1..],
         )?;
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
@@ -492,26 +478,21 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let old_farm_token_amount = GenericTokenAmountPair {
-            token_id: farm_token_id,
-            token_nonce: payment_token_nonce,
-            amount: payment_amount,
-        };
-        let reward_token_amount = GenericTokenAmountPair {
-            token_id: self.reward_token_id().get(),
-            token_nonce: 0,
-            amount: reward,
-        };
-
         self.emit_compound_rewards_event(
-            caller,
-            old_farm_token_amount,
-            new_farm_token.token_amount.clone(),
-            self.get_farm_token_supply(),
-            reward_token_amount,
-            self.reward_reserve().get(),
-            farm_attributes,
-            new_farm_token.attributes,
+            &caller,
+            &farm_token_id,
+            payment_token_nonce,
+            &payment_amount,
+            &new_farm_token.token_amount.token_identifier,
+            new_farm_token.token_amount.token_nonce,
+            &new_farm_token.token_amount.amount,
+            &self.get_farm_token_supply(),
+            &self.reward_token_id().get(),
+            0,
+            &reward,
+            &self.reward_reserve().get(),
+            &farm_attributes,
+            &new_farm_token.attributes,
             created_with_merge,
         );
         Ok(new_farm_token.token_amount)
@@ -529,11 +510,7 @@ pub trait Farm:
         }
 
         let initial_position = FarmToken {
-            token_amount: GenericTokenAmountPair {
-                token_id: farm_token_id.clone(),
-                token_nonce: 0,
-                amount: position_amount.clone(),
-            },
+            token_amount: self.fungible_payment(&farm_token_id, &position_amount),
             attributes: position_attributes.clone(),
         };
 
@@ -578,11 +555,7 @@ pub trait Farm:
         additional_payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
-            token_amount: GenericTokenAmountPair {
-                token_id: token_id.clone(),
-                token_nonce: 0,
-                amount: amount.clone(),
-            },
+            token_amount: self.fungible_payment(&token_id, &amount),
             attributes: attributes.clone(),
         };
 
@@ -596,11 +569,7 @@ pub trait Farm:
         let new_nonce = self.create_farm_tokens(&new_amount, token_id, &new_attributes);
 
         let new_farm_token = FarmToken {
-            token_amount: GenericTokenAmountPair {
-                token_id: token_id.clone(),
-                token_nonce: new_nonce,
-                amount: new_amount,
-            },
+            token_amount: self.nonfungible_payment(&token_id, new_nonce, &new_amount),
             attributes: new_attributes,
         };
         let is_merged = additional_payments_len != 0;
@@ -616,9 +585,10 @@ pub trait Farm:
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
         self.decrease_farming_token_reserve(farming_amount)?;
-        self.send_fft_tokens(
+        self.transfer_execute_custom(
             destination,
             farming_token_id,
+            0,
             farming_amount,
             opt_accept_funds_func,
         )?;
@@ -648,13 +618,14 @@ pub trait Farm:
                         opt_accept_funds_func.clone(),
                     )
                     .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
-                *reward_token_id = result.token_id;
+                *reward_token_id = result.token_identifier;
                 *reward_nonce = result.token_nonce;
                 *reward_amount = result.amount;
             } else {
-                self.send_fft_tokens(
+                self.transfer_execute_custom(
                     destination,
                     reward_token_id,
+                    0,
                     reward_amount,
                     opt_accept_funds_func,
                 )?;

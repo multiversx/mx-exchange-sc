@@ -354,7 +354,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn delete_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-        address: Address,
+        address: ManagedAddress,
     ) -> SCResult<()> {
         only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
@@ -369,7 +369,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn get_all_users_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-    ) -> MultiResultVec<UserLockedAssetKey> {
+    ) -> MultiResultVec<UserLockedAssetKey<Self::Api>> {
         self.user_locked_asset_map()
             .iter()
             .filter(|x| x.0.spread_epoch == spread_epoch)

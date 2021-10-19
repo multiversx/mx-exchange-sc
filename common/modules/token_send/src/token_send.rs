@@ -3,69 +3,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Nonce;
-
 #[elrond_wasm::module]
 pub trait TokenSendModule {
-    fn send_fft_tokens(
-        &self,
-        destination: &ManagedAddress,
-        token: &TokenIdentifier,
-        amount: &BigUint,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.clone(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => (BoxedBytes::empty(), 0u64),
-        };
-
-        self.raw_vm_api()
-            .direct_esdt_execute(
-                destination,
-                token,
-                amount,
-                gas_limit,
-                &ManagedBuffer::managed_from(self.type_manager(), function),
-                &ManagedArgBuffer::new_empty(self.type_manager()),
-            )
-            .into()
-    }
-
-    fn send_nft_tokens(
-        &self,
-        destination: &ManagedAddress,
-        token: &TokenIdentifier,
-        nonce: Nonce,
-        amount: &BigUint,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.clone(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => (BoxedBytes::empty(), 0u64),
-        };
-
-        self.raw_vm_api()
-            .direct_esdt_nft_execute(
-                destination,
-                token,
-                nonce,
-                amount,
-                gas_limit,
-                &ManagedBuffer::managed_from(self.type_manager(), function),
-                &ManagedArgBuffer::new_empty(self.type_manager()),
-            )
-            .into()
-    }
-
     fn send_multiple_tokens(
         &self,
-        destination: &Address,
+        destination: &ManagedAddress,
         payments: &[EsdtTokenPayment<Self::Api>],
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
@@ -82,7 +24,7 @@ pub trait TokenSendModule {
 
         self.raw_vm_api()
             .direct_multi_esdt_transfer_execute(
-                &ManagedAddress::managed_from(self.type_manager(), destination),
+                &destination,
                 &ManagedVec::managed_from(self.type_manager(), payments.to_vec()),
                 gas_limit,
                 &ManagedBuffer::managed_from(self.type_manager(), function),
@@ -93,7 +35,7 @@ pub trait TokenSendModule {
 
     fn send_multiple_tokens_compact(
         &self,
-        destination: &Address,
+        destination: &ManagedAddress,
         payments: &[EsdtTokenPayment<Self::Api>],
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
@@ -118,7 +60,7 @@ pub trait TokenSendModule {
         }
     }
 
-    fn direct_esdt_nft_execute_custom(
+    fn transfer_execute_custom(
         &self,
         to: &ManagedAddress,
         token: &TokenIdentifier,
@@ -126,6 +68,10 @@ pub trait TokenSendModule {
         amount: &BigUint,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
+        if amount == &0 {
+            return Ok(());
+        }
+
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
                 accept_funds_func.as_slice(),
@@ -159,6 +105,22 @@ pub trait TokenSendModule {
             .collect()
     }
 
+    fn fungible_payment(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
+        EsdtTokenPayment::from(token_id.clone(), 0, amount.clone())
+    }
+
+    fn nonfungible_payment(
+        &self,
+        token_id: &TokenIdentifier,
+        nonce: u64,
+        amount: &BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
+        EsdtTokenPayment::from(token_id.clone(), nonce, amount.clone())
+    }
     #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<u64>;

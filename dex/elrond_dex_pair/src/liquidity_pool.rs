@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 
 use super::amm;
 use super::config;
-use common_structs::FftTokenAmountPair;
 
 const MINIMUM_LIQUIDITY: u64 = 1_000;
 
@@ -160,26 +159,21 @@ pub trait LiquidityPoolModule:
         &self,
         liquidity: BigUint,
         token_id: TokenIdentifier,
-    ) -> FftTokenAmountPair<Self::Api> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let reserve = self.pair_reserve(&token_id).get();
         let total_supply = self.get_total_lp_token_supply();
         if total_supply != 0 {
-            FftTokenAmountPair {
-                token_id,
-                amount: liquidity * reserve / total_supply,
-            }
+            let amount = liquidity * reserve / total_supply;
+            self.fungible_payment(&token_id, &amount)
         } else {
-            FftTokenAmountPair {
-                token_id,
-                amount: BigUint::zero(),
-            }
+            self.fungible_payment(&token_id, &BigUint::zero())
         }
     }
 
     fn get_both_tokens_for_given_position(
         &self,
         liquidity: BigUint,
-    ) -> MultiResult2<FftTokenAmountPair<Self::Api>, FftTokenAmountPair<Self::Api>> {
+    ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         let first_token_id = self.first_token_id().get();
         let token_first_token_amount =
             self.get_token_for_given_position(liquidity.clone(), first_token_id);

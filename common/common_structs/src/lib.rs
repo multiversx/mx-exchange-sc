@@ -6,19 +6,6 @@ elrond_wasm::derive_imports!();
 pub type Nonce = u64;
 pub type Epoch = u64;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Clone)]
-pub struct FftTokenAmountPair<M: ManagedTypeApi> {
-    pub token_id: TokenIdentifier<M>,
-    pub amount: BigUint<M>,
-}
-
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Clone)]
-pub struct GenericTokenAmountPair<M: ManagedTypeApi> {
-    pub token_id: TokenIdentifier<M>,
-    pub token_nonce: Nonce,
-    pub amount: BigUint<M>,
-}
-
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Eq)]
 pub struct TokenPair<M: ManagedTypeApi> {
     pub first_token: TokenIdentifier<M>,

@@ -175,7 +175,7 @@ pub trait ProxyFarmModule:
         let reward_token_returned = farm_result.1;
 
         let caller = self.blockchain().get_caller();
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
@@ -183,11 +183,12 @@ pub trait ProxyFarmModule:
             &OptionalArg::None,
         )?;
 
-        self.direct_generic_safe(
+        self.transfer_execute_custom(
             &caller,
             &reward_token_returned.token_id,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
+            &OptionalArg::None,
         )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
@@ -260,11 +261,12 @@ pub trait ProxyFarmModule:
 
         // Send the reward to the caller.
         let caller = self.blockchain().get_caller();
-        self.direct_generic_safe(
+        self.transfer_execute_custom(
             &caller,
             &reward_token_returned.token_id,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
+            &OptionalArg::None,
         )?;
 
         // Create new Wrapped tokens and send them.

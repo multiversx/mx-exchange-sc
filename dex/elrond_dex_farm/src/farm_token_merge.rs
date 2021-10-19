@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, GenericTokenAmountPair};
+use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
 
@@ -22,7 +22,7 @@ pub trait FarmTokenMergeModule:
     fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_all_payments();
 
@@ -35,7 +35,7 @@ pub trait FarmTokenMergeModule:
 
         let new_amount = attrs.current_farm_amount;
         let new_nonce = self.farm_token_nonce().get();
-        self.direct_esdt_nft_execute_custom(
+        self.transfer_execute_custom(
             &caller,
             &farm_token_id,
             new_nonce,
@@ -43,11 +43,7 @@ pub trait FarmTokenMergeModule:
             &opt_accept_funds_func,
         )?;
 
-        Ok(GenericTokenAmountPair {
-            token_id: farm_token_id,
-            token_nonce: new_nonce,
-            amount: new_amount,
-        })
+        Ok(self.nonfungible_payment(&farm_token_id, new_nonce, &new_amount))
     }
 
     fn get_merged_farm_token_attributes(
@@ -68,11 +64,11 @@ pub trait FarmTokenMergeModule:
             require!(entry.token_identifier == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
-                token_amount: GenericTokenAmountPair {
-                    token_id: entry.token_identifier.clone(),
-                    token_nonce: entry.token_nonce,
-                    amount: entry.amount.clone(),
-                },
+                token_amount: self.nonfungible_payment(
+                    &entry.token_identifier,
+                    entry.token_nonce,
+                    &entry.amount,
+                ),
                 attributes: self.get_farm_attributes(&entry.token_identifier, entry.token_nonce)?,
             });
         }
