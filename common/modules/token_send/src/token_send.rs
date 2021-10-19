@@ -5,16 +5,6 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
-extern "C" {
-    fn managedMultiTransferESDTNFTExecute(
-        dstHandle: i32,
-        tokenTransfersHandle: i32,
-        gasLimit: i64,
-        functionHandle: i32,
-        argumentsHandle: i32,
-    ) -> i32;
-}
-
 #[elrond_wasm::module]
 pub trait TokenSendModule {
     fn send_fft_tokens(
@@ -151,20 +141,15 @@ pub trait TokenSendModule {
         let mut payments = ManagedVec::new();
         payments.push(EsdtTokenPayment::from(token.clone(), nonce, amount.clone()));
 
-        unsafe {
-            let result = managedMultiTransferESDTNFTExecute(
-                to.get_raw_handle(),
-                payments.get_raw_handle(),
-                gas_limit as i64,
-                endpoint_name.get_raw_handle(),
-                arg_buffer.get_raw_handle(),
-            );
-            if result == 0 {
-                Ok(()).into()
-            } else {
-                sc_error!("multiTransferESDTNFTExecute failed")
-            }
-        }
+        self.raw_vm_api()
+            .direct_multi_esdt_transfer_execute(
+                to,
+                &payments,
+                gas_limit,
+                &endpoint_name,
+                &arg_buffer,
+            )
+            .into()
     }
 
     fn get_all_payments(&self) -> Vec<EsdtTokenPayment<Self::Api>> {
