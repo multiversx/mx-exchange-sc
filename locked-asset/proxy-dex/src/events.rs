@@ -170,7 +170,7 @@ pub trait EventsModule {
         wrapped_lp_token_id: &TokenIdentifier,
         wrapped_lp_token_nonce: u64,
         wrapped_lp_token_amount: &BigUint,
-        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api>,
+        wrapped_lp_attributes: &WrappedLpTokenAttributes<Self::Api>,
         first_token_id: &TokenIdentifier,
         first_token_nonce: u64,
         first_token_amount: &BigUint,

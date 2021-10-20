@@ -285,19 +285,20 @@ pub trait ProxyFarmModule:
             )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
-        let old_wrapped_farm_token_amount = GenericTokenAmountPair {
-            token_id,
-            token_nonce,
-            amount,
-        };
         self.emit_claim_rewards_farm_proxy_event(
-            caller,
-            farm_address,
-            old_wrapped_farm_token_amount,
-            new_wrapped_farm.token_amount,
-            reward_token_returned,
-            wrapped_farm_token_attrs,
-            new_wrapped_farm.attributes,
+            &caller,
+            &farm_address,
+            &token_id,
+            token_nonce,
+            &amount,
+            &new_wrapped_farm.token_amount.token_identifier,
+            new_wrapped_farm.token_amount.token_nonce,
+            &new_wrapped_farm.token_amount.amount,
+            &reward_token_returned.token_identifier,
+            reward_token_returned.token_nonce,
+            &reward_token_returned.amount,
+            &wrapped_farm_token_attrs,
+            &new_wrapped_farm.attributes,
             created_with_merge,
         );
         Ok(())
@@ -369,18 +370,17 @@ pub trait ProxyFarmModule:
             )?;
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
-        let old_wrapped_farm_token_amount = GenericTokenAmountPair {
-            token_id: payment_token_id,
-            token_nonce: payment_token_nonce,
-            amount: payment_amount,
-        };
         self.emit_compound_rewards_farm_proxy_event(
-            caller,
-            farm_address,
-            old_wrapped_farm_token_amount,
-            new_wrapped_farm.token_amount,
-            wrapped_farm_token_attrs,
-            new_wrapped_farm.attributes,
+            &caller,
+            &farm_address,
+            &payment_token_id,
+            payment_token_nonce,
+            &payment_amount,
+            &new_wrapped_farm.token_amount.token_identifier,
+            new_wrapped_farm.token_amount.token_nonce,
+            &new_wrapped_farm.token_amount.amount,
+            &wrapped_farm_token_attrs,
+            &new_wrapped_farm.attributes,
             created_with_merge,
         );
         Ok(())
@@ -400,11 +400,7 @@ pub trait ProxyFarmModule:
             farm_address,
             additional_payments,
             Option::Some(WrappedFarmToken {
-                token_amount: GenericTokenAmountPair {
-                    token_id: wrapped_farm_token_id,
-                    token_nonce: 0,
-                    amount: amount.clone(),
-                },
+                token_amount: self.nonfungible_payment(&wrapped_farm_token_id, 0, &amount),
                 attributes: attributes.clone(),
             }),
             OptionalArg::None,

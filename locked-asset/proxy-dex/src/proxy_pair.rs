@@ -147,23 +147,19 @@ pub trait ProxyPairModule:
             self.burn_tokens(&asset_token_id, &unused_minted_assets);
         }
 
-        let first_token_amount = GenericTokenAmountPair {
-            token_id: first_token_id,
-            token_nonce: first_token_nonce,
-            amount: first_token_used.amount,
-        };
-        let second_token_amount = GenericTokenAmountPair {
-            token_id: second_token_id,
-            token_nonce: second_token_nonce,
-            amount: second_token_used.amount,
-        };
         self.emit_add_liquidity_proxy_event(
-            caller,
-            pair_address,
-            first_token_amount,
-            second_token_amount,
-            new_wrapped_lp_token.token_amount,
-            new_wrapped_lp_token.attributes,
+            &caller,
+            &pair_address,
+            &first_token_id,
+            first_token_nonce,
+            &first_token_used.amount,
+            &second_token_id,
+            first_token_nonce,
+            &second_token_used.amount,
+            &new_wrapped_lp_token.token_amount.token_identifier,
+            new_wrapped_lp_token.token_amount.token_nonce,
+            &new_wrapped_lp_token.token_amount.amount,
+            &new_wrapped_lp_token.attributes,
             created_with_merge,
         );
         Ok(())
@@ -253,28 +249,19 @@ pub trait ProxyPairModule:
         self.burn_tokens(&asset_token_id, &locked_assets_to_send);
         self.nft_burn_tokens(&wrapped_lp_token_id, token_nonce, &amount);
 
-        let wrapped_lp_token_amount = GenericTokenAmountPair {
-            token_id,
-            token_nonce,
-            amount,
-        };
-        let first_token_amount = GenericTokenAmountPair {
-            token_id: tokens_for_position.0.token_identifier,
-            token_nonce: 0,
-            amount: tokens_for_position.0.amount,
-        };
-        let second_token_amount = GenericTokenAmountPair {
-            token_id: tokens_for_position.1.token_identifier,
-            token_nonce: 0,
-            amount: tokens_for_position.1.amount,
-        };
         self.emit_remove_liquidity_proxy_event(
-            caller,
-            pair_address,
-            wrapped_lp_token_amount,
-            attributes,
-            first_token_amount,
-            second_token_amount,
+            &caller,
+            &pair_address,
+            &token_id,
+            token_nonce,
+            &amount,
+            &attributes,
+            &tokens_for_position.0.token_identifier,
+            0,
+            &tokens_for_position.0.amount,
+            &tokens_for_position.1.token_identifier,
+            0,
+            &tokens_for_position.1.amount,
         );
         Ok(())
     }
@@ -353,11 +340,11 @@ pub trait ProxyPairModule:
             caller,
             additional_payments,
             Option::Some(WrappedLpToken {
-                token_amount: GenericTokenAmountPair {
-                    token_id: self.wrapped_lp_token_id().get(),
-                    token_nonce: 0,
-                    amount: lp_token_amount.clone(),
-                },
+                token_amount: self.nonfungible_payment(
+                    &self.wrapped_lp_token_id().get(),
+                    0,
+                    lp_token_amount,
+                ),
                 attributes: WrappedLpTokenAttributes {
                     lp_token_id: lp_token_id.clone(),
                     lp_token_total_amount: lp_token_amount.clone(),

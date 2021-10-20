@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::abi_json::print_abi::<sc_proxy_dex::AbiProvider>();
+    elrond_wasm_debug::abi_json::print_abi::<proxy_dex::AbiProvider>();
 }

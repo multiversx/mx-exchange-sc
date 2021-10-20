@@ -60,10 +60,8 @@ pub trait WrappedLpTokenMerge:
 
         let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens)?;
         let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
-        let lp_token_amount = FftTokenAmountPair {
-            token_id: tokens[0].attributes.lp_token_id.clone(),
-            amount: merged_wrapped_lp_amount.clone(),
-        };
+        let lp_token_amount =
+            self.fungible_payment(&tokens[0].attributes.lp_token_id, &merged_wrapped_lp_amount);
 
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
@@ -81,11 +79,11 @@ pub trait WrappedLpTokenMerge:
         )?;
 
         let new_token = WrappedLpToken {
-            token_amount: GenericTokenAmountPair {
-                token_id: wrapped_lp_token_id,
-                token_nonce: new_nonce,
-                amount: merged_wrapped_lp_amount,
-            },
+            token_amount: self.nonfungible_payment(
+                &wrapped_lp_token_id,
+                new_nonce,
+                &merged_wrapped_lp_amount,
+            ),
             attributes: attrs,
         };
         let is_merged = payments_len != 0;
@@ -101,11 +99,7 @@ pub trait WrappedLpTokenMerge:
 
         for payment in payments.iter() {
             result.push(WrappedLpToken {
-                token_amount: GenericTokenAmountPair {
-                    token_id: payment.token_identifier.clone(),
-                    token_nonce: payment.token_nonce,
-                    amount: payment.amount.clone(),
-                },
+                token_amount: payment.clone(),
                 attributes: self.get_wrapped_lp_token_attributes(
                     &payment.token_identifier,
                     payment.token_nonce,
@@ -146,11 +140,11 @@ pub trait WrappedLpTokenMerge:
 
     fn get_merged_wrapped_lp_token_attributes(
         &self,
-        lp_token_amount: &FftTokenAmountPair<Self::Api>,
-        merged_locked_asset_token_amount: &GenericTokenAmountPair<Self::Api>,
+        lp_token_amount: &EsdtTokenPayment<Self::Api>,
+        merged_locked_asset_token_amount: &EsdtTokenPayment<Self::Api>,
     ) -> WrappedLpTokenAttributes<Self::Api> {
         WrappedLpTokenAttributes {
-            lp_token_id: lp_token_amount.token_id.clone(),
+            lp_token_id: lp_token_amount.token_identifier.clone(),
             lp_token_total_amount: lp_token_amount.amount.clone(),
             locked_assets_invested: merged_locked_asset_token_amount.amount.clone(),
             locked_assets_nonce: merged_locked_asset_token_amount.token_nonce,
@@ -160,7 +154,7 @@ pub trait WrappedLpTokenMerge:
     fn merge_locked_asset_tokens_from_wrapped_lp(
         &self,
         tokens: &[WrappedLpToken<Self::Api>],
-    ) -> SCResult<GenericTokenAmountPair<Self::Api>> {
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
         let locked_asset_token = self.locked_asset_token_id().get();
 
@@ -172,11 +166,12 @@ pub trait WrappedLpTokenMerge:
                 &token.attributes.lp_token_total_amount,
                 &token.attributes.locked_assets_invested,
             )?;
-            return Ok(GenericTokenAmountPair {
-                token_id: locked_asset_token,
-                token_nonce: token.attributes.locked_assets_nonce,
-                amount,
-            });
+
+            return Ok(self.nonfungible_payment(
+                &locked_asset_token,
+                token.attributes.locked_assets_nonce,
+                &amount,
+            ));
         }
 
         let mut payments = ManagedVec::new();
