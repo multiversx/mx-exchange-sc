@@ -24,7 +24,7 @@ pub trait TokenSendModule {
 
         self.raw_vm_api()
             .direct_multi_esdt_transfer_execute(
-                &destination,
+                destination,
                 &ManagedVec::managed_from(self.type_manager(), payments.to_vec()),
                 gas_limit,
                 &ManagedBuffer::managed_from(self.type_manager(), function),

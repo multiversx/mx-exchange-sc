@@ -509,7 +509,7 @@ pub trait Farm:
         }
 
         let initial_position = FarmToken {
-            token_amount: self.fungible_payment(&farm_token_id, &position_amount),
+            token_amount: self.fungible_payment(farm_token_id, position_amount),
             attributes: position_attributes.clone(),
         };
 
@@ -554,7 +554,7 @@ pub trait Farm:
         additional_payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
-            token_amount: self.fungible_payment(&token_id, &amount),
+            token_amount: self.fungible_payment(token_id, amount),
             attributes: attributes.clone(),
         };
 
@@ -568,7 +568,7 @@ pub trait Farm:
         let new_nonce = self.create_farm_tokens(&new_amount, token_id, &new_attributes);
 
         let new_farm_token = FarmToken {
-            token_amount: self.nonfungible_payment(&token_id, new_nonce, &new_amount),
+            token_amount: self.nonfungible_payment(token_id, new_nonce, &new_amount),
             attributes: new_attributes,
         };
         let is_merged = additional_payments_len != 0;

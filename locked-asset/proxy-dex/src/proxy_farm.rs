@@ -198,7 +198,7 @@ pub trait ProxyFarmModule:
 
         self.emit_exit_farm_proxy_event(
             &caller,
-            &farm_address,
+            farm_address,
             &token_id,
             token_nonce,
             &amount,
@@ -400,7 +400,7 @@ pub trait ProxyFarmModule:
             farm_address,
             additional_payments,
             Option::Some(WrappedFarmToken {
-                token_amount: self.nonfungible_payment(&wrapped_farm_token_id, 0, &amount),
+                token_amount: self.nonfungible_payment(&wrapped_farm_token_id, 0, amount),
                 attributes: attributes.clone(),
             }),
             OptionalArg::None,
