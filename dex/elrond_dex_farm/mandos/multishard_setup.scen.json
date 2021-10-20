@@ -1,0 +1,295 @@
+{
+    "name": "init accounts",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "5,000,000,000",
+                        "str:ALC-abcdef": "5,000,000,000"
+                    },
+                    "storage": {}
+                },
+                "address:user1": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "5,000,000,000",
+                        "str:ALC-abcdef": "5,000,000,000"
+                    },
+                    "storage": {}
+                },
+                "address:user2": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "5,000,000,000",
+                        "str:ALC-abcdef": "5,000,000,000"
+                    },
+                    "storage": {}
+                },
+                "sc:farm_contract_1": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "1,000,000",
+                        "str:ALC-abcdef": "1,000,000"
+                    },
+                    "storage": {
+                        "str:farm_token_id": "str:MEX-abcdef",
+                        "str:per_block_reward_amount": "1,000,000,000",
+                        "str:generated_tokens.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:generated_tokens.node_links|u32:1": "u32:0|u32:0",
+                        "str:generated_tokens.node_id|nested:str:MEX-abcdef": "1",
+                        "str:generated_tokens.mapped|nested:str:MEX-abcdef": "3,000,000",
+                        "str:burned_tokens.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:burned_tokens.node_links|u32:1": "u32:0|u32:0",
+                        "str:burned_tokens.node_id|nested:str:MEX-abcdef": "1",
+                        "str:burned_tokens.mapped|nested:str:MEX-abcdef": "0"
+                    },
+                    "code": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+                    "owner": "address:owner"
+                },
+                "sc:farm_contract_2": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "2,000,000",
+                        "str:ALC-abcdef": "2,000,000"
+                    },
+                    "storage": {
+                        "str:farm_token_id": "str:MEX-abcdef",
+                        "str:per_block_reward_amount": "2,000,000,000",
+                        "str:generated_tokens.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:generated_tokens.node_links|u32:1": "u32:0|u32:0",
+                        "str:generated_tokens.node_id|nested:str:MEX-abcdef": "1",
+                        "str:generated_tokens.mapped|nested:str:MEX-abcdef": "2,000,000",
+                        "str:burned_tokens.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:burned_tokens.node_links|u32:1": "u32:0|u32:0",
+                        "str:burned_tokens.node_id|nested:str:MEX-abcdef": "1",
+                        "str:burned_tokens.mapped|nested:str:MEX-abcdef": "0"
+                    },
+                    "code": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+                    "owner": "address:owner"
+                },
+                "sc:farm_contract_3": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "3,000,000",
+                        "str:ALC-abcdef": "3,000,000"
+                    },
+                    "storage": {
+                        "str:farm_token_id": "str:MEX-abcdef",
+                        "str:per_block_reward_amount": "3,000,000,000",
+                        "str:generated_tokens.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:generated_tokens.node_links|u32:1": "u32:0|u32:0",
+                        "str:generated_tokens.node_id|nested:str:MEX-abcdef": "1",
+                        "str:generated_tokens.mapped|nested:str:MEX-abcdef": "1,000,000",
+                        "str:burned_tokens.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:burned_tokens.node_links|u32:1": "u32:0|u32:0",
+                        "str:burned_tokens.node_id|nested:str:MEX-abcdef": "1",
+                        "str:burned_tokens.mapped|nested:str:MEX-abcdef": "0"
+                    },
+                    "code": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_1",
+                "value": "0",
+                "function": "addClone",
+                "arguments": [
+                    "sc:farm_contract_2"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_1",
+                "value": "0",
+                "function": "addClone",
+                "arguments": [
+                    "sc:farm_contract_3"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_2",
+                "value": "0",
+                "function": "addClone",
+                "arguments": [
+                    "sc:farm_contract_1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_2",
+                "value": "0",
+                "function": "addClone",
+                "arguments": [
+                    "sc:farm_contract_3"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_3",
+                "value": "0",
+                "function": "addClone",
+                "arguments": [
+                    "sc:farm_contract_1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_3",
+                "value": "0",
+                "function": "addClone",
+                "arguments": [
+                    "sc:farm_contract_2"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "1"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_1",
+                "value": "0",
+                "function": "shareInformation",
+                "arguments": [],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_2",
+                "value": "0",
+                "function": "shareInformation",
+                "arguments": [],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "getTemporaryFunds",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract_3",
+                "value": "0",
+                "function": "shareInformation",
+                "arguments": [],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "dumpState"
+        }
+    ]
+}
