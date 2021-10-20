@@ -164,9 +164,9 @@ pub trait LiquidityPoolModule:
         let total_supply = self.get_total_lp_token_supply();
         if total_supply != 0 {
             let amount = liquidity * reserve / total_supply;
-            self.fungible_payment(&token_id, &amount)
+            self.create_payment(&token_id, 0, &amount)
         } else {
-            self.fungible_payment(&token_id, &BigUint::zero())
+            self.create_payment(&token_id, 0, &BigUint::zero())
         }
     }
 

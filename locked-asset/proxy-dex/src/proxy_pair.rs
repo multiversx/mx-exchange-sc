@@ -340,7 +340,7 @@ pub trait ProxyPairModule:
             caller,
             additional_payments,
             Option::Some(WrappedLpToken {
-                token_amount: self.nonfungible_payment(
+                token_amount: self.create_payment(
                     &self.wrapped_lp_token_id().get(),
                     0,
                     lp_token_amount,

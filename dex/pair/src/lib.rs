@@ -152,9 +152,9 @@ pub trait Pair:
         self.mint_tokens(&lp_token_id, &liquidity);
 
         let mut payments = Vec::new();
-        payments.push(self.fungible_payment(&lp_token_id, &liquidity));
-        payments.push(self.fungible_payment(&expected_first_token_id, &first_token_unused));
-        payments.push(self.fungible_payment(&expected_second_token_id, &second_token_unused));
+        payments.push(self.create_payment(&lp_token_id, 0, &liquidity));
+        payments.push(self.create_payment(&expected_first_token_id, 0, &first_token_unused));
+        payments.push(self.create_payment(&expected_second_token_id, 0, &second_token_unused));
 
         let caller = self.blockchain().get_caller();
         self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
@@ -172,9 +172,9 @@ pub trait Pair:
             &self.pair_reserve(&expected_second_token_id).get(),
         );
         Ok(MultiResult3::from((
-            self.fungible_payment(&lp_token_id, &liquidity),
-            self.fungible_payment(&expected_first_token_id, &first_token_amount),
-            self.fungible_payment(&expected_second_token_id, &second_token_amount),
+            self.create_payment(&lp_token_id, 0, &liquidity),
+            self.create_payment(&expected_first_token_id, 0, &first_token_amount),
+            self.create_payment(&expected_second_token_id, 0, &second_token_amount),
         )))
     }
 
@@ -212,8 +212,8 @@ pub trait Pair:
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 
         let mut payments = Vec::new();
-        payments.push(self.fungible_payment(&first_token_id, &first_token_amount));
-        payments.push(self.fungible_payment(&second_token_id, &second_token_amount));
+        payments.push(self.create_payment(&first_token_id, 0, &first_token_amount));
+        payments.push(self.create_payment(&second_token_id, 0, &second_token_amount));
         self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
 
         self.burn_tokens(&token_id, &liquidity);
@@ -231,8 +231,8 @@ pub trait Pair:
             &self.pair_reserve(&second_token_id).get(),
         );
         Ok(MultiResult2::from((
-            self.fungible_payment(&first_token_id, &first_token_amount),
-            self.fungible_payment(&second_token_id, &second_token_amount),
+            self.create_payment(&first_token_id, 0, &first_token_amount),
+            self.create_payment(&second_token_id, 0, &second_token_amount),
         )))
     }
 
@@ -422,7 +422,7 @@ pub trait Pair:
             &reserve_token_in,
             &reserve_token_out,
         );
-        Ok(self.fungible_payment(&token_out, &amount_out_optimal))
+        Ok(self.create_payment(&token_out, 0, &amount_out_optimal))
     }
 
     #[payable("*")]
@@ -489,8 +489,8 @@ pub trait Pair:
         }
 
         let mut payments = Vec::new();
-        payments.push(self.fungible_payment(&token_out, &amount_out));
-        payments.push(self.fungible_payment(&token_in, &residuum));
+        payments.push(self.create_payment(&token_out, 0, &amount_out));
+        payments.push(self.create_payment(&token_in, 0, &residuum));
         self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
 
         self.emit_swap_event(
@@ -504,8 +504,8 @@ pub trait Pair:
             &reserve_token_out,
         );
         Ok(MultiResult2::from((
-            self.fungible_payment(&token_out, &amount_out),
-            self.fungible_payment(&token_in, &residuum),
+            self.create_payment(&token_out, 0, &amount_out),
+            self.create_payment(&token_in, 0, &residuum),
         )))
     }
 

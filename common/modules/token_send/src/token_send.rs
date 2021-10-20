@@ -105,15 +105,7 @@ pub trait TokenSendModule {
             .collect()
     }
 
-    fn fungible_payment(
-        &self,
-        token_id: &TokenIdentifier,
-        amount: &BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
-        EsdtTokenPayment::from(token_id.clone(), 0, amount.clone())
-    }
-
-    fn nonfungible_payment(
+    fn create_payment(
         &self,
         token_id: &TokenIdentifier,
         nonce: u64,
@@ -121,6 +113,7 @@ pub trait TokenSendModule {
     ) -> EsdtTokenPayment<Self::Api> {
         EsdtTokenPayment::from(token_id.clone(), nonce, amount.clone())
     }
+
     #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<u64>;

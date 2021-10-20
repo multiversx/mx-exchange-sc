@@ -48,7 +48,7 @@ pub trait LockedAssetTokenMergeModule:
             &opt_accept_funds_func,
         )?;
 
-        Ok(self.nonfungible_payment(&locked_asset_token, new_nonce, &amount))
+        Ok(self.create_payment(&locked_asset_token, new_nonce, &amount))
     }
 
     fn burn_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
@@ -75,7 +75,7 @@ pub trait LockedAssetTokenMergeModule:
             );
 
             tokens.push(LockedToken {
-                token_amount: self.nonfungible_payment(
+                token_amount: self.create_payment(
                     &entry.token_identifier,
                     entry.token_nonce,
                     &entry.amount,

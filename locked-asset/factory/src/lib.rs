@@ -283,7 +283,7 @@ pub trait LockedAssetFactory:
         };
 
         let token_id = self.locked_asset_token_id().get();
-        Ok(self.nonfungible_payment(&token_id, sent_nonce, amount))
+        Ok(self.create_payment(&token_id, sent_nonce, amount))
     }
 
     #[only_owner]
