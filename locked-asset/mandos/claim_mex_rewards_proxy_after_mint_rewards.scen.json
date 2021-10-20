@@ -1,0 +1,92 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "enter_mex_farm_proxy.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "10",
+                "blockNonce": "10"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "14",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "function": "claimRewardsProxy",
+                "esdt": {
+                    "tokenIdentifier": "str:WFARM-abcdef",
+                    "nonce": "0x01",
+                    "value": "6,000"
+                },
+                "arguments": [
+                    "sc:mex_farm_contract"
+                ],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x02",
+                    "0x0000000b4641524d2d6162636465660000000000000002000000021770",
+                    "0x0000000a4d45582d6162636465660000000000000000000000027530",
+                    "0x02"
+                ],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user_with_wegld1": {
+                    "nonce": "3",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "80,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        },
+                        "str:WFARM-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x02",
+                                    "balance": "6,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "4,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        },
+                        "str:MEX-abcdef": "30,000",
+                        "str:WEGLD-abcdef": "1,000,000,000"
+                    },
+                    "storage": {},
+                    "code": ""
+                },
+                "+": ""
+            }
+        }
+    ]
+}

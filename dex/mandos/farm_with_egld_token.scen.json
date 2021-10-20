@@ -29,7 +29,7 @@
 						"str:owner": "address:owner",
 						"str:create_farm_tokens_gas_limit": "5000000"
 					},
-					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
+					"code": "file:../farm/output/farm.wasm"
 				}
 			}
 		},
@@ -109,7 +109,7 @@
 						"str:farming_token_reserve": "100,000,000",
 						"+": ""
 					},
-					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
+					"code": "file:../farm/output/farm.wasm"
 				},
 				"+": ""
 			}

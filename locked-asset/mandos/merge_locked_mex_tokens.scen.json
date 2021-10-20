@@ -1,0 +1,78 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "multiple_claim_assets.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit1",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "mergeLockedAssetTokens",
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "value": "100",
+                        "nonce": "1"
+                    },
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "value": "100",
+                        "nonce": "2"
+                    }
+                ],
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x03",
+                    "0x0000000c4c4b4d45582d616263646566000000000000000300000001c8"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "100",
+                                    "creator": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "100",
+                                    "creator": "*",
+                                    "attributes": "*"
+                                },
+                                {
+                                    "nonce": "3",
+                                    "balance": "200",
+                                    "creator": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}

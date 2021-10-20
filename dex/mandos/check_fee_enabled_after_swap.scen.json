@@ -69,7 +69,7 @@
 						"str:pair_contract_address": "sc:pair_contract",
 						"+": ""
 					},
-					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
+					"code": "file:../farm/output/farm.wasm"
 				},
 				"+": ""
 			}

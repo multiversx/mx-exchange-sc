@@ -1,0 +1,104 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "set_user_distribution_with_unlock.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockEpoch": "30"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "claimLockedAssets-1",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:dist_contract",
+                "value": "0",
+                "function": "claimLockedAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x1",
+                    "0x0000000c4c4b4d45582d61626364656600000000000000010000000203e8",
+                    "0x03e8"
+                ],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "claimLockedAssets-1",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:dist_contract",
+                "value": "0",
+                "function": "claimLockedAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    ""
+                ],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "claimLockedAssets-2",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:dist_contract",
+                "value": "0",
+                "function": "claimLockedAssets",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x0000000c4c4b4d45582d616263646566000000000000000100000003015f90",
+                    "0x015f90"
+                ],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "2",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "1,000",
+                                    "creator": "*",
+                                    "hash": "*",
+                                    "attributes": "*"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}

@@ -76,7 +76,7 @@
 						"str:extern_swap_gas_limit": "50,000,000",
 						"+": ""
 					},
-					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm"
+					"code": "file:../pair/output/pair.wasm"
 				},
 				"+": ""
 			}
