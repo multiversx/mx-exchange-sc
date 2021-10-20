@@ -127,8 +127,12 @@ pub trait LiquidityPoolModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> SCResult<(BigUint, BigUint)> {
-        let first_token_reserve = self.pair_reserve(&self.first_token_id().get()).get();
-        let second_token_reserve = self.pair_reserve(&self.second_token_id().get()).get();
+        let first_token_reserve = self
+            .pair_virtual_reserve(&self.first_token_id().get())
+            .get();
+        let second_token_reserve = self
+            .pair_virtual_reserve(&self.second_token_id().get())
+            .get();
 
         if first_token_reserve == 0 && second_token_reserve == 0 {
             return Ok((first_token_amount_desired, second_token_amount_desired));

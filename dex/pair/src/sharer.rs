@@ -9,7 +9,7 @@ use super::config;
 use super::safe_reserves;
 
 const BP: u64 = 100_000;
-const GAS_COST_FOR_SEND_LIQUIDITY: u64 = 100_000_000u64;
+const GAS_COST_FOR_SEND_LIQUIDITY: u64 = 200_000_000u64;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, PartialEq, Clone)]
 pub struct SharedInformation<M: ManagedTypeApi> {

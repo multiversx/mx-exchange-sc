@@ -156,6 +156,12 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
+        let total_liquidity = &self.liquidity().get() + &liquidity;
+        self.liquidity().set(&total_liquidity);
+
+        let total_virtual_liquidity = &self.virtual_liquitiy().get() + &liquidity;
+        self.virtual_liquitiy().set(&total_virtual_liquidity);
+
         let mut payments = Vec::new();
         payments.push(self.fungible_payment(&lp_token_id, &liquidity));
         payments.push(self.fungible_payment(&expected_first_token_id, &first_token_unused));
@@ -164,6 +170,7 @@ pub trait Pair:
         let caller = self.blockchain().get_caller();
         self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
 
+        self.update_safe_reserve();
         self.emit_add_liquidity_event(
             &caller,
             &expected_first_token_id,
@@ -226,6 +233,7 @@ pub trait Pair:
         self.liquidity().set(&total_liquidity);
         self.virtual_liquitiy().update(|x| *x -= &liquidity);
 
+        self.update_safe_reserve();
         self.emit_remove_liquidity_event(
             &caller,
             &first_token_id,

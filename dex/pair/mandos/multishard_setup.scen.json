@@ -238,6 +238,7 @@
         {
             "step": "scCall",
             "txId": "shareInformation",
+            "displayLogs": true,
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_2",
