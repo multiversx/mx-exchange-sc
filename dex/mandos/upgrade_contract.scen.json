@@ -41,7 +41,7 @@
                         "str:total_fee_percent": "301",
                         "+": "*"
                     },
-                    "code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm",
+                    "code": "file:../pair/output/pair.wasm",
                     "owner": "address:owner"
                 },
                 "+": ""

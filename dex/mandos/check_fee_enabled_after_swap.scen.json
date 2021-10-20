@@ -26,7 +26,7 @@
 			},
 			"expect": {
 				"out": [
-					"0x0000000a414c432d61626364656600000003018578"
+					"0x000000000a414c432d616263646566000000000000000000000003018578"
 				],
 				"status": "0",
 				"message": "",
@@ -38,7 +38,7 @@
 			"step": "checkState",
 			"accounts": {
 				"sc:farm_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": "199",
@@ -69,7 +69,7 @@
 						"str:pair_contract_address": "sc:pair_contract",
 						"+": ""
 					},
-					"code": "file:../elrond_dex_farm/output/elrond_dex_farm.wasm"
+					"code": "file:../farm/output/farm.wasm"
 				},
 				"+": ""
 			}

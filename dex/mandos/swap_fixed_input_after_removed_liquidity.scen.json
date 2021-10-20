@@ -26,7 +26,7 @@
 			},
 			"expect": {
 				"out": [
-					"0x0000000c5745474c442d6162636465660000000203e7"
+					"0x000000000c5745474c442d61626364656600000000000000000000000203e7"
 				],
 				"status": "0",
 				"message": "",
@@ -76,7 +76,7 @@
 						"str:extern_swap_gas_limit": "50,000,000",
 						"+": ""
 					},
-					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm"
+					"code": "file:../pair/output/pair.wasm"
 				},
 				"+": ""
 			}

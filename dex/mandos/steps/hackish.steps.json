@@ -34,7 +34,7 @@
 						"str:send_fee_gas_limit": "25,000,000",
 						"str:extern_swap_gas_limit": "50,000,000"
 					},
-					"code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm",
+					"code": "file:../../pair/output/pair.wasm",
 					"owner": "sc:router_contract"
 				},
 				"sc:farm_contract": {
@@ -70,7 +70,7 @@
 						"str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
 						"str:pair_contract_address": "sc:pair_contract"
 					},
-					"code": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm"
+					"code": "file:../../farm/output/farm.wasm"
 				}
 			}
 		}
