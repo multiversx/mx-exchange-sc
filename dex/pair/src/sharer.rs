@@ -81,8 +81,9 @@ pub trait SharerModule:
 
     #[endpoint(takeActionOnInformationReceive)]
     fn take_action_on_information_receive(&self) -> SCResult<()> {
-        let own_info = self.own_shared_info_get_or_create();
         let recv_info = self.get_recv_info_decoded()?;
+        require!(recv_info.len() == self.clones().len(), "Not enough info");
+        let own_info = self.own_shared_info_get_or_create();
 
         let recv_liquidity_info = self.exteract_liquidity_info(&recv_info);
         let mut all_liquidity_info = recv_liquidity_info;

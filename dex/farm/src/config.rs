@@ -84,6 +84,17 @@ pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendM
         self.get_total_supply(&self.farm_token_id().get()).unwrap()
     }
 
+    #[endpoint(setInfoShareMinBlocks)]
+    fn set_info_share_min_blocks(&self, min_blocks: u64) -> SCResult<()> {
+        self.require_permissions()?;
+        self.info_share_min_blocks().set(&min_blocks);
+        Ok(())
+    }
+
+    #[view(getInfoShareMinBlocks)]
+    #[storage_mapper("info_share_min_blocks")]
+    fn info_share_min_blocks(&self) -> SingleValueMapper<u64>;
+
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;

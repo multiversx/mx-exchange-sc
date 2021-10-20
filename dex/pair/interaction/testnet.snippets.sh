@@ -21,7 +21,7 @@ deployPair() {
         --gas-limit=1499999999 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --value=0 \
-        --bytecode "../output/elrond_dex_pair.wasm" \
+        --bytecode "../output/pair.wasm" \
         --arguments \
         ${first_token_id_hex} \
         ${second_token_id_hex} \
