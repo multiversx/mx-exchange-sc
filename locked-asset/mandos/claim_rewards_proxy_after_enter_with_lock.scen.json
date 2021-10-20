@@ -1,0 +1,40 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "enter_farm_and_lock_rewards_proxy.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "16",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "function": "claimRewardsProxy",
+                "esdt": {
+                    "tokenIdentifier": "str:WFARM-abcdef",
+                    "nonce": "0x01",
+                    "value": "6,000"
+                },
+                "arguments": [
+                    "sc:farm_contract"
+                ],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x02",
+                    "0x020000000b4641524d2d6162636465660000000000000002000000021770",
+                    "0x030000000a4d45582d616263646566000000000000000000000000",
+                    "0x02"
+                ],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

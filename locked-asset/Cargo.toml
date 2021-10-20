@@ -1,0 +1,19 @@
+[package]
+name = "distribution-tests"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[dependencies.elrond-wasm]
+version = "0.20"
+features = ["derive"]
+
+[dependencies.elrond-wasm-derive]
+version = "0.20"
+
+[dependencies.elrond-wasm-node]
+version = "0.20"
+optional = true
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.20"

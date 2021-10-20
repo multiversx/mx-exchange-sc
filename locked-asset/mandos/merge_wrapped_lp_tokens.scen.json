@@ -1,0 +1,130 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "add_liquidity_proxy.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "12",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "function": "addLiquidityProxy",
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:WEGLD-abcdef",
+                        "nonce": "0",
+                        "value": "10,000"
+                    },
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "value": "10,000",
+                        "nonce": "0x01"
+                    }
+                ],
+                "arguments": [
+                    "sc:pair_contract",
+                    "100",
+                    "100"
+                ],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x000000000c4c50544f4b2d6162636465660000000000000000000000022710",
+                    "0x000000000c5745474c442d6162636465660000000000000000000000022710",
+                    "0x000000000a4d45582d6162636465660000000000000000000000022710",
+                    "0x02"
+                ],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "deposit2",
+            "tx": {
+                "from": "address:user_with_wegld1",
+                "to": "sc:proxy_dex_contract",
+                "value": "0",
+                "esdt": [
+                    {
+                        "tokenIdentifier": "str:WLPTOK-abcdef",
+                        "value": "100",
+                        "nonce": "1"
+                    },
+                    {
+                        "tokenIdentifier": "str:WLPTOK-abcdef",
+                        "value": "100",
+                        "nonce": "2"
+                    }
+                ],
+                "function": "mergeWrappedLpTokens",
+                "arguments": [],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x02",
+                    "0x020000000c4c4b4d45582d616263646566000000000000000200000001d3",
+                    "0x03"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user_with_wegld1": {
+                    "nonce": "*",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "999,980,000",
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "70000",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                }
+                            ]
+                        },
+                        "str:WLPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "8900",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "9900",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                },
+                                {
+                                    "nonce": "3",
+                                    "balance": "200",
+                                    "attributes": "*",
+                                    "creator": "*"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}

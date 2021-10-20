@@ -1,0 +1,34 @@
+[package]
+name = "router"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+wasm-output-mode = ["elrond-wasm-node"]
+
+[dependencies.elrond-wasm]
+version = "0.20"
+features = ["derive"]
+path = "../../../elrond-wasm-rs/elrond-wasm"
+
+[dependencies.elrond-wasm-derive]
+version = "0.20"
+path = "../../../elrond-wasm-rs/elrond-wasm-derive"
+
+[dependencies.elrond-wasm-node]
+version = "0.20"
+optional = true
+path = "../../../elrond-wasm-rs/elrond-wasm-node"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.20"
+path = "../../../elrond-wasm-rs/elrond-wasm-debug"
+
+[dependencies.pair]
+path = "../pair"
+

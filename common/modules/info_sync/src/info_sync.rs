@@ -12,25 +12,25 @@ const ACTION_CALLBACK_NAME: &[u8] = b"takeActionOnInformationReceive";
 pub trait InfoSyncModule {
     #[only_owner]
     #[endpoint(addClone)]
-    fn add_clone(&self, clone_address: Address) {
+    fn add_clone(&self, clone_address: ManagedAddress) {
         self.clones().insert(clone_address);
     }
 
-    fn broadcast_information(&self, info: BoxedBytes) -> SCResult<()> {
-        let big_zero = Self::BigUint::zero();
+    fn broadcast_information(&self, info: ManagedBuffer) -> SCResult<()> {
+        let big_zero = BigUint::zero();
         let gas_left = self.blockchain().get_gas_left();
         let clones_len = self.clones().len() as u64;
         let per_clone_gas = gas_left / (clones_len + 1);
-        let endpoint = BoxedBytes::from(ACCEPT_INFO_ENDPOINT_NAME);
-        let mut arg_buffer = ArgBuffer::new();
-        arg_buffer.push_argument_bytes(info.as_slice());
+        let endpoint = ManagedBuffer::from(ACCEPT_INFO_ENDPOINT_NAME);
+        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        arg_buffer.push_arg(info);
 
         for clone in self.clones().iter() {
-            self.send().direct_egld_execute(
+            self.raw_vm_api().direct_egld_execute(
                 &clone,
                 &big_zero,
                 per_clone_gas,
-                endpoint.as_slice(),
+                &endpoint,
                 &arg_buffer,
             )?;
         }
@@ -39,7 +39,7 @@ pub trait InfoSyncModule {
     }
 
     #[endpoint(acceptInformation)]
-    fn accept_information(&self, info: BoxedBytes) -> SCResult<()> {
+    fn accept_information(&self, info: ManagedBuffer) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         require!(self.clones().contains(&caller), "Not a clone");
         self.received_info().insert(caller, info);
@@ -52,29 +52,29 @@ pub trait InfoSyncModule {
     }
 
     fn take_action(&self) {
-        self.send().execute_on_dest_context_raw(
+        self.raw_vm_api().execute_on_dest_context_raw(
             self.blockchain().get_gas_left(),
             &self.blockchain().get_sc_address(),
-            &Self::BigUint::zero(),
-            BoxedBytes::from(ACTION_CALLBACK_NAME).as_slice(),
-            &ArgBuffer::new(),
+            &BigUint::zero(),
+            &ManagedBuffer::from(ACTION_CALLBACK_NAME),
+            &ManagedArgBuffer::new_empty(self.type_manager()),
         );
         self.received_info().clear();
     }
 
     #[view(getReceivedInfo)]
-    fn get_received_info(&self) -> MultiResultVec<(Address, BoxedBytes)> {
+    fn get_received_info(&self) -> MultiResultVec<(ManagedAddress, ManagedBuffer)> {
         MultiResultVec::from_iter(
             self.received_info()
                 .iter()
-                .collect::<Vec<(Address, BoxedBytes)>>(),
+                .collect::<Vec<(ManagedAddress, ManagedBuffer)>>(),
         )
     }
 
     #[storage_mapper("InfoSync:received_info")]
-    fn received_info(&self) -> SafeMapMapper<Self::Storage, Address, BoxedBytes>;
+    fn received_info(&self) -> MapMapper<ManagedAddress, ManagedBuffer>;
 
     #[view(getClones)]
     #[storage_mapper("InfoSync:clones")]
-    fn clones(&self) -> SafeSetMapper<Self::Storage, Address>;
+    fn clones(&self) -> SetMapper<ManagedAddress>;
 }

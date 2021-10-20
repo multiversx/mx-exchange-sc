@@ -9,7 +9,7 @@
 			"step": "checkState",
 			"accounts": {
 				"sc:pair_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": {
@@ -32,7 +32,7 @@
 					"storage": {
 						"+": ""
 					},
-					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm",
+					"code": "file:../pair/output/pair.wasm",
 					"owner": "address:owner"
 				},
 				"+": ""
@@ -68,7 +68,7 @@
 			"step": "checkState",
 			"accounts": {
 				"sc:pair_contract": {
-					"nonce": "0",
+					"nonce": "*",
 					"balance": "0",
 					"esdt": {
 						"str:WEGLD-abcdef": {
@@ -91,7 +91,7 @@
 					"storage": {
 						"+": ""
 					},
-					"code": "file:../elrond_dex_pair/output/elrond_dex_pair.wasm",
+					"code": "file:../pair/output/pair.wasm",
 					"owner": "address:owner"
 				},
 				"+": ""
