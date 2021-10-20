@@ -39,17 +39,16 @@ pub trait SafeReserveModule:
         let safe_reserve_first = self.safe_reserves_first().get();
         let safe_reserve_second = self.safe_reserves_second().get();
 
-        let new_safe_liquidity = (safe_liquidity * num_blocks.into()
-            + liquidity * blocks_passed.into())
-            / (num_blocks + blocks_passed).into();
+        let new_safe_liquidity = (safe_liquidity * num_blocks + liquidity * blocks_passed)
+            / (num_blocks + blocks_passed);
 
-        let new_safe_reserve_first = (safe_reserve_first * num_blocks.into()
-            + first_reserve * blocks_passed.into())
-            / (num_blocks + blocks_passed).into();
+        let new_safe_reserve_first = (safe_reserve_first * num_blocks
+            + first_reserve * blocks_passed)
+            / (num_blocks + blocks_passed);
 
-        let new_safe_reserve_second = (safe_reserve_second * num_blocks.into()
-            + second_reserve * blocks_passed.into())
-            / (num_blocks + blocks_passed).into();
+        let new_safe_reserve_second = (safe_reserve_second * num_blocks
+            + second_reserve * blocks_passed)
+            / (num_blocks + blocks_passed);
 
         self.last_block().set(&current_block);
         self.num_blocks().set(&(num_blocks + blocks_passed));

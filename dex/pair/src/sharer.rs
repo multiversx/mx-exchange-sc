@@ -13,14 +13,14 @@ const GAS_COST_FOR_SEND_LIQUIDITY: u64 = 100_000_000u64;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, PartialEq, Clone)]
 pub struct SharedInformation<M: ManagedTypeApi> {
-    pub metadata: InformationMetadata,
+    pub metadata: InformationMetadata<M>,
     pub liquidity_info: LiquidityInformation<M>,
     pub swap_stats: SwapStatistics<M>,
 }
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, PartialEq, Clone)]
-pub struct InformationMetadata {
-    pub sender: Address,
+pub struct InformationMetadata<M: ManagedTypeApi> {
+    pub sender: ManagedAddress<M>,
     pub timestamp: u64,
 }
 
@@ -47,7 +47,7 @@ impl<M: ManagedTypeApi> SharedInformation<M> {
     }
 
     pub fn from_boxed_bytes(bytes: BoxedBytes) -> SCResult<SharedInformation<M>> {
-        SharedInformation::<BigUint>::top_decode(bytes.as_slice()).into()
+        SharedInformation::<M>::top_decode(bytes.as_slice()).into()
     }
 }
 
@@ -73,7 +73,7 @@ pub trait SharerModule:
             let shared_info = self.own_shared_info_get_or_create();
             let shared_info_bytes = shared_info.to_boxed_bytes();
             require!(!shared_info_bytes.is_empty(), "Error encoding");
-            self.broadcast_information(shared_info_bytes)?;
+            self.broadcast_information(ManagedBuffer::from(shared_info_bytes))?;
             self.own_shared_info_set_if_empty_or_clear(shared_info);
         }
         Ok(())
@@ -88,7 +88,7 @@ pub trait SharerModule:
         let mut all_liquidity_info = recv_liquidity_info;
         all_liquidity_info.push(own_info.liquidity_info.clone());
 
-        let all_liquidity_info_len = BigUint::from(all_liquidity_info.len());
+        let all_liquidity_info_len = BigUint::from(all_liquidity_info.len() as u64);
         let all_liquidity_sum = self.compute_sum_all_liquidity(&all_liquidity_info);
 
         let all_liquidity_avg = LiquidityInformation {
@@ -122,7 +122,7 @@ pub trait SharerModule:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let transfers = self.get_all_esdt_transfers();
+        let transfers = self.get_all_payments();
         require!(
             !transfers.is_empty() && transfers.len() <= 2,
             "Wrong payments len"
@@ -130,10 +130,11 @@ pub trait SharerModule:
 
         for transfer in transfers.iter() {
             require!(
-                transfer.token_name == first_token_id || transfer.token_name == second_token_id,
+                transfer.token_identifier == first_token_id
+                    || transfer.token_identifier == second_token_id,
                 "Bad transfer token id"
             );
-            self.pair_reserve(&transfer.token_name)
+            self.pair_reserve(&transfer.token_identifier)
                 .update(|x| *x += &transfer.amount);
         }
         Ok(())
@@ -171,8 +172,8 @@ pub trait SharerModule:
                 let liq_needed = &avg_liquidity_info.liquidity_amount
                     - &shared_info.liquidity_info.liquidity_amount;
 
-                let liq_needed_percent = &(&liq_needed * &BP.into()) / &all_liq_needed;
-                let liq_to_share = &(&all_liq_to_share * &liq_needed_percent) / &BP.into();
+                let liq_needed_percent = &(&liq_needed * BP) / &all_liq_needed;
+                let liq_to_share = &(&all_liq_to_share * &liq_needed_percent) / BP;
 
                 if liq_to_share > 0 {
                     require!(current_liquidity > liq_to_share, "not enough liquidity");
@@ -185,22 +186,12 @@ pub trait SharerModule:
                     let mut multitransfers = Vec::new();
                     if first.amount > 0 {
                         first_token_reserve -= &first.amount;
-                        multitransfers.push(EsdtTokenPayment {
-                            token_type: EsdtTokenType::Fungible,
-                            amount: first.amount,
-                            token_name: first.token_id,
-                            token_nonce: 0,
-                        });
+                        multitransfers.push(first);
                     }
 
                     if second.amount > 0 {
                         second_token_reserve -= &second.amount;
-                        multitransfers.push(EsdtTokenPayment {
-                            token_type: EsdtTokenType::Fungible,
-                            amount: second.amount,
-                            token_name: second.token_id,
-                            token_nonce: 0,
-                        });
+                        multitransfers.push(second);
                     }
 
                     payments.push(multitransfers);
@@ -221,19 +212,19 @@ pub trait SharerModule:
             "Not enough gas for each transfer"
         );
 
-        let endpoint = BoxedBytes::from(&b"acceptLiquidity"[..]);
+        let endpoint = ManagedBuffer::from(&b"acceptLiquidity"[..]);
         for (index, transfer) in payments.iter().enumerate() {
             let liquidity = &liquidity_amounts[index];
             let address = &addresses[index];
             let arg = self.arg_buffer_from_biguint(liquidity);
 
-            self.direct_multi_esdt_transfer_execute(
-                address,
-                transfer,
+            self.raw_vm_api().direct_multi_esdt_transfer_execute(
+                &address,
+                &ManagedVec::managed_from(self.type_manager(), transfer.to_vec()),
                 per_transfer_gas_limit,
                 &endpoint,
                 &arg,
-            )?;
+            )?
         }
 
         Ok(())
@@ -247,14 +238,14 @@ pub trait SharerModule:
         !self.received_info().is_empty()
     }
 
-    fn arg_buffer_from_biguint(&self, biguint: &BigUint) -> ArgBuffer {
-        let mut args = ArgBuffer::new();
-        args.push_argument_bytes(biguint.to_bytes_be().as_slice());
+    fn arg_buffer_from_biguint(&self, biguint: &BigUint) -> ManagedArgBuffer<Self::Api> {
+        let mut args = ManagedArgBuffer::new_empty(self.type_manager());
+        args.push_arg(biguint);
         args
     }
 
     fn compute_liquidity_amount_max_threshold(&self, liquidity_amount: &BigUint) -> BigUint {
-        liquidity_amount * &11u64.into() / 10u64.into()
+        liquidity_amount * 11u64 / 10u64
     }
 
     fn own_shared_info_set_if_empty_or_clear(&self, own_info: SharedInformation<Self::Api>) {
@@ -295,7 +286,7 @@ pub trait SharerModule:
     fn get_recv_info_decoded(&self) -> SCResult<Vec<SharedInformation<Self::Api>>> {
         let mut recv_info = Vec::new();
         for el in self.received_info().iter() {
-            let decoded = SharedInformation::from_boxed_bytes(el.1)?;
+            let decoded = SharedInformation::from_boxed_bytes(el.1.to_boxed_bytes())?;
             recv_info.push(decoded);
         }
         Ok(recv_info)

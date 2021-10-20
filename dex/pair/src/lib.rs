@@ -172,7 +172,7 @@ pub trait Pair:
             &second_token_amount,
             &lp_token_id,
             &liquidity,
-            &self.get_total_lp_token_supply(),
+            &self.liquidity().get(),
             &self.pair_reserve(&expected_first_token_id).get(),
             &self.pair_reserve(&expected_second_token_id).get(),
         );
@@ -234,7 +234,7 @@ pub trait Pair:
             &second_token_amount,
             &lp_token_id,
             &liquidity,
-            &self.get_total_lp_token_supply(),
+            &self.liquidity().get(),
             &self.pair_reserve(&first_token_id).get(),
             &self.pair_reserve(&second_token_id).get(),
         );

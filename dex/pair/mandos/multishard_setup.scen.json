@@ -45,7 +45,7 @@
                         "str:reserve|nested:str:ALC-abcdef": "1,000,000",
                         "str:liquidity": "1,000,000"
                     },
-                    "code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm",
+                    "code": "file:../../pair/output/pair.wasm",
                     "owner": "address:owner"
                 },
                 "sc:pair_contract_2": {
@@ -62,7 +62,7 @@
                         "str:reserve|nested:str:ALC-abcdef": "2,000,000",
                         "str:liquidity": "2,000,000"
                     },
-                    "code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm",
+                    "code": "file:../../pair/output/pair.wasm",
                     "owner": "address:owner"
                 },
                 "sc:pair_contract_3": {
@@ -79,14 +79,14 @@
                         "str:reserve|nested:str:ALC-abcdef": "3,000,000",
                         "str:liquidity": "3,000,000"
                     },
-                    "code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm",
+                    "code": "file:../../pair/output/pair.wasm",
                     "owner": "address:owner"
                 }
             }
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "addClone",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_1",
@@ -107,7 +107,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "addClone",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_1",
@@ -128,7 +128,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "addClone",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_2",
@@ -149,7 +149,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "addClone",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_2",
@@ -170,7 +170,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "addClone",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_3",
@@ -191,7 +191,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "addClone",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_3",
@@ -218,7 +218,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "shareInformation",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_1",
@@ -237,7 +237,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "shareInformation",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_2",
@@ -256,7 +256,7 @@
         },
         {
             "step": "scCall",
-            "txId": "getTemporaryFunds",
+            "txId": "shareInformation",
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract_3",

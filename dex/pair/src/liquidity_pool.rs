@@ -98,7 +98,7 @@ pub trait LiquidityPoolModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> SCResult<(BigUint, BigUint)> {
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.virtual_liquitiy().get();
         require!(
             total_supply >= &liquidity + MINIMUM_LIQUIDITY,
             "Not enough LP token supply"
@@ -306,12 +306,12 @@ pub trait LiquidityPoolModule:
             first_token_reserve_virtual * price_bp / second_token_reserve_virtual;
 
         let first_token_price_virtual_min = first_token_price_virtual.clone()
-            * (price_percent_total - price_threshold_percent).into()
-            / price_percent_total.into();
+            * (price_percent_total - price_threshold_percent)
+            / price_percent_total;
 
         let first_token_price_virtual_max = first_token_price_virtual
-            * (price_percent_total + price_threshold_percent).into()
-            / price_percent_total.into();
+            * (price_percent_total + price_threshold_percent)
+            / price_percent_total;
 
         let local_price_in_range = first_token_price_local > first_token_price_virtual_min
             && first_token_price_local < first_token_price_virtual_max;
@@ -320,7 +320,7 @@ pub trait LiquidityPoolModule:
     }
 
     fn swap_too_big(&self, amount: &BigUint, reserve: &BigUint) -> bool {
-        amount > &(reserve / &10u64.into())
+        amount > &(reserve / 10u64)
     }
 
     #[view(getFirstTokenId)]
