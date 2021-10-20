@@ -5,7 +5,7 @@
 			"step": "setState",
 			"accounts": {
 				"sc:pair_template": {
-					"code": "file:../../elrond_dex_pair/output/elrond_dex_pair.wasm"
+					"code": "file:../../pair/output/pair.wasm"
 				}
 			},
 			"newAddresses": [
@@ -27,7 +27,7 @@
 			"tx": {
 				"from": "address:owner",
 				"value": "0",
-				"contractCode": "file:../../elrond_dex_router/output/elrond_dex_router.wasm",
+				"contractCode": "file:../../router/output/router.wasm",
 				"arguments": [
 					"sc:pair_template"
 				],
@@ -47,7 +47,7 @@
 			"tx": {
 				"from": "address:owner",
 				"value": "0",
-				"contractCode": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+				"contractCode": "file:../../farm/output/farm.wasm",
 				"arguments": [
 					"sc:router_contract",
 					"str:WEGLD-abcdef",
