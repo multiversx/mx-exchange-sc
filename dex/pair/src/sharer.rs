@@ -212,7 +212,7 @@ pub trait SharerModule:
             let arg = self.arg_buffer_from_biguint(liquidity);
 
             self.raw_vm_api().direct_multi_esdt_transfer_execute(
-                &address,
+                address,
                 &ManagedVec::managed_from(self.type_manager(), transfer.to_vec()),
                 per_transfer_gas_limit,
                 &endpoint,

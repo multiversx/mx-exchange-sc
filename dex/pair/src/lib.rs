@@ -301,6 +301,7 @@ pub trait Pair:
             &second_token_id,
         );
         self.burn_tokens(&token_in, &amount_in);
+        self.update_safe_reserve();
 
         Ok(())
     }
@@ -344,6 +345,7 @@ pub trait Pair:
 
         self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
 
+        self.update_safe_reserve();
         self.emit_swap_no_fee_and_forward_event(
             &caller,
             &token_in,
@@ -460,6 +462,7 @@ pub trait Pair:
             &opt_accept_funds_func,
         )?;
 
+        self.update_safe_reserve();
         self.emit_swap_event(
             &caller,
             &token_in,
@@ -569,6 +572,7 @@ pub trait Pair:
         payments.push(self.create_payment(&token_in, 0, &residuum));
         self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
 
+        self.update_safe_reserve();
         self.emit_swap_event(
             &caller,
             &token_in,

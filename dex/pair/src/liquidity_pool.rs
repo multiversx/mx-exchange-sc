@@ -23,6 +23,8 @@ pub trait LiquidityPoolModule:
         let total_supply = self.get_total_lp_token_supply();
         let mut first_token_reserve = self.pair_reserve(&first_token).get();
         let mut second_token_reserve = self.pair_reserve(&second_token).get();
+        let mut first_token_virtual_reserve = self.pair_virtual_reserve(&first_token).get();
+        let mut second_token_virtual_reserve = self.pair_virtual_reserve(&second_token).get();
         let mut liquidity: BigUint;
 
         if total_supply == 0 {
@@ -36,17 +38,26 @@ pub trait LiquidityPoolModule:
             self.mint_tokens(&self.lp_token_identifier().get(), &minimum_liquidity);
         } else {
             liquidity = core::cmp::min(
-                (&first_token_amount * &total_supply) / first_token_reserve.clone(),
-                (&second_token_amount * &total_supply) / second_token_reserve.clone(),
+                (&first_token_amount * &total_supply) / first_token_virtual_reserve.clone(),
+                (&second_token_amount * &total_supply) / second_token_virtual_reserve.clone(),
             );
         }
         require!(liquidity > 0, "Insufficient liquidity minted");
 
-        first_token_reserve += first_token_amount;
-        second_token_reserve += second_token_amount;
+        first_token_reserve += &first_token_amount;
+        second_token_reserve += &second_token_amount;
         self.update_reserves(
             &first_token_reserve,
             &second_token_reserve,
+            &first_token,
+            &second_token,
+        );
+
+        first_token_virtual_reserve += first_token_amount;
+        second_token_virtual_reserve += second_token_amount;
+        self.update_virtual_reserves(
+            &first_token_virtual_reserve,
+            &second_token_virtual_reserve,
             &first_token,
             &second_token,
         );
