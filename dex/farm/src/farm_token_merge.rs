@@ -43,7 +43,7 @@ pub trait FarmTokenMergeModule:
             &opt_accept_funds_func,
         )?;
 
-        Ok(self.nonfungible_payment(&farm_token_id, new_nonce, &new_amount))
+        Ok(self.create_payment(&farm_token_id, new_nonce, &new_amount))
     }
 
     fn get_merged_farm_token_attributes(
@@ -64,7 +64,7 @@ pub trait FarmTokenMergeModule:
             require!(entry.token_identifier == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
-                token_amount: self.nonfungible_payment(
+                token_amount: self.create_payment(
                     &entry.token_identifier,
                     entry.token_nonce,
                     &entry.amount,

@@ -60,8 +60,11 @@ pub trait WrappedLpTokenMerge:
 
         let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens)?;
         let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
-        let lp_token_amount =
-            self.fungible_payment(&tokens[0].attributes.lp_token_id, &merged_wrapped_lp_amount);
+        let lp_token_amount = self.create_payment(
+            &tokens[0].attributes.lp_token_id,
+            0,
+            &merged_wrapped_lp_amount,
+        );
 
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
@@ -79,7 +82,7 @@ pub trait WrappedLpTokenMerge:
         )?;
 
         let new_token = WrappedLpToken {
-            token_amount: self.nonfungible_payment(
+            token_amount: self.create_payment(
                 &wrapped_lp_token_id,
                 new_nonce,
                 &merged_wrapped_lp_amount,
@@ -167,7 +170,7 @@ pub trait WrappedLpTokenMerge:
                 &token.attributes.locked_assets_invested,
             )?;
 
-            return Ok(self.nonfungible_payment(
+            return Ok(self.create_payment(
                 &locked_asset_token,
                 token.attributes.locked_assets_nonce,
                 &amount,

@@ -281,8 +281,8 @@ pub trait Farm:
             &farm_attributes,
         );
         Ok(MultiResult2::from((
-            self.fungible_payment(&farming_token_id, &initial_farming_token_amount),
-            self.nonfungible_payment(&reward_token_id, reward_nonce, &reward),
+            self.create_payment(&farming_token_id, 0, &initial_farming_token_amount),
+            self.create_payment(&reward_token_id, reward_nonce, &reward),
         )))
     }
 
@@ -389,7 +389,7 @@ pub trait Farm:
         );
         Ok(MultiResult2::from((
             new_farm_token.token_amount,
-            self.nonfungible_payment(&reward_token_id, reward_nonce, &reward),
+            self.create_payment(&reward_token_id, reward_nonce, &reward),
         )))
     }
 
@@ -512,7 +512,7 @@ pub trait Farm:
         }
 
         let initial_position = FarmToken {
-            token_amount: self.fungible_payment(farm_token_id, position_amount),
+            token_amount: self.create_payment(farm_token_id, 0, position_amount),
             attributes: position_attributes.clone(),
         };
 
@@ -557,7 +557,7 @@ pub trait Farm:
         additional_payments: &[EsdtTokenPayment<Self::Api>],
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
-            token_amount: self.fungible_payment(token_id, amount),
+            token_amount: self.create_payment(token_id, 0, amount),
             attributes: attributes.clone(),
         };
 
@@ -571,7 +571,7 @@ pub trait Farm:
         let new_nonce = self.create_farm_tokens(&new_amount, token_id, &new_attributes);
 
         let new_farm_token = FarmToken {
-            token_amount: self.nonfungible_payment(token_id, new_nonce, &new_amount),
+            token_amount: self.create_payment(token_id, new_nonce, &new_amount),
             attributes: new_attributes,
         };
         let is_merged = additional_payments_len != 0;

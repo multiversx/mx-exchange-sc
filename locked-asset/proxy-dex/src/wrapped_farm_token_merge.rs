@@ -174,7 +174,7 @@ pub trait WrappedFarmTokenMerge:
                 &token.attributes.farming_token_amount,
             )?;
 
-            return Ok(self.nonfungible_payment(
+            return Ok(self.create_payment(
                 &self.locked_asset_token_id().get(),
                 token.attributes.farming_token_nonce,
                 &locked_token_amount,
@@ -212,7 +212,7 @@ pub trait WrappedFarmTokenMerge:
         if tokens.len() == 1 {
             let token = tokens[0].clone();
 
-            return self.nonfungible_payment(
+            return self.create_payment(
                 &token.attributes.farm_token_id,
                 token.attributes.farm_token_nonce,
                 &token.token_amount.amount,
@@ -246,7 +246,7 @@ pub trait WrappedFarmTokenMerge:
                 &first_token.attributes.farming_token_amount,
             )?;
 
-            return Ok(self.nonfungible_payment(
+            return Ok(self.create_payment(
                 &first_token.attributes.farming_token_id,
                 first_token.attributes.farming_token_nonce,
                 &farming_amount,
@@ -282,7 +282,7 @@ pub trait WrappedFarmTokenMerge:
             let attributes =
                 self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce)?;
             let wrapped_lp_token = WrappedLpToken {
-                token_amount: self.nonfungible_payment(
+                token_amount: self.create_payment(
                     &wrapped_lp_token_id,
                     wrapped_lp_token_nonce,
                     &wrapped_lp_token_amount,
@@ -297,8 +297,9 @@ pub trait WrappedFarmTokenMerge:
             self.merge_locked_asset_tokens_from_wrapped_lp(&wrapped_lp_tokens)?;
         let merged_wrapped_lp_token_amount =
             self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
-        let lp_token_amount = self.fungible_payment(
+        let lp_token_amount = self.create_payment(
             &wrapped_lp_tokens[0].attributes.lp_token_id,
+            0,
             &merged_wrapped_lp_token_amount,
         );
 
@@ -321,7 +322,7 @@ pub trait WrappedFarmTokenMerge:
             );
         }
 
-        Ok(self.nonfungible_payment(
+        Ok(self.create_payment(
             &wrapped_lp_token_id,
             new_nonce,
             &merged_wrapped_lp_token_amount,
