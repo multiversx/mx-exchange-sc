@@ -1,0 +1,21 @@
+[package]
+name = "proxy-dex-abi"
+
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[dependencies.proxy-dex]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.20"
+features = ["derive"]
+path = "../../../../elrond-wasm-rs/elrond-wasm"
+
+
+[dependencies.elrond-wasm-debug]
+version = "0.20"
+path = "../../../../elrond-wasm-rs/elrond-wasm-debug"
+

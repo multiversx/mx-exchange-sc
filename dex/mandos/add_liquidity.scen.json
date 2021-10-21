@@ -3,7 +3,7 @@
 	"steps": [
 		{
 			"step": "externalSteps",
-			"path": "accept_esdt_payment.scen.json"
+			"path": "complete_setup.scen.json"
 		},
 		{
 			"step": "scCall",
@@ -13,9 +13,17 @@
 				"to": "sc:pair_contract",
 				"value": "0",
 				"function": "addLiquidity",
+				"esdt": [
+					{
+						"tokenIdentifier": "str:WEGLD-abcdef",
+						"value": "2,000,000,000"
+					},
+					{
+						"tokenIdentifier": "str:ALC-abcdef",
+						"value": "2,000,000,000"
+					}
+				],
 				"arguments": [
-					"2,000,000,000",
-					"2,000,000,000",
 					"1,000,000,000",
 					"1,000,000,000"
 				],
@@ -30,30 +38,6 @@
 				],
 				"status": "0",
 				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "getTemporaryFunds",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"function": "getTemporaryFunds",
-				"arguments": [
-					"address:user1",
-					"str:WEGLD-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0"
-				],
-				"status": "",
 				"gas": "*",
 				"refund": "*"
 			}

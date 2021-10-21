@@ -1,0 +1,123 @@
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
+
+use common_structs::LockedAssetTokenAttributes;
+
+#[derive(TopEncode)]
+pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    destination: ManagedAddress<M>,
+    locked_asset_token_id: TokenIdentifier<M>,
+    locked_asset_token_nonce: u64,
+    locked_asset_token_amount: BigUint<M>,
+    locked_assets_attributes: LockedAssetTokenAttributes,
+    start_epoch: u64,
+    block: u64,
+    epoch: u64,
+    timestamp: u64,
+}
+
+#[derive(TopEncode)]
+pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
+    input_locked_assets_token_id: TokenIdentifier<M>,
+    input_locked_assets_token_nonce: u64,
+    input_locked_assets_token_amount: BigUint<M>,
+    output_locked_assets_token_id: TokenIdentifier<M>,
+    output_locked_assets_token_nonce: u64,
+    output_locked_assets_token_amount: BigUint<M>,
+    asset_token_id: TokenIdentifier<M>,
+    asset_token_amount: BigUint<M>,
+    input_assets_attributes: LockedAssetTokenAttributes,
+    output_assets_attributes: LockedAssetTokenAttributes,
+    block: u64,
+    epoch: u64,
+    timestamp: u64,
+}
+
+#[elrond_wasm::module]
+pub trait EventsModule {
+    fn emit_create_and_forward_event(
+        self,
+        caller: &ManagedAddress,
+        destination: &ManagedAddress,
+        locked_asset_token_id: &TokenIdentifier,
+        locked_asset_token_nonce: u64,
+        locked_asset_token_amount: &BigUint,
+        locked_assets_attributes: &LockedAssetTokenAttributes,
+        start_epoch: u64,
+    ) {
+        let epoch = self.blockchain().get_block_epoch();
+        self.create_and_forward_event(
+            caller,
+            destination,
+            epoch,
+            &CreateAndForwardEvent {
+                caller: caller.clone(),
+                destination: destination.clone(),
+                locked_asset_token_id: locked_asset_token_id.clone(),
+                locked_asset_token_nonce,
+                locked_asset_token_amount: locked_asset_token_amount.clone(),
+                locked_assets_attributes: locked_assets_attributes.clone(),
+                start_epoch,
+                block: self.blockchain().get_block_nonce(),
+                epoch,
+                timestamp: self.blockchain().get_block_timestamp(),
+            },
+        )
+    }
+
+    fn emit_unlock_assets_event(
+        self,
+        caller: &ManagedAddress,
+        input_locked_assets_token_id: &TokenIdentifier,
+        input_locked_assets_token_nonce: u64,
+        input_locked_assets_token_amount: &BigUint,
+        output_locked_assets_token_id: &TokenIdentifier,
+        output_locked_assets_token_nonce: u64,
+        output_locked_assets_token_amount: &BigUint,
+        asset_token_id: &TokenIdentifier,
+        asset_token_amount: &BigUint,
+        input_assets_attributes: &LockedAssetTokenAttributes,
+        output_assets_attributes: &LockedAssetTokenAttributes,
+    ) {
+        let epoch = self.blockchain().get_block_epoch();
+        self.unlock_assets_event(
+            caller,
+            epoch,
+            &UnlockAssetsEvent {
+                caller: caller.clone(),
+                input_locked_assets_token_id: input_locked_assets_token_id.clone(),
+                input_locked_assets_token_nonce,
+                input_locked_assets_token_amount: input_locked_assets_token_amount.clone(),
+                output_locked_assets_token_id: output_locked_assets_token_id.clone(),
+                output_locked_assets_token_nonce,
+                output_locked_assets_token_amount: output_locked_assets_token_amount.clone(),
+                asset_token_id: asset_token_id.clone(),
+                asset_token_amount: asset_token_amount.clone(),
+                input_assets_attributes: input_assets_attributes.clone(),
+                output_assets_attributes: output_assets_attributes.clone(),
+                block: self.blockchain().get_block_nonce(),
+                epoch,
+                timestamp: self.blockchain().get_block_timestamp(),
+            },
+        )
+    }
+
+    #[event("create_and_forward")]
+    fn create_and_forward_event(
+        self,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] destination: &ManagedAddress,
+        #[indexed] epoch: u64,
+        swap_event: &CreateAndForwardEvent<Self::Api>,
+    );
+
+    #[event("unlock_assets")]
+    fn unlock_assets_event(
+        self,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] epoch: u64,
+        swap_event: &UnlockAssetsEvent<Self::Api>,
+    );
+}

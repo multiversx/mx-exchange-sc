@@ -3,6 +3,11 @@
 	"steps": [
 		{
 			"step": "setState",
+			"accounts": {
+				"sc:pair_template": {
+					"code": "file:../../pair/output/pair.wasm"
+				}
+			},
 			"newAddresses": [
 				{
 					"creatorAddress": "address:owner",
@@ -22,8 +27,10 @@
 			"tx": {
 				"from": "address:owner",
 				"value": "0",
-				"contractCode": "file:../../elrond_dex_router/output/elrond_dex_router.wasm",
-				"arguments": [],
+				"contractCode": "file:../../router/output/router.wasm",
+				"arguments": [
+					"sc:pair_template"
+				],
 				"gasLimit": "100,000,000",
 				"gasPrice": "0"
 			},
@@ -40,7 +47,7 @@
 			"tx": {
 				"from": "address:owner",
 				"value": "0",
-				"contractCode": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+				"contractCode": "file:../../farm/output/farm.wasm",
 				"arguments": [
 					"sc:router_contract",
 					"str:WEGLD-abcdef",

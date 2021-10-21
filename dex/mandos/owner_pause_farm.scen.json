@@ -10,10 +10,6 @@
 			"path": "steps/deploy_contracts.steps.json"
 		},
 		{
-			"step": "externalSteps",
-			"path": "steps/construct_code.steps.json"
-		},
-		{
 			"step": "scCall",
 			"txId": "pause",
 			"tx": {
