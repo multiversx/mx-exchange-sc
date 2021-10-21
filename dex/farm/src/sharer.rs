@@ -2,7 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::config;
-use elrond_wasm::elrond_codec::TopEncode;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, PartialEq, Clone)]
 pub struct SharedInformation<M: ManagedTypeApi> {
@@ -17,21 +16,6 @@ pub struct InformationMetadata<M: ManagedTypeApi> {
     pub timestamp: u64,
 }
 
-impl<M: ManagedTypeApi> SharedInformation<M> {
-    pub fn to_boxed_bytes(&self) -> BoxedBytes {
-        let mut vec = Vec::new();
-        let result = self.top_encode(&mut vec);
-        match result {
-            Result::Ok(_) => BoxedBytes::from(vec.as_slice()),
-            Result::Err(_) => BoxedBytes::empty(),
-        }
-    }
-
-    pub fn from_boxed_bytes(bytes: BoxedBytes) -> SCResult<SharedInformation<M>> {
-        SharedInformation::<M>::top_decode(bytes.as_slice()).into()
-    }
-}
-
 #[elrond_wasm::module]
 pub trait SharerModule:
     info_sync::InfoSyncModule
@@ -39,6 +23,14 @@ pub trait SharerModule:
     + token_send::TokenSendModule
     + token_supply::TokenSupplyModule
 {
+    fn info_to_managed_buffer(&self, info: &SharedInformation<Self::Api>) -> ManagedBuffer {
+        self.serializer().top_encode_to_managed_buffer(info)
+    }
+
+    fn managed_buffer_to_info(&self, buff: &ManagedBuffer) -> SharedInformation<Self::Api> {
+        self.serializer().top_decode_from_managed_buffer(buff)
+    }
+
     #[endpoint(shareInformation)]
     fn share_information(&self) -> SCResult<()> {
         let block = self.blockchain().get_block_nonce();
@@ -46,9 +38,9 @@ pub trait SharerModule:
         if block > self.last_info_share_block().get() + self.info_share_min_blocks().get() {
             self.last_info_share_block().set(&block);
             let shared_info = self.own_shared_info_get_or_create();
-            let shared_info_bytes = shared_info.to_boxed_bytes();
-            require!(!shared_info_bytes.is_empty(), "Error encoding");
-            self.broadcast_information(ManagedBuffer::from(shared_info_bytes))?;
+            let shared_info_buff = self.info_to_managed_buffer(&shared_info);
+            require!(!shared_info_buff.is_empty(), "Error encoding");
+            self.broadcast_information(shared_info_buff)?;
             self.own_shared_info_set_if_empty_or_clear(shared_info);
         }
         Ok(())
@@ -112,7 +104,7 @@ pub trait SharerModule:
     fn get_recv_info_decoded(&self) -> SCResult<Vec<SharedInformation<Self::Api>>> {
         let mut recv_info = Vec::new();
         for el in self.received_info().iter() {
-            let decoded = SharedInformation::<Self::Api>::from_boxed_bytes(el.1.to_boxed_bytes())?;
+            let decoded = self.managed_buffer_to_info(&el.1);
             recv_info.push(decoded);
         }
         Ok(recv_info)
