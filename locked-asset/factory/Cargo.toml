@@ -28,19 +28,15 @@ path = "../../common/modules/token_send"
 path = "../../common/modules/token_merge"
 
 [dependencies.elrond-wasm]
-version = "0.20"
+version = "0.21"
 features = ["derive"]
-path = "../../../elrond-wasm-rs/elrond-wasm"
 
 [dependencies.elrond-wasm-derive]
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-derive"
+version = "0.21"
 
 [dependencies.elrond-wasm-node]
 optional = true
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-node"
+version = "0.21"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-debug"
+version = "0.21"
