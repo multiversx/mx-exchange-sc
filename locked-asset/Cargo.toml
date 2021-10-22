@@ -17,3 +17,21 @@ optional = true
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.21"
+
+[dependencies.farm]
+path = "../dex/farm"
+
+[dependencies.pair]
+path = "../dex/pair"
+
+[dependencies.router]
+path = "../dex/router"
+
+[dependencies.distribution]
+path = "distribution"
+
+[dependencies.factory]
+path = "factory"
+
+[dependencies.proxy-dex]
+path = "proxy-dex"

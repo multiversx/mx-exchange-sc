@@ -17,3 +17,12 @@ optional = true
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.21"
+
+[dependencies.farm]
+path = "farm"
+
+[dependencies.pair]
+path = "pair"
+
+[dependencies.router]
+path = "router"
