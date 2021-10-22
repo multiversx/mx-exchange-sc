@@ -1,14 +1,4 @@
 #[test]
-fn accept_esdt_payment_go() {
-    elrond_wasm_debug::mandos_go("mandos/accept_esdt_payment.scen.json");
-}
-
-#[test]
-fn accept_esdt_payment_wrong_token_go() {
-    elrond_wasm_debug::mandos_go("mandos/accept_esdt_payment_wrong_token.scen.json");
-}
-
-#[test]
 fn add_liquidity_go() {
     elrond_wasm_debug::mandos_go("mandos/add_liquidity.scen.json");
 }
@@ -156,11 +146,6 @@ fn owner_resume_farm_go() {
 }
 
 #[test]
-fn reclaim_temporary_funds_go() {
-    elrond_wasm_debug::mandos_go("mandos/reclaim_temporary_funds.scen.json");
-}
-
-#[test]
 fn remove_liquidity_go() {
     elrond_wasm_debug::mandos_go("mandos/remove_liquidity.scen.json");
 }
@@ -178,11 +163,6 @@ fn router_pause_self_go() {
 #[test]
 fn router_resume_self_go() {
     elrond_wasm_debug::mandos_go("mandos/router_resume_self.scen.json");
-}
-
-#[test]
-fn send_with_no_funds_go() {
-    elrond_wasm_debug::mandos_go("mandos/send_with_no_funds.scen.json");
 }
 
 #[test]

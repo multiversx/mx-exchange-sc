@@ -1,0 +1,78 @@
+{
+    "name": "distribution",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:mex_farm_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:FARM-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:farming_token_id": "str:MEX-abcdef",
+                        "str:farm_token_id": "str:FARM-abcdef",
+                        "str:reward_token_id": "str:MEX-abcdef",
+                        "str:router_address": "address:owner",
+                        "str:state": "1",
+                        "str:owner": "address:owner",
+                        "str:per_block_reward_amount": "5000",
+                        "str:last_reward_block_nonce": "0",
+                        "str:minimum_farming_epochs": "2",
+                        "str:burn_tokens_gas_limit": "5,000,000",
+                        "str:mint_tokens_gas_limit": "5,000,000",
+                        "str:locked_rewards_apr_multiplier": "2",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:penalty_percent": "100",
+                        "str:locked_asset_factory_address": "sc:locked_asset_factory",
+                        "str:produce_rewards_enabled": "1",
+                        "str:transfer_exec_gas_limit": "50000000",
+                        "str:create_farm_tokens_gas_limit": "5000000",
+                        "str:nft_deposit_max_len": "10",
+                        "str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:nft_deposit_accepted_token_ids.node_id|nested:str:FARM-abcdef": "1",
+                        "str:nft_deposit_accepted_token_ids.node_links": "0",
+                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
+                        "str:pair_contract_address": "0x0000000000000000000000000000000000000000000000000000000000000000"
+                    },
+                    "code": "file:../../../dex/farm/output/farm.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "2",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "whitelist",
+                "arguments": [
+                    "sc:mex_farm_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

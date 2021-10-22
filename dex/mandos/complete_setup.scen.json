@@ -11,10 +11,6 @@
 		},
 		{
 			"step": "externalSteps",
-			"path": "steps/construct_code.steps.json"
-		},
-		{
-			"step": "externalSteps",
 			"path": "steps/create_pair.steps.json"
 		},
 		{

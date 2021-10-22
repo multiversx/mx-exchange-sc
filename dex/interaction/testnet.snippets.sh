@@ -92,7 +92,7 @@ deployRouterContract() {
           --gas-price=1499999999 \
           --gas-limit=1499999999 \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --bytecode="../elrond_dex_router/output/elrond_dex_router.wasm" \
+          --bytecode="../router/output/router.wasm" \
           --outfile="deploy-route-internal.interaction.json" --send || return
     
     ADDRESS=$(erdpy data parse --file="deploy-route-internal.interaction.json" --expression="data['emitted_tx']['address']")
@@ -108,7 +108,7 @@ upgradeRouterContract() {
           --pem=${WALLET_PEM} \
           --gas-limit=${DEPLOY_GAS} \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --bytecode="../elrond_dex_router/output/elrond_dex_router.wasm" \
+          --bytecode="../router/output/router.wasm" \
           --outfile="upgrade-route-internal.interaction.json" --send || return
 
     echo ""
@@ -117,7 +117,7 @@ upgradeRouterContract() {
 
 uploadPairContractCode() {
     echo "STARTING TO PUSH NEW PAIR CONTRACT"
-    PAIR_CODE_HEX="$(xxd -p ../elrond_dex_pair/output/elrond_dex_pair.wasm | tr -d '\n')"
+    PAIR_CODE_HEX="$(xxd -p ../pair/output/pair.wasm | tr -d '\n')"
     PAIR_CODE_HEX="${PAIR_CODE_HEX::-4}"
     PAIR_CODE_HEX1="0x$(split -n1/3 <<<$PAIR_CODE_HEX)"
     PAIR_CODE_HEX2="0x$(split -n2/3 <<<$PAIR_CODE_HEX)"
@@ -301,7 +301,7 @@ deployPairContract() {
           --pem=${WALLET_PEM} \
           --gas-limit=250000000 \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --bytecode="../elrond_dex_pair/output/elrond_dex_pair.wasm" \
+          --bytecode="../pair/output/pair.wasm" \
           --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
           --outfile="deploy-pair-internal.interaction.json" --send || return
     
@@ -326,7 +326,7 @@ upgradePairContract() {
           --pem=${WALLET_PEM} \
           --gas-limit=250000000 \
           --proxy=${PROXY} --chain=${CHAIN_ID} \
-          --bytecode="../elrond_dex_pair/output/elrond_dex_pair.wasm" \
+          --bytecode="../pair/output/pair.wasm" \
           --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
           --outfile="upgrade-pair-internal.interaction.json" --send || return
     
@@ -364,45 +364,20 @@ setLpTokenIdentifier() {
 
 # params:
 #   $1 = Pair Address,
-#   $2 = Token Identifier,
-#   $3 = Token Amount in hex
-transferTokens() {
-    method_name="0x$(echo -n 'acceptEsdtPayment' | xxd -p -u | tr -d '\n')"
-    token_identifier="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
-
-    erdpy --verbose contract call $1 --recall-nonce \
-        --pem=${WALLET_PEM} \
-        --gas-limit=30000000 \
-        --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function="ESDTTransfer" \
-        --arguments ${token_identifier} $3 ${method_name} \
-        --send || return
-}
-
-# params:
-#   $1 = Pair Address,
-reclaimTemporaryFunds() {
-    erdpy --verbose contract call $1 --recall-nonce \
-        --pem=${WALLET_PEM} \
-        --gas-limit=20000000 \
-        --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function="reclaimTemporaryFunds" \
-        --send || return
-
-}
-
-# params:
-#   $1 = Pair Address,
-#   $2 = First Token Amount in hex,
-#   $3 = Second Token Amount in hex,
-#   $4 = Minimum First Token Amount in hex,
-#   $5 = Minimum Second Token Amount in hex
+#   $2 = First Token Identifier,
+#   $3 = First Token Amount in hex,
+#   $4 = Second Token Identifier,
+#   $5 = Second Token Amount in hex,
+#   $6 = Minimum First Token Amount in hex,
+#   $7 = Minimum Second Token Amount in hex
 addLiquidity() {
+    method_name="0x$(echo -n 'acceptEsdtPayment' | xxd -p -u | tr -d '\n')"
+
     erdpy --verbose contract call $1 --recall-nonce \
         --pem=${WALLET_PEM} \
         --gas-limit=30000000 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
-        --function=addLiquidity \
+        --function="multiESDTNFTTransfer" 2 $2 0 $3 $4 0 $5 ${method_name} $6 $7 \
         --arguments $2 $3 $4 $5 \
         --send || return
 }
@@ -547,7 +522,7 @@ deployFarmContract() {
         --gas-limit=1499999999 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
-        --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
+        --bytecode="../farm/output/farm.wasm" \
         --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address 0xE8D4A51000 \
         --outfile="deploy-farm-internal.interaction.json" --send || return
 
@@ -576,7 +551,7 @@ upgradeFarmContract() {
         --gas-limit=1499999999 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
-        --bytecode="../elrond_dex_farm/output/elrond_dex_farm.wasm" \
+        --bytecode="../farm/output/farm.wasm" \
         --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address 0xE8D4A51000 \
         --outfile="upgrade-farm-internal.interaction.json" --send || return
 
@@ -739,20 +714,6 @@ getFarmTokenIdentifier() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
         --function=getFarmTokenId || return
-}
-
-# params:
-#   $1 = Pair Address,
-#   $2 = User Address,
-#   $3 = Token Identifier,
-getTemporaryFunds() {
-    user_address="0x$(erdpy wallet bech32 --decode $2)"
-    token_identifier="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
-
-    erdpy --verbose contract query $1 \
-        --proxy=${PROXY} \
-        --function=getTemporaryFunds \
-        --arguments $user_address $token_identifier || return
 }
 
 # params:

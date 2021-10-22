@@ -32,7 +32,7 @@
 			"expect": {
 				"out": [
 					"0x02",
-					"0x0000000b4641524d2d61626364656600000000000000020000000405f6a450"
+					"0x020000000b4641524d2d61626364656600000000000000020000000405f6a450"
 				],
 				"status": "0",
 				"message": "",
@@ -44,7 +44,7 @@
 			"step": "checkState",
 			"accounts": {
 				"address:user_with_mex": {
-					"nonce": "2",
+					"nonce": "*",
 					"balance": "100,000,000",
 					"esdt": {
 						"str:FARM-abcdef": {

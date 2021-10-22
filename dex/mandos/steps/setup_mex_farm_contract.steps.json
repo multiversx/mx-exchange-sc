@@ -1,5 +1,5 @@
 {
-    "name": "sc_distribution_rs",
+    "name": "distribution",
     "steps": [
         {
             "step": "setState",
@@ -49,7 +49,7 @@
                         "str:create_farm_tokens_gas_limit": "5000000",
                         "str:pair_contract_address": "0x0000000000000000000000000000000000000000000000000000000000000000"
                     },
-                    "code": "file:../../elrond_dex_farm/output/elrond_dex_farm.wasm",
+                    "code": "file:../../farm/output/farm.wasm",
                     "owner": "address:owner"
                 }
             }

@@ -55,7 +55,7 @@
 			},
 			"expect": {
 				"out": [
-					"0x01|sc:pair_contract"
+					"sc:pair_contract"
 				],
 				"status": "0",
 				"message": "",
