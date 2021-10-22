@@ -565,7 +565,7 @@ pub trait Farm:
 
         let new_amount = merged_attributes.current_farm_amount.clone();
         let new_attributes = merged_attributes;
-        let new_nonce = self.create_farm_tokens(&new_amount, token_id, &new_attributes);
+        let new_nonce = self.nft_create_tokens(token_id, &new_amount, &new_attributes);
 
         let new_farm_token = FarmToken {
             token_amount: self.create_payment(token_id, new_nonce, &new_amount),

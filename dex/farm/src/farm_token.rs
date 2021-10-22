@@ -152,16 +152,6 @@ pub trait FarmTokenModule:
             ))
     }
 
-    fn create_farm_tokens(
-        &self,
-        farm_amount: &BigUint,
-        farm_token_id: &TokenIdentifier,
-        attributes: &FarmTokenAttributes<Self::Api>,
-    ) -> Nonce {
-        self.nft_create_tokens(farm_token_id, farm_amount, attributes);
-        self.increase_nonce()
-    }
-
     fn burn_farm_tokens_from_payments(
         &self,
         payments: &[EsdtTokenPayment<Self::Api>],
@@ -182,11 +172,5 @@ pub trait FarmTokenModule:
         require!(&farm_amount >= amount, "Not enough supply");
         self.nft_burn_tokens(farm_token_id, farm_token_nonce, amount);
         Ok(())
-    }
-
-    fn increase_nonce(&self) -> Nonce {
-        let new_nonce = self.farm_token_nonce().get() + 1;
-        self.farm_token_nonce().set(&new_nonce);
-        new_nonce
     }
 }

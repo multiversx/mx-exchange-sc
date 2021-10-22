@@ -36,10 +36,7 @@ pub trait LockedAssetTokenMergeModule:
 
         self.burn_tokens_from_payments(&payments);
 
-        self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
-        self.increase_nonce();
-
-        let new_nonce = self.locked_asset_token_nonce().get();
+        let new_nonce = self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
         self.transfer_execute_custom(
             &caller,
             &locked_asset_token,

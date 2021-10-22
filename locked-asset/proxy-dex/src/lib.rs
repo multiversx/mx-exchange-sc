@@ -66,12 +66,12 @@ pub trait ProxyDexImpl:
         #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall> {
         require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
-        self.issue_nft(
+        Ok(self.issue_nft(
             token_display_name,
             token_ticker,
             issue_cost,
             IssueRequestType::ProxyPair,
-        )
+        ))
     }
 
     #[only_owner]
@@ -87,12 +87,12 @@ pub trait ProxyDexImpl:
             self.wrapped_farm_token_id().is_empty(),
             "SFT already issued"
         );
-        self.issue_nft(
+        Ok(self.issue_nft(
             token_display_name,
             token_ticker,
             issue_cost,
             IssueRequestType::ProxyFarm,
-        )
+        ))
     }
 
     fn issue_nft(
@@ -101,9 +101,8 @@ pub trait ProxyDexImpl:
         token_ticker: ManagedBuffer,
         issue_cost: BigUint,
         request_type: IssueRequestType,
-    ) -> SCResult<AsyncCall> {
-        Ok(self
-            .send()
+    ) -> AsyncCall {
+        self.send()
             .esdt_system_sc_proxy()
             .issue_semi_fungible(
                 issue_cost,
@@ -119,7 +118,7 @@ pub trait ProxyDexImpl:
                 },
             )
             .async_call()
-            .with_callback(self.callbacks().issue_nft_callback(request_type)))
+            .with_callback(self.callbacks().issue_nft_callback(request_type))
     }
 
     #[callback]
@@ -167,13 +166,12 @@ pub trait ProxyDexImpl:
         token: TokenIdentifier,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall> {
-        Ok(self
-            .send()
+    ) -> AsyncCall {
+        self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback()))
+            .with_callback(self.callbacks().change_roles_callback())
     }
 
     #[callback]

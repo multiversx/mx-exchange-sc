@@ -98,7 +98,6 @@
 						}
 					},
 					"storage": {
-						"str:farm_token_nonce": "1",
 						"str:farm_token_id": "str:FARM-abcdef",
 						"str:router_address": "sc:router_contract",
 						"str:owner": "address:owner",

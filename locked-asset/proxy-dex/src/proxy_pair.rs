@@ -186,7 +186,7 @@ pub trait ProxyPairModule:
 
         let caller = self.blockchain().get_caller();
         let lp_token_id = self.ask_for_lp_token_id(&pair_address);
-        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
+        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
         require!(lp_token_id == attributes.lp_token_id, "Bad input address");
 
         let locked_asset_token_id = self.locked_asset_token_id().get();

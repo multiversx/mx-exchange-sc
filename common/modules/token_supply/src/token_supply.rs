@@ -14,7 +14,7 @@ pub trait TokenSupplyModule {
         token_id: &TokenIdentifier,
         amount: &BigUint,
         attributes: &T,
-    ) {
+    ) -> u64 {
         self.increase_generated_amount(token_id, amount);
         let mut uris = ManagedVec::new(self.type_manager());
         uris.push(self.types().managed_buffer_new());
@@ -26,7 +26,7 @@ pub trait TokenSupplyModule {
             &self.types().managed_buffer_new(),
             attributes,
             &uris,
-        );
+        )
     }
 
     fn nft_add_quantity_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {

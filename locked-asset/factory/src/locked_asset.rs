@@ -16,12 +16,11 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
-        self.create_tokens(
+        let last_created_nonce = self.nft_create_tokens(
             &token_id,
             &(amount + additional_amount_to_create),
             attributes,
         );
-        let last_created_nonce = self.locked_asset_token_nonce().get();
         self.transfer_execute_custom(
             address,
             &token_id,
@@ -42,16 +41,6 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
         self.transfer_execute_custom(address, &token_id, sft_nonce, amount, opt_accept_funds_func)
-    }
-
-    fn create_tokens(
-        &self,
-        token: &TokenIdentifier,
-        amount: &BigUint,
-        attributes: &LockedAssetTokenAttributes,
-    ) {
-        self.nft_create_tokens(token, amount, attributes);
-        self.increase_nonce();
     }
 
     fn get_unlock_amount(
@@ -122,12 +111,6 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         new_unlock_milestones
     }
 
-    fn increase_nonce(&self) -> Nonce {
-        let new_nonce = self.locked_asset_token_nonce().get() + 1;
-        self.locked_asset_token_nonce().set(&new_nonce);
-        new_nonce
-    }
-
     fn validate_unlock_milestones(
         &self,
         unlock_milestones: &VarArgs<UnlockMilestone>,
@@ -187,9 +170,6 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
     fn locked_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[storage_mapper("locked_token_nonce")]
-    fn locked_asset_token_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]

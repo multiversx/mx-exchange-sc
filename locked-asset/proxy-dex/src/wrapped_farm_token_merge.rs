@@ -69,7 +69,7 @@ pub trait WrappedFarmTokenMerge:
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.require_all_tokens_are_wrapped_farm_tokens(payments, &wrapped_farm_token_id)?;
 
-        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments)?;
+        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments);
 
         if replic.is_some() {
             tokens.push(replic.unwrap());
@@ -89,13 +89,11 @@ pub trait WrappedFarmTokenMerge:
             farming_token_amount: farming_token_amount.amount,
         };
 
-        self.nft_create_tokens(
+        let new_nonce = self.nft_create_tokens(
             &wrapped_farm_token_id,
             &merged_farm_token_amount.amount,
             &new_attrs,
         );
-        let new_nonce = self.increase_wrapped_farm_token_nonce();
-
         self.transfer_execute_custom(
             caller,
             &wrapped_farm_token_id,
@@ -116,7 +114,7 @@ pub trait WrappedFarmTokenMerge:
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
         payments: &[EsdtTokenPayment<Self::Api>],
-    ) -> SCResult<Vec<WrappedFarmToken<Self::Api>>> {
+    ) -> Vec<WrappedFarmToken<Self::Api>> {
         let mut result = Vec::new();
 
         for payment in payments.iter() {
@@ -125,10 +123,10 @@ pub trait WrappedFarmTokenMerge:
                 attributes: self.get_wrapped_farm_token_attributes(
                     &payment.token_identifier,
                     payment.token_nonce,
-                )?,
+                ),
             })
         }
-        Ok(result)
+        result
     }
 
     fn require_wrapped_farm_tokens_from_same_farm(
@@ -280,7 +278,7 @@ pub trait WrappedFarmTokenMerge:
             let wrapped_lp_token_nonce = token.attributes.farming_token_nonce;
 
             let attributes =
-                self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce)?;
+                self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce);
             let wrapped_lp_token = WrappedLpToken {
                 token_amount: self.create_payment(
                     &wrapped_lp_token_id,
@@ -307,12 +305,11 @@ pub trait WrappedFarmTokenMerge:
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
 
         let wrapped_lp_token_id = tokens[0].attributes.farming_token_id.clone();
-        self.nft_create_tokens(
+        let new_nonce = self.nft_create_tokens(
             &wrapped_lp_token_id,
             &merged_wrapped_lp_token_amount,
             &attrs,
         );
-        let new_nonce = self.increase_wrapped_lp_token_nonce();
 
         for wrapped_lp_token in wrapped_lp_tokens.iter() {
             self.nft_burn_tokens(
