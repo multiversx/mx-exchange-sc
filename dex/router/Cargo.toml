@@ -18,22 +18,18 @@ wasm-output-mode = [
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.20"
+version = "0.21"
 features = ["derive"]
-path = "../../../elrond-wasm-rs/elrond-wasm"
 
 [dependencies.elrond-wasm-derive]
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-derive"
+version = "0.21"
 
 [dependencies.elrond-wasm-node]
-version = "0.20"
+version = "0.21"
 optional = true
-path = "../../../elrond-wasm-rs/elrond-wasm-node"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-debug"
+version = "0.21"
 
 [dependencies.pair]
 path = "../pair"
