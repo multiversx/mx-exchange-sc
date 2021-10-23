@@ -69,7 +69,7 @@ pub trait TokenSupplyModule {
     }
 
     #[view(getGeneratedTokenAmountList)]
-    fn get_genereated_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, BigUint)> {
+    fn get_generated_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, BigUint)> {
         MultiResultVec::from_iter(
             self.generated_tokens()
                 .iter()
