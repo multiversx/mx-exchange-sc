@@ -11,7 +11,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -30,7 +29,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setCommunityDistribution",
                 "arguments": [
                     "100,000",
@@ -52,7 +50,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "10",
@@ -81,7 +78,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "endGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -100,7 +96,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -119,7 +114,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setCommunityDistribution",
                 "arguments": [
                     "100,000",
@@ -141,7 +135,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "20",
@@ -170,7 +163,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "endGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -189,7 +181,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -208,7 +199,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setCommunityDistribution",
                 "arguments": [
                     "100,000",
@@ -230,7 +220,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "30",
@@ -259,7 +248,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "endGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -278,7 +266,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -297,7 +284,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setCommunityDistribution",
                 "arguments": [
                     "100,000",
@@ -319,7 +305,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setPerUserDistributedLockedAssets",
                 "arguments": [
                     "40",
@@ -348,7 +333,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "endGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",

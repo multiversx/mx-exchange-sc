@@ -1,59 +1,60 @@
 {
-	"name": "exit farm",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "enter_mex_farm.scen.json"
-		},
-		{
-			"step": "setState",
-			"currentBlockInfo": {
-				"blockEpoch": "10",
-				"blockNonce": "10"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "unstake",
-			"tx": {
-				"from": "address:user_with_mex",
-				"to": "sc:mex_farm_contract",
-				"value": "0",
-				"function": "exitFarm",
-				"esdt": {
-					"tokenIdentifier": "str:FARM-abcdef",
-					"value": "100,000,000",
-					"nonce": "1"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x000000000a4d45582d61626364656600000000000000000000000405f5e100",
-					"0x000000000a4d45582d616263646566000000000000000000000002c350"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"address:user_with_mex": {
-					"nonce": "*",
-					"balance": "100,000,000",
-					"esdt": {
-						"str:MEX-abcdef": "5000050000"
-					},
-					"storage": {},
-					"code": ""
-				},
-				"+": ""
-			}
-		}
-	]
+    "name": "exit farm",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "enter_mex_farm.scen.json"
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "10",
+                "blockEpoch": "10"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "unstake",
+            "tx": {
+                "from": "address:user_with_mex",
+                "to": "sc:mex_farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:FARM-abcdef",
+                        "nonce": "1",
+                        "value": "100,000,000"
+                    }
+                ],
+                "function": "exitFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x000000000a4d45582d61626364656600000000000000000000000405f5e100",
+                    "0x000000000a4d45582d616263646566000000000000000000000002c350"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user_with_mex": {
+                    "nonce": "*",
+                    "balance": "100,000,000",
+                    "esdt": {
+                        "str:MEX-abcdef": "5000050000"
+                    },
+                    "storage": {},
+                    "code": ""
+                },
+                "+": ""
+            }
+        }
+    ]
 }

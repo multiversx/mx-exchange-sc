@@ -1,51 +1,49 @@
 {
-	"name": "resume farm",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "owner_pause_farm.scen.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "resume",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "resume",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "get-state",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "getState",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"1"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "resume farm",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "owner_pause_farm.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "resume",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "resume",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "get-state",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "getState",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "1"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

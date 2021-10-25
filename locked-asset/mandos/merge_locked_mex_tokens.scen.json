@@ -11,20 +11,19 @@
             "tx": {
                 "from": "address:user1",
                 "to": "sc:locked_asset_factory",
-                "value": "0",
-                "function": "mergeLockedAssetTokens",
-                "esdt": [
+                "esdtValue": [
                     {
                         "tokenIdentifier": "str:LKMEX-abcdef",
-                        "value": "100",
-                        "nonce": "1"
+                        "nonce": "1",
+                        "value": "100"
                     },
                     {
                         "tokenIdentifier": "str:LKMEX-abcdef",
-                        "value": "100",
-                        "nonce": "2"
+                        "nonce": "2",
+                        "value": "100"
                     }
                 ],
+                "function": "mergeLockedAssetTokens",
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
@@ -51,21 +50,15 @@
                             "instances": [
                                 {
                                     "nonce": "1",
-                                    "balance": "100",
-                                    "creator": "*",
-                                    "attributes": "*"
+                                    "balance": "100"
                                 },
                                 {
                                     "nonce": "2",
-                                    "balance": "100",
-                                    "creator": "*",
-                                    "attributes": "*"
+                                    "balance": "100"
                                 },
                                 {
                                     "nonce": "3",
-                                    "balance": "200",
-                                    "creator": "*",
-                                    "attributes": "*"
+                                    "balance": "200"
                                 }
                             ]
                         }

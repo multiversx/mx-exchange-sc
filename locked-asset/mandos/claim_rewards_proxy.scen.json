@@ -11,13 +11,14 @@
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:WFARM-abcdef",
+                        "nonce": "0x01",
+                        "value": "6,000"
+                    }
+                ],
                 "function": "claimRewardsProxy",
-                "esdt": {
-                    "tokenIdentifier": "str:WFARM-abcdef",
-                    "nonce": "0x01",
-                    "value": "6,000"
-                },
                 "arguments": [
                     "sc:farm_contract"
                 ],

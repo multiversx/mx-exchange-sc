@@ -11,7 +11,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:farm_contract",
-                "value": "0",
                 "function": "setPerBlockRewardAmount",
                 "arguments": [
                     "5000"
@@ -32,7 +31,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:farm_contract",
-                "value": "0",
                 "function": "start_produce_rewards",
                 "arguments": [],
                 "gasLimit": "1,000,000,000",
@@ -48,8 +46,8 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockEpoch": "10",
-                "blockNonce": "10"
+                "blockNonce": "10",
+                "blockEpoch": "10"
             }
         },
         {
@@ -58,13 +56,14 @@
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:WFARM-abcdef",
+                        "nonce": "0x01",
+                        "value": "7,000"
+                    }
+                ],
                 "function": "claimRewardsProxy",
-                "esdt": {
-                    "tokenIdentifier": "str:WFARM-abcdef",
-                    "nonce": "0x01",
-                    "value": "7,000"
-                },
                 "arguments": [
                     "sc:farm_contract"
                 ],
@@ -94,10 +93,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "80,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "80,000"
                                 }
                             ]
                         },
@@ -106,10 +102,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "1,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "1,000"
                                 }
                             ]
                         },
@@ -117,17 +110,11 @@
                             "instances": [
                                 {
                                     "nonce": "0x02",
-                                    "balance": "7,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "7,000"
                                 },
                                 {
                                     "nonce": "0x01",
-                                    "balance": "1,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "1,000"
                                 }
                             ]
                         },

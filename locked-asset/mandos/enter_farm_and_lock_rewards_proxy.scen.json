@@ -15,7 +15,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
                 "function": "addFarmToIntermediate",
                 "arguments": [
                     "sc:farm_contract"
@@ -36,13 +35,14 @@
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:WLPTOK-abcdef",
+                        "nonce": "0x01",
+                        "value": "8,000"
+                    }
+                ],
                 "function": "enterFarmAndLockRewardsProxy",
-                "esdt": {
-                    "tokenIdentifier": "str:WLPTOK-abcdef",
-                    "nonce": "0x01",
-                    "value": "8,000"
-                },
                 "arguments": [
                     "sc:farm_contract"
                 ],
@@ -71,10 +71,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "80,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "80,000"
                                 }
                             ]
                         },
@@ -83,10 +80,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "1,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "1,000"
                                 }
                             ]
                         },
@@ -94,10 +88,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "16,000",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "16,000"
                                 }
                             ]
                         }

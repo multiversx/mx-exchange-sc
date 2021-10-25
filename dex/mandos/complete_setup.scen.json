@@ -1,29 +1,29 @@
 {
-	"name": "accept esdt payment",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "steps/init_accounts.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/deploy_contracts.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/create_pair.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/hackish.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/set_fee_on.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/pair_whitelist.steps.json"
-		}
-	]
+    "name": "accept esdt payment",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "steps/init_accounts.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/deploy_contracts.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/create_pair.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/hackish.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/set_fee_on.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/pair_whitelist.steps.json"
+        }
+    ]
 }
