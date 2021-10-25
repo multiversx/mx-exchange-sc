@@ -15,22 +15,6 @@
 		},
 		{
 			"step": "externalSteps",
-			"path": "steps/issue_lp_token.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/set_local_roles_pair.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/issue_farm_token.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/set_local_roles_farm_token.steps.json"
-		},
-		{
-			"step": "externalSteps",
 			"path": "steps/hackish.steps.json"
 		},
 		{
