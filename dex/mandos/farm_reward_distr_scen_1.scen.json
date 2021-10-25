@@ -1,222 +1,224 @@
 {
-	"name": "accept esdt payment",
-	"steps": [
-		{
-			"step": "setState",
-			"currentBlockInfo": {
-				"blockNonce": "0"
-			}
-		},
-		{
-			"step": "setState",
-			"accounts": {
-				"address:alice": {
-					"nonce": "0",
-					"balance": "1,000,000,000,000",
-					"esdt": {
-						"str:LPTOK-abcdef": "1,000"
-					},
-					"storage": {}
-				},
-				"address:bob": {
-					"nonce": "0",
-					"balance": "1,000,000,000,000",
-					"esdt": {
-						"str:LPTOK-abcdef": "1,000"
-					},
-					"storage": {}
-				},
-				"sc:farm_contract": {
-					"nonce": "0",
-					"balance": "0",
-					"esdt": {
-						"str:FARM-abcdef": {
-							"roles": [
-								"ESDTRoleNFTCreate",
-								"ESDTRoleNFTAddQuantity",
-								"ESDTRoleNFTBurn"
-							]
-						},
-						"str:LPTOK-abcdef": {
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
-						},
-						"str:MEX-abcdef": {
-							"roles": [
-								"ESDTRoleLocalMint",
-								"ESDTRoleLocalBurn"
-							]
-						}
-					},
-					"storage": {
-						"str:farming_token_id": "str:LPTOK-abcdef",
-						"str:farm_token_id": "str:FARM-abcdef",
-						"str:reward_token_id": "str:MEX-abcdef",
-						"str:state": "1",
-						"str:minimum_farming_epochs": "2",
-						"str:burn_tokens_gas_limit": "5,000,000",
-						"str:mint_tokens_gas_limit": "5,000,000",
-						"str:penalty_percent": "0",
-						"str:division_safety_constant": "1000000000000",
-						"str:per_block_reward_amount": "100",
-						"str:produce_rewards_enabled": "1",
-						"str:create_farm_tokens_gas_limit": "5000000"
-					},
-					"code": "file:../farm/output/farm.wasm",
-					"owner": "address:owner"
-				}
-			}
-		},
-		{
-			"step": "setState",
-			"currentBlockInfo": {
-				"blockNonce": "1"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "alice-enters",
-			"tx": {
-				"from": "address:alice",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "enterFarm",
-				"esdt": {
-					"tokenIdentifier": "str:LPTOK-abcdef",
-					"value": "1,000"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x01",
-					"0x020000000b4641524d2d61626364656600000000000000010000000203e8"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "setState",
-			"currentBlockInfo": {
-				"blockNonce": "2"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "bob-enters",
-			"tx": {
-				"from": "address:bob",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "enterFarm",
-				"esdt": {
-					"tokenIdentifier": "str:LPTOK-abcdef",
-					"value": "1,000"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x02",
-					"0x020000000b4641524d2d61626364656600000000000000020000000203e8"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "setState",
-			"currentBlockInfo": {
-				"blockNonce": "9"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "alice-exits",
-			"tx": {
-				"from": "address:alice",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "exitFarm",
-				"esdt": {
-					"tokenIdentifier": "str:FARM-abcdef",
-					"nonce": "1",
-					"value": "1,000"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x000000000c4c50544f4b2d61626364656600000000000000000000000203e8",
-					"0x000000000a4d45582d61626364656600000000000000000000000201c2"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "bob-exits",
-			"tx": {
-				"from": "address:bob",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "exitFarm",
-				"esdt": {
-					"tokenIdentifier": "str:FARM-abcdef",
-					"nonce": "2",
-					"value": "1,000"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x000000000c4c50544f4b2d61626364656600000000000000000000000203e8",
-					"0x000000000a4d45582d616263646566000000000000000000000002015e"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"address:alice": {
-					"nonce": "*",
-					"balance": "1,000,000,000,000",
-					"esdt": {
-						"str:LPTOK-abcdef": "1,000",
-						"str:MEX-abcdef": "450"
-					}
-				},
-				"address:bob": {
-					"nonce": "*",
-					"balance": "1,000,000,000,000",
-					"esdt": {
-						"str:LPTOK-abcdef": "1,000",
-						"str:MEX-abcdef": "350"
-					}
-				},
-				"+": ""
-			}
-		}
-	]
+    "name": "accept esdt payment",
+    "steps": [
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "0"
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:alice": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000",
+                    "esdt": {
+                        "str:LPTOK-abcdef": "1,000"
+                    }
+                },
+                "address:bob": {
+                    "nonce": "0",
+                    "balance": "1,000,000,000,000",
+                    "esdt": {
+                        "str:LPTOK-abcdef": "1,000"
+                    }
+                },
+                "sc:farm_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:FARM-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:LPTOK-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:MEX-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:farming_token_id": "str:LPTOK-abcdef",
+                        "str:farm_token_id": "str:FARM-abcdef",
+                        "str:reward_token_id": "str:MEX-abcdef",
+                        "str:state": "1",
+                        "str:minimum_farming_epochs": "2",
+                        "str:burn_tokens_gas_limit": "5,000,000",
+                        "str:mint_tokens_gas_limit": "5,000,000",
+                        "str:penalty_percent": "0",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:per_block_reward_amount": "100",
+                        "str:produce_rewards_enabled": "1",
+                        "str:create_farm_tokens_gas_limit": "5000000"
+                    },
+                    "code": "file:../farm/output/farm.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "1"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "alice-enters",
+            "tx": {
+                "from": "address:alice",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LPTOK-abcdef",
+                        "value": "1,000"
+                    }
+                ],
+                "function": "enterFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x01",
+                    "0x020000000b4641524d2d61626364656600000000000000010000000203e8"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "2"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "bob-enters",
+            "tx": {
+                "from": "address:bob",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LPTOK-abcdef",
+                        "value": "1,000"
+                    }
+                ],
+                "function": "enterFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x02",
+                    "0x020000000b4641524d2d61626364656600000000000000020000000203e8"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "9"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "alice-exits",
+            "tx": {
+                "from": "address:alice",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:FARM-abcdef",
+                        "nonce": "1",
+                        "value": "1,000"
+                    }
+                ],
+                "function": "exitFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x000000000c4c50544f4b2d61626364656600000000000000000000000203e8",
+                    "0x000000000a4d45582d61626364656600000000000000000000000201c2"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "bob-exits",
+            "tx": {
+                "from": "address:bob",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:FARM-abcdef",
+                        "nonce": "2",
+                        "value": "1,000"
+                    }
+                ],
+                "function": "exitFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x000000000c4c50544f4b2d61626364656600000000000000000000000203e8",
+                    "0x000000000a4d45582d616263646566000000000000000000000002015e"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:alice": {
+                    "nonce": "*",
+                    "balance": "1,000,000,000,000",
+                    "esdt": {
+                        "str:LPTOK-abcdef": "1,000",
+                        "str:MEX-abcdef": "450"
+                    }
+                },
+                "address:bob": {
+                    "nonce": "*",
+                    "balance": "1,000,000,000,000",
+                    "esdt": {
+                        "str:LPTOK-abcdef": "1,000",
+                        "str:MEX-abcdef": "350"
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
 }

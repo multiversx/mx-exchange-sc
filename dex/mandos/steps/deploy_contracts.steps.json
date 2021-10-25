@@ -1,70 +1,68 @@
 {
-	"name": "deploy router",
-	"steps": [
-		{
-			"step": "setState",
-			"accounts": {
-				"sc:pair_template": {
-					"code": "file:../../pair/output/pair.wasm"
-				}
-			},
-			"newAddresses": [
-				{
-					"creatorAddress": "address:owner",
-					"creatorNonce": "0",
-					"newAddress": "sc:router_contract"
-				},
-				{
-					"creatorAddress": "address:owner",
-					"creatorNonce": "1",
-					"newAddress": "sc:farm_contract"
-				}
-			]
-		},
-		{
-			"step": "scDeploy",
-			"txId": "deploy-router",
-			"tx": {
-				"from": "address:owner",
-				"value": "0",
-				"contractCode": "file:../../router/output/router.wasm",
-				"arguments": [
-					"sc:pair_template"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scDeploy",
-			"txId": "deploy-staking22",
-			"tx": {
-				"from": "address:owner",
-				"value": "0",
-				"contractCode": "file:../../farm/output/farm.wasm",
-				"arguments": [
-					"sc:router_contract",
-					"str:WEGLD-abcdef",
-					"str:LPTOK-abcdef",
-					"sc:router_contract",
-					"1000000000000",
-					"sc:pair_contract"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "deploy router",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:pair_template": {
+                    "code": "file:../../pair/output/pair.wasm"
+                }
+            },
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "0",
+                    "newAddress": "sc:router_contract"
+                },
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "1",
+                    "newAddress": "sc:farm_contract"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy-router",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../../router/output/router.wasm",
+                "arguments": [
+                    "sc:pair_template"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy-staking22",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "file:../../farm/output/farm.wasm",
+                "arguments": [
+                    "sc:router_contract",
+                    "str:WEGLD-abcdef",
+                    "str:LPTOK-abcdef",
+                    "sc:router_contract",
+                    "1000000000000",
+                    "sc:pair_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

@@ -1,101 +1,114 @@
 {
-	"name": "remove liquidity twice",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "add_liquidity.scen.json"
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"sc:pair_contract": {
-					"nonce": "*",
-					"balance": "0",
-					"esdt": {
-						"str:WEGLD-abcdef": {
-							"balance": "2,000,000,000",
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
-						},
-						"str:ALC-abcdef": {
-							"balance": "2,000,000,000"
-						},
-						"str:LPTOK-abcdef": {
-							"balance": "1,000",
-							"roles": [
-								"ESDTRoleLocalBurn",
-								"ESDTRoleLocalMint"
-							]
-						}
-					},
-					"storage": {
-						"+": ""
-					},
-					"code": "file:../pair/output/pair.wasm",
-					"owner": "address:owner"
-				},
-				"+": ""
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "remove-liquidity",
-			"tx": {
-				"from": "address:user_with_lp",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"esdt": {
-					"tokenIdentifier": "str:LPTOK-abcdef",
-					"value": "1,000,000"
-				},
-				"function": "removeLiquidityAndBuyBackAndBurnToken",
-				"arguments": [
-					"str:WEGLD-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "0",
-				"message": "*",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"sc:pair_contract": {
-					"nonce": "*",
-					"balance": "0",
-					"esdt": {
-						"str:WEGLD-abcdef": {
-							"balance": "1,998,000,500",
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
-						},
-						"str:ALC-abcdef": {
-							"balance": "2,000,000,000"
-						},
-						"str:LPTOK-abcdef": {
-							"balance": "1,000",
-							"roles": [
-								"ESDTRoleLocalBurn",
-								"ESDTRoleLocalMint"
-							]
-						}
-					},
-					"storage": {
-						"+": ""
-					},
-					"code": "file:../pair/output/pair.wasm",
-					"owner": "address:owner"
-				},
-				"+": ""
-			}
-		}
-	]
+    "name": "remove liquidity twice",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "add_liquidity.scen.json"
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:pair_contract": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:WEGLD-abcdef": {
+                            "instances": [
+                                {
+                                    "balance": "2,000,000,000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:ALC-abcdef": "2,000,000,000",
+                        "str:LPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "balance": "1,000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn",
+                                "ESDTRoleLocalMint"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "+": ""
+                    },
+                    "code": "file:../pair/output/pair.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "remove-liquidity",
+            "tx": {
+                "from": "address:user_with_lp",
+                "to": "sc:pair_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LPTOK-abcdef",
+                        "value": "1,000,000"
+                    }
+                ],
+                "function": "removeLiquidityAndBuyBackAndBurnToken",
+                "arguments": [
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:pair_contract": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:WEGLD-abcdef": {
+                            "instances": [
+                                {
+                                    "balance": "1,998,000,500"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:ALC-abcdef": "2,000,000,000",
+                        "str:LPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "balance": "1,000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn",
+                                "ESDTRoleLocalMint"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "+": ""
+                    },
+                    "code": "file:../pair/output/pair.wasm",
+                    "owner": "address:owner"
+                },
+                "+": ""
+            }
+        }
+    ]
 }

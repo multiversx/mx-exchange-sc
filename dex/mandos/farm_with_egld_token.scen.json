@@ -1,117 +1,115 @@
 {
-	"name": "farm with mex",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "steps/init_accounts.steps.json"
-		},
-		{
-			"step": "setState",
-			"accounts": {
-				"sc:egld_farm_contract": {
-					"nonce": "0",
-					"balance": "0",
-					"esdt": {
-						"str:FARM-abcdef": {
-							"roles": [
-								"ESDTRoleNFTCreate",
-								"ESDTRoleNFTAddQuantity",
-								"ESDTRoleNFTBurn"
-							]
-						}
-					},
-					"storage": {
-						"str:farming_token_id": "str:WEGLD-abcdef",
-						"str:reward_token_id": "str:WEGLD-abcdef",
-						"str:farm_token_id": "str:FARM-abcdef",
-						"str:router_address": "sc:router_contract",
-						"str:state": "1",
-						"str:owner": "address:owner",
-						"str:create_farm_tokens_gas_limit": "5000000"
-					},
-					"code": "file:../farm/output/farm.wasm"
-				}
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "enter farm",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:egld_farm_contract",
-				"value": "0",
-				"function": "enterFarm",
-				"esdt": {
-					"tokenIdentifier": "str:WEGLD-abcdef",
-					"value": "100,000,000"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x01",
-					"0x020000000b4641524d2d61626364656600000000000000010000000405f5e100"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"address:user1": {
-					"nonce": "*",
-					"balance": "1,000,000,000,000,000,000,000,000,000,000",
-					"esdt": {
-						"str:WEGLD-abcdef": "4,900,000,000",
-						"str:ALC-abcdef": "5,000,000,000",
-						"str:BLC-abcdef": "5,000,000,000",
-						"str:FARM-abcdef": {
-							"instances": [
-								{
-									"nonce": "0x01",
-									"balance": "100,000,000",
-									"creator": "*",
-									"hash": "*",
-									"attributes": "*"
-								}
-							]
-						}
-					}
-				},
-				"sc:egld_farm_contract": {
-					"nonce": "*",
-					"balance": "0",
-					"esdt": {
-						"str:WEGLD-abcdef": "100,000,000",
-						"str:FARM-abcdef": {
-							"roles": [
-								"ESDTRoleNFTCreate",
-								"ESDTRoleNFTAddQuantity",
-								"ESDTRoleNFTBurn"
-							],
-							"lastNonce": "1"
-						}
-					},
-					"storage": {
-						"str:farm_token_id": "str:FARM-abcdef",
-						"str:router_address": "sc:router_contract",
-						"str:owner": "address:owner",
-						"str:state": "1",
-						"str:farming_token_id": "str:WEGLD-abcdef",
-						"str:reward_token_id": "str:WEGLD-abcdef",
-						"str:create_farm_tokens_gas_limit": "5000000",
-						"str:farming_token_reserve": "100,000,000",
-						"+": ""
-					},
-					"code": "file:../farm/output/farm.wasm"
-				},
-				"+": ""
-			}
-		}
-	]
+    "name": "farm with mex",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "steps/init_accounts.steps.json"
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:egld_farm_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:FARM-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:farming_token_id": "str:WEGLD-abcdef",
+                        "str:reward_token_id": "str:WEGLD-abcdef",
+                        "str:farm_token_id": "str:FARM-abcdef",
+                        "str:router_address": "sc:router_contract",
+                        "str:state": "1",
+                        "str:owner": "address:owner",
+                        "str:create_farm_tokens_gas_limit": "5000000"
+                    },
+                    "code": "file:../farm/output/farm.wasm"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "enter farm",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:egld_farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:WEGLD-abcdef",
+                        "value": "100,000,000"
+                    }
+                ],
+                "function": "enterFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x01",
+                    "0x020000000b4641524d2d61626364656600000000000000010000000405f5e100"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "1,000,000,000,000,000,000,000,000,000,000",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "4,900,000,000",
+                        "str:ALC-abcdef": "5,000,000,000",
+                        "str:BLC-abcdef": "5,000,000,000",
+                        "str:FARM-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x01",
+                                    "balance": "100,000,000"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "sc:egld_farm_contract": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "100,000,000",
+                        "str:FARM-abcdef": {
+                            "lastNonce": "1",
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:farm_token_id": "str:FARM-abcdef",
+                        "str:router_address": "sc:router_contract",
+                        "str:owner": "address:owner",
+                        "str:state": "1",
+                        "str:farming_token_id": "str:WEGLD-abcdef",
+                        "str:reward_token_id": "str:WEGLD-abcdef",
+                        "str:create_farm_tokens_gas_limit": "5000000",
+                        "str:farming_token_reserve": "100,000,000",
+                        "+": ""
+                    },
+                    "code": "file:../farm/output/farm.wasm"
+                },
+                "+": ""
+            }
+        }
+    ]
 }
