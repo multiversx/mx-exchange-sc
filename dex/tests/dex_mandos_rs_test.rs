@@ -15,6 +15,18 @@ fn contract_map() -> ContractMap<DebugApi> {
         "file:../router/output/router.wasm",
         Box::new(|context| Box::new(router::contract_obj(context))),
     );
+    contract_map.register_contract(
+        "file:../../farm/output/farm.wasm",
+        Box::new(|context| Box::new(farm::contract_obj(context))),
+    );
+    contract_map.register_contract(
+        "file:../../pair/output/pair.wasm",
+        Box::new(|context| Box::new(pair::contract_obj(context))),
+    );
+    contract_map.register_contract(
+        "file:../../router/output/router.wasm",
+        Box::new(|context| Box::new(router::contract_obj(context))),
+    );
     contract_map
 }
 
