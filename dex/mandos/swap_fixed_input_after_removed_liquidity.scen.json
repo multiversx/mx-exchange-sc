@@ -43,6 +43,7 @@
                         "str:WEGLD-abcdef": {
                             "instances": [
                                 {
+                                    "nonce": "",
                                     "balance": "1"
                                 }
                             ],
@@ -54,6 +55,7 @@
                         "str:LPTOK-abcdef": {
                             "instances": [
                                 {
+                                    "nonce": "",
                                     "balance": "1000"
                                 }
                             ],

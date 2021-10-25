@@ -15,6 +15,7 @@
                         "str:WEGLD-abcdef": {
                             "instances": [
                                 {
+                                    "nonce": "",
                                     "balance": "2,000,000,000"
                                 }
                             ],
@@ -26,6 +27,7 @@
                         "str:LPTOK-abcdef": {
                             "instances": [
                                 {
+                                    "nonce": "",
                                     "balance": "1,000"
                                 }
                             ],
@@ -81,6 +83,7 @@
                         "str:WEGLD-abcdef": {
                             "instances": [
                                 {
+                                    "nonce": "",
                                     "balance": "1,998,000,500"
                                 }
                             ],
@@ -92,6 +95,7 @@
                         "str:LPTOK-abcdef": {
                             "instances": [
                                 {
+                                    "nonce": "",
                                     "balance": "1,000"
                                 }
                             ],
