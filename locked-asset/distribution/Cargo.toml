@@ -24,7 +24,6 @@ path = "../factory"
 
 [dependencies.elrond-wasm]
 version = "0.21"
-features = ["derive"]
 
 [dependencies.elrond-wasm-derive]
 version = "0.21"
