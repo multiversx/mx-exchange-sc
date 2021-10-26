@@ -12,7 +12,7 @@ mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
-pub enum IssueRequestType {
+pub enum RegisterRequestType {
     ProxyFarm,
     ProxyPair,
 }
@@ -58,57 +58,66 @@ pub trait ProxyDexImpl:
 
     #[only_owner]
     #[payable("EGLD")]
-    #[endpoint(issueSftProxyPair)]
-    fn issue_sft_proxy_pair(
+    #[endpoint(registerProxyPair)]
+    fn register_proxy_pair(
         &self,
+        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
-        #[payment_amount] issue_cost: BigUint,
+        num_decimals: usize,
     ) -> SCResult<AsyncCall> {
-        require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
-        Ok(self.issue_nft(
+        require!(
+            self.wrapped_lp_token_id().is_empty(),
+            "Token exists already"
+        );
+        Ok(self.register_meta_esdt(
+            register_cost,
             token_display_name,
             token_ticker,
-            issue_cost,
-            IssueRequestType::ProxyPair,
+            num_decimals,
+            RegisterRequestType::ProxyPair,
         ))
     }
 
     #[only_owner]
     #[payable("EGLD")]
-    #[endpoint(issueSftProxyFarm)]
-    fn issue_sft_proxy_farm(
+    #[endpoint(registerProxyFarm)]
+    fn register_proxy_farm(
         &self,
+        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
-        #[payment_amount] issue_cost: BigUint,
+        num_decimals: usize,
     ) -> SCResult<AsyncCall> {
         require!(
             self.wrapped_farm_token_id().is_empty(),
-            "SFT already issued"
+            "Token exists already"
         );
-        Ok(self.issue_nft(
+        Ok(self.register_meta_esdt(
+            register_cost,
             token_display_name,
             token_ticker,
-            issue_cost,
-            IssueRequestType::ProxyFarm,
+            num_decimals,
+            RegisterRequestType::ProxyFarm,
         ))
     }
 
-    fn issue_nft(
+    fn register_meta_esdt(
         &self,
+        register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
-        issue_cost: BigUint,
-        request_type: IssueRequestType,
+        num_decimals: usize,
+        request_type: RegisterRequestType,
     ) -> AsyncCall {
         self.send()
             .esdt_system_sc_proxy()
-            .issue_semi_fungible(
-                issue_cost,
+            .register_meta_esdt(
+                register_cost,
                 &token_display_name,
                 &token_ticker,
-                SemiFungibleTokenProperties {
+                MetaTokenProperties {
+                    num_decimals,
                     can_add_special_roles: true,
                     can_change_owner: false,
                     can_freeze: false,
@@ -118,13 +127,13 @@ pub trait ProxyDexImpl:
                 },
             )
             .async_call()
-            .with_callback(self.callbacks().issue_nft_callback(request_type))
+            .with_callback(self.callbacks().register_callback(request_type))
     }
 
     #[callback]
-    fn issue_nft_callback(
+    fn register_callback(
         &self,
-        request_type: IssueRequestType,
+        request_type: RegisterRequestType,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
     ) {
         match result {
@@ -132,12 +141,12 @@ pub trait ProxyDexImpl:
                 self.last_error_message().clear();
 
                 match request_type {
-                    IssueRequestType::ProxyPair => {
+                    RegisterRequestType::ProxyPair => {
                         if self.wrapped_lp_token_id().is_empty() {
                             self.wrapped_lp_token_id().set(&token_id);
                         }
                     }
-                    IssueRequestType::ProxyFarm => {
+                    RegisterRequestType::ProxyFarm => {
                         if self.wrapped_farm_token_id().is_empty() {
                             self.wrapped_farm_token_id().set(&token_id);
                         }

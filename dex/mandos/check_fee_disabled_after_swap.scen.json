@@ -68,7 +68,6 @@
                         }
                     },
                     "storage": {
-                        "``ELRONDroleesdtFARM-abcdef": "0x0a1145534454526f6c654e46544372656174650a1645534454526f6c654e46544164645175616e746974790a0f45534454526f6c654e46544275726e",
                         "str:farming_token_id": "str:LPTOK-abcdef",
                         "str:reward_token_id": "str:WEGLD-abcdef",
                         "str:farm_token_id": "str:FARM-abcdef",

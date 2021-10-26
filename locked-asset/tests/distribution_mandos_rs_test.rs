@@ -4,7 +4,7 @@ use elrond_wasm_debug::*;
 fn blockchain_mock() -> BlockchainMock {
     let mut blockchain = BlockchainMock::new();
     blockchain.set_current_dir_from_workspace("locked-asset");
-    
+
     blockchain.register_contract(
         "file:../dex/farm/output/farm.wasm",
         Box::new(|context| Box::new(farm::contract_obj(context))),
@@ -33,12 +33,12 @@ fn blockchain_mock() -> BlockchainMock {
 }
 
 #[test]
-fn add_liquidity_proxy_go() {
+fn add_liquidity_proxy_rs() {
     elrond_wasm_debug::mandos_rs("mandos/add_liquidity_proxy.scen.json", blockchain_mock());
 }
 
 #[test]
-fn claim_locked_assets_basic_go() {
+fn claim_locked_assets_basic_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/claim_locked_assets_basic.scen.json",
         blockchain_mock(),
@@ -46,7 +46,7 @@ fn claim_locked_assets_basic_go() {
 }
 
 #[test]
-fn claim_mex_rewards_proxy_after_mint_rewards_go() {
+fn claim_mex_rewards_proxy_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/claim_mex_rewards_proxy_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -54,17 +54,17 @@ fn claim_mex_rewards_proxy_after_mint_rewards_go() {
 }
 
 #[test]
-fn claim_only_last_four_go() {
+fn claim_only_last_four_rs() {
     elrond_wasm_debug::mandos_rs("mandos/claim_only_last_four.scen.json", blockchain_mock());
 }
 
 #[test]
-fn claim_rewards_proxy_go() {
+fn claim_rewards_proxy_rs() {
     elrond_wasm_debug::mandos_rs("mandos/claim_rewards_proxy.scen.json", blockchain_mock());
 }
 
 #[test]
-fn claim_rewards_proxy_after_enter_with_lock_go() {
+fn claim_rewards_proxy_after_enter_with_lock_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/claim_rewards_proxy_after_enter_with_lock.scen.json",
         blockchain_mock(),
@@ -72,7 +72,7 @@ fn claim_rewards_proxy_after_enter_with_lock_go() {
 }
 
 #[test]
-fn claim_rewards_proxy_after_enter_with_lock_after_mint_rewards_go() {
+fn claim_rewards_proxy_after_enter_with_lock_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/claim_rewards_proxy_after_enter_with_lock_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -80,7 +80,7 @@ fn claim_rewards_proxy_after_enter_with_lock_after_mint_rewards_go() {
 }
 
 #[test]
-fn claim_rewards_proxy_after_mint_rewards_go() {
+fn claim_rewards_proxy_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/claim_rewards_proxy_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -88,7 +88,7 @@ fn claim_rewards_proxy_after_mint_rewards_go() {
 }
 
 #[test]
-fn clear_unclaimable_assets_go() {
+fn clear_unclaimable_assets_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/clear_unclaimable_assets.scen.json",
         blockchain_mock(),
@@ -96,7 +96,7 @@ fn clear_unclaimable_assets_go() {
 }
 
 #[test]
-fn compound_mex_rewards_proxy_after_mint_rewards_go() {
+fn compound_mex_rewards_proxy_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/compound_mex_rewards_proxy_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -104,7 +104,7 @@ fn compound_mex_rewards_proxy_after_mint_rewards_go() {
 }
 
 #[test]
-fn enter_farm_and_lock_rewards_proxy_go() {
+fn enter_farm_and_lock_rewards_proxy_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/enter_farm_and_lock_rewards_proxy.scen.json",
         blockchain_mock(),
@@ -112,22 +112,22 @@ fn enter_farm_and_lock_rewards_proxy_go() {
 }
 
 #[test]
-fn enter_farm_proxy_go() {
+fn enter_farm_proxy_rs() {
     elrond_wasm_debug::mandos_rs("mandos/enter_farm_proxy.scen.json", blockchain_mock());
 }
 
 #[test]
-fn enter_mex_farm_proxy_go() {
+fn enter_mex_farm_proxy_rs() {
     elrond_wasm_debug::mandos_rs("mandos/enter_mex_farm_proxy.scen.json", blockchain_mock());
 }
 
 #[test]
-fn exit_farm_proxy_go() {
+fn exit_farm_proxy_rs() {
     elrond_wasm_debug::mandos_rs("mandos/exit_farm_proxy.scen.json", blockchain_mock());
 }
 
 #[test]
-fn exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase_go() {
+fn exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase.scen.json",
         blockchain_mock(),
@@ -135,7 +135,7 @@ fn exit_mex_farm_proxy_after_compound_rewards_and_epoch_increase_go() {
 }
 
 #[test]
-fn exit_mex_farm_proxy_after_compound_rewards_go() {
+fn exit_mex_farm_proxy_after_compound_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/exit_mex_farm_proxy_after_compound_rewards.scen.json",
         blockchain_mock(),
@@ -143,7 +143,7 @@ fn exit_mex_farm_proxy_after_compound_rewards_go() {
 }
 
 #[test]
-fn exit_farm_proxy_after_mint_rewards_go() {
+fn exit_farm_proxy_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/exit_farm_proxy_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -151,7 +151,7 @@ fn exit_farm_proxy_after_mint_rewards_go() {
 }
 
 #[test]
-fn exit_farm_proxy_with_lock_rewards_go() {
+fn exit_farm_proxy_with_lock_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/exit_farm_proxy_with_lock_rewards.scen.json",
         blockchain_mock(),
@@ -159,7 +159,7 @@ fn exit_farm_proxy_with_lock_rewards_go() {
 }
 
 #[test]
-fn exit_farm_proxy_with_lock_rewards_after_mint_rewards_go() {
+fn exit_farm_proxy_with_lock_rewards_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/exit_farm_proxy_with_lock_rewards_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -167,7 +167,7 @@ fn exit_farm_proxy_with_lock_rewards_after_mint_rewards_go() {
 }
 
 #[test]
-fn exit_mex_farm_proxy_after_mint_rewards_go() {
+fn exit_mex_farm_proxy_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/exit_mex_farm_proxy_after_mint_rewards.scen.json",
         blockchain_mock(),
@@ -175,7 +175,7 @@ fn exit_mex_farm_proxy_after_mint_rewards_go() {
 }
 
 #[test]
-fn merge_locked_mex_tokens_go() {
+fn merge_locked_mex_tokens_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/merge_locked_mex_tokens.scen.json",
         blockchain_mock(),
@@ -183,17 +183,17 @@ fn merge_locked_mex_tokens_go() {
 }
 
 #[test]
-fn multiple_claim_assets_go() {
+fn multiple_claim_assets_rs() {
     elrond_wasm_debug::mandos_rs("mandos/multiple_claim_assets.scen.json", blockchain_mock());
 }
 
 #[test]
-fn remove_liquidity_proxy_go() {
+fn remove_liquidity_proxy_rs() {
     elrond_wasm_debug::mandos_rs("mandos/remove_liquidity_proxy.scen.json", blockchain_mock());
 }
 
 #[test]
-fn remove_liquidity_proxy_after_swap_mex_go() {
+fn remove_liquidity_proxy_after_swap_mex_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/remove_liquidity_proxy_after_swap_mex.scen.json",
         blockchain_mock(),
@@ -201,7 +201,7 @@ fn remove_liquidity_proxy_after_swap_mex_go() {
 }
 
 #[test]
-fn remove_liquidity_proxy_after_swap_wegld_go() {
+fn remove_liquidity_proxy_after_swap_wegld_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/remove_liquidity_proxy_after_swap_wegld.scen.json",
         blockchain_mock(),
@@ -209,12 +209,12 @@ fn remove_liquidity_proxy_after_swap_wegld_go() {
 }
 
 #[test]
-fn set_user_distribution_go() {
+fn set_user_distribution_rs() {
     elrond_wasm_debug::mandos_rs("mandos/set_user_distribution.scen.json", blockchain_mock());
 }
 
 #[test]
-fn set_user_distribution_above_cap_go() {
+fn set_user_distribution_above_cap_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/set_user_distribution_above_cap.scen.json",
         blockchain_mock(),
@@ -222,7 +222,7 @@ fn set_user_distribution_above_cap_go() {
 }
 
 #[test]
-fn set_user_distribution_duplicate_go() {
+fn set_user_distribution_duplicate_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/set_user_distribution_duplicate.scen.json",
         blockchain_mock(),
@@ -230,7 +230,7 @@ fn set_user_distribution_duplicate_go() {
 }
 
 #[test]
-fn set_user_distribution_with_unlock_go() {
+fn set_user_distribution_with_unlock_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/set_user_distribution_with_unlock.scen.json",
         blockchain_mock(),
@@ -238,7 +238,7 @@ fn set_user_distribution_with_unlock_go() {
 }
 
 #[test]
-fn undo_last_community_distribution_go() {
+fn undo_last_community_distribution_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/undo_last_community_distribution.scen.json",
         blockchain_mock(),
@@ -246,7 +246,7 @@ fn undo_last_community_distribution_go() {
 }
 
 #[test]
-fn undo_user_distribution_between_epochs_go() {
+fn undo_user_distribution_between_epochs_rs() {
     elrond_wasm_debug::mandos_rs(
         "mandos/undo_user_distribution_between_epochs.scen.json",
         blockchain_mock(),
@@ -254,6 +254,6 @@ fn undo_user_distribution_between_epochs_go() {
 }
 
 #[test]
-fn unlock_assets_basic_go() {
+fn unlock_assets_basic_rs() {
     elrond_wasm_debug::mandos_rs("mandos/unlock_assets_basic.scen.json", blockchain_mock());
 }

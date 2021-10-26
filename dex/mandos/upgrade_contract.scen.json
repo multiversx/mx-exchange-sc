@@ -37,7 +37,7 @@
                     "balance": "*",
                     "esdt": "*",
                     "storage": {
-                        "str:total_fee_percent": "301",
+                        "str:total_fee_percent": "*",
                         "+": ""
                     },
                     "code": "file:../pair/output/pair.wasm",

@@ -16,33 +16,41 @@ pub trait FarmTokenModule:
     config::ConfigModule + token_send::TokenSendModule + token_supply::TokenSupplyModule
 {
     #[payable("EGLD")]
-    #[endpoint(issueFarmToken)]
-    fn issue_farm_token(
+    #[endpoint(registerFarmToken)]
+    fn register_farm_token(
         &self,
-        #[payment_amount] issue_cost: BigUint,
+        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
+        num_decimals: usize,
     ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        require!(self.farm_token_id().is_empty(), "Already issued");
+        require!(self.farm_token_id().is_empty(), "Token exists already");
 
-        Ok(self.issue_token(issue_cost, token_display_name, token_ticker))
+        Ok(self.register_token(
+            register_cost,
+            token_display_name,
+            token_ticker,
+            num_decimals,
+        ))
     }
 
-    fn issue_token(
+    fn register_token(
         &self,
-        issue_cost: BigUint,
+        register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
+        num_decimals: usize,
     ) -> AsyncCall {
         self.send()
             .esdt_system_sc_proxy()
-            .issue_semi_fungible(
-                issue_cost,
+            .register_meta_esdt(
+                register_cost,
                 &token_display_name,
                 &token_ticker,
-                SemiFungibleTokenProperties {
+                MetaTokenProperties {
+                    num_decimals,
                     can_freeze: true,
                     can_wipe: true,
                     can_pause: true,
@@ -54,12 +62,12 @@ pub trait FarmTokenModule:
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .issue_callback(&self.blockchain().get_caller()),
+                    .register_callback(&self.blockchain().get_caller()),
             )
     }
 
     #[callback]
-    fn issue_callback(
+    fn register_callback(
         &self,
         caller: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
@@ -87,7 +95,7 @@ pub trait FarmTokenModule:
     fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        require!(!self.farm_token_id().is_empty(), "No farm token issued");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
         Ok(self.set_local_roles(token))

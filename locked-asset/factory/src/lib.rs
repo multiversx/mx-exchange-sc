@@ -118,7 +118,10 @@ pub trait LockedAssetFactory:
             self.whitelisted_contracts().contains(&caller),
             "Permission denied"
         );
-        require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
+        require!(
+            !self.locked_asset_token_id().is_empty(),
+            "Locked Asset Token not registered"
+        );
         require!(amount > 0, "Zero input amount");
         require!(
             start_epoch >= self.init_epoch().get(),
@@ -288,26 +291,28 @@ pub trait LockedAssetFactory:
 
     #[only_owner]
     #[payable("EGLD")]
-    #[endpoint(issueLockedAssetToken)]
-    fn issue_locked_asset_token(
+    #[endpoint(registerLockedAssetToken)]
+    fn register_locked_asset_token(
         &self,
+        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
-        #[payment_amount] issue_cost: BigUint,
+        num_decimals: usize,
     ) -> SCResult<AsyncCall> {
         require!(
             self.locked_asset_token_id().is_empty(),
-            "NFT already issued"
+            "Token exists already"
         );
 
         Ok(self
             .send()
             .esdt_system_sc_proxy()
-            .issue_semi_fungible(
-                issue_cost,
+            .register_meta_esdt(
+                register_cost,
                 &token_display_name,
                 &token_ticker,
-                SemiFungibleTokenProperties {
+                MetaTokenProperties {
+                    num_decimals,
                     can_add_special_roles: true,
                     can_change_owner: false,
                     can_freeze: false,
@@ -317,11 +322,11 @@ pub trait LockedAssetFactory:
                 },
             )
             .async_call()
-            .with_callback(self.callbacks().issue_nft_callback()))
+            .with_callback(self.callbacks().register_callback()))
     }
 
     #[callback]
-    fn issue_nft_callback(&self, #[call_result] result: ManagedAsyncCallResult<(TokenIdentifier)>) {
+    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<(TokenIdentifier)>) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();
@@ -354,7 +359,7 @@ pub trait LockedAssetFactory:
     ) -> SCResult<AsyncCall> {
         require!(
             !self.locked_asset_token_id().is_empty(),
-            "Locked asset SFT not issued"
+            "Locked Asset Token not registered"
         );
 
         Ok(self

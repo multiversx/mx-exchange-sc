@@ -8,7 +8,7 @@
         {
             "step": "setState",
             "currentBlockInfo": {
-                "blockEpoch": "10"
+                "blockEpoch": "50"
             }
         },
         {
@@ -33,8 +33,8 @@
             },
             "expect": {
                 "out": [
-                    "0x000000000c4c50544f4b2d6162636465660000000000000000000000021770",
-                    "0x030000000a4d45582d616263646566000000000000000000000000"
+                    "*",
+                    "*"
                 ],
                 "status": "0",
                 "gas": "*",
@@ -44,38 +44,14 @@
         {
             "step": "checkState",
             "accounts": {
-                "address:user_with_wegld1": {
+                "sc:farm_contract": {
                     "nonce": "*",
-                    "balance": "100,000,000",
-                    "esdt": {
-                        "str:LKMEX-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x01",
-                                    "balance": "80,000"
-                                }
-                            ]
-                        },
-                        "str:WEGLD-abcdef": "999,990,000",
-                        "str:WLPTOK-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x01",
-                                    "balance": "7,000"
-                                }
-                            ]
-                        },
-                        "str:WFARM-abcdef": {
-                            "instances": [
-                                {
-                                    "nonce": "0x01",
-                                    "balance": "2,000"
-                                }
-                            ]
-                        }
+                    "balance": "*",
+                    "esdt": "*",
+                    "storage": {
+                        "+": ""
                     },
-                    "storage": {},
-                    "code": ""
+                    "code": "*"
                 },
                 "+": ""
             }

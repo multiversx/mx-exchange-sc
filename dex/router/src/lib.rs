@@ -177,10 +177,10 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
     #[endpoint(issueLpToken)]
     fn issue_lp_token(
         &self,
+        #[payment_amount] issue_cost: BigUint,
         pair_address: ManagedAddress,
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
-        #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
@@ -355,10 +355,10 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
     #[callback]
     fn lp_token_issue_callback(
         &self,
-        caller: &ManagedAddress,
-        address: &ManagedAddress,
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] returned_tokens: BigUint,
+        caller: &ManagedAddress,
+        address: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
