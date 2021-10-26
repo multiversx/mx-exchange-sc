@@ -14,11 +14,11 @@ wasm-output-mode = [ "elrond-wasm-node",]
 path = "../../common_structs"
 
 [dependencies.elrond-wasm]
-version = "0.21"
+version = "0.21.1"
 
 [dependencies.elrond-wasm-derive]
-version = "0.21"
+version = "0.21.1"
 
 [dependencies.elrond-wasm-node]
-version = "0.21"
+version = "0.21.1"
 optional = true
