@@ -244,11 +244,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
-        let roles = [
-            EsdtLocalRole::NftCreate,
-            EsdtLocalRole::NftAddQuantity,
-            EsdtLocalRole::NftBurn,
-        ];
+        let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
 
         Ok(self
             .send()
