@@ -11,13 +11,14 @@
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:WFARM-abcdef",
+                        "nonce": "0x01",
+                        "value": "6,000"
+                    }
+                ],
                 "function": "claimRewardsProxy",
-                "esdt": {
-                    "tokenIdentifier": "str:WFARM-abcdef",
-                    "nonce": "0x01",
-                    "value": "6,000"
-                },
                 "arguments": [
                     "sc:farm_contract"
                 ],
@@ -28,7 +29,7 @@
                 "out": [
                     "0x02",
                     "0x020000000b4641524d2d6162636465660000000000000002000000021770",
-                    "0x030000000a4d45582d616263646566000000000000000000000000",
+                    "0x040000000a4d45582d616263646566000000000000000000000000",
                     "0x02"
                 ],
                 "status": "0",

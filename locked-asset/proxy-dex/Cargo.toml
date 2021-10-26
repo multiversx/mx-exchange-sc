@@ -37,15 +37,14 @@ path = "../../common/modules/token_merge"
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.21"
-features = ["derive"]
+version = "0.21.1"
 
 [dependencies.elrond-wasm-derive]
-version = "0.21"
+version = "0.21.1"
 
 [dependencies.elrond-wasm-node]
-version = "0.21"
+version = "0.21.1"
 optional = true
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.21"
+version = "0.21.1"

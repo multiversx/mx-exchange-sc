@@ -121,7 +121,7 @@ pub trait Farm:
         opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let payments = self.get_all_payments();
         require!(payments.len() >= 1, "empty payments");
@@ -203,7 +203,7 @@ pub trait Farm:
         #[payment_amount] amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
-        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
@@ -290,7 +290,7 @@ pub trait Farm:
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let payments = self.get_all_payments();
         require!(payments.len() >= 1, "bad payment len");
@@ -406,7 +406,7 @@ pub trait Farm:
         let payment_token_nonce = payments[0].token_nonce;
         require!(payment_amount > 0, "Zero amount");
 
-        require!(!self.farm_token_id().is_empty(), "No issued farm token");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
 

@@ -1,57 +1,55 @@
 {
-	"name": "pause self",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "steps/init_accounts.steps.json"
-		},
-		{
-			"step": "externalSteps",
-			"path": "steps/deploy_contracts.steps.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "pause",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:router_contract",
-				"value": "0",
-				"function": "pause",
-				"arguments": [
-					"sc:router_contract"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "get-state",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:router_contract",
-				"value": "0",
-				"function": "getState",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					""
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "pause self",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "steps/init_accounts.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/deploy_contracts.steps.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "pause",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "pause",
+                "arguments": [
+                    "sc:router_contract"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "get-state",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "getState",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    ""
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

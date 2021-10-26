@@ -1,47 +1,45 @@
 {
-	"name": "set local roles farm token",
-	"steps": [
-		{
-			"step": "scCall",
-			"txId": "set-local-roles",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "setLocalRolesFarmToken",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "4",
-				"message": "*",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "get-last-error-message",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "getLastErrorMessage",
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					""
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "set local roles farm token",
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "set-local-roles",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "setLocalRolesFarmToken",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "get-last-error-message",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "getLastErrorMessage",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    ""
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

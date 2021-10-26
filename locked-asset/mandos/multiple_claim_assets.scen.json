@@ -17,7 +17,6 @@
             "tx": {
                 "from": "address:user1",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -45,10 +44,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "100",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "100"
                                 }
                             ]
                         }
@@ -69,7 +65,6 @@
             "tx": {
                 "from": "address:user1",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -96,10 +91,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "200",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "200"
                                 }
                             ]
                         }
@@ -120,7 +112,6 @@
             "tx": {
                 "from": "address:user1",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -148,17 +139,11 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "200",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "200"
                                 },
                                 {
                                     "nonce": "0x02",
-                                    "balance": "100",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "100"
                                 }
                             ]
                         }
@@ -179,7 +164,6 @@
             "tx": {
                 "from": "address:user1",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "claimLockedAssets",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -206,17 +190,11 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "200",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "200"
                                 },
                                 {
                                     "nonce": "0x02",
-                                    "balance": "200",
-                                    "creator": "*",
-                                    "hash": "*",
-                                    "attributes": "*"
+                                    "balance": "200"
                                 }
                             ]
                         }

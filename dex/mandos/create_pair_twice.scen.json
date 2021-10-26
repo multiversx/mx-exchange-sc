@@ -1,75 +1,75 @@
 {
-	"name": "create pair twice",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "complete_setup.scen.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "create-pair",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:router_contract",
-				"value": "0",
-				"function": "createPair",
-				"arguments": [
-					"str:ALC-abcdef",
-					"str:WEGLD-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"status": "4",
-				"message": "str:Pair already exists",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "create-pair",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:router_contract",
-				"value": "0",
-				"function": "createPair",
-				"arguments": [
-					"str:WEGLD-abcdef",
-					"str:ALC-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"status": "4",
-				"message": "str:Pair already exists",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "create-pair",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:router_contract",
-				"value": "0",
-				"function": "createPair",
-				"arguments": [
-					"str:BLC-abcdef",
-					"str:BLC-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"status": "4",
-				"message": "*",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "create pair twice",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "complete_setup.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "create-pair",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "createPair",
+                "arguments": [
+                    "str:ALC-abcdef",
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "str:Pair already exists",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "create-pair",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "createPair",
+                "arguments": [
+                    "str:WEGLD-abcdef",
+                    "str:ALC-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "str:Pair already exists",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "create-pair",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "createPair",
+                "arguments": [
+                    "str:BLC-abcdef",
+                    "str:BLC-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

@@ -11,7 +11,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:router_contract",
-                "value": "0",
                 "function": "upgradePair",
                 "arguments": [
                     "str:ALC-abcdef",
@@ -38,8 +37,8 @@
                     "balance": "*",
                     "esdt": "*",
                     "storage": {
-                        "str:total_fee_percent": "301",
-                        "+": "*"
+                        "str:total_fee_percent": "*",
+                        "+": ""
                     },
                     "code": "file:../pair/output/pair.wasm",
                     "owner": "address:owner"

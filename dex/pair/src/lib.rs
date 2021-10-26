@@ -124,11 +124,11 @@ pub trait Pair:
         );
         require!(
             first_token_amount_desired >= first_token_amount_min,
-            "Input first token desired amount is lower than minimul"
+            "Input first token desired amount is lower than minimal"
         );
         require!(
             second_token_amount_desired >= second_token_amount_min,
-            "Input second token desired amount is lower than minimul"
+            "Input second token desired amount is lower than minimal"
         );
 
         let old_k = self.calculate_k_for_reserves();

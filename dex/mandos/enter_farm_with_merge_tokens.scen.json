@@ -1,75 +1,71 @@
 {
-	"name": "enter farm",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "enter_farm.scen.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "stake",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "enterFarm",
-				"esdt": [
-					{
-						"tokenIdentifier": "str:LPTOK-abcdef",
-						"value": "100,000,000"
-					},
-					{
-						"tokenIdentifier": "str:FARM-abcdef",
-						"value": "100,000,000",
-						"nonce": "1"
-					},
-					{
-						"tokenIdentifier": "str:FARM-abcdef",
-						"value": "100,000,000",
-						"nonce": "2"
-					}
-				],
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x03",
-					"0x020000000b4641524d2d61626364656600000000000000030000000411e1a300"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"address:user1": {
-					"nonce": "*",
-					"balance": "1000000000000000000000000000000",
-					"esdt": {
-						"str:FARM-abcdef": {
-							"instances": [
-								{
-									"nonce": "0x03",
-									"balance": "300,000,000",
-									"creator": "*",
-									"hash": "*",
-									"attributes": "*"
-								}
-							]
-						},
-						"str:WEGLD-abcdef": "3,000,000,000",
-						"str:BLC-abcdef": "5,000,000,000",
-						"str:ALC-abcdef": "3,000,000,000",
-						"str:LPTOK-abcdef": "1,699,999,000"
-					}
-				},
-				"+": ""
-			}
-		}
-	]
+    "name": "enter farm",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "enter_farm.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "stake",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LPTOK-abcdef",
+                        "value": "100,000,000"
+                    },
+                    {
+                        "tokenIdentifier": "str:FARM-abcdef",
+                        "nonce": "1",
+                        "value": "100,000,000"
+                    },
+                    {
+                        "tokenIdentifier": "str:FARM-abcdef",
+                        "nonce": "2",
+                        "value": "100,000,000"
+                    }
+                ],
+                "function": "enterFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x03",
+                    "0x020000000b4641524d2d61626364656600000000000000030000000411e1a300"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user1": {
+                    "nonce": "*",
+                    "balance": "1000000000000000000000000000000",
+                    "esdt": {
+                        "str:FARM-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0x03",
+                                    "balance": "300,000,000"
+                                }
+                            ]
+                        },
+                        "str:WEGLD-abcdef": "3,000,000,000",
+                        "str:BLC-abcdef": "5,000,000,000",
+                        "str:ALC-abcdef": "3,000,000,000",
+                        "str:LPTOK-abcdef": "1,699,999,000"
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
 }
