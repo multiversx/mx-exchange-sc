@@ -72,7 +72,7 @@ pub trait ProxyPairModule:
         require!(first_token_nonce == 0, "bad first token nonce");
         require!(first_token_amount_desired > 0, "first payment amount zero");
         require!(
-            first_token_amount_desired > first_token_amount_min,
+            first_token_amount_desired >= first_token_amount_min,
             "bad first token min"
         );
 
@@ -85,7 +85,7 @@ pub trait ProxyPairModule:
             "second payment amount zero"
         );
         require!(
-            second_token_amount_desired > second_token_amount_min,
+            second_token_amount_desired >= second_token_amount_min,
             "bad second token min"
         );
 
