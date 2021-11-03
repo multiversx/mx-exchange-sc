@@ -72,20 +72,24 @@ pub trait ProxyPairModule:
         require!(first_token_nonce == 0, "bad first token nonce");
         require!(first_token_amount_desired > 0, "first payment amount zero");
         require!(
-            first_token_amount_desired > first_token_amount_min,
+            first_token_amount_desired >= first_token_amount_min,
             "bad first token min"
         );
 
         let second_token_id = payments[1].token_identifier.clone();
         let second_token_nonce = payments[1].token_nonce;
         let second_token_amount_desired = payments[1].amount.clone();
+        require!(
+            second_token_id == self.locked_asset_token_id().get(),
+            "second token needs to be locked asset token"
+        );
         require!(second_token_nonce != 0, "bad second token nonce");
         require!(
             second_token_amount_desired > 0,
             "second payment amount zero"
         );
         require!(
-            second_token_amount_desired > second_token_amount_min,
+            second_token_amount_desired >= second_token_amount_min,
             "bad second token min"
         );
 
