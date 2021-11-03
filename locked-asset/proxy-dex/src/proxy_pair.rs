@@ -134,12 +134,12 @@ pub trait ProxyPairModule:
         )?;
 
         let mut surplus_payments = Vec::new();
-        surplus_payments.push(EsdtTokenPayment::from(
+        surplus_payments.push(EsdtTokenPayment::new(
             first_token_id.clone(),
             0,
             &first_token_amount_desired - &first_token_used.amount,
         ));
-        surplus_payments.push(EsdtTokenPayment::from(
+        surplus_payments.push(EsdtTokenPayment::new(
             second_token_id.clone(),
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
@@ -282,14 +282,14 @@ pub trait ProxyPairModule:
     ) -> AddLiquidityResultType<Self::Api> {
         let mut all_token_payments = ManagedVec::new(self.type_manager());
 
-        let first_payment = EsdtTokenPayment::from(
+        let first_payment = EsdtTokenPayment::new(
             first_token_id.clone(),
             0,
             first_token_amount_desired.clone(),
         );
         all_token_payments.push(first_payment);
 
-        let second_payment = EsdtTokenPayment::from(
+        let second_payment = EsdtTokenPayment::new(
             second_token_id.clone(),
             0,
             second_token_amount_desired.clone(),

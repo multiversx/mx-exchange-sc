@@ -21,10 +21,12 @@ debug = false
 panic = "abort"
 
 [dependencies.router]
-features = [ "wasm-output-mode",]
 default-features = false
 path = ".."
 
+[dependencies.elrond-wasm-node]
+version = "0.22.0"
+
 [dependencies.elrond-wasm-output]
-version = "0.21.2"
-features = [ "wasm-output-mode",]
+version = "0.22.0"
+features = ["wasm-output-mode"]

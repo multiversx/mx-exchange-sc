@@ -7,18 +7,8 @@ edition = "2018"
 [lib]
 path = "src/token_supply.rs"
 
-[features]
-wasm-output-mode = [ "elrond-wasm-node",]
-
 [dependencies.common_structs]
 path = "../../common_structs"
 
 [dependencies.elrond-wasm]
-version = "0.21.2"
-
-[dependencies.elrond-wasm-derive]
-version = "0.21.2"
-
-[dependencies.elrond-wasm-node]
-version = "0.21.2"
-optional = true
+version = "0.22.0"

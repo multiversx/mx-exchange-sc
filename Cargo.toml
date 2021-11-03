@@ -2,17 +2,17 @@
 members = [
   "dex",
   "dex/farm",
-  "dex/farm/abi",
+  "dex/farm/meta",
   "dex/pair",
-  "dex/pair/abi",
+  "dex/pair/meta",
   "dex/router",
-  "dex/router/abi",
+  "dex/router/meta",
 
   "locked-asset/",
   "locked-asset/distribution",
-  "locked-asset/distribution/abi",
+  "locked-asset/distribution/meta",
   "locked-asset/proxy-dex",
-  "locked-asset/proxy-dex/abi",
+  "locked-asset/proxy-dex/meta",
   "locked-asset/factory",
-  "locked-asset/factory/abi",
+  "locked-asset/factory/meta",
 ]

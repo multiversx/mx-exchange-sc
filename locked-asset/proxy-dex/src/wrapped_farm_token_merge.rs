@@ -188,7 +188,7 @@ pub trait WrappedFarmTokenMerge:
                 &entry.attributes.farming_token_amount,
             )?;
 
-            payments.push(EsdtTokenPayment::from(
+            payments.push(EsdtTokenPayment::new(
                 locked_asset_token.clone(),
                 entry.attributes.farming_token_nonce,
                 locked_token_amount,
@@ -219,7 +219,7 @@ pub trait WrappedFarmTokenMerge:
 
         let mut payments = ManagedVec::new();
         for entry in tokens.iter() {
-            payments.push(EsdtTokenPayment::from(
+            payments.push(EsdtTokenPayment::new(
                 entry.attributes.farm_token_id.clone(),
                 entry.attributes.farm_token_nonce,
                 entry.token_amount.amount.clone(),
