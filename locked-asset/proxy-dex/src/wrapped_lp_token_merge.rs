@@ -185,7 +185,7 @@ pub trait WrappedLpTokenMerge:
                 &entry.attributes.locked_assets_invested,
             )?;
 
-            payments.push(EsdtTokenPayment::from(
+            payments.push(EsdtTokenPayment::new(
                 locked_asset_token.clone(),
                 entry.attributes.locked_assets_nonce,
                 amount,

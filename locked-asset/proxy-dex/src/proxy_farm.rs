@@ -420,7 +420,7 @@ pub trait ProxyFarmModule:
         }
 
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
+        payments.push(EsdtTokenPayment::new(
             farming_token_id.clone(),
             0,
             amount.clone(),
@@ -466,7 +466,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> ClaimRewardsResultType<Self::Api> {
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
+        payments.push(EsdtTokenPayment::new(
             farm_token_id.clone(),
             farm_token_nonce,
             amount.clone(),
@@ -486,7 +486,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> CompoundRewardsResultType<Self::Api> {
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
+        payments.push(EsdtTokenPayment::new(
             farm_token_id.clone(),
             farm_token_nonce,
             amount.clone(),

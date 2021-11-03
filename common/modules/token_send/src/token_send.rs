@@ -68,7 +68,7 @@ pub trait TokenSendModule {
         amount: &BigUint,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
-        if amount == &0 {
+        if amount == &0u32 {
             return Ok(());
         }
 
@@ -85,7 +85,7 @@ pub trait TokenSendModule {
         let arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
         let endpoint_name = ManagedBuffer::new_from_bytes(self.type_manager(), function);
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(token.clone(), nonce, amount.clone()));
+        payments.push(EsdtTokenPayment::new(token.clone(), nonce, amount.clone()));
 
         self.raw_vm_api()
             .direct_multi_esdt_transfer_execute(
@@ -111,7 +111,7 @@ pub trait TokenSendModule {
         nonce: u64,
         amount: &BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
-        EsdtTokenPayment::from(token_id.clone(), nonce, amount.clone())
+        EsdtTokenPayment::new(token_id.clone(), nonce, amount.clone())
     }
 
     #[view(getTransferExecGasLimit)]

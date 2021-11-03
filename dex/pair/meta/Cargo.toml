@@ -1,17 +1,17 @@
 [package]
-name = "distribution-abi"
+name = "pair-abi"
 
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
 publish = false
 
-[dependencies.distribution]
+[dependencies.pair]
 path = ".."
 
 [dependencies.elrond-wasm]
-version = "0.21.1"
-
+version = "0.22.0"
 
 [dependencies.elrond-wasm-debug]
-version = "0.21.1"
+version = "0.22.0"
+
