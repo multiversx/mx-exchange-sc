@@ -12,6 +12,3 @@ path = "../../common_structs"
 
 [dependencies.elrond-wasm]
 version = "0.22.0"
-
-[dependencies.elrond-wasm-derive]
-version = "0.22.0"

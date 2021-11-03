@@ -21,7 +21,6 @@ debug = false
 panic = "abort"
 
 [dependencies.pair]
-default-features = false
 path = ".."
 
 [dependencies.elrond-wasm-node]
