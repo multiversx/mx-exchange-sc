@@ -50,8 +50,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn burn_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
         for entry in payments {
-            self.send()
-                .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
+            self.nft_burn_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
     }
 

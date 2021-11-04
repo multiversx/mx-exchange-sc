@@ -7,7 +7,7 @@ use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule: token_send::TokenSendModule {
+pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
     #[payable("*")]
     #[endpoint(acceptPay)]
     fn accept_pay(&self) {}
@@ -48,7 +48,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
 
     fn burn_payment_tokens(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
         for payment in payments.iter() {
-            self.send().esdt_local_burn(
+            self.nft_burn_tokens(
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
