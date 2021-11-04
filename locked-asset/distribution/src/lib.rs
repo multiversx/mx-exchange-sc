@@ -362,16 +362,27 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
-    #[view(getAllUsersDistributedLockedAssets)]
-    fn get_all_users_distributed_locked_assets(
+    #[view(getUsersDistributedLockedAssets)]
+    fn get_users_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-    ) -> MultiResultVec<UserLockedAssetKey<Self::Api>> {
-        self.user_locked_asset_map()
-            .iter()
-            .filter(|x| x.0.spread_epoch == spread_epoch)
-            .map(|x| x.0)
-            .collect()
+        #[var_args] user_locked_assets: VarArgs<ManagedAddress>,
+    ) -> MultiResultVec<MultiArg2<ManagedAddress, BigUint>> {
+        let mut results = MultiResultVec::<MultiArg2<ManagedAddress, BigUint>>::new();
+        for user_asset_multiarg in user_locked_assets.into_vec() {
+            if let Some(amount) = self.user_locked_asset_map().get(&UserLockedAssetKey {
+                spread_epoch,
+                caller: user_asset_multiarg.clone(),
+            }) {
+                results.push(MultiArg2::from((user_asset_multiarg, amount)))
+            }
+        }
+        results
+    }
+
+    #[view(getUsersDistributedLockedAssetsLength)]
+    fn get_users_distributed_locked_assets_length(&self) -> usize {
+        self.user_locked_asset_map().len()
     }
 
     #[view(getUnlockPeriod)]
