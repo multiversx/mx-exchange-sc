@@ -70,6 +70,7 @@ pub trait WrappedFarmTokenMerge:
         self.require_all_tokens_are_wrapped_farm_tokens(payments, &wrapped_farm_token_id)?;
 
         let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments);
+        self.require_all_wrapped_farm_tokens_have_same_farming_token(&tokens, replic.clone())?;
 
         if replic.is_some() {
             tokens.push(replic.unwrap());
@@ -154,6 +155,32 @@ pub trait WrappedFarmTokenMerge:
                 &elem.token_identifier == wrapped_farm_token_id,
                 "Not a Wrapped Farm Token"
             );
+        }
+        Ok(())
+    }
+
+    fn require_all_wrapped_farm_tokens_have_same_farming_token(
+        &self,
+        wrapped_farm_tokens: &[WrappedFarmToken<Self::Api>],
+        replic: Option<WrappedFarmToken<Self::Api>>,
+    ) -> SCResult<()> {
+        if !wrapped_farm_tokens.is_empty() {
+            let first_wrapped_farm_token = wrapped_farm_tokens.first().unwrap();
+
+            for wrapped_farm_token in wrapped_farm_tokens.iter() {
+                require!(
+                    wrapped_farm_token.attributes.farming_token_id == first_wrapped_farm_token.attributes.farming_token_id,
+                    "bad token input"
+                );
+            }
+
+            if replic.is_some() {
+                let replic_unwrap = replic.unwrap();
+
+                require!(replic_unwrap.attributes.farming_token_id == first_wrapped_farm_token.attributes.farming_token_id,
+                    "bad token input"
+                );
+            }
         }
         Ok(())
     }
