@@ -14,11 +14,12 @@ elrond_wasm_node::wasm_endpoints! {
         clearUnclaimableAssets
         deleteUserDistributedLockedAssets
         endGlobalOperation
-        getAllUsersDistributedLockedAssets
         getAssetTokenId
         getCommunityDistributionList
         getLastCommunityDistributionAmountAndEpoch
         getUnlockPeriod
+        getUsersDistributedLockedAssets
+        getUsersDistributedLockedAssetsLength
         setCommunityDistribution
         setPerUserDistributedLockedAssets
         setUnlockPeriod
