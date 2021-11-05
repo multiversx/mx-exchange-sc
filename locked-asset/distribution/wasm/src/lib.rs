@@ -43,11 +43,6 @@ pub fn endGlobalOperation() {
 }
 
 #[no_mangle]
-pub fn getAllUsersDistributedLockedAssets() {
-    distribution::endpoints::getAllUsersDistributedLockedAssets(elrond_wasm_node::vm_api());
-}
-
-#[no_mangle]
 pub fn getAssetTokenId() {
     distribution::endpoints::getAssetTokenId(elrond_wasm_node::vm_api());
 }
@@ -65,6 +60,16 @@ pub fn getLastCommunityDistributionAmountAndEpoch() {
 #[no_mangle]
 pub fn getUnlockPeriod() {
     distribution::endpoints::getUnlockPeriod(elrond_wasm_node::vm_api());
+}
+
+#[no_mangle]
+pub fn getUsersDistributedLockedAssets() {
+    distribution::endpoints::getUsersDistributedLockedAssets(elrond_wasm_node::vm_api());
+}
+
+#[no_mangle]
+pub fn getUsersDistributedLockedAssetsLength() {
+    distribution::endpoints::getUsersDistributedLockedAssetsLength(elrond_wasm_node::vm_api());
 }
 
 #[no_mangle]
