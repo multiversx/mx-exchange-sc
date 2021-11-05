@@ -166,6 +166,7 @@ pub trait WrappedFarmTokenMerge:
         &self,
         tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+        let locked_asset_token = self.locked_asset_token_id().get();
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
