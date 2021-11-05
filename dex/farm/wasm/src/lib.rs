@@ -5,8 +5,8 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-   farm
-   (
+    farm
+    (
         init
         callBack
         acceptFee
@@ -54,5 +54,5 @@ elrond_wasm_node::wasm_endpoints! {
         set_penalty_percent
         set_transfer_exec_gas_limit
         start_produce_rewards
-   )
+    )
 }

@@ -5,8 +5,8 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-   router
-   (
+    router
+    (
         init
         callBack
         clearPairTemporaryOwnerStorage
@@ -32,5 +32,5 @@ elrond_wasm_node::wasm_endpoints! {
         setPairTemplateAddress
         setTemporaryOwnerPeriod
         upgradePair
-   )
+    )
 }

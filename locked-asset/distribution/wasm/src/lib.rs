@@ -5,10 +5,9 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-   distribution
-   (
+    distribution
+    (
         init
-        callBack
         calculateLockedAssets
         claimLockedAssets
         clearUnclaimableAssets
@@ -26,5 +25,7 @@ elrond_wasm_node::wasm_endpoints! {
         startGlobalOperation
         undoLastCommunityDistribution
         undoUserDistributedAssetsBetweenEpochs
-   )
+    )
 }
+
+elrond_wasm_node::wasm_empty_callback! {}

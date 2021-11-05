@@ -5,8 +5,8 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-   factory
-   (
+    factory
+    (
         init
         callBack
         createAndForward
@@ -32,5 +32,5 @@ elrond_wasm_node::wasm_endpoints! {
         set_transfer_exec_gas_limit
         unlockAssets
         whitelist
-   )
+    )
 }

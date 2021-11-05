@@ -5,10 +5,9 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-   pair
-   (
+    pair
+    (
         init
-        callBack
         addLiquidity
         addTrustedSwapPair
         getAmountIn
@@ -52,5 +51,7 @@ elrond_wasm_node::wasm_endpoints! {
         swapTokensFixedInput
         swapTokensFixedOutput
         whitelist
-   )
+    )
 }
+
+elrond_wasm_node::wasm_empty_callback! {}
