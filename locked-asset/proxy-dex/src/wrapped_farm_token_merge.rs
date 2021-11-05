@@ -166,13 +166,6 @@ pub trait WrappedFarmTokenMerge:
         &self,
         tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
-        require!(!tokens.is_empty(), "tokens empty");
-        let locked_asset_token = self.locked_asset_token_id().get();
-        require!(
-            tokens.first().unwrap().attributes.farming_token_id == locked_asset_token,
-            "bad token id"
-        );
-
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
@@ -276,11 +269,6 @@ pub trait WrappedFarmTokenMerge:
         tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let mut wrapped_lp_tokens = Vec::new();
-        require!(!tokens.is_empty(), "empty tokens");
-        require!(
-            tokens.first().unwrap().attributes.farming_token_id == self.wrapped_lp_token_id().get(),
-            "bad token id"
-        );
 
         for token in tokens.iter() {
             let wrapped_lp_token_amount = self.rule_of_three_non_zero_result(
