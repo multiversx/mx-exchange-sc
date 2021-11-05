@@ -270,6 +270,10 @@ pub trait WrappedFarmTokenMerge:
         tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let mut wrapped_lp_tokens = Vec::new();
+        require!(
+            tokens.first().unwrap().attributes.farming_token_id == self.wrapped_lp_token_id().get(),
+            "bad token id"
+        );
 
         for token in tokens.iter() {
             let wrapped_lp_token_amount = self.rule_of_three_non_zero_result(
