@@ -15,10 +15,10 @@ path = "../../common/modules/token_supply"
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.22.1"
+version = "0.22.2"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.22.1"
+version = "0.22.2"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"

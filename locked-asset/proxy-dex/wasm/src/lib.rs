@@ -5,8 +5,8 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-   proxy_dex
-   (
+    proxy_dex
+    (
         init
         callBack
         acceptPay
@@ -38,5 +38,5 @@ elrond_wasm_node::wasm_endpoints! {
         removeIntermediatedPair
         removeLiquidityProxy
         setLocalRoles
-   )
+    )
 }
