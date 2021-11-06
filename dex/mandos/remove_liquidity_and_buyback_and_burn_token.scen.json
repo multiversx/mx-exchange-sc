@@ -40,8 +40,7 @@
                     "storage": {
                         "+": ""
                     },
-                    "code": "file:../pair/output/pair.wasm",
-                    "owner": "address:owner"
+                    "code": "file:../pair/output/pair.wasm"
                 },
                 "+": ""
             }
@@ -108,8 +107,7 @@
                     "storage": {
                         "+": ""
                     },
-                    "code": "file:../pair/output/pair.wasm",
-                    "owner": "address:owner"
+                    "code": "file:../pair/output/pair.wasm"
                 },
                 "+": ""
             }

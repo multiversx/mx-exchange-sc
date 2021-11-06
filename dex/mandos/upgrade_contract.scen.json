@@ -40,8 +40,7 @@
                         "str:total_fee_percent": "301",
                         "+": ""
                     },
-                    "code": "file:../pair/output/pair.wasm",
-                    "owner": "address:owner"
+                    "code": "file:../pair/output/pair.wasm"
                 },
                 "+": ""
             }

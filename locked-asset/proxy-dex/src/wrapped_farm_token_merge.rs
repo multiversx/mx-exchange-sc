@@ -70,11 +70,10 @@ pub trait WrappedFarmTokenMerge:
         self.require_all_tokens_are_wrapped_farm_tokens(payments, &wrapped_farm_token_id)?;
 
         let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments);
-
         if replic.is_some() {
             tokens.push(replic.unwrap());
         }
-        self.require_wrapped_farm_tokens_from_same_farm(&tokens)?;
+        self.require_wrapped_farm_tokens_have_same_token_ids(&tokens)?;
 
         let merged_farm_token_amount = self.merge_farm_tokens(farm_contract, &tokens);
         let farming_token_amount = self.merge_farming_tokens(&tokens)?;
@@ -129,16 +128,21 @@ pub trait WrappedFarmTokenMerge:
         result
     }
 
-    fn require_wrapped_farm_tokens_from_same_farm(
+    fn require_wrapped_farm_tokens_have_same_token_ids(
         &self,
         tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<()> {
         let farm_token_id = tokens[0].attributes.farm_token_id.clone();
+        let farming_token_id = tokens[0].attributes.farming_token_id.clone();
 
         for elem in tokens.iter() {
             require!(
                 elem.attributes.farm_token_id == farm_token_id,
                 "Farm token id differs"
+            );
+            require!(
+                elem.attributes.farming_token_id == farming_token_id,
+                "Farming token id differs"
             );
         }
         Ok(())
@@ -162,6 +166,7 @@ pub trait WrappedFarmTokenMerge:
         &self,
         tokens: &[WrappedFarmToken<Self::Api>],
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+        let locked_asset_token = self.locked_asset_token_id().get();
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
@@ -173,13 +178,12 @@ pub trait WrappedFarmTokenMerge:
             )?;
 
             return Ok(self.create_payment(
-                &self.locked_asset_token_id().get(),
+                &locked_asset_token,
                 token.attributes.farming_token_nonce,
                 &locked_token_amount,
             ));
         }
 
-        let locked_asset_token = self.locked_asset_token_id().get();
         let mut payments = ManagedVec::new();
         for entry in tokens.iter() {
             let locked_token_amount = self.rule_of_three_non_zero_result(
