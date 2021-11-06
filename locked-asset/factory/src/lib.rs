@@ -403,6 +403,13 @@ pub trait LockedAssetFactory:
         }
     }
 
+    #[only_owner]
+    #[endpoint(setInitEpoch)]
+    fn set_init_epoch(&self, init_epoch: Epoch) {
+        self.init_epoch()
+            .set(&init_epoch);
+    }
+
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
