@@ -8,26 +8,25 @@ pub trait TokenSendModule {
     fn send_multiple_tokens(
         &self,
         destination: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let (function, gas_limit) = match opt_accept_funds_func {
             OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
+                accept_funds_func.as_managed_ref(),
                 self.transfer_exec_gas_limit().get(),
             ),
             OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
+                (ManagedBuffer::new().as_managed_ref(), 0u64)
             }
         };
 
         self.raw_vm_api()
             .direct_multi_esdt_transfer_execute(
                 destination,
-                &ManagedVec::managed_from(self.type_manager(), payments.to_vec()),
+                payments,
                 gas_limit,
-                &ManagedBuffer::managed_from(self.type_manager(), function),
+                &*function,
                 &ManagedArgBuffer::new_empty(self.type_manager()),
             )
             .into()
@@ -37,11 +36,11 @@ pub trait TokenSendModule {
         &self,
         destination: &ManagedAddress,
         payments: &[EsdtTokenPayment<Self::Api>],
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let mut compact_payments = Vec::<EsdtTokenPayment<Self::Api>>::new();
         for payment in payments.iter() {
-            if payment.amount != 0 {
+            if payment.amount != 0u32 {
                 let existing_index = compact_payments.iter().position(|x| {
                     x.token_identifier == payment.token_identifier
                         && x.token_nonce == payment.token_nonce
@@ -56,7 +55,26 @@ pub trait TokenSendModule {
 
         match compact_payments.len() {
             0 => Ok(()),
-            _ => self.send_multiple_tokens(destination, &compact_payments, opt_accept_funds_func),
+            _ => self.send_multiple_tokens(destination, &compact_payments.managed_into(), opt_accept_funds_func),
+        }
+    }
+
+    fn send_multiple_tokens_if_not_zero(
+        &self,
+        destination: &ManagedAddress,
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+    ) -> SCResult<()> {
+        let mut non_zero_payments = ManagedVec::new(self.type_manager());
+        for payment in payments.iter() {
+            if payment.amount > 0u32 {
+                non_zero_payments.push(payment);
+            }
+        }
+
+        match non_zero_payments.len() {
+            0 => Ok(()),
+            _ => self.send_multiple_tokens(destination, &non_zero_payments, opt_accept_funds_func),
         }
     }
 

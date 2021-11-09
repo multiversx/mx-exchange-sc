@@ -300,7 +300,7 @@ pub trait ProxyPairModule:
             .add_liquidity(
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
             )
             .with_multi_token_transfer(all_token_payments)
             .execute_on_dest_context()
@@ -320,7 +320,7 @@ pub trait ProxyPairModule:
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
             )
             .execute_on_dest_context()
     }
