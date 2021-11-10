@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::iter::FromIterator;
-
 use common_structs::Nonce;
 
 #[elrond_wasm::module]
@@ -69,21 +67,21 @@ pub trait TokenSupplyModule {
     }
 
     #[view(getGeneratedTokenAmountList)]
-    fn get_generated_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, BigUint)> {
-        MultiResultVec::from_iter(
-            self.generated_tokens()
-                .iter()
-                .collect::<Vec<(TokenIdentifier, BigUint)>>(),
-        )
+    fn get_generated_token_amount_list(&self) -> ManagedMultiResultVec<(TokenIdentifier, BigUint)> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for item in self.generated_tokens().iter() {
+            result.push(item)
+        }
+        result
     }
 
     #[view(getBurnedTokenAmountList)]
-    fn get_burned_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, BigUint)> {
-        MultiResultVec::from_iter(
-            self.burned_tokens()
-                .iter()
-                .collect::<Vec<(TokenIdentifier, BigUint)>>(),
-        )
+    fn get_burned_token_amount_list(&self) -> ManagedMultiResultVec<(TokenIdentifier, BigUint)> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for item in self.burned_tokens().iter() {
+            result.push(item)
+        }
+        result
     }
 
     #[view(getGeneratedTokenAmount)]
