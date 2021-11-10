@@ -24,7 +24,7 @@ pub trait WrappedLpTokenMerge:
     #[endpoint(mergeWrappedLpTokens)]
     fn merge_wrapped_lp_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_all_payments();
@@ -43,7 +43,7 @@ pub trait WrappedLpTokenMerge:
         caller: &ManagedAddress,
         payments: &[EsdtTokenPayment<Self::Api>],
         replic: Option<WrappedLpToken<Self::Api>>,
-        opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         require!(!payments.is_empty() || replic.is_some(), "Empty payments");
         let payments_len = payments.len();
@@ -194,7 +194,10 @@ pub trait WrappedLpTokenMerge:
 
         Ok(self
             .locked_asset_factory(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(ManagedBuffer::managed_from(
+                self.type_manager(),
+                ACCEPT_PAY_FUNC_NAME,
+            )))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }

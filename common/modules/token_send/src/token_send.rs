@@ -16,9 +16,7 @@ pub trait TokenSendModule {
                 accept_funds_func.as_managed_ref(),
                 self.transfer_exec_gas_limit().get(),
             ),
-            OptionalArg::None => {
-                (ManagedBuffer::new().as_managed_ref(), 0u64)
-            }
+            OptionalArg::None => (ManagedBuffer::new().as_managed_ref(), 0u64),
         };
 
         self.raw_vm_api()
@@ -55,7 +53,11 @@ pub trait TokenSendModule {
 
         match compact_payments.len() {
             0 => Ok(()),
-            _ => self.send_multiple_tokens(destination, &compact_payments.managed_into(), opt_accept_funds_func),
+            _ => self.send_multiple_tokens(
+                destination,
+                &compact_payments.managed_into(),
+                opt_accept_funds_func,
+            ),
         }
     }
 
@@ -84,35 +86,29 @@ pub trait TokenSendModule {
         token: &TokenIdentifier,
         nonce: u64,
         amount: &BigUint,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         if amount == &0u32 {
             return Ok(());
         }
 
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
         let arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
-        let endpoint_name = ManagedBuffer::new_from_bytes(self.type_manager(), function);
         let mut payments = ManagedVec::new();
         payments.push(EsdtTokenPayment::new(token.clone(), nonce, amount.clone()));
 
+        let gas_limit: u64;
+        let function: ManagedBuffer;
+        let accept_funds_func = opt_accept_funds_func.clone().into_option();
+        if accept_funds_func.is_some() {
+            gas_limit = self.transfer_exec_gas_limit().get();
+            function = accept_funds_func.unwrap();
+        } else {
+            gas_limit = 0u64;
+            function = ManagedBuffer::new();
+        }
+
         self.raw_vm_api()
-            .direct_multi_esdt_transfer_execute(
-                to,
-                &payments,
-                gas_limit,
-                &endpoint_name,
-                &arg_buffer,
-            )
+            .direct_multi_esdt_transfer_execute(to, &payments, gas_limit, &function, &arg_buffer)
             .into()
     }
 

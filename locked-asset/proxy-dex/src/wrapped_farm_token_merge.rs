@@ -36,7 +36,7 @@ pub trait WrappedFarmTokenMerge:
     fn merge_wrapped_farm_tokens(
         &self,
         farm_contract: ManagedAddress,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -61,7 +61,7 @@ pub trait WrappedFarmTokenMerge:
         farm_contract: &ManagedAddress,
         payments: &[EsdtTokenPayment<Self::Api>],
         replic: Option<WrappedFarmToken<Self::Api>>,
-        opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         require!(!payments.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = payments.len();
@@ -197,7 +197,10 @@ pub trait WrappedFarmTokenMerge:
 
         Ok(self
             .locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(ManagedBuffer::managed_from(
+                self.type_manager(),
+                ACCEPT_PAY_FUNC_NAME,
+            )))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
@@ -227,7 +230,10 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_merge_proxy(farm_contract.clone())
-            .merge_farm_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_farm_tokens(OptionalArg::Some(ManagedBuffer::managed_from(
+                self.type_manager(),
+                ACCEPT_PAY_FUNC_NAME,
+            )))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }

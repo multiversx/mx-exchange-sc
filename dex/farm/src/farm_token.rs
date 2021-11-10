@@ -133,13 +133,11 @@ pub trait FarmTokenModule:
 
     fn decode_attributes(
         &self,
-        attributes_raw: &BoxedBytes,
+        attributes_raw: &ManagedBuffer,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         Ok(self
             .serializer()
-            .top_decode_from_byte_slice::<FarmTokenAttributes<Self::Api>>(
-                attributes_raw.as_slice(),
-            ))
+            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(attributes_raw))
     }
 
     fn get_farm_attributes(

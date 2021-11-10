@@ -428,14 +428,18 @@ pub trait ProxyFarmModule:
 
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm_and_lock_rewards(OptionalArg::Some(BoxedBytes::from(
+                .enter_farm_and_lock_rewards(OptionalArg::Some(ManagedBuffer::managed_from(
+                    self.type_manager(),
                     ACCEPT_PAY_FUNC_NAME,
                 )))
                 .with_multi_token_transfer(payments)
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         } else {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+                .enter_farm(OptionalArg::Some(ManagedBuffer::managed_from(
+                    self.type_manager(),
+                    ACCEPT_PAY_FUNC_NAME,
+                )))
                 .with_multi_token_transfer(payments)
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         }
@@ -453,7 +457,10 @@ pub trait ProxyFarmModule:
                 farm_token_id.clone(),
                 farm_token_nonce,
                 amount.clone(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ManagedBuffer::managed_from(
+                    self.type_manager(),
+                    ACCEPT_PAY_FUNC_NAME,
+                )),
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -473,7 +480,10 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .claim_rewards(OptionalArg::Some(ManagedBuffer::managed_from(
+                self.type_manager(),
+                ACCEPT_PAY_FUNC_NAME,
+            )))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -493,7 +503,10 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .compound_rewards(OptionalArg::Some(ManagedBuffer::managed_from(
+                self.type_manager(),
+                ACCEPT_PAY_FUNC_NAME,
+            )))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }

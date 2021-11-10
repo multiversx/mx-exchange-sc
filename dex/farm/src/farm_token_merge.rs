@@ -21,7 +21,7 @@ pub trait FarmTokenMergeModule:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_all_payments();

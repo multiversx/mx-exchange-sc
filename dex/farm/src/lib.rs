@@ -101,7 +101,7 @@ pub trait Farm:
     #[endpoint(enterFarm)]
     fn enter_farm(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         self.enter_farm_common(false, opt_accept_funds_func)
     }
@@ -110,7 +110,7 @@ pub trait Farm:
     #[endpoint(enterFarmAndLockRewards)]
     fn enter_farm_and_lock_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         self.enter_farm_common(true, opt_accept_funds_func)
     }
@@ -118,7 +118,7 @@ pub trait Farm:
     fn enter_farm_common(
         &self,
         with_locked_rewards: bool,
-        opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -201,7 +201,7 @@ pub trait Farm:
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] token_nonce: Nonce,
         #[payment_amount] amount: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
@@ -287,7 +287,7 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -394,7 +394,7 @@ pub trait Farm:
     #[endpoint(compoundRewards)]
     fn compound_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
 
@@ -581,7 +581,7 @@ pub trait Farm:
         farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
         destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         self.decrease_farming_token_reserve(farming_amount)?;
         self.transfer_execute_custom(
@@ -602,7 +602,7 @@ pub trait Farm:
         destination: &ManagedAddress,
         with_locked_rewards: bool,
         entering_epoch: Epoch,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
@@ -651,7 +651,7 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         amount: BigUint,
-        attributes_raw: BoxedBytes,
+        attributes_raw: ManagedBuffer,
     ) -> SCResult<BigUint> {
         require!(amount > 0, "Zero liquidity input");
         let farm_token_supply = self.get_farm_token_supply();

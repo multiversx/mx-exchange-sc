@@ -347,7 +347,7 @@ pub trait Pair:
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0u32, "Invalid amount_in");
