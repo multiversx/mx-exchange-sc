@@ -48,11 +48,11 @@ pub trait Pair:
         special_fee_percent: u64,
     ) -> SCResult<()> {
         require!(
-            first_token_id.is_valid_esdt_identifier(),
+            first_token_id.is_esdt(),
             "First token ID is not a valid ESDT identifier"
         );
         require!(
-            second_token_id.is_valid_esdt_identifier(),
+            second_token_id.is_esdt(),
             "Second token ID is not a valid ESDT identifier"
         );
         require!(
@@ -526,7 +526,7 @@ pub trait Pair:
             "LP token should differ from the exchange tokens"
         );
         require!(
-            token_identifier.is_valid_esdt_identifier(),
+            token_identifier.is_esdt(),
             "Provided identifier is not a valid ESDT identifier"
         );
 
