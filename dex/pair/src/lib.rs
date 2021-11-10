@@ -14,6 +14,7 @@ pub mod fee;
 mod liquidity_pool;
 
 use config::State;
+use itertools::Itertools;
 
 type AddLiquidityResultType<BigUint> =
     MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -96,24 +97,30 @@ pub trait Pair:
             "LP token not issued"
         );
 
-        let payments = self.get_all_payments();
-        require!(payments.len() == 2, "bad payments len");
+        let payments = self.get_all_payments_managed_vec();
+        let (first_payment, second_payment) = payments
+            .into_iter()
+            .collect_tuple()
+            .ok_or("bad payments len")?;
 
         let expected_first_token_id = self.first_token_id().get();
         let expected_second_token_id = self.second_token_id().get();
         require!(
-            payments[0].token_identifier == expected_first_token_id,
+            first_payment.token_identifier == expected_first_token_id,
             "bad first payment"
         );
         require!(
-            payments[1].token_identifier == expected_second_token_id,
+            second_payment.token_identifier == expected_second_token_id,
             "bad second payment"
         );
-        require!(payments[0].token_nonce == 0, "non zero first token nonce");
-        require!(payments[1].token_nonce == 0, "non zero second token nonce");
+        require!(first_payment.token_nonce == 0, "non zero first token nonce");
+        require!(
+            second_payment.token_nonce == 0,
+            "non zero second token nonce"
+        );
 
-        let first_token_amount_desired = payments[0].amount.clone();
-        let second_token_amount_desired = payments[1].amount.clone();
+        let first_token_amount_desired = first_payment.amount;
+        let second_token_amount_desired = second_payment.amount;
         require!(
             first_token_amount_desired > 0,
             "Insufficient first token funds sent"

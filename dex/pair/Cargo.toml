@@ -14,6 +14,10 @@ path = "../../common/modules/token_supply"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
+[dependencies.itertools]
+version = "0.10.1"
+default-features = false
+
 [dependencies.elrond-wasm]
 version = "0.22.2"
 

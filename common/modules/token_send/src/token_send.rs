@@ -112,6 +112,10 @@ pub trait TokenSendModule {
             .into()
     }
 
+    fn get_all_payments_managed_vec(&self) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        self.raw_vm_api().get_all_esdt_transfers()
+    }
+
     fn get_all_payments(&self) -> Vec<EsdtTokenPayment<Self::Api>> {
         self.raw_vm_api()
             .get_all_esdt_transfers()
