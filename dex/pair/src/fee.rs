@@ -40,7 +40,6 @@ pub trait FeeModule:
     #[storage_mapper("trusted_swap_pair")]
     fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
 
-    #[view(getWhitelistedManagedAddresses)]
     #[storage_mapper("whitelist")]
     fn whitelist(&self) -> SetMapper<ManagedAddress>;
 
@@ -394,6 +393,15 @@ pub trait FeeModule:
         let mut result = ManagedMultiResultVec::new(self.type_manager());
         for pair in self.trusted_swap_pair().iter() {
             result.push((pair.0, pair.1))
+        }
+        result
+    }
+
+    #[view(getWhitelistedManagedAddresses)]
+    fn get_whitelisted_managed_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.whitelist().iter() {
+            result.push(pair);
         }
         result
     }
