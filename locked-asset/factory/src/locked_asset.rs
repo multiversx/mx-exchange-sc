@@ -132,7 +132,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
-        for milestone in unlock_milestones.0.clone() {
+        for milestone in unlock_milestones.into_iter() {
             require!(
                 milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"

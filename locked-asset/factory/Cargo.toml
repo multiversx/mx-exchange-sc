@@ -24,3 +24,7 @@ version = "0.22.5"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.22.5"
+
+[dependencies]
+wee_alloc = "0.4"
+arrayvec = { version = "0.7.1", default-features = false }
