@@ -11,20 +11,23 @@ pub trait TokenSendModule {
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_managed_ref(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => (ManagedBuffer::new().as_managed_ref(), 0u64),
-        };
+        let gas_limit: u64;
+        let function: ManagedBuffer;
+        let accept_funds_func = opt_accept_funds_func.clone().into_option();
+        if accept_funds_func.is_some() {
+            gas_limit = self.transfer_exec_gas_limit().get();
+            function = accept_funds_func.unwrap();
+        } else {
+            gas_limit = 0u64;
+            function = ManagedBuffer::new();
+        }
 
         self.raw_vm_api()
             .direct_multi_esdt_transfer_execute(
                 destination,
                 payments,
                 gas_limit,
-                &*function,
+                &function,
                 &ManagedArgBuffer::new_empty(self.type_manager()),
             )
             .into()
