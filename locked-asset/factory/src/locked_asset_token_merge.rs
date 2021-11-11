@@ -59,7 +59,7 @@ pub trait LockedAssetTokenMergeModule:
     }
 
     fn burn_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
-        for entry in payments {
+        for entry in payments.iter() {
             self.nft_burn_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
     }
@@ -142,7 +142,9 @@ pub trait LockedAssetTokenMergeModule:
             epoch: 0u64,
             amount: BigUint::zero(),
         };
-        let mut unlock_epoch_amount_merged = Vec::<EpochAmountPair<Self::Api>>::new();
+
+        let mut unlock_epoch_amount_merged =
+            ArrayVec::<EpochAmountPair<Self::Api>, DOUBLE_MAX_MILESTONES_IN_SCHEDULE>::new();
         for elem in array.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
 
