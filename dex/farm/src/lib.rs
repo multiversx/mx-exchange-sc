@@ -54,11 +54,11 @@ pub trait Farm:
         pair_contract_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
-            reward_token_id.is_valid_esdt_identifier(),
+            reward_token_id.is_esdt(),
             "Reward token ID is not a valid esdt identifier"
         );
         require!(
-            farming_token_id.is_valid_esdt_identifier(),
+            farming_token_id.is_esdt(),
             "Farming token ID is not a valid esdt identifier"
         );
         require!(

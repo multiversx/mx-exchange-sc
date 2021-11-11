@@ -78,11 +78,27 @@ pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSu
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[view(getIntermediatedFarms)]
     #[storage_mapper("intermediated_farms")]
     fn intermediated_farms(&self) -> SetMapper<ManagedAddress>;
 
-    #[view(getIntermediatedPairs)]
+    #[view(getIntermediatedFarms)]
+    fn get_intermediated_farms(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.intermediated_farms().iter() {
+            result.push(pair);
+        }
+        result
+    }
+
     #[storage_mapper("intermediated_pairs")]
     fn intermediated_pairs(&self) -> SetMapper<ManagedAddress>;
+
+    #[view(getIntermediatedPairs)]
+    fn get_intermediated_pairs(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.intermediated_pairs().iter() {
+            result.push(pair);
+        }
+        result
+    }
 }

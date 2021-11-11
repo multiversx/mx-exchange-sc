@@ -38,7 +38,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         locked_asset_factory_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
-            asset_token_id.is_valid_esdt_identifier(),
+            asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
         );
 

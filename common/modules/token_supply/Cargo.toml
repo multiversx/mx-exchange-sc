@@ -11,4 +11,4 @@ path = "src/token_supply.rs"
 path = "../../common_structs"
 
 [dependencies.elrond-wasm]
-version = "0.22.2"
+version = "0.22.3"

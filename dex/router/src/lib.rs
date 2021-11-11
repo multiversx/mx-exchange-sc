@@ -79,11 +79,11 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_valid_esdt_identifier(),
+            first_token_id.is_esdt(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_valid_esdt_identifier(),
+            second_token_id.is_esdt(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -138,11 +138,11 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_valid_esdt_identifier(),
+            first_token_id.is_esdt(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_valid_esdt_identifier(),
+            second_token_id.is_esdt(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());

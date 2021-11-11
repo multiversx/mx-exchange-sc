@@ -17,7 +17,7 @@ path = "../../common/modules/token_supply"
 path = "../factory"
 
 [dependencies.elrond-wasm]
-version = "0.22.2"
+version = "0.22.3"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.22.2"
+version = "0.22.3"

@@ -33,7 +33,7 @@ pub trait LockedAssetFactory:
         #[var_args] default_unlock_period: VarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(
-            asset_token_id.is_valid_esdt_identifier(),
+            asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
         );
         require!(
@@ -411,9 +411,17 @@ pub trait LockedAssetFactory:
     #[storage_mapper("init_epoch")]
     fn init_epoch(&self) -> SingleValueMapper<Epoch>;
 
-    #[view(getWhitelistedContracts)]
     #[storage_mapper("whitelist")]
     fn whitelisted_contracts(&self) -> SetMapper<ManagedAddress>;
+
+    #[view(getWhitelistedContracts)]
+    fn get_whitelisted_contracts(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.whitelisted_contracts().iter() {
+            result.push(pair);
+        }
+        result
+    }
 
     #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]
