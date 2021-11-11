@@ -58,7 +58,7 @@ pub trait FarmTokenMergeModule:
         let farm_token_id = self.farm_token_id().get();
 
         for entry in payments {
-            require!(entry.amount != 0, "zero entry amount");
+            require!(entry.amount != 0u64, "zero entry amount");
             require!(entry.token_identifier == farm_token_id, "Not a farm token");
 
             tokens.push(FarmToken {
@@ -76,7 +76,7 @@ pub trait FarmTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            return Ok(tokens[0].clone().attributes);
+            return Ok(tokens.get(0).unwrap().attributes);
         }
 
         let aggregated_attributes = FarmTokenAttributes {

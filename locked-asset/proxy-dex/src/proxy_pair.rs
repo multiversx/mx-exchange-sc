@@ -2,6 +2,8 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::vec_init_then_push)]
 
+use elrond_wasm::derive::ManagedVecItem;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -20,7 +22,7 @@ type AddLiquidityResultType<BigUint> =
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: WrappedLpTokenAttributes<M>,

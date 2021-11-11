@@ -15,9 +15,7 @@ elrond_wasm_node::wasm_endpoints! {
         endGlobalOperation
         getAssetTokenId
         getCommunityDistributionList
-        getLastCommunityDistributionAmountAndEpoch
         getUnlockPeriod
-        getUsersDistributedLockedAssets
         getUsersDistributedLockedAssetsLength
         setCommunityDistribution
         setPerUserDistributedLockedAssets

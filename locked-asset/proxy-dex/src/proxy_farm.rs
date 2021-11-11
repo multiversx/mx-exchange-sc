@@ -3,6 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use elrond_wasm::derive::ManagedVecItem;
+
 use common_structs::{Nonce, WrappedFarmTokenAttributes};
 
 use super::events;
@@ -20,7 +22,7 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct WrappedFarmToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: WrappedFarmTokenAttributes<M>,

@@ -48,8 +48,9 @@ pub trait LockedAssetFactory:
             .set_if_empty(&self.blockchain().get_block_epoch());
 
         self.asset_token_id().set(&asset_token_id);
-        self.default_unlock_period()
-            .set(&default_unlock_period.to_vec());
+        self.default_unlock_period().set(&UnlockPeriod {
+            unlock_milestones: default_unlock_period.to_vec(),
+        });
         Ok(())
     }
 
@@ -234,7 +235,9 @@ pub trait LockedAssetFactory:
         #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         self.validate_unlock_milestones(&milestones)?;
-        self.default_unlock_period().set(&milestones.to_vec());
+        self.default_unlock_period().set(&UnlockPeriod {
+            unlock_milestones: milestones.to_vec(),
+        });
         Ok(())
     }
 
