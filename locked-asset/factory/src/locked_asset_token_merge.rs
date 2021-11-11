@@ -135,7 +135,7 @@ pub trait LockedAssetTokenMergeModule:
                 })
             }
         }
-        array.sort_by(|a, b| a.epoch.cmp(&b.epoch));
+        array.sort_unstable_by(|a, b| a.epoch.cmp(&b.epoch));
 
         let mut sum = BigUint::zero();
         let default = EpochAmountPair {
