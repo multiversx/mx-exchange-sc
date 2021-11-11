@@ -194,10 +194,7 @@ pub trait WrappedLpTokenMerge:
 
         Ok(self
             .locked_asset_factory(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(ManagedBuffer::managed_from(
-                self.type_manager(),
-                ACCEPT_PAY_FUNC_NAME,
-            )))
+            .merge_locked_asset_tokens(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }

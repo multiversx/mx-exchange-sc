@@ -201,10 +201,7 @@ pub trait WrappedFarmTokenMerge:
 
         Ok(self
             .locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(ManagedBuffer::managed_from(
-                self.type_manager(),
-                ACCEPT_PAY_FUNC_NAME,
-            )))
+            .merge_locked_asset_tokens(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
@@ -234,10 +231,7 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_merge_proxy(farm_contract.clone())
-            .merge_farm_tokens(OptionalArg::Some(ManagedBuffer::managed_from(
-                self.type_manager(),
-                ACCEPT_PAY_FUNC_NAME,
-            )))
+            .merge_farm_tokens(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
