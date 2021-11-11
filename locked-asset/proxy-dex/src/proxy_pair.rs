@@ -2,8 +2,6 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::vec_init_then_push)]
 
-use elrond_wasm::derive::ManagedVecItem;
-
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 

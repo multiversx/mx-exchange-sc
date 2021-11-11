@@ -6,8 +6,6 @@ use common_structs::{UnlockMilestone, UnlockPeriod};
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::derive::ManagedVecItem;
-
 mod global_op;
 
 const GAS_THRESHOLD: u64 = 100_000;
