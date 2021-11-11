@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use elrond_wasm::derive::ManagedVecItem;
+
 use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
 
 use super::locked_asset;
@@ -8,9 +10,10 @@ use super::locked_asset::PERCENTAGE_TOTAL;
 
 const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 
+#[derive(ManagedVecItem)]
 pub struct LockedToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
-    pub attributes: LockedAssetTokenAttributes,
+    pub attributes: LockedAssetTokenAttributes<M>,
 }
 
 #[derive(Clone)]
@@ -63,10 +66,10 @@ pub trait LockedAssetTokenMergeModule:
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<(BigUint, LockedAssetTokenAttributes)> {
+    ) -> SCResult<(BigUint, LockedAssetTokenAttributes<Self::Api>)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
-        let mut tokens = Vec::new();
+        let mut tokens = ManagedVec::new();
         let mut sum_amount = BigUint::zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
@@ -104,9 +107,9 @@ pub trait LockedAssetTokenMergeModule:
 
     fn aggregated_unlock_schedule(
         &self,
-        tokens: &[LockedToken<Self::Api>],
-    ) -> SCResult<UnlockSchedule> {
-        let mut unlock_epoch_amount = Vec::new();
+        tokens: &ManagedVec<LockedToken<Self::Api>>,
+    ) -> SCResult<UnlockSchedule<Self::Api>> {
+        let mut unlock_epoch_amount = ManagedVec::new();
         tokens.iter().for_each(|locked_token| {
             locked_token
                 .attributes
@@ -154,7 +157,7 @@ pub trait LockedAssetTokenMergeModule:
             "Too many milestones"
         );
 
-        let mut new_unlock_milestones = Vec::new();
+        let mut new_unlock_milestones = ManagedVec::new();
         unlock_epoch_amount_merged.iter().for_each(|x| {
             if x.amount != BigUint::zero() {
                 let unlock_percent = &(&x.amount * 100u64) / &sum;

@@ -30,7 +30,7 @@ pub trait LockedAssetFactory:
     fn init(
         &self,
         asset_token_id: TokenIdentifier,
-        #[var_args] default_unlock_period: VarArgs<UnlockMilestone>,
+        #[var_args] default_unlock_period: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(
             asset_token_id.is_esdt(),
@@ -75,7 +75,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        unlock_period: UnlockPeriod,
+        unlock_period: UnlockPeriod<Self::Api>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -184,7 +184,7 @@ pub trait LockedAssetFactory:
         };
         let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
             unlock_schedule: UnlockSchedule {
-                unlock_milestones: Vec::new(),
+                unlock_milestones: ManagedVec::new(),
             },
             is_merged: false,
         };
@@ -246,7 +246,7 @@ pub trait LockedAssetFactory:
     fn produce_tokens_and_send(
         &self,
         amount: &BigUint,
-        attributes: &LockedAssetTokenAttributes,
+        attributes: &LockedAssetTokenAttributes<Self::Api>,
         address: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
@@ -355,7 +355,7 @@ pub trait LockedAssetFactory:
     fn set_local_roles_locked_asset_token(
         &self,
         address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: ManagedManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
         require!(
             !self.locked_asset_token_id().is_empty(),
@@ -389,8 +389,8 @@ pub trait LockedAssetFactory:
     fn create_unlock_schedule(
         &self,
         start_epoch: Epoch,
-        unlock_period: UnlockPeriod,
-    ) -> UnlockSchedule {
+        unlock_period: UnlockPeriod<Self::Api>,
+    ) -> UnlockSchedule<Self::Api> {
         UnlockSchedule {
             unlock_milestones: unlock_period
                 .unlock_milestones
@@ -406,8 +406,7 @@ pub trait LockedAssetFactory:
     #[only_owner]
     #[endpoint(setInitEpoch)]
     fn set_init_epoch(&self, init_epoch: Epoch) {
-        self.init_epoch()
-            .set(&init_epoch);
+        self.init_epoch().set(&init_epoch);
     }
 
     #[view(getLastErrorMessage)]
@@ -432,5 +431,5 @@ pub trait LockedAssetFactory:
 
     #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]
-    fn default_unlock_period(&self) -> SingleValueMapper<UnlockPeriod>;
+    fn default_unlock_period(&self) -> SingleValueMapper<UnlockPeriod<Self::Api>>;
 }

@@ -12,7 +12,17 @@ pub struct TokenPair<M: ManagedTypeApi> {
     pub second_token: TokenIdentifier<M>,
 }
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi, NestedEncode, NestedDecode, Clone, Copy)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    PartialEq,
+    TypeAbi,
+    NestedEncode,
+    NestedDecode,
+    Clone,
+    Copy,
+)]
 pub struct UnlockMilestone {
     pub unlock_epoch: u64,
     pub unlock_percent: u8,
@@ -64,30 +74,30 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     Schedule will be [(210, 100)] (meaning that at epoch 210, 100% of the
     amount will be unlocked).
 */
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
-pub struct UnlockPeriod {
-    pub unlock_milestones: Vec<UnlockMilestone>,
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+pub struct UnlockPeriod<M: ManagedTypeApi> {
+    pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
-pub struct UnlockSchedule {
-    pub unlock_milestones: Vec<UnlockMilestone>,
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+pub struct UnlockSchedule<M: ManagedTypeApi> {
+    pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
 }
 
-impl UnlockPeriod {
-    pub fn from(unlock_milestones: Vec<UnlockMilestone>) -> Self {
+impl<M: ManagedTypeApi> UnlockPeriod<M> {
+    pub fn from(unlock_milestones: ManagedVec<M, UnlockMilestone>) -> Self {
         UnlockPeriod { unlock_milestones }
     }
 }
 
-impl UnlockSchedule {
-    pub fn from(unlock_milestones: Vec<UnlockMilestone>) -> Self {
+impl<M: ManagedTypeApi> UnlockSchedule<M> {
+    pub fn from(unlock_milestones: ManagedVec<M, UnlockMilestone>) -> Self {
         UnlockSchedule { unlock_milestones }
     }
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
-pub struct LockedAssetTokenAttributes {
-    pub unlock_schedule: UnlockSchedule,
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct LockedAssetTokenAttributes<M: ManagedTypeApi> {
+    pub unlock_schedule: UnlockSchedule<M>,
     pub is_merged: bool,
 }

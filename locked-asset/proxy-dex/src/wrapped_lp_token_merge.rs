@@ -97,8 +97,8 @@ pub trait WrappedLpTokenMerge:
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> Vec<WrappedLpToken<Self::Api>> {
-        let mut result = Vec::new();
+    ) -> ManagedVec<WrappedLpToken<Self::Api>> {
+        let mut result = ManagedVec::new();
 
         for payment in payments.iter() {
             result.push(WrappedLpToken {
@@ -114,7 +114,7 @@ pub trait WrappedLpTokenMerge:
 
     fn require_wrapped_lp_tokens_from_same_pair(
         &self,
-        tokens: &[WrappedLpToken<Self::Api>],
+        tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
     ) -> SCResult<()> {
         let lp_token_id = tokens[0].attributes.lp_token_id.clone();
 
@@ -156,7 +156,7 @@ pub trait WrappedLpTokenMerge:
 
     fn merge_locked_asset_tokens_from_wrapped_lp(
         &self,
-        tokens: &[WrappedLpToken<Self::Api>],
+        tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
         let locked_asset_token = self.locked_asset_token_id().get();
@@ -199,7 +199,10 @@ pub trait WrappedLpTokenMerge:
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
 
-    fn get_merged_wrapped_lp_tokens_amount(&self, tokens: &[WrappedLpToken<Self::Api>]) -> BigUint {
+    fn get_merged_wrapped_lp_tokens_amount(
+        &self,
+        tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
+    ) -> BigUint {
         let mut token_amount = BigUint::zero();
 
         tokens

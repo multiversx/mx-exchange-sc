@@ -33,44 +33,13 @@ pub trait TokenSendModule {
             .into()
     }
 
-    fn send_multiple_tokens_compact(
-        &self,
-        destination: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
-        let mut compact_payments = Vec::<EsdtTokenPayment<Self::Api>>::new();
-        for payment in payments.iter() {
-            if payment.amount != 0u32 {
-                let existing_index = compact_payments.iter().position(|x| {
-                    x.token_identifier == payment.token_identifier
-                        && x.token_nonce == payment.token_nonce
-                });
-
-                match existing_index {
-                    Some(index) => compact_payments[index].amount += &payment.amount,
-                    None => compact_payments.push(payment.clone()),
-                }
-            }
-        }
-
-        match compact_payments.len() {
-            0 => Ok(()),
-            _ => self.send_multiple_tokens(
-                destination,
-                &compact_payments.managed_into(),
-                opt_accept_funds_func,
-            ),
-        }
-    }
-
     fn send_multiple_tokens_if_not_zero(
         &self,
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        let mut non_zero_payments = ManagedVec::new(self.type_manager());
+        let mut non_zero_payments = ManagedVec::new();
         for payment in payments.iter() {
             if payment.amount > 0u32 {
                 non_zero_payments.push(payment);
@@ -124,7 +93,7 @@ pub trait TokenSendModule {
         vec: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         index: usize,
     ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        let mut copy = ManagedVec::new(self.type_manager());
+        let mut copy = ManagedVec::new();
 
         for (idx, el) in vec.iter().enumerate() {
             if idx != index {
@@ -141,7 +110,7 @@ pub trait TokenSendModule {
         index1: usize,
         index2: usize,
     ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        let mut copy = ManagedVec::new(self.type_manager());
+        let mut copy = ManagedVec::new();
 
         for (idx, el) in vec.iter().enumerate() {
             if idx != index1 && idx != index2 {

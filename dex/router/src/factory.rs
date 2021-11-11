@@ -1,7 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::iter::FromIterator;
+use elrond_wasm::derive::ManagedVecItem;
+
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
@@ -10,7 +11,7 @@ pub struct PairTokens<M: ManagedTypeApi> {
     pub second_token_id: TokenIdentifier<M>,
 }
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub struct PairContractMetadata<M: ManagedTypeApi> {
     first_token_id: TokenIdentifier<M>,
     second_token_id: TokenIdentifier<M>,
@@ -105,27 +106,37 @@ pub trait FactoryModule {
     fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
 
     #[view(getAllPairsManagedAddresses)]
-    fn get_all_pairs_addresses(&self) -> MultiResultVec<ManagedAddress> {
-        self.pair_map().values().collect()
+    fn get_all_pairs_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.pair_map().values() {
+            result.push(pair);
+        }
+        result
     }
 
     #[view(getAllPairTokens)]
-    fn get_all_token_pairs(&self) -> MultiResultVec<PairTokens<Self::Api>> {
-        self.pair_map().keys().collect()
+    fn get_all_token_pairs(&self) -> ManagedMultiResultVec<PairTokens<Self::Api>> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.pair_map().keys() {
+            result.push(pair);
+        }
+        result
     }
 
     #[view(getAllPairContractMetadata)]
-    fn get_all_pair_contract_metadata(&self) -> MultiResultVec<PairContractMetadata<Self::Api>> {
-        let map: Vec<PairContractMetadata<Self::Api>> = self
-            .pair_map()
-            .iter()
-            .map(|x| PairContractMetadata {
-                first_token_id: x.0.first_token_id,
-                second_token_id: x.0.second_token_id,
-                address: x.1,
-            })
-            .collect();
-        MultiResultVec::from_iter(map)
+    fn get_all_pair_contract_metadata(
+        &self,
+    ) -> ManagedMultiResultVec<PairContractMetadata<Self::Api>> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for (k, v) in self.pair_map().iter() {
+            let pair_metadata = PairContractMetadata {
+                first_token_id: k.first_token_id,
+                second_token_id: k.second_token_id,
+                address: v,
+            };
+            result.push(pair_metadata);
+        }
+        result
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {

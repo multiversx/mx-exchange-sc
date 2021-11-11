@@ -27,7 +27,7 @@ path = "../pair"
 path = "../../common/common_structs"
 
 [dependencies.elrond-wasm]
-version = "0.22.3"
+version = "0.22.5"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.22.3"
+version = "0.22.5"

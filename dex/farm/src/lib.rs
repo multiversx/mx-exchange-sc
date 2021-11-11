@@ -520,7 +520,10 @@ pub trait Farm:
         reward_position.token_amount.amount = reward_amount.clone();
         reward_position.attributes.original_entering_epoch = self.blockchain().get_block_epoch();
 
-        self.aggregated_original_entering_epoch(&[initial_position, reward_position])
+        let mut items = ManagedVec::new();
+        items.push(initial_position);
+        items.push(reward_position);
+        self.aggregated_original_entering_epoch(&items)
     }
 
     fn burn_farming_tokens(

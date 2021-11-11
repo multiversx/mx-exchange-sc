@@ -80,7 +80,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn set_per_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-        #[var_args] user_locked_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
+        #[var_args] user_locked_assets: ManagedVarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
@@ -189,7 +189,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
 
     fn validate_unlock_milestones(
         &self,
-        unlock_milestones: &VarArgs<UnlockMilestone>,
+        unlock_milestones: &ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
@@ -216,7 +216,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn add_all_user_assets_to_map(
         &self,
         spread_epoch: u64,
-        user_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
+        user_assets: ManagedVarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
         let mut last_community_distrib = self
             .community_distribution_list()
@@ -268,7 +268,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         &self,
         address: &ManagedAddress,
         delete_after_visit: bool,
-    ) -> Vec<(BigUint, Epoch)> {
+    ) -> ManagedVec<(BigUint, Epoch)> {
         let current_epoch = self.blockchain().get_block_epoch();
         let mut locked_assets = Vec::<(BigUint, Epoch)>::new();
 
@@ -311,7 +311,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
             return 0;
         }
 
-        let mut to_remove_keys = Vec::new();
+        let mut to_remove_keys = ManagedVec::new();
         let search_gas_limit = self.blockchain().get_gas_left() / 2;
         for user_asset_key in self.user_locked_asset_map().keys() {
             if self.blockchain().get_gas_left() < search_gas_limit {
@@ -366,9 +366,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn get_users_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-        #[var_args] user_locked_assets: VarArgs<ManagedAddress>,
-    ) -> MultiResultVec<MultiArg2<ManagedAddress, BigUint>> {
-        let mut results = MultiResultVec::<MultiArg2<ManagedAddress, BigUint>>::new();
+        #[var_args] user_locked_assets: ManagedVarArgs<ManagedAddress>,
+    ) -> ManagedMultiResultVec<MultiArg2<ManagedAddress, BigUint>> {
+        let mut results = ManagedMultiResultVec::<MultiArg2<ManagedAddress, BigUint>>::new();
         for user_asset_multiarg in user_locked_assets.into_vec() {
             if let Some(amount) = self.user_locked_asset_map().get(&UserLockedAssetKey {
                 spread_epoch,

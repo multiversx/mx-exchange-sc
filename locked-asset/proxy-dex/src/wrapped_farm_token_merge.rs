@@ -113,8 +113,8 @@ pub trait WrappedFarmTokenMerge:
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> Vec<WrappedFarmToken<Self::Api>> {
-        let mut result = Vec::new();
+    ) -> ManagedVec<WrappedFarmToken<Self::Api>> {
+        let mut result = ManagedVec::new();
 
         for payment in payments.iter() {
             result.push(WrappedFarmToken {
@@ -130,7 +130,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_wrapped_farm_tokens_have_same_token_ids(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<()> {
         let farm_token_id = tokens[0].attributes.farm_token_id.clone();
         let farming_token_id = tokens[0].attributes.farming_token_id.clone();
@@ -164,7 +164,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_locked_asset_tokens_from_wrapped_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let locked_asset_token = self.locked_asset_token_id().get();
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
@@ -209,7 +209,7 @@ pub trait WrappedFarmTokenMerge:
     fn merge_farm_tokens(
         &self,
         farm_contract: &ManagedAddress,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> EsdtTokenPayment<Self::Api> {
         if tokens.len() == 1 {
             let token = tokens[0].clone();
@@ -238,7 +238,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_farming_tokens(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         if tokens.len() == 1 {
             let first_token = tokens[0].clone();
@@ -267,9 +267,9 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_wrapped_lp_tokens_from_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
-        let mut wrapped_lp_tokens = Vec::new();
+        let mut wrapped_lp_tokens = ManagedVec::new();
 
         for token in tokens.iter() {
             let wrapped_lp_token_amount = self.rule_of_three_non_zero_result(

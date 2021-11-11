@@ -135,7 +135,7 @@ pub trait ProxyPairModule:
             &self.manage_vec_remove_indexes(&payments, 0, 1),
         )?;
 
-        let mut surplus_payments = Vec::new();
+        let mut surplus_payments = ManagedVec::new();
         surplus_payments.push(EsdtTokenPayment::new(
             first_token_id.clone(),
             0,
@@ -146,7 +146,7 @@ pub trait ProxyPairModule:
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
-        self.send_multiple_tokens_compact(&caller, &surplus_payments, &OptionalArg::None)?;
+        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalArg::None)?;
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -282,7 +282,7 @@ pub trait ProxyPairModule:
         second_token_amount_desired: &BigUint,
         second_token_amount_min: &BigUint,
     ) -> AddLiquidityResultType<Self::Api> {
-        let mut all_token_payments = ManagedVec::new(self.type_manager());
+        let mut all_token_payments = ManagedVec::new();
 
         let first_payment = EsdtTokenPayment::new(
             first_token_id.clone(),

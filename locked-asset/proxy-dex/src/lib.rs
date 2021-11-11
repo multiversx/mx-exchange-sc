@@ -174,7 +174,7 @@ pub trait ProxyDexImpl:
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: ManagedManagedVarArgs<EsdtLocalRole>,
     ) -> AsyncCall {
         self.send()
             .esdt_system_sc_proxy()

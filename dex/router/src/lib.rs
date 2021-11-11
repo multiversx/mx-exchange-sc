@@ -64,7 +64,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] fee_percents: VarArgs<u64>,
+        #[var_args] fee_percents: ManagedVarArgs<u64>,
     ) -> SCResult<ManagedAddress> {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -132,7 +132,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] fee_percents: VarArgs<u64>,
+        #[var_args] fee_percents: ManagedVarArgs<u64>,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
 
@@ -264,7 +264,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: ManagedManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
 
