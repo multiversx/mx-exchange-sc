@@ -68,7 +68,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: &ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(BigUint, LockedAssetTokenAttributes<Self::Api>)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
