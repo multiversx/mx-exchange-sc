@@ -1,5 +1,6 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
+#![feature(exact_size_is_empty)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();

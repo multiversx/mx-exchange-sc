@@ -8,6 +8,7 @@ elrond_wasm::derive_imports!();
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
 
 use common_structs::{Nonce, WrappedLpTokenAttributes};
+use itertools::Itertools;
 use pair::config::ProxyTrait as _;
 
 use super::events;
@@ -63,10 +64,9 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address)?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 2, "bad payment len");
-        let payment_0 = payments.get(0).unwrap();
-        let payment_1 = payments.get(1).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let (payment_0, payment_1) = payments.next_tuple().ok_or("bad payment len")?;
 
         let first_token_id = payment_0.token_identifier.clone();
         let first_token_nonce = payment_0.token_nonce;
@@ -132,7 +132,7 @@ pub trait ProxyPairModule:
             &second_token_used.amount,
             second_token_nonce,
             &caller,
-            &self.manage_vec_remove_indexes(&payments, 0, 1),
+            payments,
         )?;
 
         let mut surplus_payments = ManagedVec::new();
@@ -340,7 +340,7 @@ pub trait ProxyPairModule:
         locked_tokens_consumed: &BigUint,
         locked_tokens_nonce: Nonce,
         caller: &ManagedAddress,
-        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        additional_payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         self.merge_wrapped_lp_tokens_and_send(
             caller,

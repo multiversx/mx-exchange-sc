@@ -36,14 +36,15 @@ pub trait LockedAssetTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments_managed_vec();
-        require!(!payments.is_empty(), "Empty payment vec");
+        let payments_vec = self.get_all_payments_managed_vec();
+        require!(!payments_vec.is_empty(), "Empty payment vec");
+        let payments = payments_vec.iter();
 
         let (amount, attrs) =
-            self.get_merged_locked_asset_token_amount_and_attributes(&payments)?;
+            self.get_merged_locked_asset_token_amount_and_attributes(payments.clone())?;
         let locked_asset_token = self.locked_asset_token_id().get();
 
-        self.burn_tokens_from_payments(&payments);
+        self.burn_tokens_from_payments(payments);
 
         let new_nonce = self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
         self.transfer_execute_custom(
@@ -57,7 +58,7 @@ pub trait LockedAssetTokenMergeModule:
         Ok(self.create_payment(&locked_asset_token, new_nonce, &amount))
     }
 
-    fn burn_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
+    fn burn_tokens_from_payments(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
         for entry in payments {
             self.nft_burn_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
@@ -65,7 +66,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        payments: &ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(BigUint, LockedAssetTokenAttributes<Self::Api>)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
@@ -73,7 +74,7 @@ pub trait LockedAssetTokenMergeModule:
         let mut sum_amount = BigUint::zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
-        for entry in payments.iter() {
+        for entry in payments {
             require!(
                 entry.token_identifier == locked_asset_token_id,
                 "Bad token id"

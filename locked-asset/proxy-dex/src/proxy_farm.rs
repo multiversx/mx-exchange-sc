@@ -78,9 +78,9 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 1, "bad payment len");
-        let payment_0 = payments.get(0).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let payment_0 = payments.next().ok_or("bad payment len")?;
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
@@ -124,7 +124,7 @@ pub trait ProxyFarmModule:
                 &farm_token_total_amount,
                 &farm_address,
                 &caller,
-                &self.manage_vec_remove_index(&payments, 0),
+                payments,
             )?;
 
         self.emit_enter_farm_proxy_event(
@@ -221,9 +221,9 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 1, "bad payment len");
-        let payment_0 = payments.get(0).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let payment_0 = payments.next().ok_or("bad payment len")?;
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
@@ -283,7 +283,7 @@ pub trait ProxyFarmModule:
                 &new_farm_token_total_amount,
                 &farm_address,
                 &caller,
-                &self.manage_vec_remove_index(&payments, 0),
+                payments,
             )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
@@ -313,9 +313,9 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 1, "bad payment len");
-        let payment_0 = payments.get(0).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let payment_0 = payments.next().ok_or("bad payment len")?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;
@@ -369,7 +369,7 @@ pub trait ProxyFarmModule:
                 &new_farm_token_amount,
                 &farm_address,
                 &caller,
-                &self.manage_vec_remove_index(&payments, 0),
+                payments,
             )?;
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
@@ -395,7 +395,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
         farm_address: &ManagedAddress,
         caller: &ManagedAddress,
-        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        additional_payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
