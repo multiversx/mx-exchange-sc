@@ -355,7 +355,7 @@ pub trait LockedAssetFactory:
     fn set_local_roles_locked_asset_token(
         &self,
         address: ManagedAddress,
-        #[var_args] roles: ManagedManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
         require!(
             !self.locked_asset_token_id().is_empty(),

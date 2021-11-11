@@ -125,7 +125,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     fn validate_unlock_milestones(
         &self,
-        unlock_milestones: &ManagedManagedVarArgs<UnlockMilestone>,
+        unlock_milestones: &ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(!unlock_milestones.is_empty(), "Empty param");
 

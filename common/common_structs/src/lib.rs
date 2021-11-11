@@ -1,7 +1,10 @@
 #![no_std]
 
+use elrond_wasm::api::Handle;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+use elrond_wasm::derive::ManagedVecItem;
 
 pub type Nonce = u64;
 pub type Epoch = u64;
@@ -74,14 +77,56 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     Schedule will be [(210, 100)] (meaning that at epoch 210, 100% of the
     amount will be unlocked).
 */
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
 pub struct UnlockPeriod<M: ManagedTypeApi> {
     pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
 }
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+// `derive(ManagedVecItem)` doesn't currently work with additional generics.
+// Needs to be implemented by hand.
+impl<M: ManagedTypeApi> ManagedVecItem<M> for UnlockPeriod<M> {
+    const PAYLOAD_SIZE: usize = 4;
+    const SKIPS_RESERIALIZATION: bool = false;
+
+    fn from_byte_reader<Reader: FnMut(&mut [u8])>(api: M, reader: Reader) -> Self {
+        let handle = Handle::from_byte_reader(api.clone(), reader);
+        UnlockPeriod {
+            unlock_milestones: ManagedVec::from_raw_handle(api, handle),
+        }
+    }
+
+    fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
+        <Handle as ManagedVecItem<M>>::to_byte_writer(
+            &self.unlock_milestones.get_raw_handle(),
+            writer,
+        )
+    }
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
 pub struct UnlockSchedule<M: ManagedTypeApi> {
     pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
+}
+
+// `derive(ManagedVecItem)` doesn't currently work with additional generics.
+// Needs to be implemented by hand.
+impl<M: ManagedTypeApi> ManagedVecItem<M> for UnlockSchedule<M> {
+    const PAYLOAD_SIZE: usize = 4;
+    const SKIPS_RESERIALIZATION: bool = false;
+
+    fn from_byte_reader<Reader: FnMut(&mut [u8])>(api: M, reader: Reader) -> Self {
+        let handle = Handle::from_byte_reader(api.clone(), reader);
+        UnlockSchedule {
+            unlock_milestones: ManagedVec::from_raw_handle(api, handle),
+        }
+    }
+
+    fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
+        <Handle as ManagedVecItem<M>>::to_byte_writer(
+            &self.unlock_milestones.get_raw_handle(),
+            writer,
+        )
+    }
 }
 
 impl<M: ManagedTypeApi> UnlockPeriod<M> {

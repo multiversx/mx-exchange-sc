@@ -264,7 +264,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: ManagedManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
     ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
 
