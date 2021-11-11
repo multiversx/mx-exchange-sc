@@ -43,7 +43,7 @@ pub trait WrappedFarmTokenMerge:
             self.intermediated_farms().contains(&farm_contract),
             "Invalid farm contract address"
         );
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
 
         self.merge_wrapped_farm_tokens_and_send(
             &caller,
@@ -59,7 +59,7 @@ pub trait WrappedFarmTokenMerge:
         &self,
         caller: &ManagedAddress,
         farm_contract: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedFarmToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
@@ -112,7 +112,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> Vec<WrappedFarmToken<Self::Api>> {
         let mut result = Vec::new();
 
@@ -150,7 +150,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_all_tokens_are_wrapped_farm_tokens(
         &self,
-        tokens: &[EsdtTokenPayment<Self::Api>],
+        tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         wrapped_farm_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {

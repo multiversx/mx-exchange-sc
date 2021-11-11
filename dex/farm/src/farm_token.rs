@@ -160,7 +160,7 @@ pub trait FarmTokenModule:
 
     fn burn_farm_tokens_from_payments(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<()> {
         for entry in payments {
             self.burn_farm_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount)?;

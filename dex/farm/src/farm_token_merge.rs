@@ -24,7 +24,7 @@ pub trait FarmTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
 
         let attrs = self.get_merged_farm_token_attributes(&payments, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
@@ -46,7 +46,7 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<FarmToken<Self::Api>>,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         require!(

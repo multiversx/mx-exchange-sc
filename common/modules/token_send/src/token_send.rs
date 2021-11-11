@@ -116,11 +116,37 @@ pub trait TokenSendModule {
         self.raw_vm_api().get_all_esdt_transfers()
     }
 
-    fn get_all_payments(&self) -> Vec<EsdtTokenPayment<Self::Api>> {
-        self.raw_vm_api()
-            .get_all_esdt_transfers()
-            .into_iter()
-            .collect()
+    fn manage_vec_remove_index(
+        &self,
+        vec: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        index: usize,
+    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        let mut copy = ManagedVec::new(self.type_manager());
+
+        for (idx, el) in vec.iter().enumerate() {
+            if idx != index {
+                copy.push(el);
+            }
+        }
+
+        copy
+    }
+
+    fn manage_vec_remove_indexes(
+        &self,
+        vec: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        index1: usize,
+        index2: usize,
+    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        let mut copy = ManagedVec::new(self.type_manager());
+
+        for (idx, el) in vec.iter().enumerate() {
+            if idx != index1 && idx != index2 {
+                copy.push(el);
+            }
+        }
+
+        copy
     }
 
     fn create_payment(

@@ -27,7 +27,7 @@ pub trait WrappedLpTokenMerge:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
 
         self.merge_wrapped_lp_tokens_and_send(
             &caller,
@@ -41,7 +41,7 @@ pub trait WrappedLpTokenMerge:
     fn merge_wrapped_lp_tokens_and_send(
         &self,
         caller: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedLpToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
@@ -96,7 +96,7 @@ pub trait WrappedLpTokenMerge:
 
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> Vec<WrappedLpToken<Self::Api>> {
         let mut result = Vec::new();
 
@@ -129,7 +129,7 @@ pub trait WrappedLpTokenMerge:
 
     fn require_all_tokens_are_wrapped_lp_tokens(
         &self,
-        tokens: &[EsdtTokenPayment<Self::Api>],
+        tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         wrapped_lp_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {

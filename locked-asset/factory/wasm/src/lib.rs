@@ -27,6 +27,7 @@ elrond_wasm_node::wasm_endpoints! {
         mergeLockedAssetTokens
         registerLockedAssetToken
         removeWhitelist
+        setInitEpoch
         setLocalRolesLockedAssetToken
         setUnlockPeriod
         set_transfer_exec_gas_limit

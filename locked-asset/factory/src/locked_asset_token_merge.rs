@@ -27,7 +27,7 @@ pub trait LockedAssetTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
         require!(!payments.is_empty(), "Empty payment vec");
 
         let (amount, attrs) =
@@ -48,7 +48,7 @@ pub trait LockedAssetTokenMergeModule:
         Ok(self.create_payment(&locked_asset_token, new_nonce, &amount))
     }
 
-    fn burn_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
+    fn burn_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
         for entry in payments {
             self.nft_burn_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
@@ -56,7 +56,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(BigUint, LockedAssetTokenAttributes)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 

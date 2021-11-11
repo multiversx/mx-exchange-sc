@@ -123,11 +123,12 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
         require!(payments.len() >= 1, "empty payments");
+        let payment_0 = payments.get(0).unwrap();
 
-        let token_in = payments[0].token_identifier.clone();
-        let enter_amount = payments[0].amount.clone();
+        let token_in = payment_0.token_identifier.clone();
+        let enter_amount = payment_0.amount.clone();
 
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
@@ -158,7 +159,7 @@ pub trait Farm:
             &farm_contribution,
             &farm_token_id,
             &attributes,
-            &payments[1..],
+            &self.manage_vec_remove_index(&payments, 0),
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -292,12 +293,13 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
         require!(payments.len() >= 1, "bad payment len");
+        let payment_0 = payments.get(0).unwrap();
 
-        let payment_token_id = payments[0].token_identifier.clone();
-        let amount = payments[0].amount.clone();
-        let token_nonce = payments[0].token_nonce;
+        let payment_token_id = payment_0.token_identifier.clone();
+        let amount = payment_0.amount.clone();
+        let token_nonce = payment_0.token_nonce;
 
         require!(amount > 0, "Zero amount");
         let farm_token_id = self.farm_token_id().get();
@@ -345,7 +347,7 @@ pub trait Farm:
             &farm_amount,
             &farm_token_id,
             &new_attributes,
-            &payments[1..],
+            &self.manage_vec_remove_index(&payments, 0),
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -398,12 +400,13 @@ pub trait Farm:
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
 
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
         require!(payments.len() >= 1, "bad payment len");
+        let payment_0 = payments.get(0).unwrap();
 
-        let payment_token_id = payments[0].token_identifier.clone();
-        let payment_amount = payments[0].amount.clone();
-        let payment_token_nonce = payments[0].token_nonce;
+        let payment_token_id = payment_0.token_identifier.clone();
+        let payment_amount = payment_0.amount.clone();
+        let payment_token_nonce = payment_0.token_nonce;
         require!(payment_amount > 0, "Zero amount");
 
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -467,7 +470,7 @@ pub trait Farm:
             &new_farm_contribution,
             &farm_token_id,
             &new_attributes,
-            &payments[1..],
+            &self.manage_vec_remove_index(&payments, 0),
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -551,7 +554,7 @@ pub trait Farm:
         amount: &BigUint,
         token_id: &TokenIdentifier,
         attributes: &FarmTokenAttributes<Self::Api>,
-        additional_payments: &[EsdtTokenPayment<Self::Api>],
+        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
             token_amount: self.create_payment(token_id, 0, amount),
