@@ -13,6 +13,12 @@ pub struct LockedToken<M: ManagedTypeApi> {
     pub attributes: LockedAssetTokenAttributes,
 }
 
+#[derive(Clone)]
+pub struct EpochAmountPair<M: ManagedTypeApi> {
+    pub epoch: u64,
+    pub amount: BigUint<M>,
+}
+
 #[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
@@ -108,33 +114,39 @@ pub trait LockedAssetTokenMergeModule:
                 .unlock_milestones
                 .iter()
                 .for_each(|milestone| {
-                    unlock_epoch_amount.push((
-                        milestone.unlock_epoch,
-                        self.rule_of_three(
+                    unlock_epoch_amount.push(EpochAmountPair {
+                        epoch: milestone.unlock_epoch,
+                        amount: self.rule_of_three(
                             &self.types().big_uint_from(milestone.unlock_percent as u64),
                             &self.types().big_uint_from(PERCENTAGE_TOTAL as u64),
                             &locked_token.token_amount.amount,
                         ),
-                    ))
+                    })
                 })
         });
-        unlock_epoch_amount.sort_by(|a, b| a.0.cmp(&b.0));
+        unlock_epoch_amount.sort_by(|a, b| a.epoch.cmp(&b.epoch));
 
         let mut sum = BigUint::zero();
-        let default = (0u64, BigUint::zero());
-        let mut unlock_epoch_amount_merged: Vec<(u64, BigUint)> = Vec::new();
+        let default = EpochAmountPair {
+            epoch: 0u64,
+            amount: BigUint::zero(),
+        };
+        let mut unlock_epoch_amount_merged = Vec::<EpochAmountPair<Self::Api>>::new();
         for elem in unlock_epoch_amount.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
 
-            if elem.0 == last.0 {
-                let new_elem = (last.0, &last.1 + &elem.1);
+            if elem.epoch == last.epoch {
+                let new_elem = EpochAmountPair {
+                    epoch: last.epoch,
+                    amount: &last.amount + &elem.amount,
+                };
                 unlock_epoch_amount_merged.pop();
                 unlock_epoch_amount_merged.push(new_elem);
             } else {
                 unlock_epoch_amount_merged.push(elem.clone());
             }
 
-            sum += &elem.1;
+            sum += &elem.amount;
         }
         require!(sum != 0, "Sum cannot be zero");
         require!(
@@ -144,12 +156,12 @@ pub trait LockedAssetTokenMergeModule:
 
         let mut new_unlock_milestones = Vec::new();
         unlock_epoch_amount_merged.iter().for_each(|x| {
-            if x.1 != BigUint::zero() {
-                let unlock_percent = &(&x.1 * 100u64) / &sum;
+            if x.amount != BigUint::zero() {
+                let unlock_percent = &(&x.amount * 100u64) / &sum;
 
                 if unlock_percent != 0 {
                     new_unlock_milestones.push(UnlockMilestone {
-                        unlock_epoch: x.0,
+                        unlock_epoch: x.epoch,
                         unlock_percent: unlock_percent.to_u64().unwrap() as u8,
                     })
                 }
