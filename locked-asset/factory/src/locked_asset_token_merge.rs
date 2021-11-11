@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use arrayvec::ArrayVec;
 use elrond_wasm::derive::ManagedVecItem;
 
 use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
@@ -9,6 +10,7 @@ use super::locked_asset;
 use super::locked_asset::PERCENTAGE_TOTAL;
 
 const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
+const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
 
 #[derive(ManagedVecItem)]
 pub struct LockedToken<M: ManagedTypeApi> {
@@ -16,7 +18,7 @@ pub struct LockedToken<M: ManagedTypeApi> {
     pub attributes: LockedAssetTokenAttributes<M>,
 }
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct EpochAmountPair<M: ManagedTypeApi> {
     pub epoch: u64,
     pub amount: BigUint<M>,
@@ -92,9 +94,10 @@ pub trait LockedAssetTokenMergeModule:
         }
 
         if tokens.len() == 1 {
+            let token_0 = tokens.get(0).unwrap();
             return Ok((
-                tokens[0].token_amount.amount.clone(),
-                tokens[0].attributes.clone(),
+                token_0.token_amount.amount.clone(),
+                token_0.attributes.clone(),
             ));
         }
 
@@ -110,25 +113,31 @@ pub trait LockedAssetTokenMergeModule:
         &self,
         tokens: &ManagedVec<LockedToken<Self::Api>>,
     ) -> SCResult<UnlockSchedule<Self::Api>> {
-        let mut unlock_epoch_amount = ManagedVec::new();
-        tokens.iter().for_each(|locked_token| {
-            locked_token
+        let mut array =
+            ArrayVec::<EpochAmountPair<Self::Api>, DOUBLE_MAX_MILESTONES_IN_SCHEDULE>::new();
+
+        for locked_token in tokens.iter() {
+            for milestone in locked_token
                 .attributes
                 .unlock_schedule
                 .unlock_milestones
                 .iter()
-                .for_each(|milestone| {
-                    unlock_epoch_amount.push(EpochAmountPair {
-                        epoch: milestone.unlock_epoch,
-                        amount: self.rule_of_three(
-                            &self.types().big_uint_from(milestone.unlock_percent as u64),
-                            &self.types().big_uint_from(PERCENTAGE_TOTAL as u64),
-                            &locked_token.token_amount.amount,
-                        ),
-                    })
+            {
+                require!(
+                    array.len() < DOUBLE_MAX_MILESTONES_IN_SCHEDULE,
+                    "too many unlock milestones"
+                );
+                array.push(EpochAmountPair {
+                    epoch: milestone.unlock_epoch,
+                    amount: self.rule_of_three(
+                        &self.types().big_uint_from(milestone.unlock_percent as u64),
+                        &self.types().big_uint_from(PERCENTAGE_TOTAL as u64),
+                        &locked_token.token_amount.amount,
+                    ),
                 })
-        });
-        unlock_epoch_amount.sort_by(|a, b| a.epoch.cmp(&b.epoch));
+            }
+        }
+        array.sort_by(|a, b| a.epoch.cmp(&b.epoch));
 
         let mut sum = BigUint::zero();
         let default = EpochAmountPair {
@@ -136,7 +145,7 @@ pub trait LockedAssetTokenMergeModule:
             amount: BigUint::zero(),
         };
         let mut unlock_epoch_amount_merged = Vec::<EpochAmountPair<Self::Api>>::new();
-        for elem in unlock_epoch_amount.iter() {
+        for elem in array.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
 
             if elem.epoch == last.epoch {
@@ -152,7 +161,7 @@ pub trait LockedAssetTokenMergeModule:
 
             sum += &elem.amount;
         }
-        require!(sum != 0, "Sum cannot be zero");
+        require!(sum != 0u64, "Sum cannot be zero");
         require!(
             unlock_epoch_amount_merged.len() < MAX_MILESTONES_IN_SCHEDULE,
             "Too many milestones"
@@ -163,7 +172,7 @@ pub trait LockedAssetTokenMergeModule:
             if x.amount != BigUint::zero() {
                 let unlock_percent = &(&x.amount * 100u64) / &sum;
 
-                if unlock_percent != 0 {
+                if unlock_percent != 0u64 {
                     new_unlock_milestones.push(UnlockMilestone {
                         unlock_epoch: x.epoch,
                         unlock_percent: unlock_percent.to_u64().unwrap() as u8,
@@ -176,10 +185,21 @@ pub trait LockedAssetTokenMergeModule:
         for new_milestone in new_unlock_milestones.iter() {
             sum_of_new_percents += new_milestone.unlock_percent;
         }
-        new_unlock_milestones[0].unlock_percent += PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
+
+        let mut first_element = new_unlock_milestones.get(0).unwrap();
+        first_element.unlock_percent += PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
+
+        let mut new_unlocks = ManagedVec::new();
+        new_unlocks.push(first_element);
+
+        for (index, elem) in new_unlock_milestones.iter().enumerate() {
+            if index != 0 {
+                new_unlocks.push(elem);
+            }
+        }
 
         Ok(UnlockSchedule {
-            unlock_milestones: new_unlock_milestones,
+            unlock_milestones: new_unlocks,
         })
     }
 }

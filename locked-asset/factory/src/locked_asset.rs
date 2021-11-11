@@ -63,7 +63,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     ) -> u8 {
         let mut unlock_percent = 0u8;
 
-        for milestone in unlock_milestones {
+        for milestone in unlock_milestones.into_iter() {
             if milestone.unlock_epoch <= current_epoch {
                 unlock_percent += milestone.unlock_percent;
             }
@@ -132,7 +132,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
-        for milestone in unlock_milestones.0.clone() {
+        for milestone in unlock_milestones.to_vec().into_iter() {
             require!(
                 milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"

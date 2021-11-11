@@ -49,8 +49,9 @@ pub trait LockedAssetFactory:
             .set_if_empty(&self.blockchain().get_block_epoch());
 
         self.asset_token_id().set(&asset_token_id);
-        self.default_unlock_period()
-            .set(&UnlockPeriod::from(default_unlock_period.into_vec()));
+        self.default_unlock_period().set(&UnlockPeriod {
+            unlock_milestones: default_unlock_period.to_vec(),
+        });
         Ok(())
     }
 
@@ -232,11 +233,12 @@ pub trait LockedAssetFactory:
     #[endpoint(setUnlockPeriod)]
     fn set_unlock_period(
         &self,
-        #[var_args] milestones: MultiArgVec<UnlockMilestone>,
+        #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         self.validate_unlock_milestones(&milestones)?;
-        self.default_unlock_period()
-            .set(&UnlockPeriod::from(milestones.into_vec()));
+        self.default_unlock_period().set(&UnlockPeriod {
+            unlock_milestones: milestones.to_vec(),
+        });
         Ok(())
     }
 
@@ -392,15 +394,15 @@ pub trait LockedAssetFactory:
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
     ) -> UnlockSchedule<Self::Api> {
+        let mut result = ManagedVec::new();
+        for milestone in unlock_period.unlock_milestones.iter() {
+            result.push(UnlockMilestone {
+                unlock_epoch: milestone.unlock_epoch + start_epoch,
+                unlock_percent: milestone.unlock_percent,
+            });
+        }
         UnlockSchedule {
-            unlock_milestones: unlock_period
-                .unlock_milestones
-                .iter()
-                .map(|x| UnlockMilestone {
-                    unlock_epoch: x.unlock_epoch + start_epoch,
-                    unlock_percent: x.unlock_percent,
-                })
-                .collect(),
+            unlock_milestones: result,
         }
     }
 
