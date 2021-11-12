@@ -64,7 +64,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] fee_percents: VarArgs<u64>,
+        #[var_args] opt_fee_percents: OptionalArg<MultiArg2<u64, u64>>,
     ) -> SCResult<ManagedAddress> {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -79,11 +79,11 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_valid_esdt_identifier(),
+            first_token_id.is_esdt(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_valid_esdt_identifier(),
+            second_token_id.is_esdt(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -94,17 +94,21 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
-        let fee_percents_vec = fee_percents.into_vec();
 
         if caller == owner {
-            require!(fee_percents_vec.len() == 2, "Bad percents length");
-            total_fee_percent_requested = fee_percents_vec[0];
-            special_fee_percent_requested = fee_percents_vec[1];
-            require!(
-                total_fee_percent_requested >= special_fee_percent_requested
-                    && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
-                "Bad percents"
-            );
+            if let Some(fee_percents_multi_arg) = opt_fee_percents.into_option() {
+                let fee_percents_tuple = fee_percents_multi_arg.into_tuple();
+                total_fee_percent_requested = fee_percents_tuple.0;
+                special_fee_percent_requested = fee_percents_tuple.1;
+
+                require!(
+                    total_fee_percent_requested >= special_fee_percent_requested
+                        && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,
+                    "Bad percents"
+                );
+            } else {
+                return sc_error!("Bad percents length");
+            }
         }
 
         let address = self.create_pair(
@@ -132,17 +136,18 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] fee_percents: VarArgs<u64>,
+        total_fee_percent_requested: u64,
+        special_fee_percent_requested: u64,
     ) -> SCResult<()> {
         require!(self.is_active(), "Not active");
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_valid_esdt_identifier(),
+            first_token_id.is_esdt(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_valid_esdt_identifier(),
+            second_token_id.is_esdt(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -151,11 +156,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             "Pair does not exists"
         );
 
-        let fee_percents_vec = fee_percents.into_vec();
-        require!(fee_percents_vec.len() == 2, "Bad percents length");
-
-        let total_fee_percent_requested = fee_percents_vec[0];
-        let special_fee_percent_requested = fee_percents_vec[1];
         require!(
             total_fee_percent_requested >= special_fee_percent_requested
                 && total_fee_percent_requested < MAX_TOTAL_FEE_PERCENT,

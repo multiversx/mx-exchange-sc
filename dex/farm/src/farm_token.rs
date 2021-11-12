@@ -5,7 +5,7 @@ use common_structs::{FarmTokenAttributes, Nonce};
 
 use super::config;
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: FarmTokenAttributes<M>,
@@ -133,13 +133,11 @@ pub trait FarmTokenModule:
 
     fn decode_attributes(
         &self,
-        attributes_raw: &BoxedBytes,
+        attributes_raw: &ManagedBuffer,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         Ok(self
             .serializer()
-            .top_decode_from_byte_slice::<FarmTokenAttributes<Self::Api>>(
-                attributes_raw.as_slice(),
-            ))
+            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(attributes_raw))
     }
 
     fn get_farm_attributes(
@@ -162,7 +160,7 @@ pub trait FarmTokenModule:
 
     fn burn_farm_tokens_from_payments(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<()> {
         for entry in payments {
             self.burn_farm_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount)?;

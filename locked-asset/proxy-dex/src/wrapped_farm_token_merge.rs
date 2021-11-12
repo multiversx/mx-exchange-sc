@@ -36,14 +36,14 @@ pub trait WrappedFarmTokenMerge:
     fn merge_wrapped_farm_tokens(
         &self,
         farm_contract: ManagedAddress,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         require!(
             self.intermediated_farms().contains(&farm_contract),
             "Invalid farm contract address"
         );
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
 
         self.merge_wrapped_farm_tokens_and_send(
             &caller,
@@ -59,9 +59,9 @@ pub trait WrappedFarmTokenMerge:
         &self,
         caller: &ManagedAddress,
         farm_contract: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedFarmToken<Self::Api>>,
-        opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         require!(!payments.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = payments.len();
@@ -112,9 +112,9 @@ pub trait WrappedFarmTokenMerge:
 
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
-    ) -> Vec<WrappedFarmToken<Self::Api>> {
-        let mut result = Vec::new();
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+    ) -> ManagedVec<WrappedFarmToken<Self::Api>> {
+        let mut result = ManagedVec::new();
 
         for payment in payments.iter() {
             result.push(WrappedFarmToken {
@@ -130,10 +130,11 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_wrapped_farm_tokens_have_same_token_ids(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<()> {
-        let farm_token_id = tokens[0].attributes.farm_token_id.clone();
-        let farming_token_id = tokens[0].attributes.farming_token_id.clone();
+        let token_0 = tokens.get(0).unwrap();
+        let farm_token_id = token_0.attributes.farm_token_id.clone();
+        let farming_token_id = token_0.attributes.farming_token_id.clone();
 
         for elem in tokens.iter() {
             require!(
@@ -150,7 +151,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_all_tokens_are_wrapped_farm_tokens(
         &self,
-        tokens: &[EsdtTokenPayment<Self::Api>],
+        tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         wrapped_farm_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens.iter() {
@@ -164,13 +165,13 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_locked_asset_tokens_from_wrapped_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let locked_asset_token = self.locked_asset_token_id().get();
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
 
         if tokens.len() == 1 {
-            let token = tokens[0].clone();
+            let token = tokens.get(0).unwrap();
             let locked_token_amount = self.rule_of_three_non_zero_result(
                 &token.token_amount.amount,
                 &token.attributes.farm_token_amount,
@@ -201,7 +202,7 @@ pub trait WrappedFarmTokenMerge:
 
         Ok(self
             .locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_locked_asset_tokens(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
@@ -209,10 +210,10 @@ pub trait WrappedFarmTokenMerge:
     fn merge_farm_tokens(
         &self,
         farm_contract: &ManagedAddress,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> EsdtTokenPayment<Self::Api> {
         if tokens.len() == 1 {
-            let token = tokens[0].clone();
+            let token = tokens.get(0).unwrap();
 
             return self.create_payment(
                 &token.attributes.farm_token_id,
@@ -231,17 +232,17 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_merge_proxy(farm_contract.clone())
-            .merge_farm_tokens(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
+            .merge_farm_tokens(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn merge_farming_tokens(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         if tokens.len() == 1 {
-            let first_token = tokens[0].clone();
+            let first_token = tokens.get(0).unwrap();
             let farming_amount = self.rule_of_three_non_zero_result(
                 &first_token.token_amount.amount,
                 &first_token.attributes.farm_token_amount,
@@ -255,7 +256,7 @@ pub trait WrappedFarmTokenMerge:
             ));
         }
 
-        let farming_token_id = tokens[0].clone().attributes.farming_token_id;
+        let farming_token_id = tokens.get(0).unwrap().attributes.farming_token_id;
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
         if farming_token_id == locked_asset_token_id {
@@ -267,9 +268,9 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_wrapped_lp_tokens_from_farm(
         &self,
-        tokens: &[WrappedFarmToken<Self::Api>],
+        tokens: &ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
-        let mut wrapped_lp_tokens = Vec::new();
+        let mut wrapped_lp_tokens = ManagedVec::new();
 
         for token in tokens.iter() {
             let wrapped_lp_token_amount = self.rule_of_three_non_zero_result(
@@ -300,7 +301,7 @@ pub trait WrappedFarmTokenMerge:
         let merged_wrapped_lp_token_amount =
             self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
         let lp_token_amount = self.create_payment(
-            &wrapped_lp_tokens[0].attributes.lp_token_id,
+            &wrapped_lp_tokens.get(0).unwrap().attributes.lp_token_id,
             0,
             &merged_wrapped_lp_token_amount,
         );
@@ -308,7 +309,7 @@ pub trait WrappedFarmTokenMerge:
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
 
-        let wrapped_lp_token_id = tokens[0].attributes.farming_token_id.clone();
+        let wrapped_lp_token_id = tokens.get(0).unwrap().attributes.farming_token_id.clone();
         let new_nonce = self.nft_create_tokens(
             &wrapped_lp_token_id,
             &merged_wrapped_lp_token_amount,

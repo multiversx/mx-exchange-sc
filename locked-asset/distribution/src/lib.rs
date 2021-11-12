@@ -6,14 +6,18 @@ use common_structs::{UnlockMilestone, UnlockPeriod};
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type Epoch = u64;
-
 mod global_op;
 
 const GAS_THRESHOLD: u64 = 100_000;
 const MAX_CLAIMABLE_DISTRIBUTION_ROUNDS: usize = 4;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
+#[derive(ManagedVecItem)]
+pub struct BigUintEpochPair<M: ManagedTypeApi> {
+    pub biguint: BigUint<M>,
+    pub epoch: u64,
+}
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]
 pub struct UserLockedAssetKey<M: ManagedTypeApi> {
     pub caller: ManagedAddress<M>,
     pub spread_epoch: u64,
@@ -38,7 +42,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         locked_asset_factory_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
-            asset_token_id.is_valid_esdt_identifier(),
+            asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
         );
 
@@ -80,7 +84,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn set_per_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-        #[var_args] user_locked_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
+        #[var_args] user_locked_assets: ManagedVarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
         self.require_global_op_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
@@ -108,12 +112,14 @@ pub trait Distribution: global_op::GlobalOperationModule {
             self.blockchain().get_gas_left() / (locked_assets.len() as u64 + 1);
 
         let unlock_period = self.unlock_period().get();
-        for (amount, spread_epoch) in locked_assets.iter() {
+        for elem in locked_assets.iter() {
+            let amount = elem.biguint;
+            let spread_epoch = elem.epoch;
             self.locked_asset_factory_proxy(to.clone())
                 .create_and_forward_custom_period(
                     amount.clone(),
                     caller.clone(),
-                    *spread_epoch,
+                    spread_epoch,
                     unlock_period.clone(),
                 )
                 .with_gas_limit(gas_limit_per_execute)
@@ -152,11 +158,12 @@ pub trait Distribution: global_op::GlobalOperationModule {
     #[endpoint(setUnlockPeriod)]
     fn set_unlock_period(
         &self,
-        #[var_args] milestones: MultiArgVec<UnlockMilestone>,
+        #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
-        self.validate_unlock_milestones(&milestones)?;
+        let unlock_milestones = milestones.to_vec();
+        self.validate_unlock_milestones(&unlock_milestones)?;
         self.unlock_period()
-            .set(&UnlockPeriod::from(milestones.into_vec()));
+            .set(&UnlockPeriod { unlock_milestones });
         Ok(())
     }
 
@@ -167,36 +174,22 @@ pub trait Distribution: global_op::GlobalOperationModule {
         let locked_assets = self.calculate_user_locked_assets(&address, false);
 
         let mut cummulated_amount = BigUint::zero();
-        for (amount, _) in locked_assets.iter() {
-            cummulated_amount += amount;
+        for elem in locked_assets.iter() {
+            cummulated_amount += elem.biguint;
         }
         Ok(cummulated_amount)
     }
 
-    #[view(getLastCommunityDistributionAmountAndEpoch)]
-    fn get_last_community_distrib_amount_and_epoch(&self) -> MultiResult2<BigUint, u64> {
-        self.community_distribution_list()
-            .front()
-            .map(|last_community_distrib| {
-                (
-                    last_community_distrib.get_value_cloned().total_amount,
-                    last_community_distrib.get_value_cloned().spread_epoch,
-                )
-            })
-            .unwrap_or((BigUint::zero(), 0u64))
-            .into()
-    }
-
     fn validate_unlock_milestones(
         &self,
-        unlock_milestones: &VarArgs<UnlockMilestone>,
+        unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
-        for milestone in unlock_milestones.0.clone() {
+        for milestone in unlock_milestones.into_iter() {
             require!(
                 milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"
@@ -216,7 +209,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn add_all_user_assets_to_map(
         &self,
         spread_epoch: u64,
-        user_assets: VarArgs<MultiArg2<ManagedAddress, BigUint>>,
+        user_assets: ManagedVarArgs<MultiArg2<ManagedAddress, BigUint>>,
     ) -> SCResult<()> {
         let mut last_community_distrib = self
             .community_distribution_list()
@@ -228,7 +221,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
             "Bad spread epoch"
         );
 
-        for user_asset_multiarg in user_assets.into_vec() {
+        for user_asset_multiarg in user_assets.into_iter() {
             let (caller, asset_amount) = user_asset_multiarg.into_tuple();
             require!(asset_amount > 0, "Zero amount");
             require!(
@@ -268,9 +261,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
         &self,
         address: &ManagedAddress,
         delete_after_visit: bool,
-    ) -> Vec<(BigUint, Epoch)> {
+    ) -> ManagedVec<BigUintEpochPair<Self::Api>> {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut locked_assets = Vec::<(BigUint, Epoch)>::new();
+        let mut locked_assets = ManagedVec::new();
 
         for community_distrib in self
             .community_distribution_list()
@@ -284,7 +277,10 @@ pub trait Distribution: global_op::GlobalOperationModule {
             };
 
             if let Some(asset_amount) = self.user_locked_asset_map().get(&user_asset_key) {
-                locked_assets.push((asset_amount, user_asset_key.spread_epoch));
+                locked_assets.push(BigUintEpochPair {
+                    biguint: asset_amount,
+                    epoch: user_asset_key.spread_epoch,
+                });
 
                 if delete_after_visit {
                     self.user_locked_asset_map().remove(&user_asset_key);
@@ -311,7 +307,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
             return 0;
         }
 
-        let mut to_remove_keys = Vec::new();
+        let mut to_remove_keys = ManagedVec::new();
         let search_gas_limit = self.blockchain().get_gas_left() / 2;
         for user_asset_key in self.user_locked_asset_map().keys() {
             if self.blockchain().get_gas_left() < search_gas_limit {
@@ -329,7 +325,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
                 break;
             }
 
-            self.user_locked_asset_map().remove(key);
+            self.user_locked_asset_map().remove(&key);
         }
         map_len_before - self.user_locked_asset_map().len()
     }
@@ -362,24 +358,6 @@ pub trait Distribution: global_op::GlobalOperationModule {
         Ok(())
     }
 
-    #[view(getUsersDistributedLockedAssets)]
-    fn get_users_distributed_locked_assets(
-        &self,
-        spread_epoch: u64,
-        #[var_args] user_locked_assets: VarArgs<ManagedAddress>,
-    ) -> MultiResultVec<MultiArg2<ManagedAddress, BigUint>> {
-        let mut results = MultiResultVec::<MultiArg2<ManagedAddress, BigUint>>::new();
-        for user_asset_multiarg in user_locked_assets.into_vec() {
-            if let Some(amount) = self.user_locked_asset_map().get(&UserLockedAssetKey {
-                spread_epoch,
-                caller: user_asset_multiarg.clone(),
-            }) {
-                results.push(MultiArg2::from((user_asset_multiarg, amount)))
-            }
-        }
-        results
-    }
-
     #[view(getUsersDistributedLockedAssetsLength)]
     fn get_users_distributed_locked_assets_length(&self) -> usize {
         self.user_locked_asset_map().len()
@@ -387,7 +365,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
 
     #[view(getUnlockPeriod)]
     #[storage_mapper("unlock_period")]
-    fn unlock_period(&self) -> SingleValueMapper<UnlockPeriod>;
+    fn unlock_period(&self) -> SingleValueMapper<UnlockPeriod<Self::Api>>;
 
     #[view(getCommunityDistributionList)]
     #[storage_mapper("community_distribution_list")]

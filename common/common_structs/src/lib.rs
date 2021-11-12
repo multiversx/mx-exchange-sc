@@ -1,5 +1,7 @@
 #![no_std]
 
+use elrond_wasm::api::Handle;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -12,13 +14,23 @@ pub struct TokenPair<M: ManagedTypeApi> {
     pub second_token: TokenIdentifier<M>,
 }
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi, NestedEncode, NestedDecode, Clone, Copy)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    PartialEq,
+    TypeAbi,
+    NestedEncode,
+    NestedDecode,
+    Clone,
+    Copy,
+)]
 pub struct UnlockMilestone {
     pub unlock_epoch: u64,
     pub unlock_percent: u8,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
     pub lp_token_total_amount: BigUint<M>,
@@ -26,7 +38,7 @@ pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
     pub locked_assets_nonce: Nonce,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedFarmTokenAttributes<M: ManagedTypeApi> {
     pub farm_token_id: TokenIdentifier<M>,
     pub farm_token_nonce: Nonce,
@@ -36,7 +48,7 @@ pub struct WrappedFarmTokenAttributes<M: ManagedTypeApi> {
     pub farming_token_amount: BigUint<M>,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub original_entering_epoch: u64,
@@ -65,29 +77,71 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     amount will be unlocked).
 */
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
-pub struct UnlockPeriod {
-    pub unlock_milestones: Vec<UnlockMilestone>,
+pub struct UnlockPeriod<M: ManagedTypeApi> {
+    pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
+}
+
+// `derive(ManagedVecItem)` doesn't currently work with additional generics.
+// Needs to be implemented by hand.
+impl<M: ManagedTypeApi> ManagedVecItem<M> for UnlockPeriod<M> {
+    const PAYLOAD_SIZE: usize = 4;
+    const SKIPS_RESERIALIZATION: bool = false;
+
+    fn from_byte_reader<Reader: FnMut(&mut [u8])>(api: M, reader: Reader) -> Self {
+        let handle = Handle::from_byte_reader(api.clone(), reader);
+        UnlockPeriod {
+            unlock_milestones: ManagedVec::from_raw_handle(api, handle),
+        }
+    }
+
+    fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
+        <Handle as ManagedVecItem<M>>::to_byte_writer(
+            &self.unlock_milestones.get_raw_handle(),
+            writer,
+        )
+    }
 }
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
-pub struct UnlockSchedule {
-    pub unlock_milestones: Vec<UnlockMilestone>,
+pub struct UnlockSchedule<M: ManagedTypeApi> {
+    pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
 }
 
-impl UnlockPeriod {
-    pub fn from(unlock_milestones: Vec<UnlockMilestone>) -> Self {
+// `derive(ManagedVecItem)` doesn't currently work with additional generics.
+// Needs to be implemented by hand.
+impl<M: ManagedTypeApi> ManagedVecItem<M> for UnlockSchedule<M> {
+    const PAYLOAD_SIZE: usize = 4;
+    const SKIPS_RESERIALIZATION: bool = false;
+
+    fn from_byte_reader<Reader: FnMut(&mut [u8])>(api: M, reader: Reader) -> Self {
+        let handle = Handle::from_byte_reader(api.clone(), reader);
+        UnlockSchedule {
+            unlock_milestones: ManagedVec::from_raw_handle(api, handle),
+        }
+    }
+
+    fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
+        <Handle as ManagedVecItem<M>>::to_byte_writer(
+            &self.unlock_milestones.get_raw_handle(),
+            writer,
+        )
+    }
+}
+
+impl<M: ManagedTypeApi> UnlockPeriod<M> {
+    pub fn from(unlock_milestones: ManagedVec<M, UnlockMilestone>) -> Self {
         UnlockPeriod { unlock_milestones }
     }
 }
 
-impl UnlockSchedule {
-    pub fn from(unlock_milestones: Vec<UnlockMilestone>) -> Self {
+impl<M: ManagedTypeApi> UnlockSchedule<M> {
+    pub fn from(unlock_milestones: ManagedVec<M, UnlockMilestone>) -> Self {
         UnlockSchedule { unlock_milestones }
     }
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
-pub struct LockedAssetTokenAttributes {
-    pub unlock_schedule: UnlockSchedule,
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct LockedAssetTokenAttributes<M: ManagedTypeApi> {
+    pub unlock_schedule: UnlockSchedule<M>,
     pub is_merged: bool,
 }

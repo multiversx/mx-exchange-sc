@@ -12,8 +12,8 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         amount: &BigUint,
         additional_amount_to_create: &BigUint,
         address: &ManagedAddress,
-        attributes: &LockedAssetTokenAttributes,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        attributes: &LockedAssetTokenAttributes<Self::Api>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
         let last_created_nonce = self.nft_create_tokens(
@@ -36,7 +36,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         amount: &BigUint,
         sft_nonce: Nonce,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
@@ -47,7 +47,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         &self,
         amount: &BigUint,
         current_epoch: Epoch,
-        unlock_milestones: &[UnlockMilestone],
+        unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> BigUint {
         amount
             * &self
@@ -59,11 +59,11 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     fn get_unlock_percent(
         &self,
         current_epoch: Epoch,
-        unlock_milestones: &[UnlockMilestone],
+        unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> u8 {
         let mut unlock_percent = 0u8;
 
-        for milestone in unlock_milestones {
+        for milestone in unlock_milestones.into_iter() {
             if milestone.unlock_epoch <= current_epoch {
                 unlock_percent += milestone.unlock_percent;
             }
@@ -81,9 +81,9 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     fn create_new_unlock_milestones(
         &self,
         current_epoch: Epoch,
-        old_unlock_milestones: &[UnlockMilestone],
-    ) -> Vec<UnlockMilestone> {
-        let mut new_unlock_milestones = Vec::<UnlockMilestone>::new();
+        old_unlock_milestones: &ManagedVec<UnlockMilestone>,
+    ) -> ManagedVec<UnlockMilestone> {
+        let mut new_unlock_milestones = ManagedVec::new();
         let unlock_percent = self.get_unlock_percent(current_epoch, old_unlock_milestones);
         let unlock_percent_remaining = PERCENTAGE_TOTAL - (unlock_percent as u64);
 
@@ -107,20 +107,32 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         for new_milestone in new_unlock_milestones.iter() {
             sum_of_new_percents += new_milestone.unlock_percent;
         }
-        new_unlock_milestones[0].unlock_percent += PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
-        new_unlock_milestones
+
+        let mut first_element = new_unlock_milestones.get(0).unwrap();
+        first_element.unlock_percent += PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
+
+        let mut new_unlocks = ManagedVec::new();
+        new_unlocks.push(first_element);
+
+        for (index, elem) in new_unlock_milestones.iter().enumerate() {
+            if index != 0 {
+                new_unlocks.push(elem);
+            }
+        }
+
+        new_unlocks
     }
 
     fn validate_unlock_milestones(
         &self,
-        unlock_milestones: &VarArgs<UnlockMilestone>,
+        unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
-        for milestone in unlock_milestones.0.clone() {
+        for milestone in unlock_milestones.into_iter() {
             require!(
                 milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"
@@ -141,7 +153,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         &self,
         token_id: &TokenIdentifier,
         token_nonce: u64,
-    ) -> SCResult<LockedAssetTokenAttributes> {
+    ) -> SCResult<LockedAssetTokenAttributes<Self::Api>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
@@ -150,7 +162,9 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
         Ok(self
             .serializer()
-            .top_decode_from_managed_buffer::<LockedAssetTokenAttributes>(&token_info.attributes))
+            .top_decode_from_managed_buffer::<LockedAssetTokenAttributes<Self::Api>>(
+                &token_info.attributes,
+            ))
     }
 
     #[only_owner]

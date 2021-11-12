@@ -37,11 +37,11 @@ pub trait ProxyDexImpl:
         locked_asset_factory_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
-            asset_token_id.is_valid_esdt_identifier(),
+            asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
         );
         require!(
-            locked_asset_token_id.is_valid_esdt_identifier(),
+            locked_asset_token_id.is_esdt(),
             "Locked asset token ID is not a valid esdt identifier"
         );
         require!(

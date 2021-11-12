@@ -68,27 +68,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "function": "getLastCommunityDistributionAmountAndEpoch",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "100,000",
-                    "10"
-                ],
-                "status": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -132,27 +111,6 @@
             },
             "expect": {
                 "out": [],
-                "status": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
-                "function": "getLastCommunityDistributionAmountAndEpoch",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "0",
-                    "0"
-                ],
                 "status": "",
                 "gas": "*",
                 "refund": "*"
