@@ -28,6 +28,7 @@ jobs:
         run: |
           source .github/workflows/env
           ./build-wasm.sh
+          ./magic.sh
       - name: Run VM tests
         run: |
           source .github/workflows/env
