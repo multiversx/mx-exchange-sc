@@ -17,9 +17,6 @@ jobs:
         with:
           default: true
           toolchain: nightly
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '14'
       - name: Install erdpy and vmtools
         run : |
           source .github/workflows/env
@@ -27,12 +24,12 @@ jobs:
           mkdir $HOME/elrondsdk
           erdpy config set dependencies.vmtools.tag v1.4.22
           erdpy deps install vmtools
-          npm i wasm-opt -g
+          apt install binaryen
       - name: Build the wasm contracts
         run: |
           source .github/workflows/env
           ./build-wasm.sh
-          ./magic.sh
+          ./wasm-opt.sh
       - name: Run VM tests
         run: |
           source .github/workflows/env
