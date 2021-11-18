@@ -1,4 +1,6 @@
 for f in $(find . -name "*.wasm"); do
-    ./wasm2wat $f -o tmp.wat
-    ./wat2wasm tmp.wat -o $f
+    if [[ $f =~ "output" ]]; then
+        wasm-opt -Oz $f -o tmp.wasm
+        mv tmp.wasm $f
+    fi
 done
