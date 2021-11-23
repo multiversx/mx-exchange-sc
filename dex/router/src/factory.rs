@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::derive::ManagedVecItem;
-
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi)]

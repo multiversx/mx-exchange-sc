@@ -4,7 +4,6 @@ use elrond_wasm::api::Handle;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
-use elrond_wasm::derive::ManagedVecItem;
 
 pub type Nonce = u64;
 pub type Epoch = u64;

@@ -125,14 +125,14 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     fn validate_unlock_milestones(
         &self,
-        unlock_milestones: &ManagedVarArgs<UnlockMilestone>,
+        unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
-        for milestone in unlock_milestones.to_vec().into_iter() {
+        for milestone in unlock_milestones.into_iter() {
             require!(
                 milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"

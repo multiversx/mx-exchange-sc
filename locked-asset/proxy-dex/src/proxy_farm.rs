@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::derive::ManagedVecItem;
-
 use common_structs::{Nonce, WrappedFarmTokenAttributes};
 
 use super::events;

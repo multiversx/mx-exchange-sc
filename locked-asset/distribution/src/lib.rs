@@ -6,8 +6,6 @@ use common_structs::{UnlockMilestone, UnlockPeriod};
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::derive::ManagedVecItem;
-
 mod global_op;
 
 const GAS_THRESHOLD: u64 = 100_000;
@@ -162,9 +160,10 @@ pub trait Distribution: global_op::GlobalOperationModule {
         &self,
         #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
-        self.validate_unlock_milestones(&milestones)?;
+        let unlock_milestones = milestones.to_vec();
+        self.validate_unlock_milestones(&unlock_milestones)?;
         self.unlock_period()
-            .set(&UnlockPeriod::from(milestones.to_vec()));
+            .set(&UnlockPeriod { unlock_milestones });
         Ok(())
     }
 
@@ -183,14 +182,14 @@ pub trait Distribution: global_op::GlobalOperationModule {
 
     fn validate_unlock_milestones(
         &self,
-        unlock_milestones: &ManagedVarArgs<UnlockMilestone>,
+        unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
         let mut percents_sum: u8 = 0;
         let mut last_milestone_unlock_epoch: u64 = 0;
 
-        for milestone in unlock_milestones.to_vec().iter() {
+        for milestone in unlock_milestones.into_iter() {
             require!(
                 milestone.unlock_epoch >= last_milestone_unlock_epoch,
                 "Unlock epochs not in order"

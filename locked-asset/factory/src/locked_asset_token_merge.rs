@@ -2,7 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use arrayvec::ArrayVec;
-use elrond_wasm::derive::ManagedVecItem;
 
 use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
 
@@ -137,14 +136,16 @@ pub trait LockedAssetTokenMergeModule:
                 })
             }
         }
-        array.sort_by(|a, b| a.epoch.cmp(&b.epoch));
+        array.sort_unstable_by(|a, b| a.epoch.cmp(&b.epoch));
 
         let mut sum = BigUint::zero();
         let default = EpochAmountPair {
             epoch: 0u64,
             amount: BigUint::zero(),
         };
-        let mut unlock_epoch_amount_merged = Vec::<EpochAmountPair<Self::Api>>::new();
+
+        let mut unlock_epoch_amount_merged =
+            ArrayVec::<EpochAmountPair<Self::Api>, DOUBLE_MAX_MILESTONES_IN_SCHEDULE>::new();
         for elem in array.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
 

@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::derive::ManagedVecItem;
-
 #[derive(ManagedVecItem, Clone)]
 pub struct ValueWeight<M: ManagedTypeApi> {
     pub value: BigUint<M>,

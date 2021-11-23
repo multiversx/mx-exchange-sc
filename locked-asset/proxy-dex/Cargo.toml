@@ -33,7 +33,8 @@ path = "../../common/modules/token_merge"
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.22.5"
+version = "0.22.6"
+features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.22.5"
+version = "0.22.6"
