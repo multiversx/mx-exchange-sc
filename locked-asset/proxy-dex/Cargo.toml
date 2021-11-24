@@ -23,9 +23,6 @@ path = "../../dex/farm"
 [dependencies.factory]
 path = "../factory"
 
-[dependencies.token_supply]
-path = "../../common/modules/token_supply"
-
 [dependencies.token_merge]
 path = "../../common/modules/token_merge"
 

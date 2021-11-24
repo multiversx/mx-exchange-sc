@@ -206,12 +206,7 @@
                         "str:asset_token_id": "str:MEX-abcdef",
                         "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:default_unlock_period": "0x00000002000000000000001b32000000000000002c32",
-                        "str:transfer_exec_gas_limit": "50000000",
-                        "str:nft_deposit_max_len": "10",
-                        "str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
-                        "str:nft_deposit_accepted_token_ids.node_id|nested:str:LKMEX-abcdef": "1",
-                        "str:nft_deposit_accepted_token_ids.node_links": "0",
-                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:LKMEX-abcdef"
+                        "str:transfer_exec_gas_limit": "50000000"
                     },
                     "code": "file:../../../locked-asset/factory/output/factory.wasm",
                     "owner": "address:owner"
@@ -247,30 +242,13 @@
                         }
                     },
                     "storage": {
-                        "str:proxy_farm_params": "0x0000000010FFFFFF0000000010FFFFFF0000000010FFFFFF00000000004C4B4000000000004C4B40",
                         "str:wrapped_lp_token_id": "str:WLPTOK-abcdef",
                         "str:wrapped_lp_token_nonce": "0",
                         "str:wrapped_farm_token_id": "str:WFARM-abcdef",
                         "str:wrapped_farm_token_nonce": "0",
-                        "str:proxy_pair_params": "0x0000000008FFFFFF00000000017D784000000000017D7840000000000FFFE10000000000004C4B4000000000004C4B40",
                         "str:asset_token_id": "str:MEX-abcdef",
                         "str:locked_asset_token_id": "str:LKMEX-abcdef",
-                        "str:accepted_locked_assets.info": "0x00000002000000010000000200000002",
-                        "str:accepted_locked_assets.node_id|nested:str:LKMEX-abcdef": "1",
-                        "str:accepted_locked_assets.node_id|nested:str:LKMEX2-abcdef": "2",
-                        "str:accepted_locked_assets.node_links|u32:1": "2",
-                        "str:accepted_locked_assets.node_links|u32:2": "0x0000000100000000",
-                        "str:accepted_locked_assets.value|u32:1": "str:LKMEX-abcdef",
-                        "str:accepted_locked_assets.value|u32:2": "str:LKMEX2-abcdef",
-                        "str:nft_deposit_accepted_token_ids.info": "u32:2|u32:1|u32:2|u32:2",
-                        "str:nft_deposit_accepted_token_ids.node_id|nested:str:WLPTOK-abcdef": "1",
-                        "str:nft_deposit_accepted_token_ids.node_id|nested:str:WFARM-abcdef": "2",
-                        "str:nft_deposit_accepted_token_ids.node_links|u32:1": "u32:0|u32:2",
-                        "str:nft_deposit_accepted_token_ids.node_links": "u32:1|u32:0",
-                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:WLPTOK-abcdef",
-                        "str:nft_deposit_accepted_token_ids.value|u32:2": "str:WFARM-abcdef",
-                        "str:locked_asset_factory_address": "sc:locked_asset_factory",
-                        "str:nft_deposit_max_len": "10"
+                        "str:locked_asset_factory_address": "sc:locked_asset_factory"
                     },
                     "code": "file:../../proxy-dex/output/proxy-dex.wasm",
                     "owner": "address:owner"

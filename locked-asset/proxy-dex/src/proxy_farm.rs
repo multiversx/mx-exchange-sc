@@ -28,7 +28,6 @@ pub struct WrappedFarmToken<M: ManagedTypeApi> {
 pub trait ProxyFarmModule:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
-    + token_supply::TokenSupplyModule
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
@@ -186,11 +185,12 @@ pub trait ProxyFarmModule:
             &reward_token_returned.amount,
             &OptionalArg::None,
         )?;
-        self.nft_burn_tokens(&token_id, token_nonce, &amount);
+        self.send().esdt_local_burn(&token_id, token_nonce, &amount);
 
         if farming_token_returned.token_identifier == self.asset_token_id().get() {
-            self.burn_tokens(
+            self.send().esdt_local_burn(
                 &farming_token_returned.token_identifier,
+                0,
                 &farming_token_returned.amount,
             );
         }
@@ -283,7 +283,7 @@ pub trait ProxyFarmModule:
                 &caller,
                 payments,
             )?;
-        self.nft_burn_tokens(&token_id, token_nonce, &amount);
+        self.send().esdt_local_burn(&token_id, token_nonce, &amount);
 
         self.emit_claim_rewards_farm_proxy_event(
             &caller,
@@ -369,7 +369,8 @@ pub trait ProxyFarmModule:
                 &caller,
                 payments,
             )?;
-        self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
+        self.send()
+            .esdt_local_burn(&payment_token_id, payment_token_nonce, &payment_amount);
 
         self.emit_compound_rewards_farm_proxy_event(
             &caller,
@@ -417,7 +418,7 @@ pub trait ProxyFarmModule:
     ) -> EnterFarmResultType<Self::Api> {
         let asset_token_id = self.asset_token_id().get();
         if farming_token_id == &asset_token_id {
-            self.mint_tokens(&asset_token_id, amount);
+            self.send().esdt_local_mint(&asset_token_id, 0, amount);
         }
 
         let mut payments = ManagedVec::new();

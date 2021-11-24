@@ -8,10 +8,7 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm::module]
 pub trait LiquidityPoolModule:
-    amm::AmmModule
-    + config::ConfigModule
-    + token_supply::TokenSupplyModule
-    + token_send::TokenSendModule
+    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule
 {
     fn pool_add_liquidity(
         &self,
@@ -33,7 +30,9 @@ pub trait LiquidityPoolModule:
                 "First tokens needs to be greater than minimum liquidity"
             );
             liquidity -= &minimum_liquidity;
-            self.mint_tokens(&self.lp_token_identifier().get(), &minimum_liquidity);
+            let lpt = self.lp_token_identifier().get();
+            self.send().esdt_local_mint(&lpt, 0, &minimum_liquidity);
+            self.lp_token_supply().set(&minimum_liquidity);
         } else {
             liquidity = core::cmp::min(
                 (&first_token_amount * &total_supply) / first_token_reserve.clone(),
@@ -232,10 +231,10 @@ pub trait LiquidityPoolModule:
         amount_out
     }
 
+    //TODO: Make migrate
     #[view(getTotalSupply)]
     fn get_total_lp_token_supply(&self) -> BigUint {
-        self.get_total_supply(&self.lp_token_identifier().get())
-            .unwrap()
+        self.lp_token_supply().get()
     }
 
     #[view(getFirstTokenId)]
@@ -245,6 +244,9 @@ pub trait LiquidityPoolModule:
     #[view(getSecondTokenId)]
     #[storage_mapper("second_token_id")]
     fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("lp_token_supply")]
+    fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getReserve)]
     #[storage_mapper("reserve")]

@@ -33,7 +33,6 @@ pub trait Pair:
     + fee::FeeModule
     + liquidity_pool::LiquidityPoolModule
     + config::ConfigModule
-    + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
     + events::EventsModule
 {
@@ -156,7 +155,8 @@ pub trait Pair:
         self.validate_k_invariant_strict(&old_k, &new_k)?;
 
         let lp_token_id = self.lp_token_identifier().get();
-        self.mint_tokens(&lp_token_id, &liquidity);
+        self.send().esdt_local_mint(&lp_token_id, 0, &liquidity);
+        self.lp_token_supply().update(|x| *x += &liquidity);
 
         let mut payments = ManagedVec::new();
         payments.push(self.create_payment(&lp_token_id, 0, &liquidity));
@@ -223,7 +223,8 @@ pub trait Pair:
         payments.push(self.create_payment(&second_token_id, 0, &second_token_amount));
         self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)?;
 
-        self.burn_tokens(&token_id, &liquidity);
+        self.send().esdt_local_burn(&token_id, 0, &liquidity);
+        self.lp_token_supply().update(|x| *x -= &liquidity);
 
         self.emit_remove_liquidity_event(
             &caller,
@@ -291,7 +292,8 @@ pub trait Pair:
             &first_token_id,
             &second_token_id,
         );
-        self.burn_tokens(&token_in, &amount_in);
+        self.send().esdt_local_burn(&token_in, 0, &amount_in);
+        self.lp_token_supply().update(|x| *x -= &amount_in);
 
         Ok(())
     }

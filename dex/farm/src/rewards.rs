@@ -9,10 +9,7 @@ use common_structs::Nonce;
 
 #[elrond_wasm::module]
 pub trait RewardsModule:
-    config::ConfigModule
-    + token_supply::TokenSupplyModule
-    + token_send::TokenSendModule
-    + farm_token::FarmTokenModule
+    config::ConfigModule + token_send::TokenSendModule + farm_token::FarmTokenModule
 {
     fn calculate_per_block_rewards(
         &self,
@@ -42,7 +39,7 @@ pub trait RewardsModule:
             let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
             if to_mint != 0 {
-                self.mint_tokens(token_id, &to_mint);
+                self.send().esdt_local_mint(token_id, 0, &to_mint);
             }
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint

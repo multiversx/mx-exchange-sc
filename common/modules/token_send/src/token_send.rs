@@ -97,6 +97,25 @@ pub trait TokenSendModule {
         EsdtTokenPayment::new(token_id.clone(), nonce, amount.clone())
     }
 
+    fn nft_create_tokens<T: elrond_codec::TopEncode>(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &BigUint,
+        attributes: &T,
+    ) -> u64 {
+        let mut uris = ManagedVec::new();
+        uris.push(self.types().managed_buffer_new());
+        self.send().esdt_nft_create::<T>(
+            token_id,
+            amount,
+            &self.types().managed_buffer_new(),
+            &BigUint::zero(),
+            &self.types().managed_buffer_new(),
+            attributes,
+            &uris,
+        )
+    }
+
     #[view(getTransferExecGasLimit)]
     #[storage_mapper("transfer_exec_gas_limit")]
     fn transfer_exec_gas_limit(&self) -> SingleValueMapper<u64>;

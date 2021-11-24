@@ -12,9 +12,7 @@ pub struct FarmToken<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait FarmTokenModule:
-    config::ConfigModule + token_send::TokenSendModule + token_supply::TokenSupplyModule
-{
+pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]
     fn register_farm_token(
@@ -161,22 +159,18 @@ pub trait FarmTokenModule:
     fn burn_farm_tokens_from_payments(
         &self,
         payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<()> {
+    ) {
+        let mut total_amount = BigUint::zero();
         for entry in payments {
-            self.burn_farm_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount)?;
+            total_amount += &entry.amount;
+            self.send()
+                .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
-        Ok(())
+        self.farm_token_supply().update(|x| *x -= total_amount);
     }
 
-    fn burn_farm_tokens(
-        &self,
-        farm_token_id: &TokenIdentifier,
-        farm_token_nonce: Nonce,
-        amount: &BigUint,
-    ) -> SCResult<()> {
-        let farm_amount = self.get_farm_token_supply();
-        require!(&farm_amount >= amount, "Not enough supply");
-        self.nft_burn_tokens(farm_token_id, farm_token_nonce, amount);
-        Ok(())
+    fn burn_farm_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
+        self.send().esdt_local_burn(token_id, nonce, amount);
+        self.farm_token_supply().update(|x| *x -= amount);
     }
 }

@@ -26,8 +26,7 @@
                         "str:farm_token_id": "str:FARM-abcdef",
                         "str:router_address": "sc:router_contract",
                         "str:state": "1",
-                        "str:owner": "address:owner",
-                        "str:create_farm_tokens_gas_limit": "5000000"
+                        "str:owner": "address:owner"
                     },
                     "code": "file:../farm/output/farm.wasm"
                 }
@@ -102,7 +101,6 @@
                         "str:state": "1",
                         "str:farming_token_id": "str:WEGLD-abcdef",
                         "str:reward_token_id": "str:WEGLD-abcdef",
-                        "str:create_farm_tokens_gas_limit": "5000000",
                         "str:farming_token_reserve": "100,000,000",
                         "+": ""
                     },
