@@ -6,9 +6,7 @@ use common_structs::{Nonce, UnlockSchedule};
 use super::locked_asset;
 
 #[elrond_wasm::module]
-pub trait CacheModule:
-    locked_asset::LockedAssetModule + token_supply::TokenSupplyModule + token_send::TokenSendModule
-{
+pub trait CacheModule: locked_asset::LockedAssetModule + token_send::TokenSendModule {
     #[inline(always)]
     fn get_sft_nonce_for_unlock_schedule(
         &self,

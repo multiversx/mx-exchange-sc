@@ -17,7 +17,7 @@ pub enum State {
 }
 
 #[elrond_wasm::module]
-pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
+pub trait ConfigModule: token_send::TokenSendModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -79,10 +79,14 @@ pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendM
         Ok(())
     }
 
+    //TODO: Make migration
     #[view(getFarmTokenSupply)]
     fn get_farm_token_supply(&self) -> BigUint {
-        self.get_total_supply(&self.farm_token_id().get()).unwrap()
+        self.farm_token_supply().get()
     }
+
+    #[storage_mapper("farm_token_supply")]
+    fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]

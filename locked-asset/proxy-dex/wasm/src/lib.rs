@@ -18,10 +18,6 @@ elrond_wasm_node::wasm_endpoints! {
         enterFarmProxy
         exitFarmProxy
         getAssetTokenId
-        getBurnedTokenAmount
-        getBurnedTokenAmountList
-        getGeneratedTokenAmount
-        getGeneratedTokenAmountList
         getIntermediatedFarms
         getIntermediatedPairs
         getLastErrorMessage

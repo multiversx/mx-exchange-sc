@@ -28,7 +28,6 @@ pub trait FeeModule:
     config::ConfigModule
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
-    + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
 {
     #[proxy]
@@ -304,7 +303,7 @@ pub trait FeeModule:
     ) {
         if amount > &0 {
             if destination == &self.types().managed_address_zero() {
-                self.burn_tokens(token, amount);
+                self.send().esdt_local_burn(token, 0, amount);
             } else {
                 self.farm_proxy(destination.clone())
                     .accept_fee(token.clone(), amount.clone())

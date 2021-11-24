@@ -31,7 +31,6 @@ type ExitFarmResultType<BigUint> =
 pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
-    + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
@@ -245,7 +244,7 @@ pub trait Farm:
         }
 
         let caller = self.blockchain().get_caller();
-        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
         self.send_back_farming_tokens(
             &farming_token_id,
             &initial_farming_token_amount,
@@ -342,7 +341,7 @@ pub trait Farm:
         };
 
         let caller = self.blockchain().get_caller();
-        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
         let farm_amount = amount.clone();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
             &farm_amount,
@@ -465,7 +464,7 @@ pub trait Farm:
             current_farm_amount: new_farm_contribution.clone(),
         };
 
-        self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount)?;
+        self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount);
         let caller = self.blockchain().get_caller();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
             &new_farm_contribution,
@@ -539,7 +538,8 @@ pub trait Farm:
         let pair_contract_address = self.pair_contract_address().get();
 
         if pair_contract_address == zero_address {
-            self.burn_tokens(farming_token_id, farming_amount);
+            self.send()
+                .esdt_local_burn(farming_token_id, 0, farming_amount);
         } else {
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(
@@ -570,11 +570,12 @@ pub trait Farm:
             additional_payments.clone(),
             Some(current_position_replic),
         )?;
-        self.burn_farm_tokens_from_payments(additional_payments)?;
+        self.burn_farm_tokens_from_payments(additional_payments);
 
         let new_amount = merged_attributes.current_farm_amount.clone();
         let new_attributes = merged_attributes;
         let new_nonce = self.nft_create_tokens(token_id, &new_amount, &new_attributes);
+        self.farm_token_supply().update(|x| *x += &new_amount);
 
         let new_farm_token = FarmToken {
             token_amount: self.create_payment(token_id, new_nonce, &new_amount),
@@ -615,7 +616,8 @@ pub trait Farm:
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
             if with_locked_rewards {
-                self.burn_tokens(reward_token_id, reward_amount);
+                self.send()
+                    .esdt_local_burn(reward_token_id, 0, reward_amount);
                 let locked_asset_factory_address = self.locked_asset_factory_address().get();
                 let result = self
                     .locked_asset_factory(locked_asset_factory_address)

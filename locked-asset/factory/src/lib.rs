@@ -21,7 +21,6 @@ use common_structs::{
 pub trait LockedAssetFactory:
     locked_asset::LockedAssetModule
     + cache::CacheModule
-    + token_supply::TokenSupplyModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
     + locked_asset_token_merge::LockedAssetTokenMergeModule
@@ -211,7 +210,8 @@ pub trait LockedAssetFactory:
             )?;
         }
 
-        self.nft_burn_tokens(&locked_token_id, token_nonce, &amount);
+        self.send()
+            .esdt_local_burn(&locked_token_id, token_nonce, &amount);
 
         self.emit_unlock_assets_event(
             &caller,

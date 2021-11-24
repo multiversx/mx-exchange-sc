@@ -60,15 +60,12 @@
                         "str:reward_token_id": "str:MEX-abcdef",
                         "str:state": "1",
                         "str:minimum_farming_epochs": "2",
-                        "str:burn_tokens_gas_limit": "5,000,000",
-                        "str:mint_tokens_gas_limit": "5,000,000",
                         "str:router_address": "address:alice",
                         "str:owner": "address:alice",
                         "str:penalty_percent": "0",
                         "str:division_safety_constant": "1000000000000",
                         "str:per_block_reward_amount": "1,000,000,000,000,000,000,000",
-                        "str:produce_rewards_enabled": "1",
-                        "str:create_farm_tokens_gas_limit": "5000000"
+                        "str:produce_rewards_enabled": "1"
                     },
                     "code": "file:../farm/output/farm.wasm",
                     "owner": "address:owner"

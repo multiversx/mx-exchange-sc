@@ -28,7 +28,6 @@ pub struct WrappedLpToken<M: ManagedTypeApi> {
 #[elrond_wasm::module]
 pub trait ProxyPairModule:
     proxy_common::ProxyCommonModule
-    + token_supply::TokenSupplyModule
     + wrapped_lp_token_merge::WrappedLpTokenMerge
     + token_merge::TokenMergeModule
     + token_send::TokenSendModule
@@ -94,7 +93,8 @@ pub trait ProxyPairModule:
         );
 
         let asset_token_id = self.asset_token_id().get();
-        self.mint_tokens(&asset_token_id, &second_token_amount_desired);
+        self.send()
+            .esdt_local_mint(&asset_token_id, 0, &second_token_amount_desired);
 
         let result = self.actual_add_liquidity(
             &pair_address,
@@ -148,7 +148,8 @@ pub trait ProxyPairModule:
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
-            self.burn_tokens(&asset_token_id, &unused_minted_assets);
+            self.send()
+                .esdt_local_burn(&asset_token_id, 0, &unused_minted_assets);
         }
 
         self.emit_add_liquidity_proxy_event(
@@ -243,15 +244,17 @@ pub trait ProxyPairModule:
                 .direct(&caller, &asset_token_id, 0, &difference, &[]);
         } else if assets_received < locked_assets_invested {
             let difference = locked_assets_invested - assets_received;
-            self.nft_burn_tokens(
+            self.send().esdt_local_burn(
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
                 &difference,
             );
         }
 
-        self.burn_tokens(&asset_token_id, &locked_assets_to_send);
-        self.nft_burn_tokens(&wrapped_lp_token_id, token_nonce, &amount);
+        self.send()
+            .esdt_local_burn(&asset_token_id, 0, &locked_assets_to_send);
+        self.send()
+            .esdt_local_burn(&wrapped_lp_token_id, token_nonce, &amount);
 
         self.emit_remove_liquidity_proxy_event(
             &caller,

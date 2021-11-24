@@ -5,7 +5,7 @@ use common_structs::Nonce;
 use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
+pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn get_wrapped_lp_token_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -42,7 +42,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSu
 
     fn burn_payment_tokens(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
         for payment in payments {
-            self.nft_burn_tokens(
+            self.send().esdt_local_burn(
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,

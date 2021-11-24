@@ -20,7 +20,6 @@ use farm::farm_token_merge::ProxyTrait as _;
 pub trait WrappedFarmTokenMerge:
     token_merge::TokenMergeModule
     + token_send::TokenSendModule
-    + token_supply::TokenSupplyModule
     + proxy_common::ProxyCommonModule
     + wrapped_lp_token_merge::WrappedLpTokenMerge
 {
@@ -317,7 +316,7 @@ pub trait WrappedFarmTokenMerge:
         );
 
         for wrapped_lp_token in wrapped_lp_tokens.iter() {
-            self.nft_burn_tokens(
+            self.send().esdt_local_burn(
                 &wrapped_lp_token.token_amount.token_identifier,
                 wrapped_lp_token.token_amount.token_nonce,
                 &wrapped_lp_token.token_amount.amount,

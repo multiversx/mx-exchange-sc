@@ -8,9 +8,6 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
-[dependencies.token_supply]
-path = "../../common/modules/token_supply"
-
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 

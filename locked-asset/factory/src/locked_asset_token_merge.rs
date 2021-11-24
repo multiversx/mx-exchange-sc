@@ -25,10 +25,7 @@ pub struct EpochAmountPair<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
-    locked_asset::LockedAssetModule
-    + token_supply::TokenSupplyModule
-    + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
+    locked_asset::LockedAssetModule + token_send::TokenSendModule + token_merge::TokenMergeModule
 {
     #[payable("*")]
     #[endpoint(mergeLockedAssetTokens)]
@@ -61,7 +58,8 @@ pub trait LockedAssetTokenMergeModule:
 
     fn burn_tokens_from_payments(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
         for entry in payments {
-            self.nft_burn_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount);
+            self.send()
+                .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
     }
 

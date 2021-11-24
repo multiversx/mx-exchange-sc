@@ -12,12 +12,8 @@ elrond_wasm_node::wasm_endpoints! {
         createAndForward
         createAndForwardCustomPeriod
         getAssetTokenId
-        getBurnedTokenAmount
-        getBurnedTokenAmountList
         getCacheSize
         getDefaultUnlockPeriod
-        getGeneratedTokenAmount
-        getGeneratedTokenAmountList
         getInitEpoch
         getLastErrorMessage
         getLockedAssetTokenId

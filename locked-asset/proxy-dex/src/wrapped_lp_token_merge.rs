@@ -11,10 +11,7 @@ use proxy_pair::WrappedLpToken;
 
 #[elrond_wasm::module]
 pub trait WrappedLpTokenMerge:
-    token_merge::TokenMergeModule
-    + token_send::TokenSendModule
-    + token_supply::TokenSupplyModule
-    + proxy_common::ProxyCommonModule
+    token_merge::TokenMergeModule + token_send::TokenSendModule + proxy_common::ProxyCommonModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;

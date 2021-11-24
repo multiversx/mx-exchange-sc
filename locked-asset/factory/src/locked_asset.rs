@@ -6,7 +6,7 @@ use common_structs::{Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone};
 pub const PERCENTAGE_TOTAL: u64 = 100;
 
 #[elrond_wasm::module]
-pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
+pub trait LockedAssetModule: token_send::TokenSendModule {
     fn create_and_send_locked_assets(
         &self,
         amount: &BigUint,
@@ -39,7 +39,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
-        self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
+        self.send().esdt_local_mint(&token_id, sft_nonce, amount);
         self.transfer_execute_custom(address, &token_id, sft_nonce, amount, opt_accept_funds_func)
     }
 
@@ -176,7 +176,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     fn mint_and_send_assets(&self, dest: &ManagedAddress, amount: &BigUint) {
         if amount > &0 {
             let asset_token_id = self.asset_token_id().get();
-            self.mint_tokens(&asset_token_id, amount);
+            self.send().esdt_local_mint(&asset_token_id, 0, amount);
             self.send().direct(dest, &asset_token_id, 0, amount, &[]);
         }
     }
