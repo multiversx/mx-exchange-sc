@@ -44,8 +44,14 @@ pub trait Farm:
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     fn get_total_supply(&self, token_id: &TokenIdentifier) -> BigUint {
-        let generated_amount = self.generated_tokens().get(token_id).unwrap();
-        let burned_amount = self.burned_tokens().get(token_id).unwrap();
+        let generated_amount = self
+            .generated_tokens()
+            .get(token_id)
+            .unwrap_or_else(|| BigUint::zero());
+        let burned_amount = self
+            .burned_tokens()
+            .get(token_id)
+            .unwrap_or_else(|| BigUint::zero());
         generated_amount - burned_amount
     }
 
