@@ -43,6 +43,18 @@ pub trait Farm:
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
+    fn get_total_supply(&self, token_id: &TokenIdentifier) -> BigUint {
+        let generated_amount = self.generated_tokens().get(token_id).unwrap();
+        let burned_amount = self.burned_tokens().get(token_id).unwrap();
+        generated_amount - burned_amount
+    }
+
+    #[storage_mapper("generated_tokens")]
+    fn generated_tokens(&self) -> MapMapper<TokenIdentifier, BigUint>;
+
+    #[storage_mapper("burned_tokens")]
+    fn burned_tokens(&self) -> MapMapper<TokenIdentifier, BigUint>;
+
     #[init]
     fn init(
         &self,
@@ -86,6 +98,8 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
+        self.farm_token_supply()
+            .set(&self.get_total_supply(&self.farm_token_id().get()));
 
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
