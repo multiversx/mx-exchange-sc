@@ -88,7 +88,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(
-            pair_address == self.types().managed_address_zero(),
+            pair_address == ManagedAddress::zero(),
             "Pair already exists"
         );
 
@@ -152,7 +152,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
         require!(
-            pair_address != self.types().managed_address_zero(),
+            pair_address != ManagedAddress::zero(),
             "Pair does not exists"
         );
 
@@ -213,7 +213,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 issue_cost,
                 &lp_token_display_name,
                 &lp_token_ticker,
-                &self.types().big_uint_from(LP_TOKEN_INITIAL_SUPPLY),
+                &BigUint::from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -334,16 +334,16 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             })
-            .unwrap_or_else(|| self.types().managed_address_zero());
+            .unwrap_or_else(|| ManagedAddress::zero());
 
-        if address == self.types().managed_address_zero() {
+        if address == ManagedAddress::zero() {
             address = self
                 .pair_map()
                 .get(&PairTokens {
                     first_token_id: second_token_id,
                     second_token_id: first_token_id,
                 })
-                .unwrap_or_else(|| self.types().managed_address_zero());
+                .unwrap_or_else(|| ManagedAddress::zero());
         }
         address
     }

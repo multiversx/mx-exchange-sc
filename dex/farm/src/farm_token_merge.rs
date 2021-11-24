@@ -166,9 +166,7 @@ pub trait FarmTokenMergeModule:
         let mut dataset = ManagedVec::new();
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
-                value: self
-                    .types()
-                    .big_uint_from(x.attributes.original_entering_epoch),
+                value: BigUint::from(x.attributes.original_entering_epoch),
                 weight: x.token_amount.amount.clone(),
             })
         });

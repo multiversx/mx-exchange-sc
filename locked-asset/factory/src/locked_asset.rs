@@ -49,10 +49,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
         current_epoch: Epoch,
         unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> BigUint {
-        amount
-            * &self
-                .types()
-                .big_uint_from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
+        amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
             / PERCENTAGE_TOTAL
     }
 

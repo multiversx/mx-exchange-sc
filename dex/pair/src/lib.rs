@@ -267,15 +267,15 @@ pub trait Pair:
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        let first_token_min_amount = self.types().big_uint_from(1u64);
-        let second_token_min_amount = self.types().big_uint_from(1u64);
+        let first_token_min_amount = BigUint::from(1u64);
+        let second_token_min_amount = BigUint::from(1u64);
         let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
             amount_in.clone(),
             first_token_min_amount,
             second_token_min_amount,
         )?;
 
-        let dest_address = self.types().managed_address_zero();
+        let dest_address = ManagedAddress::zero();
         self.send_fee_slice(
             &first_token_id,
             &first_token_amount,

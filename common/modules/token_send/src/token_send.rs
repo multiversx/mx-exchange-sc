@@ -28,7 +28,7 @@ pub trait TokenSendModule {
                 payments,
                 gas_limit,
                 &function,
-                &ManagedArgBuffer::new_empty(self.type_manager()),
+                &ManagedArgBuffer::new_empty(),
             )
             .into()
     }
@@ -64,7 +64,7 @@ pub trait TokenSendModule {
             return Ok(());
         }
 
-        let arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        let arg_buffer = ManagedArgBuffer::new_empty();
         let mut payments = ManagedVec::new();
         payments.push(EsdtTokenPayment::new(token.clone(), nonce, amount.clone()));
 
@@ -104,13 +104,13 @@ pub trait TokenSendModule {
         attributes: &T,
     ) -> u64 {
         let mut uris = ManagedVec::new();
-        uris.push(self.types().managed_buffer_new());
+        uris.push(ManagedBuffer::new());
         self.send().esdt_nft_create::<T>(
             token_id,
             amount,
-            &self.types().managed_buffer_new(),
+            &ManagedBuffer::new(),
             &BigUint::zero(),
-            &self.types().managed_buffer_new(),
+            &ManagedBuffer::new(),
             attributes,
             &uris,
         )
