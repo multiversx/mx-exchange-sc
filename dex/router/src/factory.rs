@@ -40,7 +40,7 @@ pub trait FactoryModule {
             "pair contract template is empty"
         );
 
-        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        let mut arg_buffer = ManagedArgBuffer::new_empty();
         arg_buffer.push_arg(first_token_id);
         arg_buffer.push_arg(second_token_id);
         arg_buffer.push_arg(self.blockchain().get_sc_address());
@@ -82,7 +82,7 @@ pub trait FactoryModule {
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) {
-        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        let mut arg_buffer = ManagedArgBuffer::new_empty();
         arg_buffer.push_arg(first_token_id);
         arg_buffer.push_arg(second_token_id);
         arg_buffer.push_arg(self.blockchain().get_sc_address());
@@ -105,7 +105,7 @@ pub trait FactoryModule {
 
     #[view(getAllPairsManagedAddresses)]
     fn get_all_pairs_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        let mut result = ManagedMultiResultVec::new();
         for pair in self.pair_map().values() {
             result.push(pair);
         }
@@ -114,7 +114,7 @@ pub trait FactoryModule {
 
     #[view(getAllPairTokens)]
     fn get_all_token_pairs(&self) -> ManagedMultiResultVec<PairTokens<Self::Api>> {
-        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        let mut result = ManagedMultiResultVec::new();
         for pair in self.pair_map().keys() {
             result.push(pair);
         }
@@ -125,7 +125,7 @@ pub trait FactoryModule {
     fn get_all_pair_contract_metadata(
         &self,
     ) -> ManagedMultiResultVec<PairContractMetadata<Self::Api>> {
-        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        let mut result = ManagedMultiResultVec::new();
         for (k, v) in self.pair_map().iter() {
             let pair_metadata = PairContractMetadata {
                 first_token_id: k.first_token_id,

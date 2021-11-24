@@ -268,7 +268,7 @@ pub trait LockedAssetFactory:
                 let do_cache_result = !attributes.is_merged;
 
                 let additional_amount_to_create = if do_cache_result {
-                    self.types().big_uint_from(ADDITIONAL_AMOUNT_TO_CREATE)
+                    BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE)
                 } else {
                     BigUint::zero()
                 };
@@ -425,7 +425,7 @@ pub trait LockedAssetFactory:
 
     #[view(getWhitelistedContracts)]
     fn get_whitelisted_contracts(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        let mut result = ManagedMultiResultVec::new();
         for pair in self.whitelisted_contracts().iter() {
             result.push(pair);
         }

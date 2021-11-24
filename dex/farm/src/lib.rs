@@ -534,7 +534,7 @@ pub trait Farm:
     ) -> SCResult<()> {
         self.decrease_farming_token_reserve(farming_amount)?;
 
-        let zero_address = self.types().managed_address_zero();
+        let zero_address = ManagedAddress::zero();
         let pair_contract_address = self.pair_contract_address().get();
 
         if pair_contract_address == zero_address {

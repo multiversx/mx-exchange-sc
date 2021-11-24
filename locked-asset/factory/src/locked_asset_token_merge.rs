@@ -128,8 +128,8 @@ pub trait LockedAssetTokenMergeModule:
                 array.push(EpochAmountPair {
                     epoch: milestone.unlock_epoch,
                     amount: self.rule_of_three(
-                        &self.types().big_uint_from(milestone.unlock_percent as u64),
-                        &self.types().big_uint_from(PERCENTAGE_TOTAL as u64),
+                        &BigUint::from(milestone.unlock_percent as u64),
+                        &BigUint::from(PERCENTAGE_TOTAL as u64),
                         &locked_token.token_amount.amount,
                     ),
                 });

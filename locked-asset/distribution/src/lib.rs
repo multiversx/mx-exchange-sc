@@ -307,7 +307,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
             return 0;
         }
 
-        let mut to_remove_keys = ManagedVec::new();
+        let mut to_remove_keys = ManagedVec::<Self::Api, UserLockedAssetKey<Self::Api>>::new();
         let search_gas_limit = self.blockchain().get_gas_left() / 2;
         for user_asset_key in self.user_locked_asset_map().keys() {
             if self.blockchain().get_gas_left() < search_gas_limit {

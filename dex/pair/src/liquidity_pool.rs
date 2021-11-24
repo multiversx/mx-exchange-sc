@@ -24,7 +24,7 @@ pub trait LiquidityPoolModule:
 
         if total_supply == 0 {
             liquidity = core::cmp::min(first_token_amount.clone(), second_token_amount.clone());
-            let minimum_liquidity = self.types().big_uint_from(MINIMUM_LIQUIDITY);
+            let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
             require!(
                 liquidity > minimum_liquidity,
                 "First tokens needs to be greater than minimum liquidity"

@@ -60,47 +60,7 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub current_farm_amount: BigUint<M>,
 }
 
-/*
-    The two below structs (UnlockPeriod and UnlockSchedule)
-    have similar structures (both of them keep a vector of
-    (epoch, unlock-percent).
-
-    The difference between them is that Period is desided
-    to be used as [(number-of-epochs-until-unlock, unlock-percent)]
-    whereas Schedule is [(unlock-epoch, unlock-percent)] with unlock-epoch
-    being equal with current-epoch + number-of-epochs-until-unlock.
-
-    For example:
-    If current epoch is 200 and Period is [(10, 100)] (meaning that with
-    a waiting time of 10 epochs, 100% of the amount will be unlocked),
-    Schedule will be [(210, 100)] (meaning that at epoch 210, 100% of the
-    amount will be unlocked).
-*/
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
-pub struct UnlockPeriod<M: ManagedTypeApi> {
-    pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
-}
-
-// `derive(ManagedVecItem)` doesn't currently work with additional generics.
-// Needs to be implemented by hand.
-impl<M: ManagedTypeApi> ManagedVecItem<M> for UnlockPeriod<M> {
-    const PAYLOAD_SIZE: usize = 4;
-    const SKIPS_RESERIALIZATION: bool = false;
-
-    fn from_byte_reader<Reader: FnMut(&mut [u8])>(api: M, reader: Reader) -> Self {
-        let handle = Handle::from_byte_reader(api.clone(), reader);
-        UnlockPeriod {
-            unlock_milestones: ManagedVec::from_raw_handle(api, handle),
-        }
-    }
-
-    fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
-        <Handle as ManagedVecItem<M>>::to_byte_writer(
-            &self.unlock_milestones.get_raw_handle(),
-            writer,
-        )
-    }
-}
+pub type UnlockPeriod<ManagedTypeApi> = UnlockSchedule<ManagedTypeApi>;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
 pub struct UnlockSchedule<M: ManagedTypeApi> {
@@ -109,28 +69,19 @@ pub struct UnlockSchedule<M: ManagedTypeApi> {
 
 // `derive(ManagedVecItem)` doesn't currently work with additional generics.
 // Needs to be implemented by hand.
-impl<M: ManagedTypeApi> ManagedVecItem<M> for UnlockSchedule<M> {
+impl<M: ManagedTypeApi> ManagedVecItem for UnlockSchedule<M> {
     const PAYLOAD_SIZE: usize = 4;
     const SKIPS_RESERIALIZATION: bool = false;
 
-    fn from_byte_reader<Reader: FnMut(&mut [u8])>(api: M, reader: Reader) -> Self {
-        let handle = Handle::from_byte_reader(api.clone(), reader);
+    fn from_byte_reader<Reader: FnMut(&mut [u8])>(reader: Reader) -> Self {
+        let handle = Handle::from_byte_reader(reader);
         UnlockSchedule {
-            unlock_milestones: ManagedVec::from_raw_handle(api, handle),
+            unlock_milestones: ManagedVec::from_raw_handle(handle),
         }
     }
 
     fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
-        <Handle as ManagedVecItem<M>>::to_byte_writer(
-            &self.unlock_milestones.get_raw_handle(),
-            writer,
-        )
-    }
-}
-
-impl<M: ManagedTypeApi> UnlockPeriod<M> {
-    pub fn from(unlock_milestones: ManagedVec<M, UnlockMilestone>) -> Self {
-        UnlockPeriod { unlock_milestones }
+        <Handle as ManagedVecItem>::to_byte_writer(&self.unlock_milestones.get_raw_handle(), writer)
     }
 }
 
