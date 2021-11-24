@@ -22,12 +22,14 @@ jobs:
           source .github/workflows/env
           pip3 install erdpy
           mkdir $HOME/elrondsdk
-          erdpy config set dependencies.vmtools.tag v1.4.22
+          erdpy config set dependencies.vmtools.tag v1.4.27
           erdpy deps install vmtools
+          sudo apt install binaryen
       - name: Build the wasm contracts
         run: |
           source .github/workflows/env
           ./build-wasm.sh
+          ./wasm-opt.sh
       - name: Run VM tests
         run: |
           source .github/workflows/env
