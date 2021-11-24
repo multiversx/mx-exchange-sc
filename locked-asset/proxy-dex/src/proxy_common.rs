@@ -46,8 +46,8 @@ pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSu
             )
     }
 
-    fn burn_payment_tokens(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
-        for payment in payments.iter() {
+    fn burn_payment_tokens(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
+        for payment in payments {
             self.nft_burn_tokens(
                 &payment.token_identifier,
                 payment.token_nonce,

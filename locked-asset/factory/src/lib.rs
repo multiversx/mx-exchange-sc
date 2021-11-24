@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(exact_size_is_empty)]
 
 mod cache;
 mod events;

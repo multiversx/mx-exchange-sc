@@ -43,12 +43,13 @@ pub trait WrappedFarmTokenMerge:
             self.intermediated_farms().contains(&farm_contract),
             "Invalid farm contract address"
         );
-        let payments = self.get_all_payments_managed_vec();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let payments = payments_vec.iter();
 
         self.merge_wrapped_farm_tokens_and_send(
             &caller,
             &farm_contract,
-            &payments,
+            payments,
             Option::None,
             opt_accept_funds_func,
         )?;
@@ -59,7 +60,7 @@ pub trait WrappedFarmTokenMerge:
         &self,
         caller: &ManagedAddress,
         farm_contract: &ManagedAddress,
-        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedFarmToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
@@ -67,9 +68,9 @@ pub trait WrappedFarmTokenMerge:
         let deposit_len = payments.len();
 
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
-        self.require_all_tokens_are_wrapped_farm_tokens(payments, &wrapped_farm_token_id)?;
+        self.require_all_tokens_are_wrapped_farm_tokens(payments.clone(), &wrapped_farm_token_id)?;
 
-        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments);
+        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments.clone());
         if replic.is_some() {
             tokens.push(replic.unwrap());
         }
@@ -112,11 +113,11 @@ pub trait WrappedFarmTokenMerge:
 
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
-        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
     ) -> ManagedVec<WrappedFarmToken<Self::Api>> {
         let mut result = ManagedVec::new();
 
-        for payment in payments.iter() {
+        for payment in payments {
             result.push(WrappedFarmToken {
                 token_amount: payment.clone(),
                 attributes: self.get_wrapped_farm_token_attributes(
@@ -151,10 +152,10 @@ pub trait WrappedFarmTokenMerge:
 
     fn require_all_tokens_are_wrapped_farm_tokens(
         &self,
-        tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        tokens: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
         wrapped_farm_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
-        for elem in tokens.iter() {
+        for elem in tokens {
             require!(
                 &elem.token_identifier == wrapped_farm_token_id,
                 "Not a Wrapped Farm Token"

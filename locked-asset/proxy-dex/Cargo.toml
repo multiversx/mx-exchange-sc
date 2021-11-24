@@ -10,6 +10,10 @@ path = "src/lib.rs"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.itertools]
+version = "0.10.1"
+default-features = false
+
 [dependencies.pair]
 path = "../../dex/pair"
 

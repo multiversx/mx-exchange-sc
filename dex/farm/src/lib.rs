@@ -1,5 +1,6 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
+#![feature(exact_size_is_empty)]
 
 pub mod config;
 mod events;
@@ -123,9 +124,9 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 1, "empty payments");
-        let payment_0 = payments.get(0).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let payment_0 = payments.next().ok_or("empty payments")?;
 
         let token_in = payment_0.token_identifier.clone();
         let enter_amount = payment_0.amount.clone();
@@ -159,7 +160,7 @@ pub trait Farm:
             &farm_contribution,
             &farm_token_id,
             &attributes,
-            &self.manage_vec_remove_index(&payments, 0),
+            payments,
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -293,9 +294,9 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 1, "bad payment len");
-        let payment_0 = payments.get(0).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let payment_0 = payments.next().ok_or("bad payment len")?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let amount = payment_0.amount.clone();
@@ -347,7 +348,7 @@ pub trait Farm:
             &farm_amount,
             &farm_token_id,
             &new_attributes,
-            &self.manage_vec_remove_index(&payments, 0),
+            payments,
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -400,9 +401,9 @@ pub trait Farm:
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
 
-        let payments = self.get_all_payments_managed_vec();
-        require!(payments.len() >= 1, "bad payment len");
-        let payment_0 = payments.get(0).unwrap();
+        let payments_vec = self.get_all_payments_managed_vec();
+        let mut payments = payments_vec.iter();
+        let payment_0 = payments.next().ok_or("bad payment len")?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_amount = payment_0.amount.clone();
@@ -470,7 +471,7 @@ pub trait Farm:
             &new_farm_contribution,
             &farm_token_id,
             &new_attributes,
-            &self.manage_vec_remove_index(&payments, 0),
+            payments,
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -557,7 +558,7 @@ pub trait Farm:
         amount: &BigUint,
         token_id: &TokenIdentifier,
         attributes: &FarmTokenAttributes<Self::Api>,
-        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        additional_payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(FarmToken<Self::Api>, bool)> {
         let current_position_replic = FarmToken {
             token_amount: self.create_payment(token_id, 0, amount),
@@ -565,8 +566,10 @@ pub trait Farm:
         };
 
         let additional_payments_len = additional_payments.len();
-        let merged_attributes = self
-            .get_merged_farm_token_attributes(additional_payments, Some(current_position_replic))?;
+        let merged_attributes = self.get_merged_farm_token_attributes(
+            additional_payments.clone(),
+            Some(current_position_replic),
+        )?;
         self.burn_farm_tokens_from_payments(additional_payments)?;
 
         let new_amount = merged_attributes.current_farm_amount.clone();
