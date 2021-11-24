@@ -11,8 +11,6 @@ use super::proxy_pair;
 use super::wrapped_farm_token_merge;
 use super::wrapped_lp_token_merge;
 
-use proxy_common::ACCEPT_PAY_FUNC_NAME;
-
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
@@ -431,12 +429,12 @@ pub trait ProxyFarmModule:
 
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm_and_lock_rewards(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
+                .enter_farm_and_lock_rewards(OptionalArg::None)
                 .with_multi_token_transfer(payments)
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         } else {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
+                .enter_farm(OptionalArg::None)
                 .with_multi_token_transfer(payments)
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         }
@@ -454,7 +452,7 @@ pub trait ProxyFarmModule:
                 farm_token_id.clone(),
                 farm_token_nonce,
                 amount.clone(),
-                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
+                OptionalArg::None,
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -474,7 +472,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
+            .claim_rewards(OptionalArg::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -494,7 +492,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards(OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()))
+            .compound_rewards(OptionalArg::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }

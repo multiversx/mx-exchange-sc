@@ -4,14 +4,8 @@ elrond_wasm::derive_imports!();
 use common_structs::Nonce;
 use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
-pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
-
 #[elrond_wasm::module]
 pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
-    #[payable("*")]
-    #[endpoint(acceptPay)]
-    fn accept_pay(&self) {}
-
     fn get_wrapped_lp_token_attributes(
         &self,
         token_id: &TokenIdentifier,

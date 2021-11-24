@@ -5,8 +5,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use proxy_common::ACCEPT_PAY_FUNC_NAME;
-
 use common_structs::{Nonce, WrappedLpTokenAttributes};
 use itertools::Itertools;
 use pair::config::ProxyTrait as _;
@@ -302,7 +300,7 @@ pub trait ProxyPairModule:
             .add_liquidity(
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
+                OptionalArg::None,
             )
             .with_multi_token_transfer(all_token_payments)
             .execute_on_dest_context()
@@ -322,7 +320,7 @@ pub trait ProxyPairModule:
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
+                OptionalArg::None,
             )
             .execute_on_dest_context()
     }
