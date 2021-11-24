@@ -1,9 +1,24 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use arrayvec::ArrayVec;
 use common_structs::{Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone};
 
 pub const PERCENTAGE_TOTAL: u64 = 100;
+pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
+pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
+
+#[derive(ManagedVecItem)]
+pub struct LockedToken<M: ManagedTypeApi> {
+    pub token_amount: EsdtTokenPayment<M>,
+    pub attributes: LockedAssetTokenAttributes<M>,
+}
+
+#[derive(ManagedVecItem, Clone)]
+pub struct EpochAmountPair<M: ManagedTypeApi> {
+    pub epoch: u64,
+    pub amount: BigUint<M>,
+}
 
 #[elrond_wasm::module]
 pub trait LockedAssetModule: token_send::TokenSendModule {
@@ -80,44 +95,60 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
         current_epoch: Epoch,
         old_unlock_milestones: &ManagedVec<UnlockMilestone>,
     ) -> ManagedVec<UnlockMilestone> {
-        let mut new_unlock_milestones = ManagedVec::new();
         let unlock_percent = self.get_unlock_percent(current_epoch, old_unlock_milestones);
         let unlock_percent_remaining = PERCENTAGE_TOTAL - (unlock_percent as u64);
 
         if unlock_percent_remaining == 0 {
-            return new_unlock_milestones;
+            return ManagedVec::new();
         }
 
+        let mut unlock_milestones_merged =
+            ArrayVec::<UnlockMilestone, MAX_MILESTONES_IN_SCHEDULE>::new();
         for old_milestone in old_unlock_milestones.iter() {
             if old_milestone.unlock_epoch > current_epoch {
                 let new_unlock_percent: u64 = (old_milestone.unlock_percent as u64)
                     * PERCENTAGE_TOTAL
                     / unlock_percent_remaining;
-                new_unlock_milestones.push(UnlockMilestone {
+                unlock_milestones_merged.push(UnlockMilestone {
                     unlock_epoch: old_milestone.unlock_epoch,
                     unlock_percent: new_unlock_percent as u8,
                 });
             }
         }
-        let mut sum_of_new_percents = 0u8;
 
-        for new_milestone in new_unlock_milestones.iter() {
-            sum_of_new_percents += new_milestone.unlock_percent;
+        //Compute the leftover percent
+        let mut sum_of_new_percents = 0u8;
+        for milestone in unlock_milestones_merged.iter() {
+            sum_of_new_percents += milestone.unlock_percent;
+        }
+        let mut leftover = PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
+
+        //Spread the leftover percent one by one to the minimum percent entry
+        while leftover != 0 {
+            let mut min_index = 0;
+            let mut min_milestone = unlock_milestones_merged[0];
+            for index in 0..unlock_milestones_merged.len() {
+                let lesser_percent =
+                    unlock_milestones_merged[index].unlock_percent < min_milestone.unlock_percent;
+                if lesser_percent {
+                    min_index = index;
+                    min_milestone = unlock_milestones_merged[index];
+                }
+            }
+
+            leftover -= 1;
+            unlock_milestones_merged[min_index].unlock_percent += 1;
         }
 
-        let mut first_element = new_unlock_milestones.get(0).unwrap();
-        first_element.unlock_percent += PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
-
-        let mut new_unlocks = ManagedVec::new();
-        new_unlocks.push(first_element);
-
-        for (index, elem) in new_unlock_milestones.iter().enumerate() {
-            if index != 0 {
-                new_unlocks.push(elem);
+        //Remove the percents of 0 that were previously considered
+        let mut new_unlock_milestones = ManagedVec::new();
+        for milestone in unlock_milestones_merged.iter() {
+            if milestone.unlock_percent != 0 {
+                new_unlock_milestones.push(milestone.clone());
             }
         }
 
-        new_unlocks
+        new_unlock_milestones
     }
 
     fn validate_unlock_milestones(
