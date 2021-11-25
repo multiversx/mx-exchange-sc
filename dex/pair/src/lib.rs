@@ -100,7 +100,7 @@ pub trait Pair:
         let (first_payment, second_payment) = payments
             .into_iter()
             .collect_tuple()
-            .ok_or("bad payments len")?;
+            .unwrap_or((self.default_payment(), self.default_payment()));
 
         let expected_first_token_id = self.first_token_id().get();
         let expected_second_token_id = self.second_token_id().get();

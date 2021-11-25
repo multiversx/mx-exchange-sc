@@ -16,7 +16,7 @@ pub trait TokenSendModule {
         let accept_funds_func = opt_accept_funds_func.clone().into_option();
         if accept_funds_func.is_some() {
             gas_limit = self.transfer_exec_gas_limit().get();
-            function = accept_funds_func.unwrap();
+            function = accept_funds_func.unwrap_or(ManagedBuffer::new());
         } else {
             gas_limit = 0u64;
             function = ManagedBuffer::new();
@@ -73,7 +73,7 @@ pub trait TokenSendModule {
         let accept_funds_func = opt_accept_funds_func.clone().into_option();
         if accept_funds_func.is_some() {
             gas_limit = self.transfer_exec_gas_limit().get();
-            function = accept_funds_func.unwrap();
+            function = accept_funds_func.unwrap_or(ManagedBuffer::new());
         } else {
             gas_limit = 0u64;
             function = ManagedBuffer::new();
@@ -95,6 +95,10 @@ pub trait TokenSendModule {
         amount: &BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
         EsdtTokenPayment::new(token_id.clone(), nonce, amount.clone())
+    }
+
+    fn default_payment(&self) -> EsdtTokenPayment<Self::Api> {
+        EsdtTokenPayment::new(TokenIdentifier::egld(), 0, BigUint::zero())
     }
 
     fn nft_create_tokens<T: elrond_codec::TopEncode>(

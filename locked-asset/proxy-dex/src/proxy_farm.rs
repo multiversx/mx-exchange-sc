@@ -77,7 +77,8 @@ pub trait ProxyFarmModule:
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
+        require!(payments_iter.len() >= 1, "bad payment len");
+        let payment_0 = payments_iter.next().unwrap_or(self.default_payment());
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
@@ -221,7 +222,8 @@ pub trait ProxyFarmModule:
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
+        require!(payments_iter.len() >= 1, "bad payment len");
+        let payment_0 = payments_iter.next().unwrap_or(self.default_payment());
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
@@ -313,7 +315,8 @@ pub trait ProxyFarmModule:
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
+        require!(payments_iter.len() >= 1, "bad payment len");
+        let payment_0 = payments_iter.next().unwrap_or(self.default_payment());
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;

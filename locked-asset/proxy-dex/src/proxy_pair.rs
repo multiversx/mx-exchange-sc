@@ -63,7 +63,10 @@ pub trait ProxyPairModule:
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let (payment_0, payment_1) = payments_iter.next_tuple().ok_or("bad payment len")?;
+        require!(payments_iter.len() >= 2, "bad payment len");
+        let (payment_0, payment_1) = payments_iter
+            .next_tuple()
+            .unwrap_or((self.default_payment(), self.default_payment()));
 
         let first_token_id = payment_0.token_identifier.clone();
         let first_token_nonce = payment_0.token_nonce;
