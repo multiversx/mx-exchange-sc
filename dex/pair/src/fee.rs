@@ -247,7 +247,7 @@ pub trait FeeModule:
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
         let pair_address = self.get_extern_swap_pair_address(fee_token, requested_fee_token);
-        pair_address != ManagedAddress::zero()
+        !pair_address.is_zero()
     }
 
     fn can_extern_swap_after_local_swap(
@@ -259,10 +259,10 @@ pub trait FeeModule:
     ) -> bool {
         if fee_token == first_token {
             let pair_address = self.get_extern_swap_pair_address(second_token, requested_fee_token);
-            pair_address != ManagedAddress::zero()
+            !pair_address.is_zero()
         } else if fee_token == second_token {
             let pair_address = self.get_extern_swap_pair_address(first_token, requested_fee_token);
-            pair_address != ManagedAddress::zero()
+            !pair_address.is_zero()
         } else {
             false
         }
@@ -302,7 +302,7 @@ pub trait FeeModule:
         destination: &ManagedAddress,
     ) {
         if amount > &0 {
-            if destination == &ManagedAddress::zero() {
+            if destination.is_zero() {
                 self.send().esdt_local_burn(token, 0, amount);
             } else {
                 self.farm_proxy(destination.clone())

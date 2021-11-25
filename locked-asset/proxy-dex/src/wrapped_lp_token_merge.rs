@@ -24,11 +24,11 @@ pub trait WrappedLpTokenMerge:
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let payments_vec = self.get_all_payments_managed_vec();
-        let payments = payments_vec.iter();
+        let payments_iter = payments_vec.iter();
 
         self.merge_wrapped_lp_tokens_and_send(
             &caller,
-            payments,
+            payments_iter,
             Option::None,
             opt_accept_funds_func,
         )?;

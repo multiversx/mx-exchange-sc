@@ -24,11 +24,11 @@ pub trait FarmTokenMergeModule:
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         let payments_vec = self.get_all_payments_managed_vec();
-        let payments = payments_vec.iter();
+        let payments_iter = payments_vec.iter();
 
-        let attrs = self.get_merged_farm_token_attributes(payments.clone(), Option::None)?;
+        let attrs = self.get_merged_farm_token_attributes(payments_iter.clone(), Option::None)?;
         let farm_token_id = self.farm_token_id().get();
-        self.burn_farm_tokens_from_payments(payments);
+        self.burn_farm_tokens_from_payments(payments_iter);
 
         let new_nonce = self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         let new_amount = attrs.current_farm_amount;

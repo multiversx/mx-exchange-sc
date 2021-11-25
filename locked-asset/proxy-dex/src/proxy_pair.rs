@@ -62,8 +62,8 @@ pub trait ProxyPairModule:
         self.require_wrapped_lp_token_id_not_empty()?;
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let (payment_0, payment_1) = payments.next_tuple().ok_or("bad payment len")?;
+        let mut payments_iter = payments_vec.iter();
+        let (payment_0, payment_1) = payments_iter.next_tuple().ok_or("bad payment len")?;
 
         let first_token_id = payment_0.token_identifier.clone();
         let first_token_nonce = payment_0.token_nonce;
@@ -130,7 +130,7 @@ pub trait ProxyPairModule:
             &second_token_used.amount,
             second_token_nonce,
             &caller,
-            payments,
+            payments_iter,
         )?;
 
         let mut surplus_payments = ManagedVec::new();

@@ -42,12 +42,12 @@ pub trait WrappedFarmTokenMerge:
             "Invalid farm contract address"
         );
         let payments_vec = self.get_all_payments_managed_vec();
-        let payments = payments_vec.iter();
+        let payments_iter = payments_vec.iter();
 
         self.merge_wrapped_farm_tokens_and_send(
             &caller,
             &farm_contract,
-            payments,
+            payments_iter,
             Option::None,
             opt_accept_funds_func,
         )?;

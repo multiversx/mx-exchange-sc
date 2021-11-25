@@ -144,8 +144,8 @@ pub trait Farm:
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let payment_0 = payments.next().ok_or("empty payments")?;
+        let mut payments_iter = payments_vec.iter();
+        let payment_0 = payments_iter.next().ok_or("empty payments")?;
 
         let token_in = payment_0.token_identifier.clone();
         let enter_amount = payment_0.amount.clone();
@@ -179,7 +179,7 @@ pub trait Farm:
             &farm_contribution,
             &farm_token_id,
             &attributes,
-            payments,
+            payments_iter,
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -314,8 +314,8 @@ pub trait Farm:
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let payment_0 = payments.next().ok_or("bad payment len")?;
+        let mut payments_iter = payments_vec.iter();
+        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let amount = payment_0.amount.clone();
@@ -367,7 +367,7 @@ pub trait Farm:
             &farm_amount,
             &farm_token_id,
             &new_attributes,
-            payments,
+            payments_iter,
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -421,8 +421,8 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let payment_0 = payments.next().ok_or("bad payment len")?;
+        let mut payments_iter = payments_vec.iter();
+        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_amount = payment_0.amount.clone();
@@ -490,7 +490,7 @@ pub trait Farm:
             &new_farm_contribution,
             &farm_token_id,
             &new_attributes,
-            payments,
+            payments_iter,
         )?;
         self.transfer_execute_custom(
             &caller,
@@ -554,10 +554,9 @@ pub trait Farm:
     ) -> SCResult<()> {
         self.decrease_farming_token_reserve(farming_amount)?;
 
-        let zero_address = ManagedAddress::zero();
         let pair_contract_address = self.pair_contract_address().get();
 
-        if pair_contract_address == zero_address {
+        if pair_contract_address.is_zero() {
             self.send()
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
         } else {
