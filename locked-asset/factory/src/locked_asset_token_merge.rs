@@ -111,7 +111,7 @@ pub trait LockedAssetTokenMergeModule:
             //Accumulate even the percents of 0
             unlock_milestones_merged.push(UnlockMilestone {
                 unlock_epoch: el.epoch,
-                unlock_percent: unlock_percent.to_u64().ok_or("not a u64").unwrap() as u8,
+                unlock_percent: unlock_percent.to_u64().unwrap() as u8,
             })
         }
 
