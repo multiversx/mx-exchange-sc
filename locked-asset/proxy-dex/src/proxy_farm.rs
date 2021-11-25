@@ -76,8 +76,8 @@ pub trait ProxyFarmModule:
         self.require_wrapped_lp_token_id_not_empty()?;
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let payment_0 = payments.next().ok_or("bad payment len")?;
+        let mut payments_iter = payments_vec.iter();
+        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
@@ -121,7 +121,7 @@ pub trait ProxyFarmModule:
                 &farm_token_total_amount,
                 &farm_address,
                 &caller,
-                payments,
+                payments_iter,
             )?;
 
         self.emit_enter_farm_proxy_event(
@@ -220,8 +220,8 @@ pub trait ProxyFarmModule:
         self.require_wrapped_lp_token_id_not_empty()?;
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let payment_0 = payments.next().ok_or("bad payment len")?;
+        let mut payments_iter = payments_vec.iter();
+        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
@@ -281,7 +281,7 @@ pub trait ProxyFarmModule:
                 &new_farm_token_total_amount,
                 &farm_address,
                 &caller,
-                payments,
+                payments_iter,
             )?;
         self.send().esdt_local_burn(&token_id, token_nonce, &amount);
 
@@ -312,8 +312,8 @@ pub trait ProxyFarmModule:
         self.require_wrapped_lp_token_id_not_empty()?;
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments = payments_vec.iter();
-        let payment_0 = payments.next().ok_or("bad payment len")?;
+        let mut payments_iter = payments_vec.iter();
+        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;
@@ -367,7 +367,7 @@ pub trait ProxyFarmModule:
                 &new_farm_token_amount,
                 &farm_address,
                 &caller,
-                payments,
+                payments_iter,
             )?;
         self.send()
             .esdt_local_burn(&payment_token_id, payment_token_nonce, &payment_amount);

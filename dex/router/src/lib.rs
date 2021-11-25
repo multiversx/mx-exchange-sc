@@ -87,10 +87,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(
-            pair_address == ManagedAddress::zero(),
-            "Pair already exists"
-        );
+        require!(pair_address.is_zero(), "Pair already exists");
 
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
@@ -151,10 +148,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(
-            pair_address != ManagedAddress::zero(),
-            "Pair does not exists"
-        );
+        require!(!pair_address.is_zero(), "Pair does not exists");
 
         require!(
             total_fee_percent_requested >= special_fee_percent_requested
@@ -336,7 +330,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             })
             .unwrap_or_else(|| ManagedAddress::zero());
 
-        if address == ManagedAddress::zero() {
+        if address.is_zero() {
             address = self
                 .pair_map()
                 .get(&PairTokens {

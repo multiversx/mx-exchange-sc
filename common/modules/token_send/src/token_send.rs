@@ -103,8 +103,6 @@ pub trait TokenSendModule {
         amount: &BigUint,
         attributes: &T,
     ) -> u64 {
-        let mut uris = ManagedVec::new();
-        uris.push(ManagedBuffer::new());
         self.send().esdt_nft_create::<T>(
             token_id,
             amount,
@@ -112,7 +110,7 @@ pub trait TokenSendModule {
             &BigUint::zero(),
             &ManagedBuffer::new(),
             attributes,
-            &uris,
+            &ManagedVec::new(),
         )
     }
 

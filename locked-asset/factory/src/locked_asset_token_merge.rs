@@ -24,13 +24,13 @@ pub trait LockedAssetTokenMergeModule:
         let caller = self.blockchain().get_caller();
         let payments_vec = self.get_all_payments_managed_vec();
         require!(!payments_vec.is_empty(), "Empty payment vec");
-        let payments = payments_vec.iter();
+        let payments_iter = payments_vec.iter();
 
         let (amount, attrs) =
-            self.get_merged_locked_asset_token_amount_and_attributes(payments.clone())?;
+            self.get_merged_locked_asset_token_amount_and_attributes(payments_iter.clone())?;
         let locked_asset_token = self.locked_asset_token_id().get();
 
-        self.burn_tokens_from_payments(payments);
+        self.burn_tokens_from_payments(payments_iter);
 
         let new_nonce = self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
         self.transfer_execute_custom(
@@ -111,7 +111,7 @@ pub trait LockedAssetTokenMergeModule:
             //Accumulate even the percents of 0
             unlock_milestones_merged.push(UnlockMilestone {
                 unlock_epoch: el.epoch,
-                unlock_percent: unlock_percent.to_u64().unwrap() as u8,
+                unlock_percent: unlock_percent.to_u64().ok_or("not a u64").unwrap() as u8,
             })
         }
 
