@@ -126,7 +126,9 @@ pub trait Farm:
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
         require!(payments_iter.len() >= 1, "bad payment len");
-        let payment_0 = payments_iter.next().unwrap_or(self.default_payment());
+        let payment_0 = payments_iter
+            .next()
+            .unwrap_or_else(|| self.default_payment());
 
         let token_in = payment_0.token_identifier.clone();
         let enter_amount = payment_0.amount.clone();
@@ -297,7 +299,9 @@ pub trait Farm:
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
         require!(payments_iter.len() >= 1, "bad payment len");
-        let payment_0 = payments_iter.next().unwrap_or(self.default_payment());
+        let payment_0 = payments_iter
+            .next()
+            .unwrap_or_else(|| self.default_payment());
 
         let payment_token_id = payment_0.token_identifier.clone();
         let amount = payment_0.amount.clone();
@@ -405,7 +409,9 @@ pub trait Farm:
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
         require!(payments_iter.len() >= 1, "bad payment len");
-        let payment_0 = payments_iter.next().unwrap_or(self.default_payment());
+        let payment_0 = payments_iter
+            .next()
+            .unwrap_or_else(|| self.default_payment());
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_amount = payment_0.amount.clone();

@@ -16,7 +16,7 @@ pub trait TokenSendModule {
         let accept_funds_func = opt_accept_funds_func.clone().into_option();
         if accept_funds_func.is_some() {
             gas_limit = self.transfer_exec_gas_limit().get();
-            function = accept_funds_func.unwrap_or(ManagedBuffer::new());
+            function = accept_funds_func.unwrap_or_else(|| ManagedBuffer::new());
         } else {
             gas_limit = 0u64;
             function = ManagedBuffer::new();

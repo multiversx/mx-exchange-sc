@@ -189,7 +189,9 @@ pub trait LockedAssetTokenMergeModule:
         let mut unlock_epoch_amount_merged =
             ArrayVec::<EpochAmountPair<Self::Api>, DOUBLE_MAX_MILESTONES_IN_SCHEDULE>::new();
         for elem in array.iter() {
-            let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
+            let last = unlock_epoch_amount_merged
+                .last()
+                .unwrap_or_else(|| &default);
 
             if elem.epoch == last.epoch {
                 let new_elem = EpochAmountPair {

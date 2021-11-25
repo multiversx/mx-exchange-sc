@@ -171,7 +171,7 @@ pub trait FarmTokenMergeModule:
             })
         });
         let avg = self.weighted_average(dataset);
-        avg.to_u64().unwrap_or(0u64)
+        avg.to_u64().unwrap_or_else(|| 0u64)
     }
 
     fn weighted_average(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
