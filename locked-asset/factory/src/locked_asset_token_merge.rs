@@ -1,8 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use arrayvec::ArrayVec;
-
+use ::arrayvec::ArrayVec;
 use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
 
 use super::locked_asset;
@@ -115,39 +114,8 @@ pub trait LockedAssetTokenMergeModule:
             })
         }
 
-        //Compute the leftover percent
-        let mut sum_of_new_percents = 0u8;
-        for milestone in unlock_milestones_merged.iter() {
-            sum_of_new_percents += milestone.unlock_percent;
-        }
-        let mut leftover = PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
-
-        //Spread the leftover percent one by one to the minimum percent entry
-        while leftover != 0 {
-            let mut min_index = 0;
-            let mut min_milestone = unlock_milestones_merged[0];
-            for index in 0..unlock_milestones_merged.len() {
-                let lesser_percent =
-                    unlock_milestones_merged[index].unlock_percent < min_milestone.unlock_percent;
-                if lesser_percent {
-                    min_index = index;
-                    min_milestone = unlock_milestones_merged[index];
-                }
-            }
-
-            leftover -= 1;
-            unlock_milestones_merged[min_index].unlock_percent += 1;
-        }
-
-        //Remove the percents of 0 that were previously considered
-        let mut new_unlock_milestones = ManagedVec::new();
-        for milestone in unlock_milestones_merged.iter() {
-            if milestone.unlock_percent != 0 {
-                new_unlock_milestones.push(milestone.clone());
-            }
-        }
-
-        new_unlock_milestones
+        self.distribute_leftover(&mut unlock_milestones_merged);
+        self.get_non_zero_percent_milestones_as_vec(&unlock_milestones_merged)
     }
 
     fn aggregated_unlock_schedule(

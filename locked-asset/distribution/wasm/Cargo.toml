@@ -25,9 +25,9 @@ default-features = false
 path = ".."
 
 [dependencies.elrond-wasm-node]
-version = "0.23"
+version = "=0.23.0"
 
 [dependencies.elrond-wasm-output]
-version = "0.23"
+version = "=0.23.0"
 features = ["wasm-output-mode"]
 

@@ -24,8 +24,8 @@ path = "../pair"
 path = "../../common/common_structs"
 
 [dependencies.elrond-wasm]
-version = "0.23"
+version = "=0.23.0"
 features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.23"
+version = "=0.23.0"
