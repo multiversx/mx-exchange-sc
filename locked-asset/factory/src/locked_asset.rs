@@ -116,6 +116,14 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
             }
         }
 
+        self.distribute_leftover(&mut unlock_milestones_merged);
+        self.get_non_zero_percent_milestones_as_vec(&unlock_milestones_merged)
+    }
+
+    fn distribute_leftover(
+        &self,
+        unlock_milestones_merged: &mut ArrayVec<UnlockMilestone, MAX_MILESTONES_IN_SCHEDULE>,
+    ) {
         //Compute the leftover percent
         let mut sum_of_new_percents = 0u8;
         for milestone in unlock_milestones_merged.iter() {
@@ -139,15 +147,17 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
             leftover -= 1;
             unlock_milestones_merged[min_index].unlock_percent += 1;
         }
+    }
 
-        //Remove the percents of 0 that were previously considered
+    fn get_non_zero_percent_milestones_as_vec(
+        &self,
+        unlock_milestones_merged: &ArrayVec<UnlockMilestone, MAX_MILESTONES_IN_SCHEDULE>,
+    ) -> ManagedVec<UnlockMilestone> {
         let mut new_unlock_milestones = ManagedVec::new();
-        for milestone in unlock_milestones_merged.iter() {
-            if milestone.unlock_percent != 0 {
-                new_unlock_milestones.push(milestone.clone());
-            }
-        }
-
+        unlock_milestones_merged
+            .iter()
+            .filter(|x| x.unlock_percent != 0)
+            .for_each(|x| new_unlock_milestones.push(x.clone()));
         new_unlock_milestones
     }
 
