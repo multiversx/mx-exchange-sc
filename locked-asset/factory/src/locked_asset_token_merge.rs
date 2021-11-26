@@ -1,8 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use arrayvec::ArrayVec;
-
+use ::arrayvec::ArrayVec;
 use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
 
 use super::locked_asset;
