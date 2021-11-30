@@ -146,4 +146,7 @@ pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendM
     #[view(getPairContractManagedAddress)]
     #[storage_mapper("pair_contract_address")]
     fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("whitelist")]
+    fn whitelist(&self) -> SetMapper<ManagedAddress>;
 }

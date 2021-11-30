@@ -43,9 +43,11 @@ elrond_wasm_node::wasm_endpoints! {
         getState
         getTransferExecGasLimit
         getUndistributedFees
+        getWhitelistedManagedAddresses
         mergeFarmTokens
         pause
         registerFarmToken
+        removeWhitelist
         resume
         setLocalRolesFarmToken
         setPerBlockRewardAmount
@@ -54,5 +56,6 @@ elrond_wasm_node::wasm_endpoints! {
         set_penalty_percent
         set_transfer_exec_gas_limit
         start_produce_rewards
+        whitelist
     )
 }

@@ -112,6 +112,8 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
+        let apr_multiplier = self.locked_rewards_apr_multiplier().get();
+        require!(apr_multiplier > 1, "farm does not support locked rewards");
         self.enter_farm_common(true, opt_accept_funds_func)
     }
 
@@ -125,6 +127,16 @@ pub trait Farm:
 
         let payments = self.get_all_payments_managed_vec();
         require!(payments.len() >= 1, "empty payments");
+
+        let caller = self.blockchain().get_caller();
+        let whitelist_length = self.whitelist().len();
+        if whitelist_length > 0 {
+            require!(
+                self.whitelist().contains(&caller),
+                "caller address is not whitelisted"
+            );
+        }
+
         let payment_0 = payments.get(0).unwrap();
 
         let token_in = payment_0.token_identifier.clone();
@@ -153,7 +165,6 @@ pub trait Farm:
             current_farm_amount: farm_contribution.clone(),
         };
 
-        let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
             &farm_contribution,
@@ -210,6 +221,15 @@ pub trait Farm:
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(amount > 0, "Payment amount cannot be zero");
 
+        let caller = self.blockchain().get_caller();
+        let whitelist_length = self.whitelist().len();
+        if whitelist_length > 0 {
+            require!(
+                self.whitelist().contains(&caller),
+                "caller address is not whitelisted"
+            );
+        }
+
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let mut reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
@@ -243,7 +263,6 @@ pub trait Farm:
             }
         }
 
-        let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
         self.send_back_farming_tokens(
             &farming_token_id,
@@ -295,6 +314,16 @@ pub trait Farm:
 
         let payments = self.get_all_payments_managed_vec();
         require!(payments.len() >= 1, "bad payment len");
+
+        let caller = self.blockchain().get_caller();
+        let whitelist_length = self.whitelist().len();
+        if whitelist_length > 0 {
+            require!(
+                self.whitelist().contains(&caller),
+                "caller address is not whitelisted"
+            );
+        }
+
         let payment_0 = payments.get(0).unwrap();
 
         let payment_token_id = payment_0.token_identifier.clone();
@@ -340,7 +369,6 @@ pub trait Farm:
             current_farm_amount: amount.clone(),
         };
 
-        let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
         let farm_amount = amount.clone();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
@@ -721,7 +749,32 @@ pub trait Farm:
         Ok(())
     }
 
+    #[only_owner]
+    #[endpoint(whitelist)]
+    fn whitelist_endpoint(&self, address: ManagedAddress) -> SCResult<()> {
+        let is_new = self.whitelist().insert(address);
+        require!(is_new, "ManagedAddress already whitelisted");
+        Ok(())
+    }
+
+    #[only_owner]
+    #[endpoint(removeWhitelist)]
+    fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
+        let is_removed = self.whitelist().remove(&address);
+        require!(is_removed, "ManagedAddresss not whitelisted");
+        Ok(())
+    }
+
     #[view(getFarmingTokenReserve)]
     #[storage_mapper("farming_token_reserve")]
     fn farming_token_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getWhitelistedManagedAddresses)]
+    fn get_whitelisted_managed_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.whitelist().iter() {
+            result.push(pair);
+        }
+        result
+    }
 }
