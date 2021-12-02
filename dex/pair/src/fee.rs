@@ -3,6 +3,7 @@ elrond_wasm::derive_imports!();
 
 use super::amm;
 use super::config;
+use super::events;
 use super::liquidity_pool;
 use common_structs::TokenPair;
 
@@ -29,6 +30,7 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_send::TokenSendModule
+    + events::EventsModule
 {
     #[proxy]
     fn farm_proxy(&self, to: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
@@ -304,6 +306,9 @@ pub trait FeeModule:
         if amount > &0 {
             if destination.is_zero() {
                 self.send().esdt_local_burn(token, 0, amount);
+                let total_burned = &self.burned_tokens(token).get() + amount;
+                self.burned_tokens(token).set(&total_burned);
+                self.burn_tokens_event(token, amount, &total_burned);
             } else {
                 self.farm_proxy(destination.clone())
                     .accept_fee(token.clone(), amount.clone())

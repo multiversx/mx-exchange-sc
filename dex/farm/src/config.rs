@@ -79,7 +79,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
         Ok(())
     }
 
-    //TODO: Make migration
     #[view(getFarmTokenSupply)]
     fn get_farm_token_supply(&self) -> BigUint {
         self.farm_token_supply().get()
@@ -150,4 +149,8 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getPairContractManagedAddress)]
     #[storage_mapper("pair_contract_address")]
     fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getBurnedTokenAmount)]
+    #[storage_mapper("burned_tokens")]
+    fn burned_tokens(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 }

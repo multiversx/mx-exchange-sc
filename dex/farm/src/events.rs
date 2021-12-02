@@ -305,4 +305,12 @@ pub trait EventsModule {
         #[indexed] epoch: u64,
         compound_rewards_event: &CompoundRewardsEvent<Self::Api>,
     );
+
+    #[event("burn_tokens")]
+    fn burn_tokens_event(
+        &self,
+        #[indexed] token_id: &TokenIdentifier,
+        #[indexed] burned_now: &BigUint,
+        #[indexed] burned_total: &BigUint,
+    );
 }

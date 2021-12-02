@@ -105,6 +105,7 @@
                         }
                     },
                     "storage": {
+                        "str:burned_tokens|nested:str:WEGLD-abcdef": "1,999,500",
                         "+": ""
                     },
                     "code": "file:../pair/output/pair.wasm"
