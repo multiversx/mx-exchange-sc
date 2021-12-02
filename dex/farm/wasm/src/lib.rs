@@ -17,6 +17,7 @@ elrond_wasm_node::wasm_endpoints! {
         enterFarm
         enterFarmAndLockRewards
         exitFarm
+        getBurnedTokenAmount
         getCurrentBlockFee
         getDivisionSafetyConstant
         getFarmTokenId

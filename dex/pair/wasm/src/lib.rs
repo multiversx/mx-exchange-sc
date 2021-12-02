@@ -12,6 +12,7 @@ elrond_wasm_node::wasm_endpoints! {
         addTrustedSwapPair
         getAmountIn
         getAmountOut
+        getBurnedTokenAmount
         getEquivalent
         getExternSwapGasLimit
         getFeeDestinations
