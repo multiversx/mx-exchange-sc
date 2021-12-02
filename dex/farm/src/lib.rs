@@ -539,6 +539,9 @@ pub trait Farm:
         if pair_contract_address.is_zero() {
             self.send()
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
+            let total_burned = &self.burned_tokens(farming_token_id).get() + farming_amount;
+            self.burned_tokens(farming_token_id).set(&total_burned);
+            self.burn_tokens_event(farming_token_id, farming_amount, &total_burned);
         } else {
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(

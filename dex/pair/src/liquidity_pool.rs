@@ -231,7 +231,6 @@ pub trait LiquidityPoolModule:
         amount_out
     }
 
-    //TODO: Make migrate
     #[view(getTotalSupply)]
     fn get_total_lp_token_supply(&self) -> BigUint {
         self.lp_token_supply().get()
@@ -251,4 +250,8 @@ pub trait LiquidityPoolModule:
     #[view(getReserve)]
     #[storage_mapper("reserve")]
     fn pair_reserve(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
+    #[view(getBurnedTokenAmount)]
+    #[storage_mapper("burned_tokens")]
+    fn burned_tokens(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 }
