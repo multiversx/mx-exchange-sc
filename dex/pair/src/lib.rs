@@ -92,8 +92,8 @@ pub trait Pair:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.extern_swap_gas_limit()
             .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
-        self.lp_token_supply()
-            .set(&self.get_total_supply(&self.lp_token_identifier().get()));
+        // self.lp_token_supply()
+        //     .set(&self.get_total_supply(&self.lp_token_identifier().get()));
         self.burned_tokens(&second_token_id).set(
             &self
                 .burned_tokens_old()
