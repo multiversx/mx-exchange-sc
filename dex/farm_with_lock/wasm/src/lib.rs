@@ -5,7 +5,7 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    farm
+    farm_with_lock
     (
         init
         callBack

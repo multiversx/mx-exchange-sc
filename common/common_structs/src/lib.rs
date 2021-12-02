@@ -53,8 +53,6 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub original_entering_epoch: u64,
     pub entering_epoch: u64,
-    pub apr_multiplier: u8,
-    pub with_locked_rewards: bool,
     pub initial_farming_amount: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,

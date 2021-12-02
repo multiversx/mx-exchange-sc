@@ -54,23 +54,6 @@ pub trait ProxyFarmModule:
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
     fn enter_farm_proxy_endpoint(&self, farm_address: ManagedAddress) -> SCResult<()> {
-        self.enter_farm_proxy(farm_address, false)
-    }
-
-    #[payable("*")]
-    #[endpoint(enterFarmAndLockRewardsProxy)]
-    fn enter_farm_and_lock_rewards_proxy_endpoint(
-        &self,
-        farm_address: ManagedAddress,
-    ) -> SCResult<()> {
-        self.enter_farm_proxy(farm_address, true)
-    }
-
-    fn enter_farm_proxy(
-        &self,
-        farm_address: ManagedAddress,
-        with_lock_rewards: bool,
-    ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
@@ -96,8 +79,7 @@ pub trait ProxyFarmModule:
             return sc_error!("Unknown input Token");
         }
 
-        let farm_result =
-            self.actual_enter_farm(&farm_address, &farming_token_id, &amount, with_lock_rewards);
+        let farm_result = self.actual_enter_farm(&farm_address, &farming_token_id, &amount);
         let farm_token_id = farm_result.token_identifier;
         let farm_token_nonce = farm_result.token_nonce;
         let farm_token_total_amount = farm_result.amount;
@@ -414,7 +396,6 @@ pub trait ProxyFarmModule:
         farm_address: &ManagedAddress,
         farming_token_id: &TokenIdentifier,
         amount: &BigUint,
-        with_locked_rewards: bool,
     ) -> EnterFarmResultType<Self::Api> {
         let asset_token_id = self.asset_token_id().get();
         if farming_token_id == &asset_token_id {
@@ -428,17 +409,10 @@ pub trait ProxyFarmModule:
             amount.clone(),
         ));
 
-        if with_locked_rewards {
-            self.farm_contract_proxy(farm_address.clone())
-                .enter_farm_and_lock_rewards(OptionalArg::None)
-                .with_multi_token_transfer(payments)
-                .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
-        } else {
-            self.farm_contract_proxy(farm_address.clone())
-                .enter_farm(OptionalArg::None)
-                .with_multi_token_transfer(payments)
-                .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
-        }
+        self.farm_contract_proxy(farm_address.clone())
+            .enter_farm(OptionalArg::None)
+            .with_multi_token_transfer(payments)
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn actual_exit_farm(

@@ -60,7 +60,6 @@
                         "str:owner": "address:owner",
                         "str:current_block_fee_storage": "0x01000000000000000000000001c7",
                         "str:minimum_farming_epochs": "2",
-                        "str:locked_rewards_apr_multiplier": "2",
                         "str:division_safety_constant": "1000000000000",
                         "str:penalty_percent": "100",
                         "str:pair_contract_address": "sc:pair_contract",

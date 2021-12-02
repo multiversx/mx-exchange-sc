@@ -14,7 +14,6 @@ elrond_wasm_node::wasm_endpoints! {
         addPairToIntermediate
         claimRewardsProxy
         compoundRewardsProxy
-        enterFarmAndLockRewardsProxy
         enterFarmProxy
         exitFarmProxy
         getAssetTokenId

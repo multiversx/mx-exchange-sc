@@ -220,11 +220,13 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let reward_nonce = 0u64;
+        let mut reward_nonce = 0u64;
         self.send_rewards(
             &mut reward_token_id,
+            &mut reward_nonce,
             &mut reward,
             &caller,
+            farm_attributes.original_entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -320,11 +322,13 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let reward_nonce = 0u64;
+        let mut reward_nonce = 0u64;
         self.send_rewards(
             &mut reward_token_id,
+            &mut reward_nonce,
             &mut reward,
             &caller,
+            farm_attributes.original_entering_epoch,
             &opt_accept_funds_func,
         )?;
 
@@ -561,18 +565,26 @@ pub trait Farm:
     fn send_rewards(
         &self,
         reward_token_id: &mut TokenIdentifier,
+        reward_nonce: &mut Nonce,
         reward_amount: &mut BigUint,
         destination: &ManagedAddress,
+        entering_epoch: Epoch,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         if reward_amount > &mut 0 {
-            self.transfer_execute_custom(
-                destination,
-                reward_token_id,
-                0,
-                reward_amount,
-                opt_accept_funds_func,
-            )?;
+            let locked_asset_factory_address = self.locked_asset_factory_address().get();
+            let result = self
+                .locked_asset_factory(locked_asset_factory_address)
+                .create_and_forward(
+                    reward_amount.clone(),
+                    destination.clone(),
+                    entering_epoch,
+                    opt_accept_funds_func.clone(),
+                )
+                .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            *reward_token_id = result.token_identifier;
+            *reward_nonce = result.token_nonce;
+            *reward_amount = result.amount;
         }
         Ok(())
     }

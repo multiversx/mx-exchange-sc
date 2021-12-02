@@ -30,7 +30,6 @@
                         "str:state": "1",
                         "str:owner": "address:owner",
                         "str:minimum_farming_epochs": "2",
-                        "str:locked_rewards_apr_multiplier": "2",
                         "str:penalty_percent": "100",
                         "str:locked_asset_factory_address": "sc:locked_asset_factory",
                         "str:division_safety_constant": "1000000000000",
