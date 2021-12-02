@@ -49,7 +49,7 @@ pub trait Farm:
             .get(token_id)
             .unwrap_or_else(|| BigUint::zero());
         let burned_amount = self
-            .burned_tokens()
+            .burned_tokens_old()
             .get(token_id)
             .unwrap_or_else(|| BigUint::zero());
         generated_amount - burned_amount
@@ -59,7 +59,7 @@ pub trait Farm:
     fn generated_tokens(&self) -> MapMapper<TokenIdentifier, BigUint>;
 
     #[storage_mapper("burned_tokens")]
-    fn burned_tokens(&self) -> MapMapper<TokenIdentifier, BigUint>;
+    fn burned_tokens_old(&self) -> MapMapper<TokenIdentifier, BigUint>;
 
     #[init]
     fn init(
