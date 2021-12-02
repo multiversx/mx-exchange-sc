@@ -42,7 +42,7 @@ pub trait Pair:
             .get(token_id)
             .unwrap_or_else(|| BigUint::zero());
         let burned_amount = self
-            .burned_tokens()
+            .burned_tokens_old()
             .get(token_id)
             .unwrap_or_else(|| BigUint::zero());
         generated_amount - burned_amount
@@ -52,7 +52,7 @@ pub trait Pair:
     fn generated_tokens(&self) -> MapMapper<TokenIdentifier, BigUint>;
 
     #[storage_mapper("burned_tokens")]
-    fn burned_tokens(&self) -> MapMapper<TokenIdentifier, BigUint>;
+    fn burned_tokens_old(&self) -> MapMapper<TokenIdentifier, BigUint>;
 
     #[init]
     fn init(
@@ -94,6 +94,12 @@ pub trait Pair:
             .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
         self.lp_token_supply()
             .set(&self.get_total_supply(&self.lp_token_identifier().get()));
+        self.burned_tokens(&second_token_id).set(
+            &self
+                .burned_tokens_old()
+                .get(&second_token_id)
+                .unwrap_or_else(|| BigUint::zero()),
+        );
 
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);
