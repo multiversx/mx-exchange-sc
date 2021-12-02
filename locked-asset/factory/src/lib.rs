@@ -124,10 +124,6 @@ pub trait LockedAssetFactory:
             "Locked Asset Token not registered"
         );
         require!(amount > 0, "Zero input amount");
-        require!(
-            start_epoch >= self.init_epoch().get(),
-            "Invalid start epoch"
-        );
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
         let unlock_period = self.default_unlock_period().get();
