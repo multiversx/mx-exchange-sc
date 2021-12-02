@@ -104,8 +104,8 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
-        self.farm_token_supply()
-            .set(&self.get_total_supply(&self.farm_token_id().get()));
+        // self.farm_token_supply()
+        //     .set(&self.get_total_supply(&self.farm_token_id().get()));
 
         self.owner().set(&self.blockchain().get_caller());
         self.router_address().set(&router_address);
