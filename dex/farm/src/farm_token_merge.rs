@@ -71,12 +71,14 @@ pub trait FarmTokenMergeModule:
             });
         }
 
-        if replic.is_some() {
-            tokens.push(replic.unwrap());
+        if let Some(r) = replic {
+            tokens.push(r);
         }
 
         if tokens.len() == 1 {
-            return Ok(tokens.get(0).unwrap().attributes);
+            if let Some(t) = tokens.get(0) {
+                return Ok(t.attributes);
+            }
         }
 
         let aggregated_attributes = FarmTokenAttributes {

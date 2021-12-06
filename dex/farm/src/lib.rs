@@ -133,7 +133,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &farm_contribution,
+            farm_contribution,
             &farm_token_id,
             &attributes,
             payments_iter,
@@ -527,14 +527,13 @@ pub trait Farm:
         )?;
         self.burn_farm_tokens_from_payments(additional_payments);
 
-        let new_amount = merged_attributes.current_farm_amount.clone();
-        let new_attributes = merged_attributes;
-        let new_nonce = self.nft_create_tokens(token_id, &new_amount, &new_attributes);
-        self.farm_token_supply().update(|x| *x += &new_amount);
+        let new_amount = &merged_attributes.current_farm_amount;
+        let new_nonce = self.nft_create_tokens(token_id, new_amount, &merged_attributes);
+        self.farm_token_supply().update(|x| *x += new_amount);
 
         let new_farm_token = FarmToken {
-            token_amount: self.create_payment(token_id, new_nonce, &new_amount),
-            attributes: new_attributes,
+            token_amount: self.create_payment(token_id, new_nonce, new_amount),
+            attributes: merged_attributes,
         };
         let is_merged = additional_payments_len != 0;
 
@@ -590,9 +589,8 @@ pub trait Farm:
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let current_block_nonce = self.blockchain().get_block_nonce();
-        let reward_increase = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
-
-        let big_zero = BigUint::zero();
+        let reward_increase =
+            self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
         let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
 
         let attributes = self.decode_attributes(&attributes_raw)?;
