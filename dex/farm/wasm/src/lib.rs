@@ -15,7 +15,6 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
-        getCurrentBlockFee
         getDivisionSafetyConstant
         getFarmTokenId
         getFarmTokenSupply
@@ -35,7 +34,6 @@ elrond_wasm_node::wasm_endpoints! {
         getRouterManagedAddress
         getState
         getTransferExecGasLimit
-        getUndistributedFees
         mergeFarmTokens
         pause
         registerFarmToken
