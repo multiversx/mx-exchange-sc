@@ -577,20 +577,6 @@ pub trait Farm:
         Ok(())
     }
 
-    #[payable("*")]
-    #[endpoint(acceptFee)]
-    fn accept_fee(
-        &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_amount] amount: BigUint,
-    ) -> SCResult<()> {
-        let reward_token_id = self.reward_token_id().get();
-        require!(token_in == reward_token_id, "Bad fee token identifier");
-        require!(amount > 0, "Zero amount in");
-        self.increase_current_block_fee_storage(&amount);
-        Ok(())
-    }
-
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
         &self,
@@ -603,22 +589,9 @@ pub trait Farm:
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let current_block_nonce = self.blockchain().get_block_nonce();
-        let to_be_minted = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+        let reward_increase = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
         let big_zero = BigUint::zero();
-        let mut fees = self.undistributed_fee_storage().get();
-        fees += match self.current_block_fee_storage().get() {
-            Some((block_nonce, fee_amount)) => {
-                if current_block_nonce > block_nonce {
-                    fee_amount
-                } else {
-                    big_zero
-                }
-            }
-            None => big_zero,
-        };
-
-        let reward_increase = to_be_minted + fees;
         let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
 
         let attributes = self.decode_attributes(&attributes_raw)?;

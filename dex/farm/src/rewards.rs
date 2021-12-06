@@ -50,7 +50,6 @@ pub trait RewardsModule:
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
         let reward_minted = self.mint_per_block_rewards(reward_token_id);
-        self.increase_current_block_fee_storage(&BigUint::zero());
         let fees = self.undistributed_fee_storage().get();
         self.undistributed_fee_storage().clear();
         let total_reward = reward_minted + fees;
@@ -111,29 +110,6 @@ pub trait RewardsModule:
         }
     }
 
-    fn increase_current_block_fee_storage(&self, amount: &BigUint) {
-        let current_block = self.blockchain().get_block_nonce();
-        let current_block_fee_storage = self.current_block_fee_storage().get();
-
-        let (known_block_nonce, fee_amount) = match current_block_fee_storage {
-            Some(value) => (value.0, value.1),
-            None => (0, BigUint::zero()),
-        };
-
-        if known_block_nonce == current_block {
-            if amount > &0 {
-                self.current_block_fee_storage()
-                    .set(&Some((current_block, &fee_amount + amount)));
-            }
-        } else {
-            self.increase_undistributed_fee_storage(&fee_amount);
-            if amount > &0 || fee_amount > 0 {
-                self.current_block_fee_storage()
-                    .set(&Some((current_block, amount.clone())));
-            }
-        }
-    }
-
     #[endpoint]
     fn start_produce_rewards(&self) -> SCResult<()> {
         self.require_permissions()?;
@@ -182,12 +158,4 @@ pub trait RewardsModule:
     #[view(getRewardReserve)]
     #[storage_mapper("reward_reserve")]
     fn reward_reserve(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getUndistributedFees)]
-    #[storage_mapper("undistributed_fee_storage")]
-    fn undistributed_fee_storage(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getCurrentBlockFee)]
-    #[storage_mapper("current_block_fee_storage")]
-    fn current_block_fee_storage(&self) -> SingleValueMapper<Option<(Nonce, BigUint)>>;
 }
