@@ -50,7 +50,6 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         locked_asset_factory_address: ManagedAddress,
         division_safety_constant: BigUint,
-        pair_contract_address: ManagedAddress,
     ) -> SCResult<()> {
         require!(
             reward_token_id.is_esdt(),
@@ -89,7 +88,6 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
-        self.pair_contract_address().set(&pair_contract_address);
         Ok(())
     }
 
@@ -495,21 +493,7 @@ pub trait Farm:
         reward_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         self.decrease_farming_token_reserve(farming_amount)?;
-
-        let pair_contract_address = self.pair_contract_address().get();
-
-        if pair_contract_address.is_zero() {
-            self.send()
-                .esdt_local_burn(farming_token_id, 0, farming_amount);
-        } else {
-            self.pair_contract_proxy(pair_contract_address)
-                .remove_liquidity_and_burn_token(
-                    farming_token_id.clone(),
-                    farming_amount.clone(),
-                    reward_token_id.clone(),
-                )
-                .execute_on_dest_context_ignore_result();
-        }
+        self.send().esdt_local_burn(farming_token_id, 0, farming_amount);
 
         Ok(())
     }

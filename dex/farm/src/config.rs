@@ -142,10 +142,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getPairContractManagedAddress)]
-    #[storage_mapper("pair_contract_address")]
-    fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
-
     #[view(getWhitelist)]
     #[storage_mapper("whitelist")]
     fn whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
