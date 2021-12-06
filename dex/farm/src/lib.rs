@@ -172,6 +172,7 @@ pub trait Farm:
         #[payment_amount] amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
+        require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let farm_token_id = self.farm_token_id().get();
