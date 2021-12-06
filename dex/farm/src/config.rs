@@ -27,8 +27,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
     fn require_permissions(&self) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
         let owner = self.owner().get();
-        let router = self.router_address().get();
-        require!(caller == owner || caller == router, "Permission denied");
+        require!(caller == owner, "Permission denied");
         Ok(())
     }
 
@@ -95,10 +94,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
-
-    #[view(getRouterManagedAddress)]
-    #[storage_mapper("router_address")]
-    fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getState)]
     #[storage_mapper("state")]
