@@ -71,6 +71,18 @@ pub trait ConfigModule: token_send::TokenSendModule {
         Ok(())
     }
 
+    #[only_owner]
+    #[endpoint(addAddressToWhitelist)]
+    fn add_address_to_whitelist(&self, address: ManagedAddress) {
+        let _ = self.whitelist().insert(address);
+    }
+
+    #[only_owner]
+    #[endpoint(removeAddressFromWhitelist)]
+    fn remove_address_from_whitelist(&self, address: ManagedAddress) {
+        let _ = self.whitelist().swap_remove(&address);
+    }
+
     #[inline(always)]
     fn get_farm_token_supply(&self) -> BigUint {
         self.farm_token_supply().get()
@@ -138,4 +150,8 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getPairContractManagedAddress)]
     #[storage_mapper("pair_contract_address")]
     fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getWhitelist)]
+    #[storage_mapper("whitelist")]
+    fn whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 }

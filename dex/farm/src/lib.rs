@@ -104,6 +104,9 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
         let payment_0 = payments_iter.next().ok_or("empty payments")?;
@@ -130,7 +133,6 @@ pub trait Farm:
             current_farm_amount: farm_contribution.clone(),
         };
 
-        let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
             farm_contribution,
@@ -178,6 +180,9 @@ pub trait Farm:
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(amount > 0, "Payment amount cannot be zero");
 
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let mut reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
@@ -211,7 +216,6 @@ pub trait Farm:
             }
         }
 
-        let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
         self.send_back_farming_tokens(
             &farming_token_id,
@@ -258,6 +262,9 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
         let payment_0 = payments_iter.next().ok_or("bad payment len")?;
@@ -303,7 +310,6 @@ pub trait Farm:
             current_farm_amount: amount.clone(),
         };
 
-        let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
         let farm_amount = amount.clone();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
@@ -358,6 +364,9 @@ pub trait Farm:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
+
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
@@ -420,7 +429,6 @@ pub trait Farm:
         };
 
         self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount);
-        let caller = self.blockchain().get_caller();
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
             &new_farm_contribution,
             &farm_token_id,
@@ -627,6 +635,14 @@ pub trait Farm:
         let current = self.farming_token_reserve().get();
         require!(&current >= amount, "Not enough farming reserve");
         self.farming_token_reserve().set(&(&current - amount));
+        Ok(())
+    }
+
+    fn require_whitelisted(&self, address: &ManagedAddress) -> SCResult<()> {
+        require!(
+            self.whitelist().contains(address),
+            "address is not whitelisted"
+        );
         Ok(())
     }
 
