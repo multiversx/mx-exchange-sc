@@ -40,9 +40,6 @@ pub trait Farm:
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
 
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
     #[init]
     fn init(
         &self,
