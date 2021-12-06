@@ -35,7 +35,7 @@ pub trait TokenMergeModule {
         let mut elem_weight_sum = BigUint::zero();
         dataset
             .iter()
-            .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));
+            .for_each(|x| elem_weight_sum += &x.value * &x.weight);
 
         (&elem_weight_sum + &weight_sum - 1u64) / weight_sum
     }
