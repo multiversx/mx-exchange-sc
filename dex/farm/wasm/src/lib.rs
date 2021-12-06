@@ -31,7 +31,6 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
-        getRouterManagedAddress
         getState
         getTransferExecGasLimit
         mergeFarmTokens
