@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         init
         callBack
         acceptFee
+        addAddressToWhitelist
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
@@ -37,9 +38,11 @@ elrond_wasm_node::wasm_endpoints! {
         getState
         getTransferExecGasLimit
         getUndistributedFees
+        getWhitelist
         mergeFarmTokens
         pause
         registerFarmToken
+        removeAddressFromWhitelist
         resume
         setLocalRolesFarmToken
         setPerBlockRewardAmount
