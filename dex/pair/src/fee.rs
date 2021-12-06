@@ -8,21 +8,6 @@ use common_structs::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 
-mod farm_proxy {
-    elrond_wasm::imports!();
-
-    #[elrond_wasm::proxy]
-    pub trait Farm {
-        #[payable("*")]
-        #[endpoint(acceptFee)]
-        fn accept_fee(
-            &self,
-            #[payment_token] token_in: TokenIdentifier,
-            #[payment_amount] amount: BigUint,
-        );
-    }
-}
-
 #[elrond_wasm::module]
 pub trait FeeModule:
     config::ConfigModule
@@ -30,9 +15,6 @@ pub trait FeeModule:
     + amm::AmmModule
     + token_send::TokenSendModule
 {
-    #[proxy]
-    fn farm_proxy(&self, to: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
-
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
 
@@ -158,7 +140,7 @@ pub trait FeeModule:
         second_token_id: &TokenIdentifier,
     ) {
         if self.can_send_fee_directly(fee_token, requested_fee_token) {
-            self.send_fee_or_burn_on_zero_address(fee_token, fee_slice, fee_address);
+            self.burn_fees(fee_token, fee_slice);
         } else if self.can_resolve_swap_locally(
             fee_token,
             requested_fee_token,
@@ -168,7 +150,7 @@ pub trait FeeModule:
             let to_send =
                 self.swap_safe_no_fee(first_token_id, second_token_id, fee_token, fee_slice);
             if to_send > 0 {
-                self.send_fee_or_burn_on_zero_address(requested_fee_token, &to_send, fee_address);
+                self.burn_fees(requested_fee_token, &to_send);
             } else {
                 self.reinject(fee_token, fee_slice);
             }
@@ -295,20 +277,13 @@ pub trait FeeModule:
     }
 
     #[inline]
-    fn send_fee_or_burn_on_zero_address(
+    fn burn_fees(
         &self,
         token: &TokenIdentifier,
         amount: &BigUint,
-        destination: &ManagedAddress,
     ) {
         if amount > &0 {
-            if destination.is_zero() {
-                self.send().esdt_local_burn(token, 0, amount);
-            } else {
-                self.farm_proxy(destination.clone())
-                    .accept_fee(token.clone(), amount.clone())
-                    .execute_on_dest_context();
-            }
+            self.send().esdt_local_burn(token, 0, amount);
         }
     }
 

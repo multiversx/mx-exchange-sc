@@ -335,7 +335,7 @@ pub trait Pair:
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant(&old_k, &new_k)?;
 
-        self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
+        self.burn_fees(&token_out, &amount_out);
 
         self.emit_swap_no_fee_and_forward_event(
             &caller,
