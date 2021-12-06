@@ -46,7 +46,6 @@ pub trait Farm:
     #[init]
     fn init(
         &self,
-        router_address: ManagedAddress,
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         locked_asset_factory_address: ManagedAddress,
@@ -86,7 +85,6 @@ pub trait Farm:
             .set_if_empty(&division_safety_constant);
 
         self.owner().set(&self.blockchain().get_caller());
-        self.router_address().set(&router_address);
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.locked_asset_factory_address()

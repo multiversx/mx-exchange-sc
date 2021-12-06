@@ -9,8 +9,6 @@ The Farm Contract can be deployed using `erdpy` and using the interraction snipp
 
 The init parameters are:
 
-- router_address. The address of the router. This may seem a bit useless because the router cannot configure a Farm contract, but we'll keep the address there in case it will be needed.
-
 - reward_token_id. The reward token. In Maiar Exchange, this will usually be MEX.
 
 - farming_token_id. The token used when entering a farm aka. the token that one farms with.
