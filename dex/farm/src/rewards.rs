@@ -49,11 +49,7 @@ pub trait RewardsModule:
     }
 
     fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
-        let reward_minted = self.mint_per_block_rewards(reward_token_id);
-        let fees = self.undistributed_fee_storage().get();
-        self.undistributed_fee_storage().clear();
-        let total_reward = reward_minted + fees;
-
+        let total_reward = self.mint_per_block_rewards(reward_token_id);
         if total_reward > 0 {
             self.increase_reward_reserve(&total_reward);
             self.update_reward_per_share(&total_reward);
@@ -100,13 +96,6 @@ pub trait RewardsModule:
             amount * &reward_per_share_diff / self.division_safety_constant().get()
         } else {
             BigUint::zero()
-        }
-    }
-
-    fn increase_undistributed_fee_storage(&self, amount: &BigUint) {
-        if amount > &0 {
-            let current = self.undistributed_fee_storage().get();
-            self.undistributed_fee_storage().set(&(&current + amount));
         }
     }
 
