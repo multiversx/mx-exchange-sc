@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use arrayvec::ArrayVec;
 use common_structs::{Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone};
 
 pub const PERCENTAGE_TOTAL: u64 = 100;
