@@ -42,7 +42,7 @@
                     "nonce": "*",
                     "balance": "0",
                     "esdt": {
-                        "str:WEGLD-abcdef": "199",
+                        "str:WEGLD-abcdef": "0",
                         "str:FARM-abcdef": {
                             "roles": [
                                 "ESDTRoleNFTCreate",
@@ -58,7 +58,6 @@
                         "str:router_address": "sc:router_contract",
                         "str:state": "1",
                         "str:owner": "address:owner",
-                        "str:current_block_fee_storage": "0x01000000000000000000000001c7",
                         "str:minimum_farming_epochs": "2",
                         "str:division_safety_constant": "1000000000000",
                         "str:penalty_percent": "100",
