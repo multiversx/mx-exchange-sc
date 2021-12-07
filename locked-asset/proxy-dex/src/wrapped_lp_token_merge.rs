@@ -48,7 +48,7 @@ pub trait WrappedLpTokenMerge:
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
         self.require_all_tokens_are_wrapped_lp_tokens(payments.clone(), &wrapped_lp_token_id)?;
 
-        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(payments.clone());
+        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(payments.clone())?;
 
         if replic.is_some() {
             tokens.push(replic.unwrap());
@@ -94,19 +94,20 @@ pub trait WrappedLpTokenMerge:
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
         payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) -> ManagedVec<WrappedLpToken<Self::Api>> {
+    ) -> SCResult<ManagedVec<WrappedLpToken<Self::Api>>> {
         let mut result = ManagedVec::new();
 
         for payment in payments {
+            let attr = self
+                .get_wrapped_lp_token_attributes(&payment.token_identifier, payment.token_nonce)?;
+
             result.push(WrappedLpToken {
                 token_amount: payment.clone(),
-                attributes: self.get_wrapped_lp_token_attributes(
-                    &payment.token_identifier,
-                    payment.token_nonce,
-                ),
+                attributes: attr,
             })
         }
-        result
+
+        Ok(result)
     }
 
     fn require_wrapped_lp_tokens_from_same_pair(

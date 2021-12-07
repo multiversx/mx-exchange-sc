@@ -10,34 +10,28 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> WrappedLpTokenAttributes<Self::Api> {
+    ) -> SCResult<WrappedLpTokenAttributes<Self::Api>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        self.serializer()
-            .top_decode_from_managed_buffer::<WrappedLpTokenAttributes<Self::Api>>(
-                &token_info.attributes,
-            )
+        token_info.decode_attributes().into()
     }
 
     fn get_wrapped_farm_token_attributes(
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> WrappedFarmTokenAttributes<Self::Api> {
+    ) -> SCResult<WrappedFarmTokenAttributes<Self::Api>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        self.serializer()
-            .top_decode_from_managed_buffer::<WrappedFarmTokenAttributes<Self::Api>>(
-                &token_info.attributes,
-            )
+        token_info.decode_attributes().into()
     }
 
     fn burn_payment_tokens(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {

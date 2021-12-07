@@ -42,7 +42,7 @@
                         "value": "8,000"
                     }
                 ],
-                "function": "enterFarmAndLockRewardsProxy",
+                "function": "enterFarmProxy",
                 "arguments": [
                     "sc:farm_contract"
                 ],
@@ -52,7 +52,12 @@
             "expect": {
                 "out": [
                     "0x01",
-                    "0x020000000b4641524d2d6162636465660000000000000001000000023e80",
+                    {
+                        "1-token_type": "u8:2",
+                        "2-token_id": "nested:str:FARM-abcdef",
+                        "3-token_nonce": "u64:1",
+                        "4-amount": "biguint:8,000"
+                    },
                     "0x01"
                 ],
                 "status": "0",
@@ -88,7 +93,7 @@
                             "instances": [
                                 {
                                     "nonce": "0x01",
-                                    "balance": "16,000"
+                                    "balance": "8,000"
                                 }
                             ]
                         }

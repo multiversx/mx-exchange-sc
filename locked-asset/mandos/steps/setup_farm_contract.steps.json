@@ -36,7 +36,7 @@
                         "str:transfer_exec_gas_limit": "50000000",
                         "str:pair_contract_address": "sc:pair_contract"
                     },
-                    "code": "file:../../../dex/farm/output/farm.wasm",
+                    "code": "file:../../../dex/farm_with_lock/output/farm_with_lock.wasm",
                     "owner": "address:owner"
                 }
             }

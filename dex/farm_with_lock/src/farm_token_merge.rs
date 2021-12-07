@@ -33,7 +33,7 @@ pub trait FarmTokenMergeModule:
         let new_nonce = self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         let new_amount = attrs.current_farm_amount;
         self.farm_token_supply().update(|x| *x += &new_amount);
-        
+
         self.transfer_execute_custom(
             &caller,
             &farm_token_id,
@@ -72,12 +72,14 @@ pub trait FarmTokenMergeModule:
             });
         }
 
-        if replic.is_some() {
-            tokens.push(replic.unwrap());
+        if let Some(r) = replic {
+            tokens.push(r);
         }
 
         if tokens.len() == 1 {
-            return Ok(tokens.get(0).unwrap().attributes);
+            if let Some(t) = tokens.get(0) {
+                return Ok(t.attributes);
+            }
         }
 
         let aggregated_attributes = FarmTokenAttributes {
@@ -159,7 +161,7 @@ pub trait FarmTokenMergeModule:
         let mut elem_weight_sum = BigUint::zero();
         dataset
             .iter()
-            .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));
+            .for_each(|x| elem_weight_sum += &x.value * &x.weight);
 
         elem_weight_sum / weight_sum
     }

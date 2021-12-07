@@ -129,15 +129,6 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         }
     }
 
-    fn decode_attributes(
-        &self,
-        attributes_raw: &ManagedBuffer,
-    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
-        Ok(self
-            .serializer()
-            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(attributes_raw))
-    }
-
     fn get_farm_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -149,11 +140,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             token_nonce,
         );
 
-        Ok(self
-            .serializer()
-            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(
-                &token_info.attributes,
-            ))
+        token_info.decode_attributes().into()
     }
 
     fn burn_farm_tokens_from_payments(
