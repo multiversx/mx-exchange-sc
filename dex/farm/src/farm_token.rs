@@ -129,15 +129,6 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         }
     }
 
-    fn decode_attributes(
-        &self,
-        attributes_raw: &ManagedBuffer,
-    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
-        Ok(self
-            .serializer()
-            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(attributes_raw))
-    }
-
     fn get_farm_attributes(
         &self,
         token_id: &TokenIdentifier,

@@ -579,7 +579,7 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         amount: BigUint,
-        attributes_raw: ManagedBuffer,
+        attributes: FarmTokenAttributes<Self::Api>,
     ) -> SCResult<BigUint> {
         require!(amount > 0, "Zero liquidity input");
         let farm_token_supply = self.get_farm_token_supply();
@@ -591,7 +591,6 @@ pub trait Farm:
             self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
         let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
 
-        let attributes = self.decode_attributes(&attributes_raw)?;
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
         let reward = self.calculate_reward(
             &amount,
