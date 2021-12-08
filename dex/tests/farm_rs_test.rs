@@ -1,6 +1,7 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
+    TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::TxContextStack;
 use elrond_wasm_debug::{
@@ -154,14 +155,27 @@ where
                     assert_eq!(payment.amount, managed_biguint!(farm_in_amount))
                 }
                 SCResult::Err(err) => {
-                    let err_str = String::from_utf8(err.as_bytes().to_vec()).unwrap();
-                    panic!("{:?}", err_str);
+                    panic_sc_err(err);
                 }
             }
 
             StateChange::Commit
         },
     );
+
+    let mut sc_call = ScCallMandos::new(
+        &farm_setup.user_address,
+        farm_setup.farm_wrapper.address_ref(),
+        "enterFarm",
+    );
+    sc_call.add_esdt_transfer(LP_TOKEN_ID, 0, &rust_biguint!(farm_in_amount));
+
+    let mut tx_expect = TxExpectMandos::new(0);
+    tx_expect.add_out_value(&rust_biguint!(farm_in_amount).to_bytes_be());
+
+    farm_setup
+        .blockchain_wrapper
+        .add_mandos_sc_call(sc_call, Some(tx_expect));
 
     let _ = DebugApi::dummy();
 
@@ -181,7 +195,7 @@ where
         &expected_attributes,
     );
 
-    TxContextStack::static_pop();
+    let _ = TxContextStack::static_pop();
 }
 
 fn create_generated_mandos_file_name(suffix: &str) -> String {
@@ -190,6 +204,11 @@ fn create_generated_mandos_file_name(suffix: &str) -> String {
     path += MANDOS_FILE_EXTENSION;
 
     path
+}
+
+fn panic_sc_err(err: StaticSCError) -> ! {
+    let err_str = String::from_utf8(err.as_bytes().to_vec()).unwrap();
+    panic!("{:?}", err_str);
 }
 
 #[test]
@@ -204,4 +223,9 @@ fn test_farm_setup() {
 fn test_enter_farm() {
     let mut farm_setup = setup_farm(farm::contract_obj);
     enter_farm(&mut farm_setup);
+
+    let file_name = create_generated_mandos_file_name("enter_farm");
+    farm_setup
+        .blockchain_wrapper
+        .write_mandos_output(&file_name);
 }
