@@ -128,30 +128,14 @@ where
     }
 }
 
-fn create_generated_mandos_file_name(suffix: &str) -> String {
-    let mut path = GENERATED_FILE_PREFIX.to_owned();
-    path += suffix;
-    path += MANDOS_FILE_EXTENSION;
-
-    path
-}
-
-#[test]
-fn test_farm_setup() {
-    let (wrapper, _, _, _) = setup_farm(farm::contract_obj).into_fields();
-    let file_name = create_generated_mandos_file_name("init");
-
-    wrapper.write_mandos_output(&file_name);
-}
-
-#[test]
-fn test_enter_farm() {
-    let (mut wrapper, _, user_addr, farm_wrapper) = setup_farm(farm::contract_obj).into_fields();
-
+fn enter_farm<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>)
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
     let farm_in_amount = 100_000_000u64;
-    wrapper.execute_esdt_transfer(
-        &user_addr,
-        &farm_wrapper,
+    farm_setup.wrapper.execute_esdt_transfer(
+        &farm_setup.user_address,
+        &farm_setup.farm_wrapper,
         LP_TOKEN_ID,
         0,
         &rust_biguint!(farm_in_amount),
@@ -172,4 +156,26 @@ fn test_enter_farm() {
             StateChange::Commit
         },
     );
+}
+
+fn create_generated_mandos_file_name(suffix: &str) -> String {
+    let mut path = GENERATED_FILE_PREFIX.to_owned();
+    path += suffix;
+    path += MANDOS_FILE_EXTENSION;
+
+    path
+}
+
+#[test]
+fn test_farm_setup() {
+    let (wrapper, _, _, _) = setup_farm(farm::contract_obj).into_fields();
+    let file_name = create_generated_mandos_file_name("init");
+
+    wrapper.write_mandos_output(&file_name);
+}
+
+#[test]
+fn test_enter_farm() {
+    let mut farm_setup = setup_farm(farm::contract_obj);
+    let _ = enter_farm(&mut farm_setup);
 }
