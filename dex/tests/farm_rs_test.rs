@@ -17,6 +17,9 @@ const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
+const MIN_FARMING_EPOCHS: u8 = 2;
+const PENALTY_PERCENT: u64 = 10;
+const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 
 struct FarmSetup<FarmObjBuilder>
 where
@@ -70,6 +73,11 @@ where
 
         let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
         sc.farm_token_id().set(&farm_token_id);
+
+        sc.per_block_reward_amount()
+            .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
+        sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
+        sc.penalty_percent().set(&PENALTY_PERCENT);
 
         sc.state().set(&State::Active);
         sc.produce_rewards_enabled().set(&true);
