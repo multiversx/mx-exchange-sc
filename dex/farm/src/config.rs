@@ -107,10 +107,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("reward_token_id")]
     fn reward_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[view(getLockedAssetFactoryManagedAddress)]
-    #[storage_mapper("locked_asset_factory_address")]
-    fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
-
     #[view(getPenaltyPercent)]
     #[storage_mapper("penalty_percent")]
     fn penalty_percent(&self) -> SingleValueMapper<u64>;

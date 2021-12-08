@@ -49,7 +49,6 @@
                 "arguments": [
                     "str:WEGLD-abcdef",
                     "str:LPTOK-abcdef",
-                    "sc:router_contract",
                     "1000000000000",
                     "sc:pair_contract"
                 ],

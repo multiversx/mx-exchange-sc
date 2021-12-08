@@ -48,7 +48,6 @@ pub trait Farm:
         &self,
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
-        locked_asset_factory_address: ManagedAddress,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) -> SCResult<()> {
@@ -88,9 +87,8 @@ pub trait Farm:
         self.owner().set(&self.blockchain().get_caller());
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
-        self.locked_asset_factory_address()
-            .set(&locked_asset_factory_address);
         self.pair_contract_address().set(&pair_contract_address);
+
         Ok(())
     }
 
