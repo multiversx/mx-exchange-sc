@@ -1,5 +1,5 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, SCResult, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, TokenIdentifier,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -27,6 +27,7 @@ where
 {
     pub wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
+    pub user_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
 }
 
@@ -39,9 +40,15 @@ where
     ) -> (
         BlockchainStateWrapper,
         Address,
+        Address,
         ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     ) {
-        (self.wrapper, self.owner_address, self.farm_wrapper)
+        (
+            self.wrapper,
+            self.owner_address,
+            self.user_address,
+            self.farm_wrapper,
+        )
     }
 }
 
@@ -110,9 +117,13 @@ where
         &reward_token_roles[..],
     );
 
+    let user_addr = wrapper.create_user_account(&rust_biguint!(100_000_000));
+    wrapper.set_esdt_balance(&user_addr, LP_TOKEN_ID, &rust_biguint!(5_000_000_000));
+
     FarmSetup {
         wrapper,
         owner_address: owner_addr,
+        user_address: user_addr,
         farm_wrapper,
     }
 }
@@ -127,8 +138,38 @@ fn create_generated_mandos_file_name(suffix: &str) -> String {
 
 #[test]
 fn test_farm_setup() {
-    let (wrapper, _, _) = setup_farm(farm::contract_obj).into_fields();
+    let (wrapper, _, _, _) = setup_farm(farm::contract_obj).into_fields();
     let file_name = create_generated_mandos_file_name("init");
 
     wrapper.write_mandos_output(&file_name);
+}
+
+#[test]
+fn test_enter_farm() {
+    let (mut wrapper, _, user_addr, farm_wrapper) = setup_farm(farm::contract_obj).into_fields();
+
+    let farm_in_amount = 100_000_000u64;
+    wrapper.execute_esdt_transfer(
+        &user_addr,
+        &farm_wrapper,
+        LP_TOKEN_ID,
+        0,
+        &rust_biguint!(farm_in_amount),
+        |sc| {
+            let result = sc.enter_farm(OptionalArg::None);
+            match result {
+                SCResult::Ok(payment) => {
+                    assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+                    assert_eq!(payment.token_nonce, 1);
+                    assert_eq!(payment.amount, managed_biguint!(farm_in_amount))
+                }
+                SCResult::Err(err) => {
+                    let err_str = String::from_utf8(err.as_bytes().to_vec()).unwrap();
+                    panic!("{:?}", err_str);
+                }
+            }
+
+            StateChange::Commit
+        },
+    );
 }
