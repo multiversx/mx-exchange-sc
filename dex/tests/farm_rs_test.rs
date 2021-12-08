@@ -25,7 +25,7 @@ struct FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
-    pub wrapper: BlockchainStateWrapper,
+    pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
     pub user_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
@@ -44,7 +44,7 @@ where
         ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     ) {
         (
-            self.wrapper,
+            self.blockchain_wrapper,
             self.owner_address,
             self.user_address,
             self.farm_wrapper,
@@ -57,14 +57,18 @@ where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let mut wrapper = BlockchainStateWrapper::new();
-    let owner_addr = wrapper.create_user_account(&rust_zero);
-    let farm_wrapper =
-        wrapper.create_sc_account(&rust_zero, Some(&owner_addr), farm_builder, FARM_WASM_PATH);
+    let mut blockchain_wrapper = BlockchainStateWrapper::new();
+    let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
+    let farm_wrapper = blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(&owner_addr),
+        farm_builder,
+        FARM_WASM_PATH,
+    );
 
     // init farm contract
 
-    wrapper.execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+    blockchain_wrapper.execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
         let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
         let farming_token_id = managed_token_id!(LP_TOKEN_ID);
         let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
@@ -97,31 +101,31 @@ where
         EsdtLocalRole::NftAddQuantity,
         EsdtLocalRole::NftBurn,
     ];
-    wrapper.set_esdt_local_roles(
+    blockchain_wrapper.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         FARM_TOKEN_ID,
         &farm_token_roles[..],
     );
 
     let farming_token_roles = [EsdtLocalRole::Burn];
-    wrapper.set_esdt_local_roles(
+    blockchain_wrapper.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         LP_TOKEN_ID,
         &farming_token_roles[..],
     );
 
     let reward_token_roles = [EsdtLocalRole::Mint];
-    wrapper.set_esdt_local_roles(
+    blockchain_wrapper.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         MEX_TOKEN_ID,
         &reward_token_roles[..],
     );
 
-    let user_addr = wrapper.create_user_account(&rust_biguint!(100_000_000));
-    wrapper.set_esdt_balance(&user_addr, LP_TOKEN_ID, &rust_biguint!(5_000_000_000));
+    let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
+    blockchain_wrapper.set_esdt_balance(&user_addr, LP_TOKEN_ID, &rust_biguint!(5_000_000_000));
 
     FarmSetup {
-        wrapper,
+        blockchain_wrapper,
         owner_address: owner_addr,
         user_address: user_addr,
         farm_wrapper,
@@ -133,7 +137,7 @@ where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
     let farm_in_amount = 100_000_000u64;
-    farm_setup.wrapper.execute_esdt_transfer(
+    farm_setup.blockchain_wrapper.execute_esdt_transfer(
         &farm_setup.user_address,
         &farm_setup.farm_wrapper,
         LP_TOKEN_ID,
@@ -177,5 +181,5 @@ fn test_farm_setup() {
 #[test]
 fn test_enter_farm() {
     let mut farm_setup = setup_farm(farm::contract_obj);
-    let _ = enter_farm(&mut farm_setup);
+    enter_farm(&mut farm_setup);
 }
