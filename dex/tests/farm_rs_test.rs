@@ -1,6 +1,8 @@
+use common_structs::FarmTokenAttributes;
 use elrond_wasm::types::{
     Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, TokenIdentifier,
 };
+use elrond_wasm_debug::tx_mock::TxContextStack;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -160,6 +162,26 @@ where
             StateChange::Commit
         },
     );
+
+    let _ = DebugApi::dummy();
+
+    let expected_attributes = FarmTokenAttributes::<DebugApi> {
+        reward_per_share: managed_biguint!(0),
+        original_entering_epoch: 0,
+        entering_epoch: 0,
+        initial_farming_amount: managed_biguint!(farm_in_amount),
+        compounded_reward: managed_biguint!(0),
+        current_farm_amount: managed_biguint!(farm_in_amount),
+    };
+    farm_setup.blockchain_wrapper.check_nft_balance(
+        &farm_setup.user_address,
+        FARM_TOKEN_ID,
+        1,
+        &rust_biguint!(farm_in_amount),
+        &expected_attributes,
+    );
+
+    TxContextStack::static_pop();
 }
 
 fn create_generated_mandos_file_name(suffix: &str) -> String {
