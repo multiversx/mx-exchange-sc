@@ -9,6 +9,8 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 
+type RustBigUint = num_bigint::BigUint;
+
 use farm::config::*;
 use farm::*;
 
@@ -135,11 +137,13 @@ where
     }
 }
 
-fn enter_farm<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>)
-where
+fn enter_farm<FarmObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+    farm_in_amount: u64,
+    expected_farm_token_nonce: u64,
+) where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
-    let farm_in_amount = 100_000_000u64;
     farm_setup.blockchain_wrapper.execute_esdt_transfer(
         &farm_setup.user_address,
         &farm_setup.farm_wrapper,
@@ -151,7 +155,7 @@ where
             match result {
                 SCResult::Ok(payment) => {
                     assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-                    assert_eq!(payment.token_nonce, 1);
+                    assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                     assert_eq!(payment.amount, managed_biguint!(farm_in_amount))
                 }
                 SCResult::Err(err) => {
@@ -190,12 +194,82 @@ where
     farm_setup.blockchain_wrapper.check_nft_balance(
         &farm_setup.user_address,
         FARM_TOKEN_ID,
-        1,
+        expected_farm_token_nonce,
         &rust_biguint!(farm_in_amount),
         &expected_attributes,
     );
 
     let _ = TxContextStack::static_pop();
+}
+
+fn exit_farm<FarmObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+    farm_token_amount: u64,
+    farm_token_nonce: u64,
+    expected_mex_out: u64,
+    expected_user_mex_balance: &RustBigUint,
+) where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock.execute_esdt_transfer(
+        &farm_setup.user_address,
+        &farm_setup.farm_wrapper,
+        FARM_TOKEN_ID,
+        farm_token_nonce,
+        &rust_biguint!(farm_token_amount),
+        |sc| {
+            let result = sc.exit_farm(
+                managed_token_id!(FARM_TOKEN_ID),
+                farm_token_nonce,
+                managed_biguint!(farm_token_amount),
+                OptionalArg::None,
+            );
+
+            match result {
+                SCResult::Ok(multi_result) => {
+                    let (first_result, second_result) = multi_result.into_tuple();
+
+                    assert_eq!(
+                        first_result.token_identifier,
+                        managed_token_id!(LP_TOKEN_ID)
+                    );
+                    assert_eq!(first_result.token_nonce, 0);
+                    assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
+
+                    assert_eq!(
+                        second_result.token_identifier,
+                        managed_token_id!(MEX_TOKEN_ID)
+                    );
+                    assert_eq!(second_result.token_nonce, 0);
+                    assert_eq!(second_result.amount, managed_biguint!(expected_mex_out))
+                }
+                SCResult::Err(err) => panic_sc_err(err),
+            }
+
+            StateChange::Commit
+        },
+    );
+
+    b_mock.check_esdt_balance(
+        &farm_setup.user_address,
+        MEX_TOKEN_ID,
+        expected_user_mex_balance,
+    );
+}
+
+fn set_block_nonce<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, block_nonce: u64)
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    farm_setup.blockchain_wrapper.set_block_nonce(block_nonce);
+}
+
+fn set_block_epoch<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, block_epoch: u64)
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    farm_setup.blockchain_wrapper.set_block_epoch(block_epoch);
 }
 
 fn create_generated_mandos_file_name(suffix: &str) -> String {
@@ -222,10 +296,33 @@ fn test_farm_setup() {
 #[test]
 fn test_enter_farm() {
     let mut farm_setup = setup_farm(farm::contract_obj);
-    enter_farm(&mut farm_setup);
+
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+    enter_farm(&mut farm_setup, farm_in_amount, expected_farm_token_nonce);
 
     let file_name = create_generated_mandos_file_name("enter_farm");
     farm_setup
         .blockchain_wrapper
         .write_mandos_output(&file_name);
+}
+
+#[test]
+fn test_exit_farm() {
+    let mut farm_setup = setup_farm(farm::contract_obj);
+
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+    enter_farm(&mut farm_setup, farm_in_amount, expected_farm_token_nonce);
+
+    let expected_mex_out = 50_000; // 10 blocks * 5_000 per block
+    set_block_epoch(&mut farm_setup, 5);
+    set_block_nonce(&mut farm_setup, 10);
+    exit_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        expected_farm_token_nonce,
+        expected_mex_out,
+        &rust_biguint!(expected_mex_out),
+    );
 }
