@@ -315,9 +315,10 @@ fn test_exit_farm() {
     let expected_farm_token_nonce = 1;
     enter_farm(&mut farm_setup, farm_in_amount, expected_farm_token_nonce);
 
-    let expected_mex_out = 50_000; // 10 blocks * 5_000 per block
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
+
+    let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
     exit_farm(
         &mut farm_setup,
         farm_in_amount,
