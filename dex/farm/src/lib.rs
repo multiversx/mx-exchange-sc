@@ -524,8 +524,7 @@ pub trait Farm:
         self.burn_farm_tokens_from_payments(additional_payments);
 
         let new_amount = &merged_attributes.current_farm_amount;
-        let new_nonce = self.nft_create_tokens(token_id, new_amount, &merged_attributes);
-        self.farm_token_supply().update(|x| *x += new_amount);
+        let new_nonce = self.mint_farm_tokens(token_id, new_amount, &merged_attributes);
 
         let new_farm_token = FarmToken {
             token_amount: self.create_payment(token_id, new_nonce, new_amount),

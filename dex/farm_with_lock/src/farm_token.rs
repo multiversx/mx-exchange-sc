@@ -156,6 +156,17 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         self.farm_token_supply().update(|x| *x -= total_amount);
     }
 
+    fn mint_farm_tokens(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &BigUint,
+        attributes: &FarmTokenAttributes<Self::Api>,
+    ) -> u64 {
+        let new_nonce = self.nft_create_tokens(token_id, amount, attributes);
+        self.farm_token_supply().update(|x| *x += amount);
+        new_nonce
+    }
+
     fn burn_farm_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
         self.send().esdt_local_burn(token_id, nonce, amount);
         self.farm_token_supply().update(|x| *x -= amount);

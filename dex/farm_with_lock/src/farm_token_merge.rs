@@ -30,9 +30,8 @@ pub trait FarmTokenMergeModule:
         let farm_token_id = self.farm_token_id().get();
         self.burn_farm_tokens_from_payments(payments_iter);
 
-        let new_nonce = self.nft_create_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
+        let new_nonce = self.mint_farm_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         let new_amount = attrs.current_farm_amount;
-        self.farm_token_supply().update(|x| *x += &new_amount);
 
         self.transfer_execute_custom(
             &caller,
