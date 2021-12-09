@@ -16,8 +16,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::config::{
-    DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, DEFAULT_TRANSFER_EXEC_GAS_LIMIT,
-    MAX_PENALTY_PERCENT,
+    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
+    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -81,6 +81,7 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.burn_gas_limit().set(&DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -498,12 +499,14 @@ pub trait Farm:
             self.send()
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
         } else {
+            let gas_limit = self.burn_gas_limit().get();
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(
                     farming_token_id.clone(),
                     farming_amount.clone(),
                     reward_token_id.clone(),
                 )
+                .with_gas_limit(gas_limit)
                 .execute_on_dest_context_ignore_result();
         }
 

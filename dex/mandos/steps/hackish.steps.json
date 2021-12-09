@@ -57,7 +57,8 @@
                         "str:minimum_farming_epochs": "2",
                         "str:division_safety_constant": "1000000000000",
                         "str:penalty_percent": "100",
-                        "str:pair_contract_address": "sc:pair_contract"
+                        "str:pair_contract_address": "sc:pair_contract",
+                        "str:burn_gas_limit": "50,000,000"
                     },
                     "code": "file:../../farm/output/farm.wasm"
                 }
