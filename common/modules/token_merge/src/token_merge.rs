@@ -28,9 +28,7 @@ pub trait TokenMergeModule {
 
     fn weighted_average_ceil(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
         let mut weight_sum = BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| weight_sum = &weight_sum + &x.weight);
+        dataset.iter().for_each(|x| weight_sum += &x.weight);
 
         let mut elem_weight_sum = BigUint::zero();
         dataset
