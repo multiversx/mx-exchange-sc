@@ -172,7 +172,7 @@ pub trait Farm:
         require!(amount > 0, "Payment amount cannot be zero");
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
-        let mut reward_token_id = self.reward_token_id().get();
+        let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
         let mut reward = self.calculate_reward(
@@ -215,8 +215,8 @@ pub trait Farm:
 
         let reward_nonce = 0u64;
         self.send_rewards(
-            &mut reward_token_id,
-            &mut reward,
+            &reward_token_id,
+            &reward,
             &caller,
             &opt_accept_funds_func,
         )?;
