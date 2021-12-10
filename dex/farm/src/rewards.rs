@@ -52,32 +52,34 @@ pub trait RewardsModule:
     }
 
     fn increase_reward_reserve(&self, amount: &BigUint) {
-        let current = self.reward_reserve().get();
-        self.reward_reserve().set(&(&current + amount));
+        self.reward_reserve().update(|reserve| {
+            *reserve += amount;
+        });
     }
 
     fn decrease_reward_reserve(&self, amount: &BigUint) -> SCResult<()> {
-        let current = self.reward_reserve().get();
-        require!(&current >= amount, "Not enough reserves");
-        self.reward_reserve().set(&(&current - amount));
-        Ok(())
+        self.reward_reserve().update(|reserve| {
+            require!(&*reserve >= amount, "Not enough reserves");
+            *reserve += amount;
+            Ok(())
+        })
     }
 
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
-        let current = self.reward_per_share().get();
         let farm_token_supply = self.get_farm_token_supply();
-
         if farm_token_supply > 0 {
-            let increase = self.calculate_reward_per_share_increase(reward_increase);
-
-            if increase > 0 {
-                self.reward_per_share().set(&(current + increase));
-            }
+            let increase =
+                self.calculate_reward_per_share_increase(reward_increase, &farm_token_supply);
+            self.reward_per_share().update(|r| *r += increase);
         }
     }
 
-    fn calculate_reward_per_share_increase(&self, reward_increase: &BigUint) -> BigUint {
-        reward_increase * &self.division_safety_constant().get() / self.get_farm_token_supply()
+    fn calculate_reward_per_share_increase(
+        &self,
+        reward_increase: &BigUint,
+        farm_token_supply: &BigUint,
+    ) -> BigUint {
+        &(reward_increase * &self.division_safety_constant().get()) / farm_token_supply
     }
 
     fn calculate_reward(

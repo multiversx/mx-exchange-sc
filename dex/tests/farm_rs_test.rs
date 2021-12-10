@@ -3,7 +3,7 @@ use elrond_wasm::types::{
     Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
     TokenIdentifier,
 };
-use elrond_wasm_debug::tx_mock::TxContextStack;
+use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -26,6 +26,9 @@ const MIN_FARMING_EPOCHS: u8 = 2;
 const PENALTY_PERCENT: u64 = 10;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 
+const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
+
+#[allow(dead_code)] // owner_address is unused, at least for now
 struct FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
@@ -34,27 +37,6 @@ where
     pub owner_address: Address,
     pub user_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
-}
-
-impl<FarmObjBuilder> FarmSetup<FarmObjBuilder>
-where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
-{
-    pub fn into_fields(
-        self,
-    ) -> (
-        BlockchainStateWrapper,
-        Address,
-        Address,
-        ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
-    ) {
-        (
-            self.blockchain_wrapper,
-            self.owner_address,
-            self.user_address,
-            self.farm_wrapper,
-        )
-    }
 }
 
 fn setup_farm<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
@@ -127,7 +109,11 @@ where
     );
 
     let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
-    blockchain_wrapper.set_esdt_balance(&user_addr, LP_TOKEN_ID, &rust_biguint!(5_000_000_000));
+    blockchain_wrapper.set_esdt_balance(
+        &user_addr,
+        LP_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_LP_TOKENS),
+    );
 
     FarmSetup {
         blockchain_wrapper,
@@ -140,23 +126,41 @@ where
 fn enter_farm<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     farm_in_amount: u64,
+    additional_farm_tokens: &[TxInputESDT],
     expected_farm_token_nonce: u64,
+    expected_reward_per_share: u64,
+    expected_original_entering_epoch: u64,
+    expected_entering_epoch: u64,
+    expected_initial_farming_amount: u64,
+    expected_compounded_reward: u64,
 ) where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
-    farm_setup.blockchain_wrapper.execute_esdt_transfer(
+    let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
+    payments.push(TxInputESDT {
+        token_identifier: LP_TOKEN_ID.to_vec(),
+        nonce: 0,
+        value: rust_biguint!(farm_in_amount),
+    });
+    payments.extend_from_slice(additional_farm_tokens);
+
+    let mut expected_total_out_amount = 0;
+    for payment in payments.iter() {
+        expected_total_out_amount += payment.value.to_u64_digits()[0];
+    }
+
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock.execute_esdt_multi_transfer(
         &farm_setup.user_address,
         &farm_setup.farm_wrapper,
-        LP_TOKEN_ID,
-        0,
-        &rust_biguint!(farm_in_amount),
+        &payments,
         |sc| {
             let result = sc.enter_farm(OptionalArg::None);
             match result {
                 SCResult::Ok(payment) => {
                     assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                     assert_eq!(payment.token_nonce, expected_farm_token_nonce);
-                    assert_eq!(payment.amount, managed_biguint!(farm_in_amount))
+                    assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount))
                 }
                 SCResult::Err(err) => {
                     panic_sc_err(err);
@@ -177,25 +181,23 @@ fn enter_farm<FarmObjBuilder>(
     let mut tx_expect = TxExpectMandos::new(0);
     tx_expect.add_out_value(&rust_biguint!(farm_in_amount).to_bytes_be());
 
-    farm_setup
-        .blockchain_wrapper
-        .add_mandos_sc_call(sc_call, Some(tx_expect));
+    b_mock.add_mandos_sc_call(sc_call, Some(tx_expect));
 
     let _ = DebugApi::dummy();
 
     let expected_attributes = FarmTokenAttributes::<DebugApi> {
-        reward_per_share: managed_biguint!(0),
-        original_entering_epoch: 0,
-        entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(farm_in_amount),
-        compounded_reward: managed_biguint!(0),
-        current_farm_amount: managed_biguint!(farm_in_amount),
+        reward_per_share: managed_biguint!(expected_reward_per_share),
+        original_entering_epoch: expected_original_entering_epoch,
+        entering_epoch: expected_entering_epoch,
+        initial_farming_amount: managed_biguint!(expected_initial_farming_amount),
+        compounded_reward: managed_biguint!(expected_compounded_reward),
+        current_farm_amount: managed_biguint!(expected_total_out_amount),
     };
-    farm_setup.blockchain_wrapper.check_nft_balance(
+    b_mock.check_nft_balance(
         &farm_setup.user_address,
         FARM_TOKEN_ID,
         expected_farm_token_nonce,
-        &rust_biguint!(farm_in_amount),
+        &rust_biguint!(expected_total_out_amount),
         &expected_attributes,
     );
 
@@ -272,6 +274,7 @@ fn claim_rewards<FarmObjBuilder>(
     expected_user_mex_balance: &RustBigUint,
     expected_user_lp_token_balance: &RustBigUint,
     expected_farm_token_nonce_out: u64,
+    expected_reward_per_share: u64,
 ) where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
@@ -312,7 +315,7 @@ fn claim_rewards<FarmObjBuilder>(
 
     let _ = DebugApi::dummy();
     let expected_attributes = FarmTokenAttributes::<DebugApi> {
-        reward_per_share: managed_biguint!(500_000_000), // ???
+        reward_per_share: managed_biguint!(expected_reward_per_share),
         original_entering_epoch: 0,
         entering_epoch: 0,
         initial_farming_amount: managed_biguint!(farm_token_amount),
@@ -339,6 +342,22 @@ fn claim_rewards<FarmObjBuilder>(
     );
 
     let _ = TxContextStack::static_pop();
+}
+
+fn check_farm_token_supply<FarmObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+    expected_farm_token_supply: u64,
+) where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock.execute_query(&farm_setup.farm_wrapper, |sc| {
+        let actual_farm_supply = sc.farm_token_supply().get();
+        assert_eq!(
+            managed_biguint!(expected_farm_token_supply),
+            actual_farm_supply
+        );
+    });
 }
 
 fn set_block_nonce<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, block_nonce: u64)
@@ -370,10 +389,12 @@ fn panic_sc_err(err: StaticSCError) -> ! {
 
 #[test]
 fn test_farm_setup() {
-    let (wrapper, _, _, _) = setup_farm(farm::contract_obj).into_fields();
+    let farm_setup = setup_farm(farm::contract_obj);
     let file_name = create_generated_mandos_file_name("init");
 
-    wrapper.write_mandos_output(&file_name);
+    farm_setup
+        .blockchain_wrapper
+        .write_mandos_output(&file_name);
 }
 
 #[test]
@@ -382,7 +403,18 @@ fn test_enter_farm() {
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
-    enter_farm(&mut farm_setup, farm_in_amount, expected_farm_token_nonce);
+    enter_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        0,
+        0,
+        farm_in_amount,
+        0,
+    );
+    check_farm_token_supply(&mut farm_setup, farm_in_amount);
 
     let file_name = create_generated_mandos_file_name("enter_farm");
     farm_setup
@@ -396,13 +428,24 @@ fn test_exit_farm() {
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
-    enter_farm(&mut farm_setup, farm_in_amount, expected_farm_token_nonce);
+    enter_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        0,
+        0,
+        farm_in_amount,
+        0,
+    );
+    check_farm_token_supply(&mut farm_setup, farm_in_amount);
 
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
 
     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
-    let expected_lp_token_balance = rust_biguint!(5_000_000_000);
+    let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
     exit_farm(
         &mut farm_setup,
         farm_in_amount,
@@ -411,6 +454,7 @@ fn test_exit_farm() {
         &rust_biguint!(expected_mex_out),
         &expected_lp_token_balance,
     );
+    check_farm_token_supply(&mut farm_setup, 0);
 }
 
 #[test]
@@ -419,13 +463,25 @@ fn test_claim_rewards() {
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
-    enter_farm(&mut farm_setup, farm_in_amount, expected_farm_token_nonce);
+    enter_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        0,
+        0,
+        farm_in_amount,
+        0,
+    );
+    check_farm_token_supply(&mut farm_setup, farm_in_amount);
 
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
 
     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
-    let expected_lp_token_balance = rust_biguint!(5_000_000_000 - farm_in_amount);
+    let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount);
+    let expected_reward_per_share = 500_000_000;
     claim_rewards(
         &mut farm_setup,
         farm_in_amount,
@@ -434,5 +490,111 @@ fn test_claim_rewards() {
         &rust_biguint!(expected_mex_out),
         &expected_lp_token_balance,
         expected_farm_token_nonce + 1,
+        expected_reward_per_share,
     );
+    check_farm_token_supply(&mut farm_setup, farm_in_amount);
+}
+
+fn steps_enter_farm_twice<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    let mut farm_setup = setup_farm(farm_builder);
+
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+    enter_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        0,
+        0,
+        farm_in_amount,
+        0,
+    );
+    check_farm_token_supply(&mut farm_setup, farm_in_amount);
+
+    set_block_epoch(&mut farm_setup, 5);
+    set_block_nonce(&mut farm_setup, 10);
+
+    let second_farm_in_amount = 200_000_000;
+    let prev_farm_tokens = [TxInputESDT {
+        token_identifier: FARM_TOKEN_ID.to_vec(),
+        nonce: expected_farm_token_nonce,
+        value: rust_biguint!(farm_in_amount),
+    }];
+    let current_farm_supply = farm_in_amount;
+
+    let total_amount = farm_in_amount + second_farm_in_amount;
+    let first_reward_share = 0;
+    let second_reward_share =
+        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+    let expected_reward_per_share = (first_reward_share * farm_in_amount
+        + second_reward_share * second_farm_in_amount
+        + total_amount
+        - 1)
+        / total_amount;
+
+    let expected_original_entering_epoch =
+        (0 * farm_in_amount + 5 * second_farm_in_amount) / total_amount;
+
+    enter_farm(
+        &mut farm_setup,
+        second_farm_in_amount,
+        &prev_farm_tokens,
+        expected_farm_token_nonce + 1,
+        expected_reward_per_share,
+        expected_original_entering_epoch,
+        5,
+        total_amount,
+        0,
+    );
+    check_farm_token_supply(&mut farm_setup, total_amount);
+
+    farm_setup
+}
+
+#[test]
+fn test_enter_farm_twice() {
+    let _ = steps_enter_farm_twice(farm::contract_obj);
+}
+
+#[test]
+fn test_exit_farm_after_enter_twice() {
+    let mut farm_setup = steps_enter_farm_twice(farm::contract_obj);
+    let farm_in_amount = 100_000_000;
+    let second_farm_in_amount = 200_000_000;
+    let total_farm_token = farm_in_amount + second_farm_in_amount;
+    let expected_user_lp_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
+
+    set_block_epoch(&mut farm_setup, 8);
+    set_block_nonce(&mut farm_setup, 25);
+
+    let current_farm_supply = farm_in_amount;
+
+    let first_reward_share = 0;
+    let second_reward_share =
+        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+    let prev_reward_per_share = (first_reward_share * farm_in_amount
+        + second_reward_share * second_farm_in_amount
+        + total_farm_token
+        - 1)
+        / total_farm_token;
+    let new_reward_per_share = prev_reward_per_share
+        + 25 * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
+    let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
+
+    let expected_reward_amount =
+        total_farm_token * reward_per_share_diff / DIVISION_SAFETY_CONSTANT;
+    exit_farm(
+        &mut farm_setup,
+        total_farm_token,
+        2,
+        expected_reward_amount,
+        &rust_biguint!(expected_reward_amount),
+        &expected_user_lp_balance,
+    );
+    check_farm_token_supply(&mut farm_setup, 0);
 }
