@@ -101,7 +101,6 @@
                         "str:state": "1",
                         "str:farming_token_id": "str:WEGLD-abcdef",
                         "str:reward_token_id": "str:WEGLD-abcdef",
-                        "str:farming_token_reserve": "100,000,000",
                         "+": ""
                     },
                     "code": "file:../farm/output/farm.wasm"

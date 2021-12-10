@@ -70,7 +70,7 @@ pub trait ProxyFarmModule:
         let farming_token_id: TokenIdentifier;
         if token_id == self.wrapped_lp_token_id().get() {
             let wrapped_lp_token_attrs =
-                self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
+                self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
             farming_token_id = wrapped_lp_token_attrs.lp_token_id;
         } else if token_id == self.locked_asset_token_id().get() {
             let asset_token_id = self.asset_token_id().get();
@@ -141,7 +141,7 @@ pub trait ProxyFarmModule:
         );
 
         let wrapped_farm_token_attrs =
-            self.get_wrapped_farm_token_attributes(&token_id, token_nonce);
+            self.get_wrapped_farm_token_attributes(&token_id, token_nonce)?;
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
@@ -217,7 +217,7 @@ pub trait ProxyFarmModule:
 
         // Read info about wrapped farm token and then burn it.
         let wrapped_farm_token_attrs =
-            self.get_wrapped_farm_token_attributes(&token_id, token_nonce);
+            self.get_wrapped_farm_token_attributes(&token_id, token_nonce)?;
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
@@ -309,7 +309,7 @@ pub trait ProxyFarmModule:
         );
 
         let wrapped_farm_token_attrs =
-            self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce);
+            self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce)?;
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
         let farm_amount = payment_amount.clone();

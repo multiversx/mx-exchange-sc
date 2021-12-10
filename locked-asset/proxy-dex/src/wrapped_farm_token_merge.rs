@@ -68,10 +68,11 @@ pub trait WrappedFarmTokenMerge:
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.require_all_tokens_are_wrapped_farm_tokens(payments.clone(), &wrapped_farm_token_id)?;
 
-        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments.clone());
-        if replic.is_some() {
-            tokens.push(replic.unwrap());
+        let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments.clone())?;
+        if let Some(r) = replic {
+            tokens.push(r);
         }
+
         self.require_wrapped_farm_tokens_have_same_token_ids(&tokens)?;
 
         let merged_farm_token_amount = self.merge_farm_tokens(farm_contract, &tokens);
@@ -112,19 +113,22 @@ pub trait WrappedFarmTokenMerge:
     fn get_wrapped_farm_tokens_from_deposit(
         &self,
         payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) -> ManagedVec<WrappedFarmToken<Self::Api>> {
+    ) -> SCResult<ManagedVec<WrappedFarmToken<Self::Api>>> {
         let mut result = ManagedVec::new();
 
         for payment in payments {
+            let attr = self.get_wrapped_farm_token_attributes(
+                &payment.token_identifier,
+                payment.token_nonce,
+            )?;
+
             result.push(WrappedFarmToken {
                 token_amount: payment.clone(),
-                attributes: self.get_wrapped_farm_token_attributes(
-                    &payment.token_identifier,
-                    payment.token_nonce,
-                ),
+                attributes: attr,
             })
         }
-        result
+
+        Ok(result)
     }
 
     fn require_wrapped_farm_tokens_have_same_token_ids(
@@ -282,7 +286,7 @@ pub trait WrappedFarmTokenMerge:
             let wrapped_lp_token_nonce = token.attributes.farming_token_nonce;
 
             let attributes =
-                self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce);
+                self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce)?;
             let wrapped_lp_token = WrappedLpToken {
                 token_amount: self.create_payment(
                     &wrapped_lp_token_id,

@@ -5,10 +5,16 @@ edition = "2018"
 publish = false
 
 [dependencies.elrond-wasm]
-version = "=0.23.0"
+version = "0.24.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.23.0"
+version = "0.24.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.common_structs]
+path = "../common/common_structs"
 
 [dependencies.farm]
 path = "farm"

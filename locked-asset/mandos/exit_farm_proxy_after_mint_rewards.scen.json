@@ -72,8 +72,25 @@
             },
             "expect": {
                 "out": [
-                    "0x000000000c4c50544f4b2d6162636465660000000000000000000000021b58",
-                    "0x000000000a4d45582d61626364656600000000000000000000000303567e"
+                    "0x02",
+                    {
+                        "1-token_type": "u8:2",
+                        "2-token_id": "nested:str:LKMEX-abcdef",
+                        "3-token_nonce": "u64:2",
+                        "4-amount": "biguint:218,750"
+                    },
+                    {
+                        "1-token_type": "u8:0",
+                        "2-token_id": "nested:str:LPTOK-abcdef",
+                        "3-token_nonce": "u64:0",
+                        "4-amount": "biguint:7,000"
+                    },
+                    {
+                        "1-token_type": "u8:2",
+                        "2-token_id": "nested:str:LKMEX-abcdef",
+                        "3-token_nonce": "u64:2",
+                        "4-amount": "biguint:218,750"
+                    }
                 ],
                 "status": "0",
                 "gas": "*",
@@ -92,6 +109,10 @@
                                 {
                                     "nonce": "0x01",
                                     "balance": "80,000"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "218,750"
                                 }
                             ]
                         },
@@ -112,7 +133,7 @@
                                 }
                             ]
                         },
-                        "str:MEX-abcdef": "218,750"
+                        "str:MEX-abcdef": "0"
                     },
                     "storage": {},
                     "code": ""

@@ -16,8 +16,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::config::{
-    DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, DEFAULT_TRANSFER_EXEC_GAS_LIMIT,
-    MAX_PENALTY_PERCENT,
+    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
+    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -38,14 +38,13 @@ pub trait Farm:
     + events::EventsModule
 {
     #[proxy]
-    fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
+    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[init]
     fn init(
         &self,
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
-        locked_asset_factory_address: ManagedAddress,
         division_safety_constant: BigUint,
     ) -> SCResult<()> {
         require!(
@@ -70,21 +69,22 @@ pub trait Farm:
             "Farming token ID cannot be farm token ID"
         );
 
-        self.state().set_if_empty(&State::Active);
+        self.state().set(&State::Inactive);
         self.penalty_percent()
             .set_if_empty(&DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
             .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
+        self.burn_gas_limit().set(&DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
         self.owner().set(&self.blockchain().get_caller());
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
-        self.locked_asset_factory_address()
-            .set(&locked_asset_factory_address);
+        self.pair_contract_address().set(&pair_contract_address);
+
         Ok(())
     }
 
@@ -110,7 +110,6 @@ pub trait Farm:
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
-        self.increase_farming_token_reserve(&enter_amount);
 
         let farm_contribution = &enter_amount;
         let reward_token_id = self.reward_token_id().get();
@@ -145,7 +144,6 @@ pub trait Farm:
             &caller,
             &farming_token_id,
             &enter_amount,
-            &self.farming_token_reserve().get(),
             &new_farm_token.token_amount.token_identifier,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
@@ -230,7 +228,6 @@ pub trait Farm:
             &caller,
             &farming_token_id,
             &initial_farming_token_amount,
-            &self.farming_token_reserve().get(),
             &farm_token_id,
             token_nonce,
             &amount,
@@ -488,8 +485,21 @@ pub trait Farm:
         farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
     ) -> SCResult<()> {
-        self.decrease_farming_token_reserve(farming_amount)?;
-        self.send().esdt_local_burn(farming_token_id, 0, farming_amount);
+        let pair_contract_address = self.pair_contract_address().get();
+        if pair_contract_address.is_zero() {
+            self.send()
+                .esdt_local_burn(farming_token_id, 0, farming_amount);
+        } else {
+            let gas_limit = self.burn_gas_limit().get();
+            self.pair_contract_proxy(pair_contract_address)
+                .remove_liquidity_and_burn_token(
+                    farming_token_id.clone(),
+                    farming_amount.clone(),
+                    reward_token_id.clone(),
+                )
+                .with_gas_limit(gas_limit)
+                .transfer_execute();
+        }
 
         Ok(())
     }
@@ -514,8 +524,7 @@ pub trait Farm:
         self.burn_farm_tokens_from_payments(additional_payments);
 
         let new_amount = &merged_attributes.current_farm_amount;
-        let new_nonce = self.nft_create_tokens(token_id, new_amount, &merged_attributes);
-        self.farm_token_supply().update(|x| *x += new_amount);
+        let new_nonce = self.mint_farm_tokens(token_id, new_amount, &merged_attributes);
 
         let new_farm_token = FarmToken {
             token_amount: self.create_payment(token_id, new_nonce, new_amount),
@@ -533,7 +542,6 @@ pub trait Farm:
         destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        self.decrease_farming_token_reserve(farming_amount)?;
         self.transfer_execute_custom(
             destination,
             farming_token_id,
@@ -567,7 +575,7 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         amount: BigUint,
-        attributes_raw: ManagedBuffer,
+        attributes: FarmTokenAttributes<Self::Api>,
     ) -> SCResult<BigUint> {
         require!(amount > 0, "Zero liquidity input");
         let farm_token_supply = self.get_farm_token_supply();
@@ -579,7 +587,6 @@ pub trait Farm:
             self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
         let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
 
-        let attributes = self.decode_attributes(&attributes_raw)?;
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
         let reward = self.calculate_reward(
             &amount,
@@ -604,28 +611,4 @@ pub trait Farm:
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
         amount * self.penalty_percent().get() / MAX_PENALTY_PERCENT
     }
-
-    fn increase_farming_token_reserve(&self, amount: &BigUint) {
-        let current = self.farming_token_reserve().get();
-        self.farming_token_reserve().set(&(&current + amount));
-    }
-
-    fn decrease_farming_token_reserve(&self, amount: &BigUint) -> SCResult<()> {
-        let current = self.farming_token_reserve().get();
-        require!(&current >= amount, "Not enough farming reserve");
-        self.farming_token_reserve().set(&(&current - amount));
-        Ok(())
-    }
-
-    fn require_whitelisted(&self, address: &ManagedAddress) -> SCResult<()> {
-        require!(
-            self.whitelist().contains(address),
-            "address is not whitelisted"
-        );
-        Ok(())
-    }
-
-    #[view(getFarmingTokenReserve)]
-    #[storage_mapper("farming_token_reserve")]
-    fn farming_token_reserve(&self) -> SingleValueMapper<BigUint>;
 }

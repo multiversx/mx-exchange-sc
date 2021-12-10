@@ -69,7 +69,7 @@ pub trait Pair:
         );
         self.try_set_fee_percents(total_fee_percent, special_fee_percent)?;
 
-        self.state().set_if_empty(&State::ActiveNoSwaps);
+        self.state().set(&State::Inactive);
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.extern_swap_gas_limit()
@@ -195,6 +195,7 @@ pub trait Pair:
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
+        require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -335,7 +336,7 @@ pub trait Pair:
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant(&old_k, &new_k)?;
 
-        self.send_fee_or_burn_on_zero_address(&token_out, &amount_out, &destination_address);
+        self.burn_fees(&token_out, &amount_out);
 
         self.emit_swap_no_fee_and_forward_event(
             &caller,

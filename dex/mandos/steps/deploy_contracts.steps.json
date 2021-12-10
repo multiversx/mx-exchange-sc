@@ -47,10 +47,8 @@
                 "from": "address:owner",
                 "contractCode": "file:../../farm/output/farm.wasm",
                 "arguments": [
-                    "sc:router_contract",
                     "str:WEGLD-abcdef",
                     "str:LPTOK-abcdef",
-                    "sc:router_contract",
                     "1000000000000",
                     "sc:pair_contract"
                 ],

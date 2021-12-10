@@ -16,14 +16,13 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
+        getBurnGasLimit
         getDivisionSafetyConstant
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
-        getFarmingTokenReserve
         getLastErrorMessage
         getLastRewardBlockNonce
-        getLockedAssetFactoryManagedAddress
         getMinimumFarmingEpoch
         getOwner
         getPairContractManagedAddress
@@ -32,7 +31,6 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
-        getRouterManagedAddress
         getState
         getTransferExecGasLimit
         getWhitelist
@@ -43,6 +41,7 @@ elrond_wasm_node::wasm_endpoints! {
         resume
         setLocalRolesFarmToken
         setPerBlockRewardAmount
+        set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
         set_transfer_exec_gas_limit

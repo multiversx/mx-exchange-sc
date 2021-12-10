@@ -129,15 +129,6 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         }
     }
 
-    fn decode_attributes(
-        &self,
-        attributes_raw: &ManagedBuffer,
-    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
-        Ok(self
-            .serializer()
-            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(attributes_raw))
-    }
-
     fn get_farm_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -163,6 +154,17 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
         self.farm_token_supply().update(|x| *x -= total_amount);
+    }
+
+    fn mint_farm_tokens(
+        &self,
+        token_id: &TokenIdentifier,
+        amount: &BigUint,
+        attributes: &FarmTokenAttributes<Self::Api>,
+    ) -> u64 {
+        let new_nonce = self.nft_create_tokens(token_id, amount, attributes);
+        self.farm_token_supply().update(|x| *x += amount);
+        new_nonce
     }
 
     fn burn_farm_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
