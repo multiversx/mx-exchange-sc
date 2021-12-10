@@ -113,7 +113,6 @@ pub trait Farm:
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
-        self.increase_farming_token_reserve(&enter_amount);
 
         let farm_contribution = &enter_amount;
         let reward_token_id = self.reward_token_id().get();
@@ -149,7 +148,6 @@ pub trait Farm:
             &caller,
             &farming_token_id,
             &enter_amount,
-            &self.farming_token_reserve().get(),
             &new_farm_token.token_amount.token_identifier,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
@@ -234,7 +232,6 @@ pub trait Farm:
             &caller,
             &farming_token_id,
             &initial_farming_token_amount,
-            &self.farming_token_reserve().get(),
             &farm_token_id,
             token_nonce,
             &amount,
@@ -491,10 +488,7 @@ pub trait Farm:
         farming_amount: &BigUint,
         reward_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
-        self.decrease_farming_token_reserve(farming_amount)?;
-
         let pair_contract_address = self.pair_contract_address().get();
-
         if pair_contract_address.is_zero() {
             self.send()
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
@@ -552,7 +546,6 @@ pub trait Farm:
         destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        self.decrease_farming_token_reserve(farming_amount)?;
         self.transfer_execute_custom(
             destination,
             farming_token_id,
@@ -630,20 +623,4 @@ pub trait Farm:
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
         amount * self.penalty_percent().get() / MAX_PENALTY_PERCENT
     }
-
-    fn increase_farming_token_reserve(&self, amount: &BigUint) {
-        let current = self.farming_token_reserve().get();
-        self.farming_token_reserve().set(&(&current + amount));
-    }
-
-    fn decrease_farming_token_reserve(&self, amount: &BigUint) -> SCResult<()> {
-        let current = self.farming_token_reserve().get();
-        require!(&current >= amount, "Not enough farming reserve");
-        self.farming_token_reserve().set(&(&current - amount));
-        Ok(())
-    }
-
-    #[view(getFarmingTokenReserve)]
-    #[storage_mapper("farming_token_reserve")]
-    fn farming_token_reserve(&self) -> SingleValueMapper<BigUint>;
 }

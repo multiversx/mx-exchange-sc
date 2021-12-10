@@ -70,7 +70,6 @@
                         "str:farm_token_id)": "str:FARM-abcdef",
                         "str:farm_token_supply": "200,000,000",
                         "str:farming_token_id": "str:LPTOK-abcdef",
-                        "str:farming_token_reserve": "200,000,000",
                         "str:minimum_farming_epochs": "2",
                         "str:owner": "address:owner",
                         "str:pair_contract_address": "sc:pair_contract",
