@@ -83,7 +83,6 @@ pub trait Farm:
         self.owner().set(&self.blockchain().get_caller());
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
-        self.pair_contract_address().set(&pair_contract_address);
 
         Ok(())
     }
@@ -203,7 +202,7 @@ pub trait Farm:
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
             let penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
             if penalty_amount > 0 {
-                self.burn_farming_tokens(&farming_token_id, &penalty_amount)?;
+                self.burn_farming_tokens(&farming_token_id, &penalty_amount);
                 initial_farming_token_amount -= penalty_amount;
             }
         }
@@ -480,28 +479,9 @@ pub trait Farm:
         self.aggregated_original_entering_epoch(&items)
     }
 
-    fn burn_farming_tokens(
-        &self,
-        farming_token_id: &TokenIdentifier,
-        farming_amount: &BigUint,
-    ) -> SCResult<()> {
-        let pair_contract_address = self.pair_contract_address().get();
-        if pair_contract_address.is_zero() {
-            self.send()
-                .esdt_local_burn(farming_token_id, 0, farming_amount);
-        } else {
-            let gas_limit = self.burn_gas_limit().get();
-            self.pair_contract_proxy(pair_contract_address)
-                .remove_liquidity_and_burn_token(
-                    farming_token_id.clone(),
-                    farming_amount.clone(),
-                    reward_token_id.clone(),
-                )
-                .with_gas_limit(gas_limit)
-                .transfer_execute();
-        }
-
-        Ok(())
+    fn burn_farming_tokens(&self, farming_token_id: &TokenIdentifier, farming_amount: &BigUint) {
+        self.send()
+            .esdt_local_burn(farming_token_id, 0, farming_amount);
     }
 
     fn create_farm_tokens_by_merging(
@@ -610,5 +590,10 @@ pub trait Farm:
     #[inline]
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
         amount * self.penalty_percent().get() / MAX_PENALTY_PERCENT
+    }
+
+    fn require_whitelisted(&self, caller: &ManagedAddress) -> SCResult<()> {
+        require!(self.whitelist().contains(caller), "Not whitelisted");
+        Ok(())
     }
 }
