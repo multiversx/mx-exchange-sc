@@ -26,6 +26,9 @@ const MIN_FARMING_EPOCHS: u8 = 2;
 const PENALTY_PERCENT: u64 = 10;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 
+const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
+
+#[allow(dead_code)] // owner_address is unused, at least for now
 struct FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
@@ -34,27 +37,6 @@ where
     pub owner_address: Address,
     pub user_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
-}
-
-impl<FarmObjBuilder> FarmSetup<FarmObjBuilder>
-where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
-{
-    pub fn into_fields(
-        self,
-    ) -> (
-        BlockchainStateWrapper,
-        Address,
-        Address,
-        ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
-    ) {
-        (
-            self.blockchain_wrapper,
-            self.owner_address,
-            self.user_address,
-            self.farm_wrapper,
-        )
-    }
 }
 
 fn setup_farm<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
@@ -127,7 +109,11 @@ where
     );
 
     let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
-    blockchain_wrapper.set_esdt_balance(&user_addr, LP_TOKEN_ID, &rust_biguint!(5_000_000_000));
+    blockchain_wrapper.set_esdt_balance(
+        &user_addr,
+        LP_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_LP_TOKENS),
+    );
 
     FarmSetup {
         blockchain_wrapper,
@@ -403,10 +389,12 @@ fn panic_sc_err(err: StaticSCError) -> ! {
 
 #[test]
 fn test_farm_setup() {
-    let (wrapper, _, _, _) = setup_farm(farm::contract_obj).into_fields();
+    let farm_setup = setup_farm(farm::contract_obj);
     let file_name = create_generated_mandos_file_name("init");
 
-    wrapper.write_mandos_output(&file_name);
+    farm_setup
+        .blockchain_wrapper
+        .write_mandos_output(&file_name);
 }
 
 #[test]
@@ -457,7 +445,7 @@ fn test_exit_farm() {
     set_block_nonce(&mut farm_setup, 10);
 
     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
-    let expected_lp_token_balance = rust_biguint!(5_000_000_000);
+    let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
     exit_farm(
         &mut farm_setup,
         farm_in_amount,
@@ -492,7 +480,7 @@ fn test_claim_rewards() {
     set_block_nonce(&mut farm_setup, 10);
 
     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
-    let expected_lp_token_balance = rust_biguint!(5_000_000_000 - farm_in_amount);
+    let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount);
     let expected_reward_per_share = 500_000_000;
     claim_rewards(
         &mut farm_setup,
@@ -507,9 +495,11 @@ fn test_claim_rewards() {
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 }
 
-#[test]
-fn enter_farm_twice() {
-    let mut farm_setup = setup_farm(farm::contract_obj);
+fn steps_enter_farm_twice<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    let mut farm_setup = setup_farm(farm_builder);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -562,4 +552,53 @@ fn enter_farm_twice() {
         0,
     );
     check_farm_token_supply(&mut farm_setup, total_amount);
+
+    farm_setup
+}
+
+#[test]
+fn test_enter_farm_twice() {
+    let _ = steps_enter_farm_twice(farm::contract_obj);
+}
+
+#[test]
+fn test_exit_farm_after_enter_twice() {
+    let mut farm_setup = steps_enter_farm_twice(farm::contract_obj);
+    let farm_in_amount = 100_000_000;
+    let second_farm_in_amount = 200_000_000;
+    let total_farm_token = farm_in_amount + second_farm_in_amount;
+    let expected_user_lp_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
+
+    set_block_epoch(&mut farm_setup, 8);
+    set_block_nonce(&mut farm_setup, 25);
+    let blocks_diff = 15;
+
+    let current_farm_supply = farm_in_amount;
+
+    let first_reward_share = 0;
+    let second_reward_share =
+        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+    let prev_reward_per_share = (first_reward_share * farm_in_amount
+        + second_reward_share * second_farm_in_amount
+        + total_farm_token
+        - 1)
+        / total_farm_token;
+    let new_reward_per_share = prev_reward_per_share
+        + blocks_diff * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
+    let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
+
+    let expected_reward_amount =
+        total_farm_token * reward_per_share_diff / DIVISION_SAFETY_CONSTANT;
+    exit_farm(
+        &mut farm_setup,
+        total_farm_token,
+        2,
+        expected_reward_amount,
+        &rust_biguint!(expected_reward_amount),
+        &expected_user_lp_balance,
+    );
+    check_farm_token_supply(&mut farm_setup, 0);
+
+    // expected: 75_000
+    // actual: 124_999
 }

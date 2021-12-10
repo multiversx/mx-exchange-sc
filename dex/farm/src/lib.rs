@@ -77,7 +77,7 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.burn_gas_limit().set(&DEFAULT_BURN_GAS_LIMIT);
+        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -579,20 +579,21 @@ pub trait Farm:
         let current_block_nonce = self.blockchain().get_block_nonce();
         let reward_increase =
             self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
-        let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
+        let reward_per_share_increase =
+            self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let reward = self.calculate_reward(
+        let mut reward = self.calculate_reward(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
         );
-
         if self.should_apply_penalty(attributes.entering_epoch) {
-            Ok(&reward - &self.get_penalty_amount(&reward))
-        } else {
-            Ok(reward)
+            let penalty = self.get_penalty_amount(&reward);
+            reward -= penalty;
         }
+
+        Ok(reward)
     }
 
     #[inline]
