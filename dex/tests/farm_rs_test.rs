@@ -550,9 +550,6 @@ fn enter_farm_twice() {
     let expected_original_entering_epoch =
         (0 * farm_in_amount + 5 * second_farm_in_amount) / total_amount;
 
-    // 0x0000000413de43560000000000000003000000000000000500000000000000000000000411e1a300
-    // 0x0000000413de4356000000000000000300000000000000050000000411e1a300000000000000000411e1a300
-
     enter_farm(
         &mut farm_setup,
         second_farm_in_amount,
