@@ -74,7 +74,7 @@ pub trait Farm:
             "Farming token ID cannot be farm token ID"
         );
 
-        self.state().set_if_empty(&State::Active);
+        self.state().set(&State::Inactive);
         self.penalty_percent()
             .set_if_empty(&DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
