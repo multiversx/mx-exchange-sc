@@ -263,10 +263,10 @@ pub trait Farm:
         require!(payment_token_id == farm_token_id, "Unknown farm token");
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
-        let mut reward_token_id = self.reward_token_id().get();
+        let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(
+        let reward = self.calculate_reward(
             &amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
@@ -314,8 +314,8 @@ pub trait Farm:
 
         let reward_nonce = 0u64;
         self.send_rewards(
-            &mut reward_token_id,
-            &mut reward,
+            &reward_token_id,
+            &reward,
             &caller,
             &opt_accept_funds_func,
         )?;
@@ -548,8 +548,8 @@ pub trait Farm:
 
     fn send_rewards(
         &self,
-        reward_token_id: &mut TokenIdentifier,
-        reward_amount: &mut BigUint,
+        reward_token_id: &TokenIdentifier,
+        reward_amount: &BigUint,
         destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
