@@ -571,7 +571,6 @@ fn test_exit_farm_after_enter_twice() {
 
     set_block_epoch(&mut farm_setup, 8);
     set_block_nonce(&mut farm_setup, 25);
-    let blocks_diff = 15;
 
     let current_farm_supply = farm_in_amount;
 
@@ -584,7 +583,7 @@ fn test_exit_farm_after_enter_twice() {
         - 1)
         / total_farm_token;
     let new_reward_per_share = prev_reward_per_share
-        + blocks_diff * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
+        + 25 * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
     let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
 
     let expected_reward_amount =
@@ -598,7 +597,4 @@ fn test_exit_farm_after_enter_twice() {
         &expected_user_lp_balance,
     );
     check_farm_token_supply(&mut farm_setup, 0);
-
-    // expected: 75_000
-    // actual: 124_999
 }
