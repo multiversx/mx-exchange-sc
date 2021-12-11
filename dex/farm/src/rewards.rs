@@ -60,7 +60,7 @@ pub trait RewardsModule:
     fn decrease_reward_reserve(&self, amount: &BigUint) -> SCResult<()> {
         self.reward_reserve().update(|reserve| {
             require!(&*reserve >= amount, "Not enough reserves");
-            *reserve += amount;
+            *reserve -= amount;
             Ok(())
         })
     }

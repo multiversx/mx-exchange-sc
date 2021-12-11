@@ -54,15 +54,17 @@ pub trait RewardsModule:
     }
 
     fn increase_reward_reserve(&self, amount: &BigUint) {
-        let current = self.reward_reserve().get();
-        self.reward_reserve().set(&(&current + amount));
+        self.reward_reserve().update(|reserve| {
+            *reserve += amount;
+        });
     }
 
     fn decrease_reward_reserve(&self, amount: &BigUint) -> SCResult<()> {
-        let current = self.reward_reserve().get();
-        require!(&current >= amount, "Not enough reserves");
-        self.reward_reserve().set(&(&current - amount));
-        Ok(())
+        self.reward_reserve().update(|reserve| {
+            require!(&*reserve >= amount, "Not enough reserves");
+            *reserve -= amount;
+            Ok(())
+        })
     }
 
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
