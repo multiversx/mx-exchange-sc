@@ -1,3 +1,5 @@
+#![no_std]
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -6,7 +8,6 @@ use common_structs::Nonce;
 pub const MAX_PENALTY_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
 pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
-pub const DEFAULT_LOCKED_REWARDS_LIQUIDITY_MUTIPLIER: u8 = 2;
 pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35_000_000;
 pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;

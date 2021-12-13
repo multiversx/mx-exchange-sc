@@ -2,11 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-pub mod config;
-mod events;
-mod farm_token;
+mod custom_rewards;
 pub mod farm_token_merge;
-mod rewards;
 
 use common_structs::{Epoch, FarmTokenAttributes, Nonce};
 use config::State;
@@ -15,7 +12,7 @@ use farm_token::FarmToken;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::config::{
+use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
@@ -29,7 +26,8 @@ type ExitFarmResultType<BigUint> =
 
 #[elrond_wasm::contract]
 pub trait Farm:
-    rewards::RewardsModule
+    custom_rewards::CustomRewardsModule
+    + rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
@@ -76,7 +74,7 @@ pub trait Farm:
             .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.burn_gas_limit().set(&DEFAULT_BURN_GAS_LIMIT);
+        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -175,7 +173,7 @@ pub trait Farm:
         self.require_whitelisted(&caller)?;
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
-        let mut reward_token_id = self.reward_token_id().get();
+        let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
         let mut reward = self.calculate_reward(
@@ -216,12 +214,7 @@ pub trait Farm:
         )?;
 
         let reward_nonce = 0u64;
-        self.send_rewards(
-            &mut reward_token_id,
-            &mut reward,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
         self.emit_exit_farm_event(
             &caller,
@@ -268,10 +261,10 @@ pub trait Farm:
         require!(payment_token_id == farm_token_id, "Unknown farm token");
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
-        let mut reward_token_id = self.reward_token_id().get();
+        let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(
+        let reward = self.calculate_reward(
             &amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
@@ -294,7 +287,7 @@ pub trait Farm:
         let new_attributes = FarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: farm_attributes.entering_epoch,
-            original_entering_epoch: farm_attributes.original_entering_epoch,
+            original_entering_epoch: farm_attributes.entering_epoch,
             initial_farming_amount: new_initial_farming_amount,
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: amount.clone(),
@@ -317,12 +310,7 @@ pub trait Farm:
         )?;
 
         let reward_nonce = 0u64;
-        self.send_rewards(
-            &mut reward_token_id,
-            &mut reward,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
         self.emit_claim_rewards_event(
             &caller,
@@ -403,16 +391,11 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         ) + &reward;
 
-        let compound_original_entering_epoch = self.aggregated_original_entering_epoch_on_compound(
-            &payment_token_id,
-            &payment_amount,
-            &farm_attributes,
-            &reward,
-        );
+        let current_epoch = self.blockchain().get_block_epoch();
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
-            entering_epoch: self.blockchain().get_block_epoch(),
-            original_entering_epoch: compound_original_entering_epoch,
+            entering_epoch: current_epoch,
+            original_entering_epoch: current_epoch,
             initial_farming_amount: new_initial_farming_amount,
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farm_contribution.clone(),
@@ -451,32 +434,6 @@ pub trait Farm:
             created_with_merge,
         );
         Ok(new_farm_token.token_amount)
-    }
-
-    fn aggregated_original_entering_epoch_on_compound(
-        &self,
-        farm_token_id: &TokenIdentifier,
-        position_amount: &BigUint,
-        position_attributes: &FarmTokenAttributes<Self::Api>,
-        reward_amount: &BigUint,
-    ) -> u64 {
-        if reward_amount == &0 {
-            return position_attributes.original_entering_epoch;
-        }
-
-        let initial_position = FarmToken {
-            token_amount: self.create_payment(farm_token_id, 0, position_amount),
-            attributes: position_attributes.clone(),
-        };
-
-        let mut reward_position = initial_position.clone();
-        reward_position.token_amount.amount = reward_amount.clone();
-        reward_position.attributes.original_entering_epoch = self.blockchain().get_block_epoch();
-
-        let mut items = ManagedVec::new();
-        items.push(initial_position);
-        items.push(reward_position);
-        self.aggregated_original_entering_epoch(&items)
     }
 
     fn burn_farming_tokens(&self, farming_token_id: &TokenIdentifier, farming_amount: &BigUint) {
@@ -534,8 +491,8 @@ pub trait Farm:
 
     fn send_rewards(
         &self,
-        reward_token_id: &mut TokenIdentifier,
-        reward_amount: &mut BigUint,
+        reward_token_id: &TokenIdentifier,
+        reward_amount: &BigUint,
         destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
@@ -565,20 +522,21 @@ pub trait Farm:
         let current_block_nonce = self.blockchain().get_block_nonce();
         let reward_increase =
             self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
-        let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
+        let reward_per_share_increase =
+            self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let reward = self.calculate_reward(
+        let mut reward = self.calculate_reward(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
         );
-
         if self.should_apply_penalty(attributes.entering_epoch) {
-            Ok(&reward - &self.get_penalty_amount(&reward))
-        } else {
-            Ok(reward)
+            let penalty = self.get_penalty_amount(&reward);
+            reward -= penalty;
         }
+
+        Ok(reward)
     }
 
     #[inline]

@@ -5,10 +5,6 @@ use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
 
-use super::config;
-
-use super::farm_token;
-
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
@@ -81,10 +77,11 @@ pub trait FarmTokenMergeModule:
             }
         }
 
+        let current_epoch = self.blockchain().get_block_epoch();
         let aggregated_attributes = FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
-            entering_epoch: self.blockchain().get_block_epoch(),
-            original_entering_epoch: self.aggregated_original_entering_epoch(&tokens),
+            entering_epoch: current_epoch,
+            original_entering_epoch: current_epoch,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
@@ -137,31 +134,5 @@ pub trait FarmTokenMergeModule:
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
         aggregated_amount
-    }
-
-    fn aggregated_original_entering_epoch(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> u64 {
-        let mut dataset = ManagedVec::new();
-        tokens.iter().for_each(|x| {
-            dataset.push(ValueWeight {
-                value: BigUint::from(x.attributes.original_entering_epoch),
-                weight: x.token_amount.amount.clone(),
-            })
-        });
-        let avg = self.weighted_average(dataset);
-        avg.to_u64().unwrap()
-    }
-
-    fn weighted_average(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
-        let mut weight_sum = BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| weight_sum = &weight_sum + &x.weight);
-
-        let mut elem_weight_sum = BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| elem_weight_sum = &elem_weight_sum + &(&x.value * &x.weight));
-
-        elem_weight_sum / weight_sum
     }
 }
