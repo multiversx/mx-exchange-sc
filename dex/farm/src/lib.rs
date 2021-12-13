@@ -110,7 +110,7 @@ pub trait Farm:
 
         let farm_contribution = &enter_amount;
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
 
         let epoch = self.blockchain().get_block_epoch();
         let attributes = FarmTokenAttributes {
@@ -174,7 +174,7 @@ pub trait Farm:
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
 
         let mut reward = self.calculate_reward(
             &amount,
@@ -262,7 +262,7 @@ pub trait Farm:
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
 
         let reward = self.calculate_reward(
             &amount,
@@ -365,7 +365,7 @@ pub trait Farm:
             farming_token == reward_token,
             "Farming token differ from reward token"
         );
-        self.generate_aggregated_rewards(&reward_token);
+        self.generate_aggregated_rewards();
 
         let current_rps = self.reward_per_share().get();
         let farm_attributes = self.get_farm_attributes(&payment_token_id, payment_token_nonce)?;

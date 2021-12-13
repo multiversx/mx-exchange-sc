@@ -8,16 +8,23 @@ pub trait CustomRewardsModule:
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
 {
-    fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> BigUint {
+    #[payable("*")]
+    #[endpoint(depositRewards)]
+    fn deposit_rewards(&self, #[payment_token] payment_token: TokenIdentifier) -> SCResult<()> {
+        let reward_token_id = self.reward_token_id().get();
+        require!(payment_token == reward_token_id, "Invalid token");
+        Ok(())
+    }
+
+    fn calculate_and_increase_per_block_rewards(&self) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_block_nonce > last_reward_nonce {
             let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
-            if to_mint != 0 {
-                self.send().esdt_local_mint(token_id, 0, &to_mint);
-            }
+            // rewards are not minted, but rather deposited by the owner
+
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint
         } else {
@@ -25,8 +32,8 @@ pub trait CustomRewardsModule:
         }
     }
 
-    fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
-        let total_reward = self.mint_per_block_rewards(reward_token_id);
+    fn generate_aggregated_rewards(&self) {
+        let total_reward = self.calculate_and_increase_per_block_rewards();
         if total_reward > 0 {
             self.increase_reward_reserve(&total_reward);
             self.update_reward_per_share(&total_reward);
@@ -36,8 +43,7 @@ pub trait CustomRewardsModule:
     #[endpoint]
     fn end_produce_rewards(&self) -> SCResult<()> {
         self.require_permissions()?;
-        let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
         self.produce_rewards_enabled().set(&false);
         Ok(())
     }
@@ -46,8 +52,7 @@ pub trait CustomRewardsModule:
     fn set_per_block_rewards(&self, per_block_amount: BigUint) -> SCResult<()> {
         self.require_permissions()?;
         require!(per_block_amount != 0, "Amount cannot be zero");
-        let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
         self.per_block_reward_amount().set(&per_block_amount);
         Ok(())
     }
