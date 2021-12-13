@@ -3,7 +3,6 @@
 #![feature(exact_size_is_empty)]
 
 pub mod custom_config;
-mod events;
 mod farm_token;
 pub mod farm_token_merge;
 mod rewards;
