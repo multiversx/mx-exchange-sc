@@ -527,12 +527,11 @@ pub trait Farm:
         self.burn_farm_tokens_from_payments(additional_payments);
 
         let new_amount = merged_attributes.current_farm_amount.clone();
-        let new_attributes = merged_attributes;
-        let new_nonce = self.mint_farm_tokens(token_id, &new_amount, &new_attributes);
+        let new_nonce = self.mint_farm_tokens(token_id, &new_amount, &merged_attributes);
 
         let new_farm_token = FarmToken {
             token_amount: self.create_payment(token_id, new_nonce, &new_amount),
-            attributes: new_attributes,
+            attributes: merged_attributes,
         };
         let is_merged = additional_payments_len != 0;
 
@@ -598,7 +597,7 @@ pub trait Farm:
         let reward_increase =
             self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
-        let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase);
+        let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
         let mut reward = self.calculate_reward(
             &amount,

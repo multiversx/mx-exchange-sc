@@ -68,20 +68,20 @@ pub trait RewardsModule:
     }
 
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
-        let current = self.reward_per_share().get();
         let farm_token_supply = self.get_farm_token_supply();
-
         if farm_token_supply > 0 {
-            let increase = self.calculate_reward_per_share_increase(reward_increase);
-
-            if increase > 0 {
-                self.reward_per_share().set(&(current + increase));
-            }
+            let increase =
+                self.calculate_reward_per_share_increase(reward_increase, &farm_token_supply);
+            self.reward_per_share().update(|r| *r += increase);
         }
     }
 
-    fn calculate_reward_per_share_increase(&self, reward_increase: &BigUint) -> BigUint {
-        reward_increase * &self.division_safety_constant().get() / self.get_farm_token_supply()
+    fn calculate_reward_per_share_increase(
+        &self,
+        reward_increase: &BigUint,
+        farm_token_supply: &BigUint,
+    ) -> BigUint {
+        &(reward_increase * &self.division_safety_constant().get()) / farm_token_supply
     }
 
     fn calculate_reward(
