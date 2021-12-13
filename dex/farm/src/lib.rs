@@ -2,7 +2,6 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-mod farm_token;
 pub mod farm_token_merge;
 mod rewards;
 

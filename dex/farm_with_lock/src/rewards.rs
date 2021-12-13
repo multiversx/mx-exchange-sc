@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::farm_token;
-
 use super::custom_config;
 
 use common_structs::Nonce;

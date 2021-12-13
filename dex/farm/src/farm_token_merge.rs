@@ -5,8 +5,6 @@ use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
 
-use super::farm_token;
-
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule

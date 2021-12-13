@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::farm_token;
 use common_structs::Nonce;
 
 #[elrond_wasm::module]

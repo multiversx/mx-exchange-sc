@@ -7,8 +7,6 @@ use token_merge::ValueWeight;
 
 use super::custom_config;
 
-use super::farm_token;
-
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
