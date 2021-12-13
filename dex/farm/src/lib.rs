@@ -2,11 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-pub mod config;
-mod events;
-mod farm_token;
+mod custom_rewards;
 pub mod farm_token_merge;
-mod rewards;
 
 use common_structs::{Epoch, FarmTokenAttributes, Nonce};
 use config::State;
@@ -15,7 +12,7 @@ use farm_token::FarmToken;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::config::{
+use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
@@ -29,7 +26,8 @@ type ExitFarmResultType<BigUint> =
 
 #[elrond_wasm::contract]
 pub trait Farm:
-    rewards::RewardsModule
+    custom_rewards::CustomRewardsModule
+    + rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
@@ -214,12 +212,7 @@ pub trait Farm:
         )?;
 
         let reward_nonce = 0u64;
-        self.send_rewards(
-            &reward_token_id,
-            &reward,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
         self.emit_exit_farm_event(
             &caller,
@@ -313,12 +306,7 @@ pub trait Farm:
         )?;
 
         let reward_nonce = 0u64;
-        self.send_rewards(
-            &reward_token_id,
-            &reward,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
         self.emit_claim_rewards_event(
             &caller,
@@ -396,7 +384,7 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         ) + &reward;
 
-        let current_epoch = self.blockchain().get_block_epoch(); 
+        let current_epoch = self.blockchain().get_block_epoch();
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_rps,
             entering_epoch: current_epoch,

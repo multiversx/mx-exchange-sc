@@ -1,7 +1,9 @@
+#![no_std]
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::FarmTokenAttributes;
+use common_structs::FarmTokenAttributes;
 
 #[derive(TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {
