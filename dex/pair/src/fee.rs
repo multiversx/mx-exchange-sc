@@ -277,11 +277,7 @@ pub trait FeeModule:
     }
 
     #[inline]
-    fn burn_fees(
-        &self,
-        token: &TokenIdentifier,
-        amount: &BigUint,
-    ) {
+    fn burn_fees(&self, token: &TokenIdentifier, amount: &BigUint) {
         if amount > &0 {
             self.send().esdt_local_burn(token, 0, amount);
         }

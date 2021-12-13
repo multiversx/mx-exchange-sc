@@ -9,12 +9,20 @@ const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
 pub mod config;
+mod contexts;
+mod errors;
 mod events;
 pub mod fee;
 mod liquidity_pool;
+pub mod validation;
 
 use config::State;
 use itertools::Itertools;
+
+use crate::{
+    contexts::{AddLiquidityArgs, AddLiquidityContext, Context},
+    errors::*,
+};
 
 type AddLiquidityResultType<BigUint> =
     MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -35,6 +43,7 @@ pub trait Pair:
     + config::ConfigModule
     + token_send::TokenSendModule
     + events::EventsModule
+    + validation::ValidationModule
 {
     #[init]
     fn init(
@@ -90,99 +99,38 @@ pub trait Pair:
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<AddLiquidityResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
-        require!(
-            !self.lp_token_identifier().is_empty(),
-            "LP token not issued"
-        );
-
-        let payments = self.get_all_payments_managed_vec();
-        let (first_payment, second_payment) = payments
-            .into_iter()
-            .collect_tuple()
-            .ok_or("bad payments len")?;
-
-        let expected_first_token_id = self.first_token_id().get();
-        let expected_second_token_id = self.second_token_id().get();
-        require!(
-            first_payment.token_identifier == expected_first_token_id,
-            "bad first payment"
-        );
-        require!(
-            second_payment.token_identifier == expected_second_token_id,
-            "bad second payment"
-        );
-        require!(first_payment.token_nonce == 0, "non zero first token nonce");
-        require!(
-            second_payment.token_nonce == 0,
-            "non zero second token nonce"
-        );
-
-        let first_token_amount_desired = first_payment.amount;
-        let second_token_amount_desired = second_payment.amount;
-        require!(
-            first_token_amount_desired > 0,
-            "Insufficient first token funds sent"
-        );
-        require!(
-            second_token_amount_desired > 0,
-            "Insufficient second token funds sent"
-        );
-        require!(
-            first_token_amount_desired >= first_token_amount_min,
-            "Input first token desired amount is lower than minimal"
-        );
-        require!(
-            second_token_amount_desired >= second_token_amount_min,
-            "Input second token desired amount is lower than minimal"
-        );
-
-        let old_k = self.calculate_k_for_reserves();
-        let (first_token_amount, second_token_amount) = self.calculate_optimal_amounts(
-            first_token_amount_desired.clone(),
-            second_token_amount_desired.clone(),
+        let mut context = self.new_add_liquidity_context(
             first_token_amount_min,
             second_token_amount_min,
-        )?;
-
-        let liquidity =
-            self.pool_add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
-        let first_token_unused = &first_token_amount_desired - &first_token_amount;
-        let second_token_unused = &second_token_amount_desired - &second_token_amount;
-
-        // Once liquidity has been added, the new K should always be greater than the old K.
-        let new_k = self.calculate_k_for_reserves();
-        self.validate_k_invariant_strict(&old_k, &new_k)?;
-
-        let lp_token_id = self.lp_token_identifier().get();
-        self.send().esdt_local_mint(&lp_token_id, 0, &liquidity);
-        self.lp_token_supply().update(|x| *x += &liquidity);
-
-        let mut payments = ManagedVec::new();
-        payments.push(self.create_payment(&lp_token_id, 0, &liquidity));
-        payments.push(self.create_payment(&expected_first_token_id, 0, &first_token_unused));
-        payments.push(self.create_payment(&expected_second_token_id, 0, &second_token_unused));
-
-        let caller = self.blockchain().get_caller();
-        self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)?;
-
-        self.emit_add_liquidity_event(
-            &caller,
-            &expected_first_token_id,
-            &first_token_amount,
-            &expected_second_token_id,
-            &second_token_amount,
-            &lp_token_id,
-            &liquidity,
-            &self.get_total_lp_token_supply(),
-            &self.pair_reserve(&expected_first_token_id).get(),
-            &self.pair_reserve(&expected_second_token_id).get(),
+            opt_accept_funds_func,
         );
-        Ok(MultiResult3::from((
-            self.create_payment(&lp_token_id, 0, &liquidity),
-            self.create_payment(&expected_first_token_id, 0, &first_token_amount),
-            self.create_payment(&expected_second_token_id, 0, &second_token_amount),
-        )))
+        self.assert(context.get_tx_input_args().are_valid(), ERROR_INVALID_ARGS);
+
+        self.read_state(&mut context);
+        self.assert(
+            self.is_state_active(context.get_contract_state()),
+            ERROR_NOT_ACTIVE,
+        );
+
+        self.read_lp_token_id(&mut context);
+        self.assert(
+            !context.get_lp_token_id().is_empty(),
+            ERROR_LP_TOKEN_NOT_ISSUED,
+        );
+
+        self.read_first_token_id(&mut context);
+        self.assert(
+            context.is_tx_input_first_payment_valid(),
+            ERROR_BAD_FIRST_PAYMENT,
+        );
+
+        self.read_second_token_id(&mut context);
+        self.assert(
+            context.is_tx_input_second_payment_valid(),
+            ERROR_BAD_SECOND_PAYMENT,
+        );
+
+        panic!();
     }
 
     #[payable("*")]
@@ -195,7 +143,7 @@ pub trait Pair:
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
+        require!(self.is_state_active(&self.state().get()), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -660,10 +608,48 @@ pub trait Pair:
         }
     }
 
+    fn new_add_liquidity_context(
+        &self,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> AddLiquidityContext<Self::Api> {
+        let payment_tuple: Option<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> =
+            self.get_all_payments_managed_vec()
+                .into_iter()
+                .collect_tuple();
+        let (first_payment, second_payment) = match payment_tuple {
+            Some(tuple) => (Some(tuple.0), Some(tuple.1)),
+            None => (None, None),
+        };
+
+        AddLiquidityContext::new(
+            AddLiquidityArgs::new(first_token_amount_min, second_token_amount_min),
+            first_payment,
+            second_payment,
+            opt_accept_funds_func,
+        )
+    }
+
+    fn read_state(&self, context: &mut dyn Context<Self::Api>) {
+        context.set_contract_state(self.state().get());
+    }
+
+    fn read_lp_token_id(&self, context: &mut dyn Context<Self::Api>) {
+        context.set_lp_token_id(self.lp_token_identifier().get());
+    }
+
+    fn read_first_token_id(&self, context: &mut dyn Context<Self::Api>) {
+        context.set_first_token_id(self.first_token_id().get());
+    }
+
+    fn read_second_token_id(&self, context: &mut dyn Context<Self::Api>) {
+        context.set_second_token_id(self.second_token_id().get());
+    }
+
     #[inline]
-    fn is_active(&self) -> bool {
-        let state = self.state().get();
-        state == State::Active || state == State::ActiveNoSwaps
+    fn is_state_active(&self, state: &State) -> bool {
+        state == &State::Active || state == &State::ActiveNoSwaps
     }
 
     #[inline]
