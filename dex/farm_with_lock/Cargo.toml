@@ -14,6 +14,9 @@ path = "../../common/modules/token_send"
 [dependencies.token_merge]
 path = "../../common/modules/token_merge"
 
+[dependencies.config]
+path = "../../common/modules/config"
+
 [dependencies.factory]
 path = "../../locked-asset/factory"
 

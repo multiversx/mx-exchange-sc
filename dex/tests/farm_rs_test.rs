@@ -11,7 +11,7 @@ use elrond_wasm_debug::{
 
 type RustBigUint = num_bigint::BigUint;
 
-use farm::config::*;
+use config::*;
 use farm::*;
 
 const GENERATED_FILE_PREFIX: &'static str = "_generated_";
@@ -537,16 +537,13 @@ where
         - 1)
         / total_amount;
 
-    let expected_original_entering_epoch =
-        (0 * farm_in_amount + 5 * second_farm_in_amount) / total_amount;
-
     enter_farm(
         &mut farm_setup,
         second_farm_in_amount,
         &prev_farm_tokens,
         expected_farm_token_nonce + 1,
         expected_reward_per_share,
-        expected_original_entering_epoch,
+        5,
         5,
         total_amount,
         0,

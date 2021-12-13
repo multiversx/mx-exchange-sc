@@ -2,7 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-pub mod config;
+pub mod custom_config;
 mod events;
 mod farm_token;
 pub mod farm_token_merge;
@@ -15,7 +15,7 @@ use farm_token::FarmToken;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::config::{
+use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
 };
@@ -30,6 +30,7 @@ type ExitFarmResultType<BigUint> =
 #[elrond_wasm::contract]
 pub trait Farm:
     rewards::RewardsModule
+    + custom_config::CustomConfigModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
@@ -597,7 +598,8 @@ pub trait Farm:
         let reward_increase =
             self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
-        let reward_per_share_increase = self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
+        let reward_per_share_increase =
+            self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
         let mut reward = self.calculate_reward(
             &amount,

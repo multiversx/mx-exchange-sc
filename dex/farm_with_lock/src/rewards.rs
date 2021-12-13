@@ -3,13 +3,16 @@ elrond_wasm::derive_imports!();
 
 use crate::farm_token;
 
-use super::config;
+use super::custom_config;
 
 use common_structs::Nonce;
 
 #[elrond_wasm::module]
 pub trait RewardsModule:
-    config::ConfigModule + token_send::TokenSendModule + farm_token::FarmTokenModule
+    custom_config::CustomConfigModule
+    + config::ConfigModule
+    + token_send::TokenSendModule
+    + farm_token::FarmTokenModule
 {
     fn calculate_per_block_rewards(
         &self,

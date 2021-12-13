@@ -3,8 +3,6 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{FarmTokenAttributes, Nonce};
 
-use super::config;
-
 #[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,

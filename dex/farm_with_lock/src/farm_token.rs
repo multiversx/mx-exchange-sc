@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{FarmTokenAttributes, Nonce};
 
-use super::config;
+use super::custom_config;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
@@ -12,7 +12,9 @@ pub struct FarmToken<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
+pub trait FarmTokenModule:
+    custom_config::CustomConfigModule + config::ConfigModule + token_send::TokenSendModule
+{
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]
     fn register_farm_token(
