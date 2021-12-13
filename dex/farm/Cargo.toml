@@ -17,6 +17,9 @@ path = "../../common/modules/events"
 [dependencies.farm_token]
 path = "../../common/modules/farm_token"
 
+[dependencies.rewards]
+path = "../../common/modules/rewards"
+
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 

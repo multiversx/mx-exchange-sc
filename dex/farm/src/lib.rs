@@ -2,8 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
+mod custom_rewards;
 pub mod farm_token_merge;
-mod rewards;
 
 use common_structs::{Epoch, FarmTokenAttributes, Nonce};
 use config::State;
@@ -26,7 +26,8 @@ type ExitFarmResultType<BigUint> =
 
 #[elrond_wasm::contract]
 pub trait Farm:
-    rewards::RewardsModule
+    custom_rewards::CustomRewardsModule
+    + rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
