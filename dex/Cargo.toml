@@ -16,6 +16,9 @@ num-bigint = "0.4.2"
 [dev-dependencies.config]
 path = "../common/modules/config"
 
+[dev-dependencies.rewards]
+path = "../common/modules/rewards"
+
 [dev-dependencies.common_structs]
 path = "../common/common_structs"
 
