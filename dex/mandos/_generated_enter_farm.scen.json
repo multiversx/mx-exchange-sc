@@ -44,7 +44,6 @@
                         "str:farming_token_id": "0x4c50544f4b2d616263646566",
                         "str:minimum_farming_epochs": "0x02",
                         "str:owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925",
-                        "str:pair_contract_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
                         "str:penalty_percent": "0x0a",
                         "str:per_block_reward_amount": "0x1388",
                         "str:produce_rewards_enabled": "0x01",
@@ -88,58 +87,6 @@
                         "str:farming_token_id": "0x4c50544f4b2d616263646566",
                         "str:minimum_farming_epochs": "0x02",
                         "str:owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925",
-                        "str:pair_contract_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                        "str:penalty_percent": "0x0a",
-                        "str:per_block_reward_amount": "0x1388",
-                        "str:produce_rewards_enabled": "0x01",
-                        "str:reward_token_id": "0x4d45582d616263646566",
-                        "str:state": "0x01",
-                        "str:transfer_exec_gas_limit": "0x02160ec0"
-                    },
-                    "code": "file:../farm/output/farm.wasm",
-                    "owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
-                }
-            }
-        },
-        {
-            "step": "setState",
-            "accounts": {
-                "0x0000000000000000fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e": {
-                    "nonce": "0",
-                    "balance": "0",
-                    "esdt": {
-                        "FARM-abcdef": {
-                            "tokenIdentifier": "0x4641524d2d616263646566",
-                            "instances": [],
-                            "roles": [
-                                "ESDTRoleNFTCreate",
-                                "ESDTRoleNFTAddQuantity",
-                                "ESDTRoleNFTBurn"
-                            ]
-                        },
-                        "LPTOK-abcdef": {
-                            "tokenIdentifier": "0x4c50544f4b2d616263646566",
-                            "instances": [],
-                            "roles": [
-                                "ESDTRoleLocalBurn"
-                            ]
-                        },
-                        "MEX-abcdef": {
-                            "tokenIdentifier": "0x4d45582d616263646566",
-                            "instances": [],
-                            "roles": [
-                                "ESDTRoleLocalMint"
-                            ]
-                        }
-                    },
-                    "storage": {
-                        "str:burn_gas_limit": "0x02faf080",
-                        "str:division_safety_constant": "0xe8d4a51000",
-                        "str:farm_token_id": "0x4641524d2d616263646566",
-                        "str:farming_token_id": "0x4c50544f4b2d616263646566",
-                        "str:minimum_farming_epochs": "0x02",
-                        "str:owner": "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925",
-                        "str:pair_contract_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
                         "str:penalty_percent": "0x0a",
                         "str:per_block_reward_amount": "0x1388",
                         "str:produce_rewards_enabled": "0x01",

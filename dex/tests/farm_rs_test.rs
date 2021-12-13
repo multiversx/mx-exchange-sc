@@ -1,15 +1,18 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, OptionalArg, SCResult, StaticSCError, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
+    TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
-    managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+    DebugApi,
 };
 
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
+use farm::custom_rewards::*;
 use farm::*;
 
 const GENERATED_FILE_PREFIX: &'static str = "_generated_";
@@ -50,6 +53,8 @@ where
         farm_builder,
         FARM_WASM_PATH,
     );
+
+    blockchain_wrapper.set_esdt_balance(&owner_addr, MEX_TOKEN_ID, &rust_biguint!(500_000));
 
     // init farm contract
 
@@ -93,11 +98,31 @@ where
         &farming_token_roles[..],
     );
 
+    /*
     let reward_token_roles = [EsdtLocalRole::Mint];
     blockchain_wrapper.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         MEX_TOKEN_ID,
         &reward_token_roles[..],
+    );
+    */
+
+    // deposit rewards in the SC
+
+    blockchain_wrapper.execute_esdt_transfer(
+        &owner_addr,
+        &farm_wrapper,
+        MEX_TOKEN_ID,
+        0,
+        &rust_biguint!(500_000),
+        |sc| {
+            let result = sc.deposit_rewards(managed_token_id!(MEX_TOKEN_ID));
+            if let SCResult::Err(err) = result {
+                panic_sc_err(err);
+            }
+
+            StateChange::Commit
+        },
     );
 
     let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
@@ -106,6 +131,14 @@ where
         LP_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_LP_TOKENS),
     );
+
+    // the user will have to call through another contract, this is just so the tests pass.
+
+    blockchain_wrapper.execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+        sc.add_address_to_whitelist(managed_address!(&user_addr));
+
+        StateChange::Commit
+    });
 
     FarmSetup {
         blockchain_wrapper,
