@@ -16,13 +16,10 @@ pub mod fee;
 mod liquidity_pool;
 pub mod validation;
 
+use crate::errors::*;
 use config::State;
-use itertools::Itertools;
-
-use crate::{
-    contexts::{AddLiquidityArgs, AddLiquidityContext, Context},
-    errors::*,
-};
+use contexts::base::*;
+use contexts::ctx_helper;
 
 type AddLiquidityResultType<BigUint> =
     MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -36,7 +33,7 @@ type SwapTokensFixedOutputResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
-pub trait Pair:
+pub trait Pair<ContractReader>:
     amm::AmmModule
     + fee::FeeModule
     + liquidity_pool::LiquidityPoolModule
@@ -44,6 +41,7 @@ pub trait Pair:
     + token_send::TokenSendModule
     + events::EventsModule
     + validation::ValidationModule
+    + ctx_helper::CtxHelper
 {
     #[init]
     fn init(
@@ -104,7 +102,18 @@ pub trait Pair:
             second_token_amount_min,
             opt_accept_funds_func,
         );
-        self.assert(context.get_tx_input_args().are_valid(), ERROR_INVALID_ARGS);
+        self.assert(
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
+        );
+        self.assert(
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        self.assert(
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+        );
 
         self.read_state(&mut context);
         self.assert(
@@ -119,15 +128,10 @@ pub trait Pair:
         );
 
         self.read_first_token_id(&mut context);
-        self.assert(
-            context.is_tx_input_first_payment_valid(),
-            ERROR_BAD_FIRST_PAYMENT,
-        );
-
         self.read_second_token_id(&mut context);
         self.assert(
-            context.is_tx_input_second_payment_valid(),
-            ERROR_BAD_SECOND_PAYMENT,
+            context.payment_tokens_match_pool_tokens(),
+            ERROR_BAD_PAYMENT_TOKENS,
         );
 
         panic!();
@@ -606,45 +610,6 @@ pub trait Pair:
         } else {
             sc_error!("Not a known token")
         }
-    }
-
-    fn new_add_liquidity_context(
-        &self,
-        first_token_amount_min: BigUint,
-        second_token_amount_min: BigUint,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> AddLiquidityContext<Self::Api> {
-        let payment_tuple: Option<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> =
-            self.get_all_payments_managed_vec()
-                .into_iter()
-                .collect_tuple();
-        let (first_payment, second_payment) = match payment_tuple {
-            Some(tuple) => (Some(tuple.0), Some(tuple.1)),
-            None => (None, None),
-        };
-
-        AddLiquidityContext::new(
-            AddLiquidityArgs::new(first_token_amount_min, second_token_amount_min),
-            first_payment,
-            second_payment,
-            opt_accept_funds_func,
-        )
-    }
-
-    fn read_state(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_contract_state(self.state().get());
-    }
-
-    fn read_lp_token_id(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_lp_token_id(self.lp_token_identifier().get());
-    }
-
-    fn read_first_token_id(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_first_token_id(self.first_token_id().get());
-    }
-
-    fn read_second_token_id(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_second_token_id(self.second_token_id().get());
     }
 
     #[inline]

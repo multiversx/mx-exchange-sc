@@ -236,19 +236,4 @@ pub trait LiquidityPoolModule:
     fn get_total_lp_token_supply(&self) -> BigUint {
         self.lp_token_supply().get()
     }
-
-    #[view(getFirstTokenId)]
-    #[storage_mapper("first_token_id")]
-    fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[view(getSecondTokenId)]
-    #[storage_mapper("second_token_id")]
-    fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[storage_mapper("lp_token_supply")]
-    fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getReserve)]
-    #[storage_mapper("reserve")]
-    fn pair_reserve(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 }
