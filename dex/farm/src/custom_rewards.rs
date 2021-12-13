@@ -8,6 +8,7 @@ pub trait CustomRewardsModule:
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
 {
+    #[only_owner]
     #[payable("*")]
     #[endpoint(depositRewards)]
     fn deposit_rewards(&self, #[payment_token] payment_token: TokenIdentifier) -> SCResult<()> {
