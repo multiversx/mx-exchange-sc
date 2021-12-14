@@ -12,7 +12,6 @@ use super::wrapped_farm_token_merge;
 use super::wrapped_lp_token_merge;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
@@ -286,90 +285,6 @@ pub trait ProxyFarmModule:
         Ok(())
     }
 
-    #[payable("*")]
-    #[endpoint(compoundRewardsProxy)]
-    fn compound_rewards_proxy(&self, farm_address: ManagedAddress) -> SCResult<()> {
-        self.require_is_intermediated_farm(&farm_address)?;
-        self.require_wrapped_farm_token_id_not_empty()?;
-        self.require_wrapped_lp_token_id_not_empty()?;
-
-        let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
-
-        let payment_token_id = payment_0.token_identifier.clone();
-        let payment_token_nonce = payment_0.token_nonce;
-        let payment_amount = payment_0.amount.clone();
-        require!(payment_amount != 0, "Payment amount cannot be zero");
-
-        let wrapped_farm_token = self.wrapped_farm_token_id().get();
-        require!(
-            payment_token_id == wrapped_farm_token,
-            "Should only be used with wrapped farm tokens"
-        );
-
-        let wrapped_farm_token_attrs =
-            self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce)?;
-        let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
-        let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
-        let farm_amount = payment_amount.clone();
-
-        let result = self.actual_compound_rewards(
-            &farm_address,
-            &farm_token_id,
-            farm_token_nonce,
-            &farm_amount,
-        );
-
-        let new_farm_token = result;
-        let new_farm_token_id = new_farm_token.token_identifier;
-        let new_farm_token_nonce = new_farm_token.token_nonce;
-        let new_farm_token_amount = new_farm_token.amount;
-        require!(
-            new_farm_token_amount > 0,
-            "Farm token amount received should be greater than 0"
-        );
-
-        let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
-            farm_token_id: new_farm_token_id,
-            farm_token_nonce: new_farm_token_nonce,
-            farm_token_amount: new_farm_token_amount.clone(),
-            farming_token_id: wrapped_farm_token_attrs.farming_token_id.clone(),
-            farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
-            farming_token_amount: self.rule_of_three_non_zero_result(
-                &payment_amount,
-                &wrapped_farm_token_attrs.farm_token_amount,
-                &wrapped_farm_token_attrs.farming_token_amount,
-            )?,
-        };
-        let caller = self.blockchain().get_caller();
-        let (new_wrapped_farm, created_with_merge) = self
-            .create_wrapped_farm_tokens_by_merging_and_send(
-                &new_wrapped_farm_token_attributes,
-                &new_farm_token_amount,
-                &farm_address,
-                &caller,
-                payments_iter,
-            )?;
-        self.send()
-            .esdt_local_burn(&payment_token_id, payment_token_nonce, &payment_amount);
-
-        self.emit_compound_rewards_farm_proxy_event(
-            &caller,
-            &farm_address,
-            &payment_token_id,
-            payment_token_nonce,
-            &payment_amount,
-            &new_wrapped_farm.token_amount.token_identifier,
-            new_wrapped_farm.token_amount.token_nonce,
-            &new_wrapped_farm.token_amount.amount,
-            &wrapped_farm_token_attrs,
-            &new_wrapped_farm.attributes,
-            created_with_merge,
-        );
-        Ok(())
-    }
-
     fn create_wrapped_farm_tokens_by_merging_and_send(
         &self,
         attributes: &WrappedFarmTokenAttributes<Self::Api>,
@@ -450,26 +365,6 @@ pub trait ProxyFarmModule:
             .claim_rewards(OptionalArg::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
-    }
-
-    fn actual_compound_rewards(
-        &self,
-        farm_address: &ManagedAddress,
-        farm_token_id: &TokenIdentifier,
-        farm_token_nonce: Nonce,
-        amount: &BigUint,
-    ) -> CompoundRewardsResultType<Self::Api> {
-        let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::new(
-            farm_token_id.clone(),
-            farm_token_nonce,
-            amount.clone(),
-        ));
-
-        self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards(OptionalArg::None)
-            .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn require_is_intermediated_farm(&self, address: &ManagedAddress) -> SCResult<()> {

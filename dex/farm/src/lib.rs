@@ -18,7 +18,6 @@ use config::{
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
@@ -333,107 +332,6 @@ pub trait Farm:
             new_farm_token.token_amount,
             self.create_payment(&reward_token_id, reward_nonce, &reward),
         )))
-    }
-
-    #[payable("*")]
-    #[endpoint(compoundRewards)]
-    fn compound_rewards(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
-
-        let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller)?;
-
-        let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
-
-        let payment_token_id = payment_0.token_identifier.clone();
-        let payment_amount = payment_0.amount.clone();
-        let payment_token_nonce = payment_0.token_nonce;
-        require!(payment_amount > 0, "Zero amount");
-
-        require!(!self.farm_token_id().is_empty(), "No farm token");
-        let farm_token_id = self.farm_token_id().get();
-        require!(payment_token_id == farm_token_id, "Unknown farm token");
-
-        let farming_token = self.farming_token_id().get();
-        let reward_token = self.reward_token_id().get();
-        require!(
-            farming_token == reward_token,
-            "Farming token differ from reward token"
-        );
-        self.generate_aggregated_rewards();
-
-        let current_rps = self.reward_per_share().get();
-        let farm_attributes = self.get_farm_attributes(&payment_token_id, payment_token_nonce)?;
-        let reward = self.calculate_reward(
-            &payment_amount,
-            &current_rps,
-            &farm_attributes.reward_per_share,
-        );
-
-        if reward > 0 {
-            self.decrease_reward_reserve(&reward)?;
-        }
-
-        let new_farm_contribution = &payment_amount + &reward;
-        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
-            &payment_amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.initial_farming_amount,
-        )?;
-        let new_compound_reward_amount = &self.rule_of_three(
-            &payment_amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.compounded_reward,
-        ) + &reward;
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        let new_attributes = FarmTokenAttributes {
-            reward_per_share: current_rps,
-            entering_epoch: current_epoch,
-            original_entering_epoch: current_epoch,
-            initial_farming_amount: new_initial_farming_amount,
-            compounded_reward: new_compound_reward_amount,
-            current_farm_amount: new_farm_contribution.clone(),
-        };
-
-        self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount);
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &new_farm_contribution,
-            &farm_token_id,
-            &new_attributes,
-            payments_iter,
-        )?;
-        self.transfer_execute_custom(
-            &caller,
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &opt_accept_funds_func,
-        )?;
-
-        self.emit_compound_rewards_event(
-            &caller,
-            &farm_token_id,
-            payment_token_nonce,
-            &payment_amount,
-            &new_farm_token.token_amount.token_identifier,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &self.farm_token_supply().get(),
-            &self.reward_token_id().get(),
-            0,
-            &reward,
-            &self.reward_reserve().get(),
-            &farm_attributes,
-            &new_farm_token.attributes,
-            created_with_merge,
-        );
-        Ok(new_farm_token.token_amount)
     }
 
     fn burn_farming_tokens(&self, farming_token_id: &TokenIdentifier, farming_amount: &BigUint) {
