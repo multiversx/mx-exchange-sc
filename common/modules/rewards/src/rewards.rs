@@ -39,7 +39,7 @@ pub trait RewardsModule:
     }
 
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
-        let farm_token_supply = self.get_farm_token_supply();
+        let farm_token_supply = self.farm_token_supply().get();
         if farm_token_supply > 0 {
             let increase =
                 self.calculate_reward_per_share_increase(reward_increase, &farm_token_supply);
@@ -69,7 +69,7 @@ pub trait RewardsModule:
         }
     }
 
-    #[endpoint]
+    #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) -> SCResult<()> {
         self.require_permissions()?;
         require!(

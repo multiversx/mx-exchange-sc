@@ -56,17 +56,21 @@ pub trait FarmTokenMergeModule:
         let mut tokens = ManagedVec::new();
         let farm_token_id = self.farm_token_id().get();
 
-        for entry in payments {
-            require!(entry.amount != 0u64, "zero entry amount");
-            require!(entry.token_identifier == farm_token_id, "Not a farm token");
+        for payment in payments {
+            require!(payment.amount != 0u64, "zero entry amount");
+            require!(
+                payment.token_identifier == farm_token_id,
+                "Not a farm token"
+            );
 
             tokens.push(FarmToken {
                 token_amount: self.create_payment(
-                    &entry.token_identifier,
-                    entry.token_nonce,
-                    &entry.amount,
+                    &payment.token_identifier,
+                    payment.token_nonce,
+                    &payment.amount,
                 ),
-                attributes: self.get_farm_attributes(&entry.token_identifier, entry.token_nonce)?,
+                attributes: self
+                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce)?,
             });
         }
 

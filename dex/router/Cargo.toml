@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.24.0"
+version = "0.25.0"
 features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.24.0"
+version = "0.25.0"
 
 [dependencies.pair]
 path = "../pair"

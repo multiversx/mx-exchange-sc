@@ -23,12 +23,32 @@
         {
             "step": "setState",
             "accounts": {
+                "0x66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:MEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "500000",
+                                    "royalties": "0",
+                                    "attributes": "0x"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
                 "0x0000000000000000fb1397e8225ea85e0f0e6e8c7b126d0016ccbde0e667151e": {
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
-                        "FARM-abcdef": {
-                            "tokenIdentifier": "0x4641524d2d616263646566",
+                        "str:FARM-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleNFTCreate",
@@ -63,8 +83,7 @@
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
-                        "FARM-abcdef": {
-                            "tokenIdentifier": "0x4641524d2d616263646566",
+                        "str:FARM-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleNFTCreate",
@@ -72,8 +91,7 @@
                                 "ESDTRoleNFTBurn"
                             ]
                         },
-                        "LPTOK-abcdef": {
-                            "tokenIdentifier": "0x4c50544f4b2d616263646566",
+                        "str:LPTOK-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleLocalBurn"
@@ -105,6 +123,27 @@
                 "0x12771355e46cd47c71ed1721fd5319b383cca3a1f9fce3aa1c8cd3bd37af20d7": {
                     "nonce": "0",
                     "balance": "100000000"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "0x12771355e46cd47c71ed1721fd5319b383cca3a1f9fce3aa1c8cd3bd37af20d7": {
+                    "nonce": "0",
+                    "balance": "100000000",
+                    "esdt": {
+                        "str:LPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "5000000000",
+                                    "royalties": "0",
+                                    "attributes": "0x"
+                                }
+                            ]
+                        }
+                    }
                 }
             }
         }
