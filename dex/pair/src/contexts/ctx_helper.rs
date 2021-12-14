@@ -3,6 +3,8 @@ elrond_wasm::derive_imports!();
 
 use itertools::Itertools;
 
+use crate::AddLiquidityResultType;
+
 use super::add_liquidity::*;
 use super::base::*;
 
@@ -65,7 +67,7 @@ pub trait CtxHelper:
     }
 
     fn load_lp_token_supply(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_second_token_reserve(self.lp_token_supply().get());
+        context.set_lp_token_supply(self.lp_token_supply().get());
     }
 
     fn load_initial_k(&self, context: &mut dyn Context<Self::Api>) {
@@ -118,11 +120,7 @@ pub trait CtxHelper:
     fn construct_and_get_output_results(
         &self,
         context: &AddLiquidityContext<Self::Api>,
-    ) -> MultiResult3<
-        EsdtTokenPayment<Self::Api>,
-        EsdtTokenPayment<Self::Api>,
-        EsdtTokenPayment<Self::Api>,
-    > {
+    ) -> AddLiquidityResultType<Self::Api> {
         MultiResult3::from((
             self.create_payment(context.get_lp_token_id(), 0, context.get_liquidity_added()),
             self.create_payment(
