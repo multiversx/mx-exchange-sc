@@ -22,7 +22,6 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) -> SCResult<AsyncCall> {
-        require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(self.farm_token_id().is_empty(), "Token exists already");
 
@@ -91,7 +90,6 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
 
     #[endpoint(setLocalRolesFarmToken)]
     fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall> {
-        require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
