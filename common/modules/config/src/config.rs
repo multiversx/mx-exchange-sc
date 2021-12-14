@@ -79,11 +79,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
         Ok(())
     }
 
-    #[inline(always)]
-    fn get_farm_token_supply(&self) -> BigUint {
-        self.farm_token_supply().get()
-    }
-
     #[view(getFarmTokenSupply)]
     #[storage_mapper("farm_token_supply")]
     fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;

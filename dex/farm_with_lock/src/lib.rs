@@ -151,7 +151,7 @@ pub trait Farm:
             &new_farm_token.token_amount.token_identifier,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &self.get_farm_token_supply(),
+            &self.farm_token_supply().get(),
             &reward_token_id,
             &self.reward_reserve().get(),
             &new_farm_token.attributes,
@@ -235,7 +235,7 @@ pub trait Farm:
             &farm_token_id,
             token_nonce,
             &amount,
-            &self.get_farm_token_supply(),
+            &self.farm_token_supply().get(),
             &reward_token_id,
             reward_nonce,
             &reward,
@@ -337,7 +337,7 @@ pub trait Farm:
             &new_farm_token.token_amount.token_identifier,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &self.get_farm_token_supply(),
+            &self.farm_token_supply().get(),
             &reward_token_id,
             reward_nonce,
             &reward,
@@ -444,7 +444,7 @@ pub trait Farm:
             &new_farm_token.token_amount.token_identifier,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &self.get_farm_token_supply(),
+            &self.farm_token_supply().get(),
             &self.reward_token_id().get(),
             0,
             &reward,
@@ -589,7 +589,7 @@ pub trait Farm:
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> SCResult<BigUint> {
         require!(amount > 0, "Zero liquidity input");
-        let farm_token_supply = self.get_farm_token_supply();
+        let farm_token_supply = self.farm_token_supply().get();
         require!(farm_token_supply >= amount, "Not enough supply");
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
