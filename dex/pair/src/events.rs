@@ -1,3 +1,6 @@
+use crate::contexts::add_liquidity::AddLiquidityContext;
+use crate::contexts::base::Context;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -126,36 +129,24 @@ pub trait EventsModule {
         )
     }
 
-    fn emit_add_liquidity_event(
-        &self,
-        caller: &ManagedAddress,
-        first_token_id: &TokenIdentifier,
-        first_token_amount: &BigUint,
-        second_token_id: &TokenIdentifier,
-        second_token_amount: &BigUint,
-        lp_token_id: &TokenIdentifier,
-        lp_token_amount: &BigUint,
-        lp_supply: &BigUint,
-        first_token_reserves: &BigUint,
-        second_token_reserves: &BigUint,
-    ) {
+    fn emit_add_liquidity_event(&self, context: &AddLiquidityContext<Self::Api>) {
         let epoch = self.blockchain().get_block_epoch();
         self.add_liquidity_event(
-            first_token_id,
-            second_token_id,
-            caller,
+            context.get_first_token_id(),
+            context.get_second_token_id(),
+            context.get_caller(),
             epoch,
             &AddLiquidityEvent {
-                caller: caller.clone(),
-                first_token_id: first_token_id.clone(),
-                first_token_amount: first_token_amount.clone(),
-                second_token_id: second_token_id.clone(),
-                second_token_amount: second_token_amount.clone(),
-                lp_token_id: lp_token_id.clone(),
-                lp_token_amount: lp_token_amount.clone(),
-                lp_supply: lp_supply.clone(),
-                first_token_reserves: first_token_reserves.clone(),
-                second_token_reserves: second_token_reserves.clone(),
+                caller: context.get_caller().clone(),
+                first_token_id: context.get_first_token_id().clone(),
+                first_token_amount: context.get_first_amount_optimal().clone(),
+                second_token_id: context.get_second_token_id().clone(),
+                second_token_amount: context.get_second_amount_optimal().clone(),
+                lp_token_id: context.get_lp_token_id().clone(),
+                lp_token_amount: context.get_liquidity_added().clone(),
+                lp_supply: context.get_lp_token_supply().clone(),
+                first_token_reserves: context.get_first_token_reserve().clone(),
+                second_token_reserves: context.get_second_token_reserve().clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),

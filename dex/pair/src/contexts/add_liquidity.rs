@@ -5,11 +5,20 @@ use super::base::*;
 use crate::State;
 
 pub struct AddLiquidityContext<M: ManagedTypeApi> {
+    caller: ManagedAddress<M>,
     tx_input: AddLiquidityTxInput<M>,
     contract_state: State,
     lp_token_id: TokenIdentifier<M>,
     first_token_id: TokenIdentifier<M>,
     second_token_id: TokenIdentifier<M>,
+    first_token_reserve: BigUint<M>,
+    second_token_reserve: BigUint<M>,
+    lp_token_supply: BigUint<M>,
+    initial_k: BigUint<M>,
+    first_token_optimal: BigUint<M>,
+    second_token_optimal: BigUint<M>,
+    liquidity_added: BigUint<M>,
+    output_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
 pub struct AddLiquidityTxInput<M: ManagedTypeApi> {
@@ -61,13 +70,22 @@ impl<M: ManagedTypeApi> AddLiquidityPayments<M> {
 }
 
 impl<M: ManagedTypeApi> AddLiquidityContext<M> {
-    pub fn new(tx_input: AddLiquidityTxInput<M>) -> Self {
+    pub fn new(tx_input: AddLiquidityTxInput<M>, caller: ManagedAddress<M>) -> Self {
         AddLiquidityContext {
+            caller,
             tx_input,
             contract_state: State::Inactive,
             lp_token_id: TokenIdentifier::egld(),
             first_token_id: TokenIdentifier::egld(),
             second_token_id: TokenIdentifier::egld(),
+            first_token_reserve: BigUint::zero(),
+            second_token_reserve: BigUint::zero(),
+            lp_token_supply: BigUint::zero(),
+            initial_k: BigUint::zero(),
+            first_token_optimal: BigUint::zero(),
+            second_token_optimal: BigUint::zero(),
+            liquidity_added: BigUint::zero(),
+            output_payments: ManagedVec::new(),
         }
     }
 }
@@ -103,6 +121,42 @@ impl<M: ManagedTypeApi> Context<M> for AddLiquidityContext<M> {
 
     fn get_second_token_id(&self) -> &TokenIdentifier<M> {
         &self.second_token_id
+    }
+
+    fn set_first_token_reserve(&mut self, amount: BigUint<M>) {
+        self.first_token_reserve = amount;
+    }
+
+    fn get_first_token_reserve(&self) -> &BigUint<M> {
+        &self.first_token_reserve
+    }
+
+    fn set_second_token_reserve(&mut self, amount: BigUint<M>) {
+        self.second_token_reserve = amount;
+    }
+
+    fn get_second_token_reserve(&self) -> &BigUint<M> {
+        &self.second_token_reserve
+    }
+
+    fn set_lp_token_supply(&mut self, amount: BigUint<M>) {
+        self.lp_token_supply = amount;
+    }
+
+    fn get_lp_token_supply(&self) -> &BigUint<M> {
+        &self.lp_token_supply
+    }
+
+    fn set_initial_k(&mut self, k: BigUint<M>) {
+        self.initial_k = k;
+    }
+
+    fn get_initial_k(&self) -> &BigUint<M> {
+        &self.initial_k
+    }
+
+    fn get_caller(&self) -> &ManagedAddress<M> {
+        &self.caller
     }
 
     fn get_tx_input(&self) -> &dyn TxInput<M> {
@@ -191,5 +245,66 @@ impl<M: ManagedTypeApi> AddLiquidityContext<M> {
             Some(payment) => token_id == &payment.token_identifier,
             None => false,
         }
+    }
+
+    pub fn get_first_payment(&self) -> &EsdtTokenPayment<M> {
+        self.tx_input.payments.first_payment.as_ref().unwrap()
+    }
+
+    pub fn get_second_payment(&self) -> &EsdtTokenPayment<M> {
+        self.tx_input.payments.second_payment.as_ref().unwrap()
+    }
+
+    pub fn set_liquidity_added(&mut self, amount: BigUint<M>) {
+        self.liquidity_added = amount;
+    }
+
+    pub fn get_liquidity_added(&self) -> &BigUint<M> {
+        &self.liquidity_added
+    }
+
+    pub fn increase_lp_token_supply(&mut self, amount: &BigUint<M>) {
+        self.lp_token_supply += amount;
+    }
+
+    pub fn increase_reserves(&mut self) {
+        self.first_token_reserve += &self.first_token_optimal;
+        self.second_token_reserve += &self.second_token_optimal;
+    }
+
+    pub fn set_first_amount_optimal(&mut self, amount: BigUint<M>) {
+        self.first_token_optimal = amount;
+    }
+
+    pub fn get_first_amount_optimal(&self) -> &BigUint<M> {
+        &self.first_token_optimal
+    }
+
+    pub fn set_second_amount_optimal(&mut self, amount: BigUint<M>) {
+        self.second_token_optimal = amount;
+    }
+
+    pub fn get_second_amount_optimal(&self) -> &BigUint<M> {
+        &self.second_token_optimal
+    }
+
+    pub fn get_first_token_amount_min(&self) -> &BigUint<M> {
+        &self.tx_input.args.first_token_amount_min
+    }
+
+    pub fn get_second_token_amount_min(&self) -> &BigUint<M> {
+        &self.tx_input.args.second_token_amount_min
+    }
+
+    pub fn set_output_payments(&mut self, payments: ManagedVec<M, EsdtTokenPayment<M>>) {
+        self.output_payments = payments
+    }
+
+    pub fn get_output_payments(&self) -> &ManagedVec<M, EsdtTokenPayment<M>> {
+        &self.output_payments
+    }
+
+    pub fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
+        &self.tx_input.args.opt_accept_funds_func
     }
 }

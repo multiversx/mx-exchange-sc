@@ -4,6 +4,7 @@ elrond_wasm::derive_imports!();
 use super::amm;
 use super::config;
 use super::liquidity_pool;
+use super::validation;
 use common_structs::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
@@ -14,6 +15,7 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_send::TokenSendModule
+    + validation::ValidationModule
 {
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;

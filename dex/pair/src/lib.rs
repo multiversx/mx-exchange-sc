@@ -96,7 +96,7 @@ pub trait Pair<ContractReader>:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<AddLiquidityResultType<Self::Api>> {
+    ) -> AddLiquidityResultType<Self::Api> {
         let mut context = self.new_add_liquidity_context(
             first_token_amount_min,
             second_token_amount_min,
@@ -115,26 +115,46 @@ pub trait Pair<ContractReader>:
             ERROR_ARGS_NOT_MATCH_PAYMENTS,
         );
 
-        self.read_state(&mut context);
+        self.load_state(&mut context);
         self.assert(
             self.is_state_active(context.get_contract_state()),
             ERROR_NOT_ACTIVE,
         );
 
-        self.read_lp_token_id(&mut context);
+        self.load_lp_token_id(&mut context);
         self.assert(
             !context.get_lp_token_id().is_empty(),
             ERROR_LP_TOKEN_NOT_ISSUED,
         );
 
-        self.read_first_token_id(&mut context);
-        self.read_second_token_id(&mut context);
+        self.load_first_token_id(&mut context);
+        self.load_second_token_id(&mut context);
         self.assert(
             context.payment_tokens_match_pool_tokens(),
             ERROR_BAD_PAYMENT_TOKENS,
         );
 
-        panic!();
+        self.load_first_token_reserve(&mut context);
+        self.load_second_token_reserve(&mut context);
+        self.load_lp_token_supply(&mut context);
+        self.load_initial_k(&mut context);
+
+        self.calculate_optimal_amounts(&mut context);
+        self.pool_add_liquidity(&mut context);
+
+        let new_k = self.calculate_k(&context);
+        self.assert(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
+
+        let lpt = context.get_lp_token_id();
+        let liq_added = context.get_liquidity_added();
+        self.send().esdt_local_mint(lpt, 0, liq_added);
+        self.commit_changes(&context);
+
+        self.construct_output_payments(&mut context);
+        self.execute_output_payments(&context);
+        self.emit_add_liquidity_event(&context);
+
+        self.construct_and_get_output_results(&context)
     }
 
     #[payable("*")]

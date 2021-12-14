@@ -16,6 +16,20 @@ pub trait Context<M: ManagedTypeApi> {
     fn set_second_token_id(&mut self, token_id: TokenIdentifier<M>);
     fn get_second_token_id(&self) -> &TokenIdentifier<M>;
 
+    fn set_first_token_reserve(&mut self, amount: BigUint<M>);
+    fn get_first_token_reserve(&self) -> &BigUint<M>;
+
+    fn set_second_token_reserve(&mut self, amount: BigUint<M>);
+    fn get_second_token_reserve(&self) -> &BigUint<M>;
+
+    fn set_lp_token_supply(&mut self, amount: BigUint<M>);
+    fn get_lp_token_supply(&self) -> &BigUint<M>;
+
+    fn set_initial_k(&mut self, k: BigUint<M>);
+    fn get_initial_k(&self) -> &BigUint<M>;
+
+    fn get_caller(&self) -> &ManagedAddress<M>;
+
     fn get_tx_input(&self) -> &dyn TxInput<M>;
 }
 
