@@ -317,7 +317,7 @@ pub trait Pair<ContractReader>:
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        self.assert(&old_k <= &new_k, ERROR_K_INVARIANT_FAILED);
+        self.assert(old_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
         self.burn_fees(&token_out, &amount_out);
 
@@ -387,7 +387,7 @@ pub trait Pair<ContractReader>:
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        self.assert(&old_k <= &new_k, ERROR_K_INVARIANT_FAILED);
+        self.assert(old_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
@@ -465,7 +465,7 @@ pub trait Pair<ContractReader>:
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        self.assert(&old_k <= &new_k, ERROR_K_INVARIANT_FAILED);
+        self.assert(old_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
