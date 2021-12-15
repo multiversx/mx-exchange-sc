@@ -151,10 +151,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("whitelist")]
     fn whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[view(getPairContractManagedAddress)]
-    #[storage_mapper("pair_contract_address")]
-    fn pair_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
-
     #[view(getBurnGasLimit)]
     #[storage_mapper("burn_gas_limit")]
     fn burn_gas_limit(&self) -> SingleValueMapper<u64>;

@@ -12,7 +12,7 @@ elrond_wasm_node::wasm_endpoints! {
         addAddressToWhitelist
         calculateRewardsForGivenPosition
         claimRewards
-        compoundRewards
+        depositRewards
         end_produce_rewards
         enterFarm
         exitFarm
@@ -25,7 +25,6 @@ elrond_wasm_node::wasm_endpoints! {
         getLastRewardBlockNonce
         getMinimumFarmingEpoch
         getOwner
-        getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
         getRewardPerShare
