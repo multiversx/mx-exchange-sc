@@ -4,9 +4,11 @@ elrond_wasm::derive_imports!();
 use itertools::Itertools;
 
 use crate::AddLiquidityResultType;
+use crate::RemoveLiquidityResultType;
 
 use super::add_liquidity::*;
 use super::base::*;
+use super::remove_liquidity::*;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
@@ -40,6 +42,29 @@ pub trait CtxHelper:
         AddLiquidityContext::new(tx_input, caller)
     }
 
+    fn new_remove_liquidity_context(
+        &self,
+        payment_token: &TokenIdentifier,
+        payment_nonce: u64,
+        payment_amount: &BigUint,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> RemoveLiquidityContext<Self::Api> {
+        let caller = self.blockchain().get_caller();
+
+        let payment = self.create_payment(payment_token, payment_nonce, payment_amount);
+        let args = RemoveLiquidityArgs::new(
+            first_token_amount_min,
+            second_token_amount_min,
+            opt_accept_funds_func,
+        );
+        let payments = RemoveLiquidityPayments::new(payment);
+        let tx_input = RemoveLiquidityTxInput::new(args, payments);
+
+        RemoveLiquidityContext::new(tx_input, caller)
+    }
+
     fn load_state(&self, context: &mut dyn Context<Self::Api>) {
         context.set_contract_state(self.state().get());
     }
@@ -48,21 +73,15 @@ pub trait CtxHelper:
         context.set_lp_token_id(self.lp_token_identifier().get());
     }
 
-    fn load_first_token_id(&self, context: &mut dyn Context<Self::Api>) {
+    fn load_pool_token_ids(&self, context: &mut dyn Context<Self::Api>) {
         context.set_first_token_id(self.first_token_id().get());
-    }
-
-    fn load_second_token_id(&self, context: &mut dyn Context<Self::Api>) {
         context.set_second_token_id(self.second_token_id().get());
     }
 
-    fn load_first_token_reserve(&self, context: &mut dyn Context<Self::Api>) {
+    fn load_pool_reserves(&self, context: &mut dyn Context<Self::Api>) {
+        let second_token_id = context.get_second_token_id().clone();
         let first_token_id = context.get_first_token_id().clone();
         context.set_first_token_reserve(self.pair_reserve(&first_token_id).get());
-    }
-
-    fn load_second_token_reserve(&self, context: &mut dyn Context<Self::Api>) {
-        let second_token_id = context.get_second_token_id().clone();
         context.set_second_token_reserve(self.pair_reserve(&second_token_id).get());
     }
 
@@ -78,7 +97,10 @@ pub trait CtxHelper:
         context.set_initial_k(k);
     }
 
-    fn construct_output_payments(&self, context: &mut AddLiquidityContext<Self::Api>) {
+    fn construct_add_liquidity_output_payments(
+        &self,
+        context: &mut AddLiquidityContext<Self::Api>,
+    ) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
         payments.push(self.create_payment(
@@ -100,7 +122,27 @@ pub trait CtxHelper:
         context.set_output_payments(payments);
     }
 
-    fn execute_output_payments(&self, context: &AddLiquidityContext<Self::Api>) {
+    fn construct_remove_liquidity_output_payments(
+        &self,
+        context: &mut RemoveLiquidityContext<Self::Api>,
+    ) {
+        let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
+
+        payments.push(self.create_payment(
+            context.get_first_token_id(),
+            0,
+            context.get_first_token_amount_removed(),
+        ));
+        payments.push(self.create_payment(
+            context.get_second_token_id(),
+            0,
+            context.get_second_token_amount_removed(),
+        ));
+
+        context.set_output_payments(payments);
+    }
+
+    fn execute_output_payments(&self, context: &dyn Context<Self::Api>) {
         self.send_multiple_tokens_if_not_zero(
             context.get_caller(),
             context.get_output_payments(),
@@ -117,7 +159,7 @@ pub trait CtxHelper:
         self.lp_token_supply().set(context.get_lp_token_supply());
     }
 
-    fn construct_and_get_output_results(
+    fn construct_and_get_add_liquidity_output_results(
         &self,
         context: &AddLiquidityContext<Self::Api>,
     ) -> AddLiquidityResultType<Self::Api> {
@@ -132,6 +174,24 @@ pub trait CtxHelper:
                 context.get_second_token_id(),
                 0,
                 context.get_second_amount_optimal(),
+            ),
+        ))
+    }
+
+    fn construct_and_get_remove_liquidity_output_results(
+        &self,
+        context: &RemoveLiquidityContext<Self::Api>,
+    ) -> RemoveLiquidityResultType<Self::Api> {
+        MultiResult2::from((
+            self.create_payment(
+                context.get_first_token_id(),
+                0,
+                context.get_first_token_amount_removed(),
+            ),
+            self.create_payment(
+                context.get_second_token_id(),
+                0,
+                context.get_second_token_amount_removed(),
             ),
         ))
     }

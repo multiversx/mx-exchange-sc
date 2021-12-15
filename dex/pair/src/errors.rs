@@ -15,3 +15,8 @@ pub const ERROR_INSUFFICIENT_SECOND_TOKEN: &[u8] = b"Insufficient second token c
 pub const ERROR_OPTIMAL_GRATER_THAN_PAID: &[u8] = b"Optimal amount greater than desired amount";
 
 pub const ERROR_K_INVARIANT_FAILED: &[u8] = b"K invariant failed";
+
+pub const ERROR_INSUFFICIENT_LIQ_BURNED: &[u8] = b"Insufficient liquidity burned";
+pub const ERROR_SLIPPAGE_ON_REMOVE: &[u8] = b"Slippage amount does not match";
+pub const ERROR_NOT_ENOUGH_RESERVE: &[u8] = b"Not enough reserve";
+pub const ERROR_NOT_ENOUGH_LP: &[u8] = b"Not enough LP token supply";

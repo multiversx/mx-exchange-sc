@@ -127,15 +127,13 @@ pub trait Pair<ContractReader>:
             ERROR_LP_TOKEN_NOT_ISSUED,
         );
 
-        self.load_first_token_id(&mut context);
-        self.load_second_token_id(&mut context);
+        self.load_pool_token_ids(&mut context);
         self.assert(
             context.payment_tokens_match_pool_tokens(),
             ERROR_BAD_PAYMENT_TOKENS,
         );
 
-        self.load_first_token_reserve(&mut context);
-        self.load_second_token_reserve(&mut context);
+        self.load_pool_reserves(&mut context);
         self.load_lp_token_supply(&mut context);
         self.load_initial_k(&mut context);
 
@@ -150,11 +148,11 @@ pub trait Pair<ContractReader>:
         self.send().esdt_local_mint(lpt, 0, liq_added);
         self.commit_changes(&context);
 
-        self.construct_output_payments(&mut context);
+        self.construct_add_liquidity_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_add_liquidity_event(&context);
 
-        self.construct_and_get_output_results(&context)
+        self.construct_and_get_add_liquidity_output_results(&context)
     }
 
     #[payable("*")]
@@ -162,59 +160,69 @@ pub trait Pair<ContractReader>:
     fn remove_liquidity(
         &self,
         #[payment_token] token_id: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
         #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
-        require!(self.is_state_active(&self.state().get()), "Not active");
-        require!(
-            !self.lp_token_identifier().is_empty(),
-            "LP token not issued"
-        );
-
-        let caller = self.blockchain().get_caller();
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(token_id == lp_token_id, "Wrong liquidity token");
-
-        let old_k = self.calculate_k_for_reserves();
-        let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
-            liquidity.clone(),
+    ) -> RemoveLiquidityResultType<Self::Api> {
+        let mut context = self.new_remove_liquidity_context(
+            &token_id,
+            nonce,
+            &liquidity,
             first_token_amount_min,
             second_token_amount_min,
-        )?;
-
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
-
-        // Once liquidity has been removed, the new K should always be lesser than the old K.
-        let new_k = self.calculate_k_for_reserves();
-        self.validate_k_invariant_strict(&new_k, &old_k)?;
-
-        let mut payments = ManagedVec::new();
-        payments.push(self.create_payment(&first_token_id, 0, &first_token_amount));
-        payments.push(self.create_payment(&second_token_id, 0, &second_token_amount));
-        self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)?;
-
-        self.send().esdt_local_burn(&token_id, 0, &liquidity);
-        self.lp_token_supply().update(|x| *x -= &liquidity);
-
-        self.emit_remove_liquidity_event(
-            &caller,
-            &first_token_id,
-            &first_token_amount,
-            &second_token_id,
-            &second_token_amount,
-            &lp_token_id,
-            &liquidity,
-            &self.get_total_lp_token_supply(),
-            &self.pair_reserve(&first_token_id).get(),
-            &self.pair_reserve(&second_token_id).get(),
+            opt_accept_funds_func,
         );
-        Ok(MultiResult2::from((
-            self.create_payment(&first_token_id, 0, &first_token_amount),
-            self.create_payment(&second_token_id, 0, &second_token_amount),
-        )))
+        self.assert(
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
+        );
+        self.assert(
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        self.assert(
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+        );
+
+        self.load_state(&mut context);
+        self.assert(
+            self.is_state_active(context.get_contract_state()),
+            ERROR_NOT_ACTIVE,
+        );
+
+        self.load_lp_token_id(&mut context);
+        self.assert(
+            !context.get_lp_token_id().is_empty(),
+            ERROR_LP_TOKEN_NOT_ISSUED,
+        );
+        self.assert(
+            context.get_lp_token_id() == &context.get_lp_token_payment().token_identifier,
+            ERROR_BAD_PAYMENT_TOKENS,
+        );
+
+        self.load_pool_token_ids(&mut context);
+        self.load_pool_reserves(&mut context);
+        self.load_lp_token_supply(&mut context);
+        self.load_initial_k(&mut context);
+
+        self.pool_remove_liquidity(&mut context);
+
+        let new_k = self.calculate_k(&context);
+        self.assert(&new_k <= context.get_initial_k(), ERROR_K_INVARIANT_FAILED);
+
+        let lpt = context.get_lp_token_id();
+        let liq_removed = &context.get_lp_token_payment().amount;
+        self.send().esdt_local_burn(lpt, 0, liq_removed);
+        self.commit_changes(&context);
+
+        self.construct_remove_liquidity_output_payments(&mut context);
+        self.execute_output_payments(&context);
+        self.emit_remove_liquidity_event(&context);
+
+        self.construct_and_get_remove_liquidity_output_results(&context)
     }
 
     #[payable("*")]
@@ -222,53 +230,70 @@ pub trait Pair<ContractReader>:
     fn remove_liquidity_and_burn_token(
         &self,
         #[payment_token] token_in: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
         #[payment_amount] amount_in: BigUint,
         token_to_buyback_and_burn: TokenIdentifier,
-    ) -> SCResult<()> {
-        let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller)?;
-
-        require!(
-            !self.lp_token_identifier().is_empty(),
-            "LP token not issued"
+    ) {
+        let mut context = self.new_remove_liquidity_context(
+            &token_in,
+            nonce,
+            &amount_in,
+            BigUint::from(1u64),
+            BigUint::from(1u64),
+            OptionalArg::None,
         );
-        require!(
-            token_in == self.lp_token_identifier().get(),
-            "Wrong liquidity token"
+        self.require_whitelisted(context.get_caller()).unwrap();
+
+        self.assert(
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
+        );
+        self.assert(
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        self.assert(
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
         );
 
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
+        self.load_lp_token_id(&mut context);
+        self.assert(
+            !context.get_lp_token_id().is_empty(),
+            ERROR_LP_TOKEN_NOT_ISSUED,
+        );
+        self.assert(
+            context.get_lp_token_id() == &context.get_lp_token_payment().token_identifier,
+            ERROR_BAD_PAYMENT_TOKENS,
+        );
 
-        let first_token_min_amount = BigUint::from(1u64);
-        let second_token_min_amount = BigUint::from(1u64);
-        let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
-            amount_in.clone(),
-            first_token_min_amount,
-            second_token_min_amount,
-        )?;
+        self.load_pool_token_ids(&mut context);
+        self.load_pool_reserves(&mut context);
+        self.load_lp_token_supply(&mut context);
+
+        self.pool_remove_liquidity(&mut context);
+
+        self.send().esdt_local_burn(&token_in, 0, &amount_in);
+        self.lp_token_supply().update(|x| *x -= &amount_in);
+        self.commit_changes(&context);
 
         let dest_address = ManagedAddress::zero();
         self.send_fee_slice(
-            &first_token_id,
-            &first_token_amount,
+            context.get_first_token_id(),
+            context.get_first_token_amount_removed(),
             &dest_address,
             &token_to_buyback_and_burn,
-            &first_token_id,
-            &second_token_id,
+            context.get_first_token_id(),
+            context.get_second_token_id(),
         );
         self.send_fee_slice(
-            &second_token_id,
-            &second_token_amount,
+            context.get_second_token_id(),
+            context.get_second_token_amount_removed(),
             &dest_address,
             &token_to_buyback_and_burn,
-            &first_token_id,
-            &second_token_id,
+            context.get_first_token_id(),
+            context.get_second_token_id(),
         );
-        self.send().esdt_local_burn(&token_in, 0, &amount_in);
-        self.lp_token_supply().update(|x| *x -= &amount_in);
-
-        Ok(())
     }
 
     #[payable("*")]

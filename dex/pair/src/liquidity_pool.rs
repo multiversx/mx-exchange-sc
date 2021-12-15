@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::Context;
+use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 use crate::validation;
 
@@ -57,106 +58,112 @@ pub trait LiquidityPoolModule:
         context.increase_reserves();
     }
 
-    fn remove_token(
-        &self,
-        token: &TokenIdentifier,
-        liquidity: &BigUint,
-        total_supply: &BigUint,
-        amount_min: &BigUint,
-    ) -> SCResult<BigUint> {
-        let mut reserve = self.pair_reserve(token).get();
-        let amount = (liquidity * &reserve) / total_supply.clone();
-        require!(amount > 0, "Insufficient liquidity burned");
-        require!(&amount >= amount_min, "Slippage amount does not match");
-        require!(reserve > amount, "Not enough reserve");
-
-        reserve -= &amount;
-        self.pair_reserve(token).set(&reserve);
-
-        Ok(amount)
+    fn pool_remove_liquidity(&self, context: &mut RemoveLiquidityContext<Self::Api>) {
+        let (first_amount_removed, second_amounts_removed) = self.get_amounts_removed(context);
+        context.set_first_token_amount_removed(first_amount_removed);
+        context.set_second_token_amount_removed(second_amounts_removed);
+        context.decrease_lp_token_supply();
+        context.decrease_reserves();
     }
 
-    fn pool_remove_liquidity(
+    fn get_amounts_removed(
         &self,
-        liquidity: BigUint,
-        first_token_amount_min: BigUint,
-        second_token_amount_min: BigUint,
-    ) -> SCResult<(BigUint, BigUint)> {
-        let total_supply = self.get_total_lp_token_supply();
-        require!(
-            total_supply >= &liquidity + MINIMUM_LIQUIDITY,
-            "Not enough LP token supply"
+        context: &mut RemoveLiquidityContext<Self::Api>,
+    ) -> (BigUint, BigUint) {
+        let total_supply = context.get_lp_token_supply();
+        let liquidity = &context.get_lp_token_payment().amount;
+
+        self.assert(
+            total_supply >= &(liquidity + MINIMUM_LIQUIDITY),
+            ERROR_NOT_ENOUGH_LP,
         );
 
-        let first_token_amount = self.remove_token(
-            &self.first_token_id().get(),
-            &liquidity,
-            &total_supply,
-            &first_token_amount_min,
-        )?;
-        let second_token_amount = self.remove_token(
-            &self.second_token_id().get(),
-            &liquidity,
-            &total_supply,
-            &second_token_amount_min,
-        )?;
+        let first_amount_removed = (liquidity * context.get_first_token_reserve()) / total_supply;
+        self.assert(first_amount_removed > 0, ERROR_INSUFFICIENT_LIQ_BURNED);
+        self.assert(
+            &first_amount_removed >= context.get_first_token_amount_min(),
+            ERROR_SLIPPAGE_ON_REMOVE,
+        );
+        self.assert(
+            context.get_first_token_reserve() > &first_amount_removed,
+            ERROR_NOT_ENOUGH_RESERVE,
+        );
 
-        Ok((first_token_amount, second_token_amount))
+        let second_amount_removed = (liquidity * context.get_second_token_reserve()) / total_supply;
+        self.assert(second_amount_removed > 0, ERROR_INSUFFICIENT_LIQ_BURNED);
+        self.assert(
+            &second_amount_removed >= context.get_second_token_amount_min(),
+            ERROR_SLIPPAGE_ON_REMOVE,
+        );
+        self.assert(
+            context.get_second_token_reserve() > &second_amount_removed,
+            ERROR_NOT_ENOUGH_RESERVE,
+        );
+
+        (first_amount_removed, second_amount_removed)
     }
 
     fn calculate_optimal_amounts(&self, context: &mut AddLiquidityContext<Self::Api>) {
-        let first_amount_optional: BigUint;
-        let second_amount_optional: BigUint;
-
-        {
-            let zero = &BigUint::zero();
-            let first_token_reserve = context.get_first_token_reserve();
-            let second_token_reserve = context.get_second_token_reserve();
-            let first_token_amount_desired = &context.get_first_payment().amount;
-            let second_token_amount_desired = &context.get_first_payment().amount;
-            let first_token_amount_min = context.get_first_token_amount_min();
-            let second_token_amount_min = context.get_second_token_amount_min();
-
-            if first_token_reserve == zero && second_token_reserve == zero {
-                first_amount_optional = first_token_amount_desired.clone();
-                second_amount_optional = second_token_amount_desired.clone();
-            } else {
-                let second_token_amount_optimal = self.quote(
-                    first_token_amount_desired,
-                    first_token_reserve,
-                    second_token_reserve,
-                );
-                if &second_token_amount_optimal <= second_token_amount_desired {
-                    self.assert(
-                        &second_token_amount_optimal >= second_token_amount_min,
-                        ERROR_INSUFFICIENT_SECOND_TOKEN,
-                    );
-
-                    first_amount_optional = first_token_amount_desired.clone();
-                    second_amount_optional = second_token_amount_optimal.clone();
-                } else {
-                    let first_token_amount_optimal = self.quote(
-                        second_token_amount_desired,
-                        second_token_reserve,
-                        first_token_reserve,
-                    );
-                    self.assert(
-                        &first_token_amount_optimal <= first_token_amount_desired,
-                        ERROR_OPTIMAL_GRATER_THAN_PAID,
-                    );
-                    self.assert(
-                        &first_token_amount_optimal >= first_token_amount_min,
-                        ERROR_INSUFFICIENT_FIRST_TOKEN,
-                    );
-
-                    first_amount_optional = first_token_amount_optimal.clone();
-                    second_amount_optional = second_token_amount_desired.clone();
-                }
-            }
-        }
-
+        let (first_amount_optional, second_amount_optional) = self.get_optiomal_amounts(context);
         context.set_first_amount_optimal(first_amount_optional);
         context.set_second_amount_optimal(second_amount_optional);
+    }
+
+    fn get_optiomal_amounts(
+        &self,
+        context: &mut AddLiquidityContext<Self::Api>,
+    ) -> (BigUint, BigUint) {
+        let zero = &BigUint::zero();
+        let first_token_reserve = context.get_first_token_reserve();
+        let second_token_reserve = context.get_second_token_reserve();
+        let first_token_amount_desired = &context.get_first_payment().amount;
+        let second_token_amount_desired = &context.get_first_payment().amount;
+        let first_token_amount_min = context.get_first_token_amount_min();
+        let second_token_amount_min = context.get_second_token_amount_min();
+
+        if first_token_reserve == zero && second_token_reserve == zero {
+            return (
+                first_token_amount_desired.clone(),
+                second_token_amount_desired.clone(),
+            );
+        }
+
+        let second_token_amount_optimal = self.quote(
+            first_token_amount_desired,
+            first_token_reserve,
+            second_token_reserve,
+        );
+
+        if &second_token_amount_optimal <= second_token_amount_desired {
+            self.assert(
+                &second_token_amount_optimal >= second_token_amount_min,
+                ERROR_INSUFFICIENT_SECOND_TOKEN,
+            );
+
+            (
+                first_token_amount_desired.clone(),
+                second_token_amount_optimal.clone(),
+            )
+        } else {
+            let first_token_amount_optimal = self.quote(
+                second_token_amount_desired,
+                second_token_reserve,
+                first_token_reserve,
+            );
+            self.assert(
+                &first_token_amount_optimal <= first_token_amount_desired,
+                ERROR_OPTIMAL_GRATER_THAN_PAID,
+            );
+            self.assert(
+                &first_token_amount_optimal >= first_token_amount_min,
+                ERROR_INSUFFICIENT_FIRST_TOKEN,
+            );
+
+            (
+                first_token_amount_optimal.clone(),
+                second_token_amount_desired.clone(),
+            )
+        }
     }
 
     fn update_reserves(

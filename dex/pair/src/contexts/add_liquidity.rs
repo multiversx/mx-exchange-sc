@@ -159,12 +159,22 @@ impl<M: ManagedTypeApi> Context<M> for AddLiquidityContext<M> {
         &self.caller
     }
 
+    fn set_output_payments(&mut self, payments: ManagedVec<M, EsdtTokenPayment<M>>) {
+        self.output_payments = payments
+    }
+
+    fn get_output_payments(&self) -> &ManagedVec<M, EsdtTokenPayment<M>> {
+        &self.output_payments
+    }
+
+    fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
+        &self.tx_input.args.opt_accept_funds_func
+    }
+
     fn get_tx_input(&self) -> &dyn TxInput<M> {
         &self.tx_input
     }
 }
-
-impl<M: ManagedTypeApi> AddLiquidityContext<M> {}
 
 impl<M: ManagedTypeApi> TxInputArgs<M> for AddLiquidityArgs<M> {
     fn are_valid(&self) -> bool {
@@ -294,17 +304,5 @@ impl<M: ManagedTypeApi> AddLiquidityContext<M> {
 
     pub fn get_second_token_amount_min(&self) -> &BigUint<M> {
         &self.tx_input.args.second_token_amount_min
-    }
-
-    pub fn set_output_payments(&mut self, payments: ManagedVec<M, EsdtTokenPayment<M>>) {
-        self.output_payments = payments
-    }
-
-    pub fn get_output_payments(&self) -> &ManagedVec<M, EsdtTokenPayment<M>> {
-        &self.output_payments
-    }
-
-    pub fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
-        &self.tx_input.args.opt_accept_funds_func
     }
 }
