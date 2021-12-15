@@ -2,9 +2,6 @@ name: Builds and tests
 
 on:
   push:
-    branches:
-      - main
-      - 'dex-v[0-9]+_[0-9]+'
   pull_request:
 
 jobs:
