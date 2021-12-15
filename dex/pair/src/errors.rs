@@ -26,3 +26,16 @@ pub const ERROR_SAME_TOKENS: &[u8] = b"Exchange tokens cannot be the same";
 pub const ERROR_POOL_TOKEN_IS_PLT: &[u8] = b"Token ID cannot be the same as LP token ID";
 pub const ERROR_BAD_PERCENTS: &[u8] = b"Bad percents";
 pub const ERROR_PERMISSION_DENIED: &[u8] = b"Permission denied";
+pub const ERROR_NOT_WHITELISTED: &[u8] = b"Not whitelisted";
+pub const ERROR_ALREADY_WHITELISTED: &[u8] = b"Already whitelisted";
+pub const ERROR_PAIR_ALREADY_TRUSTED: &[u8] = b"Pair already trusted";
+pub const ERROR_PAIR_NOT_TRUSTED: &[u8] = b"Pair not trusted";
+
+pub const ERROR_ALREADY_FEE_DEST: &[u8] = b"Already a fee destination";
+pub const ERROR_NOT_FEE_DEST: &[u8] = b"Not a fee destination";
+pub const ERROR_BAD_TOKEN_FEE_DEST: &[u8] = b"Destination fee token differs";
+
+pub const ERROR_ZERO_AMOUNT: &[u8] = b"Zero amount";
+pub const ERROR_UNKNOWN_TOKEN: &[u8] = b"Unknown token";
+pub const ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS: &[u8] =
+    b"LP token should differ from the exchange tokens";

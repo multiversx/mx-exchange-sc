@@ -22,7 +22,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Zero input",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }
@@ -44,7 +44,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Not a known token",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }
@@ -114,7 +114,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Zero input",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }
@@ -160,7 +160,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Not enough reserves for second token",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }
@@ -182,7 +182,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Not a known token",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }
@@ -204,7 +204,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Zero input",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }
@@ -226,7 +226,7 @@
             "expect": {
                 "out": [],
                 "status": "4",
-                "message": "str:Not a known token",
+                "message": "*",
                 "gas": "*",
                 "refund": "*"
             }

@@ -3,6 +3,7 @@ elrond_wasm::derive_imports!();
 
 use super::amm;
 use super::config;
+use super::errors::*;
 use super::liquidity_pool;
 use super::validation;
 use common_structs::TokenPair;
@@ -32,19 +33,17 @@ pub trait FeeModule:
     }
 
     #[endpoint(whitelist)]
-    fn whitelist_endpoint(&self, address: ManagedAddress) -> SCResult<()> {
+    fn whitelist_endpoint(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_new = self.whitelist().insert(address);
-        require!(is_new, "ManagedAddress already whitelisted");
-        Ok(())
+        self.assert(is_new, ERROR_ALREADY_WHITELISTED);
     }
 
     #[endpoint(removeWhitelist)]
-    fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
+    fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_removed = self.whitelist().remove(&address);
-        require!(is_removed, "ManagedAddresss not whitelisted");
-        Ok(())
+        self.assert(is_removed, ERROR_NOT_WHITELISTED);
     }
 
     #[endpoint(addTrustedSwapPair)]
@@ -53,16 +52,15 @@ pub trait FeeModule:
         pair_address: ManagedAddress,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         self.require_permissions();
-        require!(first_token != second_token, "Tokens should differ");
+        self.assert(first_token != second_token, ERROR_SAME_TOKENS);
         let token_pair = TokenPair {
             first_token,
             second_token,
         };
         let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
-        require!(is_new, "Pair already trusted");
-        Ok(())
+        self.assert(is_new, ERROR_PAIR_ALREADY_TRUSTED);
     }
 
     #[endpoint(removeTrustedSwapPair)]
@@ -70,7 +68,7 @@ pub trait FeeModule:
         &self,
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         self.require_permissions();
         let token_pair = TokenPair {
             first_token: first_token.clone(),
@@ -84,9 +82,8 @@ pub trait FeeModule:
                 second_token: first_token,
             };
             is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
-            require!(is_removed, "Pair does not exist in trusted pair map");
+            self.assert(is_removed, ERROR_PAIR_NOT_TRUSTED);
         }
-        Ok(())
     }
 
     fn reinject(&self, token: &TokenIdentifier, amount: &BigUint) {
@@ -325,7 +322,7 @@ pub trait FeeModule:
         enabled: bool,
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         self.require_permissions();
         let is_dest = self
             .destination_map()
@@ -333,20 +330,14 @@ pub trait FeeModule:
             .any(|dest_address| dest_address == fee_to_address);
 
         if enabled {
-            require!(!is_dest, "Is already a fee destination");
+            self.assert(!is_dest, ERROR_ALREADY_FEE_DEST);
             self.destination_map().insert(fee_to_address, fee_token);
         } else {
-            require!(is_dest, "Is not a fee destination");
+            self.assert(is_dest, ERROR_NOT_FEE_DEST);
             let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            require!(fee_token == dest_fee_token, "Destination fee token differs");
+            self.assert(fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
             self.destination_map().remove(&fee_to_address);
         }
-        Ok(())
-    }
-
-    fn require_whitelisted(&self, caller: &ManagedAddress) -> SCResult<()> {
-        require!(self.whitelist().contains(caller), "Not whitelisted");
-        Ok(())
     }
 
     #[view(getFeeDestinations)]

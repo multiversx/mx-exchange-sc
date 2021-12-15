@@ -226,7 +226,10 @@ pub trait Pair<ContractReader>:
             BigUint::from(1u64),
             OptionalArg::None,
         );
-        self.require_whitelisted(context.get_caller()).unwrap();
+        self.assert(
+            self.whitelist().contains(context.get_caller()),
+            ERROR_NOT_WHITELISTED,
+        );
 
         self.assert(
             context.get_tx_input().get_args().are_valid(),
@@ -290,8 +293,7 @@ pub trait Pair<ContractReader>:
         destination_address: ManagedAddress,
     ) -> SCResult<()> {
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller)?;
-
+        self.assert(self.whitelist().contains(&caller), ERROR_NOT_WHITELISTED);
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0, "Zero input");
 
@@ -315,7 +317,7 @@ pub trait Pair<ContractReader>:
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        self.validate_k_invariant(&old_k, &new_k)?;
+        self.assert(&old_k <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         self.burn_fees(&token_out, &amount_out);
 
@@ -389,7 +391,7 @@ pub trait Pair<ContractReader>:
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        self.validate_k_invariant(&old_k, &new_k)?;
+        self.assert(&old_k <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
@@ -472,7 +474,7 @@ pub trait Pair<ContractReader>:
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
-        self.validate_k_invariant(&old_k, &new_k)?;
+        self.assert(&old_k <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
@@ -501,34 +503,19 @@ pub trait Pair<ContractReader>:
     }
 
     #[endpoint(setLpTokenIdentifier)]
-    fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
+    fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {
         self.require_permissions();
-        require!(self.lp_token_identifier().is_empty(), "LP token not empty");
-        require!(
+        self.assert(
+            self.lp_token_identifier().is_empty(),
+            ERROR_LP_TOKEN_NOT_ISSUED,
+        );
+        self.assert(
             token_identifier != self.first_token_id().get()
                 && token_identifier != self.second_token_id().get(),
-            "LP token should differ from the exchange tokens"
+            ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS,
         );
-        require!(
-            token_identifier.is_esdt(),
-            "Provided identifier is not a valid ESDT identifier"
-        );
-
+        self.assert(token_identifier.is_esdt(), ERROR_NOT_AN_ESDT);
         self.lp_token_identifier().set(&token_identifier);
-
-        Ok(())
-    }
-
-    #[inline]
-    fn validate_k_invariant(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
-        require!(lower <= greater, "K invariant failed");
-        Ok(())
-    }
-
-    #[inline]
-    fn validate_k_invariant_strict(&self, lower: &BigUint, greater: &BigUint) -> SCResult<()> {
-        require!(lower < greater, "K invariant failed");
-        Ok(())
     }
 
     #[view(getTokensForGivenPosition)]
@@ -550,12 +537,8 @@ pub trait Pair<ContractReader>:
     }
 
     #[view(getAmountOut)]
-    fn get_amount_out_view(
-        &self,
-        token_in: TokenIdentifier,
-        amount_in: BigUint,
-    ) -> SCResult<BigUint> {
-        require!(amount_in > 0, "Zero input");
+    fn get_amount_out_view(&self, token_in: TokenIdentifier, amount_in: BigUint) -> BigUint {
+        self.assert(amount_in > 0, ERROR_ZERO_AMOUNT);
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -563,35 +546,25 @@ pub trait Pair<ContractReader>:
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
 
         if token_in == first_token_id {
-            require!(second_token_reserve > 0, "Zero reserves for second token");
+            self.assert(second_token_reserve > 0, ERROR_NOT_ENOUGH_RESERVE);
             let amount_out =
                 self.get_amount_out(&amount_in, &first_token_reserve, &second_token_reserve);
-            require!(
-                second_token_reserve > amount_out,
-                "Not enough reserves for second token"
-            );
-            Ok(amount_out)
+            self.assert(second_token_reserve > amount_out, ERROR_NOT_ENOUGH_RESERVE);
+            amount_out
         } else if token_in == second_token_id {
-            require!(first_token_reserve > 0, "Zero reserves for first token");
+            self.assert(first_token_reserve > 0, ERROR_NOT_ENOUGH_RESERVE);
             let amount_out =
                 self.get_amount_out(&amount_in, &second_token_reserve, &first_token_reserve);
-            require!(
-                first_token_reserve > amount_out,
-                "Not enough reserves first token"
-            );
-            Ok(amount_out)
+            self.assert(first_token_reserve > amount_out, ERROR_NOT_ENOUGH_RESERVE);
+            amount_out
         } else {
-            sc_error!("Not a known token")
+            self.raw_vm_api().signal_error(ERROR_UNKNOWN_TOKEN);
         }
     }
 
     #[view(getAmountIn)]
-    fn get_amount_in_view(
-        &self,
-        token_wanted: TokenIdentifier,
-        amount_wanted: BigUint,
-    ) -> SCResult<BigUint> {
-        require!(amount_wanted > 0, "Zero input");
+    fn get_amount_in_view(&self, token_wanted: TokenIdentifier, amount_wanted: BigUint) -> BigUint {
+        self.assert(amount_wanted > 0, ERROR_ZERO_AMOUNT);
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -599,29 +572,29 @@ pub trait Pair<ContractReader>:
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
 
         if token_wanted == first_token_id {
-            require!(
+            self.assert(
                 first_token_reserve > amount_wanted,
-                "Not enough reserves for first token"
+                ERROR_NOT_ENOUGH_RESERVE,
             );
             let amount_in =
                 self.get_amount_in(&amount_wanted, &second_token_reserve, &first_token_reserve);
-            Ok(amount_in)
+            amount_in
         } else if token_wanted == second_token_id {
-            require!(
+            self.assert(
                 second_token_reserve > amount_wanted,
-                "Not enough reserves for second token"
+                ERROR_NOT_ENOUGH_RESERVE,
             );
             let amount_in =
                 self.get_amount_in(&amount_wanted, &first_token_reserve, &second_token_reserve);
-            Ok(amount_in)
+            amount_in
         } else {
-            sc_error!("Not a known token")
+            self.raw_vm_api().signal_error(ERROR_UNKNOWN_TOKEN);
         }
     }
 
     #[view(getEquivalent)]
-    fn get_equivalent(&self, token_in: TokenIdentifier, amount_in: BigUint) -> SCResult<BigUint> {
-        require!(amount_in > 0, "Zero input");
+    fn get_equivalent(&self, token_in: TokenIdentifier, amount_in: BigUint) -> BigUint {
+        self.assert(amount_in > 0, ERROR_ZERO_AMOUNT);
         let zero = BigUint::zero();
 
         let first_token_id = self.first_token_id().get();
@@ -629,15 +602,15 @@ pub trait Pair<ContractReader>:
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
         if first_token_reserve == 0 || second_token_reserve == 0 {
-            return Ok(zero);
+            return zero;
         }
 
         if token_in == first_token_id {
-            Ok(self.quote(&amount_in, &first_token_reserve, &second_token_reserve))
+            self.quote(&amount_in, &first_token_reserve, &second_token_reserve)
         } else if token_in == second_token_id {
-            Ok(self.quote(&amount_in, &second_token_reserve, &first_token_reserve))
+            self.quote(&amount_in, &second_token_reserve, &first_token_reserve)
         } else {
-            sc_error!("Not a known token")
+            self.raw_vm_api().signal_error(ERROR_UNKNOWN_TOKEN);
         }
     }
 
