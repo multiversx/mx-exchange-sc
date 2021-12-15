@@ -10,6 +10,10 @@ fn blockchain_mock() -> BlockchainMock {
         Box::new(|context| Box::new(farm::contract_obj(context))),
     );
     blockchain.register_contract(
+        "file:../dex/farm/output/farm_with_lock.wasm",
+        Box::new(|context| Box::new(farm_with_lock::contract_obj(context))),
+    );
+    blockchain.register_contract(
         "file:../dex/pair/output/pair.wasm",
         Box::new(|context| Box::new(pair::contract_obj(context))),
     );

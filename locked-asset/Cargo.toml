@@ -13,6 +13,9 @@ version = "0.25.0"
 [dependencies.farm]
 path = "../dex/farm"
 
+[dependencies.farm_with_lock]
+path = "../dex/farm_with_lock"
+
 [dependencies.pair]
 path = "../dex/pair"
 
