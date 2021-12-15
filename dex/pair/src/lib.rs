@@ -52,29 +52,14 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-    ) -> SCResult<()> {
-        require!(
-            first_token_id.is_esdt(),
-            "First token ID is not a valid ESDT identifier"
-        );
-        require!(
-            second_token_id.is_esdt(),
-            "Second token ID is not a valid ESDT identifier"
-        );
-        require!(
-            first_token_id != second_token_id,
-            "Exchange tokens cannot be the same"
-        );
+    ) {
+        self.assert(first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        self.assert(second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        self.assert(first_token_id != second_token_id, ERROR_SAME_TOKENS);
         let lp_token_id = self.lp_token_identifier().get();
-        require!(
-            first_token_id != lp_token_id,
-            "First token ID cannot be the same as LP token ID"
-        );
-        require!(
-            second_token_id != lp_token_id,
-            "Second token ID cannot be the same as LP token ID"
-        );
-        self.try_set_fee_percents(total_fee_percent, special_fee_percent)?;
+        self.assert(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
+        self.assert(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
+        self.set_fee_percents(total_fee_percent, special_fee_percent);
 
         self.state().set(&State::Inactive);
         self.transfer_exec_gas_limit()
@@ -86,7 +71,6 @@ pub trait Pair<ContractReader>:
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
-        Ok(())
     }
 
     #[payable("*")]
@@ -518,7 +502,7 @@ pub trait Pair<ContractReader>:
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) -> SCResult<()> {
-        self.require_permissions()?;
+        self.require_permissions();
         require!(self.lp_token_identifier().is_empty(), "LP token not empty");
         require!(
             token_identifier != self.first_token_id().get()

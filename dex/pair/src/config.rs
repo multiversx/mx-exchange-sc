@@ -1,6 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::errors::*;
+use super::validation;
+
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
     Inactive,
@@ -9,48 +12,42 @@ pub enum State {
 }
 
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule {
+pub trait ConfigModule: token_send::TokenSendModule + validation::ValidationModule {
     #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
-        self.require_permissions()?;
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
+        self.require_permissions();
         self.transfer_exec_gas_limit().set(&gas_limit);
-        Ok(())
     }
 
     #[endpoint]
-    fn set_extern_swap_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
-        self.require_permissions()?;
+    fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
+        self.require_permissions();
         self.extern_swap_gas_limit().set(&gas_limit);
-        Ok(())
     }
 
-    fn require_permissions(&self) -> SCResult<()> {
+    fn require_permissions(&self) {
         let caller = self.blockchain().get_caller();
         let owner = self.router_owner_address().get();
         let router = self.router_address().get();
-        require!(caller == owner || caller == router, "Permission denied");
-        Ok(())
+        self.assert(caller == owner || caller == router, ERROR_PERMISSION_DENIED);
     }
 
     #[endpoint]
-    fn pause(&self) -> SCResult<()> {
-        self.require_permissions()?;
+    fn pause(&self) {
+        self.require_permissions();
         self.state().set(&State::Inactive);
-        Ok(())
     }
 
     #[endpoint]
-    fn resume(&self) -> SCResult<()> {
-        self.require_permissions()?;
+    fn resume(&self) {
+        self.require_permissions();
         self.state().set(&State::Active);
-        Ok(())
     }
 
     #[endpoint(setStateActiveNoSwaps)]
-    fn set_state_active_no_swaps(&self) -> SCResult<()> {
-        self.require_permissions()?;
+    fn set_state_active_no_swaps(&self) {
+        self.require_permissions();
         self.state().set(&State::ActiveNoSwaps);
-        Ok(())
     }
 
     #[view(getLpTokenIdentifier)]
@@ -59,23 +56,18 @@ pub trait ConfigModule: token_send::TokenSendModule {
     }
 
     #[endpoint(setFeePercents)]
-    fn set_fee_percent(&self, total_fee_percent: u64, special_fee_percent: u64) -> SCResult<()> {
-        self.require_permissions()?;
-        self.try_set_fee_percents(total_fee_percent, special_fee_percent)
+    fn set_fee_percent(&self, total_fee_percent: u64, special_fee_percent: u64) {
+        self.require_permissions();
+        self.set_fee_percents(total_fee_percent, special_fee_percent);
     }
 
-    fn try_set_fee_percents(
-        &self,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
-    ) -> SCResult<()> {
-        require!(
+    fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
+        self.assert(
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
-            "Bad percents"
+            ERROR_BAD_PERCENTS,
         );
         self.total_fee_percent().set(&total_fee_percent);
         self.special_fee_percent().set(&special_fee_percent);
-        Ok(())
     }
 
     #[view(getTotalFeePercent)]

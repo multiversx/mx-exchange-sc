@@ -1,10 +1,14 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::validation;
+
 use super::config;
 
 #[elrond_wasm::module]
-pub trait AmmModule: config::ConfigModule + token_send::TokenSendModule {
+pub trait AmmModule:
+    config::ConfigModule + token_send::TokenSendModule + validation::ValidationModule
+{
     fn calculate_k_constant(
         &self,
         first_token_amount: &BigUint,

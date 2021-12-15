@@ -33,7 +33,7 @@ pub trait FeeModule:
 
     #[endpoint(whitelist)]
     fn whitelist_endpoint(&self, address: ManagedAddress) -> SCResult<()> {
-        self.require_permissions()?;
+        self.require_permissions();
         let is_new = self.whitelist().insert(address);
         require!(is_new, "ManagedAddress already whitelisted");
         Ok(())
@@ -41,7 +41,7 @@ pub trait FeeModule:
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
-        self.require_permissions()?;
+        self.require_permissions();
         let is_removed = self.whitelist().remove(&address);
         require!(is_removed, "ManagedAddresss not whitelisted");
         Ok(())
@@ -54,7 +54,7 @@ pub trait FeeModule:
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_permissions()?;
+        self.require_permissions();
         require!(first_token != second_token, "Tokens should differ");
         let token_pair = TokenPair {
             first_token,
@@ -71,7 +71,7 @@ pub trait FeeModule:
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_permissions()?;
+        self.require_permissions();
         let token_pair = TokenPair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
@@ -326,7 +326,7 @@ pub trait FeeModule:
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
     ) -> SCResult<()> {
-        self.require_permissions()?;
+        self.require_permissions();
         let is_dest = self
             .destination_map()
             .keys()
