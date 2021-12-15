@@ -291,29 +291,29 @@ pub trait Pair<ContractReader>:
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         destination_address: ManagedAddress,
-    ) -> SCResult<()> {
+    ) {
         let caller = self.blockchain().get_caller();
         self.assert(self.whitelist().contains(&caller), ERROR_NOT_WHITELISTED);
-        require!(self.can_swap(), "Swap is not enabled");
-        require!(amount_in > 0, "Zero input");
+        self.assert(self.can_swap(), ERROR_SWAP_NOT_ENABLED);
+        self.assert(amount_in > 0, ERROR_ZERO_AMOUNT);
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        require!(token_in != token_out, "Cannot swap same token");
-        require!(
+        self.assert(token_in != token_out, ERROR_SAME_TOKENS);
+        self.assert(
             token_in == first_token_id || token_in == second_token_id,
-            "Invalid token in"
+            ERROR_UNKNOWN_TOKEN,
         );
-        require!(
+        self.assert(
             token_out == first_token_id || token_out == second_token_id,
-            "Invalid token out"
+            ERROR_UNKNOWN_TOKEN,
         );
 
         let old_k = self.calculate_k_for_reserves();
 
         let amount_out =
             self.swap_safe_no_fee(&first_token_id, &second_token_id, &token_in, &amount_in);
-        require!(amount_out > 0, "Zero output");
+        self.assert(amount_out > 0, ERROR_ZERO_AMOUNT);
 
         // A swap should not decrease the value of K. Should either be greater or equal.
         let new_k = self.calculate_k_for_reserves();
@@ -329,7 +329,6 @@ pub trait Pair<ContractReader>:
             &amount_out,
             &destination_address,
         );
-        Ok(())
     }
 
     #[payable("*")]
@@ -341,40 +340,37 @@ pub trait Pair<ContractReader>:
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
-        require!(self.can_swap(), "Swap is not enabled");
-        require!(amount_in > 0u32, "Invalid amount_in");
-        require!(token_in != token_out, "Swap with same token");
+    ) -> SwapTokensFixedInputResultType<Self::Api> {
+        self.assert(self.can_swap(), ERROR_SWAP_NOT_ENABLED);
+        self.assert(amount_in > 0, ERROR_ZERO_AMOUNT);
+        self.assert(token_in != token_out, ERROR_SAME_TOKENS);
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        require!(
+        self.assert(
             token_in == first_token_id || token_in == second_token_id,
-            "Invalid token in"
+            ERROR_UNKNOWN_TOKEN,
         );
-        require!(
+        self.assert(
             token_out == first_token_id || token_out == second_token_id,
-            "Invalid token out"
+            ERROR_UNKNOWN_TOKEN,
         );
         let old_k = self.calculate_k_for_reserves();
 
         let mut reserve_token_out = self.pair_reserve(&token_out).get();
-        require!(
-            reserve_token_out > amount_out_min,
-            "Insufficient reserve for token out"
-        );
+        self.assert(reserve_token_out > amount_out_min, ERROR_NOT_ENOUGH_RESERVE);
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
         let amount_out_optimal =
             self.get_amount_out(&amount_in, &reserve_token_in, &reserve_token_out);
-        require!(
+        self.assert(
             amount_out_optimal >= amount_out_min,
-            "Computed amount out lesser than minimum amount out"
+            ERROR_SLIPPAGE_EXCEEDED,
         );
-        require!(
+        self.assert(
             reserve_token_out > amount_out_optimal,
-            "Insufficient amount out reserve"
+            ERROR_NOT_ENOUGH_RESERVE,
         );
-        require!(amount_out_optimal != 0u32, "Optimal value is zero");
+        self.assert(amount_out_optimal != 0, ERROR_ZERO_AMOUNT);
 
         let caller = self.blockchain().get_caller();
 
@@ -403,7 +399,8 @@ pub trait Pair<ContractReader>:
             0,
             &amount_out_optimal,
             &opt_accept_funds_func,
-        )?;
+        )
+        .unwrap();
 
         self.emit_swap_event(
             &caller,
@@ -415,7 +412,7 @@ pub trait Pair<ContractReader>:
             &reserve_token_in,
             &reserve_token_out,
         );
-        Ok(self.create_payment(&token_out, 0, &amount_out_optimal))
+        self.create_payment(&token_out, 0, &amount_out_optimal)
     }
 
     #[payable("*")]
@@ -427,36 +424,30 @@ pub trait Pair<ContractReader>:
         token_out: TokenIdentifier,
         amount_out: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<SwapTokensFixedOutputResultType<Self::Api>> {
-        require!(self.can_swap(), "Swap is not enabled");
-        require!(amount_in_max > 0, "Invalid amount_in");
-        require!(token_in != token_out, "Invalid swap with same token");
+    ) -> SwapTokensFixedOutputResultType<Self::Api> {
+        self.assert(self.can_swap(), ERROR_SWAP_NOT_ENABLED);
+        self.assert(amount_in_max > 0, ERROR_ZERO_AMOUNT);
+        self.assert(token_in != token_out, ERROR_SAME_TOKENS);
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        require!(
+        self.assert(
             token_in == first_token_id || token_in == second_token_id,
-            "Invalid token in"
+            ERROR_UNKNOWN_TOKEN,
         );
-        require!(
+        self.assert(
             token_out == first_token_id || token_out == second_token_id,
-            "Invalid token out"
+            ERROR_UNKNOWN_TOKEN,
         );
-        require!(amount_out != 0, "Desired amount out cannot be zero");
+        self.assert(amount_out != 0, ERROR_ZERO_AMOUNT);
         let old_k = self.calculate_k_for_reserves();
 
         let mut reserve_token_out = self.pair_reserve(&token_out).get();
-        require!(
-            reserve_token_out > amount_out,
-            "Insufficient reserve for token out"
-        );
+        self.assert(reserve_token_out > amount_out, ERROR_NOT_ENOUGH_RESERVE);
 
         let mut reserve_token_in = self.pair_reserve(&token_in).get();
         let amount_in_optimal =
             self.get_amount_in(&amount_out, &reserve_token_in, &reserve_token_out);
-        require!(
-            amount_in_optimal <= amount_in_max,
-            "Computed amount in greater than maximum amount in"
-        );
+        self.assert(amount_in_optimal <= amount_in_max, ERROR_SLIPPAGE_EXCEEDED);
 
         let caller = self.blockchain().get_caller();
         let residuum = &amount_in_max - &amount_in_optimal;
@@ -484,7 +475,8 @@ pub trait Pair<ContractReader>:
         let mut payments = ManagedVec::new();
         payments.push(self.create_payment(&token_out, 0, &amount_out));
         payments.push(self.create_payment(&token_in, 0, &residuum));
-        self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)?;
+        self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)
+            .unwrap();
 
         self.emit_swap_event(
             &caller,
@@ -496,10 +488,10 @@ pub trait Pair<ContractReader>:
             &reserve_token_in,
             &reserve_token_out,
         );
-        Ok(MultiResult2::from((
+        MultiResult2::from((
             self.create_payment(&token_out, 0, &amount_out),
             self.create_payment(&token_in, 0, &residuum),
-        )))
+        ))
     }
 
     #[endpoint(setLpTokenIdentifier)]

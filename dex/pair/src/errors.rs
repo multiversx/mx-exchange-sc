@@ -39,3 +39,6 @@ pub const ERROR_ZERO_AMOUNT: &[u8] = b"Zero amount";
 pub const ERROR_UNKNOWN_TOKEN: &[u8] = b"Unknown token";
 pub const ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS: &[u8] =
     b"LP token should differ from the exchange tokens";
+
+pub const ERROR_SWAP_NOT_ENABLED: &[u8] = b"Swap is not enabled";
+pub const ERROR_SLIPPAGE_EXCEEDED: &[u8] = b"Slippage exceeded";

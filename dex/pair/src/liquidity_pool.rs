@@ -261,7 +261,6 @@ pub trait LiquidityPoolModule:
         amount_out
     }
 
-    //TODO: Make migrate
     #[view(getTotalSupply)]
     fn get_total_lp_token_supply(&self) -> BigUint {
         self.lp_token_supply().get()
