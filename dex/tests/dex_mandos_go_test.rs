@@ -91,11 +91,6 @@ fn farm_reward_distr_scen_4_go() {
 }
 
 #[test]
-fn farm_reward_distr_scen_5_go() {
-    elrond_wasm_debug::mandos_go("mandos/farm_reward_distr_scen_5.scen.json");
-}
-
-#[test]
 fn farm_with_egld_token_go() {
     elrond_wasm_debug::mandos_go("mandos/farm_with_egld_token.scen.json");
 }
