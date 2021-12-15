@@ -146,14 +146,6 @@ fn farm_reward_distr_scen_4_rs() {
 }
 
 #[test]
-fn farm_reward_distr_scen_5_rs() {
-    elrond_wasm_debug::mandos_rs(
-        "mandos/farm_reward_distr_scen_5.scen.json",
-        blockchain_mock(),
-    );
-}
-
-#[test]
 fn farm_with_egld_token_rs() {
     elrond_wasm_debug::mandos_rs("mandos/farm_with_egld_token.scen.json", blockchain_mock());
 }
