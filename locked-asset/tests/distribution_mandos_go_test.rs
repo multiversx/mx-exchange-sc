@@ -23,22 +23,12 @@ fn claim_rewards_proxy_go() {
     elrond_wasm_debug::mandos_go("mandos/claim_rewards_proxy.scen.json");
 }
 
-#[test]
-fn claim_rewards_proxy_after_enter_with_lock_go() {
-    elrond_wasm_debug::mandos_go("mandos/claim_rewards_proxy_after_enter_with_lock.scen.json");
-}
-
-#[test]
-fn claim_rewards_proxy_after_enter_with_lock_after_mint_rewards_go() {
-    elrond_wasm_debug::mandos_go(
-        "mandos/claim_rewards_proxy_after_enter_with_lock_after_mint_rewards.scen.json",
-    );
-}
-
+/*
 #[test]
 fn claim_rewards_proxy_after_mint_rewards_go() {
     elrond_wasm_debug::mandos_go("mandos/claim_rewards_proxy_after_mint_rewards.scen.json");
 }
+*/
 
 #[test]
 fn clear_unclaimable_assets_go() {
@@ -48,11 +38,6 @@ fn clear_unclaimable_assets_go() {
 #[test]
 fn compound_mex_rewards_proxy_after_mint_rewards_go() {
     elrond_wasm_debug::mandos_go("mandos/compound_mex_rewards_proxy_after_mint_rewards.scen.json");
-}
-
-#[test]
-fn enter_farm_and_lock_rewards_proxy_go() {
-    elrond_wasm_debug::mandos_go("mandos/enter_farm_and_lock_rewards_proxy.scen.json");
 }
 
 #[test]
@@ -82,22 +67,12 @@ fn exit_mex_farm_proxy_after_compound_rewards_go() {
     elrond_wasm_debug::mandos_go("mandos/exit_mex_farm_proxy_after_compound_rewards.scen.json");
 }
 
+/*
 #[test]
 fn exit_farm_proxy_after_mint_rewards_go() {
     elrond_wasm_debug::mandos_go("mandos/exit_farm_proxy_after_mint_rewards.scen.json");
 }
-
-#[test]
-fn exit_farm_proxy_with_lock_rewards_go() {
-    elrond_wasm_debug::mandos_go("mandos/exit_farm_proxy_with_lock_rewards.scen.json");
-}
-
-#[test]
-fn exit_farm_proxy_with_lock_rewards_after_mint_rewards_go() {
-    elrond_wasm_debug::mandos_go(
-        "mandos/exit_farm_proxy_with_lock_rewards_after_mint_rewards.scen.json",
-    );
-}
+*/
 
 #[test]
 fn exit_mex_farm_proxy_after_mint_rewards_go() {
