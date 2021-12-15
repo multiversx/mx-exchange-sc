@@ -71,6 +71,7 @@ fn claim_rewards_proxy_after_enter_with_lock_rs() {
     );
 }
 
+/*
 #[test]
 fn claim_rewards_proxy_after_enter_with_lock_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
@@ -78,6 +79,7 @@ fn claim_rewards_proxy_after_enter_with_lock_after_mint_rewards_rs() {
         blockchain_mock(),
     );
 }
+*/
 
 #[test]
 fn claim_rewards_proxy_after_mint_rewards_rs() {
@@ -158,6 +160,7 @@ fn exit_farm_proxy_with_lock_rewards_rs() {
     );
 }
 
+/*
 #[test]
 fn exit_farm_proxy_with_lock_rewards_after_mint_rewards_rs() {
     elrond_wasm_debug::mandos_rs(
@@ -165,6 +168,7 @@ fn exit_farm_proxy_with_lock_rewards_after_mint_rewards_rs() {
         blockchain_mock(),
     );
 }
+*/
 
 #[test]
 fn exit_mex_farm_proxy_after_mint_rewards_rs() {
