@@ -14,7 +14,6 @@ mod errors;
 mod events;
 pub mod fee;
 mod liquidity_pool;
-pub mod macros;
 
 use crate::errors::*;
 use config::State;
@@ -613,7 +612,7 @@ pub trait Pair<ContractReader>:
             );
             amount_out
         } else {
-            err!(self, ERROR_UNKNOWN_TOKEN);
+            kill!(self, ERROR_UNKNOWN_TOKEN);
         }
     }
 
@@ -645,7 +644,7 @@ pub trait Pair<ContractReader>:
                 self.get_amount_in(&amount_wanted, &first_token_reserve, &second_token_reserve);
             amount_in
         } else {
-            err!(self, ERROR_UNKNOWN_TOKEN);
+            kill!(self, ERROR_UNKNOWN_TOKEN);
         }
     }
 
@@ -667,7 +666,7 @@ pub trait Pair<ContractReader>:
         } else if token_in == second_token_id {
             self.quote(&amount_in, &second_token_reserve, &first_token_reserve)
         } else {
-            err!(self, ERROR_UNKNOWN_TOKEN);
+            kill!(self, ERROR_UNKNOWN_TOKEN);
         }
     }
 

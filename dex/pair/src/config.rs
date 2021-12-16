@@ -2,7 +2,18 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::errors::*;
-use crate::kill;
+
+#[macro_export]
+macro_rules! kill {
+    ($self:expr, $cond:expr, $msg:expr $(,)?) => {
+        if !$cond {
+            kill!($self, $msg)
+        }
+    };
+    ($self:expr, $msg:expr $(,)?) => {
+        $self.raw_vm_api().signal_error($msg)
+    };
+}
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
