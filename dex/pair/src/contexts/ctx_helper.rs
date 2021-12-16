@@ -12,10 +12,7 @@ use super::remove_liquidity::*;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
-    crate::config::ConfigModule
-    + token_send::TokenSendModule
-    + crate::amm::AmmModule
-    + crate::validation::ValidationModule
+    crate::config::ConfigModule + token_send::TokenSendModule + crate::amm::AmmModule
 {
     fn new_add_liquidity_context(
         &self,

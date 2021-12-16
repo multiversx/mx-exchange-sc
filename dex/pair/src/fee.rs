@@ -5,7 +5,7 @@ use super::amm;
 use super::config;
 use super::errors::*;
 use super::liquidity_pool;
-use super::validation;
+use crate::die;
 use common_structs::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
@@ -16,7 +16,6 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_send::TokenSendModule
-    + validation::ValidationModule
 {
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
@@ -36,14 +35,14 @@ pub trait FeeModule:
     fn whitelist_endpoint(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_new = self.whitelist().insert(address);
-        self.assert(is_new, ERROR_ALREADY_WHITELISTED);
+        die!(self, is_new, ERROR_ALREADY_WHITELISTED);
     }
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_removed = self.whitelist().remove(&address);
-        self.assert(is_removed, ERROR_NOT_WHITELISTED);
+        die!(self, is_removed, ERROR_NOT_WHITELISTED);
     }
 
     #[endpoint(addTrustedSwapPair)]
@@ -54,13 +53,13 @@ pub trait FeeModule:
         second_token: TokenIdentifier,
     ) {
         self.require_permissions();
-        self.assert(first_token != second_token, ERROR_SAME_TOKENS);
+        die!(self, first_token != second_token, ERROR_SAME_TOKENS);
         let token_pair = TokenPair {
             first_token,
             second_token,
         };
         let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
-        self.assert(is_new, ERROR_PAIR_ALREADY_TRUSTED);
+        die!(self, is_new, ERROR_PAIR_ALREADY_TRUSTED);
     }
 
     #[endpoint(removeTrustedSwapPair)]
@@ -82,7 +81,7 @@ pub trait FeeModule:
                 second_token: first_token,
             };
             is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
-            self.assert(is_removed, ERROR_PAIR_NOT_TRUSTED);
+            die!(self, is_removed, ERROR_PAIR_NOT_TRUSTED);
         }
     }
 
@@ -330,12 +329,12 @@ pub trait FeeModule:
             .any(|dest_address| dest_address == fee_to_address);
 
         if enabled {
-            self.assert(!is_dest, ERROR_ALREADY_FEE_DEST);
+            die!(self, !is_dest, ERROR_ALREADY_FEE_DEST);
             self.destination_map().insert(fee_to_address, fee_token);
         } else {
-            self.assert(is_dest, ERROR_NOT_FEE_DEST);
+            die!(self, is_dest, ERROR_NOT_FEE_DEST);
             let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            self.assert(fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
+            die!(self, fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
             self.destination_map().remove(&fee_to_address);
         }
     }

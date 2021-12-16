@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::errors::*;
-use super::validation;
+use crate::die;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -12,7 +12,7 @@ pub enum State {
 }
 
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule + validation::ValidationModule {
+pub trait ConfigModule: token_send::TokenSendModule {
     #[endpoint]
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
         self.require_permissions();
@@ -29,7 +29,11 @@ pub trait ConfigModule: token_send::TokenSendModule + validation::ValidationModu
         let caller = self.blockchain().get_caller();
         let owner = self.router_owner_address().get();
         let router = self.router_address().get();
-        self.assert(caller == owner || caller == router, ERROR_PERMISSION_DENIED);
+        die!(
+            self,
+            caller == owner || caller == router,
+            ERROR_PERMISSION_DENIED
+        );
     }
 
     #[endpoint]
@@ -62,9 +66,10 @@ pub trait ConfigModule: token_send::TokenSendModule + validation::ValidationModu
     }
 
     fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
-        self.assert(
+        die!(
+            self,
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
-            ERROR_BAD_PERCENTS,
+            ERROR_BAD_PERCENTS
         );
         self.total_fee_percent().set(&total_fee_percent);
         self.special_fee_percent().set(&special_fee_percent);

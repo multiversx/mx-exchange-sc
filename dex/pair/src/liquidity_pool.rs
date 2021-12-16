@@ -3,8 +3,8 @@ elrond_wasm::derive_imports!();
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::Context;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
+use crate::die;
 use crate::errors::*;
-use crate::validation;
 
 use super::amm;
 use super::config;
@@ -13,7 +13,7 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm::module]
 pub trait LiquidityPoolModule:
-    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule + validation::ValidationModule
+    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule
 {
     fn biguint_min(&self, a: &BigUint, b: &BigUint) -> BigUint {
         if a < b {
@@ -33,7 +33,7 @@ pub trait LiquidityPoolModule:
                 context.get_second_amount_optimal(),
             );
             let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
-            self.assert(liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
+            die!(self, liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
 
             liquidity -= &minimum_liquidity;
             let lpt = context.get_lp_token_id();
@@ -52,7 +52,7 @@ pub trait LiquidityPoolModule:
             );
         }
 
-        self.assert(&liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
+        die!(self, &liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
         context.increase_lp_token_supply(&liquidity);
         context.set_liquidity_added(liquidity);
         context.increase_reserves();
@@ -73,31 +73,44 @@ pub trait LiquidityPoolModule:
         let total_supply = context.get_lp_token_supply();
         let liquidity = &context.get_lp_token_payment().amount;
 
-        self.assert(
+        die!(
+            self,
             total_supply >= &(liquidity + MINIMUM_LIQUIDITY),
-            ERROR_NOT_ENOUGH_LP,
+            ERROR_NOT_ENOUGH_LP
         );
 
         let first_amount_removed = (liquidity * context.get_first_token_reserve()) / total_supply;
-        self.assert(first_amount_removed > 0, ERROR_INSUFFICIENT_LIQ_BURNED);
-        self.assert(
-            &first_amount_removed >= context.get_first_token_amount_min(),
-            ERROR_SLIPPAGE_ON_REMOVE,
+        die!(
+            self,
+            first_amount_removed > 0u64,
+            ERROR_INSUFFICIENT_LIQ_BURNED
         );
-        self.assert(
+        die!(
+            self,
+            &first_amount_removed >= context.get_first_token_amount_min(),
+            ERROR_SLIPPAGE_ON_REMOVE
+        );
+        die!(
+            self,
             context.get_first_token_reserve() > &first_amount_removed,
-            ERROR_NOT_ENOUGH_RESERVE,
+            ERROR_NOT_ENOUGH_RESERVE
         );
 
         let second_amount_removed = (liquidity * context.get_second_token_reserve()) / total_supply;
-        self.assert(second_amount_removed > 0, ERROR_INSUFFICIENT_LIQ_BURNED);
-        self.assert(
-            &second_amount_removed >= context.get_second_token_amount_min(),
-            ERROR_SLIPPAGE_ON_REMOVE,
+        die!(
+            self,
+            second_amount_removed > 0u64,
+            ERROR_INSUFFICIENT_LIQ_BURNED
         );
-        self.assert(
+        die!(
+            self,
+            &second_amount_removed >= context.get_second_token_amount_min(),
+            ERROR_SLIPPAGE_ON_REMOVE
+        );
+        die!(
+            self,
             context.get_second_token_reserve() > &second_amount_removed,
-            ERROR_NOT_ENOUGH_RESERVE,
+            ERROR_NOT_ENOUGH_RESERVE
         );
 
         (first_amount_removed, second_amount_removed)
@@ -135,7 +148,8 @@ pub trait LiquidityPoolModule:
         );
 
         if &second_token_amount_optimal <= second_token_amount_desired {
-            self.assert(
+            die!(
+                self,
                 &second_token_amount_optimal >= second_token_amount_min,
                 ERROR_INSUFFICIENT_SECOND_TOKEN,
             );
@@ -150,11 +164,13 @@ pub trait LiquidityPoolModule:
                 second_token_reserve,
                 first_token_reserve,
             );
-            self.assert(
+            die!(
+                self,
                 &first_token_amount_optimal <= first_token_amount_desired,
                 ERROR_OPTIMAL_GRATER_THAN_PAID,
             );
-            self.assert(
+            die!(
+                self,
                 &first_token_amount_optimal >= first_token_amount_min,
                 ERROR_INSUFFICIENT_FIRST_TOKEN,
             );
