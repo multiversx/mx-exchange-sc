@@ -5,7 +5,7 @@ use super::amm;
 use super::config;
 use super::errors::*;
 use super::liquidity_pool;
-use crate::die;
+use crate::kill;
 use common_structs::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
@@ -35,14 +35,14 @@ pub trait FeeModule:
     fn whitelist_endpoint(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_new = self.whitelist().insert(address);
-        die!(self, is_new, ERROR_ALREADY_WHITELISTED);
+        kill!(self, is_new, ERROR_ALREADY_WHITELISTED);
     }
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_removed = self.whitelist().remove(&address);
-        die!(self, is_removed, ERROR_NOT_WHITELISTED);
+        kill!(self, is_removed, ERROR_NOT_WHITELISTED);
     }
 
     #[endpoint(addTrustedSwapPair)]
@@ -53,13 +53,13 @@ pub trait FeeModule:
         second_token: TokenIdentifier,
     ) {
         self.require_permissions();
-        die!(self, first_token != second_token, ERROR_SAME_TOKENS);
+        kill!(self, first_token != second_token, ERROR_SAME_TOKENS);
         let token_pair = TokenPair {
             first_token,
             second_token,
         };
         let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
-        die!(self, is_new, ERROR_PAIR_ALREADY_TRUSTED);
+        kill!(self, is_new, ERROR_PAIR_ALREADY_TRUSTED);
     }
 
     #[endpoint(removeTrustedSwapPair)]
@@ -81,7 +81,7 @@ pub trait FeeModule:
                 second_token: first_token,
             };
             is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
-            die!(self, is_removed, ERROR_PAIR_NOT_TRUSTED);
+            kill!(self, is_removed, ERROR_PAIR_NOT_TRUSTED);
         }
     }
 
@@ -329,12 +329,12 @@ pub trait FeeModule:
             .any(|dest_address| dest_address == fee_to_address);
 
         if enabled {
-            die!(self, !is_dest, ERROR_ALREADY_FEE_DEST);
+            kill!(self, !is_dest, ERROR_ALREADY_FEE_DEST);
             self.destination_map().insert(fee_to_address, fee_token);
         } else {
-            die!(self, is_dest, ERROR_NOT_FEE_DEST);
+            kill!(self, is_dest, ERROR_NOT_FEE_DEST);
             let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            die!(self, fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
+            kill!(self, fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
             self.destination_map().remove(&fee_to_address);
         }
     }
