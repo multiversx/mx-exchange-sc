@@ -316,6 +316,7 @@ pub trait Pair<ContractReader>:
     fn swap_no_fee(
         &self,
         #[payment_token] token_in: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         destination_address: ManagedAddress,
@@ -326,7 +327,11 @@ pub trait Pair<ContractReader>:
             self.whitelist().contains(&caller),
             ERROR_NOT_WHITELISTED
         );
-        kill!(self, self.can_swap(), ERROR_SWAP_NOT_ENABLED);
+        kill!(
+            self,
+            self.can_swap(&self.state().get()),
+            ERROR_SWAP_NOT_ENABLED
+        );
         kill!(self, amount_in > 0u64, ERROR_ZERO_AMOUNT);
 
         let first_token_id = self.first_token_id().get();
@@ -375,7 +380,11 @@ pub trait Pair<ContractReader>:
         amount_out_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        kill!(self, self.can_swap(), ERROR_SWAP_NOT_ENABLED);
+        kill!(
+            self,
+            self.can_swap(&self.state().get()),
+            ERROR_SWAP_NOT_ENABLED
+        );
         kill!(self, amount_in > 0u64, ERROR_ZERO_AMOUNT);
         kill!(self, token_in != token_out, ERROR_SAME_TOKENS);
         let first_token_id = self.first_token_id().get();
@@ -467,7 +476,11 @@ pub trait Pair<ContractReader>:
         amount_out: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
-        kill!(self, self.can_swap(), ERROR_SWAP_NOT_ENABLED);
+        kill!(
+            self,
+            self.can_swap(&self.state().get()),
+            ERROR_SWAP_NOT_ENABLED
+        );
         kill!(self, amount_in_max > 0u64, ERROR_ZERO_AMOUNT);
         kill!(self, token_in != token_out, ERROR_SAME_TOKENS);
         let first_token_id = self.first_token_id().get();
@@ -676,7 +689,7 @@ pub trait Pair<ContractReader>:
     }
 
     #[inline]
-    fn can_swap(&self) -> bool {
-        self.state().get() == State::Active
+    fn can_swap(&self, state: &State) -> bool {
+        state == &State::Active
     }
 }

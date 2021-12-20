@@ -7,13 +7,7 @@ use crate::State;
 pub struct AddLiquidityContext<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     tx_input: AddLiquidityTxInput<M>,
-    contract_state: State,
-    lp_token_id: TokenIdentifier<M>,
-    first_token_id: TokenIdentifier<M>,
-    second_token_id: TokenIdentifier<M>,
-    first_token_reserve: BigUint<M>,
-    second_token_reserve: BigUint<M>,
-    lp_token_supply: BigUint<M>,
+    storage_cache: StorageCache<M>,
     initial_k: BigUint<M>,
     first_token_optimal: BigUint<M>,
     second_token_optimal: BigUint<M>,
@@ -74,13 +68,7 @@ impl<M: ManagedTypeApi> AddLiquidityContext<M> {
         AddLiquidityContext {
             caller,
             tx_input,
-            contract_state: State::Inactive,
-            lp_token_id: TokenIdentifier::egld(),
-            first_token_id: TokenIdentifier::egld(),
-            second_token_id: TokenIdentifier::egld(),
-            first_token_reserve: BigUint::zero(),
-            second_token_reserve: BigUint::zero(),
-            lp_token_supply: BigUint::zero(),
+            storage_cache: StorageCache::default(),
             initial_k: BigUint::zero(),
             first_token_optimal: BigUint::zero(),
             second_token_optimal: BigUint::zero(),
@@ -92,59 +80,59 @@ impl<M: ManagedTypeApi> AddLiquidityContext<M> {
 
 impl<M: ManagedTypeApi> Context<M> for AddLiquidityContext<M> {
     fn set_contract_state(&mut self, contract_state: State) {
-        self.contract_state = contract_state;
+        self.storage_cache.contract_state = contract_state;
     }
 
     fn get_contract_state(&self) -> &State {
-        &self.contract_state
+        &self.storage_cache.contract_state
     }
 
     fn set_lp_token_id(&mut self, lp_token_id: TokenIdentifier<M>) {
-        self.lp_token_id = lp_token_id;
+        self.storage_cache.lp_token_id = lp_token_id;
     }
 
     fn get_lp_token_id(&self) -> &TokenIdentifier<M> {
-        &self.lp_token_id
+        &self.storage_cache.lp_token_id
     }
 
     fn set_first_token_id(&mut self, token_id: TokenIdentifier<M>) {
-        self.first_token_id = token_id;
+        self.storage_cache.first_token_id = token_id;
     }
 
     fn get_first_token_id(&self) -> &TokenIdentifier<M> {
-        &self.first_token_id
+        &self.storage_cache.first_token_id
     }
 
     fn set_second_token_id(&mut self, token_id: TokenIdentifier<M>) {
-        self.second_token_id = token_id;
+        self.storage_cache.second_token_id = token_id;
     }
 
     fn get_second_token_id(&self) -> &TokenIdentifier<M> {
-        &self.second_token_id
+        &self.storage_cache.second_token_id
     }
 
     fn set_first_token_reserve(&mut self, amount: BigUint<M>) {
-        self.first_token_reserve = amount;
+        self.storage_cache.first_token_reserve = amount;
     }
 
     fn get_first_token_reserve(&self) -> &BigUint<M> {
-        &self.first_token_reserve
+        &self.storage_cache.first_token_reserve
     }
 
     fn set_second_token_reserve(&mut self, amount: BigUint<M>) {
-        self.second_token_reserve = amount;
+        self.storage_cache.second_token_reserve = amount;
     }
 
     fn get_second_token_reserve(&self) -> &BigUint<M> {
-        &self.second_token_reserve
+        &self.storage_cache.second_token_reserve
     }
 
     fn set_lp_token_supply(&mut self, amount: BigUint<M>) {
-        self.lp_token_supply = amount;
+        self.storage_cache.lp_token_supply = amount;
     }
 
     fn get_lp_token_supply(&self) -> &BigUint<M> {
-        &self.lp_token_supply
+        &self.storage_cache.lp_token_supply
     }
 
     fn set_initial_k(&mut self, k: BigUint<M>) {
@@ -238,10 +226,10 @@ impl<M: ManagedTypeApi> AddLiquidityTxInput<M> {
 impl<M: ManagedTypeApi> AddLiquidityContext<M> {
     pub fn payment_tokens_match_pool_tokens(&self) -> bool {
         self.payment_token_match_pool_token(
-            &self.first_token_id,
+            &self.storage_cache.first_token_id,
             &self.tx_input.payments.first_payment.as_ref(),
         ) && self.payment_token_match_pool_token(
-            &self.second_token_id,
+            &self.storage_cache.second_token_id,
             &self.tx_input.payments.second_payment.as_ref(),
         )
     }
@@ -274,12 +262,12 @@ impl<M: ManagedTypeApi> AddLiquidityContext<M> {
     }
 
     pub fn increase_lp_token_supply(&mut self, amount: &BigUint<M>) {
-        self.lp_token_supply += amount;
+        self.storage_cache.lp_token_supply += amount;
     }
 
     pub fn increase_reserves(&mut self) {
-        self.first_token_reserve += &self.first_token_optimal;
-        self.second_token_reserve += &self.second_token_optimal;
+        self.storage_cache.first_token_reserve += &self.first_token_optimal;
+        self.storage_cache.second_token_reserve += &self.second_token_optimal;
     }
 
     pub fn set_first_amount_optimal(&mut self, amount: BigUint<M>) {

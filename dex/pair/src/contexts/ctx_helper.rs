@@ -9,6 +9,10 @@ use crate::RemoveLiquidityResultType;
 use super::add_liquidity::*;
 use super::base::*;
 use super::remove_liquidity::*;
+use super::swap::SwapArgs;
+use super::swap::SwapContext;
+use super::swap::SwapPayments;
+use super::swap::SwapTxInput;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
@@ -63,6 +67,23 @@ pub trait CtxHelper:
         let tx_input = RemoveLiquidityTxInput::new(args, payments);
 
         RemoveLiquidityContext::new(tx_input, caller)
+    }
+
+    fn new_swap_context(
+        &self,
+        payment_token: &TokenIdentifier,
+        payment_nonce: u64,
+        payment_amount: &BigUint,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SwapContext<Self::Api> {
+        let caller = self.blockchain().get_caller();
+
+        let payment = self.create_payment(payment_token, payment_nonce, payment_amount);
+        let args = SwapArgs::new(opt_accept_funds_func);
+        let payments = SwapPayments::new(payment);
+        let tx_input = SwapTxInput::new(args, payments);
+
+        SwapContext::new(tx_input, caller)
     }
 
     fn load_state(&self, context: &mut dyn Context<Self::Api>) {

@@ -7,13 +7,7 @@ use crate::State;
 pub struct RemoveLiquidityContext<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     tx_input: RemoveLiquidityTxInput<M>,
-    contract_state: State,
-    lp_token_id: TokenIdentifier<M>,
-    first_token_id: TokenIdentifier<M>,
-    second_token_id: TokenIdentifier<M>,
-    first_token_reserve: BigUint<M>,
-    second_token_reserve: BigUint<M>,
-    lp_token_supply: BigUint<M>,
+    storage_cache: StorageCache<M>,
     initial_k: BigUint<M>,
     first_token_amount_removed: BigUint<M>,
     second_token_amount_removed: BigUint<M>,
@@ -66,13 +60,7 @@ impl<M: ManagedTypeApi> RemoveLiquidityContext<M> {
         RemoveLiquidityContext {
             caller,
             tx_input,
-            contract_state: State::Inactive,
-            lp_token_id: TokenIdentifier::egld(),
-            first_token_id: TokenIdentifier::egld(),
-            second_token_id: TokenIdentifier::egld(),
-            first_token_reserve: BigUint::zero(),
-            second_token_reserve: BigUint::zero(),
-            lp_token_supply: BigUint::zero(),
+            storage_cache: StorageCache::default(),
             initial_k: BigUint::zero(),
             first_token_amount_removed: BigUint::zero(),
             second_token_amount_removed: BigUint::zero(),
@@ -83,59 +71,59 @@ impl<M: ManagedTypeApi> RemoveLiquidityContext<M> {
 
 impl<M: ManagedTypeApi> Context<M> for RemoveLiquidityContext<M> {
     fn set_contract_state(&mut self, contract_state: State) {
-        self.contract_state = contract_state;
+        self.storage_cache.contract_state = contract_state;
     }
 
     fn get_contract_state(&self) -> &State {
-        &self.contract_state
+        &self.storage_cache.contract_state
     }
 
     fn set_lp_token_id(&mut self, lp_token_id: TokenIdentifier<M>) {
-        self.lp_token_id = lp_token_id;
+        self.storage_cache.lp_token_id = lp_token_id;
     }
 
     fn get_lp_token_id(&self) -> &TokenIdentifier<M> {
-        &self.lp_token_id
+        &self.storage_cache.lp_token_id
     }
 
     fn set_first_token_id(&mut self, token_id: TokenIdentifier<M>) {
-        self.first_token_id = token_id;
+        self.storage_cache.first_token_id = token_id;
     }
 
     fn get_first_token_id(&self) -> &TokenIdentifier<M> {
-        &self.first_token_id
+        &self.storage_cache.first_token_id
     }
 
     fn set_second_token_id(&mut self, token_id: TokenIdentifier<M>) {
-        self.second_token_id = token_id;
+        self.storage_cache.second_token_id = token_id;
     }
 
     fn get_second_token_id(&self) -> &TokenIdentifier<M> {
-        &self.second_token_id
+        &self.storage_cache.second_token_id
     }
 
     fn set_first_token_reserve(&mut self, amount: BigUint<M>) {
-        self.first_token_reserve = amount;
+        self.storage_cache.first_token_reserve = amount;
     }
 
     fn get_first_token_reserve(&self) -> &BigUint<M> {
-        &self.first_token_reserve
+        &self.storage_cache.first_token_reserve
     }
 
     fn set_second_token_reserve(&mut self, amount: BigUint<M>) {
-        self.second_token_reserve = amount;
+        self.storage_cache.second_token_reserve = amount;
     }
 
     fn get_second_token_reserve(&self) -> &BigUint<M> {
-        &self.second_token_reserve
+        &self.storage_cache.second_token_reserve
     }
 
     fn set_lp_token_supply(&mut self, amount: BigUint<M>) {
-        self.lp_token_supply = amount;
+        self.storage_cache.lp_token_supply = amount;
     }
 
     fn get_lp_token_supply(&self) -> &BigUint<M> {
-        &self.lp_token_supply
+        &self.storage_cache.lp_token_supply
     }
 
     fn set_initial_k(&mut self, k: BigUint<M>) {
@@ -229,11 +217,11 @@ impl<M: ManagedTypeApi> RemoveLiquidityContext<M> {
     }
 
     pub fn decrease_lp_token_supply(&mut self) {
-        self.lp_token_supply -= &self.tx_input.payments.lp_token_payment.amount;
+        self.storage_cache.lp_token_supply -= &self.tx_input.payments.lp_token_payment.amount;
     }
 
     pub fn decrease_reserves(&mut self) {
-        self.first_token_reserve -= &self.first_token_amount_removed;
-        self.second_token_reserve -= &self.second_token_amount_removed;
+        self.storage_cache.first_token_reserve -= &self.first_token_amount_removed;
+        self.storage_cache.second_token_reserve -= &self.second_token_amount_removed;
     }
 }

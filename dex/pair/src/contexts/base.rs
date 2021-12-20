@@ -51,3 +51,27 @@ pub trait TxInputArgs<M: ManagedTypeApi> {
 pub trait TxInputPayments<M: ManagedTypeApi> {
     fn are_valid(&self) -> bool;
 }
+
+pub struct StorageCache<M: ManagedTypeApi> {
+    pub contract_state: State,
+    pub lp_token_id: TokenIdentifier<M>,
+    pub first_token_id: TokenIdentifier<M>,
+    pub second_token_id: TokenIdentifier<M>,
+    pub first_token_reserve: BigUint<M>,
+    pub second_token_reserve: BigUint<M>,
+    pub lp_token_supply: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> Default for StorageCache<M> {
+    fn default() -> Self {
+        StorageCache {
+            contract_state: State::Inactive,
+            lp_token_id: TokenIdentifier::egld(),
+            first_token_id: TokenIdentifier::egld(),
+            second_token_id: TokenIdentifier::egld(),
+            first_token_reserve: BigUint::zero(),
+            second_token_reserve: BigUint::zero(),
+            lp_token_supply: BigUint::zero(),
+        }
+    }
+}
