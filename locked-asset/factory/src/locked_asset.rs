@@ -1,8 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone};
+use common_structs::*;
 
+pub const ONE_MILLION: u64 = 1_000_000u64;
+pub const TEN_THOUSAND: u64 = 10_000u64;
 pub const PERCENTAGE_TOTAL: u64 = 100;
 pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
@@ -102,15 +104,14 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
         }
 
         let mut unlock_milestones_merged =
-            ArrayVec::<UnlockMilestone, MAX_MILESTONES_IN_SCHEDULE>::new();
+            ArrayVec::<UnlockMilestoneExtended, MAX_MILESTONES_IN_SCHEDULE>::new();
         for old_milestone in old_unlock_milestones.iter() {
             if old_milestone.unlock_epoch > current_epoch {
-                let new_unlock_percent: u64 = (old_milestone.unlock_percent as u64)
-                    * PERCENTAGE_TOTAL
-                    / unlock_percent_remaining;
-                unlock_milestones_merged.push(UnlockMilestone {
+                let new_unlock_percent: u64 =
+                    (old_milestone.unlock_percent as u64) * ONE_MILLION / unlock_percent_remaining;
+                unlock_milestones_merged.push(UnlockMilestoneExtended {
                     unlock_epoch: old_milestone.unlock_epoch,
-                    unlock_percent: new_unlock_percent as u8,
+                    unlock_percent: new_unlock_percent,
                 });
             }
         }
@@ -121,42 +122,53 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
 
     fn distribute_leftover(
         &self,
-        unlock_milestones_merged: &mut ArrayVec<UnlockMilestone, MAX_MILESTONES_IN_SCHEDULE>,
+        unlock_milestones_merged: &mut ArrayVec<
+            UnlockMilestoneExtended,
+            MAX_MILESTONES_IN_SCHEDULE,
+        >,
     ) {
-        //Compute the leftover percent
         let mut sum_of_new_percents = 0u8;
         for milestone in unlock_milestones_merged.iter() {
-            sum_of_new_percents += milestone.unlock_percent;
+            sum_of_new_percents += (milestone.unlock_percent / TEN_THOUSAND) as u8;
         }
         let mut leftover = PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
 
-        //Spread the leftover percent one by one to the minimum percent entry
         while leftover != 0 {
-            let mut min_index = 0;
-            let mut min_milestone = unlock_milestones_merged[0];
+            let mut max_rounding_error = 0;
+            let mut max_rounding_error_index = 0;
             for index in 0..unlock_milestones_merged.len() {
-                let lesser_percent =
-                    unlock_milestones_merged[index].unlock_percent < min_milestone.unlock_percent;
-                if lesser_percent {
-                    min_index = index;
-                    min_milestone = unlock_milestones_merged[index];
+                let rounding_error = unlock_milestones_merged[index].unlock_percent % TEN_THOUSAND;
+                if rounding_error >= max_rounding_error {
+                    max_rounding_error = rounding_error;
+                    max_rounding_error_index = index;
                 }
             }
 
             leftover -= 1;
-            unlock_milestones_merged[min_index].unlock_percent += 1;
+            unlock_milestones_merged[max_rounding_error_index].unlock_percent =
+                ((unlock_milestones_merged[max_rounding_error_index].unlock_percent
+                    / TEN_THOUSAND)
+                    + 1)
+                    * TEN_THOUSAND;
         }
     }
 
     fn get_non_zero_percent_milestones_as_vec(
         &self,
-        unlock_milestones_merged: &ArrayVec<UnlockMilestone, MAX_MILESTONES_IN_SCHEDULE>,
+        unlock_milestones_merged: &ArrayVec<UnlockMilestoneExtended, MAX_MILESTONES_IN_SCHEDULE>,
     ) -> ManagedVec<UnlockMilestone> {
         let mut new_unlock_milestones = ManagedVec::new();
-        unlock_milestones_merged
-            .iter()
-            .filter(|x| x.unlock_percent != 0)
-            .for_each(|x| new_unlock_milestones.push(x.clone()));
+
+        for el in unlock_milestones_merged.iter() {
+            let percent_rounded = (el.unlock_percent / TEN_THOUSAND) as u8;
+            if percent_rounded != 0 {
+                new_unlock_milestones.push(UnlockMilestone {
+                    unlock_epoch: el.unlock_epoch,
+                    unlock_percent: percent_rounded,
+                });
+            }
+        }
+
         new_unlock_milestones
     }
 
