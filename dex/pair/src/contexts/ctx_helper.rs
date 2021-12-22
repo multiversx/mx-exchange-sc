@@ -74,12 +74,14 @@ pub trait CtxHelper:
         payment_token: &TokenIdentifier,
         payment_nonce: u64,
         payment_amount: &BigUint,
+        out_token_id: TokenIdentifier,
+        out_amount: BigUint,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SwapContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
         let payment = self.create_payment(payment_token, payment_nonce, payment_amount);
-        let args = SwapArgs::new(opt_accept_funds_func);
+        let args = SwapArgs::new(out_token_id, out_amount, opt_accept_funds_func);
         let payments = SwapPayments::new(payment);
         let tx_input = SwapTxInput::new(args, payments);
 

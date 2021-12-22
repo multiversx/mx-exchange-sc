@@ -182,17 +182,6 @@ pub trait LiquidityPoolModule:
         }
     }
 
-    fn update_reserves(
-        &self,
-        first_token_reserve: &BigUint,
-        second_token_reserve: &BigUint,
-        first_token: &TokenIdentifier,
-        second_token: &TokenIdentifier,
-    ) {
-        self.pair_reserve(first_token).set(first_token_reserve);
-        self.pair_reserve(second_token).set(second_token_reserve);
-    }
-
     fn get_token_for_given_position(
         &self,
         liquidity: BigUint,
@@ -228,53 +217,65 @@ pub trait LiquidityPoolModule:
         )
     }
 
-    fn calculate_k_for_reserves(&self) -> BigUint {
-        let first_token_amount = self.pair_reserve(&self.first_token_id().get()).get();
-        let second_token_amount = self.pair_reserve(&self.second_token_id().get()).get();
-        self.calculate_k_constant(&first_token_amount, &second_token_amount)
-    }
-
     fn swap_safe_no_fee(
         &self,
-        first_token_id: &TokenIdentifier,
-        second_token_id: &TokenIdentifier,
+        context: &mut dyn Context<Self::Api>,
         token_in: &TokenIdentifier,
         amount_in: &BigUint,
     ) -> BigUint {
-        let big_zero = BigUint::zero();
-        let first_token_reserve = self.pair_reserve(first_token_id).get();
-        let second_token_reserve = self.pair_reserve(second_token_id).get();
+        let a_to_b = token_in == context.get_first_token_id();
+        match a_to_b {
+            true => {
+                kill!(
+                    self,
+                    context.get_first_token_reserve() != &0u64,
+                    ERROR_ZERO_AMOUNT,
+                );
 
-        let (token_in, mut reserve_in, token_out, mut reserve_out) = if token_in == first_token_id {
-            (
-                first_token_id,
-                first_token_reserve,
-                second_token_id,
-                second_token_reserve,
-            )
-        } else {
-            (
-                second_token_id,
-                second_token_reserve,
-                first_token_id,
-                first_token_reserve,
-            )
-        };
+                let amount_out = self.get_amount_out_no_fee(
+                    amount_in,
+                    context.get_first_token_reserve(),
+                    context.get_second_token_reserve(),
+                );
+                kill!(
+                    self,
+                    context.get_second_token_reserve() > &amount_out && amount_out != 0u64,
+                    ERROR_ZERO_AMOUNT,
+                );
 
-        if reserve_out == 0 {
-            return big_zero;
+                let new_first_amount = context.get_first_token_reserve() + amount_in;
+                let new_second_amount = context.get_second_token_reserve() - &amount_out;
+                context.set_first_token_reserve(new_first_amount);
+                context.set_second_token_reserve(new_second_amount);
+
+                amount_out
+            }
+            false => {
+                kill!(
+                    self,
+                    context.get_second_token_reserve() != &0u64,
+                    ERROR_ZERO_AMOUNT,
+                );
+
+                let amount_out = self.get_amount_out_no_fee(
+                    amount_in,
+                    context.get_second_token_reserve(),
+                    context.get_first_token_reserve(),
+                );
+                kill!(
+                    self,
+                    context.get_first_token_reserve() > &amount_out && amount_out != 0u64,
+                    ERROR_ZERO_AMOUNT,
+                );
+
+                let new_first_amount = context.get_first_token_reserve() - &amount_out;
+                let new_second_amount = context.get_second_token_reserve() + amount_in;
+                context.set_first_token_reserve(new_first_amount);
+                context.set_second_token_reserve(new_second_amount);
+
+                amount_out
+            }
         }
-
-        let amount_out = self.get_amount_out_no_fee(amount_in, &reserve_in, &reserve_out);
-        if reserve_out <= amount_out || amount_out == 0 {
-            return big_zero;
-        }
-
-        reserve_in += amount_in;
-        reserve_out -= &amount_out;
-        self.update_reserves(&reserve_in, &reserve_out, token_in, token_out);
-
-        amount_out
     }
 
     #[view(getTotalSupply)]

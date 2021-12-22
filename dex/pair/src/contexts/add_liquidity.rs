@@ -180,7 +180,11 @@ impl<M: ManagedTypeApi> TxInputPayments<M> for AddLiquidityPayments<M> {
 impl<M: ManagedTypeApi> AddLiquidityPayments<M> {
     fn is_valid_payment(&self, payment_opt: &Option<&EsdtTokenPayment<M>>) -> bool {
         match payment_opt {
-            Some(payment) => payment.amount != 0 && payment.token_nonce == 0,
+            Some(payment) => {
+                payment.amount != 0
+                    && payment.token_nonce == 0
+                    && payment.token_identifier.is_esdt()
+            }
             None => false,
         }
     }

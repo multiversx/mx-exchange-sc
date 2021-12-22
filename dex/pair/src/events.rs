@@ -1,6 +1,7 @@
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::Context;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
+use crate::contexts::swap::SwapContext;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -104,24 +105,21 @@ pub trait EventsModule {
 
     fn emit_swap_no_fee_and_forward_event(
         &self,
-        caller: &ManagedAddress,
-        token_id_in: &TokenIdentifier,
-        token_amount_in: &BigUint,
-        token_id_out: &TokenIdentifier,
-        token_amount_out: &BigUint,
+        context: &SwapContext<Self::Api>,
+        swap_out: &BigUint,
         destination: &ManagedAddress,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.swap_no_fee_and_forward_event(
-            token_id_out,
-            caller,
+            &context.get_swap_args().output_token_id,
+            context.get_caller(),
             epoch,
             &SwapNoFeeAndForwardEvent {
-                caller: caller.clone(),
-                token_id_in: token_id_in.clone(),
-                token_amount_in: token_amount_in.clone(),
-                token_id_out: token_id_out.clone(),
-                token_amount_out: token_amount_out.clone(),
+                caller: context.get_caller().clone(),
+                token_id_in: context.get_payment().token_identifier.clone(),
+                token_amount_in: context.get_payment().amount.clone(),
+                token_id_out: context.get_swap_args().output_token_id.clone(),
+                token_amount_out: swap_out.clone(),
                 destination: destination.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,

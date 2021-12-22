@@ -290,25 +290,29 @@ pub trait Pair<ContractReader>:
 
         self.send().esdt_local_burn(&token_in, 0, &amount_in);
         self.lp_token_supply().update(|x| *x -= &amount_in);
-        self.commit_changes(&context);
 
+        let first_token_id = context.get_first_token_id().clone();
+        let first_token_amount_removed = context.get_first_token_amount_removed().clone();
         let dest_address = ManagedAddress::zero();
         self.send_fee_slice(
-            context.get_first_token_id(),
-            context.get_first_token_amount_removed(),
+            &mut context,
+            &first_token_id,
+            &first_token_amount_removed,
             &dest_address,
             &token_to_buyback_and_burn,
-            context.get_first_token_id(),
-            context.get_second_token_id(),
         );
+
+        let second_token_id = context.get_second_token_id().clone();
+        let second_token_amount_removed = context.get_second_token_amount_removed().clone();
         self.send_fee_slice(
-            context.get_second_token_id(),
-            context.get_second_token_amount_removed(),
+            &mut context,
+            &second_token_id,
+            &second_token_amount_removed,
             &dest_address,
             &token_to_buyback_and_burn,
-            context.get_first_token_id(),
-            context.get_second_token_id(),
         );
+
+        self.commit_changes(&context);
     }
 
     #[payable("*")]
@@ -321,53 +325,65 @@ pub trait Pair<ContractReader>:
         token_out: TokenIdentifier,
         destination_address: ManagedAddress,
     ) {
-        let caller = self.blockchain().get_caller();
+        let mut context = self.new_swap_context(
+            &token_in,
+            nonce,
+            &amount_in,
+            token_out.clone(),
+            BigUint::from(1u64),
+            OptionalArg::None,
+        );
         kill!(
             self,
-            self.whitelist().contains(&caller),
+            self.whitelist().contains(&context.get_caller()),
             ERROR_NOT_WHITELISTED
         );
         kill!(
             self,
-            self.can_swap(&self.state().get()),
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
+        );
+        kill!(
+            self,
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        kill!(
+            self,
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+        );
+
+        self.load_state(&mut context);
+        kill!(
+            self,
+            self.can_swap(&context.get_contract_state()),
             ERROR_SWAP_NOT_ENABLED
         );
-        kill!(self, amount_in > 0u64, ERROR_ZERO_AMOUNT);
 
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
-        kill!(self, token_in != token_out, ERROR_SAME_TOKENS);
+        self.load_pool_token_ids(&mut context);
         kill!(
             self,
-            token_in == first_token_id || token_in == second_token_id,
-            ERROR_UNKNOWN_TOKEN,
-        );
-        kill!(
-            self,
-            token_out == first_token_id || token_out == second_token_id,
-            ERROR_UNKNOWN_TOKEN,
+            context.input_tokens_match_pool_tokens(),
+            ERROR_INVALID_ARGS,
         );
 
-        let old_k = self.calculate_k_for_reserves();
+        self.load_pool_reserves(&mut context);
+        self.load_initial_k(&mut context);
 
-        let amount_out =
-            self.swap_safe_no_fee(&first_token_id, &second_token_id, &token_in, &amount_in);
+        let amount_out = self.swap_safe_no_fee(&mut context, &token_in, &amount_in);
         kill!(self, amount_out > 0u64, ERROR_ZERO_AMOUNT);
 
-        // A swap should not decrease the value of K. Should either be greater or equal.
-        let new_k = self.calculate_k_for_reserves();
-        kill!(self, old_k <= new_k, ERROR_K_INVARIANT_FAILED);
-
-        self.burn_fees(&token_out, &amount_out);
-
-        self.emit_swap_no_fee_and_forward_event(
-            &caller,
-            &token_in,
-            &amount_in,
-            &token_out,
-            &amount_out,
-            &destination_address,
+        let new_k = self.calculate_k(&context);
+        kill!(
+            self,
+            context.get_initial_k() <= &new_k,
+            ERROR_K_INVARIANT_FAILED,
         );
+
+        self.commit_changes(&context);
+        self.burn_fees(&token_out, &amount_out);
+        self.emit_swap_no_fee_and_forward_event(&context, &amount_out, &destination_address);
     }
 
     #[payable("*")]
@@ -375,55 +391,74 @@ pub trait Pair<ContractReader>:
     fn swap_tokens_fixed_input(
         &self,
         #[payment_token] token_in: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        kill!(
-            self,
-            self.can_swap(&self.state().get()),
-            ERROR_SWAP_NOT_ENABLED
-        );
-        kill!(self, amount_in > 0u64, ERROR_ZERO_AMOUNT);
-        kill!(self, token_in != token_out, ERROR_SAME_TOKENS);
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
-        kill!(
-            self,
-            token_in == first_token_id || token_in == second_token_id,
-            ERROR_UNKNOWN_TOKEN,
+        let mut context = self.new_swap_context(
+            &token_in,
+            nonce,
+            &amount_in,
+            token_out.clone(),
+            amount_out_min,
+            opt_accept_funds_func.clone(),
         );
         kill!(
             self,
-            token_out == first_token_id || token_out == second_token_id,
-            ERROR_UNKNOWN_TOKEN,
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
         );
-        let old_k = self.calculate_k_for_reserves();
-
-        let mut reserve_token_out = self.pair_reserve(&token_out).get();
         kill!(
             self,
-            reserve_token_out > amount_out_min,
-            ERROR_NOT_ENOUGH_RESERVE
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        kill!(
+            self,
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
         );
 
-        let mut reserve_token_in = self.pair_reserve(&token_in).get();
-        let amount_out_optimal =
-            self.get_amount_out(&amount_in, &reserve_token_in, &reserve_token_out);
+        self.load_state(&mut context);
         kill!(
             self,
-            amount_out_optimal >= amount_out_min,
+            self.can_swap(&context.get_contract_state()),
+            ERROR_SWAP_NOT_ENABLED,
+        );
+
+        self.load_pool_token_ids(&mut context);
+        kill!(
+            self,
+            context.input_tokens_match_pool_tokens(),
+            ERROR_INVALID_ARGS,
+        );
+
+        self.load_pool_reserves(&mut context);
+        kill!(
+            self,
+            context.get_reserve_out() > context.get_amount_out_min(),
+            ERROR_NOT_ENOUGH_RESERVE,
+        );
+
+        self.load_initial_k(&mut context);
+        let amount_out_optimal = self.get_amount_out(
+            context.get_amount_in(),
+            context.get_reserve_in(),
+            context.get_reserve_out(),
+        );
+        kill!(
+            self,
+            &amount_out_optimal >= context.get_amount_out_min(),
             ERROR_SLIPPAGE_EXCEEDED,
         );
         kill!(
             self,
-            reserve_token_out > amount_out_optimal,
+            context.get_reserve_out() > &amount_out_optimal,
             ERROR_NOT_ENOUGH_RESERVE,
         );
         kill!(self, amount_out_optimal != 0u64, ERROR_ZERO_AMOUNT);
-
-        let caller = self.blockchain().get_caller();
 
         let mut fee_amount = BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
@@ -432,20 +467,23 @@ pub trait Pair<ContractReader>:
             amount_in_after_fee -= &fee_amount;
         }
 
-        reserve_token_in += &amount_in_after_fee;
-        reserve_token_out -= &amount_out_optimal;
-        self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
+        context.increase_reserve_in(&amount_in_after_fee);
+        context.decrease_reserve_out(&amount_out_optimal);
 
-        // A swap should not decrease the value of K. Should either be greater or equal.
-        let new_k = self.calculate_k_for_reserves();
-        kill!(self, old_k <= new_k, ERROR_K_INVARIANT_FAILED);
+        let new_k = self.calculate_k(&context);
+        kill!(
+            self,
+            context.get_initial_k() <= &new_k,
+            ERROR_K_INVARIANT_FAILED
+        );
 
-        //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
-            self.send_fee(&token_in, &fee_amount);
+            self.send_fee(&mut context, &token_in, &fee_amount);
         }
+        self.commit_changes(&context);
+
         self.transfer_execute_custom(
-            &caller,
+            context.get_caller(),
             &token_out,
             0,
             &amount_out_optimal,
@@ -454,14 +492,14 @@ pub trait Pair<ContractReader>:
         .unwrap();
 
         self.emit_swap_event(
-            &caller,
+            context.get_caller(),
             &token_in,
             &amount_in,
             &token_out,
             &amount_out_optimal,
             &fee_amount,
-            &reserve_token_in,
-            &reserve_token_out,
+            context.get_amount_in(),
+            context.get_reserve_out(),
         );
         self.create_payment(&token_out, 0, &amount_out_optimal)
     }
@@ -471,51 +509,69 @@ pub trait Pair<ContractReader>:
     fn swap_tokens_fixed_output(
         &self,
         #[payment_token] token_in: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
         #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
         amount_out: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
-        kill!(
-            self,
-            self.can_swap(&self.state().get()),
-            ERROR_SWAP_NOT_ENABLED
-        );
-        kill!(self, amount_in_max > 0u64, ERROR_ZERO_AMOUNT);
-        kill!(self, token_in != token_out, ERROR_SAME_TOKENS);
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
-        kill!(
-            self,
-            token_in == first_token_id || token_in == second_token_id,
-            ERROR_UNKNOWN_TOKEN,
+        let mut context = self.new_swap_context(
+            &token_in,
+            nonce,
+            &amount_in_max,
+            token_out.clone(),
+            amount_out.clone(),
+            opt_accept_funds_func.clone(),
         );
         kill!(
             self,
-            token_out == first_token_id || token_out == second_token_id,
-            ERROR_UNKNOWN_TOKEN,
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
         );
-        kill!(self, amount_out != 0u64, ERROR_ZERO_AMOUNT);
-        let old_k = self.calculate_k_for_reserves();
+        kill!(
+            self,
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        kill!(
+            self,
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+        );
 
-        let mut reserve_token_out = self.pair_reserve(&token_out).get();
+        self.load_state(&mut context);
         kill!(
             self,
-            reserve_token_out > amount_out,
+            self.can_swap(&context.get_contract_state()),
+            ERROR_SWAP_NOT_ENABLED,
+        );
+
+        self.load_pool_token_ids(&mut context);
+        kill!(
+            self,
+            context.input_tokens_match_pool_tokens(),
+            ERROR_INVALID_ARGS,
+        );
+
+        self.load_pool_reserves(&mut context);
+        kill!(
+            self,
+            context.get_reserve_out() > context.get_amount_out(),
             ERROR_NOT_ENOUGH_RESERVE
         );
 
-        let mut reserve_token_in = self.pair_reserve(&token_in).get();
-        let amount_in_optimal =
-            self.get_amount_in(&amount_out, &reserve_token_in, &reserve_token_out);
+        let amount_in_optimal = self.get_amount_in(
+            context.get_amount_out(),
+            context.get_reserve_in(),
+            context.get_reserve_out(),
+        );
         kill!(
             self,
-            amount_in_optimal <= amount_in_max,
+            &amount_in_optimal <= context.get_amount_in_max(),
             ERROR_SLIPPAGE_EXCEEDED
         );
 
-        let caller = self.blockchain().get_caller();
-        let residuum = &amount_in_max - &amount_in_optimal;
+        let residuum = context.get_amount_in_max() - &amount_in_optimal;
 
         let mut fee_amount = BigUint::zero();
         let mut amount_in_optimal_after_fee = amount_in_optimal.clone();
@@ -524,34 +580,40 @@ pub trait Pair<ContractReader>:
             amount_in_optimal_after_fee -= &fee_amount;
         }
 
-        reserve_token_in += &amount_in_optimal_after_fee;
-        reserve_token_out -= &amount_out;
-        self.update_reserves(&reserve_token_in, &reserve_token_out, &token_in, &token_out);
+        context.increase_reserve_in(&amount_in_optimal_after_fee);
+        context.decrease_reserve_out(&context.get_amount_out().clone());
 
-        // A swap should not decrease the value of K. Should either be greater or equal.
-        let new_k = self.calculate_k_for_reserves();
-        kill!(self, old_k <= new_k, ERROR_K_INVARIANT_FAILED);
+        let new_k = self.calculate_k(&context);
+        kill!(
+            self,
+            context.get_initial_k() <= &new_k,
+            ERROR_K_INVARIANT_FAILED
+        );
 
-        //The transaction was made. We are left with $(fee) of $(token_in) as fee.
         if self.is_fee_enabled() {
-            self.send_fee(&token_in, &fee_amount);
+            self.send_fee(&mut context, &token_in, &fee_amount);
         }
+        self.commit_changes(&context);
 
         let mut payments = ManagedVec::new();
         payments.push(self.create_payment(&token_out, 0, &amount_out));
         payments.push(self.create_payment(&token_in, 0, &residuum));
-        self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)
-            .unwrap();
+        self.send_multiple_tokens_if_not_zero(
+            context.get_caller(),
+            &payments,
+            &opt_accept_funds_func,
+        )
+        .unwrap();
 
         self.emit_swap_event(
-            &caller,
+            context.get_caller(),
             &token_in,
             &amount_in_optimal,
             &token_out,
             &amount_out,
             &fee_amount,
-            &reserve_token_in,
-            &reserve_token_out,
+            context.get_reserve_in(),
+            context.get_reserve_out(),
         );
         MultiResult2::from((
             self.create_payment(&token_out, 0, &amount_out),

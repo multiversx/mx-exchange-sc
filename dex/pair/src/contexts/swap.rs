@@ -18,6 +18,8 @@ pub struct SwapTxInput<M: ManagedTypeApi> {
 }
 
 pub struct SwapArgs<M: ManagedTypeApi> {
+    pub output_token_id: TokenIdentifier<M>,
+    pub output_amount: BigUint<M>,
     opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
 }
 
@@ -32,8 +34,14 @@ impl<M: ManagedTypeApi> SwapTxInput<M> {
 }
 
 impl<M: ManagedTypeApi> SwapArgs<M> {
-    pub fn new(opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>) -> Self {
+    pub fn new(
+        output_token_id: TokenIdentifier<M>,
+        output_amount: BigUint<M>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
+    ) -> Self {
         SwapArgs {
+            output_token_id,
+            output_amount,
             opt_accept_funds_func,
         }
     }
@@ -145,19 +153,15 @@ impl<M: ManagedTypeApi> Context<M> for SwapContext<M> {
 
 impl<M: ManagedTypeApi> TxInputArgs<M> for SwapArgs<M> {
     fn are_valid(&self) -> bool {
-        true
+        self.output_amount != 0 && self.output_token_id.is_esdt()
     }
 }
 
 impl<M: ManagedTypeApi> TxInputPayments<M> for SwapPayments<M> {
     fn are_valid(&self) -> bool {
-        true
-    }
-}
-
-impl<M: ManagedTypeApi> SwapPayments<M> {
-    fn is_valid_payment(&self, payment_opt: &Option<&EsdtTokenPayment<M>>) -> bool {
-        true
+        self.input.amount != 0
+            && self.input.token_identifier.is_esdt()
+            && self.input.token_nonce == 0
     }
 }
 
@@ -171,40 +175,96 @@ impl<M: ManagedTypeApi> TxInput<M> for SwapTxInput<M> {
     }
 
     fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-impl<M: ManagedTypeApi> SwapTxInput<M> {
-    fn args_match_payments(&self) -> bool {
-        true
-    }
-
-    fn min_leq_payment_amount(
-        &self,
-        min: &BigUint<M>,
-        payment_opt: &Option<&EsdtTokenPayment<M>>,
-    ) -> bool {
-        match payment_opt {
-            Some(payment) => min <= &payment.amount,
-            None => false,
-        }
+        self.args.output_token_id != self.payments.input.token_identifier
     }
 }
 
 impl<M: ManagedTypeApi> SwapContext<M> {
-    pub fn payment_tokens_match_pool_tokens(&self) -> bool {
-        true
+    pub fn input_tokens_match_pool_tokens(&self) -> bool {
+        (self.tx_input.args.output_token_id == self.storage_cache.first_token_id
+            || self.tx_input.args.output_token_id == self.storage_cache.second_token_id)
+            && (self.tx_input.payments.input.token_identifier == self.storage_cache.first_token_id
+                || self.tx_input.payments.input.token_identifier
+                    == self.storage_cache.second_token_id)
     }
 
-    fn payment_token_match_pool_token(
-        &self,
-        token_id: &TokenIdentifier<M>,
-        payment_opt: &Option<&EsdtTokenPayment<M>>,
-    ) -> bool {
-        match payment_opt {
-            Some(payment) => token_id == &payment.token_identifier,
-            None => false,
+    pub fn get_payment(&self) -> &EsdtTokenPayment<M> {
+        &self.tx_input.payments.input
+    }
+
+    pub fn get_swap_args(&self) -> &SwapArgs<M> {
+        &self.tx_input.args
+    }
+
+    pub fn get_token_in(&self) -> &TokenIdentifier<M> {
+        &self.tx_input.payments.input.token_identifier
+    }
+
+    pub fn get_amount_in(&self) -> &BigUint<M> {
+        &self.tx_input.payments.input.amount
+    }
+
+    pub fn get_token_out(&self) -> &TokenIdentifier<M> {
+        &self.tx_input.args.output_token_id
+    }
+
+    pub fn get_amount_out_min(&self) -> &BigUint<M> {
+        self.get_amount_out()
+    }
+
+    pub fn get_amount_in_max(&self) -> &BigUint<M> {
+        self.get_amount_in()
+    }
+
+    pub fn get_amount_out(&self) -> &BigUint<M> {
+        &self.tx_input.args.output_amount
+    }
+
+    pub fn get_reserve_in(&self) -> &BigUint<M> {
+        let payment_token_id = &self.tx_input.payments.input.token_identifier;
+
+        if payment_token_id == &self.storage_cache.first_token_id {
+            &self.storage_cache.first_token_reserve
+        } else if payment_token_id == &self.storage_cache.second_token_id {
+            &self.storage_cache.second_token_reserve
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn get_reserve_out(&self) -> &BigUint<M> {
+        let args_token_id = &self.tx_input.args.output_token_id;
+
+        if args_token_id == &self.storage_cache.first_token_id {
+            &self.storage_cache.first_token_reserve
+        } else if args_token_id == &self.storage_cache.second_token_id {
+            &self.storage_cache.second_token_reserve
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn increase_reserve_in(&mut self, amount: &BigUint<M>) {
+        let payment_token_id = &self.tx_input.payments.input.token_identifier;
+
+        if payment_token_id == &self.storage_cache.first_token_id {
+            self.storage_cache.first_token_reserve += amount;
+        } else if payment_token_id == &self.storage_cache.second_token_id {
+            self.storage_cache.second_token_reserve += amount;
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn decrease_reserve_out(&mut self, amount: &BigUint<M>) {
+        let args_token_id = &self.tx_input.args.output_token_id;
+
+        if args_token_id == &self.storage_cache.first_token_id {
+            self.storage_cache.first_token_reserve -= amount;
+        } else if args_token_id == &self.storage_cache.second_token_id {
+            self.storage_cache.second_token_reserve -= amount;
+        } else {
+            unreachable!()
         }
     }
 }
