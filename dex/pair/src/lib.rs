@@ -371,8 +371,10 @@ pub trait Pair<ContractReader>:
         self.load_pool_reserves(&mut context);
         self.load_initial_k(&mut context);
 
+        context.set_final_input_amount(amount_in.clone());
         let amount_out = self.swap_safe_no_fee(&mut context, &token_in, &amount_in);
         kill!(self, amount_out > 0u64, ERROR_ZERO_AMOUNT);
+        context.set_final_output_amount(amount_out.clone());
 
         let new_k = self.calculate_k(&context);
         kill!(
@@ -383,7 +385,7 @@ pub trait Pair<ContractReader>:
 
         self.commit_changes(&context);
         self.burn_fees(&token_out, &amount_out);
-        self.emit_swap_no_fee_and_forward_event(&context, &amount_out, &destination_address);
+        self.emit_swap_no_fee_and_forward_event(&context, &destination_address);
     }
 
     #[payable("*")]
@@ -443,6 +445,7 @@ pub trait Pair<ContractReader>:
         );
 
         self.load_initial_k(&mut context);
+        context.set_final_input_amount(context.get_amount_in().clone());
         let amount_out_optimal = self.get_amount_out(
             context.get_amount_in(),
             context.get_reserve_in(),
@@ -459,6 +462,7 @@ pub trait Pair<ContractReader>:
             ERROR_NOT_ENOUGH_RESERVE,
         );
         kill!(self, amount_out_optimal != 0u64, ERROR_ZERO_AMOUNT);
+        context.set_final_output_amount(amount_out_optimal.clone());
 
         let mut fee_amount = BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
@@ -466,6 +470,7 @@ pub trait Pair<ContractReader>:
             fee_amount = self.get_special_fee_from_input(&amount_in);
             amount_in_after_fee -= &fee_amount;
         }
+        context.set_fee_amount(fee_amount.clone());
 
         context.increase_reserve_in(&amount_in_after_fee);
         context.decrease_reserve_out(&amount_out_optimal);
@@ -482,25 +487,9 @@ pub trait Pair<ContractReader>:
         }
         self.commit_changes(&context);
 
-        self.transfer_execute_custom(
-            context.get_caller(),
-            &token_out,
-            0,
-            &amount_out_optimal,
-            &opt_accept_funds_func,
-        )
-        .unwrap();
-
-        self.emit_swap_event(
-            context.get_caller(),
-            &token_in,
-            &amount_in,
-            &token_out,
-            &amount_out_optimal,
-            &fee_amount,
-            context.get_amount_in(),
-            context.get_reserve_out(),
-        );
+        self.construct_swap_output_payments(&mut context);
+        self.execute_output_payments(&context);
+        self.emit_swap_event(&context);
         self.create_payment(&token_out, 0, &amount_out_optimal)
     }
 
@@ -560,6 +549,7 @@ pub trait Pair<ContractReader>:
             ERROR_NOT_ENOUGH_RESERVE
         );
 
+        context.set_final_output_amount(context.get_amount_out().clone());
         let amount_in_optimal = self.get_amount_in(
             context.get_amount_out(),
             context.get_reserve_in(),
@@ -570,6 +560,7 @@ pub trait Pair<ContractReader>:
             &amount_in_optimal <= context.get_amount_in_max(),
             ERROR_SLIPPAGE_EXCEEDED
         );
+        context.set_final_input_amount(amount_in_optimal.clone());
 
         let residuum = context.get_amount_in_max() - &amount_in_optimal;
 
@@ -579,6 +570,7 @@ pub trait Pair<ContractReader>:
             fee_amount = self.get_special_fee_from_input(&amount_in_optimal);
             amount_in_optimal_after_fee -= &fee_amount;
         }
+        context.set_fee_amount(fee_amount.clone());
 
         context.increase_reserve_in(&amount_in_optimal_after_fee);
         context.decrease_reserve_out(&context.get_amount_out().clone());
@@ -595,26 +587,9 @@ pub trait Pair<ContractReader>:
         }
         self.commit_changes(&context);
 
-        let mut payments = ManagedVec::new();
-        payments.push(self.create_payment(&token_out, 0, &amount_out));
-        payments.push(self.create_payment(&token_in, 0, &residuum));
-        self.send_multiple_tokens_if_not_zero(
-            context.get_caller(),
-            &payments,
-            &opt_accept_funds_func,
-        )
-        .unwrap();
-
-        self.emit_swap_event(
-            context.get_caller(),
-            &token_in,
-            &amount_in_optimal,
-            &token_out,
-            &amount_out,
-            &fee_amount,
-            context.get_reserve_in(),
-            context.get_reserve_out(),
-        );
+        self.construct_swap_output_payments(&mut context);
+        self.execute_output_payments(&context);
+        self.emit_swap_event(&context);
         MultiResult2::from((
             self.create_payment(&token_out, 0, &amount_out),
             self.create_payment(&token_in, 0, &residuum),

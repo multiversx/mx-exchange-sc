@@ -9,6 +9,9 @@ pub struct SwapContext<M: ManagedTypeApi> {
     tx_input: SwapTxInput<M>,
     storage_cache: StorageCache<M>,
     initial_k: BigUint<M>,
+    final_input_amount: BigUint<M>,
+    final_output_amount: BigUint<M>,
+    fee_amount: BigUint<M>,
     output_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
@@ -60,6 +63,9 @@ impl<M: ManagedTypeApi> SwapContext<M> {
             tx_input,
             storage_cache: StorageCache::default(),
             initial_k: BigUint::zero(),
+            final_input_amount: BigUint::zero(),
+            final_output_amount: BigUint::zero(),
+            fee_amount: BigUint::zero(),
             output_payments: ManagedVec::new(),
         }
     }
@@ -266,5 +272,29 @@ impl<M: ManagedTypeApi> SwapContext<M> {
         } else {
             unreachable!()
         }
+    }
+
+    pub fn set_final_input_amount(&mut self, amount: BigUint<M>) {
+        self.final_input_amount = amount
+    }
+
+    pub fn get_final_input_amount(&self) -> &BigUint<M> {
+        &self.final_input_amount
+    }
+
+    pub fn set_final_output_amount(&mut self, amount: BigUint<M>) {
+        self.final_output_amount = amount
+    }
+
+    pub fn get_final_output_amount(&self) -> &BigUint<M> {
+        &self.final_output_amount
+    }
+
+    pub fn set_fee_amount(&mut self, amount: BigUint<M>) {
+        self.fee_amount = amount
+    }
+
+    pub fn get_fee_amount(&self) -> &BigUint<M> {
+        &self.fee_amount
     }
 }

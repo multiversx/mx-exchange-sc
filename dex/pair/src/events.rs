@@ -70,32 +70,22 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait EventsModule {
-    fn emit_swap_event(
-        &self,
-        caller: &ManagedAddress,
-        token_id_in: &TokenIdentifier,
-        token_amount_in: &BigUint,
-        token_id_out: &TokenIdentifier,
-        token_amount_out: &BigUint,
-        fee_amount: &BigUint,
-        token_in_reserve: &BigUint,
-        token_out_reserve: &BigUint,
-    ) {
+    fn emit_swap_event(&self, context: &SwapContext<Self::Api>) {
         let epoch = self.blockchain().get_block_epoch();
         self.swap_event(
-            token_id_in,
-            token_id_out,
-            caller,
+            context.get_token_in(),
+            context.get_token_out(),
+            context.get_caller(),
             epoch,
             &SwapEvent {
-                caller: caller.clone(),
-                token_id_in: token_id_in.clone(),
-                token_amount_in: token_amount_in.clone(),
-                token_id_out: token_id_out.clone(),
-                token_amount_out: token_amount_out.clone(),
-                fee_amount: fee_amount.clone(),
-                token_in_reserve: token_in_reserve.clone(),
-                token_out_reserve: token_out_reserve.clone(),
+                caller: context.get_caller().clone(),
+                token_id_in: context.get_token_in().clone(),
+                token_amount_in: context.get_final_input_amount().clone(),
+                token_id_out: context.get_token_out().clone(),
+                token_amount_out: context.get_final_output_amount().clone(),
+                fee_amount: context.get_fee_amount().clone(),
+                token_in_reserve: context.get_reserve_in().clone(),
+                token_out_reserve: context.get_reserve_out().clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -106,7 +96,6 @@ pub trait EventsModule {
     fn emit_swap_no_fee_and_forward_event(
         &self,
         context: &SwapContext<Self::Api>,
-        swap_out: &BigUint,
         destination: &ManagedAddress,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -119,7 +108,7 @@ pub trait EventsModule {
                 token_id_in: context.get_payment().token_identifier.clone(),
                 token_amount_in: context.get_payment().amount.clone(),
                 token_id_out: context.get_swap_args().output_token_id.clone(),
-                token_amount_out: swap_out.clone(),
+                token_amount_out: context.get_final_output_amount().clone(),
                 destination: destination.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,

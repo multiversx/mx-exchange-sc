@@ -165,6 +165,26 @@ pub trait CtxHelper:
         context.set_output_payments(payments);
     }
 
+    fn construct_swap_output_payments(&self, context: &mut SwapContext<Self::Api>) {
+        let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
+
+        payments.push(self.create_payment(
+            context.get_token_out(),
+            0,
+            context.get_final_output_amount(),
+        ));
+
+        if context.get_final_input_amount() != context.get_amount_in() {
+            payments.push(self.create_payment(
+                context.get_second_token_id(),
+                0,
+                &(context.get_amount_in() - context.get_final_input_amount()),
+            ));
+        }
+
+        context.set_output_payments(payments);
+    }
+
     fn execute_output_payments(&self, context: &dyn Context<Self::Api>) {
         self.send_multiple_tokens_if_not_zero(
             context.get_caller(),
