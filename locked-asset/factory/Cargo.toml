@@ -30,3 +30,8 @@ version = "0.25.0"
 [dependencies]
 wee_alloc = "0.4"
 arrayvec = { version = "0.7.1", default-features = false }
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"

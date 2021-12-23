@@ -30,6 +30,12 @@ pub struct UnlockMilestone {
     pub unlock_percent: u8,
 }
 
+#[derive(Clone)]
+pub struct UnlockMilestoneExtended {
+    pub unlock_epoch: u64,
+    pub unlock_percent: u64,
+}
+
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
