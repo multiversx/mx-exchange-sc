@@ -179,7 +179,10 @@ pub trait CtxHelper:
             .set(context.get_first_token_reserve());
         self.pair_reserve(context.get_second_token_id())
             .set(context.get_second_token_reserve());
-        self.lp_token_supply().set(context.get_lp_token_supply());
+
+        if context.get_lp_token_supply() != &0u64 {
+            self.lp_token_supply().set(context.get_lp_token_supply());
+        }
     }
 
     fn construct_and_get_add_liquidity_output_results(
