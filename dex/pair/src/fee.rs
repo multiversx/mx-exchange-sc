@@ -161,6 +161,7 @@ pub trait FeeModule:
         }
     }
 
+    #[inline]
     fn can_send_fee_directly(
         &self,
         fee_token: &TokenIdentifier,
@@ -169,6 +170,7 @@ pub trait FeeModule:
         fee_token == requested_fee_token
     }
 
+    #[inline]
     fn can_resolve_swap_locally(
         &self,
         fee_token: &TokenIdentifier,
@@ -180,6 +182,7 @@ pub trait FeeModule:
             || (requested_fee_token == pool_second_token_id && fee_token == pool_first_token_id)
     }
 
+    #[inline]
     fn can_extern_swap_directly(
         &self,
         fee_token: &TokenIdentifier,
@@ -189,6 +192,7 @@ pub trait FeeModule:
         !pair_address.is_zero()
     }
 
+    #[inline]
     fn can_extern_swap_after_local_swap(
         &self,
         first_token: &TokenIdentifier,
