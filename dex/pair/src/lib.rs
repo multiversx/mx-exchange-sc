@@ -221,8 +221,7 @@ pub trait Pair<ContractReader>:
         );
 
         let lpt = context.get_lp_token_id();
-        let liq_removed = &context.get_lp_token_payment().amount;
-        self.send().esdt_local_burn(lpt, 0, liq_removed);
+        self.burn(lpt, &context.get_lp_token_payment().amount);
         self.commit_changes(&context);
 
         self.construct_remove_liquidity_output_payments(&mut context);
@@ -289,7 +288,7 @@ pub trait Pair<ContractReader>:
 
         self.pool_remove_liquidity(&mut context);
 
-        self.send().esdt_local_burn(&token_in, 0, &amount_in);
+        self.burn(&token_in, &amount_in);
         self.lp_token_supply().update(|x| *x -= &amount_in);
 
         let first_token_id = context.get_first_token_id().clone();
@@ -385,7 +384,7 @@ pub trait Pair<ContractReader>:
         );
 
         self.commit_changes(&context);
-        self.burn_fees(&token_out, &amount_out);
+        self.burn(&token_out, &amount_out);
         self.emit_swap_no_fee_and_forward_event(&context, &destination_address);
     }
 

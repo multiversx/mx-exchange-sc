@@ -126,15 +126,15 @@ pub trait FeeModule:
         requested_fee_token: &TokenIdentifier,
     ) {
         if self.can_send_fee_directly(fee_token, requested_fee_token) {
-            self.burn_fees(fee_token, fee_slice);
+            self.burn(fee_token, fee_slice);
         } else if self.can_resolve_swap_locally(
             fee_token,
             requested_fee_token,
             context.get_first_token_id(),
             context.get_second_token_id(),
         ) {
-            let to_send = self.swap_safe_no_fee(context, fee_token, fee_slice);
-            self.burn_fees(requested_fee_token, &to_send);
+            let to_burn = self.swap_safe_no_fee(context, fee_token, fee_slice);
+            self.burn(requested_fee_token, &to_burn);
         } else if self.can_extern_swap_directly(fee_token, requested_fee_token) {
             self.extern_swap_and_forward(fee_token, fee_slice, requested_fee_token, fee_address);
         } else if self.can_extern_swap_after_local_swap(
@@ -237,7 +237,7 @@ pub trait FeeModule:
     }
 
     #[inline]
-    fn burn_fees(&self, token: &TokenIdentifier, amount: &BigUint) {
+    fn burn(&self, token: &TokenIdentifier, amount: &BigUint) {
         if amount > &0 {
             self.send().esdt_local_burn(token, 0, amount);
         }
