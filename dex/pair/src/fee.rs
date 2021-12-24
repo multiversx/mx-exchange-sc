@@ -5,8 +5,8 @@ use super::amm;
 use super::config;
 use super::errors::*;
 use super::liquidity_pool;
+use crate::assert;
 use crate::contexts::base::Context;
-use crate::kill;
 use common_structs::TokenPair;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
@@ -36,14 +36,14 @@ pub trait FeeModule:
     fn whitelist_endpoint(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_new = self.whitelist().insert(address);
-        kill!(self, is_new, ERROR_ALREADY_WHITELISTED);
+        assert!(self, is_new, ERROR_ALREADY_WHITELISTED);
     }
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_removed = self.whitelist().remove(&address);
-        kill!(self, is_removed, ERROR_NOT_WHITELISTED);
+        assert!(self, is_removed, ERROR_NOT_WHITELISTED);
     }
 
     #[endpoint(addTrustedSwapPair)]
@@ -54,13 +54,13 @@ pub trait FeeModule:
         second_token: TokenIdentifier,
     ) {
         self.require_permissions();
-        kill!(self, first_token != second_token, ERROR_SAME_TOKENS);
+        assert!(self, first_token != second_token, ERROR_SAME_TOKENS);
         let token_pair = TokenPair {
             first_token,
             second_token,
         };
         let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
-        kill!(self, is_new, ERROR_PAIR_ALREADY_TRUSTED);
+        assert!(self, is_new, ERROR_PAIR_ALREADY_TRUSTED);
     }
 
     #[endpoint(removeTrustedSwapPair)]
@@ -82,7 +82,7 @@ pub trait FeeModule:
                 second_token: first_token,
             };
             is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
-            kill!(self, is_removed, ERROR_PAIR_NOT_TRUSTED);
+            assert!(self, is_removed, ERROR_PAIR_NOT_TRUSTED);
         }
     }
 
@@ -157,7 +157,7 @@ pub trait FeeModule:
                 fee_address,
             );
         } else {
-            kill!(self, ERROR_NOTHING_TO_DO_WITH_FEE_SLICE);
+            assert!(self, ERROR_NOTHING_TO_DO_WITH_FEE_SLICE);
         }
     }
 
@@ -252,9 +252,10 @@ pub trait FeeModule:
             first_token: first_token.clone(),
             second_token: second_token.clone(),
         };
-        let is_cached = self.trusted_swap_pair().keys().any(|key| {
-            key.first_token == token_pair.first_token && key.second_token == token_pair.second_token
-        });
+        let is_cached = self
+            .trusted_swap_pair()
+            .keys()
+            .any(|key| key.eq(&token_pair));
 
         if is_cached {
             self.trusted_swap_pair().get(&token_pair).unwrap()
@@ -264,10 +265,10 @@ pub trait FeeModule:
                 second_token: first_token.clone(),
             };
 
-            let is_cached_reversed = self.trusted_swap_pair().keys().any(|key| {
-                key.first_token == token_pair_reversed.first_token
-                    && key.second_token == token_pair_reversed.second_token
-            });
+            let is_cached_reversed = self
+                .trusted_swap_pair()
+                .keys()
+                .any(|key| key.eq(&token_pair_reversed));
 
             if is_cached_reversed {
                 self.trusted_swap_pair().get(&token_pair_reversed).unwrap()
@@ -291,12 +292,12 @@ pub trait FeeModule:
             .any(|dest_address| dest_address == fee_to_address);
 
         if enabled {
-            kill!(self, !is_dest, ERROR_ALREADY_FEE_DEST);
+            assert!(self, !is_dest, ERROR_ALREADY_FEE_DEST);
             self.destination_map().insert(fee_to_address, fee_token);
         } else {
-            kill!(self, is_dest, ERROR_NOT_FEE_DEST);
+            assert!(self, is_dest, ERROR_NOT_FEE_DEST);
             let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            kill!(self, fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
+            assert!(self, fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
             self.destination_map().remove(&fee_to_address);
         }
     }

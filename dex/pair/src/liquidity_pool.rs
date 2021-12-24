@@ -1,10 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+use crate::assert;
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::Context;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
-use crate::kill;
 
 use super::amm;
 use super::config;
@@ -15,14 +15,6 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 pub trait LiquidityPoolModule:
     amm::AmmModule + config::ConfigModule + token_send::TokenSendModule
 {
-    fn biguint_min(&self, a: &BigUint, b: &BigUint) -> BigUint {
-        if a < b {
-            a.clone()
-        } else {
-            b.clone()
-        }
-    }
-
     fn pool_add_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
         let zero = &BigUint::zero();
         let mut liquidity: BigUint;
@@ -33,7 +25,7 @@ pub trait LiquidityPoolModule:
                 context.get_second_amount_optimal(),
             );
             let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
-            kill!(self, liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
+            assert!(self, liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
 
             liquidity -= &minimum_liquidity;
             let lpt = context.get_lp_token_id();
@@ -52,7 +44,7 @@ pub trait LiquidityPoolModule:
             );
         }
 
-        kill!(self, &liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
+        assert!(self, &liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
         context.increase_lp_token_supply(&liquidity);
         context.set_liquidity_added(liquidity);
         context.increase_reserves();
@@ -73,41 +65,41 @@ pub trait LiquidityPoolModule:
         let total_supply = context.get_lp_token_supply();
         let liquidity = &context.get_lp_token_payment().amount;
 
-        kill!(
+        assert!(
             self,
             total_supply >= &(liquidity + MINIMUM_LIQUIDITY),
             ERROR_NOT_ENOUGH_LP
         );
 
         let first_amount_removed = (liquidity * context.get_first_token_reserve()) / total_supply;
-        kill!(
+        assert!(
             self,
             first_amount_removed > 0u64,
             ERROR_INSUFFICIENT_LIQ_BURNED
         );
-        kill!(
+        assert!(
             self,
             &first_amount_removed >= context.get_first_token_amount_min(),
             ERROR_SLIPPAGE_ON_REMOVE
         );
-        kill!(
+        assert!(
             self,
             context.get_first_token_reserve() > &first_amount_removed,
             ERROR_NOT_ENOUGH_RESERVE
         );
 
         let second_amount_removed = (liquidity * context.get_second_token_reserve()) / total_supply;
-        kill!(
+        assert!(
             self,
             second_amount_removed > 0u64,
             ERROR_INSUFFICIENT_LIQ_BURNED
         );
-        kill!(
+        assert!(
             self,
             &second_amount_removed >= context.get_second_token_amount_min(),
             ERROR_SLIPPAGE_ON_REMOVE
         );
-        kill!(
+        assert!(
             self,
             context.get_second_token_reserve() > &second_amount_removed,
             ERROR_NOT_ENOUGH_RESERVE
@@ -148,7 +140,7 @@ pub trait LiquidityPoolModule:
         );
 
         if &second_token_amount_optimal <= second_token_amount_desired {
-            kill!(
+            assert!(
                 self,
                 &second_token_amount_optimal >= second_token_amount_min,
                 ERROR_INSUFFICIENT_SECOND_TOKEN,
@@ -164,12 +156,12 @@ pub trait LiquidityPoolModule:
                 second_token_reserve,
                 first_token_reserve,
             );
-            kill!(
+            assert!(
                 self,
                 &first_token_amount_optimal <= first_token_amount_desired,
                 ERROR_OPTIMAL_GRATER_THAN_PAID,
             );
-            kill!(
+            assert!(
                 self,
                 &first_token_amount_optimal >= first_token_amount_min,
                 ERROR_INSUFFICIENT_FIRST_TOKEN,
@@ -226,7 +218,7 @@ pub trait LiquidityPoolModule:
         let a_to_b = token_in == context.get_first_token_id();
         match a_to_b {
             true => {
-                kill!(
+                assert!(
                     self,
                     context.get_first_token_reserve() != &0u64,
                     ERROR_ZERO_AMOUNT,
@@ -237,7 +229,7 @@ pub trait LiquidityPoolModule:
                     context.get_first_token_reserve(),
                     context.get_second_token_reserve(),
                 );
-                kill!(
+                assert!(
                     self,
                     context.get_second_token_reserve() > &amount_out && amount_out != 0u64,
                     ERROR_ZERO_AMOUNT,
@@ -251,7 +243,7 @@ pub trait LiquidityPoolModule:
                 amount_out
             }
             false => {
-                kill!(
+                assert!(
                     self,
                     context.get_second_token_reserve() != &0u64,
                     ERROR_ZERO_AMOUNT,
@@ -262,7 +254,7 @@ pub trait LiquidityPoolModule:
                     context.get_second_token_reserve(),
                     context.get_first_token_reserve(),
                 );
-                kill!(
+                assert!(
                     self,
                     context.get_first_token_reserve() > &amount_out && amount_out != 0u64,
                     ERROR_ZERO_AMOUNT,
@@ -281,5 +273,14 @@ pub trait LiquidityPoolModule:
     #[view(getTotalSupply)]
     fn get_total_lp_token_supply(&self) -> BigUint {
         self.lp_token_supply().get()
+    }
+
+    #[inline]
+    fn biguint_min(&self, a: &BigUint, b: &BigUint) -> BigUint {
+        if a < b {
+            a.clone()
+        } else {
+            b.clone()
+        }
     }
 }

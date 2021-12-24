@@ -4,10 +4,10 @@ elrond_wasm::derive_imports!();
 use super::errors::*;
 
 #[macro_export]
-macro_rules! kill {
+macro_rules! assert {
     ($self:expr, $cond:expr, $msg:expr $(,)?) => {
         if !$cond {
-            kill!($self, $msg)
+            assert!($self, $msg)
         }
     };
     ($self:expr, $msg:expr $(,)?) => {
@@ -40,7 +40,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
         let caller = self.blockchain().get_caller();
         let owner = self.router_owner_address().get();
         let router = self.router_address().get();
-        kill!(
+        assert!(
             self,
             caller == owner || caller == router,
             ERROR_PERMISSION_DENIED
@@ -77,7 +77,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
     }
 
     fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
-        kill!(
+        assert!(
             self,
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
             ERROR_BAD_PERCENTS
