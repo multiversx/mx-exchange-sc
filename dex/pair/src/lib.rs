@@ -463,7 +463,7 @@ pub trait Pair<ContractReader>:
         self.construct_swap_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_swap_event(&context);
-        self.create_payment(&token_out, 0, &context.get_final_output_amount())
+        self.construct_and_get_swap_input_results(&context)
     }
 
     #[payable("*")]
@@ -541,12 +541,7 @@ pub trait Pair<ContractReader>:
         self.construct_swap_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_swap_event(&context);
-
-        let residuum = context.get_amount_in_max() - context.get_final_input_amount();
-        MultiResult2::from((
-            self.create_payment(&token_out, 0, &amount_out),
-            self.create_payment(&token_in, 0, &residuum),
-        ))
+        self.construct_and_get_swap_output_results(&context)
     }
 
     #[endpoint(setLpTokenIdentifier)]

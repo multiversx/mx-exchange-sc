@@ -5,6 +5,8 @@ use itertools::Itertools;
 
 use crate::AddLiquidityResultType;
 use crate::RemoveLiquidityResultType;
+use crate::SwapTokensFixedInputResultType;
+use crate::SwapTokensFixedOutputResultType;
 
 use super::add_liquidity::*;
 use super::base::*;
@@ -239,6 +241,32 @@ pub trait CtxHelper:
                 0,
                 context.get_second_token_amount_removed(),
             ),
+        ))
+    }
+
+    fn construct_and_get_swap_input_results(
+        &self,
+        context: &SwapContext<Self::Api>,
+    ) -> SwapTokensFixedInputResultType<Self::Api> {
+        self.create_payment(
+            &context.get_token_out(),
+            0,
+            &context.get_final_output_amount(),
+        )
+    }
+
+    fn construct_and_get_swap_output_results(
+        &self,
+        context: &SwapContext<Self::Api>,
+    ) -> SwapTokensFixedOutputResultType<Self::Api> {
+        let residuum = context.get_amount_in_max() - context.get_final_input_amount();
+        MultiResult2::from((
+            self.create_payment(
+                &context.get_token_out(),
+                0,
+                &context.get_final_output_amount(),
+            ),
+            self.create_payment(&context.get_token_in(), 0, &residuum),
         ))
     }
 }
