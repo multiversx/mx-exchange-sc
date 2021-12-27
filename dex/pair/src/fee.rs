@@ -255,7 +255,7 @@ pub trait FeeModule:
         let is_cached = self
             .trusted_swap_pair()
             .keys()
-            .any(|key| key.eq(&token_pair));
+            .any(|key| key.equals(&token_pair));
 
         if is_cached {
             self.trusted_swap_pair().get(&token_pair).unwrap()
@@ -268,7 +268,7 @@ pub trait FeeModule:
             let is_cached_reversed = self
                 .trusted_swap_pair()
                 .keys()
-                .any(|key| key.eq(&token_pair_reversed));
+                .any(|key| key.equals(&token_pair_reversed));
 
             if is_cached_reversed {
                 self.trusted_swap_pair().get(&token_pair_reversed).unwrap()

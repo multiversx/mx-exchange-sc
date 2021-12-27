@@ -15,7 +15,7 @@ pub struct TokenPair<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> TokenPair<M> {
-    pub fn eq(&self, other: &TokenPair<M>) -> bool {
+    pub fn equals(&self, other: &TokenPair<M>) -> bool {
         self.first_token == other.first_token && self.second_token == other.second_token
     }
 }
