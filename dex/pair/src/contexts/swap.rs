@@ -72,86 +72,107 @@ impl<M: ManagedTypeApi> SwapContext<M> {
 }
 
 impl<M: ManagedTypeApi> Context<M> for SwapContext<M> {
+    #[inline]
     fn set_contract_state(&mut self, contract_state: State) {
         self.storage_cache.contract_state = contract_state;
     }
 
+    #[inline]
     fn get_contract_state(&self) -> &State {
         &self.storage_cache.contract_state
     }
 
+    #[inline]
     fn set_lp_token_id(&mut self, lp_token_id: TokenIdentifier<M>) {
         self.storage_cache.lp_token_id = lp_token_id;
     }
 
+    #[inline]
     fn get_lp_token_id(&self) -> &TokenIdentifier<M> {
         &self.storage_cache.lp_token_id
     }
 
+    #[inline]
     fn set_first_token_id(&mut self, token_id: TokenIdentifier<M>) {
         self.storage_cache.first_token_id = token_id;
     }
 
+    #[inline]
     fn get_first_token_id(&self) -> &TokenIdentifier<M> {
         &self.storage_cache.first_token_id
     }
 
+    #[inline]
     fn set_second_token_id(&mut self, token_id: TokenIdentifier<M>) {
         self.storage_cache.second_token_id = token_id;
     }
 
+    #[inline]
     fn get_second_token_id(&self) -> &TokenIdentifier<M> {
         &self.storage_cache.second_token_id
     }
 
+    #[inline]
     fn set_first_token_reserve(&mut self, amount: BigUint<M>) {
         self.storage_cache.first_token_reserve = amount;
     }
 
+    #[inline]
     fn get_first_token_reserve(&self) -> &BigUint<M> {
         &self.storage_cache.first_token_reserve
     }
 
+    #[inline]
     fn set_second_token_reserve(&mut self, amount: BigUint<M>) {
         self.storage_cache.second_token_reserve = amount;
     }
 
+    #[inline]
     fn get_second_token_reserve(&self) -> &BigUint<M> {
         &self.storage_cache.second_token_reserve
     }
 
+    #[inline]
     fn set_lp_token_supply(&mut self, amount: BigUint<M>) {
         self.storage_cache.lp_token_supply = amount;
     }
 
+    #[inline]
     fn get_lp_token_supply(&self) -> &BigUint<M> {
         &self.storage_cache.lp_token_supply
     }
 
+    #[inline]
     fn set_initial_k(&mut self, k: BigUint<M>) {
         self.initial_k = k;
     }
 
+    #[inline]
     fn get_initial_k(&self) -> &BigUint<M> {
         &self.initial_k
     }
 
+    #[inline]
     fn get_caller(&self) -> &ManagedAddress<M> {
         &self.caller
     }
 
+    #[inline]
     fn set_output_payments(&mut self, payments: ManagedVec<M, EsdtTokenPayment<M>>) {
         self.output_payments = payments
     }
 
+    #[inline]
     fn get_output_payments(&self) -> &ManagedVec<M, EsdtTokenPayment<M>> {
         &self.output_payments
     }
 
+    #[inline]
     fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
         &self.tx_input.args.opt_accept_funds_func
     }
 
+    #[inline]
     fn get_tx_input(&self) -> &dyn TxInput<M> {
         &self.tx_input
     }
@@ -194,34 +215,42 @@ impl<M: ManagedTypeApi> SwapContext<M> {
                     == self.storage_cache.second_token_id)
     }
 
+    #[inline]
     pub fn get_payment(&self) -> &EsdtTokenPayment<M> {
         &self.tx_input.payments.input
     }
 
+    #[inline]
     pub fn get_swap_args(&self) -> &SwapArgs<M> {
         &self.tx_input.args
     }
 
+    #[inline]
     pub fn get_token_in(&self) -> &TokenIdentifier<M> {
         &self.tx_input.payments.input.token_identifier
     }
 
+    #[inline]
     pub fn get_amount_in(&self) -> &BigUint<M> {
         &self.tx_input.payments.input.amount
     }
 
+    #[inline]
     pub fn get_token_out(&self) -> &TokenIdentifier<M> {
         &self.tx_input.args.output_token_id
     }
 
+    #[inline]
     pub fn get_amount_out_min(&self) -> &BigUint<M> {
         self.get_amount_out()
     }
 
+    #[inline]
     pub fn get_amount_in_max(&self) -> &BigUint<M> {
         self.get_amount_in()
     }
 
+    #[inline]
     pub fn get_amount_out(&self) -> &BigUint<M> {
         &self.tx_input.args.output_amount
     }
@@ -274,26 +303,32 @@ impl<M: ManagedTypeApi> SwapContext<M> {
         }
     }
 
+    #[inline]
     pub fn set_final_input_amount(&mut self, amount: BigUint<M>) {
         self.final_input_amount = amount
     }
 
+    #[inline]
     pub fn get_final_input_amount(&self) -> &BigUint<M> {
         &self.final_input_amount
     }
 
+    #[inline]
     pub fn set_final_output_amount(&mut self, amount: BigUint<M>) {
         self.final_output_amount = amount
     }
 
+    #[inline]
     pub fn get_final_output_amount(&self) -> &BigUint<M> {
         &self.final_output_amount
     }
 
+    #[inline]
     pub fn set_fee_amount(&mut self, amount: BigUint<M>) {
         self.fee_amount = amount
     }
 
+    #[inline]
     pub fn get_fee_amount(&self) -> &BigUint<M> {
         &self.fee_amount
     }

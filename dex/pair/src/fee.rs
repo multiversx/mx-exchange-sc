@@ -9,7 +9,23 @@ use crate::assert;
 use crate::contexts::base::Context;
 use common_structs::TokenPair;
 
-const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
+mod self_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait PairProxy {
+        #[payable("*")]
+        #[endpoint(swapNoFeeAndForward)]
+        fn swap_no_fee(
+            &self,
+            #[payment_token] token_in: TokenIdentifier,
+            #[payment_nonce] nonce: u64,
+            #[payment_amount] amount_in: BigUint,
+            token_out: TokenIdentifier,
+            destination_address: ManagedAddress,
+        );
+    }
+}
 
 #[elrond_wasm::module]
 pub trait FeeModule:
@@ -220,20 +236,16 @@ pub trait FeeModule:
     ) {
         let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
 
-        let mut arg_buffer = ManagedArgBuffer::new_empty();
-        arg_buffer.push_arg(requested_token);
-        arg_buffer.push_arg(destination_address);
-
-        self.raw_vm_api()
-            .direct_esdt_execute(
-                &pair_address,
-                available_token,
-                available_amount,
-                self.extern_swap_gas_limit().get(),
-                &ManagedBuffer::from(SWAP_NO_FEE_AND_FORWARD_FUNC_NAME),
-                &arg_buffer,
+        self.pair_proxy()
+            .contract(pair_address)
+            .swap_no_fee(
+                available_token.clone(),
+                0,
+                available_amount.clone(),
+                requested_token.clone(),
+                destination_address.clone(),
             )
-            .unwrap();
+            .execute_on_dest_context_ignore_result();
     }
 
     #[inline]
@@ -330,4 +342,7 @@ pub trait FeeModule:
         }
         result
     }
+
+    #[proxy]
+    fn pair_proxy(&self) -> self_proxy::Proxy<Self::Api>;
 }
