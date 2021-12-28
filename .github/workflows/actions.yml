@@ -24,6 +24,8 @@ jobs:
           mkdir $HOME/elrondsdk
           erdpy config set dependencies.vmtools.tag v1.4.22
           erdpy deps install vmtools
+          erdpy config set dependencies.rust.tag nightly-2021-11-04
+          erdpy deps install rust
       - name: Build the wasm contracts
         run: |
           source .github/workflows/env
