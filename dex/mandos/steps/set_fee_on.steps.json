@@ -1,29 +1,28 @@
 {
-	"name": "set fee on",
-	"steps": [
-		{
-			"step": "scCall",
-			"txId": "set-fee-on",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:router_contract",
-				"value": "0",
-				"function": "setFeeOn",
-				"arguments": [
-					"sc:pair_contract",
-					"sc:farm_contract",
-					"str:WEGLD-abcdef"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "set fee on",
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "set-fee-on",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "setFeeOn",
+                "arguments": [
+                    "sc:pair_contract",
+                    "sc:farm_contract",
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

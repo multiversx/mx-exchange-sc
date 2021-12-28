@@ -150,9 +150,6 @@ pub trait ConfigModule: token_supply::TokenSupplyModule + token_send::TokenSendM
     #[storage_mapper("farm_token_id")]
     fn farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[storage_mapper("farm_token_nonce")]
-    fn farm_token_nonce(&self) -> SingleValueMapper<Nonce>;
-
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;

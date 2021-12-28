@@ -1,0 +1,50 @@
+{
+    "name": "register farm token",
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "register-farm-token",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "egldValue": "5,000,000,000,000,000,000",
+                "function": "registerFarmToken",
+                "arguments": [
+                    "0x4c49515544495459504f4f4c544f4b454e",
+                    "0x4c50544f4b454e",
+                    "18"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "get-registered-lp-token",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "getFarmTokenId",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x45474c44"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

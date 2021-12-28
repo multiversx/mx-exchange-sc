@@ -9,8 +9,7 @@
                     "balance": "100,000,000",
                     "esdt": {
                         "str:MEX-abcdef": "5,000,000,000"
-                    },
-                    "storage": {}
+                    }
                 },
                 "sc:mex_farm_contract": {
                     "nonce": "0",

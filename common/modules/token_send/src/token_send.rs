@@ -8,55 +8,47 @@ pub trait TokenSendModule {
     fn send_multiple_tokens(
         &self,
         destination: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
+        let gas_limit: u64;
+        let function: ManagedBuffer;
+        let accept_funds_func = opt_accept_funds_func.clone().into_option();
+        if accept_funds_func.is_some() {
+            gas_limit = self.transfer_exec_gas_limit().get();
+            function = accept_funds_func.unwrap();
+        } else {
+            gas_limit = 0u64;
+            function = ManagedBuffer::new();
+        }
 
         self.raw_vm_api()
             .direct_multi_esdt_transfer_execute(
                 destination,
-                &ManagedVec::managed_from(self.type_manager(), payments.to_vec()),
+                payments,
                 gas_limit,
-                &ManagedBuffer::managed_from(self.type_manager(), function),
+                &function,
                 &ManagedArgBuffer::new_empty(self.type_manager()),
             )
             .into()
     }
 
-    fn send_multiple_tokens_compact(
+    fn send_multiple_tokens_if_not_zero(
         &self,
         destination: &ManagedAddress,
-        payments: &[EsdtTokenPayment<Self::Api>],
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        let mut compact_payments = Vec::<EsdtTokenPayment<Self::Api>>::new();
+        let mut non_zero_payments = ManagedVec::new();
         for payment in payments.iter() {
-            if payment.amount != 0 {
-                let existing_index = compact_payments.iter().position(|x| {
-                    x.token_identifier == payment.token_identifier
-                        && x.token_nonce == payment.token_nonce
-                });
-
-                match existing_index {
-                    Some(index) => compact_payments[index].amount += &payment.amount,
-                    None => compact_payments.push(payment.clone()),
-                }
+            if payment.amount > 0u32 {
+                non_zero_payments.push(payment);
             }
         }
 
-        match compact_payments.len() {
+        match non_zero_payments.len() {
             0 => Ok(()),
-            _ => self.send_multiple_tokens(destination, &compact_payments, opt_accept_funds_func),
+            _ => self.send_multiple_tokens(destination, &non_zero_payments, opt_accept_funds_func),
         }
     }
 
@@ -66,36 +58,67 @@ pub trait TokenSendModule {
         token: &TokenIdentifier,
         nonce: u64,
         amount: &BigUint,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
-        if amount == &0 {
+        if amount == &0u32 {
             return Ok(());
         }
 
-        let (function, gas_limit) = match opt_accept_funds_func {
-            OptionalArg::Some(accept_funds_func) => (
-                accept_funds_func.as_slice(),
-                self.transfer_exec_gas_limit().get(),
-            ),
-            OptionalArg::None => {
-                let no_func: &[u8] = &[];
-                (no_func, 0u64)
-            }
-        };
         let arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
-        let endpoint_name = ManagedBuffer::new_from_bytes(self.type_manager(), function);
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(token.clone(), nonce, amount.clone()));
+        payments.push(EsdtTokenPayment::new(token.clone(), nonce, amount.clone()));
+
+        let gas_limit: u64;
+        let function: ManagedBuffer;
+        let accept_funds_func = opt_accept_funds_func.clone().into_option();
+        if accept_funds_func.is_some() {
+            gas_limit = self.transfer_exec_gas_limit().get();
+            function = accept_funds_func.unwrap();
+        } else {
+            gas_limit = 0u64;
+            function = ManagedBuffer::new();
+        }
 
         self.raw_vm_api()
-            .direct_multi_esdt_transfer_execute(
-                to,
-                &payments,
-                gas_limit,
-                &endpoint_name,
-                &arg_buffer,
-            )
+            .direct_multi_esdt_transfer_execute(to, &payments, gas_limit, &function, &arg_buffer)
             .into()
+    }
+
+    fn get_all_payments_managed_vec(&self) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        self.raw_vm_api().get_all_esdt_transfers()
+    }
+
+    fn manage_vec_remove_index(
+        &self,
+        vec: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        index: usize,
+    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        let mut copy = ManagedVec::new();
+
+        for (idx, el) in vec.iter().enumerate() {
+            if idx != index {
+                copy.push(el);
+            }
+        }
+
+        copy
+    }
+
+    fn manage_vec_remove_indexes(
+        &self,
+        vec: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        index1: usize,
+        index2: usize,
+    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        let mut copy = ManagedVec::new();
+
+        for (idx, el) in vec.iter().enumerate() {
+            if idx != index1 && idx != index2 {
+                copy.push(el);
+            }
+        }
+
+        copy
     }
 
     fn create_payment(
@@ -104,7 +127,7 @@ pub trait TokenSendModule {
         nonce: u64,
         amount: &BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
-        EsdtTokenPayment::from(token_id.clone(), nonce, amount.clone())
+        EsdtTokenPayment::new(token_id.clone(), nonce, amount.clone())
     }
 
     fn get_all_payments(&self) -> Vec<EsdtTokenPayment<Self::Api>> {

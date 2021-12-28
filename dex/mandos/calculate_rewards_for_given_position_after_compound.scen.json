@@ -1,66 +1,64 @@
 {
-	"name": "unbond",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "compound_rewards.scen.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "calculateRewards",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:mex_farm_contract",
-				"value": "0",
-				"function": "calculateRewardsForGivenPosition",
-				"arguments": [
-					"100,050,000",
-					"0x000000041dcd65000000000000000000000000000000000a01000000000405f5e10000000002c3500000000405f6a450"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "setState",
-			"currentBlockInfo": {
-				"blockEpoch": "10",
-				"blockNonce": "11"
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "calculateRewards2",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:mex_farm_contract",
-				"value": "0",
-				"function": "calculateRewardsForGivenPosition",
-				"arguments": [
-					"100,050,000",
-					"0x000000041dcd65000000000000000000000000000000000a01000000000405f5e10000000002c3500000000405f6a450"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"4995"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "unbond",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "compound_rewards.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "calculateRewards",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:mex_farm_contract",
+                "function": "calculateRewardsForGivenPosition",
+                "arguments": [
+                    "100,050,000",
+                    "0x000000041dcd65000000000000000000000000000000000a01000000000405f5e10000000002c3500000000405f6a450"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockNonce": "11",
+                "blockEpoch": "10"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "calculateRewards2",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:mex_farm_contract",
+                "function": "calculateRewardsForGivenPosition",
+                "arguments": [
+                    "100,050,000",
+                    "0x000000041dcd65000000000000000000000000000000000a01000000000405f5e10000000002c3500000000405f6a450"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "4995"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

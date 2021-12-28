@@ -72,8 +72,9 @@ upgradeLockedAssetContract() {
 
 # params:
 #   $1 = Locked Asset Token Name,
-#   $2 = Locked Asset Token Ticker
-issueLockedAssetToken() {
+#   $2 = Locked Asset Token Ticker,
+#   $3 = num decimals,
+registerLockedAssetToken() {
     lp_token_name="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     lp_token_ticker="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
 
@@ -82,8 +83,8 @@ issueLockedAssetToken() {
           --proxy=${PROXY} --chain=${CHAIN_ID} \
           --gas-limit=200000000 \
           --value=5000000000000000000 \
-          --function=issueLockedAssetToken \
-	      --arguments $lp_token_name $lp_token_ticker \
+          --function=registerLockedAssetToken \
+	      --arguments $lp_token_name $lp_token_ticker $3 \
 	      --send || return
 }
 
@@ -177,8 +178,9 @@ upgradeProxyContract() {
 
 # params:
 #   $1 = WLPToken token name,
-#   $2 = WLPToken token ticker
-issueSftProxyPair() {
+#   $2 = WLPToken token ticker,
+#   $3 = num decimals,
+registerProxyPair() {
     token_name="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     token_ticker="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
     erdpy --verbose contract call $PROXY_ADDRESS --recall-nonce \
@@ -186,15 +188,16 @@ issueSftProxyPair() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=${DEPLOY_GAS} \
         --value=5000000000000000000 \
-        --function=issueSftProxyPair \
-        --arguments $token_name $token_ticker \
+        --function=registerProxyPair \
+        --arguments $token_name $token_ticker $3 \
         --send || return
 }
 
 # params:
 #   $1 = WLPToken token name,
-#   $2 = WLPToken token ticker
-issueSftProxyFarm() {
+#   $2 = WLPToken token ticker,
+#   $3 = num decimals,
+registerProxyFarm() {
     token_name="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
     token_ticker="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
     erdpy --verbose contract call $PROXY_ADDRESS --recall-nonce \
@@ -202,7 +205,7 @@ issueSftProxyFarm() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=${DEPLOY_GAS} \
         --value=5000000000000000000 \
-        --function=issueSftProxyFarm \
+        --function=registerProxyFarm \
         --arguments $token_name $token_ticker \
         --send || return
 }

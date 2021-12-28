@@ -532,8 +532,9 @@ upgradeFarmContract() {
 # params:
 #   $1 = farm contract,
 #   $2 = farm token name,
-#   $3 = farm token ticker
-issueFarmToken() {
+#   $3 = farm token ticker,
+#   $3 = num decimals,
+registerFarmToken() {
     farm_token_name="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
     farm_token_ticker="0x$(echo -n $3 | xxd -p -u | tr -d '\n')"
     erdpy --verbose contract call $1 --recall-nonce \
@@ -541,8 +542,8 @@ issueFarmToken() {
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --gas-limit=${DEPLOY_GAS} \
         --value=5000000000000000000 \
-        --function=issueFarmToken \
-        --arguments $farm_token_name $farm_token_ticker \
+        --function=registerFarmToken \
+        --arguments $farm_token_name $farm_token_ticker $4 \
         --send || return
 }
 

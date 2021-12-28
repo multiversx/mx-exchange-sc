@@ -30,17 +30,18 @@ pub trait LockedAssetFactory:
     fn init(
         &self,
         asset_token_id: TokenIdentifier,
-        #[var_args] default_unlock_period: VarArgs<UnlockMilestone>,
+        #[var_args] default_unlock_period: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
         require!(
-            asset_token_id.is_valid_esdt_identifier(),
+            asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
         );
         require!(
             asset_token_id != self.locked_asset_token_id().get(),
             "Asset token ID cannot be the same as Locked asset token ID"
         );
-        self.validate_unlock_milestones(&default_unlock_period)?;
+        let unlock_milestones = default_unlock_period.to_vec();
+        self.validate_unlock_milestones(&unlock_milestones)?;
 
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
@@ -49,7 +50,7 @@ pub trait LockedAssetFactory:
 
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period()
-            .set(&UnlockPeriod::from(default_unlock_period.into_vec()));
+            .set(&UnlockPeriod { unlock_milestones });
         Ok(())
     }
 
@@ -75,7 +76,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        unlock_period: UnlockPeriod,
+        unlock_period: UnlockPeriod<Self::Api>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -111,14 +112,17 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
             "Permission denied"
         );
-        require!(!self.locked_asset_token_id().is_empty(), "No SFT issued");
+        require!(
+            !self.locked_asset_token_id().is_empty(),
+            "Locked Asset Token not registered"
+        );
         require!(amount > 0, "Zero input amount");
         require!(
             start_epoch >= self.init_epoch().get(),
@@ -181,7 +185,7 @@ pub trait LockedAssetFactory:
         };
         let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
             unlock_schedule: UnlockSchedule {
-                unlock_milestones: Vec::new(),
+                unlock_milestones: ManagedVec::new(),
             },
             is_merged: false,
         };
@@ -228,11 +232,12 @@ pub trait LockedAssetFactory:
     #[endpoint(setUnlockPeriod)]
     fn set_unlock_period(
         &self,
-        #[var_args] milestones: MultiArgVec<UnlockMilestone>,
+        #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
     ) -> SCResult<()> {
-        self.validate_unlock_milestones(&milestones)?;
+        let unlock_milestones = milestones.to_vec();
+        self.validate_unlock_milestones(&unlock_milestones)?;
         self.default_unlock_period()
-            .set(&UnlockPeriod::from(milestones.into_vec()));
+            .set(&UnlockPeriod { unlock_milestones });
         Ok(())
     }
 
@@ -243,9 +248,9 @@ pub trait LockedAssetFactory:
     fn produce_tokens_and_send(
         &self,
         amount: &BigUint,
-        attributes: &LockedAssetTokenAttributes,
+        attributes: &LockedAssetTokenAttributes<Self::Api>,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
@@ -288,26 +293,28 @@ pub trait LockedAssetFactory:
 
     #[only_owner]
     #[payable("EGLD")]
-    #[endpoint(issueLockedAssetToken)]
-    fn issue_locked_asset_token(
+    #[endpoint(registerLockedAssetToken)]
+    fn register_locked_asset_token(
         &self,
+        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
-        #[payment_amount] issue_cost: BigUint,
+        num_decimals: usize,
     ) -> SCResult<AsyncCall> {
         require!(
             self.locked_asset_token_id().is_empty(),
-            "NFT already issued"
+            "Token exists already"
         );
 
         Ok(self
             .send()
             .esdt_system_sc_proxy()
-            .issue_semi_fungible(
-                issue_cost,
+            .register_meta_esdt(
+                register_cost,
                 &token_display_name,
                 &token_ticker,
-                SemiFungibleTokenProperties {
+                MetaTokenProperties {
+                    num_decimals,
                     can_add_special_roles: true,
                     can_change_owner: false,
                     can_freeze: false,
@@ -317,11 +324,11 @@ pub trait LockedAssetFactory:
                 },
             )
             .async_call()
-            .with_callback(self.callbacks().issue_nft_callback()))
+            .with_callback(self.callbacks().register_callback()))
     }
 
     #[callback]
-    fn issue_nft_callback(&self, #[call_result] result: ManagedAsyncCallResult<(TokenIdentifier)>) {
+    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<(TokenIdentifier)>) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();
@@ -354,7 +361,7 @@ pub trait LockedAssetFactory:
     ) -> SCResult<AsyncCall> {
         require!(
             !self.locked_asset_token_id().is_empty(),
-            "Locked asset SFT not issued"
+            "Locked Asset Token not registered"
         );
 
         Ok(self
@@ -384,18 +391,24 @@ pub trait LockedAssetFactory:
     fn create_unlock_schedule(
         &self,
         start_epoch: Epoch,
-        unlock_period: UnlockPeriod,
-    ) -> UnlockSchedule {
-        UnlockSchedule {
-            unlock_milestones: unlock_period
-                .unlock_milestones
-                .iter()
-                .map(|x| UnlockMilestone {
-                    unlock_epoch: x.unlock_epoch + start_epoch,
-                    unlock_percent: x.unlock_percent,
-                })
-                .collect(),
+        unlock_period: UnlockPeriod<Self::Api>,
+    ) -> UnlockSchedule<Self::Api> {
+        let mut result = ManagedVec::new();
+        for milestone in unlock_period.unlock_milestones.iter() {
+            result.push(UnlockMilestone {
+                unlock_epoch: milestone.unlock_epoch + start_epoch,
+                unlock_percent: milestone.unlock_percent,
+            });
         }
+        UnlockSchedule {
+            unlock_milestones: result,
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(setInitEpoch)]
+    fn set_init_epoch(&self, init_epoch: Epoch) {
+        self.init_epoch().set(&init_epoch);
     }
 
     #[view(getLastErrorMessage)]
@@ -406,11 +419,19 @@ pub trait LockedAssetFactory:
     #[storage_mapper("init_epoch")]
     fn init_epoch(&self) -> SingleValueMapper<Epoch>;
 
-    #[view(getWhitelistedContracts)]
     #[storage_mapper("whitelist")]
     fn whitelisted_contracts(&self) -> SetMapper<ManagedAddress>;
 
+    #[view(getWhitelistedContracts)]
+    fn get_whitelisted_contracts(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.whitelisted_contracts().iter() {
+            result.push(pair);
+        }
+        result
+    }
+
     #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]
-    fn default_unlock_period(&self) -> SingleValueMapper<UnlockPeriod>;
+    fn default_unlock_period(&self) -> SingleValueMapper<UnlockPeriod<Self::Api>>;
 }

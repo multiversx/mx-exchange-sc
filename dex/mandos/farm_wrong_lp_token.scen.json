@@ -1,33 +1,34 @@
 {
-	"name": "farm",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "complete_setup.scen.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "farm",
-			"tx": {
-				"from": "address:user1",
-				"to": "sc:farm_contract",
-				"value": "0",
-				"function": "enterFarm",
-				"esdt": {
-					"tokenIdentifier": "str:ALC-abcdef",
-					"value": "1"
-				},
-				"arguments": [],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "4",
-				"message": "*",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "farm",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "complete_setup.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "farm",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:ALC-abcdef",
+                        "value": "1"
+                    }
+                ],
+                "function": "enterFarm",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

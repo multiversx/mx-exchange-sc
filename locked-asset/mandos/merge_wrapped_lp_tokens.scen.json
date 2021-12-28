@@ -11,9 +11,7 @@
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "function": "addLiquidityProxy",
-                "esdt": [
+                "esdtValue": [
                     {
                         "tokenIdentifier": "str:WEGLD-abcdef",
                         "nonce": "0",
@@ -21,10 +19,11 @@
                     },
                     {
                         "tokenIdentifier": "str:LKMEX-abcdef",
-                        "value": "10,000",
-                        "nonce": "0x01"
+                        "nonce": "0x01",
+                        "value": "10,000"
                     }
                 ],
+                "function": "addLiquidityProxy",
                 "arguments": [
                     "sc:pair_contract",
                     "100",
@@ -51,17 +50,16 @@
             "tx": {
                 "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
-                "value": "0",
-                "esdt": [
+                "esdtValue": [
                     {
                         "tokenIdentifier": "str:WLPTOK-abcdef",
-                        "value": "100",
-                        "nonce": "1"
+                        "nonce": "1",
+                        "value": "100"
                     },
                     {
                         "tokenIdentifier": "str:WLPTOK-abcdef",
-                        "value": "100",
-                        "nonce": "2"
+                        "nonce": "2",
+                        "value": "100"
                     }
                 ],
                 "function": "mergeWrappedLpTokens",
@@ -93,9 +91,7 @@
                             "instances": [
                                 {
                                     "nonce": "1",
-                                    "balance": "70000",
-                                    "attributes": "*",
-                                    "creator": "*"
+                                    "balance": "70000"
                                 }
                             ]
                         },
@@ -103,21 +99,15 @@
                             "instances": [
                                 {
                                     "nonce": "1",
-                                    "balance": "8900",
-                                    "attributes": "*",
-                                    "creator": "*"
+                                    "balance": "8900"
                                 },
                                 {
                                     "nonce": "2",
-                                    "balance": "9900",
-                                    "attributes": "*",
-                                    "creator": "*"
+                                    "balance": "9900"
                                 },
                                 {
                                     "nonce": "3",
-                                    "balance": "200",
-                                    "attributes": "*",
-                                    "creator": "*"
+                                    "balance": "200"
                                 }
                             ]
                         }

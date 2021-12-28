@@ -5,7 +5,7 @@ use common_structs::{FarmTokenAttributes, Nonce};
 
 use super::config;
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: FarmTokenAttributes<M>,
@@ -16,33 +16,41 @@ pub trait FarmTokenModule:
     config::ConfigModule + token_send::TokenSendModule + token_supply::TokenSupplyModule
 {
     #[payable("EGLD")]
-    #[endpoint(issueFarmToken)]
-    fn issue_farm_token(
+    #[endpoint(registerFarmToken)]
+    fn register_farm_token(
         &self,
-        #[payment_amount] issue_cost: BigUint,
+        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
+        num_decimals: usize,
     ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        require!(self.farm_token_id().is_empty(), "Already issued");
+        require!(self.farm_token_id().is_empty(), "Token exists already");
 
-        Ok(self.issue_token(issue_cost, token_display_name, token_ticker))
+        Ok(self.register_token(
+            register_cost,
+            token_display_name,
+            token_ticker,
+            num_decimals,
+        ))
     }
 
-    fn issue_token(
+    fn register_token(
         &self,
-        issue_cost: BigUint,
+        register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
+        num_decimals: usize,
     ) -> AsyncCall {
         self.send()
             .esdt_system_sc_proxy()
-            .issue_semi_fungible(
-                issue_cost,
+            .register_meta_esdt(
+                register_cost,
                 &token_display_name,
                 &token_ticker,
-                SemiFungibleTokenProperties {
+                MetaTokenProperties {
+                    num_decimals,
                     can_freeze: true,
                     can_wipe: true,
                     can_pause: true,
@@ -54,12 +62,12 @@ pub trait FarmTokenModule:
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .issue_callback(&self.blockchain().get_caller()),
+                    .register_callback(&self.blockchain().get_caller()),
             )
     }
 
     #[callback]
-    fn issue_callback(
+    fn register_callback(
         &self,
         caller: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
@@ -87,7 +95,7 @@ pub trait FarmTokenModule:
     fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
-        require!(!self.farm_token_id().is_empty(), "No farm token issued");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
         Ok(self.set_local_roles(token))
@@ -125,13 +133,11 @@ pub trait FarmTokenModule:
 
     fn decode_attributes(
         &self,
-        attributes_raw: &BoxedBytes,
+        attributes_raw: &ManagedBuffer,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         Ok(self
             .serializer()
-            .top_decode_from_byte_slice::<FarmTokenAttributes<Self::Api>>(
-                attributes_raw.as_slice(),
-            ))
+            .top_decode_from_managed_buffer::<FarmTokenAttributes<Self::Api>>(attributes_raw))
     }
 
     fn get_farm_attributes(
@@ -152,19 +158,9 @@ pub trait FarmTokenModule:
             ))
     }
 
-    fn create_farm_tokens(
-        &self,
-        farm_amount: &BigUint,
-        farm_token_id: &TokenIdentifier,
-        attributes: &FarmTokenAttributes<Self::Api>,
-    ) -> Nonce {
-        self.nft_create_tokens(farm_token_id, farm_amount, attributes);
-        self.increase_nonce()
-    }
-
     fn burn_farm_tokens_from_payments(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<()> {
         for entry in payments {
             self.burn_farm_tokens(&entry.token_identifier, entry.token_nonce, &entry.amount)?;
@@ -182,11 +178,5 @@ pub trait FarmTokenModule:
         require!(&farm_amount >= amount, "Not enough supply");
         self.nft_burn_tokens(farm_token_id, farm_token_nonce, amount);
         Ok(())
-    }
-
-    fn increase_nonce(&self) -> Nonce {
-        let new_nonce = self.farm_token_nonce().get() + 1;
-        self.farm_token_nonce().set(&new_nonce);
-        new_nonce
     }
 }

@@ -7,62 +7,48 @@ use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 pub const ACCEPT_PAY_FUNC_NAME: &[u8] = b"acceptPay";
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule: token_send::TokenSendModule {
+pub trait ProxyCommonModule: token_send::TokenSendModule + token_supply::TokenSupplyModule {
     #[payable("*")]
     #[endpoint(acceptPay)]
     fn accept_pay(&self) {}
-
-    fn increase_wrapped_lp_token_nonce(&self) -> Nonce {
-        let new_nonce = self.wrapped_lp_token_nonce().get() + 1;
-        self.wrapped_lp_token_nonce().set(&new_nonce);
-        new_nonce
-    }
-
-    fn increase_wrapped_farm_token_nonce(&self) -> Nonce {
-        let new_nonce = self.wrapped_farm_token_nonce().get() + 1;
-        self.wrapped_farm_token_nonce().set(&new_nonce);
-        new_nonce
-    }
 
     fn get_wrapped_lp_token_attributes(
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedLpTokenAttributes<Self::Api>> {
+    ) -> WrappedLpTokenAttributes<Self::Api> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        Ok(self
-            .serializer()
+        self.serializer()
             .top_decode_from_managed_buffer::<WrappedLpTokenAttributes<Self::Api>>(
                 &token_info.attributes,
-            ))
+            )
     }
 
     fn get_wrapped_farm_token_attributes(
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedFarmTokenAttributes<Self::Api>> {
+    ) -> WrappedFarmTokenAttributes<Self::Api> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        Ok(self
-            .serializer()
+        self.serializer()
             .top_decode_from_managed_buffer::<WrappedFarmTokenAttributes<Self::Api>>(
                 &token_info.attributes,
-            ))
+            )
     }
 
-    fn burn_payment_tokens(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
+    fn burn_payment_tokens(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
         for payment in payments.iter() {
-            self.send().esdt_local_burn(
+            self.nft_burn_tokens(
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
@@ -85,24 +71,34 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     #[storage_mapper("wrapped_lp_token_id")]
     fn wrapped_lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[storage_mapper("wrapped_lp_token_nonce")]
-    fn wrapped_lp_token_nonce(&self) -> SingleValueMapper<Nonce>;
-
     #[view(getWrappedFarmTokenId)]
     #[storage_mapper("wrapped_farm_token_id")]
     fn wrapped_farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[storage_mapper("wrapped_farm_token_nonce")]
-    fn wrapped_farm_token_nonce(&self) -> SingleValueMapper<Nonce>;
-
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 
-    #[view(getIntermediatedFarms)]
     #[storage_mapper("intermediated_farms")]
     fn intermediated_farms(&self) -> SetMapper<ManagedAddress>;
 
-    #[view(getIntermediatedPairs)]
+    #[view(getIntermediatedFarms)]
+    fn get_intermediated_farms(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.intermediated_farms().iter() {
+            result.push(pair);
+        }
+        result
+    }
+
     #[storage_mapper("intermediated_pairs")]
     fn intermediated_pairs(&self) -> SetMapper<ManagedAddress>;
+
+    #[view(getIntermediatedPairs)]
+    fn get_intermediated_pairs(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.intermediated_pairs().iter() {
+            result.push(pair);
+        }
+        result
+    }
 }

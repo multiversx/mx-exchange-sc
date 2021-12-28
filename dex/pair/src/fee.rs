@@ -5,7 +5,6 @@ use super::amm;
 use super::config;
 use super::liquidity_pool;
 use common_structs::TokenPair;
-use core::iter::FromIterator;
 
 const SWAP_NO_FEE_AND_FORWARD_FUNC_NAME: &[u8] = b"swapNoFeeAndForward";
 
@@ -41,7 +40,6 @@ pub trait FeeModule:
     #[storage_mapper("trusted_swap_pair")]
     fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
 
-    #[view(getWhitelistedManagedAddresses)]
     #[storage_mapper("whitelist")]
     fn whitelist(&self) -> SetMapper<ManagedAddress>;
 
@@ -384,22 +382,31 @@ pub trait FeeModule:
     }
 
     #[view(getFeeDestinations)]
-    fn get_fee_destinations(&self) -> MultiResultVec<(ManagedAddress, TokenIdentifier)> {
-        MultiResultVec::from_iter(
-            self.destination_map()
-                .iter()
-                .map(|x| (x.0, x.1))
-                .collect::<Vec<(ManagedAddress, TokenIdentifier)>>(),
-        )
+    fn get_fee_destinations(&self) -> ManagedMultiResultVec<(ManagedAddress, TokenIdentifier)> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.destination_map().iter() {
+            result.push((pair.0, pair.1))
+        }
+        result
     }
 
     #[view(getTrustedSwapPairs)]
-    fn get_trusted_swap_pairs(&self) -> MultiResultVec<(TokenPair<Self::Api>, ManagedAddress)> {
-        MultiResultVec::from_iter(
-            self.trusted_swap_pair()
-                .iter()
-                .map(|x| (x.0, x.1))
-                .collect::<Vec<(TokenPair<Self::Api>, ManagedAddress)>>(),
-        )
+    fn get_trusted_swap_pairs(
+        &self,
+    ) -> ManagedMultiResultVec<(TokenPair<Self::Api>, ManagedAddress)> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.trusted_swap_pair().iter() {
+            result.push((pair.0, pair.1))
+        }
+        result
+    }
+
+    #[view(getWhitelistedManagedAddresses)]
+    fn get_whitelisted_managed_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for pair in self.whitelist().iter() {
+            result.push(pair);
+        }
+        result
     }
 }

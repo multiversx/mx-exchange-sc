@@ -21,12 +21,13 @@ debug = false
 panic = "abort"
 
 [dependencies.distribution]
-features = [ "wasm-output-mode",]
 default-features = false
 path = ".."
 
+[dependencies.elrond-wasm-node]
+version = "0.22.6"
+
 [dependencies.elrond-wasm-output]
-version = "0.20"
-features = [ "wasm-output-mode",]
-path = "../../../../elrond-wasm-rs/elrond-wasm-output"
+version = "0.22.6"
+features = ["wasm-output-mode"]
 
