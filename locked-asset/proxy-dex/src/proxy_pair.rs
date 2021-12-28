@@ -320,6 +320,7 @@ pub trait ProxyPairModule:
         self.pair_contract_proxy(pair_address.clone())
             .remove_liquidity(
                 lp_token_id.clone(),
+                0,
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),

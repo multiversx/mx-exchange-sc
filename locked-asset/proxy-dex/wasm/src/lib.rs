@@ -13,7 +13,6 @@ elrond_wasm_node::wasm_endpoints! {
         addLiquidityProxy
         addPairToIntermediate
         claimRewardsProxy
-        compoundRewardsProxy
         enterFarmProxy
         exitFarmProxy
         getAssetTokenId
