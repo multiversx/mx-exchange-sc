@@ -1,4 +1,58 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
 #![no_std]
 
-pub use elrond_wasm_output::*;
-pub use farm::*;
+elrond_wasm_node::wasm_endpoints! {
+    farm
+    (
+        init
+        callBack
+        acceptFee
+        calculateRewardsForGivenPosition
+        claimRewards
+        compoundRewards
+        end_produce_rewards
+        enterFarm
+        enterFarmAndLockRewards
+        exitFarm
+        getBurnedTokenAmount
+        getBurnedTokenAmountList
+        getCurrentBlockFee
+        getDivisionSafetyConstant
+        getFarmTokenId
+        getFarmTokenSupply
+        getFarmingTokenId
+        getFarmingTokenReserve
+        getGeneratedTokenAmount
+        getGeneratedTokenAmountList
+        getLastErrorMessage
+        getLastRewardBlockNonce
+        getLockedAssetFactoryManagedAddress
+        getLockedRewardAprMuliplier
+        getMinimumFarmingEpoch
+        getOwner
+        getPairContractManagedAddress
+        getPenaltyPercent
+        getPerBlockRewardAmount
+        getRewardPerShare
+        getRewardReserve
+        getRewardTokenId
+        getRouterManagedAddress
+        getState
+        getTransferExecGasLimit
+        getUndistributedFees
+        mergeFarmTokens
+        pause
+        registerFarmToken
+        resume
+        setLocalRolesFarmToken
+        setPerBlockRewardAmount
+        set_locked_rewards_apr_multiplier
+        set_minimum_farming_epochs
+        set_penalty_percent
+        set_transfer_exec_gas_limit
+        start_produce_rewards
+    )
+}

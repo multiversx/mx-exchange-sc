@@ -1,0 +1,16 @@
+[package]
+name = "proxy-dex-meta"
+
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[dependencies.proxy-dex]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.22.6"
+
+[dependencies.elrond-wasm-debug]
+version = "0.22.6"

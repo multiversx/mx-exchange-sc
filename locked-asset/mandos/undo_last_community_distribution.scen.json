@@ -11,7 +11,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -30,7 +29,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "setCommunityDistribution",
                 "arguments": [
                     "100,000",
@@ -52,7 +50,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "endGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -71,29 +68,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
-                "function": "getLastCommunityDistributionAmountAndEpoch",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "100,000",
-                    "10"
-                ],
-                "status": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
-                "value": "0",
                 "function": "startGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -112,7 +86,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "undoLastCommunityDistribution",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -131,7 +104,6 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:dist_contract",
-                "value": "0",
                 "function": "endGlobalOperation",
                 "arguments": [],
                 "gasLimit": "100,000,000",
@@ -139,28 +111,6 @@
             },
             "expect": {
                 "out": [],
-                "status": "",
-                "gas": "*",
-                "refund": "*"
-            }
-        },
-        {
-            "step": "scCall",
-            "txId": "2",
-            "tx": {
-                "from": "address:owner",
-                "to": "sc:dist_contract",
-                "value": "0",
-                "function": "getLastCommunityDistributionAmountAndEpoch",
-                "arguments": [],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
-            },
-            "expect": {
-                "out": [
-                    "0",
-                    "0"
-                ],
                 "status": "",
                 "gas": "*",
                 "refund": "*"

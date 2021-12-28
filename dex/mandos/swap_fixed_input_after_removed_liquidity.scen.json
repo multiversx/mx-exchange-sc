@@ -1,112 +1,124 @@
 {
-	"name": "swap fixed input",
-	"steps": [
-		{
-			"step": "externalSteps",
-			"path": "remove_liquidity.scen.json"
-		},
-		{
-			"step": "scCall",
-			"txId": "swap-fixed-input",
-			"tx": {
-				"from": "address:user2",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"function": "swapTokensFixedInput",
-				"esdt": {
-					"tokenIdentifier": "str:ALC-abcdef",
-					"value": "1000000000"
-				},
-				"arguments": [
-					"str:WEGLD-abcdef",
-					"1"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [
-					"0x000000000c5745474c442d61626364656600000000000000000000000203e7"
-				],
-				"status": "0",
-				"message": "",
-				"gas": "*",
-				"refund": "*"
-			}
-		},
-		{
-			"step": "checkState",
-			"accounts": {
-				"sc:pair_contract": {
-					"esdt": {
-						"str:WEGLD-abcdef": {
-							"balance": "1",
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
-						},
-						"str:ALC-abcdef": "1000001000",
-						"str:LPTOK-abcdef": {
-							"balance": "1000",
-							"roles": [
-								"ESDTRoleLocalMint",
-								"ESDTRoleLocalBurn"
-							]
-						}
-					},
-					"storage": {
-						"str:total_fee_percent": "300",
-						"str:router_address": "sc:router_contract",
-						"str:router_owner_address": "address:owner",
-						"str:fee_destination.info": "0x00000001000000010000000100000001",
-						"str:second_token_id": "str:ALC-abcdef",
-						"0x6665655f64657374696e6174696f6e2e6d617070656400000000000000006661726d5f636f6e74726163745f5f5f5f5f5f5f5f5f5f5f": "str:WEGLD-abcdef",
-						"0x6665655f64657374696e6174696f6e2e6e6f64655f696400000000000000006661726d5f636f6e74726163745f5f5f5f5f5f5f5f5f5f5f": "1",
-						"0x6665655f64657374696e6174696f6e2e6e6f64655f6c696e6b7300000001": "0x0000000000000000",
-						"str:special_fee_percent": "100",
-						"str:state": "1",
-						"0x726573657276650000000a414c432d616263646566": "1000001000",
-						"str:first_token_id": "str:WEGLD-abcdef",
-						"str:lpTokenIdentifier": "str:LPTOK-abcdef",
-						"0x6665655f64657374696e6174696f6e2e76616c756500000001": "sc:farm_contract",
-						"0x726573657276650000000c5745474c442d616263646566": "1",
-						"str:mint_tokens_gas_limit": "500000",
-						"str:burn_tokens_gas_limit": "500000",
-						"str:send_fee_gas_limit": "25,000,000",
-						"str:extern_swap_gas_limit": "50,000,000",
-						"+": ""
-					},
-					"code": "file:../pair/output/pair.wasm"
-				},
-				"+": ""
-			}
-		},
-		{
-			"step": "scCall",
-			"txId": "swap-fixed-input",
-			"tx": {
-				"from": "address:owner",
-				"to": "sc:pair_contract",
-				"value": "0",
-				"function": "swapTokensFixedInput",
-				"esdt": {
-					"tokenIdentifier": "str:ALC-abcdef",
-					"value": "1000000000"
-				},
-				"arguments": [
-					"str:WEGLD-abcdef",
-					"1"
-				],
-				"gasLimit": "100,000,000",
-				"gasPrice": "0"
-			},
-			"expect": {
-				"out": [],
-				"status": "4",
-				"message": "*",
-				"gas": "*",
-				"refund": "*"
-			}
-		}
-	]
+    "name": "swap fixed input",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "remove_liquidity.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "swap-fixed-input",
+            "tx": {
+                "from": "address:user2",
+                "to": "sc:pair_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:ALC-abcdef",
+                        "value": "1000000000"
+                    }
+                ],
+                "function": "swapTokensFixedInput",
+                "arguments": [
+                    "str:WEGLD-abcdef",
+                    "1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x000000000c5745474c442d61626364656600000000000000000000000203e7"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:pair_contract": {
+                    "esdt": {
+                        "str:WEGLD-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "1"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:ALC-abcdef": "1000001000",
+                        "str:LPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "1000"
+                                }
+                            ],
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:total_fee_percent": "300",
+                        "str:router_address": "sc:router_contract",
+                        "str:router_owner_address": "address:owner",
+                        "str:fee_destination.info": "0x00000001000000010000000100000001",
+                        "str:second_token_id": "str:ALC-abcdef",
+                        "0x6665655f64657374696e6174696f6e2e6d617070656400000000000000006661726d5f636f6e74726163745f5f5f5f5f5f5f5f5f5f5f": "str:WEGLD-abcdef",
+                        "0x6665655f64657374696e6174696f6e2e6e6f64655f696400000000000000006661726d5f636f6e74726163745f5f5f5f5f5f5f5f5f5f5f": "1",
+                        "0x6665655f64657374696e6174696f6e2e6e6f64655f6c696e6b7300000001": "0x0000000000000000",
+                        "str:special_fee_percent": "100",
+                        "str:state": "1",
+                        "0x726573657276650000000a414c432d616263646566": "1000001000",
+                        "str:first_token_id": "str:WEGLD-abcdef",
+                        "str:lpTokenIdentifier": "str:LPTOK-abcdef",
+                        "0x6665655f64657374696e6174696f6e2e76616c756500000001": "sc:farm_contract",
+                        "0x726573657276650000000c5745474c442d616263646566": "1",
+                        "str:mint_tokens_gas_limit": "500000",
+                        "str:burn_tokens_gas_limit": "500000",
+                        "str:send_fee_gas_limit": "25,000,000",
+                        "str:extern_swap_gas_limit": "50,000,000",
+                        "+": ""
+                    },
+                    "code": "file:../pair/output/pair.wasm"
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "swap-fixed-input",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:pair_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:ALC-abcdef",
+                        "value": "1000000000"
+                    }
+                ],
+                "function": "swapTokensFixedInput",
+                "arguments": [
+                    "str:WEGLD-abcdef",
+                    "1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "*",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
 }

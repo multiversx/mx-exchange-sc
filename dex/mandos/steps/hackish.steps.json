@@ -1,78 +1,78 @@
 {
-	"name": "hackish step dont commit",
-	"steps": [
-		{
-			"step": "setState",
-			"accounts": {
-				"sc:pair_contract": {
-					"nonce": "0",
-					"balance": "0",
-					"esdt": {
-						"str:LPTOK-abcdef": {
-							"roles": [
-								"ESDTRoleLocalMint",
-								"ESDTRoleLocalBurn"
-							]
-						},
-						"str:WEGLD-abcdef": {
-							"roles": [
-								"ESDTRoleLocalBurn"
-							]
-						}
-					},
-					"storage": {
-						"str:first_token_id": "str:WEGLD-abcdef",
-						"str:second_token_id": "str:ALC-abcdef",
-						"str:state": "1",
-						"str:lpTokenIdentifier": "str:LPTOK-abcdef",
-						"str:router_address": "sc:router_contract",
-						"str:router_owner_address": "address:owner",
-						"str:total_fee_percent": "300",
-						"str:special_fee_percent": "100",
-						"str:burn_tokens_gas_limit": "500000",
-						"str:mint_tokens_gas_limit": "500000",
-						"str:send_fee_gas_limit": "25,000,000",
-						"str:extern_swap_gas_limit": "50,000,000"
-					},
-					"code": "file:../../pair/output/pair.wasm",
-					"owner": "sc:router_contract"
-				},
-				"sc:farm_contract": {
-					"nonce": "0",
-					"balance": "0",
-					"esdt": {
-						"str:FARM-abcdef": {
-							"roles": [
-								"ESDTRoleNFTCreate",
-								"ESDTRoleNFTAddQuantity",
-								"ESDTRoleNFTBurn"
-							]
-						}
-					},
-					"storage": {
-						"str:farming_token_id": "str:LPTOK-abcdef",
-						"str:reward_token_id": "str:WEGLD-abcdef",
-						"str:farm_token_id": "str:FARM-abcdef",
-						"str:router_address": "sc:router_contract",
-						"str:state": "1",
-						"str:owner": "address:owner",
-						"str:minimum_farming_epochs": "2",
-						"str:burn_tokens_gas_limit": "5,000,000",
-						"str:mint_tokens_gas_limit": "5,000,000",
-						"str:locked_rewards_apr_multiplier": "2",
-						"str:division_safety_constant": "1000000000000",
-						"str:create_farm_tokens_gas_limit": "5000000",
-						"str:penalty_percent": "100",
-						"str:nft_deposit_max_len": "10",
-						"str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
-						"str:nft_deposit_accepted_token_ids.node_id|nested:str:FARM-abcdef": "1",
-						"str:nft_deposit_accepted_token_ids.node_links": "0",
-						"str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
-						"str:pair_contract_address": "sc:pair_contract"
-					},
-					"code": "file:../../farm/output/farm.wasm"
-				}
-			}
-		}
-	]
+    "name": "hackish step dont commit",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:pair_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:LPTOK-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        },
+                        "str:WEGLD-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:first_token_id": "str:WEGLD-abcdef",
+                        "str:second_token_id": "str:ALC-abcdef",
+                        "str:state": "1",
+                        "str:lpTokenIdentifier": "str:LPTOK-abcdef",
+                        "str:router_address": "sc:router_contract",
+                        "str:router_owner_address": "address:owner",
+                        "str:total_fee_percent": "300",
+                        "str:special_fee_percent": "100",
+                        "str:burn_tokens_gas_limit": "500000",
+                        "str:mint_tokens_gas_limit": "500000",
+                        "str:send_fee_gas_limit": "25,000,000",
+                        "str:extern_swap_gas_limit": "50,000,000"
+                    },
+                    "code": "file:../../pair/output/pair.wasm",
+                    "owner": "sc:router_contract"
+                },
+                "sc:farm_contract": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:FARM-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:farming_token_id": "str:LPTOK-abcdef",
+                        "str:reward_token_id": "str:WEGLD-abcdef",
+                        "str:farm_token_id": "str:FARM-abcdef",
+                        "str:router_address": "sc:router_contract",
+                        "str:state": "1",
+                        "str:owner": "address:owner",
+                        "str:minimum_farming_epochs": "2",
+                        "str:burn_tokens_gas_limit": "5,000,000",
+                        "str:mint_tokens_gas_limit": "5,000,000",
+                        "str:locked_rewards_apr_multiplier": "2",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:create_farm_tokens_gas_limit": "5000000",
+                        "str:penalty_percent": "100",
+                        "str:nft_deposit_max_len": "10",
+                        "str:nft_deposit_accepted_token_ids.info": "u32:1|u32:1|u32:1|u32:1",
+                        "str:nft_deposit_accepted_token_ids.node_id|nested:str:FARM-abcdef": "1",
+                        "str:nft_deposit_accepted_token_ids.node_links": "0",
+                        "str:nft_deposit_accepted_token_ids.value|u32:1": "str:FARM-abcdef",
+                        "str:pair_contract_address": "sc:pair_contract"
+                    },
+                    "code": "file:../../farm/output/farm.wasm"
+                }
+            }
+        }
+    ]
 }

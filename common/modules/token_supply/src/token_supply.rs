@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::iter::FromIterator;
-
 use common_structs::Nonce;
 
 #[elrond_wasm::module]
@@ -14,9 +12,9 @@ pub trait TokenSupplyModule {
         token_id: &TokenIdentifier,
         amount: &BigUint,
         attributes: &T,
-    ) {
+    ) -> u64 {
         self.increase_generated_amount(token_id, amount);
-        let mut uris = ManagedVec::new(self.type_manager());
+        let mut uris = ManagedVec::new();
         uris.push(self.types().managed_buffer_new());
         self.send().esdt_nft_create::<T>(
             token_id,
@@ -26,7 +24,7 @@ pub trait TokenSupplyModule {
             &self.types().managed_buffer_new(),
             attributes,
             &uris,
-        );
+        )
     }
 
     fn nft_add_quantity_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
@@ -69,21 +67,21 @@ pub trait TokenSupplyModule {
     }
 
     #[view(getGeneratedTokenAmountList)]
-    fn get_genereated_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, BigUint)> {
-        MultiResultVec::from_iter(
-            self.generated_tokens()
-                .iter()
-                .collect::<Vec<(TokenIdentifier, BigUint)>>(),
-        )
+    fn get_generated_token_amount_list(&self) -> ManagedMultiResultVec<(TokenIdentifier, BigUint)> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for item in self.generated_tokens().iter() {
+            result.push(item)
+        }
+        result
     }
 
     #[view(getBurnedTokenAmountList)]
-    fn get_burned_token_amount_list(&self) -> MultiResultVec<(TokenIdentifier, BigUint)> {
-        MultiResultVec::from_iter(
-            self.burned_tokens()
-                .iter()
-                .collect::<Vec<(TokenIdentifier, BigUint)>>(),
-        )
+    fn get_burned_token_amount_list(&self) -> ManagedMultiResultVec<(TokenIdentifier, BigUint)> {
+        let mut result = ManagedMultiResultVec::new(self.type_manager());
+        for item in self.burned_tokens().iter() {
+            result.push(item)
+        }
+        result
     }
 
     #[view(getGeneratedTokenAmount)]

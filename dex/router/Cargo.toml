@@ -8,26 +8,12 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
-[features]
-wasm-output-mode = ["elrond-wasm-node"]
-
 [dependencies.elrond-wasm]
-version = "0.20"
-features = ["derive"]
-path = "../../../elrond-wasm-rs/elrond-wasm"
-
-[dependencies.elrond-wasm-derive]
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-derive"
-
-[dependencies.elrond-wasm-node]
-version = "0.20"
-optional = true
-path = "../../../elrond-wasm-rs/elrond-wasm-node"
+version = "0.22.6"
+features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.20"
-path = "../../../elrond-wasm-rs/elrond-wasm-debug"
+version = "0.22.6"
 
 [dependencies.pair]
 path = "../pair"

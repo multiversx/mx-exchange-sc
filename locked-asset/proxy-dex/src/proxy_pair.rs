@@ -20,7 +20,7 @@ type AddLiquidityResultType<BigUint> =
 type RemoveLiquidityResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: WrappedLpTokenAttributes<M>,
@@ -63,29 +63,35 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address)?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments();
+        let payments = self.get_all_payments_managed_vec();
         require!(payments.len() >= 2, "bad payment len");
+        let payment_0 = payments.get(0).unwrap();
+        let payment_1 = payments.get(1).unwrap();
 
-        let first_token_id = payments[0].token_identifier.clone();
-        let first_token_nonce = payments[0].token_nonce;
-        let first_token_amount_desired = payments[0].amount.clone();
+        let first_token_id = payment_0.token_identifier.clone();
+        let first_token_nonce = payment_0.token_nonce;
+        let first_token_amount_desired = payment_0.amount.clone();
         require!(first_token_nonce == 0, "bad first token nonce");
         require!(first_token_amount_desired > 0, "first payment amount zero");
         require!(
-            first_token_amount_desired > first_token_amount_min,
+            first_token_amount_desired >= first_token_amount_min,
             "bad first token min"
         );
 
-        let second_token_id = payments[1].token_identifier.clone();
-        let second_token_nonce = payments[1].token_nonce;
-        let second_token_amount_desired = payments[1].amount.clone();
+        let second_token_id = payment_1.token_identifier.clone();
+        let second_token_nonce = payment_1.token_nonce;
+        let second_token_amount_desired = payment_1.amount.clone();
+        require!(
+            second_token_id == self.locked_asset_token_id().get(),
+            "second token needs to be locked asset token"
+        );
         require!(second_token_nonce != 0, "bad second token nonce");
         require!(
             second_token_amount_desired > 0,
             "second payment amount zero"
         );
         require!(
-            second_token_amount_desired > second_token_amount_min,
+            second_token_amount_desired >= second_token_amount_min,
             "bad second token min"
         );
 
@@ -126,21 +132,21 @@ pub trait ProxyPairModule:
             &second_token_used.amount,
             second_token_nonce,
             &caller,
-            &payments[2..],
+            &self.manage_vec_remove_indexes(&payments, 0, 1),
         )?;
 
-        let mut surplus_payments = Vec::new();
-        surplus_payments.push(EsdtTokenPayment::from(
+        let mut surplus_payments = ManagedVec::new();
+        surplus_payments.push(EsdtTokenPayment::new(
             first_token_id.clone(),
             0,
             &first_token_amount_desired - &first_token_used.amount,
         ));
-        surplus_payments.push(EsdtTokenPayment::from(
+        surplus_payments.push(EsdtTokenPayment::new(
             second_token_id.clone(),
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
-        self.send_multiple_tokens_compact(&caller, &surplus_payments, &OptionalArg::None)?;
+        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalArg::None)?;
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -186,7 +192,7 @@ pub trait ProxyPairModule:
 
         let caller = self.blockchain().get_caller();
         let lp_token_id = self.ask_for_lp_token_id(&pair_address);
-        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
+        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
         require!(lp_token_id == attributes.lp_token_id, "Bad input address");
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
@@ -276,16 +282,16 @@ pub trait ProxyPairModule:
         second_token_amount_desired: &BigUint,
         second_token_amount_min: &BigUint,
     ) -> AddLiquidityResultType<Self::Api> {
-        let mut all_token_payments = ManagedVec::new(self.type_manager());
+        let mut all_token_payments = ManagedVec::new();
 
-        let first_payment = EsdtTokenPayment::from(
+        let first_payment = EsdtTokenPayment::new(
             first_token_id.clone(),
             0,
             first_token_amount_desired.clone(),
         );
         all_token_payments.push(first_payment);
 
-        let second_payment = EsdtTokenPayment::from(
+        let second_payment = EsdtTokenPayment::new(
             second_token_id.clone(),
             0,
             second_token_amount_desired.clone(),
@@ -296,7 +302,7 @@ pub trait ProxyPairModule:
             .add_liquidity(
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
             )
             .with_multi_token_transfer(all_token_payments)
             .execute_on_dest_context()
@@ -316,7 +322,7 @@ pub trait ProxyPairModule:
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ACCEPT_PAY_FUNC_NAME.managed_into()),
             )
             .execute_on_dest_context()
     }
@@ -334,7 +340,7 @@ pub trait ProxyPairModule:
         locked_tokens_consumed: &BigUint,
         locked_tokens_nonce: Nonce,
         caller: &ManagedAddress,
-        additional_payments: &[EsdtTokenPayment<Self::Api>],
+        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         self.merge_wrapped_lp_tokens_and_send(
             caller,

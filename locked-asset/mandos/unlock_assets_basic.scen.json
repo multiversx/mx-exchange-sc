@@ -17,13 +17,14 @@
             "tx": {
                 "from": "address:user1",
                 "to": "sc:locked_asset_factory",
-                "value": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKMEX-abcdef",
+                        "nonce": "1",
+                        "value": "1,000"
+                    }
+                ],
                 "function": "unlockAssets",
-                "esdt": {
-                    "tokenIdentifier": "str:LKMEX-abcdef",
-                    "value": "1,000",
-                    "nonce": "1"
-                },
                 "arguments": [],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"

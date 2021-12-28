@@ -1,4 +1,37 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
 #![no_std]
 
-pub use elrond_wasm_output::*;
-pub use factory::*;
+elrond_wasm_node::wasm_endpoints! {
+    factory
+    (
+        init
+        callBack
+        createAndForward
+        createAndForwardCustomPeriod
+        getAssetTokenId
+        getBurnedTokenAmount
+        getBurnedTokenAmountList
+        getCacheSize
+        getDefaultUnlockPeriod
+        getGeneratedTokenAmount
+        getGeneratedTokenAmountList
+        getInitEpoch
+        getLastErrorMessage
+        getLockedAssetTokenId
+        getTransferExecGasLimit
+        getUnlockScheduleForSFTNonce
+        getWhitelistedContracts
+        mergeLockedAssetTokens
+        registerLockedAssetToken
+        removeWhitelist
+        setInitEpoch
+        setLocalRolesLockedAssetToken
+        setUnlockPeriod
+        set_transfer_exec_gas_limit
+        unlockAssets
+        whitelist
+    )
+}

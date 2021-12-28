@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(Clone)]
+#[derive(ManagedVecItem, Clone)]
 pub struct ValueWeight<M: ManagedTypeApi> {
     pub value: BigUint<M>,
     pub weight: BigUint<M>,
@@ -26,7 +26,7 @@ pub trait TokenMergeModule {
         Ok(res)
     }
 
-    fn weighted_average_ceil(&self, dataset: Vec<ValueWeight<Self::Api>>) -> BigUint {
+    fn weighted_average_ceil(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
         let mut weight_sum = BigUint::zero();
         dataset
             .iter()

@@ -5,15 +5,16 @@ edition = "2018"
 publish = false
 
 [dependencies.elrond-wasm]
-version = "0.20"
-features = ["derive"]
-
-[dependencies.elrond-wasm-derive]
-version = "0.20"
-
-[dependencies.elrond-wasm-node]
-version = "0.20"
-optional = true
+version = "0.22.6"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.20"
+version = "0.22.6"
+
+[dependencies.farm]
+path = "farm"
+
+[dependencies.pair]
+path = "pair"
+
+[dependencies.router]
+path = "router"
