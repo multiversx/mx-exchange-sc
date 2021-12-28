@@ -3,7 +3,7 @@
 
 mod cache;
 mod events;
-mod locked_asset;
+pub mod locked_asset;
 pub mod locked_asset_token_merge;
 
 elrond_wasm::imports!();

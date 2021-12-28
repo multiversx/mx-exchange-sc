@@ -27,8 +27,7 @@
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
-                        "FARM-abcdef": {
-                            "tokenIdentifier": "0x4641524d2d616263646566",
+                        "str:FARM-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleNFTCreate",
@@ -64,8 +63,7 @@
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
-                        "FARM-abcdef": {
-                            "tokenIdentifier": "0x4641524d2d616263646566",
+                        "str:FARM-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleNFTCreate",
@@ -73,8 +71,7 @@
                                 "ESDTRoleNFTBurn"
                             ]
                         },
-                        "LPTOK-abcdef": {
-                            "tokenIdentifier": "0x4c50544f4b2d616263646566",
+                        "str:LPTOK-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleLocalBurn"
@@ -108,8 +105,7 @@
                     "nonce": "0",
                     "balance": "0",
                     "esdt": {
-                        "FARM-abcdef": {
-                            "tokenIdentifier": "0x4641524d2d616263646566",
+                        "str:FARM-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleNFTCreate",
@@ -117,15 +113,13 @@
                                 "ESDTRoleNFTBurn"
                             ]
                         },
-                        "LPTOK-abcdef": {
-                            "tokenIdentifier": "0x4c50544f4b2d616263646566",
+                        "str:LPTOK-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleLocalBurn"
                             ]
                         },
-                        "MEX-abcdef": {
-                            "tokenIdentifier": "0x4d45582d616263646566",
+                        "str:MEX-abcdef": {
                             "instances": [],
                             "roles": [
                                 "ESDTRoleLocalMint"
@@ -162,6 +156,27 @@
             }
         },
         {
+            "step": "setState",
+            "accounts": {
+                "0x12771355e46cd47c71ed1721fd5319b383cca3a1f9fce3aa1c8cd3bd37af20d7": {
+                    "nonce": "0",
+                    "balance": "100000000",
+                    "esdt": {
+                        "str:LPTOK-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "5000000000",
+                                    "royalties": "0",
+                                    "attributes": "0x"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
             "step": "scCall",
             "txId": "0",
             "tx": {
@@ -170,7 +185,7 @@
                 "egldValue": "0",
                 "esdtValue": [
                     {
-                        "tokenIdentifier": "0x4c50544f4b2d616263646566",
+                        "tokenIdentifier": "str:LPTOK-abcdef",
                         "nonce": "0",
                         "value": "100000000"
                     }
@@ -182,7 +197,8 @@
             },
             "expect": {
                 "out": [
-                    "0x05f5e100"
+                    "0x01",
+                    "0x020000000b4641524d2d61626364656600000000000000010000000405f5e100"
                 ],
                 "status": "0",
                 "logs": "*",

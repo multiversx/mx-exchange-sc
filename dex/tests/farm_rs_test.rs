@@ -1,7 +1,7 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
-    TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, OptionalArg, SCResult,
+    StaticSCError, TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -171,6 +171,8 @@ fn enter_farm<FarmObjBuilder>(
         },
     );
 
+    let _ = DebugApi::dummy();
+
     let mut sc_call = ScCallMandos::new(
         &farm_setup.user_address,
         farm_setup.farm_wrapper.address_ref(),
@@ -179,11 +181,15 @@ fn enter_farm<FarmObjBuilder>(
     sc_call.add_esdt_transfer(LP_TOKEN_ID, 0, &rust_biguint!(farm_in_amount));
 
     let mut tx_expect = TxExpectMandos::new(0);
-    tx_expect.add_out_value(&rust_biguint!(farm_in_amount).to_bytes_be());
+    tx_expect.add_out_value(&expected_farm_token_nonce);
+    tx_expect.add_out_value(&EsdtTokenPayment::<DebugApi> {
+        token_type: elrond_wasm::types::EsdtTokenType::SemiFungible,
+        token_identifier: managed_token_id!(FARM_TOKEN_ID),
+        token_nonce: expected_farm_token_nonce,
+        amount: managed_biguint!(farm_in_amount),
+    });
 
     b_mock.add_mandos_sc_call(sc_call, Some(tx_expect));
-
-    let _ = DebugApi::dummy();
 
     let expected_attributes = FarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
