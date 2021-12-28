@@ -17,34 +17,24 @@ pub trait LiquidityPoolModule:
 {
     fn pool_add_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
         let zero = &BigUint::zero();
-        let mut liquidity: BigUint;
+        assert!(
+            self,
+            context.get_lp_token_supply() != zero,
+            ERROR_ZERO_AMOUNT
+        );
 
-        if context.get_lp_token_supply() == zero {
-            liquidity = self.biguint_min(
-                context.get_first_amount_optimal(),
-                context.get_second_amount_optimal(),
-            );
-            let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
-            assert!(self, liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
+        let first_payment_amount = context.get_first_amount_optimal();
+        let second_payment_amount = context.get_second_amount_optimal();
+        let lp_token_supply = context.get_lp_token_supply();
+        let first_token_reserve = context.get_first_token_reserve();
+        let second_token_reserve = context.get_second_token_reserve();
 
-            liquidity -= &minimum_liquidity;
-            let lpt = context.get_lp_token_id();
-            self.send().esdt_local_mint(lpt, 0, &minimum_liquidity);
-            context.set_lp_token_supply(minimum_liquidity);
-        } else {
-            let first_payment_amount = context.get_first_amount_optimal();
-            let second_payment_amount = context.get_second_amount_optimal();
-            let lp_token_supply = context.get_lp_token_supply();
-            let first_token_reserve = context.get_first_token_reserve();
-            let second_token_reserve = context.get_second_token_reserve();
-
-            liquidity = self.biguint_min(
-                &(&(first_payment_amount * lp_token_supply) / first_token_reserve),
-                &(&(second_payment_amount * lp_token_supply) / second_token_reserve),
-            );
-        }
-
+        let liquidity = self.biguint_min(
+            &(&(first_payment_amount * lp_token_supply) / first_token_reserve),
+            &(&(second_payment_amount * lp_token_supply) / second_token_reserve),
+        );
         assert!(self, &liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
+
         context.increase_lp_token_supply(&liquidity);
         context.set_liquidity_added(liquidity);
         context.increase_reserves();

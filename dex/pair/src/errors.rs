@@ -21,6 +21,8 @@ pub const ERROR_INSUFFICIENT_LIQ_BURNED: &[u8] = b"Insufficient liquidity burned
 pub const ERROR_SLIPPAGE_ON_REMOVE: &[u8] = b"Slippage amount does not match";
 pub const ERROR_NOT_ENOUGH_RESERVE: &[u8] = b"Not enough reserve";
 pub const ERROR_NOT_ENOUGH_LP: &[u8] = b"Not enough LP token supply";
+pub const ERROR_INITIAL_LIQUIDITY_NOT_ADDED: &[u8] = b"Initial liquidity was not added";
+pub const ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED: &[u8] = b"Initial liquidity was already added";
 
 pub const ERROR_NOT_AN_ESDT: &[u8] = b"Not a valid esdt id";
 pub const ERROR_SAME_TOKENS: &[u8] = b"Exchange tokens cannot be the same";
