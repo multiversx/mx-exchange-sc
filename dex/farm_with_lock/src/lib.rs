@@ -497,6 +497,7 @@ pub trait Farm:
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(
                     farming_token_id.clone(),
+                    0,
                     farming_amount.clone(),
                     reward_token_id.clone(),
                 )

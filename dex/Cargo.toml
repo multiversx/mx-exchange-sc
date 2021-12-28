@@ -22,6 +22,9 @@ path = "../common/common_structs"
 [dependencies.farm]
 path = "farm"
 
+[dependencies.farm_with_lock]
+path = "farm_with_lock"
+
 [dependencies.pair]
 path = "pair"
 
