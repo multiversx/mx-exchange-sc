@@ -1,7 +1,5 @@
 #![no_std]
 
-use elrond_wasm::api::Handle;
-
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -66,27 +64,9 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
 
 pub type UnlockPeriod<ManagedTypeApi> = UnlockSchedule<ManagedTypeApi>;
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, TypeAbi)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, TypeAbi)]
 pub struct UnlockSchedule<M: ManagedTypeApi> {
     pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
-}
-
-// `derive(ManagedVecItem)` doesn't currently work with additional generics.
-// Needs to be implemented by hand.
-impl<M: ManagedTypeApi> ManagedVecItem for UnlockSchedule<M> {
-    const PAYLOAD_SIZE: usize = 4;
-    const SKIPS_RESERIALIZATION: bool = false;
-
-    fn from_byte_reader<Reader: FnMut(&mut [u8])>(reader: Reader) -> Self {
-        let handle = Handle::from_byte_reader(reader);
-        UnlockSchedule {
-            unlock_milestones: ManagedVec::from_raw_handle(handle),
-        }
-    }
-
-    fn to_byte_writer<R, Writer: FnMut(&[u8]) -> R>(&self, writer: Writer) -> R {
-        <Handle as ManagedVecItem>::to_byte_writer(&self.unlock_milestones.get_raw_handle(), writer)
-    }
 }
 
 impl<M: ManagedTypeApi> UnlockSchedule<M> {
