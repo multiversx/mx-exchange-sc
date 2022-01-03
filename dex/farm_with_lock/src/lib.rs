@@ -3,7 +3,7 @@
 #![feature(exact_size_is_empty)]
 
 pub mod custom_config;
-mod custom_rewards;
+pub mod custom_rewards;
 pub mod farm_token_merge;
 
 use common_structs::{Epoch, FarmTokenAttributes, Nonce};
