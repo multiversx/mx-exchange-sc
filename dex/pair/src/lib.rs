@@ -114,6 +114,13 @@ pub trait Pair<ContractReader>:
             ERROR_ARGS_NOT_MATCH_PAYMENTS,
         );
 
+        self.load_state(&mut context);
+        assert!(
+            self,
+            self.is_state_active(context.get_contract_state()),
+            ERROR_NOT_ACTIVE,
+        );
+
         self.load_lp_token_id(&mut context);
         assert!(
             self,
@@ -135,8 +142,8 @@ pub trait Pair<ContractReader>:
             ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
         );
 
-        self.calculate_optimal_amounts(&mut context);
-        self.pool_add_liquidity(&mut context);
+        self.set_initial_liquidity_optimals(&mut context);
+        self.pool_add_initial_liquidity(&mut context);
 
         let lpt = context.get_lp_token_id();
         let liq_added = context.get_liquidity_added();
