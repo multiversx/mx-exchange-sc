@@ -55,7 +55,10 @@ pub trait FarmTokenMergeModule:
 
         for payment in payments {
             require!(payment.amount != 0u64, "zero entry amount");
-            require!(payment.token_identifier == farm_token_id, "Not a farm token");
+            require!(
+                payment.token_identifier == farm_token_id,
+                "Not a farm token"
+            );
 
             tokens.push(FarmToken {
                 token_amount: self.create_payment(
@@ -63,7 +66,8 @@ pub trait FarmTokenMergeModule:
                     payment.token_nonce,
                     &payment.amount,
                 ),
-                attributes: self.get_farm_attributes(&payment.token_identifier, payment.token_nonce)?,
+                attributes: self
+                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce)?,
             });
         }
 

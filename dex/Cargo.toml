@@ -22,14 +22,17 @@ path = "../common/modules/rewards"
 [dev-dependencies.common_structs]
 path = "../common/common_structs"
 
-[dependencies.farm]
+[dev-dependencies.farm]
 path = "farm"
 
-[dependencies.farm_with_lock]
+[dev-dependencies.farm_with_lock]
 path = "farm_with_lock"
 
-[dependencies.pair]
+[dev-dependencies.factory]
+path = "../locked-asset/factory"
+
+[dev-dependencies.pair]
 path = "pair"
 
-[dependencies.router]
+[dev-dependencies.router]
 path = "router"

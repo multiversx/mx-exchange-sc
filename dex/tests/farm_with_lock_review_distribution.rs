@@ -1,23 +1,30 @@
 use std::ops::Mul;
 
+use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
-    TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedMultiResultVec, ManagedVec,
+    OptionalArg, SCResult, StaticSCError, TokenIdentifier,
 };
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    tx_mock::TxInputESDT, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    testing_framework::*,
+    tx_mock::{TxContextStack, TxInputESDT},
+    DebugApi,
 };
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
-use custom_rewards::*;
-use farm::*;
+use factory::locked_asset::LockedAssetModule;
+use factory::*;
+use farm_with_lock::custom_rewards::CustomRewardsModule;
+use farm_with_lock::*;
 use rewards::*;
 
-const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
+const FACTORY_WASM_PATH: &'static str = "../locked-asset/factory/output/factory.wasm";
+const FARM_WITH_LOCK_WASM_PATH: &'static str = "farm_with_lock/output/farm_with_lock.wasm";
 
 const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
+const LKMEX_TOKEN_ID: &[u8] = b"LKMEX-abcdef";
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
@@ -25,30 +32,90 @@ const MIN_FARMING_EPOCHS: u8 = 2;
 const PENALTY_PERCENT: u64 = 10;
 
 #[allow(dead_code)] // owner_address is unused, at least for now
-struct FarmSetup<FarmObjBuilder>
+struct FarmSetup<FarmObjBuilder, FactoryObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
-    pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub factory_wrapper: ContractObjWrapper<factory::ContractObj<DebugApi>, FactoryObjBuilder>,
+    pub farm_wrapper: ContractObjWrapper<farm_with_lock::ContractObj<DebugApi>, FarmObjBuilder>,
 }
 
-fn setup_farm<FarmObjBuilder>(
-    farm_builder: FarmObjBuilder,
-    per_block_reward_amount: RustBigUint,
-) -> FarmSetup<FarmObjBuilder>
+fn setup_factory<FactoryObjBuilder>(
+    blockchain_wrapper: &mut BlockchainStateWrapper,
+    owner_addr: Address,
+    factory_builder: FactoryObjBuilder,
+) -> ContractObjWrapper<factory::ContractObj<DebugApi>, FactoryObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+{
+    let factory_wrapper = blockchain_wrapper.create_sc_account(
+        &rust_biguint!(0),
+        Some(&owner_addr),
+        factory_builder,
+        FACTORY_WASM_PATH,
+    );
+
+    // init farm contract
+
+    blockchain_wrapper.execute_tx(&owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
+        let asset_token_id = managed_token_id!(LKMEX_TOKEN_ID);
+        let default_unlock_period = ManagedMultiResultVec::from(ManagedVec::from(vec![
+            UnlockMilestone {
+                unlock_epoch: 20,
+                unlock_percent: 50,
+            },
+            UnlockMilestone {
+                unlock_epoch: 30,
+                unlock_percent: 50,
+            },
+        ]));
+        let result = sc.init(asset_token_id.clone(), default_unlock_period);
+        assert_eq!(result, SCResult::Ok(()));
+
+        sc.locked_asset_token_id().set(&asset_token_id);
+
+        StateChange::Commit
+    });
+
+    let farm_token_roles = [
+        EsdtLocalRole::NftCreate,
+        EsdtLocalRole::NftAddQuantity,
+        EsdtLocalRole::NftBurn,
+    ];
+    blockchain_wrapper.set_esdt_local_roles(
+        factory_wrapper.address_ref(),
+        LKMEX_TOKEN_ID,
+        &farm_token_roles[..],
+    );
+
+    factory_wrapper
+}
+
+fn setup_farm<FarmObjBuilder, FactoryObjBuilder>(
+    farm_builder: FarmObjBuilder,
+    factory_builder: FactoryObjBuilder,
+    per_block_reward_amount: RustBigUint,
+) -> FarmSetup<FarmObjBuilder, FactoryObjBuilder>
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
     let owner_addr = blockchain_wrapper.create_user_account(&rust_zero);
+
+    let factory_wrapper =
+        setup_factory(&mut blockchain_wrapper, owner_addr.clone(), factory_builder);
+    let locked_asset_factory_address = factory_wrapper.address_ref().to_owned();
+
     let farm_wrapper = blockchain_wrapper.create_sc_account(
         &rust_zero,
         Some(&owner_addr),
         farm_builder,
-        FARM_WASM_PATH,
+        FARM_WITH_LOCK_WASM_PATH,
     );
 
     // init farm contract
@@ -62,6 +129,7 @@ where
         let result = sc.init(
             reward_token_id,
             farming_token_id,
+            locked_asset_factory_address.into(),
             division_safety_constant,
             pair_address,
         );
@@ -77,6 +145,14 @@ where
 
         sc.state().set(&State::Active);
         sc.produce_rewards_enabled().set(&true);
+
+        StateChange::Commit
+    });
+
+    blockchain_wrapper.execute_tx(&owner_addr, &factory_wrapper, &rust_zero, |sc| {
+        let farm_address = ManagedAddress::from_address(farm_wrapper.address_ref());
+        let result = sc.whitelist(farm_address);
+        assert_eq!(result, SCResult::Ok(()));
 
         StateChange::Commit
     });
@@ -110,12 +186,19 @@ where
         blockchain_wrapper,
         owner_address: owner_addr,
         farm_wrapper,
+        factory_wrapper,
     }
 }
 
 enum Action {
     EnterFarm(Address, RustBigUint),
-    ExitFarm(Address, u64, RustBigUint, RustBigUint),
+    ExitFarm(
+        Address,
+        u64,
+        RustBigUint,
+        RustBigUint,
+        LockedAssetTokenAttributes<DebugApi>,
+    ),
     RewardPerBlockRateChange(RustBigUint),
 }
 
@@ -144,12 +227,13 @@ fn panic_sc_err(err: StaticSCError) -> ! {
     panic!("{:?}", err_str);
 }
 
-fn enter_farm<FarmObjBuilder>(
-    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+fn enter_farm<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     caller: &Address,
     farm_in_amount: RustBigUint,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     let mut payments = Vec::new();
     payments.push(TxInputESDT {
@@ -201,14 +285,16 @@ fn to_rust_biguint(value: BigUint<DebugApi>) -> RustBigUint {
     RustBigUint::from_bytes_be(value.to_bytes_be().as_slice())
 }
 
-fn exit_farm<FarmObjBuilder>(
-    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     caller: &Address,
     farm_token_nonce: u64,
     farm_out_amount: RustBigUint,
     expected_mex_balance: RustBigUint,
+    expected_attributes: LockedAssetTokenAttributes<DebugApi>,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock.execute_esdt_transfer(
@@ -237,9 +323,9 @@ fn exit_farm<FarmObjBuilder>(
 
                     assert_eq!(
                         second_result.token_identifier,
-                        managed_token_id!(MEX_TOKEN_ID)
+                        managed_token_id!(LKMEX_TOKEN_ID)
                     );
-                    assert_eq!(second_result.token_nonce, 0);
+                    assert_eq!(second_result.token_nonce, 1);
                 }
                 SCResult::Err(err) => panic_sc_err(err),
             }
@@ -248,14 +334,21 @@ fn exit_farm<FarmObjBuilder>(
         },
     );
 
-    b_mock.check_esdt_balance(&caller, MEX_TOKEN_ID, &expected_mex_balance);
+    b_mock.check_nft_balance(
+        &caller,
+        LKMEX_TOKEN_ID,
+        1,
+        &expected_mex_balance,
+        &expected_attributes,
+    );
 }
 
-fn reward_per_block_rate_change<FarmObjBuilder>(
-    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+fn reward_per_block_rate_change<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     new_rate: RustBigUint,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     farm_setup.blockchain_wrapper.execute_tx(
         &farm_setup.owner_address,
@@ -269,21 +362,29 @@ fn reward_per_block_rate_change<FarmObjBuilder>(
     );
 }
 
-fn handle_action<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, action: Action)
-where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+fn handle_action<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
+    action: Action,
+) where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     match action {
         Action::EnterFarm(caller, amount) => enter_farm(farm_setup, &caller, amount),
-        Action::ExitFarm(caller, farm_token_nonce, farm_out_amount, expected_mex_balance) => {
-            exit_farm(
-                farm_setup,
-                &caller,
-                farm_token_nonce,
-                farm_out_amount,
-                expected_mex_balance,
-            )
-        }
+        Action::ExitFarm(
+            caller,
+            farm_token_nonce,
+            farm_out_amount,
+            expected_mex_balance,
+            expected_attributes,
+        ) => exit_farm(
+            farm_setup,
+            &caller,
+            farm_token_nonce,
+            farm_out_amount,
+            expected_mex_balance,
+            expected_attributes,
+        ),
         Action::RewardPerBlockRateChange(new_rate) => {
             reward_per_block_rate_change(farm_setup, new_rate)
         }
@@ -301,9 +402,12 @@ fn check_biguint_eq(actual: BigUint<DebugApi>, expected: RustBigUint, message: &
     );
 }
 
-fn check_expected<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, expected: Expected)
-where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+fn check_expected<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
+    expected: Expected,
+) where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     farm_setup
         .blockchain_wrapper
@@ -326,13 +430,14 @@ where
         });
 }
 
-fn step<FarmObjBuilder>(
-    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+fn step<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     block_number: u64,
     action: Action,
     expected: Expected,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     farm_setup
         .blockchain_wrapper
@@ -341,12 +446,13 @@ fn step<FarmObjBuilder>(
     check_expected(farm_setup, expected);
 }
 
-fn new_address_with_lp_tokens<FarmObjBuilder>(
-    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+fn new_address_with_lp_tokens<FarmObjBuilder, FactoryObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     amount: RustBigUint,
 ) -> Address
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
 {
     let blockchain_wrapper = &mut farm_setup.blockchain_wrapper;
     let address = blockchain_wrapper.create_user_account(&rust_biguint!(0));
@@ -355,9 +461,15 @@ where
 }
 
 #[test]
-fn test_overview() {
+fn test_lock_overview() {
+    let _ = DebugApi::dummy();
+
     let per_block_reward_amount = rust_biguint!(100);
-    let mut farm_setup = setup_farm(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = setup_farm(
+        farm_with_lock::contract_obj,
+        factory::contract_obj,
+        per_block_reward_amount,
+    );
     let alice = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
     let bob = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
     let eve = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
@@ -386,7 +498,27 @@ fn test_overview() {
     step(
         &mut farm_setup,
         10,
-        Action::ExitFarm(bob, 2, rust_biguint!(2_000), rust_biguint!(428)),
+        Action::ExitFarm(
+            bob,
+            2,
+            rust_biguint!(2_000),
+            rust_biguint!(428),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(672),
             rust_biguint!(214_285_714_285),
@@ -396,7 +528,27 @@ fn test_overview() {
     step(
         &mut farm_setup,
         13,
-        Action::ExitFarm(alice, 1, rust_biguint!(1_000), rust_biguint!(414)),
+        Action::ExitFarm(
+            alice,
+            1,
+            rust_biguint!(1_000),
+            rust_biguint!(414),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(558),
             rust_biguint!(414_285_714_285),
@@ -406,19 +558,47 @@ fn test_overview() {
     step(
         &mut farm_setup,
         16,
-        Action::ExitFarm(eve, 3, rust_biguint!(500), rust_biguint!(457)),
+        Action::ExitFarm(
+            eve,
+            3,
+            rust_biguint!(500),
+            rust_biguint!(457),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(401),
             rust_biguint!(1_014_285_714_285),
             rust_biguint!(0),
         ),
     );
+
+    let _ = TxContextStack::static_pop();
 }
 
 #[test]
-fn test_overview_but_changes_in_per_reward_block() {
+fn test_lock_overview_but_changes_in_per_reward_block() {
+    let _ = DebugApi::dummy();
+
     let per_block_reward_amount = rust_biguint!(100);
-    let mut farm_setup = setup_farm(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = setup_farm(
+        farm_with_lock::contract_obj,
+        factory::contract_obj,
+        per_block_reward_amount,
+    );
     let alice = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
     let bob = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
     let eve = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
@@ -457,7 +637,27 @@ fn test_overview_but_changes_in_per_reward_block() {
     step(
         &mut farm_setup,
         10,
-        Action::ExitFarm(bob, 2, rust_biguint!(2_000), rust_biguint!(371)),
+        Action::ExitFarm(
+            bob,
+            2,
+            rust_biguint!(2_000),
+            rust_biguint!(371),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(629),
             rust_biguint!(185_714_285_713),
@@ -467,7 +667,27 @@ fn test_overview_but_changes_in_per_reward_block() {
     step(
         &mut farm_setup,
         13,
-        Action::ExitFarm(alice, 1, rust_biguint!(1_000), rust_biguint!(285)),
+        Action::ExitFarm(
+            alice,
+            1,
+            rust_biguint!(1_000),
+            rust_biguint!(285),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(494),
             rust_biguint!(285_714_285_713),
@@ -477,13 +697,35 @@ fn test_overview_but_changes_in_per_reward_block() {
     step(
         &mut farm_setup,
         16,
-        Action::ExitFarm(eve, 3, rust_biguint!(500), rust_biguint!(242)),
+        Action::ExitFarm(
+            eve,
+            3,
+            rust_biguint!(500),
+            rust_biguint!(242),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(402),
             rust_biguint!(585_714_285_713),
             rust_biguint!(0),
         ),
     );
+
+    let _ = TxContextStack::static_pop();
 }
 
 fn parse_biguint(str: &str) -> RustBigUint {
@@ -496,9 +738,15 @@ fn exp18(value: u64) -> RustBigUint {
 }
 
 #[test]
-fn test_overview_realistic_numbers() {
+fn test_lock_overview_realistic_numbers() {
+    let _ = DebugApi::dummy();
+
     let per_block_reward_amount = exp18(100);
-    let mut farm_setup = setup_farm(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = setup_farm(
+        farm_with_lock::contract_obj,
+        factory::contract_obj,
+        per_block_reward_amount,
+    );
     let alice = new_address_with_lp_tokens(&mut farm_setup, exp18(5_000));
     let bob = new_address_with_lp_tokens(&mut farm_setup, exp18(5_000));
     let eve = new_address_with_lp_tokens(&mut farm_setup, exp18(5_000));
@@ -528,6 +776,21 @@ fn test_overview_realistic_numbers() {
             2,
             exp18(2_000),
             parse_biguint("428_571_428_570_000_000_000"),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
         ),
         Expected::new(
             parse_biguint("671_428_571_430_000_000_000"),
@@ -543,6 +806,21 @@ fn test_overview_realistic_numbers() {
             1,
             exp18(1_000),
             parse_biguint("414_285_714_285_000_000_000"),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
         ),
         Expected::new(
             parse_biguint("557_142_857_145_000_000_000"),
@@ -558,6 +836,21 @@ fn test_overview_realistic_numbers() {
             3,
             exp18(500),
             parse_biguint("457_142_857_142_500_000_000"),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
         ),
         Expected::new(
             parse_biguint("400_000_000_002_500_000_000"),
@@ -565,6 +858,8 @@ fn test_overview_realistic_numbers() {
             exp18(0),
         ),
     );
+
+    let _ = TxContextStack::static_pop();
 }
 
 fn exp21(value: u64) -> RustBigUint {
@@ -572,9 +867,15 @@ fn exp21(value: u64) -> RustBigUint {
 }
 
 #[test]
-fn test_billion_to_trillion() {
+fn test_lock_billion_to_trillion() {
+    let _ = DebugApi::dummy();
+
     let per_block_reward_amount = exp21(100);
-    let mut farm_setup = setup_farm(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = setup_farm(
+        farm_with_lock::contract_obj,
+        factory::contract_obj,
+        per_block_reward_amount,
+    );
     let alice = new_address_with_lp_tokens(&mut farm_setup, exp21(5_000));
     let bob = new_address_with_lp_tokens(&mut farm_setup, exp21(5_000));
     let eve = new_address_with_lp_tokens(&mut farm_setup, exp21(5_000));
@@ -604,6 +905,21 @@ fn test_billion_to_trillion() {
             2,
             exp21(2_000),
             parse_biguint("428_571_428_570_000_000_000_000"),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
         ),
         Expected::new(
             parse_biguint("671_428_571_430_000_000_000_000"),
@@ -619,6 +935,21 @@ fn test_billion_to_trillion() {
             1,
             exp21(1_000),
             parse_biguint("414_285_714_285_000_000_000_000"),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
         ),
         Expected::new(
             parse_biguint("557_142_857_145_000_000_000_000"),
@@ -634,6 +965,21 @@ fn test_billion_to_trillion() {
             3,
             exp21(500),
             parse_biguint("457_142_857_142_500_000_000_000"),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
         ),
         Expected::new(
             parse_biguint("400_000_000_002_500_000_000_000"),
@@ -641,12 +987,20 @@ fn test_billion_to_trillion() {
             exp21(0),
         ),
     );
+
+    let _ = TxContextStack::static_pop();
 }
 
 #[test]
-fn test_rv_earn_twice() {
+fn test_lock_rv_earn_twice() {
+    let _ = DebugApi::dummy();
+
     let per_block_reward_amount = rust_biguint!(100);
-    let mut farm_setup = setup_farm(farm::contract_obj, per_block_reward_amount);
+    let mut farm_setup = setup_farm(
+        farm_with_lock::contract_obj,
+        factory::contract_obj,
+        per_block_reward_amount,
+    );
     let alice = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
     let bob = new_address_with_lp_tokens(&mut farm_setup, rust_biguint!(5_000));
     step(
@@ -668,7 +1022,27 @@ fn test_rv_earn_twice() {
     step(
         &mut farm_setup,
         9,
-        Action::ExitFarm(alice, 1, rust_biguint!(100), rust_biguint!(450)),
+        Action::ExitFarm(
+            alice,
+            1,
+            rust_biguint!(100),
+            rust_biguint!(450),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(550),
             rust_biguint!(4_500_000_000_000),
@@ -678,11 +1052,33 @@ fn test_rv_earn_twice() {
     step(
         &mut farm_setup,
         9,
-        Action::ExitFarm(bob, 2, rust_biguint!(100), rust_biguint!(350)),
+        Action::ExitFarm(
+            bob,
+            2,
+            rust_biguint!(100),
+            rust_biguint!(350),
+            LockedAssetTokenAttributes {
+                unlock_schedule: UnlockSchedule {
+                    unlock_milestones: ManagedVec::from(vec![
+                        UnlockMilestone {
+                            unlock_epoch: 20,
+                            unlock_percent: 50,
+                        },
+                        UnlockMilestone {
+                            unlock_epoch: 30,
+                            unlock_percent: 50,
+                        },
+                    ]),
+                },
+                is_merged: false,
+            },
+        ),
         Expected::new(
             rust_biguint!(200),
             rust_biguint!(4_500_000_000_000),
             rust_biguint!(0),
         ),
     );
+
+    let _ = TxContextStack::static_pop();
 }
