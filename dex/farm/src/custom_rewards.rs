@@ -17,26 +17,35 @@ pub trait CustomRewardsModule:
         Ok(())
     }
 
+    #[only_owner]
+    #[endpoint(setBlockForEndRewards)]
+    fn set_block_for_end_rewards(&self, block_end: u64) -> SCResult<()> {
+        let current_block = self.blockchain().get_block_nonce();
+        require!(block_end > current_block, "Invalid block");
+        Ok(())
+    }
+
     fn calculate_and_increase_per_block_rewards(&self) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();
         let last_reward_nonce = self.last_reward_block_nonce().get();
+        let block_for_end_rewards = self.block_for_end_rewards().get();
 
-        if current_block_nonce > last_reward_nonce {
-            let to_mint = core::cmp::min(
-                self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce),
-                self.reward_reserve().get(),
-            );
+        let mut block_limit = current_block_nonce;
+        if block_for_end_rewards != 0 && current_block_nonce >= block_for_end_rewards {
+            block_limit = block_for_end_rewards;
+        }
+
+        if block_limit > last_reward_nonce {
+            let to_mint = self.calculate_per_block_rewards(block_limit, last_reward_nonce);
 
             // rewards are not minted, but rather deposited by the owner
-            // so we don't neeed to actually mint them
+            // so we don't need to actually mint them
 
-            if to_mint == 0u64 {
-                // at this point, all rewards have been generated
-                // so we should stop calculating them
+            if block_limit == block_for_end_rewards {
                 self.produce_rewards_enabled().set(&false);
             }
 
-            self.last_reward_block_nonce().set(&current_block_nonce);
+            self.last_reward_block_nonce().set(&block_limit);
             to_mint
         } else {
             BigUint::zero()
@@ -67,4 +76,8 @@ pub trait CustomRewardsModule:
         self.per_block_reward_amount().set(&per_block_amount);
         Ok(())
     }
+
+    #[view(getBlockForEndRewards)]
+    #[storage_mapper("block_for_end_rewards")]
+    fn block_for_end_rewards(&self) -> SingleValueMapper<u64>;
 }
