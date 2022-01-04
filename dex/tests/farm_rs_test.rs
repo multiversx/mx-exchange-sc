@@ -40,7 +40,15 @@ where
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
 }
 
-fn setup_farm<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
+struct SetupFarmArgs<FarmObjBuilder>
+where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    farm_builder: FarmObjBuilder,
+    block_for_end_rewards: u64,
+}
+
+fn setup_farm<FarmObjBuilder>(args: SetupFarmArgs<FarmObjBuilder>) -> FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
@@ -50,7 +58,7 @@ where
     let farm_wrapper = blockchain_wrapper.create_sc_account(
         &rust_zero,
         Some(&owner_addr),
-        farm_builder,
+        args.farm_builder,
         FARM_WASM_PATH,
     );
 
@@ -76,6 +84,7 @@ where
 
         sc.state().set(&State::Active);
         sc.produce_rewards_enabled().set(&true);
+        sc.block_for_end_rewards().set(&args.block_for_end_rewards);
 
         StateChange::Commit
     });
@@ -391,6 +400,19 @@ fn check_farm_token_supply<FarmObjBuilder>(
     });
 }
 
+fn check_produce_rewards_enabled<FarmObjBuilder>(
+    farm_setup: &mut FarmSetup<FarmObjBuilder>,
+    expected: bool,
+) where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock.execute_query(&farm_setup.farm_wrapper, |sc| {
+        let actual = sc.produce_rewards_enabled().get();
+        assert_eq!(expected, actual);
+    });
+}
+
 fn set_block_nonce<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, block_nonce: u64)
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
@@ -420,7 +442,10 @@ fn panic_sc_err(err: StaticSCError) -> ! {
 
 #[test]
 fn test_farm_setup() {
-    let farm_setup = setup_farm(farm::contract_obj);
+    let farm_setup = setup_farm(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 0,
+    });
     let file_name = create_generated_mandos_file_name("init");
 
     farm_setup
@@ -430,7 +455,10 @@ fn test_farm_setup() {
 
 #[test]
 fn test_enter_farm() {
-    let mut farm_setup = setup_farm(farm::contract_obj);
+    let mut farm_setup = setup_farm(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 0,
+    });
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -455,7 +483,10 @@ fn test_enter_farm() {
 
 #[test]
 fn test_exit_farm() {
-    let mut farm_setup = setup_farm(farm::contract_obj);
+    let mut farm_setup = setup_farm(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 0,
+    });
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -490,7 +521,10 @@ fn test_exit_farm() {
 
 #[test]
 fn test_claim_rewards() {
-    let mut farm_setup = setup_farm(farm::contract_obj);
+    let mut farm_setup = setup_farm(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 0,
+    });
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -526,11 +560,13 @@ fn test_claim_rewards() {
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 }
 
-fn steps_enter_farm_twice<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
+fn steps_enter_farm_twice<FarmObjBuilder>(
+    args: SetupFarmArgs<FarmObjBuilder>,
+) -> FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
 {
-    let mut farm_setup = setup_farm(farm_builder);
+    let mut farm_setup = setup_farm(args);
 
     let farm_in_amount = 100_000_000;
     let expected_farm_token_nonce = 1;
@@ -586,12 +622,18 @@ where
 
 #[test]
 fn test_enter_farm_twice() {
-    let _ = steps_enter_farm_twice(farm::contract_obj);
+    let _ = steps_enter_farm_twice(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 0,
+    });
 }
 
 #[test]
 fn test_exit_farm_after_enter_twice() {
-    let mut farm_setup = steps_enter_farm_twice(farm::contract_obj);
+    let mut farm_setup = steps_enter_farm_twice(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 0,
+    });
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
     let total_farm_token = farm_in_amount + second_farm_in_amount;
@@ -625,4 +667,44 @@ fn test_exit_farm_after_enter_twice() {
         &expected_user_lp_balance,
     );
     check_farm_token_supply(&mut farm_setup, 0);
+}
+
+#[test]
+fn test_block_for_end_rewards() {
+    let mut farm_setup = setup_farm(SetupFarmArgs {
+        farm_builder: farm::contract_obj,
+        block_for_end_rewards: 7,
+    });
+
+    let farm_in_amount = 100_000_000;
+    let expected_farm_token_nonce = 1;
+    enter_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        &[],
+        expected_farm_token_nonce,
+        0,
+        0,
+        0,
+        farm_in_amount,
+        0,
+    );
+    check_farm_token_supply(&mut farm_setup, farm_in_amount);
+    check_produce_rewards_enabled(&mut farm_setup, true);
+
+    set_block_epoch(&mut farm_setup, 5);
+    set_block_nonce(&mut farm_setup, 10);
+
+    let expected_mex_out = 7 * PER_BLOCK_REWARD_AMOUNT;
+    let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
+    exit_farm(
+        &mut farm_setup,
+        farm_in_amount,
+        expected_farm_token_nonce,
+        expected_mex_out,
+        &rust_biguint!(expected_mex_out),
+        &expected_lp_token_balance,
+    );
+    check_farm_token_supply(&mut farm_setup, 0);
+    check_produce_rewards_enabled(&mut farm_setup, false);
 }
