@@ -22,9 +22,19 @@ pub trait CustomRewardsModule:
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_block_nonce > last_reward_nonce {
-            let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+            let to_mint = core::cmp::min(
+                self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce),
+                self.reward_reserve().get(),
+            );
 
             // rewards are not minted, but rather deposited by the owner
+            // so we don't neeed to actually mint them
+
+            if to_mint == 0u64 {
+                // at this point, all rewards have been generated
+                // so we should stop calculating them
+                self.produce_rewards_enabled().set(&false);
+            }
 
             self.last_reward_block_nonce().set(&current_block_nonce);
             to_mint
