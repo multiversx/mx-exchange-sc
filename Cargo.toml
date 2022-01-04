@@ -15,4 +15,7 @@ members = [
   "locked-asset/proxy-dex/abi",
   "locked-asset/factory",
   "locked-asset/factory/abi",
+
+  "price-discovery",
+  "price-discovery/meta"
 ]
