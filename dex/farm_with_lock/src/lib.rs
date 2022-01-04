@@ -4,10 +4,12 @@
 
 pub mod custom_config;
 pub mod custom_rewards;
+pub mod errors;
 pub mod farm_token_merge;
 
 use common_structs::{Epoch, FarmTokenAttributes, Nonce};
 use config::State;
+use errors::*;
 use farm_token::FarmToken;
 
 elrond_wasm::imports!();
@@ -52,27 +54,12 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) -> SCResult<()> {
-        require!(
-            reward_token_id.is_esdt(),
-            "Reward token ID is not a valid esdt identifier"
-        );
-        require!(
-            farming_token_id.is_esdt(),
-            "Farming token ID is not a valid esdt identifier"
-        );
-        require!(
-            division_safety_constant != 0,
-            "Division constant cannot be 0"
-        );
+        assert!(self, reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        assert!(self, farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        assert!(self, division_safety_constant != 0, ERROR_ZERO_AMOUNT);
         let farm_token = self.farm_token_id().get();
-        require!(
-            reward_token_id != farm_token,
-            "Reward token ID cannot be farm token ID"
-        );
-        require!(
-            farming_token_id != farm_token,
-            "Farming token ID cannot be farm token ID"
-        );
+        assert!(self, reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
+        assert!(self, farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(&State::Inactive);
         self.penalty_percent()
@@ -100,19 +87,19 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
+        assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("empty payments")?;
+        let payment_0 = payments_iter.next().ok_or(ERROR_EMPTY_PAYMENTS)?;
 
         let token_in = payment_0.token_identifier.clone();
         let enter_amount = payment_0.amount.clone();
 
         let farming_token_id = self.farming_token_id().get();
-        require!(token_in == farming_token_id, "Bad input token");
-        require!(enter_amount > 0, "Cannot farm with amount of 0");
+        assert!(self, token_in == farming_token_id, ERROR_BAD_INPUT_TOKEN);
+        assert!(self, enter_amount > 0, ERROR_ZERO_AMOUNT);
 
         let farm_contribution = &enter_amount;
         let reward_token_id = self.reward_token_id().get();
@@ -169,12 +156,16 @@ pub trait Farm:
         #[payment_amount] amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
+        assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
 
         let farm_token_id = self.farm_token_id().get();
-        require!(payment_token_id == farm_token_id, "Bad input token");
-        require!(amount > 0, "Payment amount cannot be zero");
+        assert!(
+            self,
+            payment_token_id == farm_token_id,
+            ERROR_BAD_INPUT_TOKEN
+        );
+        assert!(self, amount > 0, ERROR_ZERO_AMOUNT);
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let mut reward_token_id = self.reward_token_id().get();
@@ -254,20 +245,24 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
+        assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
+        let payment_0 = payments_iter.next().ok_or(ERROR_BAD_PAYMENTS_LEN)?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let amount = payment_0.amount.clone();
         let token_nonce = payment_0.token_nonce;
 
-        require!(amount > 0, "Zero amount");
+        assert!(self, amount > 0, ERROR_ZERO_AMOUNT);
         let farm_token_id = self.farm_token_id().get();
-        require!(payment_token_id == farm_token_id, "Unknown farm token");
+        assert!(
+            self,
+            payment_token_id == farm_token_id,
+            ERROR_BAD_INPUT_TOKEN
+        );
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
         let mut reward_token_id = self.reward_token_id().get();
@@ -358,26 +353,31 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
-        require!(self.is_active(), "Not active");
+        assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
+        let payment_0 = payments_iter.next().ok_or(ERROR_BAD_PAYMENTS_LEN)?;
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_amount = payment_0.amount.clone();
         let payment_token_nonce = payment_0.token_nonce;
-        require!(payment_amount > 0, "Zero amount");
+        assert!(self, payment_amount > 0, ERROR_ZERO_AMOUNT);
 
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
         let farm_token_id = self.farm_token_id().get();
-        require!(payment_token_id == farm_token_id, "Unknown farm token");
+        assert!(
+            self,
+            payment_token_id == farm_token_id,
+            ERROR_BAD_INPUT_TOKEN
+        );
 
         let farming_token = self.farming_token_id().get();
         let reward_token = self.reward_token_id().get();
-        require!(
+        assert!(
+            self,
             farming_token == reward_token,
-            "Farming token differ from reward token"
+            ERROR_DIFFERENT_TOKEN_IDS
         );
         self.generate_aggregated_rewards();
 
@@ -589,9 +589,9 @@ pub trait Farm:
         amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> SCResult<BigUint> {
-        require!(amount > 0, "Zero liquidity input");
+        assert!(self, amount > 0, ERROR_ZERO_AMOUNT);
         let farm_token_supply = self.farm_token_supply().get();
-        require!(farm_token_supply >= amount, "Not enough supply");
+        assert!(self, farm_token_supply >= amount, ERROR_NOT_ENOUGH_SUPPLY);
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let current_block_nonce = self.blockchain().get_block_nonce();

@@ -48,19 +48,21 @@ pub trait FarmTokenMergeModule:
         payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
         replic: Option<FarmToken<Self::Api>>,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
-        require!(
+        assert!(
+            self,
             !payments.is_empty() || replic.is_some(),
-            "No tokens to merge"
+            ERROR_NO_TOKEN_TO_MERGE
         );
 
         let mut tokens = ManagedVec::new();
         let farm_token_id = self.farm_token_id().get();
 
         for payment in payments {
-            require!(payment.amount != 0u64, "zero entry amount");
-            require!(
+            assert!(self, payment.amount != 0u64, ERROR_ZERO_AMOUNT);
+            assert!(
+                self,
                 payment.token_identifier == farm_token_id,
-                "Not a farm token"
+                ERROR_NOT_A_FARM_TOKEN,
             );
 
             tokens.push(FarmToken {
