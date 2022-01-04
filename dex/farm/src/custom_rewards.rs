@@ -22,6 +22,7 @@ pub trait CustomRewardsModule:
     fn set_block_for_end_rewards(&self, block_end: u64) -> SCResult<()> {
         let current_block = self.blockchain().get_block_nonce();
         require!(block_end > current_block, "Invalid block");
+        self.block_for_end_rewards().set(&block_end);
         Ok(())
     }
 

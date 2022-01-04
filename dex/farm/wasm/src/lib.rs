@@ -16,6 +16,7 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
+        getBlockForEndRewards
         getBurnGasLimit
         getDivisionSafetyConstant
         getFarmTokenId
@@ -38,6 +39,7 @@ elrond_wasm_node::wasm_endpoints! {
         registerFarmToken
         removeAddressFromWhitelist
         resume
+        setBlockForEndRewards
         setLocalRolesFarmToken
         setPerBlockRewardAmount
         set_burn_gas_limit
