@@ -2,6 +2,7 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
+pub mod contexts;
 pub mod custom_config;
 pub mod custom_rewards;
 pub mod errors;
@@ -56,7 +57,7 @@ pub trait Farm:
     ) -> SCResult<()> {
         assert!(self, reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
         assert!(self, farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        assert!(self, division_safety_constant != 0, ERROR_ZERO_AMOUNT);
+        assert!(self, division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
         let farm_token = self.farm_token_id().get();
         assert!(self, reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
         assert!(self, farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);

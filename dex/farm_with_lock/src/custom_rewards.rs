@@ -1,12 +1,17 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::custom_config;
+use super::errors::*;
+use crate::assert;
+
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
     config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
+    + custom_config::CustomConfigModule
 {
     fn mint_per_block_rewards(&self) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();
@@ -44,7 +49,7 @@ pub trait CustomRewardsModule:
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) -> SCResult<()> {
         self.require_permissions()?;
-        require!(per_block_amount != 0, "Amount cannot be zero");
+        assert!(self, per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
         self.generate_aggregated_rewards();
         self.per_block_reward_amount().set(&per_block_amount);
         Ok(())

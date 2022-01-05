@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::errors::*;
+use crate::assert;
 use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
