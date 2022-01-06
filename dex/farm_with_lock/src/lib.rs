@@ -39,6 +39,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule
+    + contexts::ctx_helper::CtxHelper
 {
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
@@ -88,6 +89,8 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
+        let mut context = self.new_enter_farm_context(opt_accept_funds_func);
+
         assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
         assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
 
