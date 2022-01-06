@@ -17,5 +17,8 @@ members = [
   "locked-asset/factory/abi",
 
   "price-discovery",
-  "price-discovery/meta"
+  "price-discovery/meta",
+
+  "pair-mock",
+  "pair-mock/meta"
 ]
