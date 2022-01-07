@@ -1,4 +1,6 @@
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, SCResult, TokenIdentifier};
+use elrond_wasm::types::{
+    Address, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, TokenIdentifier,
+};
 use elrond_wasm_debug::{
     assert_sc_error, managed_address, managed_token_id, rust_biguint, DebugApi,
 };
@@ -101,6 +103,8 @@ where
     );
 
     blockchain_wrapper.set_block_epoch(4);
+
+    // init Price Discovery SC
     blockchain_wrapper.execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
         let result = sc.init(
             managed_address!(dex_wrapper.address_ref()),
@@ -113,6 +117,21 @@ where
 
         sc.redeem_token_id()
             .set(&managed_token_id!(REDEEM_TOKEN_ID));
+
+        StateChange::Commit
+    });
+
+    // init DEX mock
+    blockchain_wrapper.execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
+        sc.init(
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+        );
 
         StateChange::Commit
     });
@@ -208,7 +227,7 @@ where
         amount,
         |sc| {
             sc_result = sc.withdraw(
-                managed_token_id!(ACCEPTED_TOKEN_ID),
+                managed_token_id!(REDEEM_TOKEN_ID),
                 ACCEPTED_TOKEN_REDEEM_NONCE,
                 managed_biguint!(amount.to_u64().unwrap()),
             );
