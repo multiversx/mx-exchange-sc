@@ -4,9 +4,9 @@ use crate::redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NON
 
 elrond_wasm::imports!();
 
-mod common_storage;
-mod create_pool;
-mod redeem_token;
+pub mod common_storage;
+pub mod create_pool;
+pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 
