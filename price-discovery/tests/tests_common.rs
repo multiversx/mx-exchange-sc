@@ -139,6 +139,12 @@ where
         StateChange::Commit
     });
 
+    blockchain_wrapper.set_esdt_balance(
+        &dex_wrapper.address_ref(),
+        b"LPTOK-abcdef",
+        &rust_biguint!(500_000_000_000),
+    );
+
     PriceDiscSetup {
         blockchain_wrapper,
         owner_address,
