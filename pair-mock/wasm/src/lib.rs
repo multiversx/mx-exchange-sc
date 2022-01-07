@@ -1,0 +1,15 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
+#![no_std]
+
+elrond_wasm_node::wasm_endpoints! {
+    pair_mock
+    (
+        init
+        addInitialLiquidity
+    )
+}
+
+elrond_wasm_node::wasm_empty_callback! {}
