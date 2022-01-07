@@ -7,13 +7,13 @@ use itertools::Itertools;
 type AddLiquidityResultType<BigUint> =
     MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-const MINIMUM_LIQUIDITY: u64 = 1_000;
-const DEFAULT_FIRST_TOKEN_ID: &[u8] = b"FIRST-abcdef";
-const DEFAULT_SECOND_TOKEN_ID: &[u8] = b"SECOND-abcdef";
-const DEFAULT_LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 30_000_000;
-const DEFAULT_STATE: bool = true;
-const DEFAULT_SKIP_MINTING_LP_TOKENS: bool = true;
+pub const MINIMUM_LIQUIDITY: u64 = 1_000;
+pub const DEFAULT_FIRST_TOKEN_ID: &[u8] = b"FIRST-abcdef";
+pub const DEFAULT_SECOND_TOKEN_ID: &[u8] = b"SECOND-abcdef";
+pub const DEFAULT_LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
+pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 30_000_000;
+pub const DEFAULT_STATE: bool = true;
+pub const DEFAULT_SKIP_MINTING_LP_TOKENS: bool = true;
 
 #[elrond_wasm::derive::contract]
 pub trait PairMock {
@@ -72,9 +72,10 @@ pub trait PairMock {
     #[endpoint(addInitialLiquidity)]
     fn add_initial_liquidity(
         &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<AddLiquidityResultType<Self::Api>> {
-        let payments = self.call_value().all_esdt_transfers();
+        // let payments = self.call_value().all_esdt_transfers();
         require!(self.state().get(), "Inactive");
 
         let lp_token_id = self.lp_token_id().get();

@@ -55,11 +55,11 @@ fn user_deposit_too_early() {
     let mut sc_result = call_deposit_initial_tokens(
         &mut pd_setup,
         &rust_biguint!(5_000_000_000),
-        StateChange::Revert,
+        StateChange::Commit,
     );
     assert_eq!(sc_result, SCResult::Ok(()));
 
-    pd_setup.blockchain_wrapper.set_block_epoch(3);
+    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH - 1);
 
     // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
     let first_user_address = pd_setup.first_user_address.clone();
@@ -72,6 +72,23 @@ fn user_deposit_too_early() {
     assert_sc_error!(sc_result, b"Deposit period not started yet");
 }
 
+#[test]
+fn user_deposit_without_launched_tokens_deposited() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+
+    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
+
+    // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
+    let first_user_address = pd_setup.first_user_address.clone();
+    let sc_result = call_deposit(
+        &mut pd_setup,
+        &first_user_address,
+        &rust_biguint!(1_000_000_000),
+        StateChange::Revert,
+    );
+    assert_sc_error!(sc_result, b"Launched tokens not deposited");
+}
+
 pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
     pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
 ) where
@@ -79,10 +96,10 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
     DexObjBuilder: 'static + Copy + Fn(DebugApi) -> pair_mock::ContractObj<DebugApi>,
 {
     let mut sc_result =
-        call_deposit_initial_tokens(pd_setup, &rust_biguint!(5_000_000_000), StateChange::Revert);
+        call_deposit_initial_tokens(pd_setup, &rust_biguint!(5_000_000_000), StateChange::Commit);
     assert_eq!(sc_result, SCResult::Ok(()));
 
-    pd_setup.blockchain_wrapper.set_block_epoch(7);
+    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
 
     // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
     let first_user_address = pd_setup.first_user_address.clone();
@@ -198,7 +215,7 @@ fn withdraw_too_late() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
-    pd_setup.blockchain_wrapper.set_block_epoch(12);
+    pd_setup.blockchain_wrapper.set_block_epoch(END_EPOCH + 1);
 
     let first_user_address = pd_setup.first_user_address.clone();
     let withdraw_amt = rust_biguint!(400_000_000);
@@ -212,12 +229,46 @@ fn withdraw_too_late() {
 }
 
 #[test]
+fn create_pool_too_early() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    user_deposit_ok_steps(&mut pd_setup);
+    withdraw_ok_steps(&mut pd_setup);
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let sc_result =
+        call_create_dex_liquidity_pool(&mut pd_setup, &first_user_address, StateChange::Revert);
+    assert_sc_error!(sc_result, b"Deposit period has not ended");
+}
+
+fn create_pool_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+) where
+    PriceDiscObjBuilder: 'static + Copy + Fn(DebugApi) -> price_discovery::ContractObj<DebugApi>,
+    DexObjBuilder: 'static + Copy + Fn(DebugApi) -> pair_mock::ContractObj<DebugApi>,
+{
+    pd_setup.blockchain_wrapper.set_block_epoch(END_EPOCH + 1);
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let sc_result =
+        call_create_dex_liquidity_pool(pd_setup, &first_user_address, StateChange::Commit);
+    assert_eq!(sc_result, SCResult::Ok(()));
+}
+
+#[test]
+fn create_pool_ok() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    user_deposit_ok_steps(&mut pd_setup);
+    withdraw_ok_steps(&mut pd_setup);
+    create_pool_ok_steps(&mut pd_setup);
+}
+
+#[test]
 fn redeem_before_pool_created() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup);
 
-    pd_setup.blockchain_wrapper.set_block_epoch(12);
+    pd_setup.blockchain_wrapper.set_block_epoch(END_EPOCH + 1);
 
     let first_user_address = pd_setup.first_user_address.clone();
     let sc_result = call_redeem(

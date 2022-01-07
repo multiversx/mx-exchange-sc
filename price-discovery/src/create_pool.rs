@@ -34,6 +34,12 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
         let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
 
+        require!(
+            launched_token_balance > 0,
+            "No Launched tokens were deposited"
+        );
+        require!(accepted_token_balance > 0, "No users deposited tokens");
+
         self.launched_token_final_amount()
             .set(&launched_token_balance);
         self.accepted_token_final_amount()

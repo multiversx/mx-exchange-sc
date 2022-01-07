@@ -20,6 +20,9 @@ pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub const REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
 
+pub const START_EPOCH: u64 = 5;
+pub const END_EPOCH: u64 = 10;
+
 pub struct PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
 where
     PriceDiscObjBuilder: 'static + Copy + Fn(DebugApi) -> price_discovery::ContractObj<DebugApi>,
@@ -102,7 +105,7 @@ where
         &(),
     );
 
-    blockchain_wrapper.set_block_epoch(4);
+    blockchain_wrapper.set_block_epoch(START_EPOCH - 1);
 
     // init Price Discovery SC
     blockchain_wrapper.execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
@@ -110,8 +113,8 @@ where
             managed_address!(dex_wrapper.address_ref()),
             managed_token_id!(LAUNCHED_TOKEN_ID),
             managed_token_id!(ACCEPTED_TOKEN_ID),
-            5,
-            10,
+            START_EPOCH,
+            END_EPOCH,
         );
         assert_eq!(result, SCResult::Ok(()));
 
@@ -124,8 +127,8 @@ where
     // init DEX mock
     blockchain_wrapper.execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
         sc.init(
-            OptionalArg::None,
-            OptionalArg::None,
+            OptionalArg::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
+            OptionalArg::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
             OptionalArg::None,
             OptionalArg::None,
             OptionalArg::None,

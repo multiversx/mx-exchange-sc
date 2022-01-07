@@ -165,6 +165,14 @@ pub trait PriceDiscovery:
         );
         require!(current_epoch < end_epoch, "Deposit period ended");
 
+        let launched_token_id = self.launched_token_id().get();
+        let current_launched_token_balance =
+            self.blockchain().get_sc_balance(&launched_token_id, 0);
+        require!(
+            current_launched_token_balance > 0,
+            "Launched tokens not deposited"
+        );
+
         Ok(())
     }
 
