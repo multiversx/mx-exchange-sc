@@ -10,6 +10,7 @@ use price_discovery::common_storage::*;
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
 use price_discovery::*;
+use pair_mock::*;
 
 mod tests_common;
 use tests_common::*;
@@ -270,7 +271,7 @@ fn create_pool_ok() {
         });
 
     // Fails :(
-    // create_pool_ok_steps(&mut pd_setup);
+    create_pool_ok_steps(&mut pd_setup);
 }
 
 #[test]

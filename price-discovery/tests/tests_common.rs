@@ -49,17 +49,39 @@ where
     let owner_address = blockchain_wrapper.create_user_account(&rust_zero);
     let first_user_address = blockchain_wrapper.create_user_account(&rust_zero);
     let second_user_address = blockchain_wrapper.create_user_account(&rust_zero);
-    let pd_wrapper = blockchain_wrapper.create_sc_account(
-        &rust_zero,
-        Some(&owner_address),
-        pd_builder,
-        DUMMY_WASM_PATH,
-    );
 
     let dex_wrapper = blockchain_wrapper.create_sc_account(
         &rust_zero,
         Some(&owner_address),
         dex_builder,
+        DUMMY_WASM_PATH,
+    );
+
+    // init DEX mock
+    blockchain_wrapper.execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
+        sc.init(
+            OptionalArg::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
+            OptionalArg::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+            OptionalArg::None,
+        );
+
+        StateChange::Commit
+    });
+
+    blockchain_wrapper.set_esdt_balance(
+        &dex_wrapper.address_ref(),
+        b"LPTOK-abcdef",
+        &rust_biguint!(500_000_000_000),
+    );
+
+    let pd_wrapper = blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(&owner_address),
+        pd_builder,
         DUMMY_WASM_PATH,
     );
 
@@ -123,27 +145,6 @@ where
 
         StateChange::Commit
     });
-
-    // init DEX mock
-    blockchain_wrapper.execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
-        sc.init(
-            OptionalArg::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
-            OptionalArg::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
-            OptionalArg::None,
-            OptionalArg::None,
-            OptionalArg::None,
-            OptionalArg::None,
-            OptionalArg::None,
-        );
-
-        StateChange::Commit
-    });
-
-    blockchain_wrapper.set_esdt_balance(
-        &dex_wrapper.address_ref(),
-        b"LPTOK-abcdef",
-        &rust_biguint!(500_000_000_000),
-    );
 
     PriceDiscSetup {
         blockchain_wrapper,
