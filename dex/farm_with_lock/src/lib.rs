@@ -13,6 +13,8 @@ use config::State;
 use errors::*;
 use farm_token::FarmToken;
 
+use crate::contexts::base::*;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -91,64 +93,70 @@ pub trait Farm:
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         let mut context = self.new_enter_farm_context(opt_accept_funds_func);
 
-        assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
-        assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
-
-        let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or(ERROR_EMPTY_PAYMENTS)?;
-
-        let token_in = payment_0.token_identifier.clone();
-        let enter_amount = payment_0.amount.clone();
-
-        let farming_token_id = self.farming_token_id().get();
-        assert!(self, token_in == farming_token_id, ERROR_BAD_INPUT_TOKEN);
-        assert!(self, enter_amount > 0, ERROR_ZERO_AMOUNT);
-
-        let farm_contribution = &enter_amount;
-        let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards();
-
-        let epoch = self.blockchain().get_block_epoch();
-        let attributes = FarmTokenAttributes {
-            reward_per_share: self.reward_per_share().get(),
-            entering_epoch: epoch,
-            original_entering_epoch: epoch,
-            initial_farming_amount: enter_amount.clone(),
-            compounded_reward: BigUint::zero(),
-            current_farm_amount: farm_contribution.clone(),
-        };
-
-        let caller = self.blockchain().get_caller();
-        let farm_token_id = self.farm_token_id().get();
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            farm_contribution,
-            &farm_token_id,
-            &attributes,
-            payments_iter,
-        )?;
-        self.transfer_execute_custom(
-            &caller,
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &opt_accept_funds_func,
-        )?;
-
-        self.emit_enter_farm_event(
-            &caller,
-            &farming_token_id,
-            &enter_amount,
-            &new_farm_token.token_amount.token_identifier,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &self.farm_token_supply().get(),
-            &reward_token_id,
-            &self.reward_reserve().get(),
-            &new_farm_token.attributes,
-            created_with_merge,
+        self.load_state(&mut context);
+        assert!(
+            self,
+            context.get_contract_state() == &State::Active,
+            ERROR_NOT_ACTIVE
         );
-        Ok(new_farm_token.token_amount)
+
+        self.load_farm_token_id(&mut context);
+        assert!(
+            self,
+            !context.get_farm_token_id().is_empty(),
+            ERROR_NO_FARM_TOKEN,
+        );
+
+        self.load_farming_token_id(&mut context);
+        assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
+
+        self.load_reward_token_id(&mut context);
+
+        panic!()
+        // let farm_contribution = &enter_amount;
+        // let reward_token_id = self.reward_token_id().get();
+        // self.generate_aggregated_rewards();
+
+        // let epoch = self.blockchain().get_block_epoch();
+        // let attributes = FarmTokenAttributes {
+        //     reward_per_share: self.reward_per_share().get(),
+        //     entering_epoch: epoch,
+        //     original_entering_epoch: epoch,
+        //     initial_farming_amount: enter_amount.clone(),
+        //     compounded_reward: BigUint::zero(),
+        //     current_farm_amount: farm_contribution.clone(),
+        // };
+
+        // let caller = self.blockchain().get_caller();
+        // let farm_token_id = self.farm_token_id().get();
+        // let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+        //     farm_contribution,
+        //     &farm_token_id,
+        //     &attributes,
+        //     payments_iter,
+        // )?;
+        // self.transfer_execute_custom(
+        //     &caller,
+        //     &farm_token_id,
+        //     new_farm_token.token_amount.token_nonce,
+        //     &new_farm_token.token_amount.amount,
+        //     &opt_accept_funds_func,
+        // )?;
+
+        // self.emit_enter_farm_event(
+        //     &caller,
+        //     &farming_token_id,
+        //     &enter_amount,
+        //     &new_farm_token.token_amount.token_identifier,
+        //     new_farm_token.token_amount.token_nonce,
+        //     &new_farm_token.token_amount.amount,
+        //     &self.farm_token_supply().get(),
+        //     &reward_token_id,
+        //     &self.reward_reserve().get(),
+        //     &new_farm_token.attributes,
+        //     created_with_merge,
+        // );
+        // Ok(new_farm_token.token_amount)
     }
 
     #[payable("*")]

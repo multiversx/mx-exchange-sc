@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::marker::PhantomData;
-
 use super::base::*;
 use crate::State;
 
@@ -23,7 +21,8 @@ pub struct EnterFarmArgs<M: ManagedTypeApi> {
 }
 
 pub struct EnterFarmPayments<M: ManagedTypeApi> {
-    _marker: PhantomData<M>,
+    first_payment: EsdtTokenPayment<M>,
+    additional_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
 impl<M: ManagedTypeApi> EnterFarmTxInput<M> {
@@ -33,17 +32,21 @@ impl<M: ManagedTypeApi> EnterFarmTxInput<M> {
 }
 
 impl<M: ManagedTypeApi> EnterFarmArgs<M> {
-    pub fn new() -> Self {
+    pub fn new(opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>) -> Self {
         EnterFarmArgs {
-            opt_accept_funds_func: OptionalArg::None,
+            opt_accept_funds_func,
         }
     }
 }
 
 impl<M: ManagedTypeApi> EnterFarmPayments<M> {
-    pub fn new() -> Self {
+    pub fn new(
+        first_payment: EsdtTokenPayment<M>,
+        additional_payments: ManagedVec<M, EsdtTokenPayment<M>>,
+    ) -> Self {
         EnterFarmPayments {
-            _marker: Default::default(),
+            first_payment,
+            additional_payments,
         }
     }
 }
@@ -94,6 +97,36 @@ impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
     fn get_tx_input(&self) -> &dyn TxInput<M> {
         &self.tx_input
     }
+
+    #[inline]
+    fn set_farm_token_id(&mut self, farm_token_id: TokenIdentifier<M>) {
+        self.storage_cache.farm_token_id = farm_token_id
+    }
+
+    #[inline]
+    fn get_farm_token_id(&self) -> &TokenIdentifier<M> {
+        &self.storage_cache.farm_token_id
+    }
+
+    #[inline]
+    fn set_farming_token_id(&mut self, farming_token_id: TokenIdentifier<M>) {
+        self.storage_cache.farming_token_id = farming_token_id
+    }
+
+    #[inline]
+    fn get_farming_token_id(&self) -> &TokenIdentifier<M> {
+        &self.storage_cache.farming_token_id
+    }
+
+    #[inline]
+    fn set_reward_token_id(&mut self, reward_token_id: TokenIdentifier<M>) {
+        self.storage_cache.reward_token_id = reward_token_id;
+    }
+
+    #[inline]
+    fn get_reward_token_id(&self) -> &TokenIdentifier<M> {
+        &self.storage_cache.reward_token_id
+    }
 }
 
 impl<M: ManagedTypeApi> TxInputArgs<M> for EnterFarmArgs<M> {
@@ -128,4 +161,27 @@ impl<M: ManagedTypeApi> TxInput<M> for EnterFarmTxInput<M> {
 
 impl<M: ManagedTypeApi> EnterFarmTxInput<M> {}
 
-impl<M: ManagedTypeApi> EnterFarmContext<M> {}
+impl<M: ManagedTypeApi> EnterFarmContext<M> {
+    pub fn is_accepted_payment(&self) -> bool {
+        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farming_token_id
+            && self.tx_input.payments.first_payment.token_nonce == 0
+            && self.tx_input.payments.first_payment.amount != 0u64;
+
+        if !first_payment_pass {
+            return false;
+        }
+
+        for payment in self.tx_input.payments.additional_payments.iter() {
+            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
+                && payment.token_nonce != 0
+                && payment.amount != 0;
+
+            if !payment_pass {
+                return false;
+            }
+        }
+
+        true
+    }
+}

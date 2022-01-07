@@ -1,13 +1,20 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::marker::PhantomData;
-
 use crate::State;
 
 pub trait Context<M: ManagedTypeApi> {
     fn set_contract_state(&mut self, contract_state: State);
     fn get_contract_state(&self) -> &State;
+
+    fn set_farm_token_id(&mut self, farm_token_id: TokenIdentifier<M>);
+    fn get_farm_token_id(&self) -> &TokenIdentifier<M>;
+
+    fn set_farming_token_id(&mut self, farming_token_id: TokenIdentifier<M>);
+    fn get_farming_token_id(&self) -> &TokenIdentifier<M>;
+
+    fn set_reward_token_id(&mut self, reward_token_id: TokenIdentifier<M>);
+    fn get_reward_token_id(&self) -> &TokenIdentifier<M>;
 
     fn get_caller(&self) -> &ManagedAddress<M>;
 
@@ -35,14 +42,18 @@ pub trait TxInputPayments<M: ManagedTypeApi> {
 
 pub struct StorageCache<M: ManagedTypeApi> {
     pub contract_state: State,
-    _marker: PhantomData<M>,
+    pub farm_token_id: TokenIdentifier<M>,
+    pub farming_token_id: TokenIdentifier<M>,
+    pub reward_token_id: TokenIdentifier<M>,
 }
 
 impl<M: ManagedTypeApi> Default for StorageCache<M> {
     fn default() -> Self {
         StorageCache {
             contract_state: State::Inactive,
-            _marker: Default::default(),
+            farm_token_id: TokenIdentifier::egld(),
+            farming_token_id: TokenIdentifier::egld(),
+            reward_token_id: TokenIdentifier::egld(),
         }
     }
 }
