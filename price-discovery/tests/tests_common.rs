@@ -14,11 +14,13 @@ use price_discovery::*;
 
 use pair_mock::*;
 
-const DUMMY_WASM_PATH: &'static str = "";
+const PD_WASM_PATH: &'static str = "../output/price-discovery.wasm";
+const DEX_MOCK_WASM_PATH: &'static str = "../../pait-mock/output/pair_mock.wasm";
 
 pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub const REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
+pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
 
 pub const START_EPOCH: u64 = 5;
 pub const END_EPOCH: u64 = 10;
@@ -54,7 +56,7 @@ where
         &rust_zero,
         Some(&owner_address),
         dex_builder,
-        DUMMY_WASM_PATH,
+        DEX_MOCK_WASM_PATH,
     );
 
     // init DEX mock
@@ -74,7 +76,7 @@ where
 
     blockchain_wrapper.set_esdt_balance(
         &dex_wrapper.address_ref(),
-        b"LPTOK-abcdef",
+        LP_TOKEN_ID,
         &rust_biguint!(500_000_000_000),
     );
 
@@ -82,7 +84,7 @@ where
         &rust_zero,
         Some(&owner_address),
         pd_builder,
-        DUMMY_WASM_PATH,
+        PD_WASM_PATH,
     );
 
     // set user balances

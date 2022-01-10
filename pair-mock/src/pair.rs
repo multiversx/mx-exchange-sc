@@ -60,7 +60,7 @@ pub trait PairMock {
         );
         self.state()
             .set(state.into_option().as_ref().unwrap_or(&DEFAULT_STATE));
-        self.state().set(
+        self.skip_minting_lp_tokens().set(
             skip_minting_lp_tokens
                 .into_option()
                 .as_ref()
@@ -107,34 +107,31 @@ pub trait PairMock {
         );
 
         let liquidity = core::cmp::min(first_payment.amount, second_payment.amount);
-        require!(liquidity > 1_000u64, "Minimum liquidity");
+        require!(liquidity > MINIMUM_LIQUIDITY, "Minimum liquidity");
 
         if !self.skip_minting_lp_tokens().get() {
             self.send().esdt_local_mint(&lp_token_id, 0, &liquidity);
         }
+
         self.lp_token_supply().set(&liquidity);
 
         let caller = self.blockchain().get_caller();
-        let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::new(
-            lp_token_id.clone(),
-            0,
-            &liquidity - MINIMUM_LIQUIDITY,
-        ));
+        let func_name = opt_accept_funds_func
+            .into_option()
+            .unwrap_or(ManagedBuffer::new());
 
-        self.raw_vm_api().direct_multi_esdt_transfer_execute(
+        let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
+        self.raw_vm_api().direct_esdt_execute(
             &caller,
-            &payments,
+            &lp_token_id,
+            &lp_token_amount,
             self.transfer_exec_gas_limit().get(),
-            opt_accept_funds_func
-                .into_option()
-                .as_ref()
-                .unwrap_or(&ManagedBuffer::new()),
+            &func_name,
             &ManagedArgBuffer::new_empty(),
         )?;
 
         Ok(MultiResult3::from((
-            EsdtTokenPayment::new(lp_token_id, 0, liquidity - MINIMUM_LIQUIDITY),
+            EsdtTokenPayment::new(lp_token_id, 0, lp_token_amount),
             EsdtTokenPayment::new(expected_first_token_id, 0, BigUint::zero()),
             EsdtTokenPayment::new(expected_second_token_id, 0, BigUint::zero()),
         )))

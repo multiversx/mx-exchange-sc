@@ -6,11 +6,11 @@ use elrond_wasm_debug::{
 };
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use num_traits::ToPrimitive;
+use pair_mock::*;
 use price_discovery::common_storage::*;
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
 use price_discovery::*;
-use pair_mock::*;
 
 mod tests_common;
 use tests_common::*;
@@ -260,18 +260,15 @@ fn create_pool_ok() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup);
-
-    // check we have the correct dex address
-    let expected_dex_address = pd_setup.dex_wrapper.address_ref();
-    pd_setup
-        .blockchain_wrapper
-        .execute_query(&pd_setup.pd_wrapper, |sc| {
-            let actual_dex_address = sc.dex_sc_address().get();
-            assert_eq!(actual_dex_address, managed_address!(expected_dex_address));
-        });
-
-    // Fails :(
     create_pool_ok_steps(&mut pd_setup);
+
+    let b_mock = &mut pd_setup.blockchain_wrapper;
+    let expected_lp_token_balance = 1_100_000_000 - MINIMUM_LIQUIDITY;
+    b_mock.check_esdt_balance(
+        pd_setup.pd_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &rust_biguint!(expected_lp_token_balance),
+    );
 }
 
 #[test]
