@@ -140,10 +140,10 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        self.burn_redeem_token(0, &payment_amount);
+        self.burn_redeem_token(payment_nonce, &payment_amount);
 
         let lp_token_amount = self.compute_lp_amount_to_send(payment_nonce, payment_amount);
-        require!(lp_token_amount > 0, "Nothing to redeem");
+        require!(lp_token_amount > 0u32, "Nothing to redeem");
 
         let caller = self.blockchain().get_caller();
         let lp_token_id = self.lp_token_id().get();

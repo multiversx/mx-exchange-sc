@@ -1,13 +1,10 @@
 use elrond_wasm::types::{
     Address, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, TokenIdentifier,
 };
-use elrond_wasm_debug::{
-    assert_sc_error, managed_address, managed_token_id, rust_biguint, DebugApi,
-};
+use elrond_wasm_debug::{managed_address, managed_token_id, rust_biguint, DebugApi};
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use num_traits::ToPrimitive;
 
-use price_discovery::common_storage::*;
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
 use price_discovery::*;
@@ -272,7 +269,7 @@ where
         amount,
         |sc| {
             sc_result = sc.redeem(
-                managed_token_id!(ACCEPTED_TOKEN_ID),
+                managed_token_id!(REDEEM_TOKEN_ID),
                 sft_nonce,
                 managed_biguint!(amount.to_u64().unwrap()),
             );

@@ -269,6 +269,35 @@ fn create_pool_ok() {
         LP_TOKEN_ID,
         &rust_biguint!(expected_lp_token_balance),
     );
+
+    b_mock.execute_query(&pd_setup.pd_wrapper, |sc| {
+        assert_eq!(sc.lp_token_id().get(), managed_token_id!(LP_TOKEN_ID));
+        assert_eq!(
+            sc.launched_token_final_amount().get(),
+            managed_biguint!(5_000_000_000)
+        );
+        assert_eq!(
+            sc.accepted_token_final_amount().get(),
+            managed_biguint!(1_100_000_000)
+        );
+        assert_eq!(
+            sc.total_lp_tokens_received().get(),
+            managed_biguint!(expected_lp_token_balance)
+        );
+    });
+}
+
+#[test]
+fn try_create_pool_twice() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    user_deposit_ok_steps(&mut pd_setup);
+    withdraw_ok_steps(&mut pd_setup);
+    create_pool_ok_steps(&mut pd_setup);
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let sc_result =
+        call_create_dex_liquidity_pool(&mut pd_setup, &first_user_address, StateChange::Commit);
+    assert_sc_error!(sc_result, b"Pool already created");
 }
 
 #[test]
@@ -288,4 +317,97 @@ fn redeem_before_pool_created() {
         StateChange::Revert,
     );
     assert_sc_error!(sc_result, b"Pool not created yet");
+}
+
+#[test]
+fn redeed_ok() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    user_deposit_ok_steps(&mut pd_setup);
+    withdraw_ok_steps(&mut pd_setup);
+    create_pool_ok_steps(&mut pd_setup);
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let first_user_redeem_token_amount = rust_biguint!(600_000_000);
+    let mut sc_result = call_redeem(
+        &mut pd_setup,
+        &first_user_address,
+        ACCEPTED_TOKEN_REDEEM_NONCE,
+        &first_user_redeem_token_amount,
+        StateChange::Commit,
+    );
+    assert_eq!(sc_result, SCResult::Ok(()));
+
+    let second_user_address = pd_setup.second_user_address.clone();
+    let second_user_redeem_token_amount = rust_biguint!(500_000_000);
+    sc_result = call_redeem(
+        &mut pd_setup,
+        &second_user_address,
+        ACCEPTED_TOKEN_REDEEM_NONCE,
+        &second_user_redeem_token_amount,
+        StateChange::Commit,
+    );
+    assert_eq!(sc_result, SCResult::Ok(()));
+
+    let owner_address = pd_setup.owner_address.clone();
+    let owner_redeem_amount = rust_biguint!(5_000_000_000);
+    sc_result = call_redeem(
+        &mut pd_setup,
+        &owner_address,
+        LAUNCHED_TOKEN_REDEEM_NONCE,
+        &owner_redeem_amount,
+        StateChange::Commit,
+    );
+    assert_eq!(sc_result, SCResult::Ok(()));
+
+    let total_lp_tokens = 1_100_000_000 - MINIMUM_LIQUIDITY;
+    let accepted_token_final_amount =
+        &first_user_redeem_token_amount + &second_user_redeem_token_amount;
+    let launched_token_final_amount = rust_biguint!(5_000_000_000);
+
+    let first_user_expected_lp_tokens_balance = first_user_redeem_token_amount
+        * total_lp_tokens.clone()
+        / accepted_token_final_amount.clone()
+        / 2u64;
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &first_user_address,
+        LP_TOKEN_ID,
+        &first_user_expected_lp_tokens_balance,
+    );
+    println!(
+        "First user LP tokens: {}",
+        first_user_expected_lp_tokens_balance
+    );
+
+    let second_user_expected_lp_tokens_balance =
+        second_user_redeem_token_amount * total_lp_tokens / accepted_token_final_amount / 2u64;
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &second_user_address,
+        LP_TOKEN_ID,
+        &second_user_expected_lp_tokens_balance,
+    );
+    println!(
+        "Second user LP tokens: {}",
+        second_user_expected_lp_tokens_balance
+    );
+
+    let total_launched_tokens = rust_biguint!(5_000_000_000);
+    let owner_expected_lp_tokens_balance =
+        total_launched_tokens.clone() * total_lp_tokens / launched_token_final_amount / 2u64;
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &owner_address,
+        LP_TOKEN_ID,
+        &owner_expected_lp_tokens_balance,
+    );
+    println!("Owner LP tokens: {}", owner_expected_lp_tokens_balance);
+
+    let dust = total_lp_tokens
+        - first_user_expected_lp_tokens_balance
+        - second_user_expected_lp_tokens_balance
+        - owner_expected_lp_tokens_balance;
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &pd_setup.pd_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &dust,
+    );
+    println!("Dust LP tokens: {}", dust);
 }
