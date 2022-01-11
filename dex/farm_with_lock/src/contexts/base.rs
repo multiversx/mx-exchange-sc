@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use farm_token::FarmToken;
+
 use crate::State;
 
 pub trait Context<M: ManagedTypeApi> {
@@ -15,6 +17,31 @@ pub trait Context<M: ManagedTypeApi> {
 
     fn set_reward_token_id(&mut self, reward_token_id: TokenIdentifier<M>);
     fn get_reward_token_id(&self) -> &TokenIdentifier<M>;
+
+    fn set_block_nonce(&mut self, nonce: u64);
+    fn get_block_nonce(&self) -> u64;
+
+    fn set_block_epoch(&mut self, nonce: u64);
+    fn get_block_epoch(&self) -> u64;
+
+    fn set_reward_per_share(&mut self, rps: BigUint<M>);
+    fn get_reward_per_share(&self) -> &BigUint<M>;
+
+    fn set_farm_token_supply(&mut self, supply: BigUint<M>);
+    fn get_farm_token_supply(&self) -> &BigUint<M>;
+
+    fn set_division_safety_constant(&mut self, dsc: BigUint<M>);
+    fn get_division_safety_constant(&self) -> &BigUint<M>;
+
+    fn set_reward_reserve(&mut self, reward_reserve: BigUint<M>);
+    fn get_reward_reserve(&self) -> &BigUint<M>;
+
+    fn increase_reward_reserve(&mut self, amount: &BigUint<M>);
+    fn decrease_reward_reserve(&mut self, amount: &BigUint<M>);
+
+    fn update_reward_per_share(&mut self, reward_added: &BigUint<M>);
+
+    fn get_storage_cache(&self) -> &StorageCache<M>;
 
     fn get_caller(&self) -> &ManagedAddress<M>;
 
@@ -38,6 +65,9 @@ pub trait TxInputArgs<M: ManagedTypeApi> {
 
 pub trait TxInputPayments<M: ManagedTypeApi> {
     fn are_valid(&self) -> bool;
+
+    fn get_first(&self) -> &EsdtTokenPayment<M>;
+    fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>>;
 }
 
 pub struct StorageCache<M: ManagedTypeApi> {
@@ -45,6 +75,10 @@ pub struct StorageCache<M: ManagedTypeApi> {
     pub farm_token_id: TokenIdentifier<M>,
     pub farming_token_id: TokenIdentifier<M>,
     pub reward_token_id: TokenIdentifier<M>,
+    pub reward_reserve: BigUint<M>,
+    pub reward_per_share: BigUint<M>,
+    pub farm_token_supply: BigUint<M>,
+    pub division_safety_constant: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> Default for StorageCache<M> {
@@ -54,6 +88,10 @@ impl<M: ManagedTypeApi> Default for StorageCache<M> {
             farm_token_id: TokenIdentifier::egld(),
             farming_token_id: TokenIdentifier::egld(),
             reward_token_id: TokenIdentifier::egld(),
+            reward_reserve: BigUint::zero(),
+            reward_per_share: BigUint::zero(),
+            farm_token_supply: BigUint::zero(),
+            division_safety_constant: BigUint::zero(),
         }
     }
 }

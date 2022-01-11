@@ -141,12 +141,9 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_info.decode_attributes().into()
     }
 
-    fn burn_farm_tokens_from_payments(
-        &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) {
+    fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
         let mut total_amount = BigUint::zero();
-        for entry in payments {
+        for entry in payments.iter() {
             total_amount += &entry.amount;
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
