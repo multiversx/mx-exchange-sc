@@ -1,16 +1,9 @@
-#![allow(unused_imports)]
-
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, SCResult, TokenIdentifier};
-use elrond_wasm_debug::{
-    assert_sc_error, managed_address, managed_token_id, rust_biguint, DebugApi,
-};
+use elrond_wasm::types::{SCResult, TokenIdentifier};
+use elrond_wasm_debug::{assert_sc_error, managed_token_id, rust_biguint, DebugApi};
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
-use num_traits::ToPrimitive;
 use pair_mock::*;
 use price_discovery::common_storage::*;
-use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
-use price_discovery::*;
 
 mod tests_common;
 use tests_common::*;
@@ -21,21 +14,10 @@ fn test_init() {
 }
 
 #[test]
-fn test_deposit_initial_tokens_too_late() {
+fn test_deposit_launched_tokens_ok() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
-    pd_setup.blockchain_wrapper.set_block_epoch(5);
 
-    let sc_result = call_deposit_initial_tokens(
-        &mut pd_setup,
-        &rust_biguint!(5_000_000_000),
-        StateChange::Revert,
-    );
-    assert_sc_error!(sc_result, b"May only deposit before start epoch");
-}
-
-#[test]
-fn test_deposit_initial_tokens_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
 
     let init_deposit_amt = rust_biguint!(5_000_000_000);
     let sc_result =
@@ -50,34 +32,10 @@ fn test_deposit_initial_tokens_ok() {
 }
 
 #[test]
-fn user_deposit_too_early() {
+fn deposit_too_early() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
-
-    let mut sc_result = call_deposit_initial_tokens(
-        &mut pd_setup,
-        &rust_biguint!(5_000_000_000),
-        StateChange::Commit,
-    );
-    assert_eq!(sc_result, SCResult::Ok(()));
 
     pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH - 1);
-
-    // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
-    let first_user_address = pd_setup.first_user_address.clone();
-    sc_result = call_deposit(
-        &mut pd_setup,
-        &first_user_address,
-        &rust_biguint!(1_000_000_000),
-        StateChange::Revert,
-    );
-    assert_sc_error!(sc_result, b"Deposit period not started yet");
-}
-
-#[test]
-fn user_deposit_without_launched_tokens_deposited() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
-
-    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
 
     // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
     let first_user_address = pd_setup.first_user_address.clone();
@@ -87,7 +45,7 @@ fn user_deposit_without_launched_tokens_deposited() {
         &rust_biguint!(1_000_000_000),
         StateChange::Revert,
     );
-    assert_sc_error!(sc_result, b"Launched tokens not deposited");
+    assert_sc_error!(sc_result, b"Deposit period not started yet");
 }
 
 pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
@@ -96,11 +54,11 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
     PriceDiscObjBuilder: 'static + Copy + Fn(DebugApi) -> price_discovery::ContractObj<DebugApi>,
     DexObjBuilder: 'static + Copy + Fn(DebugApi) -> pair_mock::ContractObj<DebugApi>,
 {
+    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
+
     let mut sc_result =
         call_deposit_initial_tokens(pd_setup, &rust_biguint!(5_000_000_000), StateChange::Commit);
     assert_eq!(sc_result, SCResult::Ok(()));
-
-    pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
 
     // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
     let first_user_address = pd_setup.first_user_address.clone();
@@ -320,7 +278,7 @@ fn redeem_before_pool_created() {
 }
 
 #[test]
-fn redeed_ok() {
+fn redeem_ok() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup);

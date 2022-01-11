@@ -173,7 +173,7 @@ where
         0,
         amount,
         |sc| {
-            sc_result = sc.deposit_initial_tokens(
+            sc_result = sc.deposit(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_biguint!(amount.to_u64().unwrap()),
             );

@@ -58,30 +58,6 @@ pub trait PriceDiscovery:
         Ok(())
     }
 
-    #[only_owner]
-    #[payable("*")]
-    #[endpoint(depositInitialTokens)]
-    fn deposit_initial_tokens(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let start_epoch = self.start_epoch().get();
-        require!(
-            current_epoch < start_epoch,
-            "May only deposit before start epoch"
-        );
-
-        let launched_token_id = self.launched_token_id().get();
-        require!(payment_token == launched_token_id, INVALID_PAYMENT_ERR_MSG);
-
-        let caller = self.blockchain().get_caller();
-        self.mint_and_send_redeem_token(&caller, LAUNCHED_TOKEN_REDEEM_NONCE, &payment_amount);
-
-        Ok(())
-    }
-
     #[payable("*")]
     #[endpoint]
     fn deposit(
@@ -92,10 +68,17 @@ pub trait PriceDiscovery:
         self.require_active()?;
 
         let accepted_token_id = self.accepted_token_id().get();
-        require!(payment_token == accepted_token_id, INVALID_PAYMENT_ERR_MSG);
+        let launched_token_id = self.launched_token_id().get();
+        let redeem_token_nonce = if payment_token == accepted_token_id {
+            ACCEPTED_TOKEN_REDEEM_NONCE
+        } else if payment_token == launched_token_id {
+            LAUNCHED_TOKEN_REDEEM_NONCE
+        } else {
+            return sc_error!(INVALID_PAYMENT_ERR_MSG);
+        };
 
         let caller = self.blockchain().get_caller();
-        self.mint_and_send_redeem_token(&caller, ACCEPTED_TOKEN_REDEEM_NONCE, &payment_amount);
+        self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
 
         Ok(())
     }
@@ -111,17 +94,19 @@ pub trait PriceDiscovery:
         self.require_active()?;
 
         let redeem_token_id = self.redeem_token_id().get();
-        require!(
-            payment_token == redeem_token_id && payment_nonce == ACCEPTED_TOKEN_REDEEM_NONCE,
-            INVALID_PAYMENT_ERR_MSG
-        );
+        require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        self.burn_redeem_token(ACCEPTED_TOKEN_REDEEM_NONCE, &payment_amount);
+        let refund_token_id = match payment_nonce {
+            LAUNCHED_TOKEN_REDEEM_NONCE => self.launched_token_id().get(),
+            ACCEPTED_TOKEN_REDEEM_NONCE => self.accepted_token_id().get(),
+            _ => return sc_error!(INVALID_PAYMENT_ERR_MSG),
+        };
+
+        self.burn_redeem_token(payment_nonce, &payment_amount);
 
         let caller = self.blockchain().get_caller();
-        let accepted_token_id = self.accepted_token_id().get();
         self.send()
-            .direct(&caller, &accepted_token_id, 0, &payment_amount, &[]);
+            .direct(&caller, &refund_token_id, 0, &payment_amount, &[]);
 
         Ok(())
     }
@@ -164,14 +149,6 @@ pub trait PriceDiscovery:
             "Deposit period not started yet"
         );
         require!(current_epoch < end_epoch, "Deposit period ended");
-
-        let launched_token_id = self.launched_token_id().get();
-        let current_launched_token_balance =
-            self.blockchain().get_sc_balance(&launched_token_id, 0);
-        require!(
-            current_launched_token_balance > 0,
-            "Launched tokens not deposited"
-        );
 
         Ok(())
     }
