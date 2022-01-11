@@ -14,7 +14,7 @@ mod esdt_system_sc {
 
     #[elrond_wasm::proxy]
     pub trait EsdtSystemSc {
-        #[payable("*")]
+        #[payable("EGLD")]
         #[endpoint(registerAndSetAllRoles)]
         fn register_and_set_all_roles(
             &self,
