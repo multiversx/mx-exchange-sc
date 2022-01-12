@@ -9,7 +9,7 @@ pub mod custom_rewards;
 pub mod errors;
 pub mod farm_token_merge;
 
-use common_structs::{Epoch, FarmTokenAttributes, Nonce};
+use common_structs::{FarmTokenAttributes, Nonce};
 use config::State;
 use contexts::exit_farm::ExitFarmContext;
 use errors::*;
@@ -172,7 +172,7 @@ pub trait Farm:
         #[payment_nonce] _token_nonce: Nonce,
         #[payment_amount] _amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<ExitFarmResultType<Self::Api>> {
+    ) -> ExitFarmResultType<Self::Api> {
         let mut context = self.new_exit_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
@@ -213,10 +213,11 @@ pub trait Farm:
         self.construct_output_payments(&mut context);
 
         self.commit_changes(&context);
+        self.send_rewards(&mut context);
         self.execute_output_payments(&context);
         self.emit_exit_farm_event_context(&context);
 
-        self.construct_and_get_exit_farm_result(&context);
+        self.construct_and_get_exit_farm_result(&context)
     }
 
     #[payable("*")]
@@ -533,31 +534,26 @@ pub trait Farm:
         Ok(())
     }
 
-    fn send_rewards(
-        &self,
-        reward_token_id: &mut TokenIdentifier,
-        reward_nonce: &mut Nonce,
-        reward_amount: &mut BigUint,
-        destination: &ManagedAddress,
-        entering_epoch: Epoch,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
-        if reward_amount > &mut 0 {
+    fn send_rewards(&self, context: &mut ExitFarmContext<Self::Api>) {
+        if context.get_position_reward() > &0u64 {
             let locked_asset_factory_address = self.locked_asset_factory_address().get();
             let result = self
                 .locked_asset_factory(locked_asset_factory_address)
                 .create_and_forward(
-                    reward_amount.clone(),
-                    destination.clone(),
-                    entering_epoch,
-                    opt_accept_funds_func.clone(),
+                    context.get_position_reward().clone(),
+                    context.get_caller().clone(),
+                    context.get_input_attributes().unwrap().entering_epoch,
+                    context.get_opt_accept_funds_func().clone(),
                 )
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
-            *reward_token_id = result.token_identifier;
-            *reward_nonce = result.token_nonce;
-            *reward_amount = result.amount;
+            context.set_final_reward(result);
+        } else {
+            context.set_final_reward(self.create_payment(
+                context.get_position_reward(),
+                0,
+                context.get_position_reward(),
+            ));
         }
-        Ok(())
     }
 
     #[inline]

@@ -13,6 +13,7 @@ pub struct ExitFarmContext<M: ManagedTypeApi> {
     block_epoch: u64,
     position_reward: BigUint<M>,
     initial_farming_amount: BigUint<M>,
+    final_reward: Option<EsdtTokenPayment<M>>,
     storage_cache: StorageCache<M>,
     output_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
@@ -64,6 +65,7 @@ impl<M: ManagedTypeApi> ExitFarmContext<M> {
             block_epoch: 0,
             position_reward: BigUint::zero(),
             initial_farming_amount: BigUint::zero(),
+            final_reward: None,
             storage_cache: StorageCache::default(),
             output_payments: ManagedVec::new(),
         }
@@ -322,5 +324,15 @@ impl<M: ManagedTypeApi> ExitFarmContext<M> {
     #[inline]
     pub fn decrease_farming_token_amount(&mut self, amount: &BigUint<M>) {
         self.initial_farming_amount -= amount;
+    }
+
+    #[inline]
+    pub fn set_final_reward(&mut self, payment: EsdtTokenPayment<M>) {
+        self.final_reward = Some(payment);
+    }
+
+    #[inline]
+    pub fn get_final_reward(&self) -> Option<&EsdtTokenPayment<M>> {
+        self.final_reward.as_ref()
     }
 }

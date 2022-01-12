@@ -211,12 +211,17 @@ pub trait CtxHelper:
             0,
             context.get_initial_farming_amount(),
         ));
-        result.push(self.create_payment(
-            context.get_reward_token_id(),
-            0,
-            context.get_position_reward(),
-        ));
 
         context.set_output_payments(result);
+    }
+
+    fn construct_and_get_exit_farm_result(
+        &self,
+        context: &ExitFarmContext<Self::Api>,
+    ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        MultiResult2::from((
+            context.get_output_payments().get(0).unwrap(),
+            context.get_final_reward().unwrap().clone(),
+        ))
     }
 }
