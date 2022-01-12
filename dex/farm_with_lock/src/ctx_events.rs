@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
 
-use crate::contexts::{base::Context, enter_farm::EnterFarmContext};
+use crate::contexts::{base::Context, enter_farm::EnterFarmContext, exit_farm::ExitFarmContext};
 
 #[derive(TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {
@@ -51,6 +51,33 @@ pub trait ContextEventsModule {
         )
     }
 
+    fn emit_exit_farm_event(self, ctx: &ExitFarmContext<Self::Api>) {
+        let first_pay = ctx.get_tx_input().get_payments().get_first();
+
+        self.exit_farm_event(
+            ctx.get_caller(),
+            ctx.get_farm_token_id(),
+            ctx.get_block_epoch(),
+            &ExitFarmEvent {
+                caller: ctx.get_caller().clone(),
+                farming_token_id: ctx.get_farming_token_id().clone(),
+                farming_token_amount: ctx.get_initial_farming_amount().clone(),
+                farm_token_id: ctx.get_farm_token_id().clone(),
+                farm_token_nonce: first_pay.token_nonce,
+                farm_token_amount: first_pay.amount,
+                farm_supply: ctx.get_farm_token_supply(),
+                reward_token_id: ctx.get_reward_token_id().clone(),
+                reward_token_nonce,
+                reward_token_amount: reward_token_amount.clone(),
+                reward_reserve: reward_reserve.clone(),
+                farm_attributes: farm_attributes.clone(),
+                block: self.blockchain().get_block_nonce(),
+                epoch,
+                timestamp: self.blockchain().get_block_timestamp(),
+            },
+        )
+    }
+
     #[event("enter_farm")]
     fn enter_farm_event(
         self,
@@ -58,5 +85,14 @@ pub trait ContextEventsModule {
         #[indexed] farming_token: &TokenIdentifier,
         #[indexed] epoch: u64,
         enter_farm_event: &EnterFarmEvent<Self::Api>,
+    );
+
+    #[event("exit_farm")]
+    fn exit_farm_event(
+        self,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] farm_token: &TokenIdentifier,
+        #[indexed] epoch: u64,
+        exit_farm_event: &ExitFarmEvent<Self::Api>,
     );
 }

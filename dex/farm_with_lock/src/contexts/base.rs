@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use farm_token::FarmToken;
-
 use crate::State;
 
 pub trait Context<M: ManagedTypeApi> {

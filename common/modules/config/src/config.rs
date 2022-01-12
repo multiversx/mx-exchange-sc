@@ -36,10 +36,10 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) -> SCResult<()> {
         self.require_permissions()?;
-        require!(
-            percent < MAX_PENALTY_PERCENT,
-            "Percent cannot exceed max percent"
-        );
+        // require!(
+        //     percent < MAX_PENALTY_PERCENT,
+        //     "Percent cannot exceed max percent"
+        // );
         self.penalty_percent().set(&percent);
         Ok(())
     }

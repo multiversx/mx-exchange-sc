@@ -138,11 +138,12 @@ pub trait LockedAssetTokenMergeModule:
                 );
                 array.push(EpochAmountPair {
                     epoch: milestone.unlock_epoch,
-                    amount: self.rule_of_three(
-                        &BigUint::from(milestone.unlock_percent as u64),
-                        &BigUint::from(PERCENTAGE_TOTAL as u64),
-                        &locked_token.token_amount.amount,
-                    ),
+                    amount: BigUint::zero(),
+                    // amount: self.rule_of_three(
+                    //     &BigUint::from(milestone.unlock_percent as u64),
+                    //     &BigUint::from(PERCENTAGE_TOTAL as u64),
+                    //     &locked_token.token_amount.amount,
+                    // ),
                 });
             }
             sum += &locked_token.token_amount.amount;

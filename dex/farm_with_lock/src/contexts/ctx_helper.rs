@@ -162,4 +162,61 @@ pub trait CtxHelper:
 
         context.set_position_reward(reward);
     }
+
+    #[inline]
+    fn rule_of_three(&self, part: &BigUint, total: &BigUint, value: &BigUint) -> BigUint {
+        &(part * value) / total
+    }
+
+    #[inline]
+    fn rule_of_three_non_zero_result(
+        &self,
+        part: &BigUint,
+        total: &BigUint,
+        value: &BigUint,
+    ) -> BigUint {
+        let res = &(part * value) / total;
+        assert!(self, res != 0, ERROR_ZERO_AMOUNT);
+        res
+    }
+
+    fn calculate_initial_farming_amount(&self, context: &mut ExitFarmContext<Self::Api>) {
+        let mut initial_farming_token_amount = self.rule_of_three_non_zero_result(
+            &context.get_tx_input().get_payments().get_first().amount,
+            &context.get_input_attributes().unwrap().current_farm_amount,
+            &context
+                .get_input_attributes()
+                .unwrap()
+                .initial_farming_amount,
+        );
+
+        context.set_initial_farming_amount(initial_farming_token_amount);
+    }
+
+    fn increase_reward_with_compounded_rewards(&self, context: &mut ExitFarmContext<Self::Api>) {
+        let mut amount = self.rule_of_three(
+            &context.get_tx_input().get_payments().get_first().amount,
+            &context.get_input_attributes().unwrap().current_farm_amount,
+            &context.get_input_attributes().unwrap().compounded_reward,
+        );
+
+        context.increase_position_reward(&amount);
+    }
+
+    fn construct_output_payments(&self, context: &mut ExitFarmContext<Self::Api>) {
+        let mut result = ManagedVec::new();
+
+        result.push(self.create_payment(
+            context.get_farming_token_id(),
+            0,
+            context.get_initial_farming_amount(),
+        ));
+        result.push(self.create_payment(
+            context.get_reward_token_id(),
+            0,
+            context.get_position_reward(),
+        ));
+
+        context.set_output_payments(result);
+    }
 }

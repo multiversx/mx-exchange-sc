@@ -11,21 +11,6 @@ pub struct ValueWeight<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait TokenMergeModule {
-    fn rule_of_three(&self, part: &BigUint, total: &BigUint, value: &BigUint) -> BigUint {
-        &(part * value) / total
-    }
-
-    fn rule_of_three_non_zero_result(
-        &self,
-        part: &BigUint,
-        total: &BigUint,
-        value: &BigUint,
-    ) -> SCResult<BigUint> {
-        let res = &(part * value) / total;
-        require!(res != 0, "Rule of three result is zero");
-        Ok(res)
-    }
-
     fn weighted_average_ceil(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
         let mut weight_sum = BigUint::zero();
         dataset.iter().for_each(|x| weight_sum += &x.weight);
