@@ -14,6 +14,12 @@ version = "0.25.0"
 [dependencies]
 hex-literal = "0.3.1"
 
+[dependencies.pair]
+path = "../dex/pair"
+
+[dependencies.token_send]
+path = "../common/modules/token_send"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "0.25.0"
 

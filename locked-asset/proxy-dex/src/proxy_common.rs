@@ -60,8 +60,8 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
             ))
     }
 
-    fn burn_payment_tokens(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
-        for payment in payments.iter() {
+    fn burn_payment_tokens(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
+        for payment in payments {
             self.send().esdt_local_burn(
                 &payment.token_identifier,
                 payment.token_nonce,

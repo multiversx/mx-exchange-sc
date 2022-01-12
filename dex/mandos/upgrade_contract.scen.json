@@ -42,7 +42,7 @@
                         "+": "*"
                     },
                     "code": "file:../pair/output/pair.wasm",
-                    "owner": "address:owner"
+                    "owner": "sc:router_contract"
                 },
                 "+": ""
             }

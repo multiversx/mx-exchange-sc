@@ -263,7 +263,7 @@ pub trait FeeModule:
         requested_fee_token: &TokenIdentifier,
     ) -> bool {
         let pair_address = self.get_extern_swap_pair_address(fee_token, requested_fee_token);
-        pair_address != self.types().managed_address_zero()
+        !pair_address.is_zero()
     }
 
     fn can_extern_swap_after_local_swap(
@@ -275,10 +275,10 @@ pub trait FeeModule:
     ) -> bool {
         if fee_token == first_token {
             let pair_address = self.get_extern_swap_pair_address(second_token, requested_fee_token);
-            pair_address != self.types().managed_address_zero()
+            !pair_address.is_zero()
         } else if fee_token == second_token {
             let pair_address = self.get_extern_swap_pair_address(first_token, requested_fee_token);
-            pair_address != self.types().managed_address_zero()
+            !pair_address.is_zero()
         } else {
             false
         }
@@ -292,7 +292,7 @@ pub trait FeeModule:
         destination_address: &ManagedAddress,
     ) -> bool {
         let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
-        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        let mut arg_buffer = ManagedArgBuffer::new_empty();
         arg_buffer.push_arg(requested_token);
         arg_buffer.push_arg(destination_address);
         let result = self.raw_vm_api().direct_esdt_execute(
@@ -318,7 +318,7 @@ pub trait FeeModule:
         destination: &ManagedAddress,
     ) {
         if amount > &0 {
-            if destination == &self.types().managed_address_zero() {
+            if destination.is_zero() {
                 self.burn_tokens(token, amount);
             } else {
                 self.farm_proxy(destination.clone())
@@ -357,7 +357,7 @@ pub trait FeeModule:
             if is_cached_reversed {
                 self.trusted_swap_pair().get(&token_pair_reversed).unwrap()
             } else {
-                self.types().managed_address_zero()
+                ManagedAddress::zero()
             }
         }
     }

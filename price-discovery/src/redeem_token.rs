@@ -4,7 +4,7 @@ use hex_literal::hex;
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
-const SFT_TOKEN_TYPE_NAME: &[u8] = b"SFT";
+const META_SFT_TOKEN_TYPE_NAME: &[u8] = b"META";
 const ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] =
     hex!("000000000000000000010000000000000000000000000000000000000002ffff");
 
@@ -52,7 +52,7 @@ pub trait RedeemTokenModule {
                 payment_amount,
                 token_name,
                 token_ticker,
-                SFT_TOKEN_TYPE_NAME.into(),
+                META_SFT_TOKEN_TYPE_NAME.into(),
                 nr_decimals,
             )
             .async_call()

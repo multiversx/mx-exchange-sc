@@ -1,4 +1,68 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
 #![no_std]
 
-pub use elrond_wasm_output::*;
-pub use pair::*;
+elrond_wasm_node::wasm_endpoints! {
+    pair
+    (
+        init
+        addLiquidity
+        addTrustedSwapPair
+        getAmountIn
+        getAmountOut
+        getBurnedTokenAmount
+        getBurnedTokenAmountList
+        getCurrentPriceRecord
+        getEquivalent
+        getExternSwapGasLimit
+        getFeeDestinations
+        getFeeState
+        getFirstTokenId
+        getGeneratedTokenAmount
+        getGeneratedTokenAmountList
+        getLastRecordedBlockNonce
+        getLpTokenIdentifier
+        getPriceDivisionSafetyConstant
+        getPriceRecordBlockFrequency
+        getPriceRecordForBlock
+        getPriceRecords
+        getPriceRecordsBetweenRange
+        getPriceRecordsHead
+        getPriceRecordsLen
+        getPriceRecordsMaxLen
+        getReserve
+        getReservesAndTotalSupply
+        getRouterManagedAddress
+        getRouterOwnerManagedAddress
+        getSecondTokenId
+        getSpecialFee
+        getState
+        getTokensForGivenPosition
+        getTotalFeePercent
+        getTotalSupply
+        getTransferExecGasLimit
+        getTrustedSwapPairs
+        getVirtualReserve
+        getWhitelistedManagedAddresses
+        pause
+        removeLiquidity
+        removeLiquidityAndBuyBackAndBurnToken
+        removeTrustedSwapPair
+        removeWhitelist
+        resume
+        setFeeOn
+        setFeePercents
+        setLpTokenIdentifier
+        setStateActiveNoSwaps
+        set_extern_swap_gas_limit
+        set_transfer_exec_gas_limit
+        swapNoFeeAndForward
+        swapTokensFixedInput
+        swapTokensFixedOutput
+        whitelist
+    )
+}
+
+elrond_wasm_node::wasm_empty_callback! {}

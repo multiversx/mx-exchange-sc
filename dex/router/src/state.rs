@@ -29,5 +29,5 @@ pub trait StateModule {
 
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<BoxedBytes>;
+    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 }

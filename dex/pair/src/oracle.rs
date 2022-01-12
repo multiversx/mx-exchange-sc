@@ -15,7 +15,7 @@ pub struct PriceRecord<M: ManagedTypeApi> {
     end_block: Nonce,
 }
 
-#[elrond_wasm_derive::module]
+#[elrond_wasm::module]
 pub trait OracleModule {
     fn update_price_record(&self, first_token_reserve: &BigUint, second_token_reserve: &BigUint) {
         if first_token_reserve == &0 || second_token_reserve == &0 {

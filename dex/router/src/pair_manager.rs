@@ -8,7 +8,7 @@ use super::state;
 
 type SwapOperationType<ManagedTypeApi> = MultiArg4<
     ManagedAddress<ManagedTypeApi>,
-    BoxedBytes,
+    ManagedBuffer<ManagedTypeApi>,
     TokenIdentifier<ManagedTypeApi>,
     BigUint<ManagedTypeApi>,
 >;
@@ -72,24 +72,24 @@ pub trait PairManagerModule:
         #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: Nonce,
         swap_operations: MultiArgVec<SwapOperationType<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         require!(nonce == 0, "Invalid nonce. Should be zero");
-        require!(amount > 0, "Invalid amount. Should not be zero");
+        require!(amount > 0u32, "Invalid amount. Should not be zero");
         require!(
             !swap_operations.is_empty(),
             "Invalid swap operations chain. Should not be empty"
         );
 
         let caller = self.blockchain().get_caller();
-        let mut payments = Vec::new();
+        let mut payments = ManagedVec::new();
         let mut last_payment = self.create_payment(&token_id, nonce, &amount);
 
         for entry in swap_operations.into_vec() {
             let (pair_address, function, token_wanted, amount_wanted) = entry.into_tuple();
             self.check_is_pair_sc(&pair_address)?;
 
-            if function == BoxedBytes::from(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME) {
+            if function == ManagedBuffer::from(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME) {
                 last_payment = self.actual_swap_fixed_input(
                     pair_address,
                     last_payment.token_identifier.clone(),
@@ -97,7 +97,7 @@ pub trait PairManagerModule:
                     token_wanted,
                     amount_wanted,
                 );
-            } else if function == BoxedBytes::from(SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME) {
+            } else if function == ManagedBuffer::from(SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME) {
                 let (payment, residuum) = self.actual_swap_fixed_output(
                     pair_address,
                     last_payment.token_identifier,
@@ -113,7 +113,7 @@ pub trait PairManagerModule:
         }
 
         payments.push(last_payment);
-        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
+        self.send_multiple_tokens(&caller, &payments, opt_accept_funds_func)?;
 
         Ok(())
     }
@@ -132,7 +132,7 @@ pub trait PairManagerModule:
                 amount_in,
                 token_out,
                 amount_out_min,
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
@@ -151,7 +151,7 @@ pub trait PairManagerModule:
                 amount_in_max,
                 token_out,
                 amount_out,
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
             .into_tuple()

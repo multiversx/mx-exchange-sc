@@ -21,10 +21,10 @@ pub trait FarmTokenMergeModule:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments();
 
         let attrs = self.get_merged_farm_token_attributes(&payments, Option::None)?;
         let farm_token_id = self.farm_token_id().get();
@@ -40,7 +40,7 @@ pub trait FarmTokenMergeModule:
             &farm_token_id,
             new_nonce,
             &new_amount,
-            &opt_accept_funds_func,
+            opt_accept_funds_func,
         )?;
 
         Ok(self.create_payment(&farm_token_id, new_nonce, &new_amount))
@@ -48,7 +48,7 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<FarmToken<Self::Api>>,
     ) -> SCResult<FarmTokenAttributes<Self::Api>> {
         require!(
@@ -165,9 +165,7 @@ pub trait FarmTokenMergeModule:
         let mut dataset = Vec::new();
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
-                value: self
-                    .types()
-                    .big_uint_from(x.attributes.original_entering_epoch),
+                value: BigUint::from(x.attributes.original_entering_epoch),
                 weight: x.token_amount.amount.clone(),
             })
         });

@@ -118,17 +118,17 @@ pub trait LpTokensModule:
         address: &ManagedAddress,
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] returned_tokens: BigUint,
-        #[call_result] result: AsyncCallResult<()>,
+        #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
         match result {
-            AsyncCallResult::Ok(()) => {
+            ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
                 self.set_lp_token_for_pair(address, &token_id);
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
 
-                if token_id.is_egld() && returned_tokens > 0 {
+                if token_id.is_egld() && returned_tokens > 0u32 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
             }
@@ -136,12 +136,12 @@ pub trait LpTokensModule:
     }
 
     #[callback]
-    fn change_roles_callback(&self, #[call_result] result: AsyncCallResult<()>) {
+    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
         match result {
-            AsyncCallResult::Ok(()) => {
+            ManagedAsyncCallResult::Ok(()) => {
                 self.last_error_message().clear();
             }
-            AsyncCallResult::Err(message) => {
+            ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);
             }
         }

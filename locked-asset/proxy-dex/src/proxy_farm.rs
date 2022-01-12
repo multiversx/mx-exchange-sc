@@ -20,7 +20,7 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(Clone)]
+#[derive(Clone, ManagedVecItem)]
 pub struct WrappedFarmToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: WrappedFarmTokenAttributes<M>,
@@ -56,21 +56,27 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
-    fn enter_farm_proxy_endpoint(&self, farm_address: ManagedAddress) -> SCResult<()> {
-        self.enter_farm_proxy(farm_address, false)
+    fn enter_farm_proxy_endpoint(
+        &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        farm_address: ManagedAddress,
+    ) -> SCResult<()> {
+        self.enter_farm_proxy(payments, farm_address, false)
     }
 
     #[payable("*")]
     #[endpoint(enterFarmAndLockRewardsProxy)]
     fn enter_farm_and_lock_rewards_proxy_endpoint(
         &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         farm_address: ManagedAddress,
     ) -> SCResult<()> {
-        self.enter_farm_proxy(farm_address, true)
+        self.enter_farm_proxy(payments, farm_address, true)
     }
 
     fn enter_farm_proxy(
         &self,
+        payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         farm_address: ManagedAddress,
         with_lock_rewards: bool,
     ) -> SCResult<()> {
@@ -78,13 +84,14 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments();
-        require!(payments.len() >= 1, "bad payment len");
-
-        let token_id = payments[0].token_identifier.clone();
-        let token_nonce = payments[0].token_nonce;
-        let amount = payments[0].amount.clone();
-        require!(amount != 0, "Payment amount cannot be zero");
+        let first_payment = match payments.get(0) {
+            Some(p) => p,
+            None => return sc_error!("bad payment len"),
+        };
+        let token_id = first_payment.token_identifier.clone();
+        let token_nonce = first_payment.token_nonce;
+        let amount = first_payment.amount.clone();
+        require!(amount != 0u32, "Payment amount cannot be zero");
 
         let farming_token_id: TokenIdentifier;
         if token_id == self.wrapped_lp_token_id().get() {
@@ -104,7 +111,7 @@ pub trait ProxyFarmModule:
         let farm_token_nonce = farm_result.token_nonce;
         let farm_token_total_amount = farm_result.amount;
         require!(
-            farm_token_total_amount > 0,
+            farm_token_total_amount > 0u32,
             "Farm token amount received should be greater than 0"
         );
 
@@ -117,13 +124,17 @@ pub trait ProxyFarmModule:
             farming_token_amount: amount.clone(),
         };
         let caller = self.blockchain().get_caller();
+        let additional_payments = match payments.slice(1, payments.len()) {
+            Some(p) => p,
+            None => ManagedVec::new(),
+        };
         let (new_wrapped_farm_token, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
                 &attributes,
                 &farm_token_total_amount,
                 &farm_address,
                 &caller,
-                &payments[1..],
+                &additional_payments,
             )?;
 
         self.emit_enter_farm_proxy_event(
@@ -154,7 +165,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        require!(amount != 0, "Payment amount cannot be zero");
+        require!(amount != 0u32, "Payment amount cannot be zero");
         require!(
             token_id == self.wrapped_farm_token_id().get(),
             "Should only be used with wrapped farm tokens"
@@ -177,7 +188,7 @@ pub trait ProxyFarmModule:
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
             &farming_token_returned.amount,
-            &OptionalArg::None,
+            OptionalArg::None,
         )?;
 
         self.transfer_execute_custom(
@@ -185,7 +196,7 @@ pub trait ProxyFarmModule:
             &reward_token_returned.token_identifier,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-            &OptionalArg::None,
+            OptionalArg::None,
         )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
@@ -215,18 +226,23 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(claimRewardsProxy)]
-    fn claim_rewards_proxy(&self, farm_address: ManagedAddress) -> SCResult<()> {
+    fn claim_rewards_proxy(
+        &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        farm_address: ManagedAddress,
+    ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments();
-        require!(payments.len() >= 1, "bad payment len");
-
-        let token_id = payments[0].token_identifier.clone();
-        let token_nonce = payments[0].token_nonce;
-        let amount = payments[0].amount.clone();
-        require!(amount != 0, "Payment amount cannot be zero");
+        let first_payment = match payments.get(0) {
+            Some(p) => p,
+            None => return sc_error!("bad payment len"),
+        };
+        let token_id = first_payment.token_identifier.clone();
+        let token_nonce = first_payment.token_nonce;
+        let amount = first_payment.amount.clone();
+        require!(amount != 0u32, "Payment amount cannot be zero");
 
         require!(
             token_id == self.wrapped_farm_token_id().get(),
@@ -248,7 +264,7 @@ pub trait ProxyFarmModule:
         let new_farm_token_nonce = new_farm_token.token_nonce;
         let new_farm_token_total_amount = new_farm_token.amount;
         require!(
-            new_farm_token_total_amount > 0,
+            new_farm_token_total_amount > 0u32,
             "Farm token amount received should be greater than 0"
         );
 
@@ -259,7 +275,7 @@ pub trait ProxyFarmModule:
             &reward_token_returned.token_identifier,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-            &OptionalArg::None,
+            OptionalArg::None,
         )?;
 
         // Create new Wrapped tokens and send them.
@@ -275,13 +291,17 @@ pub trait ProxyFarmModule:
                 &wrapped_farm_token_attrs.farming_token_amount,
             )?,
         };
+        let additional_payments = match payments.slice(1, payments.len()) {
+            Some(p) => p,
+            None => ManagedVec::new(),
+        };
         let (new_wrapped_farm, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
                 &new_wrapped_farm_token_attributes,
                 &new_farm_token_total_amount,
                 &farm_address,
                 &caller,
-                &payments[1..],
+                &additional_payments,
             )?;
         self.nft_burn_tokens(&token_id, token_nonce, &amount);
 
@@ -306,18 +326,23 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(compoundRewardsProxy)]
-    fn compound_rewards_proxy(&self, farm_address: ManagedAddress) -> SCResult<()> {
+    fn compound_rewards_proxy(
+        &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        farm_address: ManagedAddress,
+    ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
         self.require_wrapped_farm_token_id_not_empty()?;
         self.require_wrapped_lp_token_id_not_empty()?;
 
-        let payments = self.get_all_payments();
-        require!(payments.len() >= 1, "bad payment len");
-
-        let payment_token_id = payments[0].token_identifier.clone();
-        let payment_token_nonce = payments[0].token_nonce;
-        let payment_amount = payments[0].amount.clone();
-        require!(payment_amount != 0, "Payment amount cannot be zero");
+        let first_payment = match payments.get(0) {
+            Some(p) => p,
+            None => return sc_error!("bad payment len"),
+        };
+        let payment_token_id = first_payment.token_identifier.clone();
+        let payment_token_nonce = first_payment.token_nonce;
+        let payment_amount = first_payment.amount.clone();
+        require!(payment_amount != 0u32, "Payment amount cannot be zero");
 
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
         require!(
@@ -343,7 +368,7 @@ pub trait ProxyFarmModule:
         let new_farm_token_nonce = new_farm_token.token_nonce;
         let new_farm_token_amount = new_farm_token.amount;
         require!(
-            new_farm_token_amount > 0,
+            new_farm_token_amount > 0u32,
             "Farm token amount received should be greater than 0"
         );
 
@@ -360,13 +385,17 @@ pub trait ProxyFarmModule:
             )?,
         };
         let caller = self.blockchain().get_caller();
+        let additional_payments = match payments.slice(1, payments.len()) {
+            Some(p) => p,
+            None => ManagedVec::new(),
+        };
         let (new_wrapped_farm, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
                 &new_wrapped_farm_token_attributes,
                 &new_farm_token_amount,
                 &farm_address,
                 &caller,
-                &payments[1..],
+                &additional_payments,
             )?;
         self.nft_burn_tokens(&payment_token_id, payment_token_nonce, &payment_amount);
 
@@ -392,7 +421,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
         farm_address: &ManagedAddress,
         caller: &ManagedAddress,
-        additional_payments: &[EsdtTokenPayment<Self::Api>],
+        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
@@ -420,7 +449,7 @@ pub trait ProxyFarmModule:
         }
 
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
+        payments.push(EsdtTokenPayment::new(
             farming_token_id.clone(),
             0,
             amount.clone(),
@@ -428,15 +457,17 @@ pub trait ProxyFarmModule:
 
         if with_locked_rewards {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm_and_lock_rewards(OptionalArg::Some(BoxedBytes::from(
-                    ACCEPT_PAY_FUNC_NAME,
-                )))
-                .with_multi_token_transfer(payments)
+                .enter_farm_and_lock_rewards(
+                    payments,
+                    OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
+                )
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         } else {
             self.farm_contract_proxy(farm_address.clone())
-                .enter_farm(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
-                .with_multi_token_transfer(payments)
+                .enter_farm(
+                    payments,
+                    OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
+                )
                 .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
         }
     }
@@ -453,7 +484,7 @@ pub trait ProxyFarmModule:
                 farm_token_id.clone(),
                 farm_token_nonce,
                 amount.clone(),
-                OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)),
+                OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -466,15 +497,17 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> ClaimRewardsResultType<Self::Api> {
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
+        payments.push(EsdtTokenPayment::new(
             farm_token_id.clone(),
             farm_token_nonce,
             amount.clone(),
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
-            .with_multi_token_transfer(payments)
+            .claim_rewards(
+                payments,
+                OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
+            )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
 
@@ -486,15 +519,17 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> CompoundRewardsResultType<Self::Api> {
         let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::from(
+        payments.push(EsdtTokenPayment::new(
             farm_token_id.clone(),
             farm_token_nonce,
             amount.clone(),
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards(OptionalArg::Some(BoxedBytes::from(ACCEPT_PAY_FUNC_NAME)))
-            .with_multi_token_transfer(payments)
+            .compound_rewards(
+                payments,
+                OptionalArg::Some(ManagedBuffer::from(ACCEPT_PAY_FUNC_NAME)),
+            )
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 

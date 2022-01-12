@@ -7,7 +7,7 @@ elrond_wasm::derive_imports!();
 const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
-mod amm;
+pub mod amm;
 pub mod config;
 mod events;
 pub mod fee;
@@ -88,37 +88,48 @@ pub trait Pair:
     #[endpoint(addLiquidity)]
     fn add_liquidity(
         &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<AddLiquidityResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         self.broadcast_pair_reserves();
 
-        let payments = self.get_all_payments();
+        let first_payment = match payments.get(0) {
+            Some(p) => p,
+            None => return sc_error!("bad payments len"),
+        };
+        let second_payment = match payments.get(1) {
+            Some(p) => p,
+            None => return sc_error!("bad payments len"),
+        };
         require!(payments.len() == 2, "bad payments len");
 
         let expected_first_token_id = self.first_token_id().get();
         let expected_second_token_id = self.second_token_id().get();
         require!(
-            payments[0].token_identifier == expected_first_token_id,
+            first_payment.token_identifier == expected_first_token_id,
             "bad first payment"
         );
         require!(
-            payments[1].token_identifier == expected_second_token_id,
+            second_payment.token_identifier == expected_second_token_id,
             "bad second payment"
         );
-        require!(payments[0].token_nonce == 0, "non zero first token nonce");
-        require!(payments[1].token_nonce == 0, "non zero second token nonce");
-
-        let first_token_amount_desired = payments[0].amount.clone();
-        let second_token_amount_desired = payments[1].amount.clone();
+        require!(first_payment.token_nonce == 0, "non zero first token nonce");
         require!(
-            first_token_amount_desired > 0,
+            second_payment.token_nonce == 0,
+            "non zero second token nonce"
+        );
+
+        let first_token_amount_desired = first_payment.amount.clone();
+        let second_token_amount_desired = second_payment.amount.clone();
+        require!(
+            first_token_amount_desired > 0u32,
             "Insufficient first token funds sent"
         );
         require!(
-            second_token_amount_desired > 0,
+            second_token_amount_desired > 0u32,
             "Insufficient second token funds sent"
         );
         require!(
@@ -151,13 +162,13 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        let mut payments = Vec::new();
+        let mut payments = ManagedVec::new();
         payments.push(self.create_payment(&lp_token_id, 0, &liquidity));
         payments.push(self.create_payment(&expected_first_token_id, 0, &first_token_unused));
         payments.push(self.create_payment(&expected_second_token_id, 0, &second_token_unused));
 
         let caller = self.blockchain().get_caller();
-        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
+        self.send_multiple_tokens(&caller, &payments, opt_accept_funds_func)?;
 
         self.broadcast_pair_reserves();
         self.emit_add_liquidity_event(
@@ -187,7 +198,7 @@ pub trait Pair:
         #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -213,10 +224,10 @@ pub trait Pair:
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 
-        let mut payments = Vec::new();
+        let mut payments = ManagedVec::new();
         payments.push(self.create_payment(&first_token_id, 0, &first_token_amount));
         payments.push(self.create_payment(&second_token_id, 0, &second_token_amount));
-        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
+        self.send_multiple_tokens(&caller, &payments, opt_accept_funds_func)?;
 
         self.burn_tokens(&token_id, &liquidity);
 
@@ -261,15 +272,15 @@ pub trait Pair:
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
 
-        let first_token_min_amount = self.types().big_uint_from(1u64);
-        let second_token_min_amount = self.types().big_uint_from(1u64);
+        let first_token_min_amount = BigUint::from(1u64);
+        let second_token_min_amount = BigUint::from(1u64);
         let (first_token_amount, second_token_amount) = self.pool_remove_liquidity(
             amount_in.clone(),
             first_token_min_amount,
             second_token_min_amount,
         )?;
 
-        let dest_address = self.types().managed_address_zero();
+        let dest_address = ManagedAddress::zero();
         self.send_fee_slice(
             &first_token_id,
             &first_token_amount,
@@ -350,10 +361,10 @@ pub trait Pair:
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
-        require!(amount_in > 0, "Invalid amount_in");
+        require!(amount_in > 0u32, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -386,7 +397,7 @@ pub trait Pair:
             reserve_token_out > amount_out_optimal,
             "Insufficient amount out reserve"
         );
-        require!(amount_out_optimal != 0, "Optimal value is zero");
+        require!(amount_out_optimal != 0u32, "Optimal value is zero");
 
         let caller = self.blockchain().get_caller();
 
@@ -422,7 +433,7 @@ pub trait Pair:
             &token_out,
             0,
             &amount_out_optimal,
-            &opt_accept_funds_func,
+            opt_accept_funds_func,
         )?;
 
         self.emit_swap_event(
@@ -446,10 +457,10 @@ pub trait Pair:
         #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
         amount_out: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedOutputResultType<Self::Api>> {
         require!(self.can_swap(), "Swap is not enabled");
-        require!(amount_in_max > 0, "Invalid amount_in");
+        require!(amount_in_max > 0u32, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -461,7 +472,7 @@ pub trait Pair:
             token_out == first_token_id || token_out == second_token_id,
             "Invalid token out"
         );
-        require!(amount_out != 0, "Desired amount out cannot be zero");
+        require!(amount_out != 0u32, "Desired amount out cannot be zero");
         self.broadcast_pair_reserves();
         self.update_virtual_reserves_on_block_change();
         let old_k = self.calculate_k_for_virtual_reserves(&token_in);
@@ -511,10 +522,10 @@ pub trait Pair:
             self.send_fee(&token_in, &fee_amount);
         }
 
-        let mut payments = Vec::new();
+        let mut payments = ManagedVec::new();
         payments.push(self.create_payment(&token_out, 0, &amount_out));
         payments.push(self.create_payment(&token_in, 0, &residuum));
-        self.send_multiple_tokens_compact(&caller, &payments, &opt_accept_funds_func)?;
+        self.send_multiple_tokens(&caller, &payments, opt_accept_funds_func)?;
 
         self.emit_swap_event(
             &caller,

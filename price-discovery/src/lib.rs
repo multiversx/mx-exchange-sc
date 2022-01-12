@@ -15,6 +15,9 @@ pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + create_pool::CreatePoolModule
     + redeem_token::RedeemTokenModule
+    + pair::amm::AmmModule
+    + pair::config::ConfigModule
+    + token_send::TokenSendModule
 {
     #[init]
     fn init(
@@ -163,11 +166,19 @@ pub trait PriceDiscovery:
         match redeem_token_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => {
                 let launched_token_final_amount = self.launched_token_final_amount().get();
-                redeem_token_amount * total_lp_tokens / launched_token_final_amount / 2u32
+                self.quote(
+                    &redeem_token_amount,
+                    &launched_token_final_amount,
+                    &total_lp_tokens,
+                ) / 2u32
             }
             ACCEPTED_TOKEN_REDEEM_NONCE => {
                 let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                redeem_token_amount * total_lp_tokens / accepted_token_final_amount / 2u32
+                self.quote(
+                    &redeem_token_amount,
+                    &accepted_token_final_amount,
+                    &total_lp_tokens,
+                ) / 2u32
             }
             _ => BigUint::zero(),
         }

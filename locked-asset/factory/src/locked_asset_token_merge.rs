@@ -24,10 +24,10 @@ pub trait LockedAssetTokenMergeModule:
     #[endpoint(mergeLockedAssetTokens)]
     fn merge_locked_asset_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments();
         require!(!payments.is_empty(), "Empty payment vec");
 
         let (amount, attrs) =
@@ -45,13 +45,13 @@ pub trait LockedAssetTokenMergeModule:
             &locked_asset_token,
             new_nonce,
             &amount,
-            &opt_accept_funds_func,
+            opt_accept_funds_func,
         )?;
 
         Ok(self.create_payment(&locked_asset_token, new_nonce, &amount))
     }
 
-    fn burn_tokens_from_payments(&self, payments: &[EsdtTokenPayment<Self::Api>]) {
+    fn burn_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
         for entry in payments {
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
@@ -60,7 +60,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: &[EsdtTokenPayment<Self::Api>],
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(BigUint, LockedAssetTokenAttributes)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
@@ -68,7 +68,7 @@ pub trait LockedAssetTokenMergeModule:
         let mut sum_amount = BigUint::zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
-        for entry in payments.iter() {
+        for entry in payments {
             require!(
                 entry.token_identifier == locked_asset_token_id,
                 "Bad token id"
@@ -115,8 +115,8 @@ pub trait LockedAssetTokenMergeModule:
                     unlock_epoch_amount.push((
                         milestone.unlock_epoch,
                         self.rule_of_three(
-                            &self.types().big_uint_from(milestone.unlock_percent as u64),
-                            &self.types().big_uint_from(PERCENTAGE_TOTAL as u64),
+                            &BigUint::from(milestone.unlock_percent as u64),
+                            &BigUint::from(PERCENTAGE_TOTAL as u64),
                             &locked_token.token_amount.amount,
                         ),
                     ))

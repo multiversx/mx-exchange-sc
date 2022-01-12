@@ -61,10 +61,7 @@ pub trait Router:
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(
-            pair_address == self.types().managed_address_zero(),
-            "Pair already exists"
-        );
+        require!(pair_address.is_zero(), "Pair already exists");
 
         let mut total_fee_percent_requested = DEFAULT_TOTAL_FEE_PERCENT;
         let mut special_fee_percent_requested = DEFAULT_SPECIAL_FEE_PERCENT;
@@ -120,10 +117,7 @@ pub trait Router:
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
-        require!(
-            pair_address != self.types().managed_address_zero(),
-            "Pair does not exists"
-        );
+        require!(!pair_address.is_zero(), "Pair does not exists");
 
         let fee_percents_vec = fee_percents.into_vec();
         require!(fee_percents_vec.len() == 2, "Bad percents length");
@@ -159,16 +153,16 @@ pub trait Router:
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             })
-            .unwrap_or_else(|| self.types().managed_address_zero());
+            .unwrap_or_else(|| ManagedAddress::zero());
 
-        if address == self.types().managed_address_zero() {
+        if address.is_zero() {
             address = self
                 .pair_map()
                 .get(&PairTokens {
                     first_token_id: second_token_id,
                     second_token_id: first_token_id,
                 })
-                .unwrap_or_else(|| self.types().managed_address_zero());
+                .unwrap_or_else(|| ManagedAddress::zero());
         }
         address
     }

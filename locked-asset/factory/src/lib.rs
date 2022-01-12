@@ -91,7 +91,7 @@ pub trait LockedAssetFactory:
         };
 
         let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &OptionalArg::None)?;
+            self.produce_tokens_and_send(&amount, &attr, &address, OptionalArg::None)?;
 
         self.emit_create_and_forward_event(
             &caller,
@@ -111,7 +111,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -133,7 +133,7 @@ pub trait LockedAssetFactory:
         };
 
         let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func)?;
+            self.produce_tokens_and_send(&amount, &attr, &address, opt_accept_funds_func)?;
 
         self.emit_create_and_forward_event(
             &caller,
@@ -168,7 +168,7 @@ pub trait LockedAssetFactory:
             &unlock_schedule.unlock_milestones,
         );
         require!(amount >= unlock_amount, "Cannot unlock more than locked");
-        require!(unlock_amount > 0, "Method called too soon");
+        require!(unlock_amount > 0u32, "Method called too soon");
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_assets(&caller, &unlock_amount);
@@ -187,7 +187,7 @@ pub trait LockedAssetFactory:
         };
 
         let locked_remaining = &amount - &unlock_amount;
-        if locked_remaining > 0 {
+        if locked_remaining > 0u32 {
             let new_unlock_milestones = self.create_new_unlock_milestones(
                 month_start_epoch,
                 &unlock_schedule.unlock_milestones,
@@ -202,7 +202,7 @@ pub trait LockedAssetFactory:
                 &locked_remaining,
                 &output_locked_asset_attributes,
                 &caller,
-                &OptionalArg::None,
+                OptionalArg::None,
             )?;
         }
 
@@ -245,7 +245,7 @@ pub trait LockedAssetFactory:
         amount: &BigUint,
         attributes: &LockedAssetTokenAttributes,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
@@ -262,7 +262,7 @@ pub trait LockedAssetFactory:
                 let do_cache_result = !attributes.is_merged;
 
                 let additional_amount_to_create = if do_cache_result {
-                    self.types().big_uint_from(ADDITIONAL_AMOUNT_TO_CREATE)
+                    BigUint::from(ADDITIONAL_AMOUNT_TO_CREATE)
                 } else {
                     BigUint::zero()
                 };

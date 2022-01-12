@@ -41,7 +41,7 @@ pub trait FactoryModule {
             "pair contract template is empty"
         );
 
-        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        let mut arg_buffer = ManagedArgBuffer::new_empty();
         arg_buffer.push_arg(first_token_id);
         arg_buffer.push_arg(second_token_id);
         arg_buffer.push_arg(self.blockchain().get_sc_address());
@@ -83,7 +83,7 @@ pub trait FactoryModule {
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) {
-        let mut arg_buffer = ManagedArgBuffer::new_empty(self.type_manager());
+        let mut arg_buffer = ManagedArgBuffer::new_empty();
         arg_buffer.push_arg(first_token_id);
         arg_buffer.push_arg(second_token_id);
         arg_buffer.push_arg(self.blockchain().get_sc_address());

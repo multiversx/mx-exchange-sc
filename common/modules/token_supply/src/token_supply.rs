@@ -16,16 +16,14 @@ pub trait TokenSupplyModule {
         attributes: &T,
     ) {
         self.increase_generated_amount(token_id, amount);
-        let mut uris = ManagedVec::new(self.type_manager());
-        uris.push(self.types().managed_buffer_new());
-        self.send().esdt_nft_create::<T>(
+        self.send().esdt_nft_create(
             token_id,
             amount,
-            &self.types().managed_buffer_new(),
+            &ManagedBuffer::new(),
             &BigUint::zero(),
-            &self.types().managed_buffer_new(),
+            &ManagedBuffer::new(),
             attributes,
-            &uris,
+            &ManagedVec::new(),
         );
     }
 

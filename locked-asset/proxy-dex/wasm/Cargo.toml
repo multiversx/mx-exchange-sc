@@ -21,10 +21,11 @@ debug = false
 panic = "abort"
 
 [dependencies.proxy-dex]
-features = [ "wasm-output-mode",]
-default-features = false
 path = ".."
 
+[dependencies.elrond-wasm-node]
+version = "0.25.0"
+
 [dependencies.elrond-wasm-output]
-version = "0.21"
-features = [ "wasm-output-mode",]
+version = "0.25.0"
+features = ["wasm-output-mode"]

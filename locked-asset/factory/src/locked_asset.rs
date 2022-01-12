@@ -13,7 +13,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         additional_amount_to_create: &BigUint,
         address: &ManagedAddress,
         attributes: &LockedAssetTokenAttributes,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
         self.create_tokens(
@@ -37,7 +37,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         amount: &BigUint,
         sft_nonce: Nonce,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<()> {
         let token_id = self.locked_asset_token_id().get();
         self.nft_add_quantity_tokens(&token_id, sft_nonce, amount);
@@ -60,10 +60,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         current_epoch: Epoch,
         unlock_milestones: &[UnlockMilestone],
     ) -> BigUint {
-        amount
-            * &self
-                .types()
-                .big_uint_from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
+        amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
             / PERCENTAGE_TOTAL
     }
 

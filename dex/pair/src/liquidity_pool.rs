@@ -25,9 +25,9 @@ pub trait LiquidityPoolModule:
         let mut second_token_reserve = self.pair_reserve(&second_token).get();
         let mut liquidity: BigUint;
 
-        if total_supply == 0 {
+        if total_supply == 0u32 {
             liquidity = core::cmp::min(first_token_amount.clone(), second_token_amount.clone());
-            let minimum_liquidity = self.types().big_uint_from(MINIMUM_LIQUIDITY);
+            let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
             require!(
                 liquidity > minimum_liquidity,
                 "First tokens needs to be greater than minimum liquidity"
@@ -198,7 +198,7 @@ pub trait LiquidityPoolModule:
     ) -> EsdtTokenPayment<Self::Api> {
         let reserve = self.pair_reserve(&token_id).get();
         let total_supply = self.get_total_lp_token_supply();
-        if total_supply != 0 {
+        if total_supply != 0u32 {
             let amount = liquidity * reserve / total_supply;
             self.create_payment(&token_id, 0, &amount)
         } else {

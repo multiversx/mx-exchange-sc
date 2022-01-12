@@ -8,14 +8,6 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
-[features]
-wasm-output-mode = [
-  "elrond-wasm-node",
-  "token_supply/wasm-output-mode",
-  "token_send/wasm-output-mode",
-  "token_merge/wasm-output-mode",
-]
-
 [dependencies.token_supply]
 path = "../../common/modules/token_supply"
 
@@ -26,18 +18,10 @@ path = "../../common/modules/token_send"
 path = "../../common/modules/token_merge"
 
 [dependencies.elrond-wasm]
-version = "0.21"
-features = ["derive"]
-
-[dependencies.elrond-wasm-derive]
-version = "0.21"
-
-[dependencies.elrond-wasm-node]
-version = "0.21"
-optional = true
+version = "0.25.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.21"
+version = "0.25.0"
 
 [dependencies.factory]
 path = "../../locked-asset/factory"
@@ -47,4 +31,3 @@ path = "../pair"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
-

@@ -5,8 +5,6 @@ edition = "2018"
 publish = false
 authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
 
-[dev-dependencies]
-
 [dependencies.price-discovery]
 path = ".."
 
