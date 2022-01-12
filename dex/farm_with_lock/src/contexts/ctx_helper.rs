@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::base::*;
+use super::claim_rewards::*;
 use super::enter_farm::*;
 use super::exit_farm::*;
 use crate::assert;
@@ -35,6 +36,29 @@ pub trait CtxHelper:
         let tx = EnterFarmTxInput::new(args, payments);
 
         EnterFarmContext::new(tx, caller)
+    }
+
+    fn new_claim_rewards_context(
+        &self,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> ClaimRewardsContext<Self::Api> {
+        let caller = self.blockchain().get_caller();
+
+        let payments = self.call_value().all_esdt_transfers();
+        let mut payments_iter = payments.iter();
+
+        let first_payment = payments_iter.next().unwrap();
+
+        let mut additional_payments = ManagedVec::new();
+        while let Some(payment) = payments_iter.next() {
+            additional_payments.push(payment);
+        }
+
+        let args = ClaimRewardsArgs::new(opt_accept_funds_func);
+        let payments = ClaimRewardsPayments::new(first_payment, additional_payments);
+        let tx = ClaimRewardsTxInput::new(args, payments);
+
+        ClaimRewardsContext::new(tx, caller)
     }
 
     fn new_exit_farm_context(
@@ -125,7 +149,7 @@ pub trait CtxHelper:
     }
 
     #[inline]
-    fn load_farm_attributes(&self, context: &mut ExitFarmContext<Self::Api>) {
+    fn load_farm_attributes(&self, context: &mut dyn Context<Self::Api>) {
         let farm_token_id = context.get_farm_token_id().clone();
         let nonce = context
             .get_tx_input()
@@ -142,7 +166,7 @@ pub trait CtxHelper:
     }
 
     #[inline]
-    fn calculate_reward(&self, context: &mut ExitFarmContext<Self::Api>) {
+    fn calculate_reward(&self, context: &mut dyn Context<Self::Api>) {
         let reward = if context.get_reward_per_share()
             > &context
                 .get_input_attributes()

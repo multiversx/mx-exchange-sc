@@ -57,7 +57,7 @@ pub trait Farm:
         locked_asset_factory_address: ManagedAddress,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
-    ) -> SCResult<()> {
+    ) {
         assert!(self, reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
         assert!(self, farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
         assert!(self, division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
@@ -82,7 +82,6 @@ pub trait Farm:
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
         self.pair_contract_address().set(&pair_contract_address);
-        Ok(())
     }
 
     #[payable("*")]
@@ -208,12 +207,11 @@ pub trait Farm:
         self.increase_reward_with_compounded_rewards(&mut context);
 
         self.burn_penalty(&mut context);
-
         self.burn_position(&context);
-        self.construct_output_payments(&mut context);
-
         self.commit_changes(&context);
+
         self.send_rewards(&mut context);
+        self.construct_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_exit_farm_event_context(&context);
 
@@ -225,38 +223,38 @@ pub trait Farm:
     fn claim_rewards(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
-        assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
-        assert!(self, !self.farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+    ) -> ClaimRewardsResultType<Self::Api> {
+        let context = self.new_claim_rewards_context(opt_accept_funds_func);
 
-        let payments_vec = self.get_all_payments_managed_vec();
-        let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or(ERROR_BAD_PAYMENTS_LEN)?;
-
-        let payment_token_id = payment_0.token_identifier.clone();
-        let amount = payment_0.amount.clone();
-        let token_nonce = payment_0.token_nonce;
-
-        assert!(self, amount > 0, ERROR_ZERO_AMOUNT);
-        let farm_token_id = self.farm_token_id().get();
+        self.load_state(&mut context);
         assert!(
             self,
-            payment_token_id == farm_token_id,
-            ERROR_BAD_INPUT_TOKEN
+            context.get_contract_state() == &State::Active,
+            ERROR_NOT_ACTIVE
         );
-        let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
-        let mut reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards();
-
-        let mut reward = self.calculate_reward(
-            &amount,
-            &self.reward_per_share().get(),
-            &farm_attributes.reward_per_share,
+        self.load_farm_token_id(&mut context);
+        assert!(
+            self,
+            !context.get_farm_token_id().is_empty(),
+            ERROR_NO_FARM_TOKEN,
         );
-        if reward > 0 {
-            self.decrease_reward_reserve(&reward)?;
-        }
+
+        self.load_farming_token_id(&mut context);
+        assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
+
+        self.load_reward_token_id(&mut context);
+        self.load_block_nonce(&mut context);
+        self.load_block_epoch(&mut context);
+        self.load_reward_per_share(&mut context);
+        self.load_farm_token_supply(&mut context);
+        self.load_division_safety_constant(&mut context);
+        self.generate_aggregated_rewards(&mut context);
+        self.load_farm_attributes(&mut context);
+
+        self.generate_aggregated_rewards(&mut context);
+        self.calculate_reward(&mut context);
+        context.decrease_reward_reserve();
 
         let new_initial_farming_amount = self.rule_of_three_non_zero_result(
             &amount,
@@ -333,7 +331,7 @@ pub trait Farm:
     fn compound_rewards(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<CompoundRewardsResultType<Self::Api>> {
+    ) -> CompoundRewardsResultType<Self::Api> {
         assert!(self, self.is_active(), ERROR_NOT_ACTIVE);
 
         let payments_vec = self.get_all_payments_managed_vec();
@@ -468,7 +466,7 @@ pub trait Farm:
         farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
         reward_token_id: &TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         let pair_contract_address = self.pair_contract_address().get();
         if pair_contract_address.is_zero() {
             self.send()
@@ -485,8 +483,6 @@ pub trait Farm:
                 .with_gas_limit(gas_limit)
                 .execute_on_dest_context_ignore_result();
         }
-
-        Ok(())
     }
 
     fn create_farm_tokens_by_merging(
@@ -523,15 +519,15 @@ pub trait Farm:
         farming_amount: &BigUint,
         destination: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
+    ) {
         self.transfer_execute_custom(
             destination,
             farming_token_id,
             0,
             farming_amount,
             opt_accept_funds_func,
-        )?;
-        Ok(())
+        )
+        .unwrap_or_signal_error(self.type_manager());
     }
 
     fn send_rewards(&self, context: &mut ExitFarmContext<Self::Api>) {

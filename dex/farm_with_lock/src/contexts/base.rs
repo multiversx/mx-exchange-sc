@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_structs::FarmTokenAttributes;
+
 use crate::State;
 
 pub trait Context<M: ManagedTypeApi> {
@@ -38,6 +40,12 @@ pub trait Context<M: ManagedTypeApi> {
     fn decrease_reward_reserve(&mut self, amount: &BigUint<M>);
 
     fn update_reward_per_share(&mut self, reward_added: &BigUint<M>);
+
+    fn set_input_attributes(&mut self, attrs: FarmTokenAttributes<M>);
+    fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>>;
+
+    fn set_position_reward(&mut self, amount: BigUint<M>);
+    fn get_position_reward(&self) -> &BigUint<M>;
 
     fn get_storage_cache(&self) -> &StorageCache<M>;
 

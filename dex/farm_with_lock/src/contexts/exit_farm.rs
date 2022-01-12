@@ -221,6 +221,26 @@ impl<M: ManagedTypeApi> Context<M> for ExitFarmContext<M> {
     fn get_storage_cache(&self) -> &StorageCache<M> {
         &self.storage_cache
     }
+
+    #[inline]
+    fn set_input_attributes(&mut self, attr: FarmTokenAttributes<M>) {
+        self.tx_input.attributes = Some(attr);
+    }
+
+    #[inline]
+    fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
+        self.tx_input.attributes.as_ref()
+    }
+
+    #[inline]
+    fn set_position_reward(&mut self, amount: BigUint<M>) {
+        self.position_reward = amount;
+    }
+
+    #[inline]
+    fn get_position_reward(&self) -> &BigUint<M> {
+        &self.position_reward
+    }
 }
 
 impl<M: ManagedTypeApi> TxInputArgs<M> for ExitFarmArgs<M> {
@@ -274,26 +294,6 @@ impl<M: ManagedTypeApi> ExitFarmContext<M> {
         self.tx_input.payments.first_payment.token_identifier == self.storage_cache.farm_token_id
             && self.tx_input.payments.first_payment.token_nonce != 0
             && self.tx_input.payments.first_payment.amount != 0u64
-    }
-
-    #[inline]
-    pub fn set_input_attributes(&mut self, attr: FarmTokenAttributes<M>) {
-        self.tx_input.attributes = Some(attr);
-    }
-
-    #[inline]
-    pub fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
-        self.tx_input.attributes.as_ref()
-    }
-
-    #[inline]
-    pub fn set_position_reward(&mut self, amount: BigUint<M>) {
-        self.position_reward = amount;
-    }
-
-    #[inline]
-    pub fn get_position_reward(&self) -> &BigUint<M> {
-        &self.position_reward
     }
 
     #[inline]

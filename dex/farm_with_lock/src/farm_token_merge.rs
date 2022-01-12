@@ -22,7 +22,7 @@ pub trait FarmTokenMergeModule:
     fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         // let caller = self.blockchain().get_caller();
         // let payments_vec = self.get_all_payments_managed_vec();
         // let payments_iter = payments_vec.iter();
