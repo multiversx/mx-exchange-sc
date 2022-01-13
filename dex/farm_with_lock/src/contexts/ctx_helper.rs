@@ -15,6 +15,7 @@ pub trait CtxHelper:
     + token_send::TokenSendModule
     + rewards::RewardsModule
     + farm_token::FarmTokenModule
+    + token_merge::TokenMergeModule
 {
     fn new_enter_farm_context(
         &self,
@@ -211,32 +212,17 @@ pub trait CtxHelper:
         context.set_position_reward(reward);
     }
 
-    #[inline]
-    fn rule_of_three(&self, part: &BigUint, total: &BigUint, value: &BigUint) -> BigUint {
-        &(part * value) / total
-    }
-
-    #[inline]
-    fn rule_of_three_non_zero_result(
-        &self,
-        part: &BigUint,
-        total: &BigUint,
-        value: &BigUint,
-    ) -> BigUint {
-        let res = &(part * value) / total;
-        assert!(self, res != 0, ERROR_ZERO_AMOUNT);
-        res
-    }
-
     fn calculate_initial_farming_amount(&self, context: &mut dyn Context<Self::Api>) {
-        let mut initial_farming_token_amount = self.rule_of_three_non_zero_result(
-            &context.get_tx_input().get_payments().get_first().amount,
-            &context.get_input_attributes().unwrap().current_farm_amount,
-            &context
-                .get_input_attributes()
-                .unwrap()
-                .initial_farming_amount,
-        );
+        let mut initial_farming_token_amount = self
+            .rule_of_three_non_zero_result(
+                &context.get_tx_input().get_payments().get_first().amount,
+                &context.get_input_attributes().unwrap().current_farm_amount,
+                &context
+                    .get_input_attributes()
+                    .unwrap()
+                    .initial_farming_amount,
+            )
+            .unwrap_or_signal_error(self.type_manager());
 
         context.set_initial_farming_amount(initial_farming_token_amount);
     }

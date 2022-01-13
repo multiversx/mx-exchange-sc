@@ -125,7 +125,7 @@ pub trait FarmTokenMergeModule:
                     &x.attributes.current_farm_amount,
                     &x.attributes.initial_farming_amount,
                 )
-                .unwrap_or_signal_error::<Self::Api>(self.type_manager());
+                .unwrap_or_signal_error(self.type_manager());
         }
         sum
     }
