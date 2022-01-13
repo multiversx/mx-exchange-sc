@@ -198,7 +198,7 @@ pub trait CtxHelper:
                 .unwrap()
                 .initial_farming_amount
         {
-            context.get_tx_input().get_payments().get_first().amount
+            &context.get_tx_input().get_payments().get_first().amount
                 * &(context.get_reward_per_share()
                     - &context
                         .get_input_attributes()
@@ -213,7 +213,7 @@ pub trait CtxHelper:
     }
 
     fn calculate_initial_farming_amount(&self, context: &mut dyn Context<Self::Api>) {
-        let mut initial_farming_token_amount = self
+        let initial_farming_token_amount = self
             .rule_of_three_non_zero_result(
                 &context.get_tx_input().get_payments().get_first().amount,
                 &context.get_input_attributes().unwrap().current_farm_amount,
@@ -228,7 +228,7 @@ pub trait CtxHelper:
     }
 
     fn increase_reward_with_compounded_rewards(&self, context: &mut ExitFarmContext<Self::Api>) {
-        let mut amount = self.rule_of_three(
+        let amount = self.rule_of_three(
             &context.get_tx_input().get_payments().get_first().amount,
             &context.get_input_attributes().unwrap().current_farm_amount,
             &context.get_input_attributes().unwrap().compounded_reward,

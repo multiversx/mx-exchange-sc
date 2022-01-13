@@ -158,7 +158,7 @@ pub trait ContextEventsModule {
                 caller: ctx.get_caller().clone(),
                 old_farm_token_id: ctx.get_farm_token_id().clone(),
                 old_farm_token_nonce: first_pay.token_nonce,
-                old_farm_token_amount: first_pay.amount,
+                old_farm_token_amount: first_pay.amount.clone(),
                 new_farm_token_id: ctx.get_farm_token_id().clone(),
                 new_farm_token_nonce: output.token_nonce,
                 new_farm_token_amount: output.amount,
@@ -168,7 +168,7 @@ pub trait ContextEventsModule {
                 reward_token_amount: reward.amount.clone(),
                 reward_reserve: ctx.get_reward_reserve().clone(),
                 old_farm_attributes: ctx.get_input_attributes().unwrap().clone(),
-                new_farm_attributes: ctx.get_output_attributes().clone(),
+                new_farm_attributes: ctx.get_output_attributes().unwrap().clone(),
                 created_with_merge: ctx.was_output_created_with_merge(),
                 block: ctx.get_block_nonce(),
                 epoch: ctx.get_block_epoch(),
@@ -182,7 +182,6 @@ pub trait ContextEventsModule {
         let reward = ctx.get_final_reward().unwrap();
         let output = ctx.get_output_payments().get(0).unwrap();
 
-        let epoch = self.blockchain().get_block_epoch();
         self.compound_rewards_event(
             ctx.get_caller(),
             ctx.get_farm_token_id(),
@@ -191,7 +190,7 @@ pub trait ContextEventsModule {
                 caller: ctx.get_caller().clone(),
                 old_farm_token_id: ctx.get_farm_token_id().clone(),
                 old_farm_token_nonce: first_pay.token_nonce,
-                old_farm_token_amount: first_pay.amount,
+                old_farm_token_amount: first_pay.amount.clone(),
                 new_farm_token_id: ctx.get_farm_token_id().clone(),
                 new_farm_token_nonce: output.token_nonce,
                 new_farm_token_amount: output.amount,
@@ -201,7 +200,7 @@ pub trait ContextEventsModule {
                 reward_token_amount: reward.amount.clone(),
                 reward_reserve: ctx.get_reward_reserve().clone(),
                 old_farm_attributes: ctx.get_input_attributes().unwrap().clone(),
-                new_farm_attributes: ctx.get_output_attributes().clone(),
+                new_farm_attributes: ctx.get_output_attributes().unwrap().clone(),
                 created_with_merge: ctx.was_output_created_with_merge(),
                 block: ctx.get_block_nonce(),
                 epoch: ctx.get_block_epoch(),

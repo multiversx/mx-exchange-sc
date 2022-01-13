@@ -205,9 +205,7 @@ impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
     }
 
     #[inline]
-    fn decrease_reward_reserve(&mut self, amount: &BigUint<M>) {
-        self.storage_cache.reward_reserve -= amount;
-    }
+    fn decrease_reward_reserve(&mut self) {}
 
     #[inline]
     fn update_reward_per_share(&mut self, reward_added: &BigUint<M>) {
@@ -232,7 +230,7 @@ impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
     }
 
     #[inline]
-    fn set_initial_farming_amount(&mut self, amount: BigUint<M>) {}
+    fn set_initial_farming_amount(&mut self, _amount: BigUint<M>) {}
 
     #[inline]
     fn get_initial_farming_amount(&self) -> Option<&BigUint<M>> {
@@ -268,7 +266,7 @@ impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
     #[inline]
     fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool) {
         self.output_payments.push(position.token_amount);
-        self.output_created_with_merge = true;
+        self.output_created_with_merge = created_with_merge;
         self.output_attributes = Some(position.attributes);
     }
 }

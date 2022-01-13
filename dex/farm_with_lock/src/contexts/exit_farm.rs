@@ -205,8 +205,8 @@ impl<M: ManagedTypeApi> Context<M> for ExitFarmContext<M> {
     }
 
     #[inline]
-    fn decrease_reward_reserve(&mut self, amount: &BigUint<M>) {
-        self.storage_cache.reward_reserve -= amount;
+    fn decrease_reward_reserve(&mut self) {
+        self.storage_cache.reward_reserve -= &self.position_reward;
     }
 
     #[inline]
@@ -331,12 +331,12 @@ impl<M: ManagedTypeApi> ExitFarmContext<M> {
     }
 
     #[inline]
-    pub fn decrease_reward_reserve(&self) {
+    pub fn decrease_reward_reserve(&mut self) {
         self.storage_cache.reward_reserve -= &self.position_reward
     }
 
     #[inline]
-    pub fn calculate_initial_farming_amount(&self) {
+    pub fn calculate_initial_farming_amount(&mut self) {
         self.storage_cache.reward_reserve -= &self.position_reward
     }
 

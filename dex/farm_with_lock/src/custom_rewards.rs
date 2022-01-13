@@ -2,8 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::custom_config;
-use super::errors::*;
-use crate::assert;
 use crate::contexts::base::Context;
 
 #[elrond_wasm::module]

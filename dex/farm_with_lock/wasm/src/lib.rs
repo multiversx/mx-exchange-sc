@@ -9,7 +9,6 @@ elrond_wasm_node::wasm_endpoints! {
     (
         init
         callBack
-        calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
         end_produce_rewards

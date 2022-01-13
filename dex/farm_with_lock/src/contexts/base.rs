@@ -38,7 +38,7 @@ pub trait Context<M: ManagedTypeApi> {
     fn get_reward_reserve(&self) -> &BigUint<M>;
 
     fn increase_reward_reserve(&mut self, amount: &BigUint<M>);
-    fn decrease_reward_reserve(&mut self, amount: &BigUint<M>);
+    fn decrease_reward_reserve(&mut self);
 
     fn update_reward_per_share(&mut self, reward_added: &BigUint<M>);
 

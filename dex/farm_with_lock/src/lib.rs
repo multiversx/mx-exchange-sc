@@ -8,7 +8,6 @@ pub mod custom_config;
 pub mod custom_rewards;
 pub mod errors;
 pub mod farm_token_merge;
-use crate::assert;
 
 use common_structs::{FarmTokenAttributes, Nonce};
 use config::State;
@@ -49,6 +48,9 @@ pub trait Farm:
 {
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
+
+    #[proxy]
+    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[init]
     fn init(
@@ -225,7 +227,7 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        let context = self.new_claim_rewards_context(opt_accept_funds_func);
+        let mut context = self.new_claim_rewards_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
         assert!(
@@ -262,7 +264,7 @@ pub trait Farm:
 
         let virtual_position = FarmToken {
             token_amount: EsdtTokenPayment::new(
-                context.get_farm_token_id(),
+                context.get_farm_token_id().clone(),
                 0,
                 context
                     .get_tx_input()
@@ -272,7 +274,7 @@ pub trait Farm:
                     .clone(),
             ),
             attributes: FarmTokenAttributes {
-                reward_per_share: context.get_reward_per_share(),
+                reward_per_share: context.get_reward_per_share().clone(),
                 entering_epoch: context.get_input_attributes().unwrap().entering_epoch,
                 original_entering_epoch: context
                     .get_input_attributes()
@@ -370,10 +372,10 @@ pub trait Farm:
                 original_entering_epoch: self.aggregated_original_entering_epoch_on_compound(
                     context.get_farm_token_id(),
                     &context.get_tx_input().get_payments().get_first().amount,
-                    context.get_input_attributes(),
+                    context.get_input_attributes().unwrap(),
                     context.get_position_reward().unwrap(),
                 ),
-                initial_farming_amount: context.get_initial_farming_amount(),
+                initial_farming_amount: context.get_initial_farming_amount().unwrap().clone(),
                 compounded_reward: self.calculate_new_compound_reward_amount(&context)
                     + context.get_position_reward().unwrap(),
                 current_farm_amount: &context.get_tx_input().get_payments().get_first().amount
@@ -481,7 +483,7 @@ pub trait Farm:
         };
         let is_merged = additional_payments_len != 0;
 
-        Ok((new_farm_token, is_merged))
+        (new_farm_token, is_merged)
     }
 
     fn send_back_farming_tokens(
@@ -507,7 +509,7 @@ pub trait Farm:
             let result = self
                 .locked_asset_factory(locked_asset_factory_address)
                 .create_and_forward(
-                    context.get_position_reward().clone(),
+                    context.get_position_reward().unwrap().clone(),
                     context.get_caller().clone(),
                     context.get_input_attributes().unwrap().entering_epoch,
                     context.get_opt_accept_funds_func().clone(),
@@ -516,9 +518,9 @@ pub trait Farm:
             context.set_final_reward(result);
         } else {
             context.set_final_reward(self.create_payment(
-                context.get_position_reward(),
+                context.get_reward_token_id(),
                 0,
-                context.get_position_reward(),
+                context.get_position_reward().unwrap(),
             ));
         }
     }
@@ -536,7 +538,8 @@ pub trait Farm:
 
     fn burn_penalty(&self, context: &mut ExitFarmContext<Self::Api>) {
         if self.should_apply_penalty(context.get_input_attributes().unwrap().entering_epoch) {
-            let penalty_amount = self.get_penalty_amount(context.get_initial_farming_amount());
+            let penalty_amount =
+                self.get_penalty_amount(context.get_initial_farming_amount().unwrap());
             if penalty_amount > 0u64 {
                 self.burn_farming_tokens(
                     context.get_farming_token_id(),
@@ -562,6 +565,6 @@ pub trait Farm:
             &context.get_tx_input().get_payments().get_first().amount,
             &context.get_input_attributes().unwrap().current_farm_amount,
             &context.get_input_attributes().unwrap().compounded_reward,
-        );
+        )
     }
 }

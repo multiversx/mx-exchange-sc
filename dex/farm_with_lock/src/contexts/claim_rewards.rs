@@ -216,8 +216,8 @@ impl<M: ManagedTypeApi> Context<M> for ClaimRewardsContext<M> {
     }
 
     #[inline]
-    fn decrease_reward_reserve(&mut self, amount: &BigUint<M>) {
-        self.storage_cache.reward_reserve -= amount;
+    fn decrease_reward_reserve(&mut self) {
+        self.storage_cache.reward_reserve -= &self.position_reward;
     }
 
     #[inline]
@@ -285,7 +285,7 @@ impl<M: ManagedTypeApi> Context<M> for ClaimRewardsContext<M> {
     #[inline]
     fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool) {
         self.output_payments.push(position.token_amount);
-        self.output_created_with_merge = true;
+        self.output_created_with_merge = created_with_merge;
         self.output_attributes = Some(position.attributes);
     }
 }
@@ -357,27 +357,5 @@ impl<M: ManagedTypeApi> ClaimRewardsContext<M> {
         }
 
         true
-    }
-
-    #[inline]
-    pub fn was_output_created_with_merge(&self) -> bool {
-        self.output_created_with_merge
-    }
-
-    #[inline]
-    pub fn get_output_attributes(&self) -> &FarmTokenAttributes<M> {
-        self.output_attributes.as_ref().unwrap()
-    }
-
-    #[inline]
-    pub fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool) {
-        self.output_payments.push(position.token_amount);
-        self.output_created_with_merge = true;
-        self.output_attributes = Some(position.attributes);
-    }
-
-    #[inline]
-    pub fn decrease_reward_reserve(&self) {
-        self.storage_cache.reward_reserve -= &self.position_reward
     }
 }
