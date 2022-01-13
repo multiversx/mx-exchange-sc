@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
+use farm_token::FarmToken;
 
 use super::base::*;
 use crate::State;
@@ -238,9 +239,42 @@ impl<M: ManagedTypeApi> Context<M> for ExitFarmContext<M> {
     }
 
     #[inline]
-    fn get_position_reward(&self) -> &BigUint<M> {
-        &self.position_reward
+    fn get_position_reward(&self) -> Option<&BigUint<M>> {
+        Some(&self.position_reward)
     }
+
+    #[inline]
+    fn set_initial_farming_amount(&mut self, amount: BigUint<M>) {
+        self.initial_farming_amount = amount;
+    }
+
+    #[inline]
+    fn get_initial_farming_amount(&self) -> Option<&BigUint<M>> {
+        Some(&self.initial_farming_amount)
+    }
+
+    #[inline]
+    fn set_final_reward(&mut self, payment: EsdtTokenPayment<M>) {
+        self.final_reward = Some(payment);
+    }
+
+    #[inline]
+    fn get_final_reward(&self) -> Option<&EsdtTokenPayment<M>> {
+        self.final_reward.as_ref()
+    }
+
+    #[inline]
+    fn was_output_created_with_merge(&self) -> bool {
+        false
+    }
+
+    #[inline]
+    fn get_output_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
+        None
+    }
+
+    #[inline]
+    fn set_output_position(&mut self, _position: FarmToken<M>, _created_with_merge: bool) {}
 }
 
 impl<M: ManagedTypeApi> TxInputArgs<M> for ExitFarmArgs<M> {
@@ -307,16 +341,6 @@ impl<M: ManagedTypeApi> ExitFarmContext<M> {
     }
 
     #[inline]
-    pub fn set_initial_farming_amount(&mut self, amount: BigUint<M>) {
-        self.initial_farming_amount = amount;
-    }
-
-    #[inline]
-    pub fn get_initial_farming_amount(&self) -> &BigUint<M> {
-        &self.initial_farming_amount
-    }
-
-    #[inline]
     pub fn increase_position_reward(&mut self, amount: &BigUint<M>) {
         self.position_reward += amount;
     }
@@ -324,15 +348,5 @@ impl<M: ManagedTypeApi> ExitFarmContext<M> {
     #[inline]
     pub fn decrease_farming_token_amount(&mut self, amount: &BigUint<M>) {
         self.initial_farming_amount -= amount;
-    }
-
-    #[inline]
-    pub fn set_final_reward(&mut self, payment: EsdtTokenPayment<M>) {
-        self.final_reward = Some(payment);
-    }
-
-    #[inline]
-    pub fn get_final_reward(&self) -> Option<&EsdtTokenPayment<M>> {
-        self.final_reward.as_ref()
     }
 }

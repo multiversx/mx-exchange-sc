@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
+use farm_token::FarmToken;
 
 use crate::State;
 
@@ -44,10 +45,20 @@ pub trait Context<M: ManagedTypeApi> {
     fn set_input_attributes(&mut self, attrs: FarmTokenAttributes<M>);
     fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>>;
 
+    fn set_initial_farming_amount(&mut self, amount: BigUint<M>);
+    fn get_initial_farming_amount(&self) -> Option<&BigUint<M>>;
+
     fn set_position_reward(&mut self, amount: BigUint<M>);
-    fn get_position_reward(&self) -> &BigUint<M>;
+    fn get_position_reward(&self) -> Option<&BigUint<M>>;
 
     fn get_storage_cache(&self) -> &StorageCache<M>;
+
+    fn set_final_reward(&mut self, payment: EsdtTokenPayment<M>);
+    fn get_final_reward(&self) -> Option<&EsdtTokenPayment<M>>;
+
+    fn was_output_created_with_merge(&self) -> bool;
+    fn get_output_attributes(&self) -> Option<&FarmTokenAttributes<M>>;
+    fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool);
 
     fn get_caller(&self) -> &ManagedAddress<M>;
 

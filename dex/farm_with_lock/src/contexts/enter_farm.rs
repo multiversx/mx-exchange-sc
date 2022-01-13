@@ -232,11 +232,44 @@ impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
     }
 
     #[inline]
+    fn set_initial_farming_amount(&mut self, amount: BigUint<M>) {}
+
+    #[inline]
+    fn get_initial_farming_amount(&self) -> Option<&BigUint<M>> {
+        None
+    }
+
+    #[inline]
     fn set_position_reward(&mut self, _amount: BigUint<M>) {}
 
     #[inline]
-    fn get_position_reward(&self) -> &BigUint<M> {
-        &BigUint::zero()
+    fn get_position_reward(&self) -> Option<&BigUint<M>> {
+        None
+    }
+
+    #[inline]
+    fn set_final_reward(&mut self, _payment: EsdtTokenPayment<M>) {}
+
+    #[inline]
+    fn get_final_reward(&self) -> Option<&EsdtTokenPayment<M>> {
+        None
+    }
+
+    #[inline]
+    fn was_output_created_with_merge(&self) -> bool {
+        self.output_created_with_merge
+    }
+
+    #[inline]
+    fn get_output_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
+        self.output_attributes.as_ref()
+    }
+
+    #[inline]
+    fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool) {
+        self.output_payments.push(position.token_amount);
+        self.output_created_with_merge = true;
+        self.output_attributes = Some(position.attributes);
     }
 }
 
@@ -307,22 +340,5 @@ impl<M: ManagedTypeApi> EnterFarmContext<M> {
         }
 
         true
-    }
-
-    #[inline]
-    pub fn was_output_created_with_merge(&self) -> bool {
-        self.output_created_with_merge
-    }
-
-    #[inline]
-    pub fn get_output_attributes(&self) -> &FarmTokenAttributes<M> {
-        self.output_attributes.as_ref().unwrap()
-    }
-
-    #[inline]
-    pub fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool) {
-        self.output_payments.push(position.token_amount);
-        self.output_created_with_merge = true;
-        self.output_attributes = Some(position.attributes);
     }
 }

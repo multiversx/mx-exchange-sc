@@ -3,6 +3,7 @@ elrond_wasm::derive_imports!();
 
 use super::base::*;
 use super::claim_rewards::*;
+use super::compound_rewards::*;
 use super::enter_farm::*;
 use super::exit_farm::*;
 use crate::assert;
@@ -59,6 +60,29 @@ pub trait CtxHelper:
         let tx = ClaimRewardsTxInput::new(args, payments);
 
         ClaimRewardsContext::new(tx, caller)
+    }
+
+    fn new_compound_rewards_context(
+        &self,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> CompoundRewardsContext<Self::Api> {
+        let caller = self.blockchain().get_caller();
+
+        let payments = self.call_value().all_esdt_transfers();
+        let mut payments_iter = payments.iter();
+
+        let first_payment = payments_iter.next().unwrap();
+
+        let mut additional_payments = ManagedVec::new();
+        while let Some(payment) = payments_iter.next() {
+            additional_payments.push(payment);
+        }
+
+        let args = CompoundRewardsArgs::new(opt_accept_funds_func);
+        let payments = CompoundRewardsPayments::new(first_payment, additional_payments);
+        let tx = CompoundRewardsTxInput::new(args, payments);
+
+        CompoundRewardsContext::new(tx, caller)
     }
 
     fn new_exit_farm_context(
@@ -204,7 +228,7 @@ pub trait CtxHelper:
         res
     }
 
-    fn calculate_initial_farming_amount(&self, context: &mut ExitFarmContext<Self::Api>) {
+    fn calculate_initial_farming_amount(&self, context: &mut dyn Context<Self::Api>) {
         let mut initial_farming_token_amount = self.rule_of_three_non_zero_result(
             &context.get_tx_input().get_payments().get_first().amount,
             &context.get_input_attributes().unwrap().current_farm_amount,
@@ -227,21 +251,21 @@ pub trait CtxHelper:
         context.increase_position_reward(&amount);
     }
 
-    fn construct_output_payments(&self, context: &mut ExitFarmContext<Self::Api>) {
+    fn construct_output_payments_exit(&self, context: &mut ExitFarmContext<Self::Api>) {
         let mut result = ManagedVec::new();
 
         result.push(self.create_payment(
             context.get_farming_token_id(),
             0,
-            context.get_initial_farming_amount(),
+            context.get_initial_farming_amount().unwrap(),
         ));
 
         context.set_output_payments(result);
     }
 
-    fn construct_and_get_exit_farm_result(
+    fn construct_and_get_result(
         &self,
-        context: &ExitFarmContext<Self::Api>,
+        context: &dyn Context<Self::Api>,
     ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         MultiResult2::from((
             context.get_output_payments().get(0).unwrap(),
