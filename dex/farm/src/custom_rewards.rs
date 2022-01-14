@@ -25,30 +25,15 @@ pub trait CustomRewardsModule:
         }
     }
 
-    fn generate_aggregated_rewards(&self, reward_token_id: &TokenIdentifier) {
-        let total_reward = self.mint_per_block_rewards(reward_token_id);
+    fn generate_aggregated_rewards<MintRewardsFunc: Fn(&Self, &TokenIdentifier) -> BigUint>(
+        &self,
+        reward_token_id: &TokenIdentifier,
+        mint_rewards_function: MintRewardsFunc,
+    ) {
+        let total_reward = mint_rewards_function(self, reward_token_id);
         if total_reward > 0 {
             self.increase_reward_reserve(&total_reward);
             self.update_reward_per_share(&total_reward);
         }
-    }
-
-    #[endpoint]
-    fn end_produce_rewards(&self) -> SCResult<()> {
-        self.require_permissions()?;
-        let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
-        self.produce_rewards_enabled().set(&false);
-        Ok(())
-    }
-
-    #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(&self, per_block_amount: BigUint) -> SCResult<()> {
-        self.require_permissions()?;
-        require!(per_block_amount != 0, "Amount cannot be zero");
-        let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
-        self.per_block_reward_amount().set(&per_block_amount);
-        Ok(())
     }
 }
