@@ -519,6 +519,39 @@ pub trait Farm:
         }
     }
 
+    #[view(calculateRewardsForGivenPosition)]
+    fn calculate_rewards_for_given_position(
+        &self,
+        amount: BigUint,
+        attributes: FarmTokenAttributes<Self::Api>,
+    ) -> BigUint {
+        assert!(self, amount > 0u64, ERROR_ZERO_AMOUNT);
+        let farm_token_supply = self.farm_token_supply().get();
+        assert!(self, farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
+
+        let last_reward_nonce = self.last_reward_block_nonce().get();
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let reward_increase =
+            self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+        let reward_per_share_increase = reward_increase * &self.division_safety_constant().get()
+            / self.farm_token_supply().get();
+
+        let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
+        let mut reward = if future_reward_per_share > attributes.reward_per_share {
+            let reward_per_share_diff = future_reward_per_share - attributes.reward_per_share;
+            amount * &reward_per_share_diff / self.division_safety_constant().get()
+        } else {
+            BigUint::zero()
+        };
+
+        if self.should_apply_penalty(attributes.entering_epoch) {
+            let penalty = self.get_penalty_amount(&reward);
+            reward -= penalty;
+        }
+
+        reward
+    }
+
     #[inline]
     fn should_apply_penalty(&self, entering_epoch: u64) -> bool {
         entering_epoch + self.minimum_farming_epochs().get() as u64

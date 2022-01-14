@@ -255,7 +255,7 @@ pub trait ProxyFarmModule:
                 &amount,
                 &wrapped_farm_token_attrs.farm_token_amount,
                 &wrapped_farm_token_attrs.farming_token_amount,
-            )?,
+            ),
         };
         let (new_wrapped_farm, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
@@ -340,7 +340,7 @@ pub trait ProxyFarmModule:
                 &payment_amount,
                 &wrapped_farm_token_attrs.farm_token_amount,
                 &wrapped_farm_token_attrs.farming_token_amount,
-            )?,
+            ),
         };
         let caller = self.blockchain().get_caller();
         let (new_wrapped_farm, created_with_merge) = self

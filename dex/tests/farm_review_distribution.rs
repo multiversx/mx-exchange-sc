@@ -1,8 +1,7 @@
 use std::ops::Mul;
 
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
-    TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -59,13 +58,12 @@ where
         let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
         let pair_address = managed_address!(&Address::zero());
 
-        let result = sc.init(
+        sc.init(
             reward_token_id,
             farming_token_id,
             division_safety_constant,
             pair_address,
         );
-        assert_eq!(result, SCResult::Ok(()));
 
         let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
         sc.farm_token_id().set(&farm_token_id);
@@ -139,11 +137,6 @@ impl Expected {
     }
 }
 
-fn panic_sc_err(err: StaticSCError) -> ! {
-    let err_str = String::from_utf8(err.as_bytes().to_vec()).unwrap();
-    panic!("{:?}", err_str);
-}
-
 fn enter_farm<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     caller: &Address,
@@ -165,20 +158,13 @@ fn enter_farm<FarmObjBuilder>(
 
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock.execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-        let result = sc.enter_farm(OptionalArg::None);
-        match result {
-            SCResult::Ok(payment) => {
-                assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-                check_biguint_eq(
-                    payment.amount,
-                    expected_total_out_amount,
-                    "Enter farm, farm token payment mismatch.",
-                );
-            }
-            SCResult::Err(err) => {
-                panic_sc_err(err);
-            }
-        }
+        let payment = sc.enter_farm(OptionalArg::None);
+        assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+        check_biguint_eq(
+            payment.amount,
+            expected_total_out_amount,
+            "Enter farm, farm token payment mismatch.",
+        );
 
         StateChange::Commit
     });
@@ -218,31 +204,26 @@ fn exit_farm<FarmObjBuilder>(
         farm_token_nonce,
         &farm_out_amount.clone(),
         |sc| {
-            let result = sc.exit_farm(
+            let multi_result = sc.exit_farm(
                 managed_token_id!(FARM_TOKEN_ID),
                 farm_token_nonce.clone(),
                 to_managed_biguint(farm_out_amount.clone()),
                 OptionalArg::None,
             );
 
-            match result {
-                SCResult::Ok(multi_result) => {
-                    let (first_result, second_result) = multi_result.into_tuple();
+            let (first_result, second_result) = multi_result.into_tuple();
 
-                    assert_eq!(
-                        first_result.token_identifier,
-                        managed_token_id!(LP_TOKEN_ID)
-                    );
-                    assert_eq!(first_result.token_nonce, 0);
+            assert_eq!(
+                first_result.token_identifier,
+                managed_token_id!(LP_TOKEN_ID)
+            );
+            assert_eq!(first_result.token_nonce, 0);
 
-                    assert_eq!(
-                        second_result.token_identifier,
-                        managed_token_id!(MEX_TOKEN_ID)
-                    );
-                    assert_eq!(second_result.token_nonce, 0);
-                }
-                SCResult::Err(err) => panic_sc_err(err),
-            }
+            assert_eq!(
+                second_result.token_identifier,
+                managed_token_id!(MEX_TOKEN_ID)
+            );
+            assert_eq!(second_result.token_nonce, 0);
 
             StateChange::Commit
         },
@@ -262,8 +243,7 @@ fn reward_per_block_rate_change<FarmObjBuilder>(
         &farm_setup.farm_wrapper,
         &rust_biguint!(0),
         |sc| {
-            sc.set_per_block_rewards(to_managed_biguint(new_rate))
-                .unwrap();
+            sc.set_per_block_rewards(to_managed_biguint(new_rate));
             StateChange::Commit
         },
     );
