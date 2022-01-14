@@ -1,19 +1,16 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use super::errors::*;
-use crate::assert;
+use common_errors::*;
+use common_macros::assert;
 use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
-
-use super::custom_config;
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + custom_config::CustomConfigModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
 {
@@ -23,27 +20,26 @@ pub trait FarmTokenMergeModule:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
-        // let caller = self.blockchain().get_caller();
-        // let payments_vec = self.get_all_payments_managed_vec();
-        // let payments_iter = payments_vec.iter();
+        let caller = self.blockchain().get_caller();
+        let payments = self.get_all_payments_managed_vec();
 
-        // let attrs = self.get_merged_farm_token_attributes(payments_iter.clone(), Option::None)?;
-        // let farm_token_id = self.farm_token_id().get();
-        // self.burn_farm_tokens_from_payments(payments_iter);
+        let attrs = self.get_merged_farm_token_attributes(&payments, Option::None);
+        let farm_token_id = self.farm_token_id().get();
+        self.burn_farm_tokens_from_payments(&payments);
 
-        // let new_nonce = self.mint_farm_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
-        // let new_amount = attrs.current_farm_amount;
+        let new_nonce = self.mint_farm_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
+        let new_amount = attrs.current_farm_amount;
 
-        // self.transfer_execute_custom(
-        //     &caller,
-        //     &farm_token_id,
-        //     new_nonce,
-        //     &new_amount,
-        //     &opt_accept_funds_func,
-        // )?;
+        self.transfer_execute_custom(
+            &caller,
+            &farm_token_id,
+            new_nonce,
+            &new_amount,
+            &opt_accept_funds_func,
+        )
+        .unwrap();
 
-        // Ok(self.create_payment(&farm_token_id, new_nonce, &new_amount))
-        panic!()
+        self.create_payment(&farm_token_id, new_nonce, &new_amount)
     }
 
     fn get_merged_farm_token_attributes(
@@ -119,13 +115,11 @@ pub trait FarmTokenMergeModule:
     ) -> BigUint {
         let mut sum = BigUint::zero();
         for x in tokens.iter() {
-            sum += &self
-                .rule_of_three_non_zero_result(
-                    &x.token_amount.amount,
-                    &x.attributes.current_farm_amount,
-                    &x.attributes.initial_farming_amount,
-                )
-                .unwrap_or_signal_error(self.type_manager());
+            sum += &self.rule_of_three_non_zero_result(
+                &x.token_amount.amount,
+                &x.attributes.current_farm_amount,
+                &x.attributes.initial_farming_amount,
+            );
         }
         sum
     }

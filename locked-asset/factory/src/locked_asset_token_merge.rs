@@ -6,7 +6,7 @@ use common_structs::*;
 use super::locked_asset;
 use super::locked_asset::{
     EpochAmountPair, LockedToken, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
-    ONE_MILLION, PERCENTAGE_TOTAL,
+    ONE_MILLION,
 };
 
 #[elrond_wasm::module]

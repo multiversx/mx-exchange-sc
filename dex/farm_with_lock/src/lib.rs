@@ -2,20 +2,16 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-pub mod contexts;
-pub mod ctx_events;
-pub mod custom_config;
 pub mod custom_rewards;
-pub mod errors;
 pub mod farm_token_merge;
 
+use common_errors::*;
+use common_macros::assert;
 use common_structs::{FarmTokenAttributes, Nonce};
 use config::State;
+use contexts::base::{Context, StorageCache};
 use contexts::exit_farm::ExitFarmContext;
-use errors::*;
 use farm_token::FarmToken;
-
-use crate::contexts::base::*;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -36,7 +32,6 @@ type ExitFarmResultType<BigUint> =
 pub trait Farm:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
-    + custom_config::CustomConfigModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
@@ -44,7 +39,6 @@ pub trait Farm:
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
-    + ctx_events::ContextEventsModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
@@ -118,7 +112,7 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
 
         let first_payment_amount = context
             .get_tx_input()
@@ -156,7 +150,7 @@ pub trait Farm:
 
         self.commit_changes(&context);
         self.execute_output_payments(&context);
-        self.emit_enter_farm_event_context(&context);
+        self.emit_enter_farm_event(&context);
 
         context
             .get_output_payments()
@@ -200,10 +194,10 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
         self.calculate_initial_farming_amount(&mut context);
@@ -216,7 +210,7 @@ pub trait Farm:
         self.send_rewards(&mut context);
         self.construct_output_payments_exit(&mut context);
         self.execute_output_payments(&context);
-        self.emit_exit_farm_event_context(&context);
+        self.emit_exit_farm_event(&context);
 
         self.construct_and_get_result(&context)
     }
@@ -252,10 +246,10 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
 
@@ -307,7 +301,7 @@ pub trait Farm:
 
         self.send_rewards(&mut context);
         self.execute_output_payments(&context);
-        self.emit_claim_rewards_event_context(&context);
+        self.emit_claim_rewards_event(&context);
 
         self.construct_and_get_result(&context)
     }
@@ -349,10 +343,10 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
-        self.generate_aggregated_rewards(&mut context);
+        self.generate_aggregated_rewards_from_context(&mut context);
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
 
@@ -398,7 +392,7 @@ pub trait Farm:
         self.commit_changes(&context);
 
         self.execute_output_payments(&context);
-        self.emit_compound_rewards_event_context(&context);
+        self.emit_compound_rewards_event(&context);
 
         context
             .get_output_payments()

@@ -5,78 +5,67 @@ use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 
 use super::base::*;
-use crate::State;
+use config::State;
 
-pub struct CompoundRewardsContext<M: ManagedTypeApi> {
+pub struct EnterFarmContext<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
-    tx_input: CompoundRewardsTxInput<M>,
+    tx_input: EnterFarmTxInput<M>,
     block_nonce: u64,
     block_epoch: u64,
-    position_reward: BigUint<M>,
     storage_cache: StorageCache<M>,
-    initial_farming_amount: BigUint<M>,
-    final_reward: Option<EsdtTokenPayment<M>>,
     output_attributes: Option<FarmTokenAttributes<M>>,
     output_created_with_merge: bool,
     output_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
-pub struct CompoundRewardsTxInput<M: ManagedTypeApi> {
-    args: CompoundRewardsArgs<M>,
-    payments: CompoundRewardsPayments<M>,
-    attributes: Option<FarmTokenAttributes<M>>,
+pub struct EnterFarmTxInput<M: ManagedTypeApi> {
+    args: EnterFarmArgs<M>,
+    payments: EnterFarmPayments<M>,
 }
 
-pub struct CompoundRewardsArgs<M: ManagedTypeApi> {
+pub struct EnterFarmArgs<M: ManagedTypeApi> {
     opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
 }
 
-pub struct CompoundRewardsPayments<M: ManagedTypeApi> {
+pub struct EnterFarmPayments<M: ManagedTypeApi> {
     first_payment: EsdtTokenPayment<M>,
     additional_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
-impl<M: ManagedTypeApi> CompoundRewardsTxInput<M> {
-    pub fn new(args: CompoundRewardsArgs<M>, payments: CompoundRewardsPayments<M>) -> Self {
-        CompoundRewardsTxInput {
-            args,
-            payments,
-            attributes: None,
-        }
+impl<M: ManagedTypeApi> EnterFarmTxInput<M> {
+    pub fn new(args: EnterFarmArgs<M>, payments: EnterFarmPayments<M>) -> Self {
+        EnterFarmTxInput { args, payments }
     }
 }
 
-impl<M: ManagedTypeApi> CompoundRewardsArgs<M> {
+impl<M: ManagedTypeApi> EnterFarmArgs<M> {
     pub fn new(opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>) -> Self {
-        CompoundRewardsArgs {
+        EnterFarmArgs {
             opt_accept_funds_func,
         }
     }
 }
 
-impl<M: ManagedTypeApi> CompoundRewardsPayments<M> {
+impl<M: ManagedTypeApi> EnterFarmPayments<M> {
     pub fn new(
         first_payment: EsdtTokenPayment<M>,
         additional_payments: ManagedVec<M, EsdtTokenPayment<M>>,
     ) -> Self {
-        CompoundRewardsPayments {
+        EnterFarmPayments {
             first_payment,
             additional_payments,
         }
     }
 }
 
-impl<M: ManagedTypeApi> CompoundRewardsContext<M> {
-    pub fn new(tx_input: CompoundRewardsTxInput<M>, caller: ManagedAddress<M>) -> Self {
-        CompoundRewardsContext {
+impl<M: ManagedTypeApi> EnterFarmContext<M> {
+    pub fn new(tx_input: EnterFarmTxInput<M>, caller: ManagedAddress<M>) -> Self {
+        EnterFarmContext {
             caller,
             tx_input,
             block_nonce: 0,
             block_epoch: 0,
-            position_reward: BigUint::zero(),
             storage_cache: StorageCache::default(),
-            initial_farming_amount: BigUint::zero(),
-            final_reward: None,
             output_attributes: None,
             output_created_with_merge: true,
             output_payments: ManagedVec::new(),
@@ -84,7 +73,7 @@ impl<M: ManagedTypeApi> CompoundRewardsContext<M> {
     }
 }
 
-impl<M: ManagedTypeApi> Context<M> for CompoundRewardsContext<M> {
+impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
     #[inline]
     fn set_contract_state(&mut self, contract_state: State) {
         self.storage_cache.contract_state = contract_state;
@@ -216,9 +205,7 @@ impl<M: ManagedTypeApi> Context<M> for CompoundRewardsContext<M> {
     }
 
     #[inline]
-    fn decrease_reward_reserve(&mut self) {
-        self.storage_cache.reward_reserve -= &self.position_reward;
-    }
+    fn decrease_reward_reserve(&mut self) {}
 
     #[inline]
     fn update_reward_per_share(&mut self, reward_added: &BigUint<M>) {
@@ -239,37 +226,31 @@ impl<M: ManagedTypeApi> Context<M> for CompoundRewardsContext<M> {
 
     #[inline]
     fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
-        self.tx_input.attributes.as_ref()
+        None
     }
 
     #[inline]
-    fn set_position_reward(&mut self, amount: BigUint<M>) {
-        self.position_reward = amount;
-    }
-
-    #[inline]
-    fn get_position_reward(&self) -> Option<&BigUint<M>> {
-        Some(&self.position_reward)
-    }
-
-    #[inline]
-    fn set_initial_farming_amount(&mut self, amount: BigUint<M>) {
-        self.initial_farming_amount = amount;
-    }
+    fn set_initial_farming_amount(&mut self, _amount: BigUint<M>) {}
 
     #[inline]
     fn get_initial_farming_amount(&self) -> Option<&BigUint<M>> {
-        Some(&self.initial_farming_amount)
+        None
     }
 
     #[inline]
-    fn set_final_reward(&mut self, payment: EsdtTokenPayment<M>) {
-        self.final_reward = Some(payment);
+    fn set_position_reward(&mut self, _amount: BigUint<M>) {}
+
+    #[inline]
+    fn get_position_reward(&self) -> Option<&BigUint<M>> {
+        None
     }
+
+    #[inline]
+    fn set_final_reward(&mut self, _payment: EsdtTokenPayment<M>) {}
 
     #[inline]
     fn get_final_reward(&self) -> Option<&EsdtTokenPayment<M>> {
-        self.final_reward.as_ref()
+        None
     }
 
     #[inline]
@@ -290,14 +271,14 @@ impl<M: ManagedTypeApi> Context<M> for CompoundRewardsContext<M> {
     }
 }
 
-impl<M: ManagedTypeApi> TxInputArgs<M> for CompoundRewardsArgs<M> {
+impl<M: ManagedTypeApi> TxInputArgs<M> for EnterFarmArgs<M> {
     #[inline]
     fn are_valid(&self) -> bool {
         true
     }
 }
 
-impl<M: ManagedTypeApi> TxInputPayments<M> for CompoundRewardsPayments<M> {
+impl<M: ManagedTypeApi> TxInputPayments<M> for EnterFarmPayments<M> {
     #[inline]
     fn are_valid(&self) -> bool {
         true
@@ -314,9 +295,9 @@ impl<M: ManagedTypeApi> TxInputPayments<M> for CompoundRewardsPayments<M> {
     }
 }
 
-impl<M: ManagedTypeApi> CompoundRewardsPayments<M> {}
+impl<M: ManagedTypeApi> EnterFarmPayments<M> {}
 
-impl<M: ManagedTypeApi> TxInput<M> for CompoundRewardsTxInput<M> {
+impl<M: ManagedTypeApi> TxInput<M> for EnterFarmTxInput<M> {
     #[inline]
     fn get_args(&self) -> &dyn TxInputArgs<M> {
         &self.args
@@ -333,13 +314,13 @@ impl<M: ManagedTypeApi> TxInput<M> for CompoundRewardsTxInput<M> {
     }
 }
 
-impl<M: ManagedTypeApi> CompoundRewardsTxInput<M> {}
+impl<M: ManagedTypeApi> EnterFarmTxInput<M> {}
 
-impl<M: ManagedTypeApi> CompoundRewardsContext<M> {
+impl<M: ManagedTypeApi> EnterFarmContext<M> {
     pub fn is_accepted_payment(&self) -> bool {
         let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
-            == self.storage_cache.farm_token_id
-            && self.tx_input.payments.first_payment.token_nonce != 0
+            == self.storage_cache.farming_token_id
+            && self.tx_input.payments.first_payment.token_nonce == 0
             && self.tx_input.payments.first_payment.amount != 0u64;
 
         if !first_payment_pass {

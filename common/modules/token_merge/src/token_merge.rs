@@ -3,6 +3,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_errors::ERROR_ZERO_AMOUNT;
+use common_macros::assert;
+
 #[derive(ManagedVecItem, Clone)]
 pub struct ValueWeight<M: ManagedTypeApi> {
     pub value: BigUint<M>,
@@ -32,9 +35,9 @@ pub trait TokenMergeModule {
         part: &BigUint,
         total: &BigUint,
         value: &BigUint,
-    ) -> SCResult<BigUint> {
+    ) -> BigUint {
         let res = &(part * value) / total;
-        require!(res != 0u64, "ceva");
-        Ok(res)
+        assert!(self, res != 0u64, ERROR_ZERO_AMOUNT);
+        res
     }
 }

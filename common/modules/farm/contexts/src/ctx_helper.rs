@@ -6,8 +6,8 @@ use super::claim_rewards::*;
 use super::compound_rewards::*;
 use super::enter_farm::*;
 use super::exit_farm::*;
-use crate::assert;
-use crate::errors::*;
+use common_errors::*;
+use common_macros::assert;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
@@ -213,16 +213,14 @@ pub trait CtxHelper:
     }
 
     fn calculate_initial_farming_amount(&self, context: &mut dyn Context<Self::Api>) {
-        let initial_farming_token_amount = self
-            .rule_of_three_non_zero_result(
-                &context.get_tx_input().get_payments().get_first().amount,
-                &context.get_input_attributes().unwrap().current_farm_amount,
-                &context
-                    .get_input_attributes()
-                    .unwrap()
-                    .initial_farming_amount,
-            )
-            .unwrap_or_signal_error(self.type_manager());
+        let initial_farming_token_amount = self.rule_of_three_non_zero_result(
+            &context.get_tx_input().get_payments().get_first().amount,
+            &context.get_input_attributes().unwrap().current_farm_amount,
+            &context
+                .get_input_attributes()
+                .unwrap()
+                .initial_farming_amount,
+        );
 
         context.set_initial_farming_amount(initial_farming_token_amount);
     }

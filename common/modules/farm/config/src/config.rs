@@ -3,6 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_errors::*;
+use common_macros::assert;
 use common_structs::Nonce;
 
 pub const MAX_PENALTY_PERCENT: u64 = 10_000;
@@ -26,57 +28,47 @@ pub trait ConfigModule: token_send::TokenSendModule {
         state == State::Active
     }
 
-    fn require_permissions(&self) -> SCResult<()> {
+    fn require_permissions(&self) {
         let caller = self.blockchain().get_caller();
         let owner = self.owner().get();
-        require!(caller == owner, "Permission denied");
-        Ok(())
+        assert!(self, caller == owner, ERROR_PERMISSIONS);
     }
 
     #[endpoint]
-    fn set_penalty_percent(&self, percent: u64) -> SCResult<()> {
-        self.require_permissions()?;
-        // require!(
-        //     percent < MAX_PENALTY_PERCENT,
-        //     "Percent cannot exceed max percent"
-        // );
+    fn set_penalty_percent(&self, percent: u64) {
+        self.require_permissions();
+        assert!(self, percent < MAX_PENALTY_PERCENT, ERROR_PARAMETERS,);
         self.penalty_percent().set(&percent);
-        Ok(())
     }
 
     #[endpoint]
-    fn set_minimum_farming_epochs(&self, epochs: u8) -> SCResult<()> {
-        self.require_permissions()?;
+    fn set_minimum_farming_epochs(&self, epochs: u8) {
+        self.require_permissions();
         self.minimum_farming_epochs().set(&epochs);
-        Ok(())
     }
 
     #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
-        self.require_permissions()?;
+    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
+        self.require_permissions();
         self.transfer_exec_gas_limit().set(&gas_limit);
-        Ok(())
     }
 
     #[endpoint]
-    fn set_burn_gas_limit(&self, gas_limit: u64) -> SCResult<()> {
-        self.require_permissions()?;
+    fn set_burn_gas_limit(&self, gas_limit: u64) {
+        self.require_permissions();
         self.burn_gas_limit().set(&gas_limit);
-        Ok(())
     }
 
     #[endpoint]
-    fn pause(&self) -> SCResult<()> {
-        self.require_permissions()?;
+    fn pause(&self) {
+        self.require_permissions();
         self.state().set(&State::Inactive);
-        Ok(())
     }
 
     #[endpoint]
-    fn resume(&self) -> SCResult<()> {
-        self.require_permissions()?;
+    fn resume(&self) {
+        self.require_permissions();
         self.state().set(&State::Active);
-        Ok(())
     }
 
     #[view(getFarmTokenSupply)]
@@ -137,4 +129,8 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getBurnGasLimit)]
     #[storage_mapper("burn_gas_limit")]
     fn burn_gas_limit(&self) -> SingleValueMapper<u64>;
+
+    #[view(getLockedAssetFactoryManagedAddress)]
+    #[storage_mapper("locked_asset_factory_address")]
+    fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

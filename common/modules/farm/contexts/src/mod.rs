@@ -1,3 +1,5 @@
+#![no_std]
+
 pub mod base;
 pub mod claim_rewards;
 pub mod compound_rewards;

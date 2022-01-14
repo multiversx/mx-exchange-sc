@@ -2,9 +2,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
+use config::State;
 use farm_token::FarmToken;
-
-use crate::State;
 
 pub trait Context<M: ManagedTypeApi> {
     fn set_contract_state(&mut self, contract_state: State);
