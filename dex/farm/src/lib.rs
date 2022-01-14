@@ -101,6 +101,7 @@ pub trait Farm:
         assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
 
         self.load_reward_token_id(&mut context);
+        self.load_reward_reserve(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
         self.load_reward_per_share(&mut context);
@@ -183,6 +184,7 @@ pub trait Farm:
         assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
 
         self.load_reward_token_id(&mut context);
+        self.load_reward_reserve(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
         self.load_reward_per_share(&mut context);
@@ -197,9 +199,9 @@ pub trait Farm:
         self.calculate_initial_farming_amount(&mut context);
         self.increase_reward_with_compounded_rewards(&mut context);
 
+        self.commit_changes(&context);
         self.burn_penalty(&mut context);
         self.burn_position(&context);
-        self.commit_changes(&context);
 
         self.send_rewards(&mut context);
         self.construct_output_payments_exit(&mut context);
@@ -235,6 +237,7 @@ pub trait Farm:
         assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
 
         self.load_reward_token_id(&mut context);
+        self.load_reward_reserve(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
         self.load_reward_per_share(&mut context);
@@ -332,9 +335,10 @@ pub trait Farm:
             ERROR_DIFFERENT_TOKEN_IDS
         );
 
+        self.load_reward_per_share(&mut context);
+        self.load_reward_reserve(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
-        self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
         self.generate_aggregated_rewards_from_context(&mut context);
@@ -502,6 +506,12 @@ pub trait Farm:
             )
             .unwrap_or_signal_error(self.type_manager());
         }
+
+        context.set_final_reward(self.create_payment(
+            context.get_reward_token_id(),
+            0,
+            context.get_position_reward().unwrap(),
+        ));
     }
 
     #[view(calculateRewardsForGivenPosition)]

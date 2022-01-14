@@ -127,12 +127,12 @@ pub trait CtxHelper:
 
     #[inline]
     fn load_block_nonce(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_reward_token_id(self.reward_token_id().get());
+        context.set_block_nonce(self.blockchain().get_block_nonce());
     }
 
     #[inline]
     fn load_block_epoch(&self, context: &mut dyn Context<Self::Api>) {
-        context.set_reward_token_id(self.reward_token_id().get());
+        context.set_block_epoch(self.blockchain().get_block_epoch());
     }
 
     #[inline]
@@ -157,10 +157,8 @@ pub trait CtxHelper:
 
     #[inline]
     fn commit_changes(&self, context: &dyn Context<Self::Api>) {
-        self.reward_reserve().set(context.get_reward_per_share());
+        self.reward_reserve().set(context.get_reward_reserve());
         self.reward_per_share().set(context.get_reward_per_share());
-        self.farm_token_supply()
-            .set(context.get_farm_token_supply());
     }
 
     #[inline]
