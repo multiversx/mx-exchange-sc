@@ -86,7 +86,7 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> EnterFarmResultType<Self::Api> {
-        let mut context = self.new_enter_farm_context(opt_accept_funds_func);
+        let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
         assert!(
@@ -173,7 +173,7 @@ pub trait Farm:
         #[payment_amount] _amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> ExitFarmResultType<Self::Api> {
-        let mut context = self.new_exit_farm_context(opt_accept_funds_func);
+        let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
         assert!(
@@ -190,11 +190,7 @@ pub trait Farm:
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(
-            self,
-            context.is_accepted_payment_non_enter(),
-            ERROR_BAD_PAYMENTS,
-        );
+        assert!(self, context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS,);
 
         self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
@@ -229,7 +225,7 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        let mut context = self.new_claim_rewards_context(opt_accept_funds_func);
+        let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
         assert!(
@@ -248,7 +244,7 @@ pub trait Farm:
         self.load_farming_token_id(&mut context);
         assert!(
             self,
-            context.is_accepted_payment_non_enter(),
+            context.is_accepted_payment_claim(),
             ERROR_BAD_PAYMENTS,
         );
 
@@ -324,7 +320,7 @@ pub trait Farm:
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> CompoundRewardsResultType<Self::Api> {
-        let mut context = self.new_compound_rewards_context(opt_accept_funds_func);
+        let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
         assert!(
@@ -344,7 +340,7 @@ pub trait Farm:
         self.load_reward_token_id(&mut context);
         assert!(
             self,
-            context.is_accepted_payment_non_enter(),
+            context.is_accepted_payment_compound(),
             ERROR_BAD_PAYMENTS,
         );
 

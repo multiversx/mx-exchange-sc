@@ -13,7 +13,7 @@ pub trait CtxHelper:
     + farm_token::FarmTokenModule
     + token_merge::TokenMergeModule
 {
-    fn new_enter_farm_context(
+    fn new_farm_context(
         &self,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> GenericContext<Self::Api> {
@@ -31,71 +31,6 @@ pub trait CtxHelper:
 
         let args = GenericArgs::new(opt_accept_funds_func);
         let payments = GenericPayments::new(first_payment, additional_payments);
-        let tx = GenericTxInput::new(args, payments);
-
-        GenericContext::new(tx, caller)
-    }
-
-    fn new_claim_rewards_context(
-        &self,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> GenericContext<Self::Api> {
-        let caller = self.blockchain().get_caller();
-
-        let payments = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments.iter();
-
-        let first_payment = payments_iter.next().unwrap();
-
-        let mut additional_payments = ManagedVec::new();
-        while let Some(payment) = payments_iter.next() {
-            additional_payments.push(payment);
-        }
-
-        let args = GenericArgs::new(opt_accept_funds_func);
-        let payments = GenericPayments::new(first_payment, additional_payments);
-        let tx = GenericTxInput::new(args, payments);
-
-        GenericContext::new(tx, caller)
-    }
-
-    fn new_compound_rewards_context(
-        &self,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> GenericContext<Self::Api> {
-        let caller = self.blockchain().get_caller();
-
-        let payments = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments.iter();
-
-        let first_payment = payments_iter.next().unwrap();
-
-        let mut additional_payments = ManagedVec::new();
-        while let Some(payment) = payments_iter.next() {
-            additional_payments.push(payment);
-        }
-
-        let args = GenericArgs::new(opt_accept_funds_func);
-        let payments = GenericPayments::new(first_payment, additional_payments);
-        let tx = GenericTxInput::new(args, payments);
-
-        GenericContext::new(tx, caller)
-    }
-
-    fn new_exit_farm_context(
-        &self,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> GenericContext<Self::Api> {
-        let caller = self.blockchain().get_caller();
-
-        let payments = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments.iter();
-
-        let first_payment = payments_iter.next().unwrap();
-        assert!(self, payments_iter.next().is_none(), ERROR_BAD_PAYMENTS_LEN);
-
-        let args = GenericArgs::new(opt_accept_funds_func);
-        let payments = GenericPayments::new(first_payment, ManagedVec::new());
         let tx = GenericTxInput::new(args, payments);
 
         GenericContext::new(tx, caller)

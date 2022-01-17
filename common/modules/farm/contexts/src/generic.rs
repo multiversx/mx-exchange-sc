@@ -6,18 +6,6 @@ use farm_token::FarmToken;
 
 use config::State;
 
-pub trait TxInput<M: ManagedTypeApi> {
-    fn get_args(&self) -> &dyn TxInputArgs<M>;
-    fn get_payments(&self) -> &dyn TxInputPayments<M>;
-}
-
-pub trait TxInputArgs<M: ManagedTypeApi> {}
-
-pub trait TxInputPayments<M: ManagedTypeApi> {
-    fn get_first(&self) -> &EsdtTokenPayment<M>;
-    fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>>;
-}
-
 pub struct StorageCache<M: ManagedTypeApi> {
     pub contract_state: State,
     pub farm_token_id: TokenIdentifier<M>,
@@ -153,7 +141,7 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     }
 
     #[inline]
-    pub fn get_tx_input(&self) -> &dyn TxInput<M> {
+    pub fn get_tx_input(&self) -> &GenericTxInput<M> {
         &self.tx_input
     }
 
@@ -362,7 +350,30 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     }
 
     #[inline]
-    pub fn is_accepted_payment_non_enter(&self) -> bool {
+    pub fn is_accepted_payment_exit(&self) -> bool {
+        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farm_token_id
+            && self.tx_input.payments.first_payment.token_nonce != 0
+            && self.tx_input.payments.first_payment.amount != 0u64;
+
+        if !first_payment_pass {
+            return false;
+        }
+
+        self.tx_input.payments.additional_payments.is_empty()
+    }
+
+    #[inline]
+    pub fn is_accepted_payment_claim(&self) -> bool {
+        self.is_accepted_payment_claim_compound()
+    }
+
+    #[inline]
+    pub fn is_accepted_payment_compound(&self) -> bool {
+        self.is_accepted_payment_claim_compound()
+    }
+
+    fn is_accepted_payment_claim_compound(&self) -> bool {
         let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
             == self.storage_cache.farm_token_id
             && self.tx_input.payments.first_payment.token_nonce != 0
@@ -396,30 +407,26 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     }
 }
 
-impl<M: ManagedTypeApi> TxInputArgs<M> for GenericArgs<M> {}
-
-impl<M: ManagedTypeApi> TxInputPayments<M> for GenericPayments<M> {
+impl<M: ManagedTypeApi> GenericPayments<M> {
     #[inline]
-    fn get_first(&self) -> &EsdtTokenPayment<M> {
+    pub fn get_first(&self) -> &EsdtTokenPayment<M> {
         &self.first_payment
     }
 
     #[inline]
-    fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>> {
+    pub fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>> {
         Some(&self.additional_payments)
     }
 }
 
-impl<M: ManagedTypeApi> GenericPayments<M> {}
-
-impl<M: ManagedTypeApi> TxInput<M> for GenericTxInput<M> {
+impl<M: ManagedTypeApi> GenericTxInput<M> {
     #[inline]
-    fn get_args(&self) -> &dyn TxInputArgs<M> {
+    pub fn get_args(&self) -> &GenericArgs<M> {
         &self.args
     }
 
     #[inline]
-    fn get_payments(&self) -> &dyn TxInputPayments<M> {
+    pub fn get_payments(&self) -> &GenericPayments<M> {
         &self.payments
     }
 }
