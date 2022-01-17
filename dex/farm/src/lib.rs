@@ -26,7 +26,7 @@ type ExitFarmResultType<BigUint> =
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct UnbondSftAttributes {
-    pub full_unlock_epoch: u64,
+    pub unlock_epoch: u64,
 }
 
 #[elrond_wasm::contract]
@@ -202,6 +202,9 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         );
 
+        self.farming_token_total_liquidity()
+            .update(|liq| *liq -= &initial_farming_token_amount);
+
         if self.should_apply_penalty(farm_attributes.entering_epoch) {
             let penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
             if penalty_amount > 0 {
@@ -219,7 +222,7 @@ pub trait Farm:
             &farm_token_id,
             &initial_farming_token_amount,
             &UnbondSftAttributes {
-                full_unlock_epoch: current_epoch + min_unbond_epochs,
+                unlock_epoch: current_epoch + min_unbond_epochs,
             },
         );
         self.transfer_execute_custom(
@@ -269,36 +272,24 @@ pub trait Farm:
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(amount > 0, "Payment amount cannot be zero");
 
-        self.farming_token_total_liquidity()
-            .update(|liq| *liq -= &amount);
-
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             &farm_token_id,
             token_nonce,
         );
-        let full_unlock_epoch = token_info
+        let unlock_epoch = token_info
             .decode_attributes::<UnbondSftAttributes>()?
-            .full_unlock_epoch;
+            .unlock_epoch;
         let current_epoch = self.blockchain().get_block_epoch();
-
-        let farming_token_id = self.farming_token_id().get();
-        let farming_token_amount = if current_epoch < full_unlock_epoch {
-            let reward_token_id = self.reward_token_id().get();
-            let penalty_amount = self.get_penalty_amount(&amount);
-            self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
-
-            amount - penalty_amount
-        } else {
-            amount
-        };
+        require!(current_epoch >= unlock_epoch, "Unbond period not over");
 
         let caller = self.blockchain().get_caller();
+        let farming_token_id = self.farming_token_id().get();
         self.transfer_execute_custom(
             &caller,
             &farming_token_id,
             0,
-            &farming_token_amount,
+            &amount,
             &opt_accept_funds_func,
         )?;
 
