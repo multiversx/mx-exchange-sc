@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_errors::*;
 use common_macros::assert;
-use contexts::base::Context;
+use contexts::generic::GenericContext;
 
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
@@ -29,7 +29,7 @@ pub trait CustomRewardsModule:
         }
     }
 
-    fn generate_aggregated_rewards_from_context(&self, ctx: &mut dyn Context<Self::Api>) {
+    fn generate_aggregated_rewards_from_context(&self, ctx: &mut GenericContext<Self::Api>) {
         let total_reward = self.mint_per_block_rewards(ctx.get_reward_token_id());
 
         if total_reward > 0u64 {

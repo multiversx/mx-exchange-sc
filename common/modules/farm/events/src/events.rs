@@ -5,10 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
 
-use contexts::{
-    base::Context, claim_rewards::ClaimRewardsContext, compound_rewards::CompoundRewardsContext,
-    enter_farm::EnterFarmContext, exit_farm::ExitFarmContext,
-};
+use contexts::generic::GenericContext;
 
 #[derive(TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {
@@ -93,7 +90,7 @@ pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait EventsModule {
-    fn emit_enter_farm_event(&self, ctx: &EnterFarmContext<Self::Api>) {
+    fn emit_enter_farm_event(&self, ctx: &GenericContext<Self::Api>) {
         let output = ctx.get_output_payments().get(0).unwrap();
 
         self.enter_farm_event(
@@ -119,7 +116,7 @@ pub trait EventsModule {
         )
     }
 
-    fn emit_exit_farm_event(&self, ctx: &ExitFarmContext<Self::Api>) {
+    fn emit_exit_farm_event(&self, ctx: &GenericContext<Self::Api>) {
         let first_pay = ctx.get_tx_input().get_payments().get_first();
         let reward = ctx.get_final_reward().unwrap();
 
@@ -147,7 +144,7 @@ pub trait EventsModule {
         )
     }
 
-    fn emit_claim_rewards_event(&self, ctx: &ClaimRewardsContext<Self::Api>) {
+    fn emit_claim_rewards_event(&self, ctx: &GenericContext<Self::Api>) {
         let first_pay = ctx.get_tx_input().get_payments().get_first();
         let reward = ctx.get_final_reward().unwrap();
         let output = ctx.get_output_payments().get(0).unwrap();
@@ -179,7 +176,7 @@ pub trait EventsModule {
         )
     }
 
-    fn emit_compound_rewards_event(self, ctx: &CompoundRewardsContext<Self::Api>) {
+    fn emit_compound_rewards_event(self, ctx: &GenericContext<Self::Api>) {
         let first_pay = ctx.get_tx_input().get_payments().get_first();
         let reward = ctx.get_final_reward().unwrap();
         let output = ctx.get_output_payments().get(0).unwrap();

@@ -9,8 +9,7 @@ use common_errors::*;
 use common_macros::assert;
 use common_structs::{FarmTokenAttributes, Nonce};
 use config::State;
-use contexts::base::{Context, StorageCache};
-use contexts::exit_farm::ExitFarmContext;
+use contexts::generic::{GenericContext, StorageCache};
 use farm_token::FarmToken;
 
 elrond_wasm::imports!();
@@ -104,7 +103,11 @@ pub trait Farm:
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
+        assert!(
+            self,
+            context.is_accepted_payment_enter(),
+            ERROR_BAD_PAYMENTS,
+        );
 
         self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
@@ -187,7 +190,11 @@ pub trait Farm:
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
+        assert!(
+            self,
+            context.is_accepted_payment_non_enter(),
+            ERROR_BAD_PAYMENTS,
+        );
 
         self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
@@ -239,7 +246,11 @@ pub trait Farm:
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
+        assert!(
+            self,
+            context.is_accepted_payment_non_enter(),
+            ERROR_BAD_PAYMENTS,
+        );
 
         self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
@@ -331,7 +342,11 @@ pub trait Farm:
 
         self.load_farming_token_id(&mut context);
         self.load_reward_token_id(&mut context);
-        assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
+        assert!(
+            self,
+            context.is_accepted_payment_non_enter(),
+            ERROR_BAD_PAYMENTS,
+        );
 
         assert!(
             self,
@@ -392,7 +407,7 @@ pub trait Farm:
 
         self.execute_output_payments(&context);
 
-        context.set_final_reward_for_emit_event();
+        context.set_final_reward_for_emit_compound_event();
         self.emit_compound_rewards_event(&context);
 
         context
@@ -498,7 +513,7 @@ pub trait Farm:
         .unwrap_or_signal_error(self.type_manager());
     }
 
-    fn send_rewards(&self, context: &mut dyn Context<Self::Api>) {
+    fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
         if context.get_position_reward().unwrap() > &0u64 {
             let locked_asset_factory_address = self.locked_asset_factory_address().get();
             let result = self
@@ -564,7 +579,7 @@ pub trait Farm:
         amount * self.penalty_percent().get() / MAX_PENALTY_PERCENT
     }
 
-    fn burn_penalty(&self, context: &mut ExitFarmContext<Self::Api>) {
+    fn burn_penalty(&self, context: &mut GenericContext<Self::Api>) {
         if self.should_apply_penalty(context.get_input_attributes().unwrap().entering_epoch) {
             let penalty_amount =
                 self.get_penalty_amount(context.get_initial_farming_amount().unwrap());
@@ -579,7 +594,7 @@ pub trait Farm:
         }
     }
 
-    fn burn_position(&self, context: &dyn Context<Self::Api>) {
+    fn burn_position(&self, context: &GenericContext<Self::Api>) {
         let farm_token = context.get_tx_input().get_payments().get_first();
         self.burn_farm_tokens(
             &farm_token.token_identifier,
@@ -588,7 +603,7 @@ pub trait Farm:
         );
     }
 
-    fn calculate_new_compound_reward_amount(&self, context: &dyn Context<Self::Api>) -> BigUint {
+    fn calculate_new_compound_reward_amount(&self, context: &GenericContext<Self::Api>) -> BigUint {
         self.rule_of_three(
             &context.get_tx_input().get_payments().get_first().amount,
             &context.get_input_attributes().unwrap().current_farm_amount,
