@@ -106,6 +106,7 @@ pub trait Farm:
         self.load_farming_token_id(&mut context);
         assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
 
+        self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
@@ -188,6 +189,7 @@ pub trait Farm:
         self.load_farming_token_id(&mut context);
         assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
 
+        self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
@@ -239,6 +241,7 @@ pub trait Farm:
         self.load_farming_token_id(&mut context);
         assert!(self, context.is_accepted_payment(), ERROR_BAD_PAYMENTS,);
 
+        self.load_reward_reserve(&mut context);
         self.load_reward_token_id(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
@@ -336,6 +339,7 @@ pub trait Farm:
             ERROR_DIFFERENT_TOKEN_IDS
         );
 
+        self.load_reward_reserve(&mut context);
         self.load_block_nonce(&mut context);
         self.load_block_epoch(&mut context);
         self.load_reward_per_share(&mut context);
@@ -346,9 +350,7 @@ pub trait Farm:
         self.generate_aggregated_rewards_from_context(&mut context);
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
-
         self.calculate_initial_farming_amount(&mut context);
-        self.calculate_new_compound_reward_amount(&mut context);
 
         let virtual_position = FarmToken {
             token_amount: EsdtTokenPayment::new(

@@ -6,7 +6,7 @@ use common_structs::*;
 use super::locked_asset;
 use super::locked_asset::{
     EpochAmountPair, LockedToken, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
-    ONE_MILLION,
+    ONE_MILLION, PERCENTAGE_TOTAL,
 };
 
 #[elrond_wasm::module]
@@ -138,12 +138,11 @@ pub trait LockedAssetTokenMergeModule:
                 );
                 array.push(EpochAmountPair {
                     epoch: milestone.unlock_epoch,
-                    amount: BigUint::zero(),
-                    // amount: self.rule_of_three(
-                    //     &BigUint::from(milestone.unlock_percent as u64),
-                    //     &BigUint::from(PERCENTAGE_TOTAL as u64),
-                    //     &locked_token.token_amount.amount,
-                    // ),
+                    amount: self.rule_of_three(
+                        &BigUint::from(milestone.unlock_percent as u64),
+                        &BigUint::from(PERCENTAGE_TOTAL as u64),
+                        &locked_token.token_amount.amount,
+                    ),
                 });
             }
             sum += &locked_token.token_amount.amount;
