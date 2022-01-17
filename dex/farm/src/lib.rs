@@ -190,7 +190,6 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
         self.generate_aggregated_rewards_from_context(&mut context);
@@ -243,7 +242,6 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
         self.generate_aggregated_rewards_from_context(&mut context);
@@ -341,15 +339,12 @@ pub trait Farm:
         self.load_block_epoch(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
         self.generate_aggregated_rewards_from_context(&mut context);
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
-
         self.calculate_initial_farming_amount(&mut context);
-        self.calculate_new_compound_reward_amount(&mut context);
 
         let virtual_position = FarmToken {
             token_amount: EsdtTokenPayment::new(
@@ -390,6 +385,8 @@ pub trait Farm:
         self.commit_changes(&context);
 
         self.execute_output_payments(&context);
+
+        context.set_final_reward_for_emit_event();
         self.emit_compound_rewards_event(&context);
 
         context

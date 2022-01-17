@@ -235,7 +235,9 @@ impl<M: ManagedTypeApi> Context<M> for CompoundRewardsContext<M> {
     }
 
     #[inline]
-    fn set_input_attributes(&mut self, _attr: FarmTokenAttributes<M>) {}
+    fn set_input_attributes(&mut self, attr: FarmTokenAttributes<M>) {
+        self.tx_input.attributes = Some(attr);
+    }
 
     #[inline]
     fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
@@ -288,21 +290,34 @@ impl<M: ManagedTypeApi> Context<M> for CompoundRewardsContext<M> {
         self.output_created_with_merge = created_with_merge;
         self.output_attributes = Some(position.attributes);
     }
-}
 
-impl<M: ManagedTypeApi> TxInputArgs<M> for CompoundRewardsArgs<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
+    fn is_accepted_payment(&self) -> bool {
+        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farm_token_id
+            && self.tx_input.payments.first_payment.token_nonce != 0
+            && self.tx_input.payments.first_payment.amount != 0u64;
+
+        if !first_payment_pass {
+            return false;
+        }
+
+        for payment in self.tx_input.payments.additional_payments.iter() {
+            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
+                && payment.token_nonce != 0
+                && payment.amount != 0;
+
+            if !payment_pass {
+                return false;
+            }
+        }
+
         true
     }
 }
+
+impl<M: ManagedTypeApi> TxInputArgs<M> for CompoundRewardsArgs<M> {}
 
 impl<M: ManagedTypeApi> TxInputPayments<M> for CompoundRewardsPayments<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
-        true
-    }
-
     #[inline]
     fn get_first(&self) -> &EsdtTokenPayment<M> {
         &self.first_payment
@@ -326,36 +341,16 @@ impl<M: ManagedTypeApi> TxInput<M> for CompoundRewardsTxInput<M> {
     fn get_payments(&self) -> &dyn TxInputPayments<M> {
         &self.payments
     }
-
-    #[inline]
-    fn is_valid(&self) -> bool {
-        true
-    }
 }
 
 impl<M: ManagedTypeApi> CompoundRewardsTxInput<M> {}
 
 impl<M: ManagedTypeApi> CompoundRewardsContext<M> {
-    pub fn is_accepted_payment(&self) -> bool {
-        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
-            == self.storage_cache.farm_token_id
-            && self.tx_input.payments.first_payment.token_nonce != 0
-            && self.tx_input.payments.first_payment.amount != 0u64;
-
-        if !first_payment_pass {
-            return false;
-        }
-
-        for payment in self.tx_input.payments.additional_payments.iter() {
-            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
-                && payment.token_nonce != 0
-                && payment.amount != 0;
-
-            if !payment_pass {
-                return false;
-            }
-        }
-
-        true
+    pub fn set_final_reward_for_emit_event(&mut self) {
+        self.final_reward = Some(EsdtTokenPayment::new(
+            self.storage_cache.reward_token_id.clone(),
+            0,
+            self.position_reward.clone(),
+        ));
     }
 }

@@ -235,7 +235,9 @@ impl<M: ManagedTypeApi> Context<M> for ClaimRewardsContext<M> {
     }
 
     #[inline]
-    fn set_input_attributes(&mut self, _attr: FarmTokenAttributes<M>) {}
+    fn set_input_attributes(&mut self, attr: FarmTokenAttributes<M>) {
+        self.tx_input.attributes = Some(attr);
+    }
 
     #[inline]
     fn get_input_attributes(&self) -> Option<&FarmTokenAttributes<M>> {
@@ -288,55 +290,8 @@ impl<M: ManagedTypeApi> Context<M> for ClaimRewardsContext<M> {
         self.output_created_with_merge = created_with_merge;
         self.output_attributes = Some(position.attributes);
     }
-}
 
-impl<M: ManagedTypeApi> TxInputArgs<M> for ClaimRewardsArgs<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
-        true
-    }
-}
-
-impl<M: ManagedTypeApi> TxInputPayments<M> for ClaimRewardsPayments<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
-        true
-    }
-
-    #[inline]
-    fn get_first(&self) -> &EsdtTokenPayment<M> {
-        &self.first_payment
-    }
-
-    #[inline]
-    fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>> {
-        Some(&self.additional_payments)
-    }
-}
-
-impl<M: ManagedTypeApi> ClaimRewardsPayments<M> {}
-
-impl<M: ManagedTypeApi> TxInput<M> for ClaimRewardsTxInput<M> {
-    #[inline]
-    fn get_args(&self) -> &dyn TxInputArgs<M> {
-        &self.args
-    }
-
-    #[inline]
-    fn get_payments(&self) -> &dyn TxInputPayments<M> {
-        &self.payments
-    }
-
-    #[inline]
-    fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-impl<M: ManagedTypeApi> ClaimRewardsTxInput<M> {}
-
-impl<M: ManagedTypeApi> ClaimRewardsContext<M> {
-    pub fn is_accepted_payment(&self) -> bool {
+    fn is_accepted_payment(&self) -> bool {
         let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
             == self.storage_cache.farm_token_id
             && self.tx_input.payments.first_payment.token_nonce != 0
@@ -357,5 +312,31 @@ impl<M: ManagedTypeApi> ClaimRewardsContext<M> {
         }
 
         true
+    }
+}
+
+impl<M: ManagedTypeApi> TxInputArgs<M> for ClaimRewardsArgs<M> {}
+
+impl<M: ManagedTypeApi> TxInputPayments<M> for ClaimRewardsPayments<M> {
+    #[inline]
+    fn get_first(&self) -> &EsdtTokenPayment<M> {
+        &self.first_payment
+    }
+
+    #[inline]
+    fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>> {
+        Some(&self.additional_payments)
+    }
+}
+
+impl<M: ManagedTypeApi> TxInput<M> for ClaimRewardsTxInput<M> {
+    #[inline]
+    fn get_args(&self) -> &dyn TxInputArgs<M> {
+        &self.args
+    }
+
+    #[inline]
+    fn get_payments(&self) -> &dyn TxInputPayments<M> {
+        &self.payments
     }
 }

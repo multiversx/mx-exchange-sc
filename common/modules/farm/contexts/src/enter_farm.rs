@@ -269,21 +269,34 @@ impl<M: ManagedTypeApi> Context<M> for EnterFarmContext<M> {
         self.output_created_with_merge = created_with_merge;
         self.output_attributes = Some(position.attributes);
     }
-}
 
-impl<M: ManagedTypeApi> TxInputArgs<M> for EnterFarmArgs<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
+    fn is_accepted_payment(&self) -> bool {
+        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farming_token_id
+            && self.tx_input.payments.first_payment.token_nonce == 0
+            && self.tx_input.payments.first_payment.amount != 0u64;
+
+        if !first_payment_pass {
+            return false;
+        }
+
+        for payment in self.tx_input.payments.additional_payments.iter() {
+            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
+                && payment.token_nonce != 0
+                && payment.amount != 0;
+
+            if !payment_pass {
+                return false;
+            }
+        }
+
         true
     }
 }
+
+impl<M: ManagedTypeApi> TxInputArgs<M> for EnterFarmArgs<M> {}
 
 impl<M: ManagedTypeApi> TxInputPayments<M> for EnterFarmPayments<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
-        true
-    }
-
     #[inline]
     fn get_first(&self) -> &EsdtTokenPayment<M> {
         &self.first_payment
@@ -306,37 +319,5 @@ impl<M: ManagedTypeApi> TxInput<M> for EnterFarmTxInput<M> {
     #[inline]
     fn get_payments(&self) -> &dyn TxInputPayments<M> {
         &self.payments
-    }
-
-    #[inline]
-    fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-impl<M: ManagedTypeApi> EnterFarmTxInput<M> {}
-
-impl<M: ManagedTypeApi> EnterFarmContext<M> {
-    pub fn is_accepted_payment(&self) -> bool {
-        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
-            == self.storage_cache.farming_token_id
-            && self.tx_input.payments.first_payment.token_nonce == 0
-            && self.tx_input.payments.first_payment.amount != 0u64;
-
-        if !first_payment_pass {
-            return false;
-        }
-
-        for payment in self.tx_input.payments.additional_payments.iter() {
-            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
-                && payment.token_nonce != 0
-                && payment.amount != 0;
-
-            if !payment_pass {
-                return false;
-            }
-        }
-
-        true
     }
 }

@@ -66,22 +66,17 @@ pub trait Context<M: ManagedTypeApi> {
     fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>>;
 
     fn get_tx_input(&self) -> &dyn TxInput<M>;
+    fn is_accepted_payment(&self) -> bool;
 }
 
 pub trait TxInput<M: ManagedTypeApi> {
     fn get_args(&self) -> &dyn TxInputArgs<M>;
     fn get_payments(&self) -> &dyn TxInputPayments<M>;
-
-    fn is_valid(&self) -> bool;
 }
 
-pub trait TxInputArgs<M: ManagedTypeApi> {
-    fn are_valid(&self) -> bool;
-}
+pub trait TxInputArgs<M: ManagedTypeApi> {}
 
 pub trait TxInputPayments<M: ManagedTypeApi> {
-    fn are_valid(&self) -> bool;
-
     fn get_first(&self) -> &EsdtTokenPayment<M>;
     fn get_additional(&self) -> Option<&ManagedVec<M, EsdtTokenPayment<M>>>;
 }

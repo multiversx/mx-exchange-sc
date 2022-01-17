@@ -191,17 +191,11 @@ pub trait CtxHelper:
     #[inline]
     fn calculate_reward(&self, context: &mut dyn Context<Self::Api>) {
         let reward = if context.get_reward_per_share()
-            > &context
-                .get_input_attributes()
-                .unwrap()
-                .initial_farming_amount
+            > &context.get_input_attributes().unwrap().reward_per_share
         {
             &context.get_tx_input().get_payments().get_first().amount
                 * &(context.get_reward_per_share()
-                    - &context
-                        .get_input_attributes()
-                        .unwrap()
-                        .initial_farming_amount)
+                    - &context.get_input_attributes().unwrap().reward_per_share)
                 / context.get_division_safety_constant()
         } else {
             BigUint::zero()

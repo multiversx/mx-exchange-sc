@@ -194,7 +194,6 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
         self.generate_aggregated_rewards_from_context(&mut context);
@@ -246,7 +245,6 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
         self.generate_aggregated_rewards_from_context(&mut context);
@@ -343,7 +341,6 @@ pub trait Farm:
         self.load_reward_per_share(&mut context);
         self.load_farm_token_supply(&mut context);
         self.load_division_safety_constant(&mut context);
-        self.generate_aggregated_rewards_from_context(&mut context);
         self.load_farm_attributes(&mut context);
 
         self.generate_aggregated_rewards_from_context(&mut context);
@@ -392,6 +389,8 @@ pub trait Farm:
         self.commit_changes(&context);
 
         self.execute_output_payments(&context);
+
+        context.set_final_reward_for_emit_event();
         self.emit_compound_rewards_event(&context);
 
         context

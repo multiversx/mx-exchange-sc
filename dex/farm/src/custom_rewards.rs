@@ -47,7 +47,7 @@ pub trait CustomRewardsModule:
             let supply = self.farm_token_supply().get();
             if supply != 0u64 {
                 self.reward_per_share().update(|x| {
-                    *x += total_reward & self.division_safety_constant().get() / supply
+                    *x += total_reward * self.division_safety_constant().get() / supply
                 });
             }
         }

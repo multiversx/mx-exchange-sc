@@ -275,21 +275,18 @@ impl<M: ManagedTypeApi> Context<M> for ExitFarmContext<M> {
 
     #[inline]
     fn set_output_position(&mut self, _position: FarmToken<M>, _created_with_merge: bool) {}
-}
 
-impl<M: ManagedTypeApi> TxInputArgs<M> for ExitFarmArgs<M> {
     #[inline]
-    fn are_valid(&self) -> bool {
-        true
+    fn is_accepted_payment(&self) -> bool {
+        self.tx_input.payments.first_payment.token_identifier == self.storage_cache.farm_token_id
+            && self.tx_input.payments.first_payment.token_nonce != 0
+            && self.tx_input.payments.first_payment.amount != 0u64
     }
 }
+
+impl<M: ManagedTypeApi> TxInputArgs<M> for ExitFarmArgs<M> {}
 
 impl<M: ManagedTypeApi> TxInputPayments<M> for ExitFarmPayments<M> {
-    #[inline]
-    fn are_valid(&self) -> bool {
-        true
-    }
-
     #[inline]
     fn get_first(&self) -> &EsdtTokenPayment<M> {
         &self.first_payment
@@ -313,23 +310,9 @@ impl<M: ManagedTypeApi> TxInput<M> for ExitFarmTxInput<M> {
     fn get_payments(&self) -> &dyn TxInputPayments<M> {
         &self.payments
     }
-
-    #[inline]
-    fn is_valid(&self) -> bool {
-        true
-    }
 }
 
-impl<M: ManagedTypeApi> ExitFarmTxInput<M> {}
-
 impl<M: ManagedTypeApi> ExitFarmContext<M> {
-    #[inline]
-    pub fn is_accepted_payment(&self) -> bool {
-        self.tx_input.payments.first_payment.token_identifier == self.storage_cache.farm_token_id
-            && self.tx_input.payments.first_payment.token_nonce != 0
-            && self.tx_input.payments.first_payment.amount != 0u64
-    }
-
     #[inline]
     pub fn increase_position_reward(&mut self, amount: &BigUint<M>) {
         self.position_reward += amount;
