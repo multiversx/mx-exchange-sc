@@ -24,6 +24,11 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct UnbondSftAttributes {
+    pub full_unlock_epoch: u64,
+}
+
 #[elrond_wasm::contract]
 pub trait Farm:
     custom_rewards::CustomRewardsModule
@@ -88,8 +93,8 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint(enterFarm)]
-    fn enter_farm(
+    #[endpoint(stakeFarm)]
+    fn stake_farm(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
@@ -107,9 +112,12 @@ pub trait Farm:
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
 
+        self.farming_token_total_liquidity()
+            .update(|liq| *liq += &enter_amount);
+
         let farm_contribution = &enter_amount;
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
 
         let epoch = self.blockchain().get_block_epoch();
         let attributes = FarmTokenAttributes {
@@ -154,8 +162,8 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint(exitFarm)]
-    fn exit_farm(
+    #[endpoint(unstakeFarm)]
+    fn unstake_farm(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] token_nonce: Nonce,
@@ -171,9 +179,9 @@ pub trait Farm:
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
 
-        let mut reward = self.calculate_reward(
+        let mut reward = self.calculate_rewards_with_apr_limit(
             &amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
@@ -204,10 +212,21 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
-        self.send_back_farming_tokens(
-            &farming_token_id,
+
+        let min_unbond_epochs = self.min_unbond_epochs().get();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let nft_nonce = self.nft_create_tokens(
+            &farm_token_id,
             &initial_farming_token_amount,
+            &UnbondSftAttributes {
+                full_unlock_epoch: current_epoch + min_unbond_epochs,
+            },
+        );
+        self.transfer_execute_custom(
             &caller,
+            &farm_token_id,
+            nft_nonce,
+            &amount,
             &opt_accept_funds_func,
         )?;
 
@@ -229,9 +248,61 @@ pub trait Farm:
             &farm_attributes,
         );
         Ok(MultiResult2::from((
-            self.create_payment(&farming_token_id, 0, &initial_farming_token_amount),
+            self.create_payment(&farm_token_id, nft_nonce, &initial_farming_token_amount),
             self.create_payment(&reward_token_id, reward_nonce, &reward),
         )))
+    }
+
+    #[payable("*")]
+    #[endpoint(unbondFarm)]
+    fn unbond_farm(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<()> {
+        require!(self.is_active(), "Not active");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
+
+        let farm_token_id = self.farm_token_id().get();
+        require!(payment_token_id == farm_token_id, "Bad input token");
+        require!(amount > 0, "Payment amount cannot be zero");
+
+        self.farming_token_total_liquidity()
+            .update(|liq| *liq -= &amount);
+
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            &farm_token_id,
+            token_nonce,
+        );
+        let full_unlock_epoch = token_info
+            .decode_attributes::<UnbondSftAttributes>()?
+            .full_unlock_epoch;
+        let current_epoch = self.blockchain().get_block_epoch();
+
+        let farming_token_id = self.farming_token_id().get();
+        let farming_token_amount = if current_epoch < full_unlock_epoch {
+            let reward_token_id = self.reward_token_id().get();
+            let penalty_amount = self.get_penalty_amount(&amount);
+            self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
+
+            amount - penalty_amount
+        } else {
+            amount
+        };
+
+        let caller = self.blockchain().get_caller();
+        self.transfer_execute_custom(
+            &caller,
+            &farming_token_id,
+            0,
+            &farming_token_amount,
+            &opt_accept_funds_func,
+        )?;
+
+        Ok(())
     }
 
     #[payable("*")]
@@ -257,9 +328,9 @@ pub trait Farm:
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        self.generate_aggregated_rewards();
 
-        let reward = self.calculate_reward(
+        let reward = self.calculate_rewards_with_apr_limit(
             &amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
@@ -358,11 +429,11 @@ pub trait Farm:
             farming_token == reward_token,
             "Farming token differ from reward token"
         );
-        self.generate_aggregated_rewards(&reward_token);
+        self.generate_aggregated_rewards();
 
         let current_rps = self.reward_per_share().get();
         let farm_attributes = self.get_farm_attributes(&payment_token_id, payment_token_nonce)?;
-        let reward = self.calculate_reward(
+        let reward = self.calculate_rewards_with_apr_limit(
             &payment_amount,
             &current_rps,
             &farm_attributes.reward_per_share,
@@ -541,7 +612,7 @@ pub trait Farm:
             self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let mut reward = self.calculate_reward(
+        let mut reward = self.calculate_rewards_with_apr_limit(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
