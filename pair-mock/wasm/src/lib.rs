@@ -5,11 +5,10 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    adder
+    pair_mock
     (
         init
-        add
-        getSum
+        addInitialLiquidity
     )
 }
 
