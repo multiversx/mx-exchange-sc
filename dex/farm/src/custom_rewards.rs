@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
+const EPOCHS_IN_YEAR: u64 = 365;
 
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
@@ -38,6 +38,7 @@ pub trait CustomRewardsModule:
         amount: &BigUint,
         current_reward_per_share: &BigUint,
         initial_reward_per_share: &BigUint,
+        entering_epoch: u64,
     ) -> BigUint {
         let unbounded_rewards =
             self.calculate_reward(amount, current_reward_per_share, initial_reward_per_share);
@@ -47,9 +48,13 @@ pub trait CustomRewardsModule:
 
         let farming_token_total_liquidity = self.farming_token_total_liquidity().get();
         let max_apr = self.max_annual_percentage_rewards().get();
-        let max_rewards = farming_token_total_liquidity * max_apr
-            / BLOCKS_IN_YEAR
+        let max_rewards_per_epoch = farming_token_total_liquidity * max_apr
+            / EPOCHS_IN_YEAR
             / self.division_safety_constant().get();
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let epoch_diff = current_epoch - entering_epoch;
+        let max_rewards = max_rewards_per_epoch * (epoch_diff + 1); // +1 to round up
 
         core::cmp::min(unbounded_rewards, max_rewards)
     }

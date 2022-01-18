@@ -185,6 +185,7 @@ pub trait Farm:
             &amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
+            farm_attributes.entering_epoch,
         );
         if reward > 0 {
             self.decrease_reward_reserve(&reward)?;
@@ -325,6 +326,7 @@ pub trait Farm:
             &amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
+            farm_attributes.entering_epoch,
         );
         if reward > 0 {
             self.decrease_reward_reserve(&reward)?;
@@ -428,6 +430,7 @@ pub trait Farm:
             &payment_amount,
             &current_rps,
             &farm_attributes.reward_per_share,
+            farm_attributes.entering_epoch,
         );
 
         if reward > 0 {
@@ -607,6 +610,7 @@ pub trait Farm:
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
+            attributes.entering_epoch,
         );
         if self.should_apply_penalty(attributes.entering_epoch) {
             let penalty = self.get_penalty_amount(&reward);
