@@ -15,9 +15,7 @@ pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + create_pool::CreatePoolModule
     + redeem_token::RedeemTokenModule
-    + pair::amm::AmmModule
-    + pair::config::ConfigModule
-    + token_send::TokenSendModule
+    + token_merge::TokenMergeModule
 {
     #[init]
     fn init(
@@ -166,7 +164,7 @@ pub trait PriceDiscovery:
         match redeem_token_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => {
                 let launched_token_final_amount = self.launched_token_final_amount().get();
-                self.quote(
+                self.rule_of_three(
                     &redeem_token_amount,
                     &launched_token_final_amount,
                     &total_lp_tokens,
@@ -174,7 +172,7 @@ pub trait PriceDiscovery:
             }
             ACCEPTED_TOKEN_REDEEM_NONCE => {
                 let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                self.quote(
+                self.rule_of_three(
                     &redeem_token_amount,
                     &accepted_token_final_amount,
                     &total_lp_tokens,
