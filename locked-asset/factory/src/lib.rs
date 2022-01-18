@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(exact_size_is_empty)]
 
+mod attr_ex_helper;
 mod cache;
 mod events;
 pub mod locked_asset;
@@ -13,8 +14,10 @@ const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
+use attr_ex_helper::PRECISION_EX_INCREASE;
 use common_structs::{
-    Epoch, LockedAssetTokenAttributes, Nonce, UnlockMilestone, UnlockPeriod, UnlockSchedule,
+    Epoch, LockedAssetTokenAttributesEx, Nonce, UnlockMilestone, UnlockMilestoneEx, UnlockPeriod,
+    UnlockScheduleEx,
 };
 
 #[elrond_wasm::contract]
@@ -25,6 +28,7 @@ pub trait LockedAssetFactory:
     + token_merge::TokenMergeModule
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
+    + attr_ex_helper::AttrExHelper
 {
     #[init]
     fn init(
@@ -51,7 +55,27 @@ pub trait LockedAssetFactory:
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
+        self.set_extended_attributes_activation_nonce();
         Ok(())
+    }
+
+    fn set_extended_attributes_activation_nonce(&self) {
+        //for extra safety
+        if self.extended_attributes_activation_nonce().is_empty() {
+            let one = BigUint::from(1u64);
+            let zero = BigUint::zero();
+            let mb_empty = ManagedBuffer::new();
+            let mv_empty = ManagedVec::new();
+            let token_id = self.locked_asset_token_id().get();
+
+            let nonce = self.send().esdt_nft_create(
+                &token_id, &one, &mb_empty, &zero, &mb_empty, &mb_empty, &mv_empty,
+            );
+            self.send().esdt_local_burn(&token_id, nonce, &one);
+
+            self.extended_attributes_activation_nonce()
+                .set(&(nonce + 1));
+        }
     }
 
     #[only_owner]
@@ -86,7 +110,7 @@ pub trait LockedAssetFactory:
         require!(!unlock_period.unlock_milestones.is_empty(), "Empty arg");
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
-        let attr = LockedAssetTokenAttributes {
+        let attr = LockedAssetTokenAttributesEx {
             unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
             is_merged: false,
         };
@@ -127,7 +151,7 @@ pub trait LockedAssetFactory:
 
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
         let unlock_period = self.default_unlock_period().get();
-        let attr = LockedAssetTokenAttributes {
+        let attr = LockedAssetTokenAttributesEx {
             unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
             is_merged: false,
         };
@@ -158,7 +182,7 @@ pub trait LockedAssetFactory:
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
-        let attributes = self.get_attributes(&token_id, token_nonce)?;
+        let attributes = self.get_attributes_ex(&token_id, token_nonce);
         let unlock_schedule = &attributes.unlock_schedule;
 
         let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
@@ -168,7 +192,7 @@ pub trait LockedAssetFactory:
             &unlock_schedule.unlock_milestones,
         );
         require!(amount >= unlock_amount, "Cannot unlock more than locked");
-        require!(unlock_amount > 0, "Method called too soon");
+        require!(unlock_amount > 0u64, "Method called too soon");
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_assets(&caller, &unlock_amount);
@@ -179,21 +203,21 @@ pub trait LockedAssetFactory:
             amount: BigUint::zero(),
             token_type: EsdtTokenType::Invalid,
         };
-        let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
-            unlock_schedule: UnlockSchedule {
+        let mut output_locked_asset_attributes = LockedAssetTokenAttributesEx {
+            unlock_schedule: UnlockScheduleEx {
                 unlock_milestones: ManagedVec::new(),
             },
             is_merged: false,
         };
 
         let locked_remaining = &amount - &unlock_amount;
-        if locked_remaining > 0 {
+        if locked_remaining > 0u64 {
             let new_unlock_milestones = self.create_new_unlock_milestones(
                 month_start_epoch,
                 &unlock_schedule.unlock_milestones,
             );
-            output_locked_asset_attributes = LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            output_locked_asset_attributes = LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: new_unlock_milestones,
                 },
                 is_merged: attributes.is_merged,
@@ -245,7 +269,7 @@ pub trait LockedAssetFactory:
     fn produce_tokens_and_send(
         &self,
         amount: &BigUint,
-        attributes: &LockedAssetTokenAttributes<Self::Api>,
+        attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         address: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
@@ -389,15 +413,15 @@ pub trait LockedAssetFactory:
         &self,
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
-    ) -> UnlockSchedule<Self::Api> {
+    ) -> UnlockScheduleEx<Self::Api> {
         let mut result = ManagedVec::new();
         for milestone in unlock_period.unlock_milestones.iter() {
-            result.push(UnlockMilestone {
+            result.push(UnlockMilestoneEx {
                 unlock_epoch: milestone.unlock_epoch + start_epoch,
-                unlock_percent: milestone.unlock_percent,
+                unlock_percent: milestone.unlock_percent as u64 * PRECISION_EX_INCREASE,
             });
         }
-        UnlockSchedule {
+        UnlockScheduleEx {
             unlock_milestones: result,
         }
     }

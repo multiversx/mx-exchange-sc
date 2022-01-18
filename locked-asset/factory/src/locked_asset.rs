@@ -3,16 +3,25 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
+use crate::attr_ex_helper;
+
 pub const ONE_MILLION: u64 = 1_000_000u64;
 pub const TEN_THOUSAND: u64 = 10_000u64;
 pub const PERCENTAGE_TOTAL: u64 = 100;
+pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
 pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
 
 #[derive(ManagedVecItem)]
 pub struct LockedToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
-    pub attributes: LockedAssetTokenAttributes<M>,
+    pub attributes: LockedAssetTokenAttributesEx<M>,
+}
+
+#[derive(ManagedVecItem)]
+pub struct LockedTokenEx<M: ManagedTypeApi> {
+    pub token_amount: EsdtTokenPayment<M>,
+    pub attributes: LockedAssetTokenAttributesEx<M>,
 }
 
 #[derive(ManagedVecItem, Clone)]
@@ -22,13 +31,13 @@ pub struct EpochAmountPair<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait LockedAssetModule: token_send::TokenSendModule {
+pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrExHelper {
     fn create_and_send_locked_assets(
         &self,
         amount: &BigUint,
         additional_amount_to_create: &BigUint,
         address: &ManagedAddress,
-        attributes: &LockedAssetTokenAttributes<Self::Api>,
+        attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> SCResult<Nonce> {
         let token_id = self.locked_asset_token_id().get();
@@ -63,7 +72,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
         &self,
         amount: &BigUint,
         current_epoch: Epoch,
-        unlock_milestones: &ManagedVec<UnlockMilestone>,
+        unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
     ) -> BigUint {
         amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
             / PERCENTAGE_TOTAL
@@ -72,9 +81,9 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
     fn get_unlock_percent(
         &self,
         current_epoch: Epoch,
-        unlock_milestones: &ManagedVec<UnlockMilestone>,
-    ) -> u8 {
-        let mut unlock_percent = 0u8;
+        unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
+    ) -> u64 {
+        let mut unlock_percent = 0u64;
 
         for milestone in unlock_milestones.into_iter() {
             if milestone.unlock_epoch <= current_epoch {
@@ -94,8 +103,8 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
     fn create_new_unlock_milestones(
         &self,
         current_epoch: Epoch,
-        old_unlock_milestones: &ManagedVec<UnlockMilestone>,
-    ) -> ManagedVec<UnlockMilestone> {
+        old_unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
+    ) -> ManagedVec<UnlockMilestoneEx> {
         let unlock_percent = self.get_unlock_percent(current_epoch, old_unlock_milestones);
         let unlock_percent_remaining = PERCENTAGE_TOTAL - (unlock_percent as u64);
 
@@ -104,12 +113,12 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
         }
 
         let mut unlock_milestones_merged =
-            ArrayVec::<UnlockMilestoneExtended, MAX_MILESTONES_IN_SCHEDULE>::new();
+            ArrayVec::<UnlockMilestoneEx, MAX_MILESTONES_IN_SCHEDULE>::new();
         for old_milestone in old_unlock_milestones.iter() {
             if old_milestone.unlock_epoch > current_epoch {
                 let new_unlock_percent: u64 =
                     (old_milestone.unlock_percent as u64) * ONE_MILLION / unlock_percent_remaining;
-                unlock_milestones_merged.push(UnlockMilestoneExtended {
+                unlock_milestones_merged.push(UnlockMilestoneEx {
                     unlock_epoch: old_milestone.unlock_epoch,
                     unlock_percent: new_unlock_percent,
                 });
@@ -122,16 +131,13 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
 
     fn distribute_leftover(
         &self,
-        unlock_milestones_merged: &mut ArrayVec<
-            UnlockMilestoneExtended,
-            MAX_MILESTONES_IN_SCHEDULE,
-        >,
+        unlock_milestones_merged: &mut ArrayVec<UnlockMilestoneEx, MAX_MILESTONES_IN_SCHEDULE>,
     ) {
-        let mut sum_of_new_percents = 0u8;
+        let mut sum_of_new_percents = 0u64;
         for milestone in unlock_milestones_merged.iter() {
-            sum_of_new_percents += (milestone.unlock_percent / TEN_THOUSAND) as u8;
+            sum_of_new_percents += (milestone.unlock_percent / TEN_THOUSAND);
         }
-        let mut leftover = PERCENTAGE_TOTAL as u8 - sum_of_new_percents;
+        let mut leftover = PERCENTAGE_TOTAL_EX - sum_of_new_percents;
 
         while leftover != 0 {
             let mut max_rounding_error = 0;
@@ -155,14 +161,14 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
 
     fn get_non_zero_percent_milestones_as_vec(
         &self,
-        unlock_milestones_merged: &ArrayVec<UnlockMilestoneExtended, MAX_MILESTONES_IN_SCHEDULE>,
-    ) -> ManagedVec<UnlockMilestone> {
+        unlock_milestones_merged: &ArrayVec<UnlockMilestoneEx, MAX_MILESTONES_IN_SCHEDULE>,
+    ) -> ManagedVec<UnlockMilestoneEx> {
         let mut new_unlock_milestones = ManagedVec::new();
 
         for el in unlock_milestones_merged.iter() {
-            let percent_rounded = (el.unlock_percent / TEN_THOUSAND) as u8;
+            let percent_rounded = el.unlock_percent / TEN_THOUSAND;
             if percent_rounded != 0 {
-                new_unlock_milestones.push(UnlockMilestone {
+                new_unlock_milestones.push(UnlockMilestoneEx {
                     unlock_epoch: el.unlock_epoch,
                     unlock_percent: percent_rounded,
                 });
@@ -196,24 +202,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule {
 
         require!(percents_sum == 100, "Percents do not sum up to 100");
         Ok(())
-    }
-
-    fn get_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> SCResult<LockedAssetTokenAttributes<Self::Api>> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
-        );
-
-        Ok(self
-            .serializer()
-            .top_decode_from_managed_buffer::<LockedAssetTokenAttributes<Self::Api>>(
-                &token_info.attributes,
-            ))
     }
 
     #[only_owner]
