@@ -9,7 +9,6 @@ elrond_wasm_node::wasm_endpoints! {
     (
         init
         callBack
-        accept_funds_func
         createDexLiquidityPool
         deposit
         getAcceptedTokenFinalAmount

@@ -1,7 +1,5 @@
 elrond_wasm::imports!();
 
-const ACCEPT_FUNDS_FUNC_NAME: &[u8] = b"accept_funds_func";
-
 mod liquidity_pool_proxy {
     elrond_wasm::imports!();
 
@@ -62,24 +60,11 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         let dex_sc_address = self.dex_sc_address().get();
         let contract_call = self
             .dex_proxy(dex_sc_address)
-            .add_initial_liquidity(payments, OptionalArg::Some(ACCEPT_FUNDS_FUNC_NAME.into()));
+            .add_initial_liquidity(payments, OptionalArg::None);
 
         let (lp_token, _, _) = contract_call.execute_on_dest_context().into_tuple();
         self.lp_token_id().set(&lp_token.token_identifier);
         self.total_lp_tokens_received().set(&lp_token.amount);
-
-        Ok(())
-    }
-
-    #[payable("*")]
-    #[endpoint]
-    fn accept_funds_func(&self) -> SCResult<()> {
-        let caller = self.blockchain().get_caller();
-        let dex_sc_address = self.dex_sc_address().get();
-        require!(
-            caller == dex_sc_address,
-            "Only the DEX SC may call this function"
-        );
 
         Ok(())
     }
