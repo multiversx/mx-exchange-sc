@@ -142,7 +142,7 @@ pub trait Pair<ContractReader>:
             ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
         );
 
-        self.set_initial_liquidity_optimals(&mut context);
+        self.calculate_optimal_amounts(&mut context);
         self.pool_add_initial_liquidity(&mut context);
 
         let lpt = context.get_lp_token_id();
@@ -185,6 +185,11 @@ pub trait Pair<ContractReader>:
             context.get_tx_input().is_valid(),
             ERROR_ARGS_NOT_MATCH_PAYMENTS,
         );
+        assert!(
+            self,
+            self.initial_liquidity_adder().get().is_none(),
+            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
+        );
 
         self.load_state(&mut context);
         assert!(
@@ -209,16 +214,15 @@ pub trait Pair<ContractReader>:
 
         self.load_pool_reserves(&mut context);
         self.load_lp_token_supply(&mut context);
-        assert!(
-            self,
-            context.get_lp_token_supply() != &0u64,
-            ERROR_INITIAL_LIQUIDITY_NOT_ADDED,
-        );
-
         self.load_initial_k(&mut context);
 
         self.calculate_optimal_amounts(&mut context);
-        self.pool_add_liquidity(&mut context);
+
+        if context.get_lp_token_supply() == &0u64 {
+            self.pool_add_initial_liquidity(&mut context);
+        } else {
+            self.pool_add_liquidity(&mut context);
+        }
 
         let new_k = self.calculate_k(&context);
         assert!(

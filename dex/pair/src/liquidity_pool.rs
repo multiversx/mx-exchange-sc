@@ -122,16 +122,25 @@ pub trait LiquidityPoolModule:
     }
 
     fn calculate_optimal_amounts(&self, context: &mut AddLiquidityContext<Self::Api>) {
-        let (first_amount_optimal, second_amount_optimal) = self.get_optimal_amounts(context);
+        let is_initial_add = context.get_lp_token_supply() == &0u64;
+
+        let (first_amount_optimal, second_amount_optimal) = if is_initial_add {
+            self.get_initial_liquidity_optimal_amounts(context)
+        } else {
+            self.get_optimal_amounts(context)
+        };
+
         context.set_first_amount_optimal(first_amount_optimal);
         context.set_second_amount_optimal(second_amount_optimal);
     }
 
-    fn set_initial_liquidity_optimals(&self, context: &mut AddLiquidityContext<Self::Api>) {
+    fn get_initial_liquidity_optimal_amounts(
+        &self,
+        context: &mut AddLiquidityContext<Self::Api>,
+    ) -> (BigUint, BigUint) {
         let first_amount_optimal = context.get_first_payment().amount.clone();
         let second_amount_optimal = context.get_second_payment().amount.clone();
-        context.set_first_amount_optimal(first_amount_optimal);
-        context.set_second_amount_optimal(second_amount_optimal);
+        (first_amount_optimal, second_amount_optimal)
     }
 
     fn get_optimal_amounts(

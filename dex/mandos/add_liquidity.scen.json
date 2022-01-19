@@ -21,8 +21,11 @@
                         "value": "2,000,000,000"
                     }
                 ],
-                "function": "addInitialLiquidity",
-                "arguments": [],
+                "function": "addLiquidity",
+                "arguments": [
+                    "1,000,000,000",
+                    "1,000,000,000"
+                ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
