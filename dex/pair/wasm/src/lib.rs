@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     pair
     (
         init
+        addInitialLiquidity
         addLiquidity
         addTrustedSwapPair
         getAmountIn
@@ -17,6 +18,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFeeDestinations
         getFeeState
         getFirstTokenId
+        getInitialLiquidtyAdder
         getLpTokenIdentifier
         getReserve
         getReservesAndTotalSupply

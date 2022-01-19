@@ -51,6 +51,7 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
+        #[var_args] initial_liquidity_adder: OptionalArg<ManagedAddress>,
     ) {
         assert!(self, first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
         assert!(self, second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
@@ -74,21 +75,29 @@ pub trait Pair<ContractReader>:
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
+        self.initial_liquidity_adder()
+            .set(&initial_liquidity_adder.into_option());
     }
 
     #[payable("*")]
-    #[endpoint(addLiquidity)]
-    fn add_liquidity(
+    #[endpoint(addInitialLiquidity)]
+    fn add_initial_liquidity(
         &self,
-        first_token_amount_min: BigUint,
-        second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> AddLiquidityResultType<Self::Api> {
         let mut context = self.new_add_liquidity_context(
-            first_token_amount_min,
-            second_token_amount_min,
+            BigUint::from(1u64),
+            BigUint::from(1u64),
             opt_accept_funds_func,
         );
+        assert!(
+            self,
+            self.initial_liquidity_adder()
+                .get()
+                .map_or(true, |adder| &adder == context.get_caller()),
+            ERROR_PERMISSION_DENIED
+        );
+
         assert!(
             self,
             context.get_tx_input().get_args().are_valid(),
@@ -126,12 +135,94 @@ pub trait Pair<ContractReader>:
             ERROR_BAD_PAYMENT_TOKENS,
         );
 
+        self.load_lp_token_supply(&mut context);
+        assert!(
+            self,
+            context.get_lp_token_supply() == &0u64,
+            ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
+        );
+
+        self.calculate_optimal_amounts(&mut context);
+        self.pool_add_initial_liquidity(&mut context);
+
+        let lpt = context.get_lp_token_id();
+        let liq_added = context.get_liquidity_added();
+        self.send().esdt_local_mint(lpt, 0, liq_added);
+        self.commit_changes(&context);
+
+        self.construct_add_liquidity_output_payments(&mut context);
+        self.execute_output_payments(&context);
+        self.emit_add_liquidity_event(&context);
+
+        self.construct_and_get_add_liquidity_output_results(&context)
+    }
+
+    #[payable("*")]
+    #[endpoint(addLiquidity)]
+    fn add_liquidity(
+        &self,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> AddLiquidityResultType<Self::Api> {
+        let mut context = self.new_add_liquidity_context(
+            first_token_amount_min,
+            second_token_amount_min,
+            opt_accept_funds_func,
+        );
+        assert!(
+            self,
+            context.get_tx_input().get_args().are_valid(),
+            ERROR_INVALID_ARGS,
+        );
+        assert!(
+            self,
+            context.get_tx_input().get_payments().are_valid(),
+            ERROR_INVALID_PAYMENTS,
+        );
+        assert!(
+            self,
+            context.get_tx_input().is_valid(),
+            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+        );
+        assert!(
+            self,
+            self.initial_liquidity_adder().get().is_none(),
+            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
+        );
+
+        self.load_state(&mut context);
+        assert!(
+            self,
+            self.is_state_active(context.get_contract_state()),
+            ERROR_NOT_ACTIVE,
+        );
+
+        self.load_lp_token_id(&mut context);
+        assert!(
+            self,
+            !context.get_lp_token_id().is_empty(),
+            ERROR_LP_TOKEN_NOT_ISSUED,
+        );
+
+        self.load_pool_token_ids(&mut context);
+        assert!(
+            self,
+            context.payment_tokens_match_pool_tokens(),
+            ERROR_BAD_PAYMENT_TOKENS,
+        );
+
         self.load_pool_reserves(&mut context);
         self.load_lp_token_supply(&mut context);
         self.load_initial_k(&mut context);
 
         self.calculate_optimal_amounts(&mut context);
-        self.pool_add_liquidity(&mut context);
+
+        if context.get_lp_token_supply() == &0u64 {
+            self.pool_add_initial_liquidity(&mut context);
+        } else {
+            self.pool_add_liquidity(&mut context);
+        }
 
         let new_k = self.calculate_k(&context);
         assert!(

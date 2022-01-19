@@ -124,6 +124,10 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("lp_token_supply")]
     fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getInitialLiquidtyAdder)]
+    #[storage_mapper("initial_liquidity_adder")]
+    fn initial_liquidity_adder(&self) -> SingleValueMapper<Option<ManagedAddress>>;
+
     #[view(getReserve)]
     #[storage_mapper("reserve")]
     fn pair_reserve(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
