@@ -154,11 +154,11 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         self.farm_token_supply().update(|x| *x -= total_amount);
     }
 
-    fn mint_farm_tokens(
+    fn mint_farm_tokens<T: crate::elrond_codec::TopEncode>(
         &self,
         token_id: &TokenIdentifier,
         amount: &BigUint,
-        attributes: &FarmTokenAttributes<Self::Api>,
+        attributes: &T,
     ) -> u64 {
         let new_nonce = self.nft_create_tokens(token_id, amount, attributes);
         self.farm_token_supply().update(|x| *x += amount);

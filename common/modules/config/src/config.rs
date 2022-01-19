@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
-pub const MAX_PENALTY_PERCENT: u64 = 10_000;
+pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
 pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35_000_000;
@@ -37,7 +37,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
     fn set_penalty_percent(&self, percent: u64) -> SCResult<()> {
         self.require_permissions()?;
         require!(
-            percent < MAX_PENALTY_PERCENT,
+            percent < MAX_PERCENT,
             "Percent cannot exceed max percent"
         );
         self.penalty_percent().set(&percent);

@@ -1,9 +1,23 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FarmTokenAttributes;
-use farm_token::FarmToken;
 use token_merge::ValueWeight;
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
+    pub reward_per_share: BigUint<M>,
+    pub entering_epoch: u64,
+    pub last_claim_block: u64,
+    pub initial_farming_amount: BigUint<M>,
+    pub compounded_reward: BigUint<M>,
+    pub current_farm_amount: BigUint<M>,
+}
+
+#[derive(ManagedVecItem, Clone)]
+pub struct StakingFarmToken<M: ManagedTypeApi> {
+    pub token_amount: EsdtTokenPayment<M>,
+    pub attributes: StakingFarmTokenAttributes<M>,
+}
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
@@ -43,8 +57,8 @@ pub trait FarmTokenMergeModule:
     fn get_merged_farm_token_attributes(
         &self,
         payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-        replic: Option<FarmToken<Self::Api>>,
-    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
+        replic: Option<StakingFarmToken<Self::Api>>,
+    ) -> SCResult<StakingFarmTokenAttributes<Self::Api>> {
         require!(
             !payments.is_empty() || replic.is_some(),
             "No tokens to merge"
@@ -60,14 +74,13 @@ pub trait FarmTokenMergeModule:
                 "Not a farm token"
             );
 
-            tokens.push(FarmToken {
+            tokens.push(StakingFarmToken {
                 token_amount: self.create_payment(
                     &payment.token_identifier,
                     payment.token_nonce,
                     &payment.amount,
                 ),
-                attributes: self
-                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce)?,
+                attributes: self.get_attributes(&payment.token_identifier, payment.token_nonce)?,
             });
         }
 
@@ -82,10 +95,11 @@ pub trait FarmTokenMergeModule:
         }
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let aggregated_attributes = FarmTokenAttributes {
+        let current_block = self.blockchain().get_block_nonce();
+        let aggregated_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: current_epoch,
-            original_entering_epoch: current_epoch,
+            last_claim_block: current_block,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
@@ -94,7 +108,10 @@ pub trait FarmTokenMergeModule:
         Ok(aggregated_attributes)
     }
 
-    fn aggregated_reward_per_share(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> BigUint {
+    fn aggregated_reward_per_share(
+        &self,
+        tokens: &ManagedVec<StakingFarmToken<Self::Api>>,
+    ) -> BigUint {
         let mut dataset = ManagedVec::new();
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
@@ -107,7 +124,7 @@ pub trait FarmTokenMergeModule:
 
     fn aggregated_initial_farming_amount(
         &self,
-        tokens: &ManagedVec<FarmToken<Self::Api>>,
+        tokens: &ManagedVec<StakingFarmToken<Self::Api>>,
     ) -> SCResult<BigUint> {
         let mut sum = BigUint::zero();
         for x in tokens.iter() {
@@ -120,7 +137,10 @@ pub trait FarmTokenMergeModule:
         Ok(sum)
     }
 
-    fn aggregated_compounded_reward(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> BigUint {
+    fn aggregated_compounded_reward(
+        &self,
+        tokens: &ManagedVec<StakingFarmToken<Self::Api>>,
+    ) -> BigUint {
         let mut sum = BigUint::zero();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
@@ -132,11 +152,28 @@ pub trait FarmTokenMergeModule:
         sum
     }
 
-    fn aggregated_current_farm_amount(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> BigUint {
+    fn aggregated_current_farm_amount(
+        &self,
+        tokens: &ManagedVec<StakingFarmToken<Self::Api>>,
+    ) -> BigUint {
         let mut aggregated_amount = BigUint::zero();
         tokens
             .iter()
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
         aggregated_amount
+    }
+
+    fn get_attributes<T: TopDecode>(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: u64,
+    ) -> SCResult<T> {
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            token_id,
+            token_nonce,
+        );
+
+        token_info.decode_attributes().into()
     }
 }

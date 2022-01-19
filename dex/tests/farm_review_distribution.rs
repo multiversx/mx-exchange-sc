@@ -1,3 +1,4 @@
+/*
 use std::ops::Mul;
 
 use elrond_wasm::types::{
@@ -686,3 +687,4 @@ fn test_rv_earn_twice() {
         ),
     );
 }
+*/
