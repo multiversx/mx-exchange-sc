@@ -291,12 +291,7 @@ fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
         farm_token_nonce,
         &farm_out_amount.clone(),
         |sc| {
-            let multi_result = sc.exit_farm(
-                managed_token_id!(FARM_TOKEN_ID),
-                farm_token_nonce.clone(),
-                to_managed_biguint(farm_out_amount.clone()),
-                OptionalArg::None,
-            );
+            let multi_result = sc.exit_farm(OptionalArg::None);
 
             let (first_result, second_result) = multi_result.into_tuple();
 

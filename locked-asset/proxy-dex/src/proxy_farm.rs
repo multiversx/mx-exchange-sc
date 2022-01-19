@@ -423,12 +423,8 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm(
-                farm_token_id.clone(),
-                farm_token_nonce,
-                amount.clone(),
-                OptionalArg::None,
-            )
+            .exit_farm(OptionalArg::None)
+            .add_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
 

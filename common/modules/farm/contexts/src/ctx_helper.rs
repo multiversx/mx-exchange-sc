@@ -88,8 +88,18 @@ pub trait CtxHelper:
 
     #[inline]
     fn commit_changes(&self, context: &GenericContext<Self::Api>) {
-        self.reward_reserve().set(context.get_reward_reserve());
-        self.reward_per_share().set(context.get_reward_per_share());
+        match context.get_reward_reserve() {
+            Some(value) => {
+                self.reward_reserve().set(value);
+            }
+            None => {}
+        }
+        match context.get_reward_per_share() {
+            Some(value) => {
+                self.reward_per_share().set(value);
+            }
+            None => {}
+        }
     }
 
     #[inline]
@@ -104,7 +114,7 @@ pub trait CtxHelper:
 
     #[inline]
     fn load_farm_attributes(&self, context: &mut GenericContext<Self::Api>) {
-        let farm_token_id = context.get_farm_token_id().clone();
+        let farm_token_id = context.get_farm_token_id().unwrap().clone();
         let nonce = context
             .get_tx_input()
             .get_payments()
@@ -121,13 +131,13 @@ pub trait CtxHelper:
 
     #[inline]
     fn calculate_reward(&self, context: &mut GenericContext<Self::Api>) {
-        let reward = if context.get_reward_per_share()
+        let reward = if context.get_reward_per_share().unwrap()
             > &context.get_input_attributes().unwrap().reward_per_share
         {
             &context.get_tx_input().get_payments().get_first().amount
-                * &(context.get_reward_per_share()
+                * &(context.get_reward_per_share().unwrap()
                     - &context.get_input_attributes().unwrap().reward_per_share)
-                / context.get_division_safety_constant()
+                / context.get_division_safety_constant().unwrap()
         } else {
             BigUint::zero()
         };
@@ -162,7 +172,7 @@ pub trait CtxHelper:
         let mut result = ManagedVec::new();
 
         result.push(self.create_payment(
-            context.get_farming_token_id(),
+            context.get_farming_token_id().unwrap(),
             0,
             context.get_initial_farming_amount().unwrap(),
         ));

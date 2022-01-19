@@ -7,27 +7,27 @@ use farm_token::FarmToken;
 use config::State;
 
 pub struct StorageCache<M: ManagedTypeApi> {
-    pub contract_state: State,
-    pub farm_token_id: TokenIdentifier<M>,
-    pub farming_token_id: TokenIdentifier<M>,
-    pub reward_token_id: TokenIdentifier<M>,
-    pub reward_reserve: BigUint<M>,
-    pub reward_per_share: BigUint<M>,
-    pub farm_token_supply: BigUint<M>,
-    pub division_safety_constant: BigUint<M>,
+    pub contract_state: Option<State>,
+    pub farm_token_id: Option<TokenIdentifier<M>>,
+    pub farming_token_id: Option<TokenIdentifier<M>>,
+    pub reward_token_id: Option<TokenIdentifier<M>>,
+    pub reward_reserve: Option<BigUint<M>>,
+    pub reward_per_share: Option<BigUint<M>>,
+    pub farm_token_supply: Option<BigUint<M>>,
+    pub division_safety_constant: Option<BigUint<M>>,
 }
 
 impl<M: ManagedTypeApi> Default for StorageCache<M> {
     fn default() -> Self {
         StorageCache {
-            contract_state: State::Inactive,
-            farm_token_id: TokenIdentifier::egld(),
-            farming_token_id: TokenIdentifier::egld(),
-            reward_token_id: TokenIdentifier::egld(),
-            reward_reserve: BigUint::zero(),
-            reward_per_share: BigUint::zero(),
-            farm_token_supply: BigUint::zero(),
-            division_safety_constant: BigUint::zero(),
+            contract_state: None,
+            farm_token_id: None,
+            farming_token_id: None,
+            reward_token_id: None,
+            reward_reserve: None,
+            reward_per_share: None,
+            farm_token_supply: None,
+            division_safety_constant: None,
         }
     }
 }
@@ -112,12 +112,12 @@ impl<M: ManagedTypeApi> GenericContext<M> {
 impl<M: ManagedTypeApi> GenericContext<M> {
     #[inline]
     pub fn set_contract_state(&mut self, contract_state: State) {
-        self.storage_cache.contract_state = contract_state;
+        self.storage_cache.contract_state = Some(contract_state);
     }
 
     #[inline]
-    pub fn get_contract_state(&self) -> &State {
-        &self.storage_cache.contract_state
+    pub fn get_contract_state(&self) -> Option<&State> {
+        self.storage_cache.contract_state.as_ref()
     }
 
     #[inline]
@@ -147,32 +147,32 @@ impl<M: ManagedTypeApi> GenericContext<M> {
 
     #[inline]
     pub fn set_farm_token_id(&mut self, farm_token_id: TokenIdentifier<M>) {
-        self.storage_cache.farm_token_id = farm_token_id
+        self.storage_cache.farm_token_id = Some(farm_token_id)
     }
 
     #[inline]
-    pub fn get_farm_token_id(&self) -> &TokenIdentifier<M> {
-        &self.storage_cache.farm_token_id
+    pub fn get_farm_token_id(&self) -> Option<&TokenIdentifier<M>> {
+        self.storage_cache.farm_token_id.as_ref()
     }
 
     #[inline]
     pub fn set_farming_token_id(&mut self, farming_token_id: TokenIdentifier<M>) {
-        self.storage_cache.farming_token_id = farming_token_id
+        self.storage_cache.farming_token_id = Some(farming_token_id)
     }
 
     #[inline]
-    pub fn get_farming_token_id(&self) -> &TokenIdentifier<M> {
-        &self.storage_cache.farming_token_id
+    pub fn get_farming_token_id(&self) -> Option<&TokenIdentifier<M>> {
+        self.storage_cache.farming_token_id.as_ref()
     }
 
     #[inline]
     pub fn set_reward_token_id(&mut self, reward_token_id: TokenIdentifier<M>) {
-        self.storage_cache.reward_token_id = reward_token_id;
+        self.storage_cache.reward_token_id = Some(reward_token_id);
     }
 
     #[inline]
-    pub fn get_reward_token_id(&self) -> &TokenIdentifier<M> {
-        &self.storage_cache.reward_token_id
+    pub fn get_reward_token_id(&self) -> Option<&TokenIdentifier<M>> {
+        self.storage_cache.reward_token_id.as_ref()
     }
 
     #[inline]
@@ -197,66 +197,57 @@ impl<M: ManagedTypeApi> GenericContext<M> {
 
     #[inline]
     pub fn set_reward_per_share(&mut self, rps: BigUint<M>) {
-        self.storage_cache.reward_per_share = rps;
+        self.storage_cache.reward_per_share = Some(rps);
     }
 
     #[inline]
-    pub fn get_reward_per_share(&self) -> &BigUint<M> {
-        &self.storage_cache.reward_per_share
+    pub fn get_reward_per_share(&self) -> Option<&BigUint<M>> {
+        self.storage_cache.reward_per_share.as_ref()
     }
 
     #[inline]
     pub fn set_farm_token_supply(&mut self, supply: BigUint<M>) {
-        self.storage_cache.farm_token_supply = supply;
+        self.storage_cache.farm_token_supply = Some(supply);
     }
 
     #[inline]
-    pub fn get_farm_token_supply(&self) -> &BigUint<M> {
-        &self.storage_cache.farm_token_supply
+    pub fn get_farm_token_supply(&self) -> Option<&BigUint<M>> {
+        self.storage_cache.farm_token_supply.as_ref()
     }
 
     #[inline]
     pub fn set_division_safety_constant(&mut self, dsc: BigUint<M>) {
-        self.storage_cache.division_safety_constant = dsc;
+        self.storage_cache.division_safety_constant = Some(dsc);
     }
 
     #[inline]
-    pub fn get_division_safety_constant(&self) -> &BigUint<M> {
-        &self.storage_cache.division_safety_constant
+    pub fn get_division_safety_constant(&self) -> Option<&BigUint<M>> {
+        self.storage_cache.division_safety_constant.as_ref()
     }
 
     #[inline]
     pub fn set_reward_reserve(&mut self, rr: BigUint<M>) {
-        self.storage_cache.reward_reserve = rr;
+        self.storage_cache.reward_reserve = Some(rr);
     }
 
     #[inline]
-    pub fn get_reward_reserve(&self) -> &BigUint<M> {
-        &self.storage_cache.reward_reserve
-    }
-
-    #[inline]
-    pub fn increase_reward_reserve(&mut self, amount: &BigUint<M>) {
-        self.storage_cache.reward_reserve += amount;
+    pub fn get_reward_reserve(&self) -> Option<&BigUint<M>> {
+        self.storage_cache.reward_reserve.as_ref()
     }
 
     #[inline]
     pub fn decrease_reward_reserve(&mut self) {
-        self.storage_cache.reward_reserve -= &self.position_reward;
-    }
-
-    #[inline]
-    pub fn update_reward_per_share(&mut self, reward_added: &BigUint<M>) {
-        if self.storage_cache.farm_token_supply != 0u64 {
-            self.storage_cache.reward_per_share += reward_added
-                * &self.storage_cache.division_safety_constant
-                / &self.storage_cache.farm_token_supply;
-        }
+        *self.storage_cache.reward_reserve.as_mut().unwrap() -= &self.position_reward;
     }
 
     #[inline]
     pub fn get_storage_cache(&self) -> &StorageCache<M> {
         &self.storage_cache
+    }
+
+    #[inline]
+    pub fn get_storage_cache_mut(&mut self) -> &mut StorageCache<M> {
+        &mut self.storage_cache
     }
 
     #[inline]
@@ -319,7 +310,7 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     #[inline]
     pub fn set_final_reward_for_emit_compound_event(&mut self) {
         self.final_reward = Some(EsdtTokenPayment::new(
-            self.storage_cache.reward_token_id.clone(),
+            self.storage_cache.reward_token_id.clone().unwrap(),
             0,
             self.position_reward.clone(),
         ));
@@ -327,8 +318,8 @@ impl<M: ManagedTypeApi> GenericContext<M> {
 
     #[inline]
     pub fn is_accepted_payment_enter(&self) -> bool {
-        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
-            == self.storage_cache.farming_token_id
+        let first_payment_pass = &self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farming_token_id.as_ref().unwrap()
             && self.tx_input.payments.first_payment.token_nonce == 0
             && self.tx_input.payments.first_payment.amount != 0u64;
 
@@ -337,7 +328,8 @@ impl<M: ManagedTypeApi> GenericContext<M> {
         }
 
         for payment in self.tx_input.payments.additional_payments.iter() {
-            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
+            let payment_pass = &payment.token_identifier
+                == self.storage_cache.farm_token_id.as_ref().unwrap()
                 && payment.token_nonce != 0
                 && payment.amount != 0;
 
@@ -351,8 +343,8 @@ impl<M: ManagedTypeApi> GenericContext<M> {
 
     #[inline]
     pub fn is_accepted_payment_exit(&self) -> bool {
-        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
-            == self.storage_cache.farm_token_id
+        let first_payment_pass = &self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farm_token_id.as_ref().unwrap()
             && self.tx_input.payments.first_payment.token_nonce != 0
             && self.tx_input.payments.first_payment.amount != 0u64;
 
@@ -374,8 +366,8 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     }
 
     fn is_accepted_payment_claim_compound(&self) -> bool {
-        let first_payment_pass = self.tx_input.payments.first_payment.token_identifier
-            == self.storage_cache.farm_token_id
+        let first_payment_pass = &self.tx_input.payments.first_payment.token_identifier
+            == self.storage_cache.farm_token_id.as_ref().unwrap()
             && self.tx_input.payments.first_payment.token_nonce != 0
             && self.tx_input.payments.first_payment.amount != 0u64;
 
@@ -384,7 +376,8 @@ impl<M: ManagedTypeApi> GenericContext<M> {
         }
 
         for payment in self.tx_input.payments.additional_payments.iter() {
-            let payment_pass = payment.token_identifier == self.storage_cache.farm_token_id
+            let payment_pass = &payment.token_identifier
+                == self.storage_cache.farm_token_id.as_ref().unwrap()
                 && payment.token_nonce != 0
                 && payment.amount != 0;
 
