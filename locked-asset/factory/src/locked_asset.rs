@@ -12,12 +12,6 @@ pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
 
 #[derive(ManagedVecItem)]
-pub struct LockedToken<M: ManagedTypeApi> {
-    pub token_amount: EsdtTokenPayment<M>,
-    pub attributes: LockedAssetTokenAttributesEx<M>,
-}
-
-#[derive(ManagedVecItem)]
 pub struct LockedTokenEx<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: LockedAssetTokenAttributesEx<M>,
