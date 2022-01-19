@@ -61,7 +61,7 @@ pub trait LockedAssetFactory:
 
     fn set_extended_attributes_activation_nonce(&self) {
         //for extra safety
-        if self.extended_attributes_activation_nonce().is_empty() {
+        if !self.init_epoch().is_empty() && self.extended_attributes_activation_nonce().is_empty() {
             let one = BigUint::from(1u64);
             let zero = BigUint::zero();
             let mb_empty = ManagedBuffer::new();

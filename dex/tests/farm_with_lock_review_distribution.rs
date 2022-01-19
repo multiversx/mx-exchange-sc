@@ -1,6 +1,8 @@
 use std::ops::Mul;
 
-use common_structs::{LockedAssetTokenAttributes, UnlockMilestone, UnlockSchedule};
+use common_structs::{
+    LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
+};
 use elrond_wasm::types::{
     Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedMultiResultVec, ManagedVec,
     OptionalArg, SCResult, StaticSCError, TokenIdentifier,
@@ -197,7 +199,7 @@ enum Action {
         u64,
         RustBigUint,
         RustBigUint,
-        LockedAssetTokenAttributes<DebugApi>,
+        LockedAssetTokenAttributesEx<DebugApi>,
     ),
     RewardPerBlockRateChange(RustBigUint),
 }
@@ -291,7 +293,7 @@ fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
     farm_token_nonce: u64,
     farm_out_amount: RustBigUint,
     expected_mex_balance: RustBigUint,
-    expected_attributes: LockedAssetTokenAttributes<DebugApi>,
+    expected_attributes: LockedAssetTokenAttributesEx<DebugApi>,
 ) where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
     FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
@@ -503,16 +505,16 @@ fn test_lock_overview() {
             2,
             rust_biguint!(2_000),
             rust_biguint!(428),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -533,16 +535,16 @@ fn test_lock_overview() {
             1,
             rust_biguint!(1_000),
             rust_biguint!(414),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -563,16 +565,16 @@ fn test_lock_overview() {
             3,
             rust_biguint!(500),
             rust_biguint!(457),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -642,16 +644,16 @@ fn test_lock_overview_but_changes_in_per_reward_block() {
             2,
             rust_biguint!(2_000),
             rust_biguint!(371),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -672,16 +674,16 @@ fn test_lock_overview_but_changes_in_per_reward_block() {
             1,
             rust_biguint!(1_000),
             rust_biguint!(285),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -702,16 +704,16 @@ fn test_lock_overview_but_changes_in_per_reward_block() {
             3,
             rust_biguint!(500),
             rust_biguint!(242),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -776,16 +778,16 @@ fn test_lock_overview_realistic_numbers() {
             2,
             exp18(2_000),
             parse_biguint("428_571_428_570_000_000_000"),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -806,16 +808,16 @@ fn test_lock_overview_realistic_numbers() {
             1,
             exp18(1_000),
             parse_biguint("414_285_714_285_000_000_000"),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -836,16 +838,16 @@ fn test_lock_overview_realistic_numbers() {
             3,
             exp18(500),
             parse_biguint("457_142_857_142_500_000_000"),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -905,16 +907,16 @@ fn test_lock_billion_to_trillion() {
             2,
             exp21(2_000),
             parse_biguint("428_571_428_570_000_000_000_000"),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -935,16 +937,16 @@ fn test_lock_billion_to_trillion() {
             1,
             exp21(1_000),
             parse_biguint("414_285_714_285_000_000_000_000"),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -965,16 +967,16 @@ fn test_lock_billion_to_trillion() {
             3,
             exp21(500),
             parse_biguint("457_142_857_142_500_000_000_000"),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -1027,16 +1029,16 @@ fn test_lock_rv_earn_twice() {
             1,
             rust_biguint!(100),
             rust_biguint!(450),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },
@@ -1057,16 +1059,16 @@ fn test_lock_rv_earn_twice() {
             2,
             rust_biguint!(100),
             rust_biguint!(350),
-            LockedAssetTokenAttributes {
-                unlock_schedule: UnlockSchedule {
+            LockedAssetTokenAttributesEx {
+                unlock_schedule: UnlockScheduleEx {
                     unlock_milestones: ManagedVec::from(vec![
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 20,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
-                        UnlockMilestone {
+                        UnlockMilestoneEx {
                             unlock_epoch: 30,
-                            unlock_percent: 50,
+                            unlock_percent: 50_000,
                         },
                     ]),
                 },

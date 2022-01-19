@@ -27,7 +27,6 @@ elrond_wasm_node::wasm_endpoints! {
         setInitEpoch
         setLocalRolesLockedAssetToken
         setUnlockPeriod
-        set_extended_attributes_activation_nonce
         set_transfer_exec_gas_limit
         unlockAssets
         whitelist

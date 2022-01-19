@@ -3,12 +3,12 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
-use crate::attr_ex_helper;
+use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
 
 use super::locked_asset;
 use super::locked_asset::{
     EpochAmountPair, LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
-    ONE_MILLION, PERCENTAGE_TOTAL,
+    ONE_MILLION, PERCENTAGE_TOTAL_EX,
 };
 
 #[elrond_wasm::module]
@@ -109,7 +109,7 @@ pub trait LockedAssetTokenMergeModule:
             ArrayVec::<UnlockMilestoneEx, MAX_MILESTONES_IN_SCHEDULE>::new();
 
         for el in unlock_epoch_amount_merged.iter() {
-            let unlock_percent = &(&el.amount * ONE_MILLION) / amount_total;
+            let unlock_percent = &(&el.amount * PRECISION_EX_INCREASE * ONE_MILLION) / amount_total;
 
             //Accumulate even the percents of 0
             unlock_milestones_merged.push(UnlockMilestoneEx {
@@ -144,8 +144,8 @@ pub trait LockedAssetTokenMergeModule:
                 array.push(EpochAmountPair {
                     epoch: milestone.unlock_epoch,
                     amount: self.rule_of_three(
-                        &BigUint::from(milestone.unlock_percent as u64),
-                        &BigUint::from(PERCENTAGE_TOTAL as u64),
+                        &BigUint::from(milestone.unlock_percent),
+                        &BigUint::from(PERCENTAGE_TOTAL_EX),
                         &locked_token.token_amount.amount,
                     ),
                 });

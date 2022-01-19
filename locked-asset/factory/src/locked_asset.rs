@@ -3,11 +3,10 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
-use crate::attr_ex_helper;
+use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
 
 pub const ONE_MILLION: u64 = 1_000_000u64;
 pub const TEN_THOUSAND: u64 = 10_000u64;
-pub const PERCENTAGE_TOTAL: u64 = 100;
 pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
 pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
@@ -74,8 +73,8 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         current_epoch: Epoch,
         unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
     ) -> BigUint {
-        amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
-            / PERCENTAGE_TOTAL
+        amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones))
+            / PERCENTAGE_TOTAL_EX
     }
 
     fn get_unlock_percent(
@@ -91,9 +90,9 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
             }
         }
 
-        if unlock_percent > 100 {
+        if unlock_percent > PERCENTAGE_TOTAL_EX {
             let mut err = self.error().new_error();
-            err.append_bytes(&b"unlock percent greater than 100"[..]);
+            err.append_bytes(&b"unlock percent greater than max"[..]);
             err.exit_now();
         }
 
@@ -106,7 +105,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         old_unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
     ) -> ManagedVec<UnlockMilestoneEx> {
         let unlock_percent = self.get_unlock_percent(current_epoch, old_unlock_milestones);
-        let unlock_percent_remaining = PERCENTAGE_TOTAL - (unlock_percent as u64);
+        let unlock_percent_remaining = PERCENTAGE_TOTAL_EX - unlock_percent;
 
         if unlock_percent_remaining == 0 {
             return ManagedVec::new();
@@ -116,8 +115,9 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
             ArrayVec::<UnlockMilestoneEx, MAX_MILESTONES_IN_SCHEDULE>::new();
         for old_milestone in old_unlock_milestones.iter() {
             if old_milestone.unlock_epoch > current_epoch {
-                let new_unlock_percent: u64 =
-                    (old_milestone.unlock_percent as u64) * ONE_MILLION / unlock_percent_remaining;
+                let new_unlock_percent =
+                    old_milestone.unlock_percent * PRECISION_EX_INCREASE * ONE_MILLION
+                        / unlock_percent_remaining;
                 unlock_milestones_merged.push(UnlockMilestoneEx {
                     unlock_epoch: old_milestone.unlock_epoch,
                     unlock_percent: new_unlock_percent,
@@ -137,6 +137,8 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         for milestone in unlock_milestones_merged.iter() {
             sum_of_new_percents += (milestone.unlock_percent / TEN_THOUSAND);
         }
+        self.print()
+            .print_biguint(&BigUint::from(sum_of_new_percents));
         let mut leftover = PERCENTAGE_TOTAL_EX - sum_of_new_percents;
 
         while leftover != 0 {
