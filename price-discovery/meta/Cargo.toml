@@ -1,0 +1,15 @@
+[package]
+name = "price-discovery-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+
+[dependencies.price-discovery]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.25.0"
+
+[dependencies.elrond-wasm-debug]
+version = "0.25.0"

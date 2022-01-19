@@ -17,4 +17,9 @@ members = [
   "locked-asset/proxy-dex/meta",
   "locked-asset/factory",
   "locked-asset/factory/meta",
+
+  "price-discovery",
+  "price-discovery/meta",
+  "pair-mock",
+  "pair-mock/meta"
 ]
