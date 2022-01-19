@@ -14,10 +14,10 @@ version = "0.25.0"
 num-bigint = "0.4.2"
 
 [dev-dependencies.config]
-path = "../common/modules/config"
+path = "../common/modules/farm/config"
 
 [dev-dependencies.rewards]
-path = "../common/modules/rewards"
+path = "../common/modules/farm/rewards"
 
 [dev-dependencies.common_structs]
 path = "../common/common_structs"

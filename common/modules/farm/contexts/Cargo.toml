@@ -1,0 +1,35 @@
+[package]
+name = "contexts"
+version = "0.0.0"
+authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/mod.rs"
+
+[dependencies.common_structs]
+path = "../../../common_structs"
+
+[dependencies.common_macros]
+path = "../../../common_macros"
+
+[dependencies.common_errors]
+path = "../../../common_errors"
+
+[dependencies.farm_token]
+path = "../farm_token"
+
+[dependencies.rewards]
+path = "../rewards"
+
+[dependencies.token_send]
+path = "../../token_send"
+
+[dependencies.token_merge]
+path = "../../token_merge"
+
+[dependencies.config]
+path = "../config"
+
+[dependencies.elrond-wasm]
+version = "0.25.0"

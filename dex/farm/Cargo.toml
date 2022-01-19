@@ -9,16 +9,19 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.config]
-path = "../../common/modules/config"
-
-[dependencies.events]
-path = "../../common/modules/events"
+path = "../../common/modules/farm/config"
 
 [dependencies.farm_token]
-path = "../../common/modules/farm_token"
+path = "../../common/modules/farm/farm_token"
 
 [dependencies.rewards]
-path = "../../common/modules/rewards"
+path = "../../common/modules/farm/rewards"
+
+[dependencies.events]
+path = "../../common/modules/farm/events"
+
+[dependencies.contexts]
+path = "../../common/modules/farm/contexts"
 
 [dependencies.token_send]
 path = "../../common/modules/token_send"
@@ -34,6 +37,12 @@ path = "../pair"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
+
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
+[dependencies.common_macros]
+path = "../../common/common_macros"
 
 [dependencies.elrond-wasm]
 version = "0.25.0"

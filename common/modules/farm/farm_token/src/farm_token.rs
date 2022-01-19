@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_macros::assert;
 use common_structs::{FarmTokenAttributes, Nonce};
 
 #[derive(ManagedVecItem, Clone)]
@@ -21,16 +22,20 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> SCResult<AsyncCall> {
-        self.require_permissions()?;
-        require!(self.farm_token_id().is_empty(), "Token exists already");
+    ) -> AsyncCall {
+        self.require_permissions();
+        assert!(
+            self,
+            self.farm_token_id().is_empty(),
+            b"Token exists already"
+        );
 
-        Ok(self.register_token(
+        self.register_token(
             register_cost,
             token_display_name,
             token_ticker,
             num_decimals,
-        ))
+        )
     }
 
     fn register_token(
@@ -89,12 +94,12 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     }
 
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall> {
-        self.require_permissions()?;
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+    fn set_local_roles_farm_token(&self) -> AsyncCall {
+        self.require_permissions();
+        assert!(self, !self.farm_token_id().is_empty(), b"No farm token");
 
         let token = self.farm_token_id().get();
-        Ok(self.set_local_roles(token))
+        self.set_local_roles(token)
     }
 
     fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall {
@@ -141,12 +146,9 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_info.decode_attributes().into()
     }
 
-    fn burn_farm_tokens_from_payments(
-        &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) {
+    fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
         let mut total_amount = BigUint::zero();
-        for entry in payments {
+        for entry in payments.iter() {
             total_amount += &entry.amount;
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);

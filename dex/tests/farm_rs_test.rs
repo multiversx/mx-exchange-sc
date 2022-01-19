@@ -1,7 +1,6 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, OptionalArg, SCResult,
-    StaticSCError, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, OptionalArg, TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -61,13 +60,12 @@ where
         let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
         let pair_address = managed_address!(&Address::zero());
 
-        let result = sc.init(
+        sc.init(
             reward_token_id,
             farming_token_id,
             division_safety_constant,
             pair_address,
         );
-        assert_eq!(result, SCResult::Ok(()));
 
         let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
         sc.farm_token_id().set(&farm_token_id);
@@ -155,17 +153,10 @@ fn enter_farm<FarmObjBuilder>(
         &farm_setup.farm_wrapper,
         &payments,
         |sc| {
-            let result = sc.enter_farm(OptionalArg::None);
-            match result {
-                SCResult::Ok(payment) => {
-                    assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-                    assert_eq!(payment.token_nonce, expected_farm_token_nonce);
-                    assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount))
-                }
-                SCResult::Err(err) => {
-                    panic_sc_err(err);
-                }
-            }
+            let payment = sc.enter_farm(OptionalArg::None);
+            assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+            assert_eq!(payment.token_nonce, expected_farm_token_nonce);
+            assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
 
             StateChange::Commit
         },
@@ -228,33 +219,23 @@ fn exit_farm<FarmObjBuilder>(
         farm_token_nonce,
         &rust_biguint!(farm_token_amount),
         |sc| {
-            let result = sc.exit_farm(
-                managed_token_id!(FARM_TOKEN_ID),
-                farm_token_nonce,
-                managed_biguint!(farm_token_amount),
-                OptionalArg::None,
+            let multi_result = sc.exit_farm(OptionalArg::None);
+
+            let (first_result, second_result) = multi_result.into_tuple();
+
+            assert_eq!(
+                first_result.token_identifier,
+                managed_token_id!(LP_TOKEN_ID)
             );
+            assert_eq!(first_result.token_nonce, 0);
+            assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
 
-            match result {
-                SCResult::Ok(multi_result) => {
-                    let (first_result, second_result) = multi_result.into_tuple();
-
-                    assert_eq!(
-                        first_result.token_identifier,
-                        managed_token_id!(LP_TOKEN_ID)
-                    );
-                    assert_eq!(first_result.token_nonce, 0);
-                    assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
-
-                    assert_eq!(
-                        second_result.token_identifier,
-                        managed_token_id!(MEX_TOKEN_ID)
-                    );
-                    assert_eq!(second_result.token_nonce, 0);
-                    assert_eq!(second_result.amount, managed_biguint!(expected_mex_out))
-                }
-                SCResult::Err(err) => panic_sc_err(err),
-            }
+            assert_eq!(
+                second_result.token_identifier,
+                managed_token_id!(MEX_TOKEN_ID)
+            );
+            assert_eq!(second_result.token_nonce, 0);
+            assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
 
             StateChange::Commit
         },
@@ -292,28 +273,23 @@ fn claim_rewards<FarmObjBuilder>(
         farm_token_nonce,
         &rust_biguint!(farm_token_amount),
         |sc| {
-            let result = sc.claim_rewards(OptionalArg::None);
+            let multi_result = sc.claim_rewards(OptionalArg::None);
 
-            match result {
-                SCResult::Ok(multi_result) => {
-                    let (first_result, second_result) = multi_result.into_tuple();
+            let (first_result, second_result) = multi_result.into_tuple();
 
-                    assert_eq!(
-                        first_result.token_identifier,
-                        managed_token_id!(FARM_TOKEN_ID)
-                    );
-                    assert_eq!(first_result.token_nonce, expected_farm_token_nonce_out);
-                    assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
+            assert_eq!(
+                first_result.token_identifier,
+                managed_token_id!(FARM_TOKEN_ID)
+            );
+            assert_eq!(first_result.token_nonce, expected_farm_token_nonce_out);
+            assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
 
-                    assert_eq!(
-                        second_result.token_identifier,
-                        managed_token_id!(MEX_TOKEN_ID)
-                    );
-                    assert_eq!(second_result.token_nonce, 0);
-                    assert_eq!(second_result.amount, managed_biguint!(expected_mex_out))
-                }
-                SCResult::Err(err) => panic_sc_err(err),
-            }
+            assert_eq!(
+                second_result.token_identifier,
+                managed_token_id!(MEX_TOKEN_ID)
+            );
+            assert_eq!(second_result.token_nonce, 0);
+            assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
 
             StateChange::Commit
         },
@@ -386,11 +362,6 @@ fn create_generated_mandos_file_name(suffix: &str) -> String {
     path += MANDOS_FILE_EXTENSION;
 
     path
-}
-
-fn panic_sc_err(err: StaticSCError) -> ! {
-    let err_str = String::from_utf8(err.as_bytes().to_vec()).unwrap();
-    panic!("{:?}", err_str);
 }
 
 #[test]

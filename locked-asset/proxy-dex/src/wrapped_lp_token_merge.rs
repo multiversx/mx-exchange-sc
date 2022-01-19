@@ -166,7 +166,7 @@ pub trait WrappedLpTokenMerge:
                 &token.token_amount.amount,
                 &token.attributes.lp_token_total_amount,
                 &token.attributes.locked_assets_invested,
-            )?;
+            );
 
             return Ok(self.create_payment(
                 &locked_asset_token,
@@ -181,7 +181,7 @@ pub trait WrappedLpTokenMerge:
                 &entry.token_amount.amount,
                 &entry.attributes.lp_token_total_amount,
                 &entry.attributes.locked_assets_invested,
-            )?;
+            );
 
             payments.push(EsdtTokenPayment::new(
                 locked_asset_token.clone(),

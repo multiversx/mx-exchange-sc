@@ -214,7 +214,7 @@ pub trait ProxyPairModule:
             &amount,
             &attributes.lp_token_total_amount,
             &attributes.locked_assets_invested,
-        )?;
+        );
 
         if tokens_for_position.1.token_identifier == asset_token_id {
             assets_received = tokens_for_position.1.amount.clone();
