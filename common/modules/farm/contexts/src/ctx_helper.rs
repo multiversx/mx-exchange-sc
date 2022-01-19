@@ -88,17 +88,11 @@ pub trait CtxHelper:
 
     #[inline]
     fn commit_changes(&self, context: &GenericContext<Self::Api>) {
-        match context.get_reward_reserve() {
-            Some(value) => {
-                self.reward_reserve().set(value);
-            }
-            None => {}
+        if let Some(value) = context.get_reward_reserve() {
+            self.reward_reserve().set(value);
         }
-        match context.get_reward_per_share() {
-            Some(value) => {
-                self.reward_per_share().set(value);
-            }
-            None => {}
+        if let Some(value) = context.get_reward_per_share() {
+            self.reward_per_share().set(value);
         }
     }
 
