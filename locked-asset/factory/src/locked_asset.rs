@@ -131,8 +131,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         for milestone in unlock_milestones_merged.iter() {
             sum_of_new_percents += (milestone.unlock_percent / TEN_THOUSAND);
         }
-        self.print()
-            .print_biguint(&BigUint::from(sum_of_new_percents));
         let mut leftover = PERCENTAGE_TOTAL_EX - sum_of_new_percents;
 
         while leftover != 0 {
