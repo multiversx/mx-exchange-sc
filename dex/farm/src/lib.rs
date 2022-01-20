@@ -17,7 +17,7 @@ elrond_wasm::derive_imports!();
 
 use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
+    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -579,7 +579,7 @@ pub trait Farm:
 
     #[inline]
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
-        amount * self.penalty_percent().get() / MAX_PENALTY_PERCENT
+        amount * self.penalty_percent().get() / MAX_PERCENT
     }
 
     fn burn_penalty(&self, context: &mut GenericContext<Self::Api>) {
