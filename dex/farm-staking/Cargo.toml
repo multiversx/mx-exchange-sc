@@ -32,6 +32,12 @@ path = "../pair"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
+[dependencies.common_macros]
+path = "../../common/common_macros"
+
 [dependencies.elrond-wasm]
 version = "0.25.0"
 features = ["cb_closure_managed_deser"]

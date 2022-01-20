@@ -4,6 +4,7 @@
 
 pub mod custom_rewards;
 pub mod farm_token_merge;
+pub mod whitelist;
 
 use common_structs::{Epoch, Nonce};
 use config::State;
@@ -39,6 +40,7 @@ pub trait Farm:
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
+    + whitelist::WhitelistModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
@@ -100,16 +102,38 @@ pub trait Farm:
         Ok(())
     }
 
+    #[endpoint(stakeFarmThrougProxy)]
+    fn stake_farm_through_proxy(
+        &self,
+        simulated_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+    ) -> SCResult<EnterFarmResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller);
+
+        self.stake_farm_common(simulated_payments, caller, OptionalArg::None)
+    }
+
     #[payable("*")]
     #[endpoint(stakeFarm)]
     fn stake_farm(
         &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<EnterFarmResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+
+        self.stake_farm_common(payments, caller, opt_accept_funds_func)
+    }
+
+    fn stake_farm_common(
+        &self,
+        payments_vec: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        caller: ManagedAddress,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments_vec = self.get_all_payments_managed_vec();
         let payment_0 = payments_vec.get(0).ok_or("empty payments")?;
         let additional_payments = payments_vec
             .slice(1, payments_vec.len())
@@ -140,7 +164,6 @@ pub trait Farm:
             current_farm_amount: farm_contribution.clone(),
         };
 
-        let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
             farm_contribution,
