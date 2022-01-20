@@ -3,15 +3,20 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
+use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
+
 use super::locked_asset;
 use super::locked_asset::{
-    EpochAmountPair, LockedToken, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
-    ONE_MILLION, PERCENTAGE_TOTAL,
+    EpochAmountPair, LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
+    ONE_MILLION, PERCENTAGE_TOTAL_EX,
 };
 
 #[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
-    locked_asset::LockedAssetModule + token_send::TokenSendModule + token_merge::TokenMergeModule
+    locked_asset::LockedAssetModule
+    + token_send::TokenSendModule
+    + token_merge::TokenMergeModule
+    + attr_ex_helper::AttrExHelper
 {
     #[payable("*")]
     #[endpoint(mergeLockedAssetTokens)]
@@ -52,7 +57,7 @@ pub trait LockedAssetTokenMergeModule:
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
         payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<(BigUint, LockedAssetTokenAttributes<Self::Api>)> {
+    ) -> SCResult<(BigUint, LockedAssetTokenAttributesEx<Self::Api>)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
         let mut tokens = ManagedVec::new();
@@ -65,13 +70,13 @@ pub trait LockedAssetTokenMergeModule:
                 "Bad token id"
             );
 
-            tokens.push(LockedToken {
+            tokens.push(LockedTokenEx {
                 token_amount: self.create_payment(
                     &entry.token_identifier,
                     entry.token_nonce,
                     &entry.amount,
                 ),
-                attributes: self.get_attributes(&entry.token_identifier, entry.token_nonce)?,
+                attributes: self.get_attributes_ex(&entry.token_identifier, entry.token_nonce),
             });
             sum_amount += &entry.amount;
         }
@@ -84,7 +89,7 @@ pub trait LockedAssetTokenMergeModule:
             ));
         }
 
-        let attrs = LockedAssetTokenAttributes {
+        let attrs = LockedAssetTokenAttributesEx {
             unlock_schedule: self.aggregated_unlock_schedule(&tokens)?,
             is_merged: true,
         };
@@ -99,15 +104,15 @@ pub trait LockedAssetTokenMergeModule:
             DOUBLE_MAX_MILESTONES_IN_SCHEDULE,
         >,
         amount_total: &BigUint,
-    ) -> ManagedVec<UnlockMilestone> {
+    ) -> ManagedVec<UnlockMilestoneEx> {
         let mut unlock_milestones_merged =
-            ArrayVec::<UnlockMilestoneExtended, MAX_MILESTONES_IN_SCHEDULE>::new();
+            ArrayVec::<UnlockMilestoneEx, MAX_MILESTONES_IN_SCHEDULE>::new();
 
         for el in unlock_epoch_amount_merged.iter() {
-            let unlock_percent = &(&el.amount * ONE_MILLION) / amount_total;
+            let unlock_percent = &(&el.amount * PRECISION_EX_INCREASE * ONE_MILLION) / amount_total;
 
             //Accumulate even the percents of 0
-            unlock_milestones_merged.push(UnlockMilestoneExtended {
+            unlock_milestones_merged.push(UnlockMilestoneEx {
                 unlock_epoch: el.epoch,
                 unlock_percent: unlock_percent.to_u64().unwrap(),
             })
@@ -119,8 +124,8 @@ pub trait LockedAssetTokenMergeModule:
 
     fn aggregated_unlock_schedule(
         &self,
-        tokens: &ManagedVec<LockedToken<Self::Api>>,
-    ) -> SCResult<UnlockSchedule<Self::Api>> {
+        tokens: &ManagedVec<LockedTokenEx<Self::Api>>,
+    ) -> SCResult<UnlockScheduleEx<Self::Api>> {
         let mut array =
             ArrayVec::<EpochAmountPair<Self::Api>, DOUBLE_MAX_MILESTONES_IN_SCHEDULE>::new();
 
@@ -139,8 +144,8 @@ pub trait LockedAssetTokenMergeModule:
                 array.push(EpochAmountPair {
                     epoch: milestone.unlock_epoch,
                     amount: self.rule_of_three(
-                        &BigUint::from(milestone.unlock_percent as u64),
-                        &BigUint::from(PERCENTAGE_TOTAL as u64),
+                        &BigUint::from(milestone.unlock_percent),
+                        &BigUint::from(PERCENTAGE_TOTAL_EX),
                         &locked_token.token_amount.amount,
                     ),
                 });
@@ -179,7 +184,7 @@ pub trait LockedAssetTokenMergeModule:
         let new_unlock_milestones =
             self.calculate_new_unlock_milestones(&unlock_epoch_amount_merged, &sum);
 
-        Ok(UnlockSchedule {
+        Ok(UnlockScheduleEx {
             unlock_milestones: new_unlock_milestones,
         })
     }

@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::LockedAssetTokenAttributes;
+use common_structs::LockedAssetTokenAttributesEx;
 
 #[derive(TopEncode)]
 pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
@@ -10,7 +10,7 @@ pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     locked_asset_token_id: TokenIdentifier<M>,
     locked_asset_token_nonce: u64,
     locked_asset_token_amount: BigUint<M>,
-    locked_assets_attributes: LockedAssetTokenAttributes<M>,
+    locked_assets_attributes: LockedAssetTokenAttributesEx<M>,
     start_epoch: u64,
     block: u64,
     epoch: u64,
@@ -28,8 +28,8 @@ pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
     output_locked_assets_token_amount: BigUint<M>,
     asset_token_id: TokenIdentifier<M>,
     asset_token_amount: BigUint<M>,
-    input_assets_attributes: LockedAssetTokenAttributes<M>,
-    output_assets_attributes: LockedAssetTokenAttributes<M>,
+    input_assets_attributes: LockedAssetTokenAttributesEx<M>,
+    output_assets_attributes: LockedAssetTokenAttributesEx<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
@@ -44,7 +44,7 @@ pub trait EventsModule {
         locked_asset_token_id: &TokenIdentifier,
         locked_asset_token_nonce: u64,
         locked_asset_token_amount: &BigUint,
-        locked_assets_attributes: &LockedAssetTokenAttributes<Self::Api>,
+        locked_assets_attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         start_epoch: u64,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -78,8 +78,8 @@ pub trait EventsModule {
         output_locked_assets_token_amount: &BigUint,
         asset_token_id: &TokenIdentifier,
         asset_token_amount: &BigUint,
-        input_assets_attributes: &LockedAssetTokenAttributes<Self::Api>,
-        output_assets_attributes: &LockedAssetTokenAttributes<Self::Api>,
+        input_assets_attributes: &LockedAssetTokenAttributesEx<Self::Api>,
+        output_assets_attributes: &LockedAssetTokenAttributesEx<Self::Api>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.unlock_assets_event(
