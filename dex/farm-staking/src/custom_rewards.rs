@@ -26,9 +26,19 @@ pub trait CustomRewardsModule:
     }
 
     fn generate_aggregated_rewards(&self) {
-        let extra_rewards = self.calculate_extra_rewards_since_last_allocation();
+        let mut extra_rewards = self.calculate_extra_rewards_since_last_allocation();
         if extra_rewards > 0 {
-            self.increase_reward_reserve(&extra_rewards);
+            let mut accumulated_rewards = self.accumulated_rewards().get();
+            let total_rewards = &accumulated_rewards + &extra_rewards;
+            let reserve = self.reward_reserve().get();
+            if total_rewards > reserve {
+                let amount_over_reserve = reserve - total_rewards;
+                extra_rewards -= amount_over_reserve;
+            }
+
+            accumulated_rewards += &extra_rewards;
+            self.accumulated_rewards().set(&accumulated_rewards);
+
             self.update_reward_per_share(&extra_rewards);
         }
     }
@@ -196,6 +206,10 @@ pub trait CustomRewardsModule:
     #[view(getRewardPerShare)]
     #[storage_mapper("reward_per_share")]
     fn reward_per_share(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getAccumulatedRewards)]
+    #[storage_mapper("accumulatedRewards")]
+    fn accumulated_rewards(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getRewardReserve)]
     #[storage_mapper("reward_reserve")]

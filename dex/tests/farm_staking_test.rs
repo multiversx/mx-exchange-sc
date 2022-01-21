@@ -1,6 +1,6 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
-    TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, ManagedVec, OptionalArg,
+    SCResult, StaticSCError, TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -170,7 +170,20 @@ fn stake_farm<FarmObjBuilder>(
         &farm_setup.farm_wrapper,
         &payments,
         |sc| {
-            let result = sc.stake_farm(OptionalArg::None);
+            let mut payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
+                managed_token_id!(FARMING_TOKEN_ID),
+                0,
+                managed_biguint!(farm_in_amount),
+            ));
+            for p in additional_farm_tokens {
+                payments.push(EsdtTokenPayment::new(
+                    managed_token_id!(p.token_identifier.as_slice()),
+                    p.nonce,
+                    managed_biguint!(p.value.to_u64_digits()[0]),
+                ));
+            }
+
+            let result = sc.stake_farm(payments, OptionalArg::None);
             match result {
                 SCResult::Ok(payment) => {
                     assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));

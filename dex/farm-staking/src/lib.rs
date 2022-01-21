@@ -19,13 +19,13 @@ use config::{
 };
 use farm_token_merge::StakingFarmToken;
 
-type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type ClaimRewardsResultType<BigUint> =
+pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
+pub type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
+pub type ClaimRewardsResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
+pub type ExitFarmResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type UnbondFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
+pub type UnbondFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct UnbondSftAttributes {
@@ -105,12 +105,20 @@ pub trait Farm:
     #[endpoint(stakeFarmThrougProxy)]
     fn stake_farm_through_proxy(
         &self,
-        simulated_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        #[payment_multi] farm_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        staked_token_amount: BigUint,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
 
-        self.stake_farm_common(simulated_payments, caller, OptionalArg::None)
+        let staked_token_id = self.farming_token_id().get();
+        let staked_token_simulated_payment =
+            EsdtTokenPayment::new(staked_token_id, 0, staked_token_amount);
+
+        let mut payments = ManagedVec::from_single_item(staked_token_simulated_payment);
+        payments.append_vec(farm_tokens);
+        
+        self.stake_farm(payments, OptionalArg::None)
     }
 
     #[payable("*")]
@@ -120,24 +128,11 @@ pub trait Farm:
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<EnterFarmResultType<Self::Api>> {
-        let caller = self.blockchain().get_caller();
-
-        self.stake_farm_common(payments, caller, opt_accept_funds_func)
-    }
-
-    fn stake_farm_common(
-        &self,
-        payments_vec: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        caller: ManagedAddress,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EnterFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payment_0 = payments_vec.get(0).ok_or("empty payments")?;
-        let additional_payments = payments_vec
-            .slice(1, payments_vec.len())
-            .unwrap_or_default();
+        let payment_0 = payments.get(0).ok_or("empty payments")?;
+        let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
         let token_in = payment_0.token_identifier.clone();
         let enter_amount = payment_0.amount.clone();
@@ -164,6 +159,7 @@ pub trait Farm:
             current_farm_amount: farm_contribution.clone(),
         };
 
+        let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
             farm_contribution,
