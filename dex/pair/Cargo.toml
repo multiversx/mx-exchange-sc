@@ -23,3 +23,6 @@ version = "0.25.0"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
+
+[dependencies.common_macros]
+path = "../../common/common_macros"

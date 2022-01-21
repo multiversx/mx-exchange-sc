@@ -1,10 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
-use crate::assert;
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::Context;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
+use common_macros::assert;
 
 use super::amm;
 use super::config;

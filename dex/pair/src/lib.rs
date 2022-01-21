@@ -14,8 +14,10 @@ mod errors;
 mod events;
 pub mod fee;
 mod liquidity_pool;
+mod safe_price;
 
 use crate::errors::*;
+use common_macros::assert;
 use config::State;
 use contexts::base::*;
 use contexts::ctx_helper;
@@ -41,6 +43,7 @@ pub trait Pair<ContractReader>:
     + token_send::TokenSendModule
     + events::EventsModule
     + ctx_helper::CtxHelper
+    + safe_price::SafePriceModule
 {
     #[init]
     fn init(
