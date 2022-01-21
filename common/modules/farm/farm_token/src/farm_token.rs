@@ -5,6 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_macros::assert;
 use common_structs::{FarmTokenAttributes, Nonce};
+use elrond_wasm::elrond_codec::TopEncode;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
@@ -156,11 +157,11 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         self.farm_token_supply().update(|x| *x -= total_amount);
     }
 
-    fn mint_farm_tokens(
+    fn mint_farm_tokens<T: TopEncode>(
         &self,
         token_id: &TokenIdentifier,
         amount: &BigUint,
-        attributes: &FarmTokenAttributes<Self::Api>,
+        attributes: &T,
     ) -> u64 {
         let new_nonce = self.nft_create_tokens(token_id, amount, attributes);
         self.farm_token_supply().update(|x| *x += amount);

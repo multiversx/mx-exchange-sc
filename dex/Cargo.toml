@@ -25,6 +25,9 @@ path = "../common/common_structs"
 [dev-dependencies.farm]
 path = "farm"
 
+[dev-dependencies.farm-staking]
+path = "farm-staking"
+
 [dev-dependencies.farm_with_lock]
 path = "farm_with_lock"
 
