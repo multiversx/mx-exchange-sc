@@ -69,7 +69,7 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
     ) {
         if self.has_observations() {
             let current_weight = self.to - self.from + 1;
-            let new_weight = self.to - current_block;
+            let new_weight = current_block - self.to;
 
             self.to = current_block;
             self.num_observations += 1;
