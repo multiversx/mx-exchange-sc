@@ -117,7 +117,7 @@ pub trait Farm:
 
         let mut payments = ManagedVec::from_single_item(staked_token_simulated_payment);
         payments.append_vec(farm_tokens);
-        
+
         self.stake_farm(payments, OptionalArg::None)
     }
 
@@ -144,7 +144,6 @@ pub trait Farm:
         self.farming_token_total_liquidity()
             .update(|liq| *liq += &enter_amount);
 
-        let farm_contribution = &enter_amount;
         // let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
@@ -156,13 +155,13 @@ pub trait Farm:
             last_claim_block: block,
             initial_farming_amount: enter_amount.clone(),
             compounded_reward: BigUint::zero(),
-            current_farm_amount: farm_contribution.clone(),
+            current_farm_amount: enter_amount.clone(),
         };
 
         let caller = self.blockchain().get_caller();
         let farm_token_id = self.farm_token_id().get();
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
-            farm_contribution,
+            &enter_amount,
             &farm_token_id,
             &attributes,
             &additional_payments,
@@ -201,6 +200,46 @@ pub trait Farm:
         #[payment_nonce] token_nonce: Nonce,
         #[payment_amount] amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+    ) -> SCResult<ExitFarmResultType<Self::Api>> {
+        self.unstake_farm_common(
+            payment_token_id,
+            token_nonce,
+            amount,
+            opt_accept_funds_func,
+            false,
+        )
+    }
+
+    // TODO: needs some other logic as well. Postponed until claim rewards is implemented
+    /*
+    #[payable("*")]
+    #[endpoint(unstakeFarmThroughProxy)]
+    fn unstake_farm_through_proxy(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: BigUint,
+    ) -> SCResult<ExitFarmResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller);
+
+        self.unstake_farm_common(
+            payment_token_id,
+            token_nonce,
+            amount,
+            OptionalArg::None,
+            true,
+        )
+    }
+    */
+
+    fn unstake_farm_common(
+        &self,
+        payment_token_id: TokenIdentifier,
+        token_nonce: Nonce,
+        amount: BigUint,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        is_caller_proxy: bool,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -241,35 +280,40 @@ pub trait Farm:
         self.farming_token_total_liquidity()
             .update(|liq| *liq -= &initial_farming_token_amount);
 
-        if self.should_apply_penalty(farm_attributes.entering_epoch) {
-            let penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
-            if penalty_amount > 0 {
-                self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
-                initial_farming_token_amount -= penalty_amount;
-            }
-        }
-
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
 
-        let min_unbond_epochs = self.min_unbond_epochs().get();
-        let current_epoch = self.blockchain().get_block_epoch();
-        let nft_nonce = self.nft_create_tokens(
-            &farm_token_id,
-            &initial_farming_token_amount,
-            &UnbondSftAttributes {
-                unlock_epoch: current_epoch + min_unbond_epochs,
-            },
-        );
-        self.transfer_execute_custom(
-            &caller,
-            &farm_token_id,
-            nft_nonce,
-            &amount,
-            &opt_accept_funds_func,
-        )?;
+        let farm_token_payment = if !is_caller_proxy {
+            if self.should_apply_penalty(farm_attributes.entering_epoch) {
+                let penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
+                if penalty_amount > 0 {
+                    self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
+                    initial_farming_token_amount -= penalty_amount;
+                }
+            }
 
-        let reward_nonce = 0u64;
+            let min_unbond_epochs = self.min_unbond_epochs().get();
+            let current_epoch = self.blockchain().get_block_epoch();
+            let nft_nonce = self.nft_create_tokens(
+                &farm_token_id,
+                &initial_farming_token_amount,
+                &UnbondSftAttributes {
+                    unlock_epoch: current_epoch + min_unbond_epochs,
+                },
+            );
+            self.transfer_execute_custom(
+                &caller,
+                &farm_token_id,
+                nft_nonce,
+                &initial_farming_token_amount,
+                &opt_accept_funds_func,
+            )?;
+
+            EsdtTokenPayment::new(farm_token_id, nft_nonce, initial_farming_token_amount)
+        } else {
+            EsdtTokenPayment::no_payment()
+        };
+
         self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
         /*
@@ -289,8 +333,8 @@ pub trait Farm:
         );
         */
         Ok(MultiResult2::from((
-            self.create_payment(&farm_token_id, nft_nonce, &initial_farming_token_amount),
-            self.create_payment(&reward_token_id, reward_nonce, &reward),
+            farm_token_payment,
+            self.create_payment(&reward_token_id, 0, &reward),
         )))
     }
 

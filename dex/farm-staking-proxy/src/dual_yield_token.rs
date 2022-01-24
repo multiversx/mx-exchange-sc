@@ -7,11 +7,6 @@ const META_SFT_TOKEN_TYPE_NAME: &[u8] = b"META";
 const ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] =
     hex!("000000000000000000010000000000000000000000000000000000000002ffff");
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct DualYieldTokenAttributes {
-    pub farm_token_nonce: u64,
-}
-
 // temporary until added to Rust framework
 mod esdt_system_sc {
     elrond_wasm::imports!();
@@ -31,8 +26,17 @@ mod esdt_system_sc {
     }
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
+    pub lp_farm_token_nonce: u64,
+    pub lp_farm_token_amount: BigUint<M>,
+    pub staking_farm_token_nonce: u64,
+    pub staking_farm_token_amount: BigUint<M>,
+    pub total_dual_yield_tokens_for_position: BigUint<M>,
+}
+
 #[elrond_wasm::module]
-pub trait DualYieldTokenModule {
+pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueDualYieldToken)]
@@ -89,10 +93,21 @@ pub trait DualYieldTokenModule {
         }
     }
 
+    fn require_dual_yield_token(&self, token_id: &TokenIdentifier) -> SCResult<()> {
+        let dual_yield_token_id = self.dual_yield_token_id().get();
+        require!(token_id == &dual_yield_token_id, "Invalid payment token");
+
+        Ok(())
+    }
+
     fn require_all_payments_dual_yield_tokens(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<()> {
+        if payments.is_empty() {
+            return Ok(());
+        }
+
         let dual_yield_token_id = self.dual_yield_token_id().get();
         for p in payments {
             require!(
@@ -104,30 +119,34 @@ pub trait DualYieldTokenModule {
         Ok(())
     }
 
-    fn create_dual_yield_tokens(&self, amount: &BigUint, farm_token_nonce: u64) -> u64 {
+    fn create_and_send_dual_yield_tokens(
+        &self,
+        to: &ManagedAddress,
+        amount: &BigUint,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_amount: BigUint,
+        staking_farm_token_nonce: u64,
+        staking_farm_token_amount: BigUint,
+    ) {
         let dual_yield_token_id = self.dual_yield_token_id().get();
         let empty_buffer = ManagedBuffer::new();
+        let attributes = DualYieldTokenAttributes {
+            lp_farm_token_nonce,
+            lp_farm_token_amount,
+            staking_farm_token_nonce,
+            staking_farm_token_amount,
+            total_dual_yield_tokens_for_position: amount.clone(),
+        };
 
-        self.send().esdt_nft_create(
+        let new_token_nonce = self.send().esdt_nft_create(
             &dual_yield_token_id,
             amount,
             &empty_buffer,
             &BigUint::zero(),
             &empty_buffer,
-            &DualYieldTokenAttributes { farm_token_nonce },
+            &attributes,
             &ManagedVec::new(),
-        )
-    }
-
-    fn create_and_send_dual_yield_tokens(
-        &self,
-        to: &ManagedAddress,
-        amount: &BigUint,
-        farm_token_nonce: u64,
-    ) {
-        let new_token_nonce = self.create_dual_yield_tokens(amount, farm_token_nonce);
-        let dual_yield_token_id = self.dual_yield_token_id().get();
-
+        );
         self.send()
             .direct(to, &dual_yield_token_id, new_token_nonce, amount, &[]);
     }
@@ -138,16 +157,43 @@ pub trait DualYieldTokenModule {
             .esdt_local_burn(&dual_yield_token_id, sft_nonce, amount);
     }
 
-    fn get_farm_token_nonce_from_attributes(&self, dual_yield_token_nonce: u64) -> SCResult<u64> {
+    fn get_lp_farm_token_nonce_from_attributes(
+        &self,
+        dual_yield_token_nonce: u64,
+    ) -> SCResult<u64> {
         let dual_yield_token_id = self.dual_yield_token_id().get();
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             &dual_yield_token_id,
             dual_yield_token_nonce,
         );
-        let attributes = token_info.decode_attributes::<DualYieldTokenAttributes>()?;
+        let attributes = token_info.decode_attributes::<DualYieldTokenAttributes<Self::Api>>()?;
 
-        Ok(attributes.farm_token_nonce)
+        Ok(attributes.lp_farm_token_nonce)
+    }
+
+    fn get_lp_farm_token_amount_equivalent(
+        &self,
+        attributes: &DualYieldTokenAttributes<Self::Api>,
+        amount: &BigUint,
+    ) -> BigUint {
+        self.rule_of_three_non_zero_result(
+            amount,
+            &attributes.lp_farm_token_amount,
+            &attributes.total_dual_yield_tokens_for_position,
+        )
+    }
+
+    fn get_staking_token_amount_equivalent(
+        &self,
+        attributes: &DualYieldTokenAttributes<Self::Api>,
+        amount: &BigUint,
+    ) -> BigUint {
+        self.rule_of_three_non_zero_result(
+            amount,
+            &attributes.staking_farm_token_amount,
+            &attributes.total_dual_yield_tokens_for_position,
+        )
     }
 
     #[proxy]
