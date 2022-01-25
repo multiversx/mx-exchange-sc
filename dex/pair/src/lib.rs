@@ -21,15 +21,15 @@ use contexts::base::*;
 use contexts::ctx_helper;
 use contexts::swap::SwapContext;
 
-type AddLiquidityResultType<BigUint> =
+pub type AddLiquidityResultType<BigUint> =
     MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-type RemoveLiquidityResultType<BigUint> =
+pub type RemoveLiquidityResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
+pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
-type SwapTokensFixedOutputResultType<BigUint> =
+pub type SwapTokensFixedOutputResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]

@@ -2,7 +2,8 @@
 
 elrond_wasm::imports!();
 
-use farm_staking::{ClaimRewardsResultType, EnterFarmResultType};
+use farm_staking::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
+use pair::RemoveLiquidityResultType;
 
 pub mod dual_yield_token;
 pub mod lp_farm_token;
@@ -196,7 +197,6 @@ pub trait FarmStakingProxy:
         Ok(())
     }
 
-    /*
     #[payable("*")]
     #[endpoint(unstakeFarmTokens)]
     fn unstake_farm_tokens(
@@ -207,11 +207,83 @@ pub trait FarmStakingProxy:
     ) -> SCResult<()> {
         self.require_dual_yield_token(&payment_token)?;
 
-        let farm_token_nonce = self.get_farm_token_nonce_from_attributes(payment_nonce)?;
+        let attributes = self.get_dual_yield_token_attributes(payment_nonce)?;
 
-        Ok(())
+        let lp_farm_token_id = self.lp_farm_token_id().get();
+        let lp_farm_token_amount =
+            self.get_lp_farm_token_amount_equivalent(&attributes, &payment_amount);
+        let lp_farm_address = self.lp_farm_address().get();
+        let exit_farm_result: ExitFarmResultType<Self::Api> = self
+            .lp_farm_proxy_obj(lp_farm_address)
+            .claim_rewards(OptionalArg::None)
+            .add_token_transfer(
+                lp_farm_token_id,
+                attributes.lp_farm_token_nonce,
+                lp_farm_token_amount,
+            )
+            .execute_on_dest_context();
+        let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
+
+        let pair_address = self.pair_address().get();
+        let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
+            .pair_proxy_obj(pair_address)
+            .remove_liquidity(
+                lp_tokens.token_identifier,
+                lp_tokens.token_nonce,
+                lp_tokens.amount,
+                BigUint::zero(),
+                BigUint::zero(),
+                OptionalArg::None,
+            )
+            .execute_on_dest_context();
+        let (pair_first_token_payment, pair_second_token_payment) =
+            pair_withdraw_result.into_tuple();
+
+        let staking_token_id = self.staking_token_id().get();
+        let (staking_token_payment, other_token_payment) =
+            if pair_first_token_payment.token_identifier == staking_token_id {
+                (pair_first_token_payment, pair_second_token_payment)
+            } else if pair_second_token_payment.token_identifier == staking_token_id {
+                (pair_second_token_payment, pair_first_token_payment)
+            } else {
+                return sc_error!("Invalid payments received from Pair");
+            };
+
+        let staking_farm_token_id = self.staking_farm_token_id().get();
+        let staking_farm_token_amount =
+            self.get_staking_farm_token_amount_equivalent(&attributes, &payment_amount);
+        let mut staking_sc_payments = ManagedVec::new();
+        staking_sc_payments.push(staking_token_payment);
+        staking_sc_payments.push(EsdtTokenPayment::new(
+            staking_farm_token_id,
+            attributes.staking_farm_token_nonce,
+            staking_farm_token_amount,
+        ));
+
+        let staking_farm_address = self.staking_farm_address().get();
+        let unstake_result: ExitFarmResultType<Self::Api> = self
+            .staking_farm_proxy_obj(staking_farm_address)
+            .unstake_farm_through_proxy(staking_sc_payments)
+            .execute_on_dest_context();
+        let (unbond_staking_farm_token, staking_rewards) = unstake_result.into_tuple();
+
+        let caller = self.blockchain().get_caller();
+        let mut user_payments = ManagedVec::new();
+        user_payments.push(other_token_payment);
+        user_payments.push(lp_farm_rewards);
+        user_payments.push(staking_rewards);
+        user_payments.push(unbond_staking_farm_token);
+
+        self.raw_vm_api()
+            .direct_multi_esdt_transfer_execute(
+                &caller,
+                &user_payments,
+                0,
+                &ManagedBuffer::new(),
+                &ManagedArgBuffer::new_empty(),
+            )
+            .into()
     }
-    */
 
     // TODO: Call some method in the pair contract
     fn get_lp_tokens_value_in_staking_token(&self, lp_tokens_amount: &BigUint) -> BigUint {
@@ -225,6 +297,9 @@ pub trait FarmStakingProxy:
 
     #[proxy]
     fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm::Proxy<Self::Api>;
+
+    #[proxy]
+    fn pair_proxy_obj(&self, sc_address: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     // storage
 

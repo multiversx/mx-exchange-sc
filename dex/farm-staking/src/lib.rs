@@ -195,28 +195,39 @@ pub trait Farm:
         )
     }
 
-    // TODO: needs some other logic as well. Postponed until claim rewards is implemented
-    /*
     #[payable("*")]
     #[endpoint(unstakeFarmThroughProxy)]
     fn unstake_farm_through_proxy(
         &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: Nonce,
-        #[payment_amount] amount: BigUint,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
 
+        require!(payments.len() == 2, "Invalid payments amount");
+
+        let first_payment = payments.get(0).unwrap();
+        let staking_token_id = self.farming_token_id().get();
+        require!(
+            first_payment.token_identifier == staking_token_id,
+            "Invalid first payment"
+        );
+
+        let second_payment = payments.get(1).unwrap();
+        let farm_token_id = self.farm_token_id().get();
+        require!(
+            second_payment.token_identifier == farm_token_id,
+            "Invalid second payment"
+        );
+
         self.unstake_farm_common(
-            payment_token_id,
-            token_nonce,
-            amount,
+            second_payment.token_identifier,
+            second_payment.token_nonce,
+            second_payment.amount,
             OptionalArg::None,
             true,
         )
     }
-    */
 
     fn unstake_farm_common(
         &self,

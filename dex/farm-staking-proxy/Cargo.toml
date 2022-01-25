@@ -23,6 +23,9 @@ path = "../farm"
 [dependencies.farm-staking]
 path = "../farm-staking"
 
+[dependencies.pair]
+path = "../pair"
+
 [dependencies.token_merge]
 path = "../../common/modules/token_merge"
 
