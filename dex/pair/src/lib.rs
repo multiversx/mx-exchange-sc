@@ -152,7 +152,7 @@ pub trait Pair<ContractReader>:
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_add_liquidity_output_payments(&mut context);
@@ -240,7 +240,7 @@ pub trait Pair<ContractReader>:
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_add_liquidity_output_payments(&mut context);
@@ -321,7 +321,7 @@ pub trait Pair<ContractReader>:
         let lpt = context.get_lp_token_id();
         self.burn(lpt, &context.get_lp_token_payment().amount);
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_remove_liquidity_output_payments(&mut context);
@@ -412,7 +412,7 @@ pub trait Pair<ContractReader>:
             &token_to_buyback_and_burn,
         );
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
     }
 
@@ -484,7 +484,7 @@ pub trait Pair<ContractReader>:
             ERROR_K_INVARIANT_FAILED,
         );
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
         self.burn(&token_out, &amount_out);
         self.emit_swap_no_fee_and_forward_event(&context, &destination_address);
@@ -561,7 +561,7 @@ pub trait Pair<ContractReader>:
             self.send_fee(&mut context, &token_in, &fee_amount);
         }
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_swap_output_payments(&mut context);
@@ -641,7 +641,7 @@ pub trait Pair<ContractReader>:
             self.send_fee(&mut context, &token_in, &fee_amount);
         }
 
-        self.update_safe_state_from_context(&mut context);
+        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_swap_output_payments(&mut context);
