@@ -366,7 +366,7 @@ pub trait Farm:
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
-        
+
         require!(
             payments.len() == new_values.len(),
             "Arguments length mismatch"
@@ -436,8 +436,12 @@ pub trait Farm:
 
         let (new_farm_token, _created_with_merge) = match opt_new_farm_values {
             Some(new_farm_values) => {
+                let new_additional_values = new_farm_values
+                    .slice(1, new_farm_values.len())
+                    .unwrap_or_default();
+
                 let mut additional_payments_attributes = ManagedVec::new();
-                for (p, new_val) in additional_payments.iter().zip(new_farm_values.iter()) {
+                for (p, new_val) in additional_payments.iter().zip(new_additional_values.iter()) {
                     let mut attr = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
                         &p.token_identifier,
                         p.token_nonce,
