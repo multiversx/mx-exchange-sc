@@ -3,7 +3,6 @@
 elrond_wasm::imports!();
 
 use farm_staking::{ClaimRewardsResultType, EnterFarmResultType};
-use lp_farm_token::LpFarmTokenModule;
 
 pub mod dual_yield_token;
 pub mod lp_farm_token;
@@ -169,6 +168,30 @@ pub trait FarmStakingProxy:
             .claim_rewards_with_new_value(staking_farm_tokens, new_staking_farm_values)
             .execute_on_dest_context();
         let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
+
+        let caller = self.blockchain().get_caller();
+        self.send().direct(
+            &caller,
+            &lp_farm_rewards.token_identifier,
+            lp_farm_rewards.token_nonce,
+            &lp_farm_rewards.amount,
+            &[],
+        );
+        self.send().direct(
+            &caller,
+            &staking_farm_rewards.token_identifier,
+            staking_farm_rewards.token_nonce,
+            &staking_farm_rewards.amount,
+            &[],
+        );
+        self.create_and_send_dual_yield_tokens(
+            &caller,
+            &new_staking_farm_tokens.amount,
+            new_lp_farm_tokens.token_nonce,
+            new_lp_farm_tokens.amount,
+            new_staking_farm_tokens.token_nonce,
+            new_staking_farm_tokens.amount.clone(),
+        );
 
         Ok(())
     }

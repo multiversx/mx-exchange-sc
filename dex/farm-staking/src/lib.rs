@@ -174,21 +174,6 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        /*
-        self.emit_enter_farm_event(
-            &caller,
-            &farming_token_id,
-            &enter_amount,
-            &new_farm_token.token_amount.token_identifier,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &self.farm_token_supply().get(),
-            &reward_token_id,
-            &self.reward_reserve().get(),
-            &new_farm_token.attributes,
-            created_with_merge,
-        );
-        */
         Ok(new_farm_token.token_amount)
     }
 
@@ -316,25 +301,9 @@ pub trait Farm:
 
         self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
-        /*
-        self.emit_exit_farm_event(
-            &caller,
-            &farming_token_id,
-            &initial_farming_token_amount,
-            &farm_token_id,
-            token_nonce,
-            &amount,
-            &self.farm_token_supply().get(),
-            &reward_token_id,
-            reward_nonce,
-            &reward,
-            &self.reward_reserve().get(),
-            &farm_attributes,
-        );
-        */
         Ok(MultiResult2::from((
             farm_token_payment,
-            self.create_payment(&reward_token_id, 0, &reward),
+            EsdtTokenPayment::new(reward_token_id, 0, reward),
         )))
     }
 
@@ -385,6 +354,33 @@ pub trait Farm:
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
+        self.claim_rewards_common(payments, opt_accept_funds_func, None)
+    }
+
+    #[payable("*")]
+    #[endpoint(claimRewardsWithNewValue)]
+    fn claim_rewards_with_new_value(
+        &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        new_values: ManagedVec<BigUint>,
+    ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller);
+        
+        require!(
+            payments.len() == new_values.len(),
+            "Arguments length mismatch"
+        );
+
+        self.claim_rewards_common(payments, OptionalArg::None, Some(new_values))
+    }
+
+    fn claim_rewards_common(
+        &self,
+        payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        opt_new_farm_values: Option<ManagedVec<BigUint>>,
+    ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
@@ -392,10 +388,10 @@ pub trait Farm:
         let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
         let payment_token_id = payment_0.token_identifier.clone();
-        let amount = payment_0.amount.clone();
+        let old_farming_amount = payment_0.amount.clone();
         let token_nonce = payment_0.token_nonce;
 
-        require!(amount > 0, "Zero amount");
+        require!(old_farming_amount > 0, "Zero amount");
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
         let farm_attributes = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
@@ -407,7 +403,7 @@ pub trait Farm:
         self.generate_aggregated_rewards();
 
         let reward = self.calculate_rewards_with_apr_limit(
-            &amount,
+            &old_farming_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
@@ -416,35 +412,57 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
-            &amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.initial_farming_amount,
-        );
         let new_compound_reward_amount = self.rule_of_three(
-            &amount,
+            &old_farming_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
         );
+        let new_farming_amount = match &opt_new_farm_values {
+            Some(new_values) => new_values.get(0).unwrap(),
+            None => old_farming_amount.clone(),
+        };
 
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             entering_epoch: farm_attributes.entering_epoch,
             last_claim_block: self.blockchain().get_block_nonce(),
-            initial_farming_amount: new_initial_farming_amount,
+            initial_farming_amount: new_farming_amount.clone(),
             compounded_reward: new_compound_reward_amount,
-            current_farm_amount: amount.clone(),
+            current_farm_amount: new_farming_amount.clone(),
         };
 
         let caller = self.blockchain().get_caller();
-        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
-        let farm_amount = amount.clone();
-        let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
-            &farm_amount,
-            &farm_token_id,
-            &new_attributes,
-            &additional_payments,
-        )?;
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &old_farming_amount);
+
+        let (new_farm_token, _created_with_merge) = match opt_new_farm_values {
+            Some(new_farm_values) => {
+                let mut additional_payments_attributes = ManagedVec::new();
+                for (p, new_val) in additional_payments.iter().zip(new_farm_values.iter()) {
+                    let mut attr = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
+                        &p.token_identifier,
+                        p.token_nonce,
+                    )?;
+                    attr.initial_farming_amount = new_val.clone();
+                    attr.current_farm_amount = new_val;
+
+                    additional_payments_attributes.push(attr);
+                }
+
+                self.create_farm_tokens_by_merging_with_updated_attributes(
+                    &new_farming_amount,
+                    &farm_token_id,
+                    &new_attributes,
+                    &additional_payments,
+                    &additional_payments_attributes,
+                )?
+            }
+            None => self.create_farm_tokens_by_merging(
+                &new_farming_amount,
+                &farm_token_id,
+                &new_attributes,
+                &additional_payments,
+            )?,
+        };
         self.transfer_execute_custom(
             &caller,
             &farm_token_id,
@@ -453,46 +471,12 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        let reward_nonce = 0u64;
         self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
-        /*
-        self.emit_claim_rewards_event(
-            &caller,
-            &farm_token_id,
-            token_nonce,
-            &amount,
-            &new_farm_token.token_amount.token_identifier,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &self.farm_token_supply().get(),
-            &reward_token_id,
-            reward_nonce,
-            &reward,
-            &self.reward_reserve().get(),
-            &farm_attributes,
-            &new_farm_token.attributes,
-            created_with_merge,
-        );
-        */
         Ok(MultiResult2::from((
             new_farm_token.token_amount,
-            self.create_payment(&reward_token_id, reward_nonce, &reward),
+            EsdtTokenPayment::new(reward_token_id, 0, reward),
         )))
-    }
-
-    #[payable("*")]
-    #[endpoint(claimRewardsWithNewValue)]
-    fn claim_rewards_with_new_value(
-        &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        new_values: ManagedVec<BigUint>,
-    ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
-        Ok((
-            EsdtTokenPayment::no_payment(),
-            EsdtTokenPayment::no_payment(),
-        )
-            .into())
     }
 
     #[payable("*")]
@@ -581,25 +565,6 @@ pub trait Farm:
             &opt_accept_funds_func,
         )?;
 
-        /*
-        self.emit_compound_rewards_event(
-            &caller,
-            &farm_token_id,
-            payment_token_nonce,
-            &payment_amount,
-            &new_farm_token.token_amount.token_identifier,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &self.farm_token_supply().get(),
-            &self.reward_token_id().get(),
-            0,
-            &reward,
-            &self.reward_reserve().get(),
-            &farm_attributes,
-            &new_farm_token.attributes,
-            created_with_merge,
-        );
-        */
         Ok(new_farm_token.token_amount)
     }
 
@@ -643,8 +608,42 @@ pub trait Farm:
 
         let additional_payments_len = additional_payments.len();
         let merged_attributes = self.get_merged_farm_token_attributes(
-            additional_payments.iter(),
+            additional_payments,
             Some(current_position_replic),
+            None,
+        )?;
+        self.burn_farm_tokens_from_payments(additional_payments);
+
+        let new_amount = &merged_attributes.current_farm_amount;
+        let new_nonce = self.mint_farm_tokens(token_id, new_amount, &merged_attributes);
+
+        let new_farm_token = StakingFarmToken {
+            token_amount: self.create_payment(token_id, new_nonce, new_amount),
+            attributes: merged_attributes,
+        };
+        let is_merged = additional_payments_len != 0;
+
+        Ok((new_farm_token, is_merged))
+    }
+
+    fn create_farm_tokens_by_merging_with_updated_attributes(
+        &self,
+        amount: &BigUint,
+        token_id: &TokenIdentifier,
+        attributes: &StakingFarmTokenAttributes<Self::Api>,
+        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        new_additional_attributes: &ManagedVec<StakingFarmTokenAttributes<Self::Api>>,
+    ) -> SCResult<(StakingFarmToken<Self::Api>, bool)> {
+        let current_position_replic = StakingFarmToken {
+            token_amount: self.create_payment(token_id, 0, amount),
+            attributes: attributes.clone(),
+        };
+
+        let additional_payments_len = additional_payments.len();
+        let merged_attributes = self.get_merged_farm_token_attributes(
+            additional_payments,
+            Some(current_position_replic),
+            Some(new_additional_attributes),
         )?;
         self.burn_farm_tokens_from_payments(additional_payments);
 

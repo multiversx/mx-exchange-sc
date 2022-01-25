@@ -35,7 +35,7 @@ pub trait FarmTokenMergeModule:
         let caller = self.blockchain().get_caller();
         let payments = self.get_all_payments_managed_vec();
 
-        let attrs = self.get_merged_farm_token_attributes(payments.iter(), Option::None)?;
+        let attrs = self.get_merged_farm_token_attributes(&payments, None, None)?;
         let farm_token_id = self.farm_token_id().get();
         self.burn_farm_tokens_from_payments(&payments);
 
@@ -55,8 +55,11 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<StakingFarmToken<Self::Api>>,
+        opt_custom_attributes_for_payments: Option<
+            &ManagedVec<StakingFarmTokenAttributes<Self::Api>>,
+        >,
     ) -> SCResult<StakingFarmTokenAttributes<Self::Api>> {
         require!(
             !payments.is_empty() || replic.is_some(),
@@ -65,21 +68,27 @@ pub trait FarmTokenMergeModule:
 
         let mut tokens = ManagedVec::new();
         let farm_token_id = self.farm_token_id().get();
+        let empty_vec = ManagedVec::new();
+        let custom_attributes = opt_custom_attributes_for_payments.unwrap_or(&empty_vec);
 
-        for payment in payments {
+        for (i, payment) in payments.iter().enumerate() {
             require!(payment.amount != 0u64, "zero entry amount");
             require!(
                 payment.token_identifier == farm_token_id,
                 "Not a farm token"
             );
 
+            let attributes = match custom_attributes.get(i) {
+                Some(attr) => attr,
+                None => self.get_attributes(&payment.token_identifier, payment.token_nonce)?,
+            };
             tokens.push(StakingFarmToken {
                 token_amount: self.create_payment(
                     &payment.token_identifier,
                     payment.token_nonce,
                     &payment.amount,
                 ),
-                attributes: self.get_attributes(&payment.token_identifier, payment.token_nonce)?,
+                attributes,
             });
         }
 

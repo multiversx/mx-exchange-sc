@@ -364,7 +364,12 @@ fn claim_rewards<FarmObjBuilder>(
         farm_token_nonce,
         &rust_biguint!(farm_token_amount),
         |sc| {
-            let result = sc.claim_rewards(OptionalArg::None);
+            let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
+                managed_token_id!(FARM_TOKEN_ID),
+                farm_token_nonce,
+                managed_biguint!(farm_token_amount),
+            ));
+            let result = sc.claim_rewards(payments, OptionalArg::None);
 
             match result {
                 SCResult::Ok(multi_result) => {
