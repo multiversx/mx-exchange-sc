@@ -496,13 +496,13 @@ fn test_safe_price() {
     );
     check_future_safe_state(
         &mut pair_setup,
-        50,
         60,
-        2,
+        60,
+        1,
         1_007_000,
         995_054,
-        1_005_772,
-        996_264,
+        1_007_000,
+        995_054,
     );
 
     pair_setup.blockchain_wrapper.set_block_nonce(70);
@@ -526,13 +526,13 @@ fn test_safe_price() {
     );
     check_future_safe_state(
         &mut pair_setup,
-        50,
+        60,
         70,
-        3,
+        2,
         1_008_000,
         994_070,
-        1_006_356,
-        995_687,
+        1_007_000,
+        995_054,
     );
 
     pair_setup.blockchain_wrapper.set_block_nonce(80);
@@ -576,13 +576,13 @@ fn test_safe_price() {
     );
     check_future_safe_state(
         &mut pair_setup,
-        50,
+        60,
         100,
-        6,
+        5,
         1_011_000,
         991_130,
-        1_007_910,
-        994_158,
+        1_008_462,
+        993_615,
     );
 
     pair_setup.blockchain_wrapper.set_block_nonce(110);
@@ -596,13 +596,13 @@ fn test_safe_price() {
     );
     check_current_safe_state(
         &mut pair_setup,
-        50,
+        60,
         110,
-        7,
+        6,
         1_012_000,
         990_154,
-        1_008_416,
-        993_661,
+        1_008_959,
+        993_127,
     );
     check_future_safe_state(
         &mut pair_setup,

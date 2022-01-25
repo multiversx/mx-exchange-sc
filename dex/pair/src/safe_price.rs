@@ -39,6 +39,18 @@ impl<M: ManagedTypeApi> Default for CumulativeState<M> {
 }
 
 impl<M: ManagedTypeApi> CumulativeState<M> {
+    fn new(block: u64, first_reserve: &BigUint<M>, second_reserve: &BigUint<M>) -> Self {
+        CumulativeState {
+            from: block,
+            to: block,
+            num_observations: 0,
+            first_token_reserve_last_obs: first_reserve.clone(),
+            second_token_reserve_last_obs: second_reserve.clone(),
+            first_token_reserve_weighted: first_reserve.clone(),
+            second_token_reserve_weighted: second_reserve.clone(),
+        }
+    }
+
     fn contains_block(&self, block: u64) -> bool {
         self.from <= block && block <= self.to
     }
@@ -176,37 +188,22 @@ pub trait SafePriceModule:
 
         //Will be executed just once to initialize the current state.
         if current_state.is_default() {
-            current_state = CumulativeState {
-                from: current_block,
-                to: current_block,
-                num_observations: 0,
-                first_token_reserve_last_obs: first_token_reserve.clone(),
-                second_token_reserve_last_obs: second_token_reserve.clone(),
-                first_token_reserve_weighted: first_token_reserve.clone(),
-                second_token_reserve_weighted: second_token_reserve.clone(),
-            };
+            current_state =
+                CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
         }
 
         //Will be executed just once to initialize the future state.
         if current_state.has_half_max_observations() && future_state.is_default() {
-            future_state = current_state.clone();
-            future_state.from = current_state.to;
-            future_state.num_observations = 1;
+            future_state =
+                CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
         }
 
         //At this point, future state is already initialized and contains half
         //of the observations that the current state contains.
         if current_state.has_max_observations() {
             current_state = future_state.clone();
-            future_state = CumulativeState {
-                from: current_block,
-                to: current_block,
-                num_observations: 0,
-                first_token_reserve_last_obs: first_token_reserve.clone(),
-                second_token_reserve_last_obs: second_token_reserve.clone(),
-                first_token_reserve_weighted: first_token_reserve.clone(),
-                second_token_reserve_weighted: second_token_reserve.clone(),
-            }
+            future_state =
+                CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
         }
 
         current_state.update(
