@@ -157,19 +157,19 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             .esdt_local_burn(&dual_yield_token_id, sft_nonce, amount);
     }
 
-    fn get_lp_farm_token_nonce_from_attributes(
+    fn get_dual_yield_token_attributes(
         &self,
         dual_yield_token_nonce: u64,
-    ) -> SCResult<u64> {
+    ) -> SCResult<DualYieldTokenAttributes<Self::Api>> {
+        let own_sc_address = self.blockchain().get_sc_address();
         let dual_yield_token_id = self.dual_yield_token_id().get();
         let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
+            &own_sc_address,
             &dual_yield_token_id,
             dual_yield_token_nonce,
         );
-        let attributes = token_info.decode_attributes::<DualYieldTokenAttributes<Self::Api>>()?;
 
-        Ok(attributes.lp_farm_token_nonce)
+        token_info.decode_attributes().into()
     }
 
     fn get_lp_farm_token_amount_equivalent(
@@ -184,7 +184,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         )
     }
 
-    fn get_staking_token_amount_equivalent(
+    fn get_staking_farm_token_amount_equivalent(
         &self,
         attributes: &DualYieldTokenAttributes<Self::Api>,
         amount: &BigUint,

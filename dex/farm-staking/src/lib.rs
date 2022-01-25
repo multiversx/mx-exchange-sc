@@ -382,16 +382,14 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments_vec = self.get_all_payments_managed_vec();
-        let payment_0 = payments_vec.get(0).ok_or("empty payments")?;
-        let additional_payments = payments_vec
-            .slice(1, payments_vec.len())
-            .unwrap_or_default();
+        let payment_0 = payments.get(0).ok_or("empty payments")?;
+        let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
         let payment_token_id = payment_0.token_identifier.clone();
         let amount = payment_0.amount.clone();
@@ -481,6 +479,20 @@ pub trait Farm:
             new_farm_token.token_amount,
             self.create_payment(&reward_token_id, reward_nonce, &reward),
         )))
+    }
+
+    #[payable("*")]
+    #[endpoint(claimRewardsWithNewValue)]
+    fn claim_rewards_with_new_value(
+        &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        new_values: ManagedVec<BigUint>,
+    ) -> SCResult<ClaimRewardsResultType<Self::Api>> {
+        Ok((
+            EsdtTokenPayment::no_payment(),
+            EsdtTokenPayment::no_payment(),
+        )
+            .into())
     }
 
     #[payable("*")]

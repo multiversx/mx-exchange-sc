@@ -2,7 +2,8 @@
 
 elrond_wasm::imports!();
 
-use farm_staking::EnterFarmResultType;
+use farm_staking::{ClaimRewardsResultType, EnterFarmResultType};
+use lp_farm_token::LpFarmTokenModule;
 
 pub mod dual_yield_token;
 pub mod lp_farm_token;
@@ -16,12 +17,17 @@ pub trait FarmStakingProxy:
     #[init]
     fn init(
         &self,
+        lp_farm_address: ManagedAddress,
         staking_farm_address: ManagedAddress,
         pair_address: ManagedAddress,
         staking_token_id: TokenIdentifier,
         lp_farm_token_id: TokenIdentifier,
-        farm_token_id: TokenIdentifier,
+        staking_farm_token_id: TokenIdentifier,
     ) -> SCResult<()> {
+        require!(
+            self.blockchain().is_smart_contract(&lp_farm_address),
+            "Invalid LP Farm address"
+        );
         require!(
             self.blockchain().is_smart_contract(&staking_farm_address),
             "Invalid Staking Farm address"
@@ -39,15 +45,15 @@ pub trait FarmStakingProxy:
             "Invalid LP token ID"
         );
         require!(
-            farm_token_id.is_valid_esdt_identifier(),
-            "Invalid Farm token ID"
+            staking_farm_token_id.is_valid_esdt_identifier(),
+            "Invalid Staking Farm token ID"
         );
 
         self.staking_farm_address().set(&staking_farm_address);
         self.pair_address().set(&pair_address);
         self.staking_token_id().set(&staking_token_id);
         self.lp_farm_token_id().set(&lp_farm_token_id);
-        self.farm_token_id().set(&farm_token_id);
+        self.staking_farm_token_id().set(&staking_farm_token_id);
 
         Ok(())
     }
@@ -69,14 +75,15 @@ pub trait FarmStakingProxy:
         );
         self.require_all_payments_dual_yield_tokens(&additional_payments)?;
 
-        let farm_token_id = self.farm_token_id().get();
-        let mut farm_tokens = ManagedVec::new();
+        let staking_farm_token_id = self.staking_farm_token_id().get();
+        let mut staking_farm_tokens = ManagedVec::new();
         for p in &additional_payments {
-            let farm_token_nonce = self.get_lp_farm_token_nonce_from_attributes(p.token_nonce)?;
-            let farm_tokens_payment =
-                EsdtTokenPayment::new(farm_token_id.clone(), farm_token_nonce, p.amount.clone());
-
-            farm_tokens.push(farm_tokens_payment);
+            let attributes = self.get_dual_yield_token_attributes(p.token_nonce)?;
+            staking_farm_tokens.push(EsdtTokenPayment::new(
+                staking_farm_token_id.clone(),
+                attributes.lp_farm_token_nonce,
+                p.amount.clone(),
+            ));
 
             self.burn_dual_yield_tokens(p.token_nonce, &p.amount);
         }
@@ -89,7 +96,7 @@ pub trait FarmStakingProxy:
         let staking_farm_address = self.staking_farm_address().get();
         let received_staking_farm_token: EnterFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .stake_farm_through_proxy(farm_tokens, staking_token_amount)
+            .stake_farm_through_proxy(staking_farm_tokens, staking_token_amount)
             .execute_on_dest_context();
 
         let caller = self.blockchain().get_caller();
@@ -101,6 +108,67 @@ pub trait FarmStakingProxy:
             received_staking_farm_token.token_nonce,
             received_staking_farm_token.amount.clone(),
         );
+
+        Ok(())
+    }
+
+    #[payable("*")]
+    #[endpoint(claimRewardsFromFarms)]
+    fn claim_rewards_from_farms(
+        &self,
+        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+    ) -> SCResult<()> {
+        self.require_all_payments_dual_yield_tokens(&payments)?;
+
+        let mut lp_farm_tokens = ManagedVec::new();
+        let mut staking_farm_tokens = ManagedVec::new();
+        let mut new_staking_farm_values = ManagedVec::new();
+
+        let lp_farm_token_id = self.lp_farm_token_id().get();
+        let staking_farm_token_id = self.staking_farm_token_id().get();
+
+        for p in &payments {
+            let attributes = self.get_dual_yield_token_attributes(p.token_nonce)?;
+            let staking_farm_token_amount =
+                self.get_staking_farm_token_amount_equivalent(&attributes, &p.amount);
+
+            staking_farm_tokens.push(EsdtTokenPayment::new(
+                staking_farm_token_id.clone(),
+                attributes.staking_farm_token_nonce,
+                staking_farm_token_amount,
+            ));
+
+            let lp_farm_token_amount =
+                self.get_lp_farm_token_amount_equivalent(&attributes, &p.amount);
+            let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
+                attributes.lp_farm_token_nonce,
+                &attributes.lp_farm_token_amount,
+            )?;
+            let new_staking_farm_value =
+                self.get_lp_tokens_value_in_staking_token(&lp_tokens_in_position);
+
+            lp_farm_tokens.push(EsdtTokenPayment::new(
+                lp_farm_token_id.clone(),
+                attributes.lp_farm_token_nonce,
+                lp_farm_token_amount,
+            ));
+            new_staking_farm_values.push(new_staking_farm_value);
+        }
+
+        let lp_farm_address = self.lp_farm_address().get();
+        let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
+            .lp_farm_proxy_obj(lp_farm_address)
+            .claim_rewards(OptionalArg::None)
+            .with_multi_token_transfer(lp_farm_tokens)
+            .execute_on_dest_context();
+        let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
+
+        let staking_farm_address = self.staking_farm_address().get();
+        let staking_farm_result: ClaimRewardsResultType<Self::Api> = self
+            .staking_farm_proxy_obj(staking_farm_address)
+            .claim_rewards_with_new_value(staking_farm_tokens, new_staking_farm_values)
+            .execute_on_dest_context();
+        let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
 
         Ok(())
     }
@@ -132,7 +200,14 @@ pub trait FarmStakingProxy:
     #[proxy]
     fn staking_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm_staking::Proxy<Self::Api>;
 
+    #[proxy]
+    fn lp_farm_proxy_obj(&self, sc_address: ManagedAddress) -> farm::Proxy<Self::Api>;
+
     // storage
+
+    #[view(getLpFarmAddress)]
+    #[storage_mapper("lpFarmAddress")]
+    fn lp_farm_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getStakingFarmAddress)]
     #[storage_mapper("stakingFarmAddress")]
@@ -148,5 +223,5 @@ pub trait FarmStakingProxy:
 
     #[view(getFarmTokenId)]
     #[storage_mapper("farmTokenId")]
-    fn farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn staking_farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }
