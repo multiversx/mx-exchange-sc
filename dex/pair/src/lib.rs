@@ -152,7 +152,7 @@ pub trait Pair<ContractReader>:
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
 
-        self.update_safe_state_from_context(&context);
+        self.update_safe_state_from_context(&mut context);
         self.commit_changes(&context);
 
         self.construct_add_liquidity_output_payments(&mut context);
@@ -218,6 +218,7 @@ pub trait Pair<ContractReader>:
         );
 
         self.load_pool_reserves(&mut context);
+        self.update_safe_state_from_context(&context);
         self.load_lp_token_supply(&mut context);
         self.load_initial_k(&mut context);
 
@@ -239,8 +240,6 @@ pub trait Pair<ContractReader>:
         let lpt = context.get_lp_token_id();
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
-
-        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_add_liquidity_output_payments(&mut context);
@@ -306,6 +305,7 @@ pub trait Pair<ContractReader>:
 
         self.load_pool_token_ids(&mut context);
         self.load_pool_reserves(&mut context);
+        self.update_safe_state_from_context(&context);
         self.load_lp_token_supply(&mut context);
         self.load_initial_k(&mut context);
 
@@ -320,8 +320,6 @@ pub trait Pair<ContractReader>:
 
         let lpt = context.get_lp_token_id();
         self.burn(lpt, &context.get_lp_token_payment().amount);
-
-        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
 
         self.construct_remove_liquidity_output_payments(&mut context);
@@ -384,6 +382,7 @@ pub trait Pair<ContractReader>:
 
         self.load_pool_token_ids(&mut context);
         self.load_pool_reserves(&mut context);
+        self.update_safe_state_from_context(&context);
         self.load_lp_token_supply(&mut context);
 
         self.pool_remove_liquidity(&mut context);
@@ -412,7 +411,6 @@ pub trait Pair<ContractReader>:
             &token_to_buyback_and_burn,
         );
 
-        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
     }
 
@@ -470,6 +468,7 @@ pub trait Pair<ContractReader>:
         );
 
         self.load_pool_reserves(&mut context);
+        self.update_safe_state_from_context(&context);
         self.load_initial_k(&mut context);
 
         context.set_final_input_amount(amount_in.clone());
@@ -484,7 +483,6 @@ pub trait Pair<ContractReader>:
             ERROR_K_INVARIANT_FAILED,
         );
 
-        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
         self.burn(&token_out, &amount_out);
         self.emit_swap_no_fee_and_forward_event(&context, &destination_address);
@@ -545,6 +543,7 @@ pub trait Pair<ContractReader>:
             context.get_reserve_out() > context.get_amount_out_min(),
             ERROR_NOT_ENOUGH_RESERVE,
         );
+        self.update_safe_state_from_context(&context);
 
         self.load_initial_k(&mut context);
         self.perform_swap_fixed_input(&mut context);
@@ -561,9 +560,7 @@ pub trait Pair<ContractReader>:
             self.send_fee(&mut context, &token_in, &fee_amount);
         }
 
-        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
-
         self.construct_swap_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_swap_event(&context);
@@ -625,6 +622,7 @@ pub trait Pair<ContractReader>:
             context.get_reserve_out() > context.get_amount_out(),
             ERROR_NOT_ENOUGH_RESERVE
         );
+        self.update_safe_state_from_context(&context);
 
         self.load_initial_k(&mut context);
         self.perform_swap_fixed_output(&mut context);
@@ -641,9 +639,7 @@ pub trait Pair<ContractReader>:
             self.send_fee(&mut context, &token_in, &fee_amount);
         }
 
-        self.update_safe_state_from_context(&context);
         self.commit_changes(&context);
-
         self.construct_swap_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_swap_event(&context);
