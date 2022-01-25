@@ -18,8 +18,10 @@ pub struct CumulativeState<M: ManagedTypeApi> {
     pub from: Block,
     pub to: Block,
     pub num_observations: u64,
-    pub first_token_reserve: BigUint<M>,
-    pub second_token_reserve: BigUint<M>,
+    pub first_token_reserve_last_obs: BigUint<M>,
+    pub second_token_reserve_last_obs: BigUint<M>,
+    pub first_token_reserve_weighted: BigUint<M>,
+    pub second_token_reserve_weighted: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> Default for CumulativeState<M> {
@@ -28,29 +30,21 @@ impl<M: ManagedTypeApi> Default for CumulativeState<M> {
             from: 0,
             to: 0,
             num_observations: 0,
-            first_token_reserve: BigUint::zero(),
-            second_token_reserve: BigUint::zero(),
+            first_token_reserve_last_obs: BigUint::zero(),
+            second_token_reserve_last_obs: BigUint::zero(),
+            first_token_reserve_weighted: BigUint::zero(),
+            second_token_reserve_weighted: BigUint::zero(),
         }
     }
 }
 
 impl<M: ManagedTypeApi> CumulativeState<M> {
-    fn new(block: u64, first_reserve: BigUint<M>, second_reserve: BigUint<M>) -> Self {
-        CumulativeState {
-            from: block,
-            to: block,
-            num_observations: 1,
-            first_token_reserve: first_reserve,
-            second_token_reserve: second_reserve,
-        }
-    }
-
     fn contains_block(&self, block: u64) -> bool {
         self.from <= block && block <= self.to
     }
 
-    fn has_observations(&self) -> bool {
-        self.num_observations != 0
+    fn is_default(&self) -> bool {
+        self.from == 0
     }
 
     fn has_max_observations(&self) -> bool {
@@ -67,18 +61,23 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
         first_reserve: BigUint<M>,
         second_reserve: BigUint<M>,
     ) {
-        if self.has_observations() {
+        if !self.is_default() {
             let current_weight = self.to - self.from + 1;
             let new_weight = current_block - self.to;
 
             self.to = current_block;
             self.num_observations += 1;
-            self.first_token_reserve = (&self.first_token_reserve * current_weight
-                + first_reserve * new_weight)
+            self.first_token_reserve_weighted = (&self.first_token_reserve_weighted
+                * current_weight
+                + &self.first_token_reserve_last_obs * new_weight)
                 / (current_weight + new_weight);
-            self.second_token_reserve = (&self.second_token_reserve * current_weight
-                + second_reserve * new_weight)
+            self.second_token_reserve_weighted = (&self.second_token_reserve_weighted
+                * current_weight
+                + &self.second_token_reserve_last_obs * new_weight)
                 / (current_weight + new_weight);
+
+            self.first_token_reserve_last_obs = first_reserve;
+            self.second_token_reserve_last_obs = second_reserve;
         }
     }
 }
@@ -102,13 +101,13 @@ pub trait SafePriceModule:
         let big_zero = BigUint::zero();
 
         let (first_token_worth, second_token_worth) = if total_supply == big_zero
-            || c_state.first_token_reserve == big_zero
-            || c_state.second_token_reserve == big_zero
+            || c_state.first_token_reserve_weighted == big_zero
+            || c_state.second_token_reserve_weighted == big_zero
         {
             (big_zero.clone(), big_zero)
         } else {
-            let first_worth = &liquidity * &c_state.first_token_reserve / &total_supply;
-            let second_worth = &liquidity * &c_state.second_token_reserve / &total_supply;
+            let first_worth = &liquidity * &c_state.first_token_reserve_weighted / &total_supply;
+            let second_worth = &liquidity * &c_state.second_token_reserve_weighted / &total_supply;
 
             (first_worth, second_worth)
         };
@@ -128,14 +127,14 @@ pub trait SafePriceModule:
         let c_state = self.current_state().get();
 
         let (r_in, r_out, t_out) = if input.token_identifier == first_token_id {
-            let r_in = c_state.first_token_reserve.clone();
-            let r_out = c_state.second_token_reserve;
+            let r_in = c_state.first_token_reserve_weighted.clone();
+            let r_out = c_state.second_token_reserve_weighted;
             let t_out = second_token_id;
 
             (r_in, r_out, t_out)
         } else if input.token_identifier == second_token_id {
-            let r_in = c_state.second_token_reserve.clone();
-            let r_out = c_state.first_token_reserve;
+            let r_in = c_state.second_token_reserve_weighted.clone();
+            let r_out = c_state.first_token_reserve_weighted;
             let t_out = first_token_id;
 
             (r_in, r_out, t_out)
@@ -167,8 +166,8 @@ pub trait SafePriceModule:
 
     fn update_safe_state(&self, first_token_reserve: &BigUint, second_token_reserve: &BigUint) {
         let current_block = self.blockchain().get_block_nonce();
-        let mut current_state = self.current_state().get();
-        let mut future_state = self.future_state().get();
+        let mut current_state = self.get_current_state();
+        let mut future_state = self.get_future_state();
 
         //Skip executing the update more than once per block.
         if current_state.contains_block(current_block) {
@@ -176,32 +175,38 @@ pub trait SafePriceModule:
         }
 
         //Will be executed just once to initialize the current state.
-        if !current_state.has_observations() {
-            current_state = CumulativeState::new(
-                current_block,
-                first_token_reserve.clone(),
-                second_token_reserve.clone(),
-            );
+        if current_state.is_default() {
+            current_state = CumulativeState {
+                from: current_block,
+                to: current_block,
+                num_observations: 0,
+                first_token_reserve_last_obs: first_token_reserve.clone(),
+                second_token_reserve_last_obs: second_token_reserve.clone(),
+                first_token_reserve_weighted: first_token_reserve.clone(),
+                second_token_reserve_weighted: second_token_reserve.clone(),
+            };
         }
 
         //Will be executed just once to initialize the future state.
-        if current_state.has_half_max_observations() && !future_state.has_observations() {
-            future_state = CumulativeState::new(
-                current_block,
-                first_token_reserve.clone(),
-                second_token_reserve.clone(),
-            )
+        if current_state.has_half_max_observations() && future_state.is_default() {
+            future_state = current_state.clone();
+            future_state.from = current_state.to;
+            future_state.num_observations = 1;
         }
 
         //At this point, future state is already initialized and contains half
         //of the observations that the current state contains.
         if current_state.has_max_observations() {
-            current_state = future_state;
-            future_state = CumulativeState::new(
-                current_block,
-                first_token_reserve.clone(),
-                second_token_reserve.clone(),
-            )
+            current_state = future_state.clone();
+            future_state = CumulativeState {
+                from: current_block,
+                to: current_block,
+                num_observations: 0,
+                first_token_reserve_last_obs: first_token_reserve.clone(),
+                second_token_reserve_last_obs: second_token_reserve.clone(),
+                first_token_reserve_weighted: first_token_reserve.clone(),
+                second_token_reserve_weighted: second_token_reserve.clone(),
+            }
         }
 
         current_state.update(
@@ -223,11 +228,29 @@ pub trait SafePriceModule:
         current: CumulativeState<Self::Api>,
         future: CumulativeState<Self::Api>,
     ) {
-        if current.has_observations() {
+        if !current.is_default() {
             self.current_state().set(&current);
         }
-        if future.has_observations() {
+        if !future.is_default() {
             self.future_state().set(&future);
+        }
+    }
+
+    #[inline]
+    fn get_current_state(&self) -> CumulativeState<Self::Api> {
+        if self.current_state().is_empty() {
+            Default::default()
+        } else {
+            self.current_state().get()
+        }
+    }
+
+    #[inline]
+    fn get_future_state(&self) -> CumulativeState<Self::Api> {
+        if self.future_state().is_empty() {
+            Default::default()
+        } else {
+            self.future_state().get()
         }
     }
 
