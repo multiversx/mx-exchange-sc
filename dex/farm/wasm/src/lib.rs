@@ -17,6 +17,7 @@ elrond_wasm_node::wasm_endpoints! {
         exitFarm
         getBurnGasLimit
         getDivisionSafetyConstant
+        getFarmConfiguration
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
@@ -34,15 +35,20 @@ elrond_wasm_node::wasm_endpoints! {
         getState
         getTransferExecGasLimit
         mergeFarmTokens
+        migrateFromOldFarm
+        migrateToNewFarm
         pause
         registerFarmToken
         resume
+        setFarmConfiguration
         setLocalRolesFarmToken
         setPerBlockRewardAmount
+        setRpsAndStartRewards
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
         set_transfer_exec_gas_limit
         startProduceRewards
+        stopRewardsAndGetRps
     )
 }
