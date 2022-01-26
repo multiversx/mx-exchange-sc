@@ -8,8 +8,8 @@ use crate::RemoveLiquidityResultType;
 use crate::SwapTokensFixedInputResultType;
 use crate::SwapTokensFixedOutputResultType;
 
-use crate::assert;
 use crate::errors::*;
+use common_macros::assert;
 
 use super::add_liquidity::*;
 use super::base::*;

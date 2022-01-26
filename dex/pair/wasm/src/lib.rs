@@ -48,6 +48,8 @@ elrond_wasm_node::wasm_endpoints! {
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput
+        updateAndGetSafePrice
+        updateAndGetTokensForGivenPositionWithSafePrice
         whitelist
     )
 }

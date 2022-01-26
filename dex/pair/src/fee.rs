@@ -5,8 +5,8 @@ use super::amm;
 use super::config;
 use super::errors::*;
 use super::liquidity_pool;
-use crate::assert;
 use crate::contexts::base::Context;
+use common_macros::assert;
 use common_structs::TokenPair;
 
 mod self_proxy {
