@@ -43,31 +43,6 @@ pub trait CustomRewardsModule:
         }
     }
 
-    fn calculate_rewards_with_apr_limit(
-        &self,
-        amount: &BigUint,
-        current_reward_per_share: &BigUint,
-        initial_reward_per_share: &BigUint,
-        last_claim_block: u64,
-    ) -> BigUint {
-        let unbounded_rewards =
-            self.calculate_reward(amount, current_reward_per_share, initial_reward_per_share);
-        if unbounded_rewards == 0u32 {
-            return unbounded_rewards;
-        }
-
-        let farming_token_total_liquidity = self.farming_token_total_liquidity().get();
-        let max_apr = self.max_annual_percentage_rewards().get();
-        let max_rewards_per_block =
-            farming_token_total_liquidity * max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
-
-        let current_block = self.blockchain().get_block_nonce();
-        let block_diff = current_block - last_claim_block;
-        let max_rewards = max_rewards_per_block * block_diff;
-
-        core::cmp::min(unbounded_rewards, max_rewards)
-    }
-
     #[payable("*")]
     #[endpoint(topUpRewards)]
     fn top_up_rewards(
@@ -179,6 +154,31 @@ pub trait CustomRewardsModule:
         } else {
             BigUint::zero()
         }
+    }
+
+    fn calculate_rewards_with_apr_limit(
+        &self,
+        amount: &BigUint,
+        current_reward_per_share: &BigUint,
+        initial_reward_per_share: &BigUint,
+        last_claim_block: u64,
+    ) -> BigUint {
+        let unbounded_rewards =
+            self.calculate_reward(amount, current_reward_per_share, initial_reward_per_share);
+        if unbounded_rewards == 0u32 {
+            return unbounded_rewards;
+        }
+
+        let farming_token_total_liquidity = self.farming_token_total_liquidity().get();
+        let max_apr = self.max_annual_percentage_rewards().get();
+        let max_rewards_per_block =
+            farming_token_total_liquidity * max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
+
+        let current_block = self.blockchain().get_block_nonce();
+        let block_diff = current_block - last_claim_block;
+        let max_rewards = max_rewards_per_block * block_diff;
+
+        core::cmp::min(unbounded_rewards, max_rewards)
     }
 
     #[endpoint(startProduceRewards)]
