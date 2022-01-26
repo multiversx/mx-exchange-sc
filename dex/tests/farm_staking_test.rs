@@ -677,8 +677,12 @@ fn test_exit_farm_after_enter_twice() {
     let expected_rewards_max_apr =
         (farm_in_amount + second_farm_in_amount) * MAX_APR / MAX_PERCENT / BLOCKS_IN_YEAR
             * block_diff;
-    let expected_rewards = core::cmp::min(expected_reward_amount, expected_rewards_max_apr);
-    assert_eq!(expected_rewards, 210);
+    // 210 * 100_000_000 / 300_000_000 = 70
+    let expected_rewards_max_apr_for_user =
+        expected_rewards_max_apr * farm_in_amount / (farm_in_amount + second_farm_in_amount);
+    let expected_rewards =
+        core::cmp::min(expected_reward_amount, expected_rewards_max_apr_for_user);
+    assert_eq!(expected_rewards, 70);
 
     let expected_ride_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount - second_farm_in_amount

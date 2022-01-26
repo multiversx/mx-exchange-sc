@@ -176,9 +176,10 @@ pub trait CustomRewardsModule:
 
         let current_block = self.blockchain().get_block_nonce();
         let block_diff = current_block - last_claim_block;
-        let max_rewards = max_rewards_per_block * block_diff;
+        let total_max_rewards = max_rewards_per_block * block_diff;
+        let max_rewards_for_user = total_max_rewards * amount / self.farm_token_supply().get();
 
-        core::cmp::min(unbounded_rewards, max_rewards)
+        core::cmp::min(unbounded_rewards, max_rewards_for_user)
     }
 
     #[endpoint(startProduceRewards)]
