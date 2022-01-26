@@ -23,6 +23,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTemporaryOwnerPeriod
         issueLpToken
         pause
+        removePair
         resume
         setFeeOff
         setFeeOn
