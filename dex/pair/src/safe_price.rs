@@ -15,8 +15,8 @@ type Block = u64;
 
 #[derive(Clone, TopEncode, TopDecode)]
 pub struct CumulativeState<M: ManagedTypeApi> {
-    pub from: Block,
-    pub to: Block,
+    pub first_obs_block: Block,
+    pub last_obs_block: Block,
     pub num_observations: u64,
     pub first_token_reserve_last_obs: BigUint<M>,
     pub second_token_reserve_last_obs: BigUint<M>,
@@ -27,8 +27,8 @@ pub struct CumulativeState<M: ManagedTypeApi> {
 impl<M: ManagedTypeApi> Default for CumulativeState<M> {
     fn default() -> Self {
         CumulativeState {
-            from: 0,
-            to: 0,
+            first_obs_block: 0,
+            last_obs_block: 0,
             num_observations: 0,
             first_token_reserve_last_obs: BigUint::zero(),
             second_token_reserve_last_obs: BigUint::zero(),
@@ -41,8 +41,8 @@ impl<M: ManagedTypeApi> Default for CumulativeState<M> {
 impl<M: ManagedTypeApi> CumulativeState<M> {
     fn new(block: u64, first_reserve: &BigUint<M>, second_reserve: &BigUint<M>) -> Self {
         CumulativeState {
-            from: block,
-            to: block,
+            first_obs_block: block,
+            last_obs_block: block,
             num_observations: 0,
             first_token_reserve_last_obs: first_reserve.clone(),
             second_token_reserve_last_obs: second_reserve.clone(),
@@ -52,11 +52,11 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
     }
 
     fn contains_block(&self, block: u64) -> bool {
-        self.from <= block && block <= self.to
+        self.first_obs_block <= block && block <= self.last_obs_block
     }
 
     fn is_default(&self) -> bool {
-        self.from == 0
+        self.first_obs_block == 0
     }
 
     fn has_max_observations(&self) -> bool {
@@ -74,10 +74,10 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
         second_reserve: BigUint<M>,
     ) {
         if !self.is_default() {
-            let current_weight = self.to - self.from + 1;
-            let new_weight = current_block - self.to;
+            let current_weight = self.last_obs_block - self.first_obs_block + 1;
+            let new_weight = current_block - self.last_obs_block;
 
-            self.to = current_block;
+            self.last_obs_block = current_block;
             self.num_observations += 1;
             self.first_token_reserve_weighted = (&self.first_token_reserve_weighted
                 * current_weight
@@ -98,9 +98,8 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
 pub trait SafePriceModule:
     config::ConfigModule + token_send::TokenSendModule + amm::AmmModule
 {
-    //Endpoint because it also updates the safe price storage.
-    #[endpoint(getTokensForGivenPositionWithSafePrice)]
-    fn get_tokens_for_given_position_with_safe_price(
+    #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
+    fn update_and_get_tokens_for_given_position_with_safe_price(
         &self,
         liquidity: BigUint,
     ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
@@ -130,8 +129,11 @@ pub trait SafePriceModule:
         ))
     }
 
-    #[endpoint(getSafePrice)]
-    fn get_safe_price(&self, input: EsdtTokenPayment<Self::Api>) -> EsdtTokenPayment<Self::Api> {
+    #[endpoint(updateAndGetSafePrice)]
+    fn update_and_get_safe_price(
+        &self,
+        input: EsdtTokenPayment<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
         self.update_safe_state_on_the_fly();
 
         let first_token_id = self.first_token_id().get();

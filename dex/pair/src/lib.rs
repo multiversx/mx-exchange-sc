@@ -144,6 +144,7 @@ pub trait Pair<ContractReader>:
             context.get_lp_token_supply() == &0u64,
             ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
         );
+        self.update_safe_state_from_context(&context);
 
         self.calculate_optimal_amounts(&mut context);
         self.pool_add_initial_liquidity(&mut context);
@@ -152,9 +153,7 @@ pub trait Pair<ContractReader>:
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
 
-        self.update_safe_state_from_context(&mut context);
         self.commit_changes(&context);
-
         self.construct_add_liquidity_output_payments(&mut context);
         self.execute_output_payments(&context);
         self.emit_add_liquidity_event(&context);

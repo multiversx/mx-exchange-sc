@@ -203,8 +203,8 @@ fn check_current_safe_state<PairObjBuilder>(
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             let state = sc.get_current_state();
 
-            assert_eq!(state.from, from);
-            assert_eq!(state.to, to);
+            assert_eq!(state.first_obs_block, from);
+            assert_eq!(state.last_obs_block, to);
             assert_eq!(state.num_observations, num_obs);
             assert_eq!(
                 state.first_token_reserve_last_obs,
@@ -242,8 +242,8 @@ fn check_future_safe_state<PairObjBuilder>(
         .execute_query(&pair_setup.pair_wrapper, |sc| {
             let state = sc.get_future_state();
 
-            assert_eq!(state.from, from);
-            assert_eq!(state.to, to);
+            assert_eq!(state.first_obs_block, from);
+            assert_eq!(state.last_obs_block, to);
             assert_eq!(state.num_observations, num_obs);
             assert_eq!(
                 state.first_token_reserve_last_obs,

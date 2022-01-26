@@ -24,12 +24,10 @@ elrond_wasm_node::wasm_endpoints! {
         getReservesAndTotalSupply
         getRouterManagedAddress
         getRouterOwnerManagedAddress
-        getSafePrice
         getSecondTokenId
         getSpecialFee
         getState
         getTokensForGivenPosition
-        getTokensForGivenPositionWithSafePrice
         getTotalFeePercent
         getTotalSupply
         getTransferExecGasLimit
@@ -50,6 +48,8 @@ elrond_wasm_node::wasm_endpoints! {
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput
+        updateAndGetSafePrice
+        updateAndGetTokensForGivenPositionWithSafePrice
         whitelist
     )
 }
