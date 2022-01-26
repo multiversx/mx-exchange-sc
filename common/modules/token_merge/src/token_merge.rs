@@ -40,10 +40,12 @@ pub trait TokenMergeModule {
         (&elem_weight_sum + &weight_sum - 1u64) / weight_sum
     }
 
+    /// part * value / total
     fn rule_of_three(&self, part: &BigUint, total: &BigUint, value: &BigUint) -> BigUint {
         &(part * value) / total
     }
 
+    /// part * value / total
     fn rule_of_three_non_zero_result(
         &self,
         part: &BigUint,
