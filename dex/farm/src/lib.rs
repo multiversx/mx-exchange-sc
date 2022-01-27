@@ -633,8 +633,8 @@ pub trait Farm:
             self.load_state(&mut context);
             assert!(
                 self,
-                context.get_contract_state().unwrap() == &State::Active,
-                ERROR_NOT_ACTIVE
+                context.get_contract_state().unwrap() == &State::Migrate,
+                ERROR_NOT_MIGRATION
             );
 
             self.load_farm_token_id(&mut context);
@@ -779,27 +779,33 @@ pub trait Farm:
 
     // We also need to get the rps and transfer it to the new SC.
     #[only_owner]
-    #[endpoint(stopRewardsAndGetRps)]
-    fn stop_rewards_and_get_rps(&self) -> BigUint {
+    #[endpoint(stopRewardsAndMigrateRps)]
+    fn stop_rewards_and_migrate_rps(&self) {
         assert!(self, !self.farm_configuration().is_empty(), b"empty config");
         let config = self.farm_configuration().get();
         assert!(self, config.is_old, b"bad config");
 
+        self.state().set(&State::Migrate);
         self.end_produce_rewards();
-        self.reward_per_share().get()
+
+        self.self_proxy(config.new_farm_address)
+        .set_rps_and_start_rewards(self.reward_per_share().get())
+        .execute_on_dest_context_ignore_result();
     }
 
     // In the new sc, we have to set the rps, so rewards can continue
     // with positions being untouched.
-    #[only_owner]
     #[endpoint(setRpsAndStartRewards)]
     fn set_rps_and_start_rewards(&self, rps: BigUint) {
         assert!(self, !self.farm_configuration().is_empty(), b"empty config");
         let config = self.farm_configuration().get();
         assert!(self, !config.is_old, b"bad config");
+        let caller = self.blockchain().get_caller();
+        assert!(self, caller == config.old_farm_address, b"bad caller");
 
         self.reward_per_share().set(&rps);
         self.start_produce_rewards();
+        self.state().set(&State::Active);
     }
 
     #[proxy]

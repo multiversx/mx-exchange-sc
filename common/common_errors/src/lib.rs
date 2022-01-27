@@ -1,6 +1,7 @@
 #![no_std]
 
 pub const ERROR_NOT_ACTIVE: &[u8] = b"Not active";
+pub const ERROR_NOT_MIGRATION: &[u8] = b"Not migration";
 pub const ERROR_EMPTY_PAYMENTS: &[u8] = b"Empty payments";
 pub const ERROR_BAD_INPUT_TOKEN: &[u8] = b"Bad input token";
 pub const ERROR_NO_FARM_TOKEN: &[u8] = b"No farm token";
