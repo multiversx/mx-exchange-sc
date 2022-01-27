@@ -5,11 +5,20 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    adder
+    farm_staking_proxy
     (
-        add
-        getSum
+        init
+        callBack
+        claimDualYield
+        getDualYieldTokenId
+        getFarmTokenId
+        getLpFarmAddress
+        getLpFarmTokenId
+        getPairAddress
+        getStakingFarmAddress
+        getStakingTokenId
+        issueDualYieldToken
+        stakeFarmTokens
+        unstakeFarmTokens
     )
 }
-
-elrond_wasm_node::wasm_empty_callback! {}
