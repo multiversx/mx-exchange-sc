@@ -102,7 +102,7 @@ pub trait Farm:
         Ok(())
     }
 
-    #[endpoint(stakeFarmThrougProxy)]
+    #[endpoint(stakeFarmThroughProxy)]
     fn stake_farm_through_proxy(
         &self,
         #[payment_multi] farm_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
