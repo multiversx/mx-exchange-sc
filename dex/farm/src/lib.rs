@@ -753,7 +753,8 @@ pub trait Farm:
             new_pos_nonce,
             &new_pos_amount,
             &OptionalArg::None,
-        );
+        )
+        .unwrap_or_signal_error();
 
         EsdtTokenPayment::new(new_pos_token_id, new_pos_nonce, new_pos_amount)
     }
@@ -789,8 +790,8 @@ pub trait Farm:
         self.end_produce_rewards();
 
         self.self_proxy(config.new_farm_address)
-        .set_rps_and_start_rewards(self.reward_per_share().get())
-        .execute_on_dest_context_ignore_result();
+            .set_rps_and_start_rewards(self.reward_per_share().get())
+            .execute_on_dest_context_ignore_result();
     }
 
     // In the new sc, we have to set the rps, so rewards can continue
