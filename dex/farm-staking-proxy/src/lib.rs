@@ -215,7 +215,7 @@ pub trait FarmStakingProxy:
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .claim_rewards(OptionalArg::None)
+            .exit_farm(OptionalArg::None)
             .add_token_transfer(
                 lp_farm_token_id,
                 attributes.lp_farm_token_nonce,
