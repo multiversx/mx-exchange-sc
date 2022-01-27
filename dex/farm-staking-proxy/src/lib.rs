@@ -113,8 +113,8 @@ pub trait FarmStakingProxy:
     }
 
     #[payable("*")]
-    #[endpoint(claimRewardsFromFarms)]
-    fn claim_rewards_from_farms(
+    #[endpoint(claimDualYield)]
+    fn claim_dual_yield(
         &self,
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<()> {
