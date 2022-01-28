@@ -14,6 +14,7 @@ elrond_wasm_node::wasm_endpoints! {
         getAssetTokenId
         getCacheSize
         getDefaultUnlockPeriod
+        getExtendedAttributesActivationNonce
         getInitEpoch
         getLastErrorMessage
         getLockedAssetTokenId
