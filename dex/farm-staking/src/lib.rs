@@ -432,30 +432,12 @@ pub trait Farm:
         self.burn_farm_tokens(&payment_token_id, token_nonce, &old_farming_amount);
 
         let (new_farm_token, _created_with_merge) = match opt_new_farm_values {
-            Some(new_farm_values) => {
-                let new_additional_values = new_farm_values
-                    .slice(1, new_farm_values.len())
-                    .unwrap_or_default();
-
-                let mut additional_payments_attributes = ManagedVec::new();
-                for (p, new_val) in additional_payments.iter().zip(new_additional_values.iter()) {
-                    let mut attr = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
-                        &p.token_identifier,
-                        p.token_nonce,
-                    )?;
-                    attr.current_farm_amount = new_val;
-
-                    additional_payments_attributes.push(attr);
-                }
-
-                self.create_farm_tokens_by_merging_with_updated_attributes(
-                    &new_farming_amount,
-                    &farm_token_id,
-                    &new_attributes,
-                    &additional_payments,
-                    &additional_payments_attributes,
-                )?
-            }
+            Some(new_farm_values) => self.create_and_send_farm_tokens_with_new_value(
+                &additional_payments,
+                &new_farming_amount,
+                &new_attributes,
+                &new_farm_values,
+            )?,
             None => self.create_farm_tokens_by_merging(
                 &new_farming_amount,
                 &farm_token_id,
@@ -477,6 +459,38 @@ pub trait Farm:
             new_farm_token.token_amount,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         )))
+    }
+
+    fn create_and_send_farm_tokens_with_new_value(
+        &self,
+        additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        new_farming_amount: &BigUint,
+        new_attributes: &StakingFarmTokenAttributes<Self::Api>,
+        new_farm_values: &ManagedVec<BigUint>,
+    ) -> SCResult<(StakingFarmToken<Self::Api>, bool)> {
+        let new_additional_values = new_farm_values
+            .slice(1, new_farm_values.len())
+            .unwrap_or_default();
+
+        let mut additional_payments_attributes = ManagedVec::new();
+        for (p, new_val) in additional_payments.iter().zip(new_additional_values.iter()) {
+            let mut attr = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
+                &p.token_identifier,
+                p.token_nonce,
+            )?;
+            attr.current_farm_amount = new_val;
+
+            additional_payments_attributes.push(attr);
+        }
+
+        let farm_token_id = self.farm_token_id().get();
+        self.create_farm_tokens_by_merging_with_updated_attributes(
+            new_farming_amount,
+            &farm_token_id,
+            new_attributes,
+            additional_payments,
+            &additional_payments_attributes,
+        )
     }
 
     #[payable("*")]
