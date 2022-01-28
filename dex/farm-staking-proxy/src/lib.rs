@@ -205,7 +205,7 @@ pub trait FarmStakingProxy:
     ) -> SCResult<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_token_amount =
-            self.get_lp_farm_token_amount_equivalent(&attributes, payment_amount);
+            self.get_lp_farm_token_amount_equivalent(attributes, payment_amount);
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
@@ -260,7 +260,7 @@ pub trait FarmStakingProxy:
     ) -> SCResult<()> {
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let staking_farm_token_amount =
-            self.get_staking_farm_token_amount_equivalent(&attributes, &payment_amount);
+            self.get_staking_farm_token_amount_equivalent(attributes, payment_amount);
         let mut staking_sc_payments = ManagedVec::new();
         staking_sc_payments.push(staking_token_payment);
         staking_sc_payments.push(EsdtTokenPayment::new(
