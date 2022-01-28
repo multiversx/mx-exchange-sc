@@ -32,7 +32,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         address: &ManagedAddress,
         attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<Nonce> {
+    ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
         let last_created_nonce = self.nft_create_tokens(
             &token_id,
@@ -45,8 +45,8 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
             last_created_nonce,
             amount,
             opt_accept_funds_func,
-        )?;
-        Ok(last_created_nonce)
+        );
+        last_created_nonce
     }
 
     fn add_quantity_and_send_locked_assets(
@@ -55,7 +55,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         sft_nonce: Nonce,
         address: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
+    ) {
         let token_id = self.locked_asset_token_id().get();
         self.send().esdt_local_mint(&token_id, sft_nonce, amount);
         self.transfer_execute_custom(address, &token_id, sft_nonce, amount, opt_accept_funds_func)
@@ -172,10 +172,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         new_unlock_milestones
     }
 
-    fn validate_unlock_milestones(
-        &self,
-        unlock_milestones: &ManagedVec<UnlockMilestone>,
-    ) -> SCResult<()> {
+    fn validate_unlock_milestones(&self, unlock_milestones: &ManagedVec<UnlockMilestone>) {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
         let mut percents_sum: u8 = 0;
@@ -195,7 +192,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         }
 
         require!(percents_sum == 100, "Percents do not sum up to 100");
-        Ok(())
     }
 
     #[only_owner]

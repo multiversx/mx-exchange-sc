@@ -133,14 +133,16 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: u64,
-    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
+    ) -> FarmTokenAttributes<Self::Api> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        token_info.decode_attributes().into()
+        token_info
+            .decode_attributes()
+            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
     }
 
     fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {

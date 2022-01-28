@@ -5,42 +5,38 @@ elrond_wasm::derive_imports!();
 pub trait GlobalOperationModule {
     #[only_owner]
     #[endpoint(startGlobalOperation)]
-    fn global_op_start(&self) -> SCResult<()> {
+    fn global_op_start(&self) {
         require!(
             !self.global_op_is_ongoing().get(),
             "Global operation already ongoing"
         );
         self.global_op_is_ongoing().set(&true);
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(endGlobalOperation)]
-    fn global_op_stop(&self) -> SCResult<()> {
+    fn global_op_stop(&self) {
         require!(
             self.global_op_is_ongoing().get(),
             "Global operation not ongoing"
         );
         self.global_op_is_ongoing().set(&false);
-        Ok(())
     }
 
     #[storage_mapper("global_operation_ongoing")]
     fn global_op_is_ongoing(&self) -> SingleValueMapper<bool>;
 
-    fn require_global_op_not_ongoing(&self) -> SCResult<()> {
+    fn require_global_op_not_ongoing(&self) {
         require!(
             !self.global_op_is_ongoing().get(),
             "Global operation ongoing"
         );
-        Ok(())
     }
 
-    fn require_global_op_ongoing(&self) -> SCResult<()> {
+    fn require_global_op_ongoing(&self) {
         require!(
             self.global_op_is_ongoing().get(),
             "Global operation not ongoing"
         );
-        Ok(())
     }
 }

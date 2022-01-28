@@ -41,11 +41,11 @@ pub trait FarmTokenMergeModule:
     fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments = self.get_all_payments_managed_vec();
 
-        let attrs = self.get_merged_farm_token_attributes(payments.iter(), Option::None)?;
+        let attrs = self.get_merged_farm_token_attributes(payments.iter(), Option::None);
         let farm_token_id = self.farm_token_id().get();
         self.burn_farm_tokens_from_payments(&payments);
 
@@ -58,16 +58,16 @@ pub trait FarmTokenMergeModule:
             new_nonce,
             &new_amount,
             &opt_accept_funds_func,
-        )?;
+        );
 
-        Ok(self.create_payment(&farm_token_id, new_nonce, &new_amount))
+        self.create_payment(&farm_token_id, new_nonce, &new_amount)
     }
 
     fn get_merged_farm_token_attributes(
         &self,
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<StakingFarmToken<Self::Api>>,
-    ) -> SCResult<StakingFarmTokenAttributes<Self::Api>> {
+    ) -> StakingFarmTokenAttributes<Self::Api> {
         require!(
             !payments.is_empty() || replic.is_some(),
             "No tokens to merge"
@@ -89,7 +89,7 @@ pub trait FarmTokenMergeModule:
                     payment.token_nonce,
                     &payment.amount,
                 ),
-                attributes: self.get_attributes(&payment.token_identifier, payment.token_nonce)?,
+                attributes: self.get_attributes(&payment.token_identifier, payment.token_nonce),
             });
         }
 
@@ -99,7 +99,7 @@ pub trait FarmTokenMergeModule:
 
         if tokens.len() == 1 {
             if let Some(t) = tokens.try_get(0) {
-                return Ok(t.attributes);
+                return t.attributes;
             }
         }
 
@@ -109,12 +109,12 @@ pub trait FarmTokenMergeModule:
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: current_epoch,
             last_claim_block: current_block,
-            initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
+            initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
         };
 
-        Ok(aggregated_attributes)
+        aggregated_attributes
     }
 
     fn aggregated_reward_per_share(
@@ -134,7 +134,7 @@ pub trait FarmTokenMergeModule:
     fn aggregated_initial_farming_amount(
         &self,
         tokens: &ManagedVec<StakingFarmToken<Self::Api>>,
-    ) -> SCResult<BigUint> {
+    ) -> BigUint {
         let mut sum = BigUint::zero();
         for x in tokens.iter() {
             sum += &self.rule_of_three_non_zero_result(
@@ -143,7 +143,7 @@ pub trait FarmTokenMergeModule:
                 &x.attributes.initial_farming_amount,
             );
         }
-        Ok(sum)
+        sum
     }
 
     fn aggregated_compounded_reward(
@@ -172,17 +172,15 @@ pub trait FarmTokenMergeModule:
         aggregated_amount
     }
 
-    fn get_attributes<T: TopDecode>(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> SCResult<T> {
+    fn get_attributes<T: TopDecode>(&self, token_id: &TokenIdentifier, token_nonce: u64) -> T {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        token_info.decode_attributes().into()
+        token_info
+            .decode_attributes()
+            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
     }
 }

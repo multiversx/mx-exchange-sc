@@ -36,8 +36,7 @@ pub trait FarmTokenMergeModule:
             new_nonce,
             &new_amount,
             &opt_accept_funds_func,
-        )
-        .unwrap();
+        );
 
         self.create_payment(&farm_token_id, new_nonce, &new_amount)
     }
@@ -69,8 +68,7 @@ pub trait FarmTokenMergeModule:
                     &payment.amount,
                 ),
                 attributes: self
-                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce)
-                    .unwrap(),
+                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce),
             });
         }
 

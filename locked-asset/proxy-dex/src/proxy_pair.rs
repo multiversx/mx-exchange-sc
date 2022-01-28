@@ -44,10 +44,9 @@ pub trait ProxyPairModule:
 
     #[only_owner]
     #[endpoint(removeIntermediatedPair)]
-    fn remove_intermediated_pair(&self, pair_address: ManagedAddress) -> SCResult<()> {
-        self.require_is_intermediated_pair(&pair_address)?;
+    fn remove_intermediated_pair(&self, pair_address: ManagedAddress) {
+        self.require_is_intermediated_pair(&pair_address);
         self.intermediated_pairs().remove(&pair_address);
-        Ok(())
     }
 
     #[payable("*")]
@@ -57,13 +56,15 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> SCResult<()> {
-        self.require_is_intermediated_pair(&pair_address)?;
-        self.require_wrapped_lp_token_id_not_empty()?;
+    ) {
+        self.require_is_intermediated_pair(&pair_address);
+        self.require_wrapped_lp_token_id_not_empty();
 
         let payments_vec = self.get_all_payments_managed_vec();
         let mut payments_iter = payments_vec.iter();
-        let (payment_0, payment_1) = payments_iter.next_tuple().ok_or("bad payment len")?;
+        let (payment_0, payment_1) = payments_iter
+            .next_tuple()
+            .unwrap_or_else(|| sc_panic!("bad payment len"));
 
         let first_token_id = payment_0.token_identifier.clone();
         let first_token_nonce = payment_0.token_nonce;
@@ -134,7 +135,7 @@ pub trait ProxyPairModule:
             second_token_nonce,
             &caller,
             payments_iter,
-        )?;
+        );
 
         let mut surplus_payments = ManagedVec::new();
         surplus_payments.push(EsdtTokenPayment::new(
@@ -147,7 +148,7 @@ pub trait ProxyPairModule:
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
-        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalArg::None)?;
+        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalArg::None);
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -170,7 +171,6 @@ pub trait ProxyPairModule:
             &new_wrapped_lp_token.attributes,
             created_with_merge,
         );
-        Ok(())
     }
 
     #[payable("*")]
@@ -183,9 +183,9 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> SCResult<()> {
-        self.require_is_intermediated_pair(&pair_address)?;
-        self.require_wrapped_lp_token_id_not_empty()?;
+    ) {
+        self.require_is_intermediated_pair(&pair_address);
+        self.require_wrapped_lp_token_id_not_empty();
         require!(token_nonce != 0, "Can only be called with an SFT");
         require!(amount != 0, "Payment amount cannot be zero");
 
@@ -194,7 +194,7 @@ pub trait ProxyPairModule:
 
         let caller = self.blockchain().get_caller();
         let lp_token_id = self.ask_for_lp_token_id(&pair_address);
-        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce)?;
+        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
         require!(lp_token_id == attributes.lp_token_id, "Bad input address");
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
@@ -224,7 +224,7 @@ pub trait ProxyPairModule:
             fungible_token_id = tokens_for_position.0.token_identifier.clone();
             fungible_token_amount = tokens_for_position.0.amount.clone();
         } else {
-            return sc_error!("Bad tokens received from pair SC");
+            sc_panic!("Bad tokens received from pair SC");
         }
 
         //Send back the tokens removed from pair sc.
@@ -238,7 +238,7 @@ pub trait ProxyPairModule:
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
             &OptionalArg::None,
-        )?;
+        );
 
         //Do cleanup
         if assets_received > locked_assets_invested {
@@ -273,7 +273,6 @@ pub trait ProxyPairModule:
             0,
             &tokens_for_position.1.amount,
         );
-        Ok(())
     }
 
     fn actual_add_liquidity(
@@ -346,7 +345,7 @@ pub trait ProxyPairModule:
         locked_tokens_nonce: Nonce,
         caller: &ManagedAddress,
         additional_payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
+    ) -> (WrappedLpToken<Self::Api>, bool) {
         self.merge_wrapped_lp_tokens_and_send(
             caller,
             additional_payments,
@@ -367,16 +366,14 @@ pub trait ProxyPairModule:
         )
     }
 
-    fn require_is_intermediated_pair(&self, address: &ManagedAddress) -> SCResult<()> {
+    fn require_is_intermediated_pair(&self, address: &ManagedAddress) {
         require!(
             self.intermediated_pairs().contains(address),
             "Not an intermediated pair"
         );
-        Ok(())
     }
 
-    fn require_wrapped_lp_token_id_not_empty(&self) -> SCResult<()> {
+    fn require_wrapped_lp_token_id_not_empty(&self) {
         require!(!self.wrapped_lp_token_id().is_empty(), "Empty token id");
-        Ok(())
     }
 }

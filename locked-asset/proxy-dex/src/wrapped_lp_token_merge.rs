@@ -21,7 +21,7 @@ pub trait WrappedLpTokenMerge:
     fn merge_wrapped_lp_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
+    ) {
         let caller = self.blockchain().get_caller();
         let payments_vec = self.get_all_payments_managed_vec();
         let payments_iter = payments_vec.iter();
@@ -31,8 +31,7 @@ pub trait WrappedLpTokenMerge:
             payments_iter,
             Option::None,
             opt_accept_funds_func,
-        )?;
-        Ok(())
+        );
     }
 
     fn merge_wrapped_lp_tokens_and_send(
@@ -41,21 +40,21 @@ pub trait WrappedLpTokenMerge:
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedLpToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
+    ) -> (WrappedLpToken<Self::Api>, bool) {
         require!(!payments.is_empty() || replic.is_some(), "Empty payments");
         let payments_len = payments.len();
 
         let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
-        self.require_all_tokens_are_wrapped_lp_tokens(payments.clone(), &wrapped_lp_token_id)?;
+        self.require_all_tokens_are_wrapped_lp_tokens(payments.clone(), &wrapped_lp_token_id);
 
-        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(payments.clone())?;
+        let mut tokens = self.get_wrapped_lp_tokens_from_deposit(payments.clone());
 
         if replic.is_some() {
             tokens.push(replic.unwrap());
         }
-        self.require_wrapped_lp_tokens_from_same_pair(&tokens)?;
+        self.require_wrapped_lp_tokens_from_same_pair(&tokens);
 
-        let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens)?;
+        let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens);
         let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
         let lp_token_amount = self.create_payment(
             &tokens.get(0).attributes.lp_token_id,
@@ -76,7 +75,7 @@ pub trait WrappedLpTokenMerge:
             new_nonce,
             &merged_wrapped_lp_amount,
             &opt_accept_funds_func,
-        )?;
+        );
 
         let new_token = WrappedLpToken {
             token_amount: self.create_payment(
@@ -88,18 +87,18 @@ pub trait WrappedLpTokenMerge:
         };
         let is_merged = payments_len != 0;
 
-        Ok((new_token, is_merged))
+        (new_token, is_merged)
     }
 
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<ManagedVec<WrappedLpToken<Self::Api>>> {
+    ) -> ManagedVec<WrappedLpToken<Self::Api>> {
         let mut result = ManagedVec::new();
 
         for payment in payments {
             let attr = self
-                .get_wrapped_lp_token_attributes(&payment.token_identifier, payment.token_nonce)?;
+                .get_wrapped_lp_token_attributes(&payment.token_identifier, payment.token_nonce);
 
             result.push(WrappedLpToken {
                 token_amount: payment.clone(),
@@ -107,13 +106,13 @@ pub trait WrappedLpTokenMerge:
             })
         }
 
-        Ok(result)
+        result
     }
 
     fn require_wrapped_lp_tokens_from_same_pair(
         &self,
         tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
-    ) -> SCResult<()> {
+    ) {
         let lp_token_id = tokens.get(0).attributes.lp_token_id.clone();
 
         for elem in tokens.iter() {
@@ -122,21 +121,19 @@ pub trait WrappedLpTokenMerge:
                 "Lp token id differs"
             );
         }
-        Ok(())
     }
 
     fn require_all_tokens_are_wrapped_lp_tokens(
         &self,
         tokens: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         wrapped_lp_token_id: &TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         for elem in tokens {
             require!(
                 &elem.token_identifier == wrapped_lp_token_id,
                 "Not a Wrapped Lp Token"
             );
         }
-        Ok(())
     }
 
     fn get_merged_wrapped_lp_token_attributes(
@@ -155,7 +152,7 @@ pub trait WrappedLpTokenMerge:
     fn merge_locked_asset_tokens_from_wrapped_lp(
         &self,
         tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let locked_asset_factory_addr = self.locked_asset_factory_address().get();
         let locked_asset_token = self.locked_asset_token_id().get();
 
@@ -168,11 +165,11 @@ pub trait WrappedLpTokenMerge:
                 &token.attributes.locked_assets_invested,
             );
 
-            return Ok(self.create_payment(
+            return self.create_payment(
                 &locked_asset_token,
                 token.attributes.locked_assets_nonce,
                 &amount,
-            ));
+            );
         }
 
         let mut payments = ManagedVec::new();
@@ -190,11 +187,10 @@ pub trait WrappedLpTokenMerge:
             ));
         }
 
-        Ok(self
-            .locked_asset_factory(locked_asset_factory_addr)
+        self.locked_asset_factory(locked_asset_factory_addr)
             .merge_locked_asset_tokens(OptionalArg::None)
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn get_merged_wrapped_lp_tokens_amount(

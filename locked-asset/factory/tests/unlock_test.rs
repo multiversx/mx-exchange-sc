@@ -107,7 +107,7 @@ fn test_unlock_100mil_1mil() {
             tokens.push(token1);
             tokens.push(token2);
 
-            let result = sc.aggregated_unlock_schedule(&tokens).unwrap();
+            let result = sc.aggregated_unlock_schedule(&tokens);
             let result = result.unlock_milestones;
 
             let el = result.get(0);
@@ -240,7 +240,7 @@ fn test_unlock_1mil_100mil() {
             tokens.push(token1);
             tokens.push(token2);
 
-            let result = sc.aggregated_unlock_schedule(&tokens).unwrap();
+            let result = sc.aggregated_unlock_schedule(&tokens);
             let result = result.unlock_milestones;
 
             let el = result.get(0);
@@ -373,7 +373,7 @@ fn test_unlock_60_40() {
             tokens.push(token1);
             tokens.push(token2);
 
-            let result = sc.aggregated_unlock_schedule(&tokens).unwrap();
+            let result = sc.aggregated_unlock_schedule(&tokens);
             let result = result.unlock_milestones;
 
             let el = result.get(0);
@@ -506,7 +506,7 @@ fn test_unlock_40_60() {
             tokens.push(token1);
             tokens.push(token2);
 
-            let result = sc.aggregated_unlock_schedule(&tokens).unwrap();
+            let result = sc.aggregated_unlock_schedule(&tokens);
             let result = result.unlock_milestones;
 
             let el = result.get(0);

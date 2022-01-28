@@ -34,30 +34,28 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
     #[only_owner]
     #[endpoint]
-    fn pause(&self, address: ManagedAddress) -> SCResult<()> {
+    fn pause(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
             self.state().set(&false);
         } else {
-            self.check_is_pair_sc(&address)?;
+            self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
                 .pause()
                 .execute_on_dest_context();
         }
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint]
-    fn resume(&self, address: ManagedAddress) -> SCResult<()> {
+    fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
             self.state().set(&true);
         } else {
-            self.check_is_pair_sc(&address)?;
+            self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
                 .resume()
                 .execute_on_dest_context();
         }
-        Ok(())
     }
 
     #[endpoint(createPair)]
@@ -66,7 +64,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         #[var_args] opt_fee_percents: OptionalArg<MultiArg2<u64, u64>>,
-    ) -> SCResult<ManagedAddress> {
+    ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
         let caller = self.blockchain().get_caller();
@@ -105,7 +103,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                     "Bad percents"
                 );
             } else {
-                return sc_error!("Bad percents length");
+                sc_panic!("Bad percents length");
             }
         }
 
@@ -115,7 +113,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             &owner,
             total_fee_percent_requested,
             special_fee_percent_requested,
-        )?;
+        );
 
         self.emit_create_pair_event(
             caller,
@@ -125,7 +123,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             special_fee_percent_requested,
             address.clone(),
         );
-        Ok(address)
+        address
     }
 
     #[only_owner]
@@ -136,7 +134,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         second_token_id: TokenIdentifier,
         total_fee_percent_requested: u64,
         special_fee_percent_requested: u64,
-    ) -> SCResult<()> {
+    ) {
         require!(self.is_active(), "Not active");
 
         require!(first_token_id != second_token_id, "Identical tokens");
@@ -165,7 +163,6 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             total_fee_percent_requested,
             special_fee_percent_requested,
         );
-        Ok(())
     }
 
     #[payable("EGLD")]
@@ -176,7 +173,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         pair_address: ManagedAddress,
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
@@ -185,7 +182,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 "Pair creation is disabled"
             );
         }
-        self.check_is_pair_sc(&pair_address)?;
+        self.check_is_pair_sc(&pair_address);
         let result = self.get_pair_temporary_owner(&pair_address);
 
         match result {
@@ -201,8 +198,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
-        Ok(self
-            .send()
+        self.send()
             .esdt_system_sc_proxy()
             .issue_fungible(
                 issue_cost,
@@ -225,13 +221,13 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
             .with_callback(
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
-            ))
+            )
     }
 
     #[endpoint(setLocalRoles)]
-    fn set_local_roles(&self, pair_address: ManagedAddress) -> SCResult<AsyncCall> {
+    fn set_local_roles(&self, pair_address: ManagedAddress) -> AsyncCall {
         require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address)?;
+        self.check_is_pair_sc(&pair_address);
 
         let pair_token = self
             .pair_contract_proxy(pair_address.clone())
@@ -241,8 +237,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
 
-        Ok(self
-            .send()
+        self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &pair_address,
@@ -250,7 +245,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 (&roles[..]).into_iter().cloned(),
             )
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback()))
+            .with_callback(self.callbacks().change_roles_callback())
     }
 
     #[only_owner]
@@ -260,25 +255,23 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         token: TokenIdentifier,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(self.is_active(), "Not active");
 
-        Ok(self
-            .send()
+        self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback()))
+            .with_callback(self.callbacks().change_roles_callback())
     }
 
-    fn check_is_pair_sc(&self, pair_address: &ManagedAddress) -> SCResult<()> {
+    fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
         require!(
             self.pair_map()
                 .values()
                 .any(|address| &address == pair_address),
             "Not a pair SC"
         );
-        Ok(())
     }
 
     #[only_owner]
@@ -288,15 +281,13 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         pair_address: ManagedAddress,
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address)?;
+        self.check_is_pair_sc(&pair_address);
 
         self.pair_contract_proxy(pair_address)
             .set_fee_on(true, fee_to_address, fee_token)
             .execute_on_dest_context();
-
-        Ok(())
     }
 
     #[only_owner]
@@ -306,15 +297,13 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         pair_address: ManagedAddress,
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         require!(self.is_active(), "Not active");
-        self.check_is_pair_sc(&pair_address)?;
+        self.check_is_pair_sc(&pair_address);
 
         self.pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
             .execute_on_dest_context();
-
-        Ok(())
     }
 
     #[view(getPair)]

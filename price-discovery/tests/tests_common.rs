@@ -1,6 +1,4 @@
-use elrond_wasm::types::{
-    Address, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, TokenIdentifier,
-};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_address, managed_token_id, rust_biguint, DebugApi};
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
@@ -134,14 +132,13 @@ where
     // init Price Discovery SC
     blockchain_wrapper
         .execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
-            let result = sc.init(
+            sc.init(
                 managed_address!(dex_wrapper.address_ref()),
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
                 START_EPOCH,
                 END_EPOCH,
             );
-            assert_eq!(result, SCResult::Ok(()));
 
             sc.redeem_token_id()
                 .set(&managed_token_id!(REDEEM_TOKEN_ID));
@@ -169,7 +166,6 @@ pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
     DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
-    let mut sc_result = SCResult::Ok(());
     b_wrapper
         .execute_esdt_transfer(
             &pd_setup.owner_address,
@@ -178,7 +174,7 @@ pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
             0,
             amount,
             |sc| {
-                sc_result = sc.deposit(
+                sc.deposit(
                     managed_token_id!(LAUNCHED_TOKEN_ID),
                     managed_biguint!(amount.to_u64().unwrap()),
                 );
@@ -200,7 +196,6 @@ where
     DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
-    let mut sc_result = SCResult::Ok(());
     b_wrapper.execute_esdt_transfer(
         caller,
         &pd_setup.pd_wrapper,
@@ -208,7 +203,7 @@ where
         0,
         amount,
         |sc| {
-            sc_result = sc.deposit(
+            sc.deposit(
                 managed_token_id!(ACCEPTED_TOKEN_ID),
                 managed_biguint!(amount.to_u64().unwrap()),
             );
@@ -259,7 +254,6 @@ where
     DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
-    let mut sc_result = SCResult::Ok(());
     b_wrapper.execute_esdt_transfer(
         caller,
         &pd_setup.pd_wrapper,
@@ -267,7 +261,7 @@ where
         sft_nonce,
         amount,
         |sc| {
-            sc_result = sc.redeem(
+            sc.redeem(
                 managed_token_id!(REDEEM_TOKEN_ID),
                 sft_nonce,
                 managed_biguint!(amount.to_u64().unwrap()),
@@ -288,9 +282,8 @@ where
     DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
-    let mut sc_result = SCResult::Ok(());
     b_wrapper.execute_tx(caller, &pd_setup.pd_wrapper, &rust_biguint!(0), |sc| {
-        sc_result = sc.create_dex_liquidity_pool();
+        sc.create_dex_liquidity_pool();
 
         state_change
     })
