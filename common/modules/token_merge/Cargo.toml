@@ -17,4 +17,4 @@ path = "../../common_macros"
 path = "../../common_errors"
 
 [dependencies.elrond-wasm]
-version = "0.27.1"
+version = "0.27.2"
