@@ -655,23 +655,6 @@ pub trait Farm:
         Ok((new_farm_token, is_merged))
     }
 
-    fn send_back_farming_tokens(
-        &self,
-        farming_token_id: &TokenIdentifier,
-        farming_amount: &BigUint,
-        destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
-        self.transfer_execute_custom(
-            destination,
-            farming_token_id,
-            0,
-            farming_amount,
-            opt_accept_funds_func,
-        )?;
-        Ok(())
-    }
-
     fn send_rewards(
         &self,
         reward_token_id: &TokenIdentifier,
