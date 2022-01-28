@@ -393,7 +393,7 @@ pub trait Pair<ContractReader>:
             OptionalArg::None,
         );
         require!(
-            self.whitelist().contains(&context.get_caller()),
+            self.whitelist().contains(context.get_caller()),
             ERROR_NOT_WHITELISTED
         );
         require!(
@@ -411,7 +411,7 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.can_swap(&context.get_contract_state()),
+            self.can_swap(context.get_contract_state()),
             ERROR_SWAP_NOT_ENABLED
         );
 
@@ -450,9 +450,9 @@ pub trait Pair<ContractReader>:
             &token_in,
             nonce,
             &amount_in,
-            token_out.clone(),
+            token_out,
             amount_out_min,
-            opt_accept_funds_func.clone(),
+            opt_accept_funds_func,
         );
         require!(
             context.get_tx_input().get_args().are_valid(),
@@ -469,7 +469,7 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.can_swap(&context.get_contract_state()),
+            self.can_swap(context.get_contract_state()),
             ERROR_SWAP_NOT_ENABLED
         );
 
@@ -516,9 +516,9 @@ pub trait Pair<ContractReader>:
             &token_in,
             nonce,
             &amount_in_max,
-            token_out.clone(),
-            amount_out.clone(),
-            opt_accept_funds_func.clone(),
+            token_out,
+            amount_out,
+            opt_accept_funds_func,
         );
         require!(
             context.get_tx_input().get_args().are_valid(),
@@ -535,7 +535,7 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.can_swap(&context.get_contract_state()),
+            self.can_swap(context.get_contract_state()),
             ERROR_SWAP_NOT_ENABLED
         );
 
@@ -641,17 +641,15 @@ pub trait Pair<ContractReader>:
                 first_token_reserve > amount_wanted,
                 ERROR_NOT_ENOUGH_RESERVE
             );
-            let amount_in =
-                self.get_amount_in(&amount_wanted, &second_token_reserve, &first_token_reserve);
-            amount_in
+
+            self.get_amount_in(&amount_wanted, &second_token_reserve, &first_token_reserve)
         } else if token_wanted == second_token_id {
             require!(
                 second_token_reserve > amount_wanted,
                 ERROR_NOT_ENOUGH_RESERVE
             );
-            let amount_in =
-                self.get_amount_in(&amount_wanted, &first_token_reserve, &second_token_reserve);
-            amount_in
+
+            self.get_amount_in(&amount_wanted, &first_token_reserve, &second_token_reserve)
         } else {
             sc_panic!(ERROR_UNKNOWN_TOKEN);
         }

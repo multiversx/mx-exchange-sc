@@ -151,7 +151,7 @@ pub trait LiquidityPoolModule:
 
             (
                 first_token_amount_desired.clone(),
-                second_token_amount_optimal.clone(),
+                second_token_amount_optimal,
             )
         } else {
             let first_token_amount_optimal = self.quote(
@@ -169,7 +169,7 @@ pub trait LiquidityPoolModule:
             );
 
             (
-                first_token_amount_optimal.clone(),
+                first_token_amount_optimal,
                 second_token_amount_desired.clone(),
             )
         }

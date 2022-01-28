@@ -67,7 +67,7 @@ pub trait ProxyPairModule:
 
         let first_token_id = payment_0.token_identifier.clone();
         let first_token_nonce = payment_0.token_nonce;
-        let first_token_amount_desired = payment_0.amount.clone();
+        let first_token_amount_desired = payment_0.amount;
         require!(first_token_nonce == 0, "bad first token nonce");
         require!(
             first_token_amount_desired > 0u32,
@@ -80,7 +80,7 @@ pub trait ProxyPairModule:
 
         let second_token_id = payment_1.token_identifier.clone();
         let second_token_nonce = payment_1.token_nonce;
-        let second_token_amount_desired = payment_1.amount.clone();
+        let second_token_amount_desired = payment_1.amount;
         require!(
             second_token_id == self.locked_asset_token_id().get(),
             "second token needs to be locked asset token"

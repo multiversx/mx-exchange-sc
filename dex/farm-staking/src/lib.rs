@@ -117,7 +117,7 @@ pub trait Farm:
             .unwrap_or_default();
 
         let token_in = payment_0.token_identifier.clone();
-        let enter_amount = payment_0.amount.clone();
+        let enter_amount = payment_0.amount;
 
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
@@ -378,7 +378,7 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
-        let farm_amount = amount.clone();
+        let farm_amount = amount;
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
             &farm_amount,
             &farm_token_id,

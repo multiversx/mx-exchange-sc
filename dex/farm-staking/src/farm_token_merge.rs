@@ -125,7 +125,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         self.weighted_average_ceil(dataset)

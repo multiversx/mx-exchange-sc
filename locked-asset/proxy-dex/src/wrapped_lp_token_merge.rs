@@ -114,7 +114,7 @@ pub trait WrappedLpTokenMerge:
         &self,
         tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
     ) -> SCResult<()> {
-        let lp_token_id = tokens.get(0).attributes.lp_token_id.clone();
+        let lp_token_id = tokens.get(0).attributes.lp_token_id;
 
         for elem in tokens.iter() {
             require!(

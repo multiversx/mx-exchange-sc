@@ -251,9 +251,9 @@ pub trait CtxHelper:
         context: &SwapContext<Self::Api>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
         self.create_payment(
-            &context.get_token_out(),
+            context.get_token_out(),
             0,
-            &context.get_final_output_amount(),
+            context.get_final_output_amount(),
         )
     }
 
@@ -264,11 +264,11 @@ pub trait CtxHelper:
         let residuum = context.get_amount_in_max() - context.get_final_input_amount();
         MultiResult2::from((
             self.create_payment(
-                &context.get_token_out(),
+                context.get_token_out(),
                 0,
-                &context.get_final_output_amount(),
+                context.get_final_output_amount(),
             ),
-            self.create_payment(&context.get_token_in(), 0, &residuum),
+            self.create_payment(context.get_token_in(), 0, &residuum),
         ))
     }
 }

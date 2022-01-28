@@ -86,10 +86,7 @@ pub trait LockedAssetTokenMergeModule:
 
         if tokens.len() == 1 {
             let token_0 = tokens.get(0);
-            return Ok((
-                token_0.token_amount.amount.clone(),
-                token_0.attributes.clone(),
-            ));
+            return Ok((token_0.token_amount.amount.clone(), token_0.attributes));
         }
 
         let attrs = LockedAssetTokenAttributesEx {

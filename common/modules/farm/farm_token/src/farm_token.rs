@@ -111,7 +111,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             .set_special_roles(
                 &self.blockchain().get_sc_address(),
                 &token,
-                (&roles[..]).into_iter().cloned(),
+                roles.iter().cloned(),
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
