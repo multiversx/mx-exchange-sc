@@ -15,7 +15,7 @@ elrond_wasm::derive_imports!();
 use crate::farm_token_merge::StakingFarmTokenAttributes;
 use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
+    DEFAULT_TRANSFER_EXEC_GAS_LIMIT,
 };
 use farm_token_merge::StakingFarmToken;
 
@@ -76,10 +76,7 @@ pub trait Farm:
             farming_token_id != farm_token,
             "Farming token ID cannot be farm token ID"
         );
-        require!(
-            max_apr > 0 && max_apr < MAX_PERCENT,
-            "Invalid max APR percentage"
-        );
+        require!(max_apr > 0, "Invalid max APR percentage");
 
         self.state().set(&State::Inactive);
         self.penalty_percent()
