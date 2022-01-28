@@ -432,7 +432,7 @@ pub trait Farm:
         self.burn_farm_tokens(&payment_token_id, token_nonce, &old_farming_amount);
 
         let (new_farm_token, _created_with_merge) = match opt_new_farm_values {
-            Some(new_farm_values) => self.create_and_send_farm_tokens_with_new_value(
+            Some(new_farm_values) => self.create_farm_tokens_with_new_value(
                 &additional_payments,
                 &new_farming_amount,
                 &new_attributes,
@@ -461,7 +461,7 @@ pub trait Farm:
         )))
     }
 
-    fn create_and_send_farm_tokens_with_new_value(
+    fn create_farm_tokens_with_new_value(
         &self,
         additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         new_farming_amount: &BigUint,
