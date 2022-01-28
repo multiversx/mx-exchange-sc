@@ -144,7 +144,6 @@ pub trait Farm:
         let attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             last_claim_block: block,
-            initial_farming_amount: enter_amount.clone(),
             compounded_reward: BigUint::zero(),
             current_farm_amount: enter_amount.clone(),
         };
@@ -252,11 +251,6 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        let initial_farming_token_amount = self.rule_of_three_non_zero_result(
-            &amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.initial_farming_amount,
-        );
         reward += self.rule_of_three(
             &amount,
             &farm_attributes.current_farm_amount,
@@ -271,7 +265,7 @@ pub trait Farm:
             let current_epoch = self.blockchain().get_block_epoch();
             let nft_nonce = self.nft_create_tokens(
                 &farm_token_id,
-                &initial_farming_token_amount,
+                &amount,
                 &UnbondSftAttributes {
                     unlock_epoch: current_epoch + min_unbond_epochs,
                 },
@@ -280,11 +274,11 @@ pub trait Farm:
                 &caller,
                 &farm_token_id,
                 nft_nonce,
-                &initial_farming_token_amount,
+                &amount,
                 &opt_accept_funds_func,
             )?;
 
-            EsdtTokenPayment::new(farm_token_id, nft_nonce, initial_farming_token_amount)
+            EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
         } else {
             EsdtTokenPayment::no_payment()
         };
@@ -415,7 +409,6 @@ pub trait Farm:
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
             last_claim_block: self.blockchain().get_block_nonce(),
-            initial_farming_amount: new_farming_amount.clone(),
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farming_amount.clone(),
         };
@@ -435,7 +428,6 @@ pub trait Farm:
                         &p.token_identifier,
                         p.token_nonce,
                     )?;
-                    attr.initial_farming_amount = new_val.clone();
                     attr.current_farm_amount = new_val;
 
                     additional_payments_attributes.push(attr);
@@ -520,11 +512,6 @@ pub trait Farm:
         }
 
         let new_farm_contribution = &payment_amount + &reward;
-        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
-            &payment_amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.initial_farming_amount,
-        );
         let new_compound_reward_amount = &self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
@@ -535,7 +522,6 @@ pub trait Farm:
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: current_rps,
             last_claim_block: current_block,
-            initial_farming_amount: new_initial_farming_amount,
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farm_contribution.clone(),
         };

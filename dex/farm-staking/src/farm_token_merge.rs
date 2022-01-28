@@ -7,7 +7,6 @@ use token_merge::ValueWeight;
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub last_claim_block: u64,
-    pub initial_farming_amount: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
 }
@@ -105,7 +104,6 @@ pub trait FarmTokenMergeModule:
         let aggregated_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             last_claim_block: current_block,
-            initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
         };
@@ -125,21 +123,6 @@ pub trait FarmTokenMergeModule:
             })
         });
         self.weighted_average_ceil(dataset)
-    }
-
-    fn aggregated_initial_farming_amount(
-        &self,
-        tokens: &ManagedVec<StakingFarmToken<Self::Api>>,
-    ) -> SCResult<BigUint> {
-        let mut sum = BigUint::zero();
-        for x in tokens.iter() {
-            sum += &self.rule_of_three_non_zero_result(
-                &x.token_amount.amount,
-                &x.attributes.current_farm_amount,
-                &x.attributes.initial_farming_amount,
-            );
-        }
-        Ok(sum)
     }
 
     fn aggregated_compounded_reward(

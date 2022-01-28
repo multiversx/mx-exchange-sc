@@ -145,7 +145,6 @@ fn stake_farm<FarmObjBuilder>(
     expected_farm_token_nonce: u64,
     expected_reward_per_share: u64,
     expected_last_claim_block: u64,
-    expected_initial_farming_amount: u64,
     expected_compounded_reward: u64,
 ) where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_staking::ContractObj<DebugApi>,
@@ -202,7 +201,6 @@ fn stake_farm<FarmObjBuilder>(
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
         last_claim_block: expected_last_claim_block,
-        initial_farming_amount: managed_biguint!(expected_initial_farming_amount),
         compounded_reward: managed_biguint!(expected_compounded_reward),
         current_farm_amount: managed_biguint!(expected_total_out_amount),
     };
@@ -401,7 +399,6 @@ fn claim_rewards<FarmObjBuilder>(
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
         last_claim_block: expected_last_claim_block,
-        initial_farming_amount: managed_biguint!(farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_token_amount),
     };
@@ -480,7 +477,6 @@ fn test_enter_farm() {
         expected_farm_token_nonce,
         0,
         0,
-        farm_in_amount,
         0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
@@ -499,7 +495,6 @@ fn test_unstake_farm() {
         expected_farm_token_nonce,
         0,
         0,
-        farm_in_amount,
         0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
@@ -549,7 +544,6 @@ fn test_claim_rewards() {
         expected_farm_token_nonce,
         0,
         0,
-        farm_in_amount,
         0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
@@ -591,7 +585,6 @@ where
         expected_farm_token_nonce,
         0,
         0,
-        farm_in_amount,
         0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
@@ -624,7 +617,6 @@ where
         expected_farm_token_nonce + 1,
         expected_reward_per_share,
         10,
-        total_amount,
         0,
     );
     check_farm_token_supply(&mut farm_setup, total_amount);
@@ -703,7 +695,6 @@ fn test_unbond() {
         expected_farm_token_nonce,
         0,
         0,
-        farm_in_amount,
         0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
