@@ -169,22 +169,14 @@ pub trait CustomRewardsModule:
             return unbounded_rewards;
         }
 
-        let farming_token_total_liquidity = self.get_farming_token_liquidity();
         let max_apr = self.max_annual_percentage_rewards().get();
-        let max_rewards_per_block =
-            farming_token_total_liquidity * max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
-
         let current_block = self.blockchain().get_block_nonce();
         let block_diff = current_block - last_claim_block;
-        let total_max_rewards = max_rewards_per_block * block_diff;
-        let max_rewards_for_user = total_max_rewards * amount / self.farm_token_supply().get();
+
+        let max_rewards_for_user_per_block = amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
+        let max_rewards_for_user = max_rewards_for_user_per_block * block_diff;
 
         core::cmp::min(unbounded_rewards, max_rewards_for_user)
-    }
-
-    #[inline]
-    fn get_farming_token_liquidity(&self) -> BigUint {
-        self.farm_token_supply().get()
     }
 
     #[endpoint(startProduceRewards)]
