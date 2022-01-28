@@ -57,7 +57,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let mut payments_iter = payments_vec.iter();
         let payment_0 = payments_iter
             .next()
@@ -200,7 +200,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let mut payments_iter = payments_vec.iter();
         let payment_0 = payments_iter
             .next()
@@ -293,7 +293,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let mut payments_iter = payments_vec.iter();
         let payment_0 = payments_iter
             .next()

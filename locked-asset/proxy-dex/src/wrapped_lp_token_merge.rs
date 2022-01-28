@@ -23,7 +23,7 @@ pub trait WrappedLpTokenMerge:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) {
         let caller = self.blockchain().get_caller();
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let payments_iter = payments_vec.iter();
 
         self.merge_wrapped_lp_tokens_and_send(

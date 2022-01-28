@@ -60,7 +60,7 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let mut payments_iter = payments_vec.iter();
         let (payment_0, payment_1) = payments_iter
             .next_tuple()

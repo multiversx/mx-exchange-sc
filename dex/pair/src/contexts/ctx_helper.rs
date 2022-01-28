@@ -29,7 +29,8 @@ pub trait CtxHelper:
         let caller = self.blockchain().get_caller();
 
         let payment_tuple: Option<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> =
-            self.get_all_payments_managed_vec()
+            self.call_value()
+                .all_esdt_transfers()
                 .into_iter()
                 .collect_tuple();
         let (first_payment, second_payment) = match payment_tuple {

@@ -85,10 +85,6 @@ pub trait TokenSendModule {
             .unwrap_or_else(|_| sc_panic!(ERROR_PAYMENT_FAILED))
     }
 
-    fn get_all_payments_managed_vec(&self) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        Self::Api::call_value_api_impl().get_all_esdt_transfers()
-    }
-
     fn create_payment(
         &self,
         token_id: &TokenIdentifier,

@@ -108,7 +108,7 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let payment_0 = payments_vec
             .try_get(0)
             .unwrap_or_else(|| sc_panic!("empty payments"));
@@ -326,7 +326,7 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let payment_0 = payments_vec
             .try_get(0)
             .unwrap_or_else(|| sc_panic!("empty payments"));
@@ -432,7 +432,7 @@ pub trait Farm:
     ) -> CompoundRewardsResultType<Self::Api> {
         require!(self.is_active(), "Not active");
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let payment_0 = payments_vec
             .try_get(0)
             .unwrap_or_else(|| sc_panic!("empty payments"));

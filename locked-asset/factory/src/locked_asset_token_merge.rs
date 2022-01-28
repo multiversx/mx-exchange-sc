@@ -25,7 +25,7 @@ pub trait LockedAssetTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         require!(!payments_vec.is_empty(), "Empty payment vec");
         let payments_iter = payments_vec.iter();
 
@@ -86,10 +86,7 @@ pub trait LockedAssetTokenMergeModule:
 
         if tokens.len() == 1 {
             let token_0 = tokens.get(0);
-            return (
-                token_0.token_amount.amount.clone(),
-                token_0.attributes,
-            );
+            return (token_0.token_amount.amount.clone(), token_0.attributes);
         }
 
         let attrs = LockedAssetTokenAttributesEx {

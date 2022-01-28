@@ -41,7 +41,7 @@ pub trait WrappedFarmTokenMerge:
             self.intermediated_farms().contains(&farm_contract),
             "Invalid farm contract address"
         );
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let payments_iter = payments_vec.iter();
 
         self.merge_wrapped_farm_tokens_and_send(
