@@ -6,7 +6,7 @@ pub mod custom_rewards;
 pub mod farm_token_merge;
 pub mod whitelist;
 
-use common_structs::{Epoch, Nonce};
+use common_structs::Nonce;
 use config::State;
 
 elrond_wasm::imports!();
@@ -261,8 +261,7 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        let farming_token_id = self.farming_token_id().get();
-        let mut initial_farming_token_amount = self.rule_of_three_non_zero_result(
+        let initial_farming_token_amount = self.rule_of_three_non_zero_result(
             &amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.initial_farming_amount,
@@ -280,14 +279,6 @@ pub trait Farm:
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
 
         let farm_token_payment = if !is_caller_proxy {
-            if self.should_apply_penalty(farm_attributes.entering_epoch) {
-                let penalty_amount = self.get_penalty_amount(&initial_farming_token_amount);
-                if penalty_amount > 0 {
-                    self.burn_farming_tokens(&farming_token_id, &penalty_amount, &reward_token_id)?;
-                    initial_farming_token_amount -= penalty_amount;
-                }
-            }
-
             let min_unbond_epochs = self.min_unbond_epochs().get();
             let current_epoch = self.blockchain().get_block_epoch();
             let nft_nonce = self.nft_create_tokens(
@@ -728,28 +719,12 @@ pub trait Farm:
             self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let mut reward = self.calculate_rewards_with_apr_limit(
+
+        Ok(self.calculate_rewards_with_apr_limit(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
             attributes.last_claim_block,
-        );
-        if self.should_apply_penalty(attributes.entering_epoch) {
-            let penalty = self.get_penalty_amount(&reward);
-            reward -= penalty;
-        }
-
-        Ok(reward)
-    }
-
-    #[inline]
-    fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
-        entering_epoch + self.minimum_farming_epochs().get() as u64
-            > self.blockchain().get_block_epoch()
-    }
-
-    #[inline]
-    fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
-        amount * self.penalty_percent().get() / MAX_PERCENT
+        ))
     }
 }
