@@ -62,12 +62,10 @@ pub trait RedeemTokenModule {
     #[callback]
     fn issue_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
         match result {
-            ManagedAsyncCallResult::Ok(token_id) => {
-                self.redeem_token_id().set(&token_id);
+            ManagedAsyncCallResult::Ok(redeem_token_id) => {
+                self.redeem_token_id().set(&redeem_token_id);
 
                 // create SFT for both types so NFTAddQuantity works
-
-                let redeem_token_id = self.redeem_token_id().get();
                 let zero = BigUint::zero();
                 let one = BigUint::from(1u32);
                 let empty_buffer = ManagedBuffer::new();
