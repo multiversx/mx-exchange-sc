@@ -76,7 +76,8 @@ pub trait RedeemTokenModule {
                     &token_id,
                     REQUIRED_ROLES.iter_roles().cloned(),
                 )
-                .async_call(),
+                .async_call()
+                .with_callback(self.callbacks().set_roles_callback()),
         )
     }
 
