@@ -141,10 +141,6 @@ pub trait Farm:
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0, "Cannot farm with amount of 0");
 
-        self.farming_token_total_liquidity()
-            .update(|liq| *liq += &enter_amount);
-
-        // let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
         let epoch = self.blockchain().get_block_epoch();
@@ -271,9 +267,6 @@ pub trait Farm:
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
         );
-
-        self.farming_token_total_liquidity()
-            .update(|liq| *liq -= &initial_farming_token_amount);
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);

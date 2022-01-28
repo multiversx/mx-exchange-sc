@@ -169,7 +169,7 @@ pub trait CustomRewardsModule:
             return unbounded_rewards;
         }
 
-        let farming_token_total_liquidity = self.farming_token_total_liquidity().get();
+        let farming_token_total_liquidity = self.get_farming_token_liquidity();
         let max_apr = self.max_annual_percentage_rewards().get();
         let max_rewards_per_block =
             farming_token_total_liquidity * max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
@@ -180,6 +180,11 @@ pub trait CustomRewardsModule:
         let max_rewards_for_user = total_max_rewards * amount / self.farm_token_supply().get();
 
         core::cmp::min(unbounded_rewards, max_rewards_for_user)
+    }
+
+    #[inline]
+    fn get_farming_token_liquidity(&self) -> BigUint {
+        self.farm_token_supply().get()
     }
 
     #[endpoint(startProduceRewards)]
@@ -219,10 +224,6 @@ pub trait CustomRewardsModule:
     #[view(getAnnualPercentageRewards)]
     #[storage_mapper("annualPercentageRewards")]
     fn max_annual_percentage_rewards(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getFarmingTokenTotalLiquidity)]
-    #[storage_mapper("farmingTokenTotalLiquidity")]
-    fn farming_token_total_liquidity(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getMinUnbondEpochs)]
     #[storage_mapper("minUnbondEpochs")]
