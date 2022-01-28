@@ -124,7 +124,7 @@ pub trait Farm:
             original_entering_epoch: context.get_block_epoch(),
             initial_farming_amount: first_payment_amount.clone(),
             compounded_reward: BigUint::zero(),
-            current_farm_amount: first_payment_amount.clone(),
+            current_farm_amount: first_payment_amount,
         };
         let virtual_position = FarmToken {
             token_amount: virtual_position_token_amount,
@@ -146,7 +146,7 @@ pub trait Farm:
         self.execute_output_payments(&context);
         self.emit_enter_farm_event(&context);
 
-        context.get_output_payments().get(0).clone()
+        context.get_output_payments().get(0)
     }
 
     #[payable("*")]
@@ -386,7 +386,7 @@ pub trait Farm:
         context.set_final_reward_for_emit_compound_event();
         self.emit_compound_rewards_event(&context);
 
-        context.get_output_payments().get(0).clone()
+        context.get_output_payments().get(0)
     }
 
     fn aggregated_original_entering_epoch_on_compound(

@@ -23,7 +23,7 @@ pub trait CtxHelper:
         let first_payment = payments_iter.next().unwrap();
 
         let mut additional_payments = ManagedVec::new();
-        while let Some(payment) = payments_iter.next() {
+        for payment in payments_iter {
             additional_payments.push(payment);
         }
 

@@ -239,11 +239,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
 
         self.send()
             .esdt_system_sc_proxy()
-            .set_special_roles(
-                &pair_address,
-                &pair_token,
-                (&roles[..]).into_iter().cloned(),
-            )
+            .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
     }
@@ -318,7 +314,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             })
-            .unwrap_or_else(|| ManagedAddress::zero());
+            .unwrap_or_else(ManagedAddress::zero);
 
         if address.is_zero() {
             address = self
@@ -327,7 +323,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                     first_token_id: second_token_id,
                     second_token_id: first_token_id,
                 })
-                .unwrap_or_else(|| ManagedAddress::zero());
+                .unwrap_or_else(ManagedAddress::zero);
         }
         address
     }

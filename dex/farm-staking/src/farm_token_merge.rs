@@ -105,16 +105,14 @@ pub trait FarmTokenMergeModule:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let current_block = self.blockchain().get_block_nonce();
-        let aggregated_attributes = StakingFarmTokenAttributes {
+        StakingFarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: current_epoch,
             last_claim_block: current_block,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
-        };
-
-        aggregated_attributes
+        }
     }
 
     fn aggregated_reward_per_share(
@@ -125,7 +123,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         self.weighted_average_ceil(dataset)

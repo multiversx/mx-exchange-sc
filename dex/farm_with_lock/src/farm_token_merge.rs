@@ -82,16 +82,14 @@ pub trait FarmTokenMergeModule:
             }
         }
 
-        let aggregated_attributes = FarmTokenAttributes {
+        FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: self.blockchain().get_block_epoch(),
             original_entering_epoch: self.aggregated_original_entering_epoch(&tokens),
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
-        };
-
-        aggregated_attributes
+        }
     }
 
     fn aggregated_reward_per_share(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> BigUint {
@@ -99,7 +97,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         self.weighted_average_ceil(dataset)
@@ -145,7 +143,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: BigUint::from(x.attributes.original_entering_epoch),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         let avg = self.weighted_average(dataset);

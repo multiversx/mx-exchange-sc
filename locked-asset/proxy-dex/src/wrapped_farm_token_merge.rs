@@ -134,7 +134,7 @@ pub trait WrappedFarmTokenMerge:
     ) {
         let token_0 = tokens.get(0);
         let farm_token_id = token_0.attributes.farm_token_id.clone();
-        let farming_token_id = token_0.attributes.farming_token_id.clone();
+        let farming_token_id = token_0.attributes.farming_token_id;
 
         for elem in tokens.iter() {
             require!(
@@ -306,7 +306,7 @@ pub trait WrappedFarmTokenMerge:
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
 
-        let wrapped_lp_token_id = tokens.get(0).attributes.farming_token_id.clone();
+        let wrapped_lp_token_id = tokens.get(0).attributes.farming_token_id;
         let new_nonce = self.nft_create_tokens(
             &wrapped_lp_token_id,
             &merged_wrapped_lp_token_amount,

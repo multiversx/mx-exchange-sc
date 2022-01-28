@@ -65,7 +65,7 @@ pub trait ProxyFarmModule:
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
-        let amount = payment_0.amount.clone();
+        let amount = payment_0.amount;
         require!(amount != 0u32, "Payment amount cannot be zero");
 
         let farming_token_id: TokenIdentifier;
@@ -208,7 +208,7 @@ pub trait ProxyFarmModule:
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
-        let amount = payment_0.amount.clone();
+        let amount = payment_0.amount;
         require!(amount != 0u32, "Payment amount cannot be zero");
 
         require!(
@@ -301,7 +301,7 @@ pub trait ProxyFarmModule:
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;
-        let payment_amount = payment_0.amount.clone();
+        let payment_amount = payment_0.amount;
         require!(payment_amount != 0u32, "Payment amount cannot be zero");
 
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
