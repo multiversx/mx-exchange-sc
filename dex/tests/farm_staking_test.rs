@@ -144,7 +144,6 @@ fn stake_farm<FarmObjBuilder>(
     additional_farm_tokens: &[TxInputESDT],
     expected_farm_token_nonce: u64,
     expected_reward_per_share: u64,
-    expected_entering_epoch: u64,
     expected_last_claim_block: u64,
     expected_initial_farming_amount: u64,
     expected_compounded_reward: u64,
@@ -202,7 +201,6 @@ fn stake_farm<FarmObjBuilder>(
     let _ = DebugApi::dummy();
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
-        entering_epoch: expected_entering_epoch,
         last_claim_block: expected_last_claim_block,
         initial_farming_amount: managed_biguint!(expected_initial_farming_amount),
         compounded_reward: managed_biguint!(expected_compounded_reward),
@@ -402,7 +400,6 @@ fn claim_rewards<FarmObjBuilder>(
     let _ = DebugApi::dummy();
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
-        entering_epoch: 0,
         last_claim_block: expected_last_claim_block,
         initial_farming_amount: managed_biguint!(farm_token_amount),
         compounded_reward: managed_biguint!(0),
@@ -483,7 +480,6 @@ fn test_enter_farm() {
         expected_farm_token_nonce,
         0,
         0,
-        0,
         farm_in_amount,
         0,
     );
@@ -501,7 +497,6 @@ fn test_unstake_farm() {
         farm_in_amount,
         &[],
         expected_farm_token_nonce,
-        0,
         0,
         0,
         farm_in_amount,
@@ -554,7 +549,6 @@ fn test_claim_rewards() {
         expected_farm_token_nonce,
         0,
         0,
-        0,
         farm_in_amount,
         0,
     );
@@ -597,7 +591,6 @@ where
         expected_farm_token_nonce,
         0,
         0,
-        0,
         farm_in_amount,
         0,
     );
@@ -630,7 +623,6 @@ where
         &prev_farm_tokens,
         expected_farm_token_nonce + 1,
         expected_reward_per_share,
-        5,
         10,
         total_amount,
         0,
@@ -709,7 +701,6 @@ fn test_unbond() {
         farm_in_amount,
         &[],
         expected_farm_token_nonce,
-        0,
         0,
         0,
         farm_in_amount,

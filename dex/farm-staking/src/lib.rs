@@ -140,11 +140,9 @@ pub trait Farm:
 
         self.generate_aggregated_rewards();
 
-        let epoch = self.blockchain().get_block_epoch();
         let block = self.blockchain().get_block_nonce();
         let attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: epoch,
             last_claim_block: block,
             initial_farming_amount: enter_amount.clone(),
             compounded_reward: BigUint::zero(),
@@ -416,7 +414,6 @@ pub trait Farm:
 
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            entering_epoch: farm_attributes.entering_epoch,
             last_claim_block: self.blockchain().get_block_nonce(),
             initial_farming_amount: new_farming_amount.clone(),
             compounded_reward: new_compound_reward_amount,
@@ -534,11 +531,9 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         ) + &reward;
 
-        let current_epoch = self.blockchain().get_block_epoch();
         let current_block = self.blockchain().get_block_nonce();
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: current_rps,
-            entering_epoch: current_epoch,
             last_claim_block: current_block,
             initial_farming_amount: new_initial_farming_amount,
             compounded_reward: new_compound_reward_amount,

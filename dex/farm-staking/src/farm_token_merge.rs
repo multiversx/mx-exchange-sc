@@ -6,7 +6,6 @@ use token_merge::ValueWeight;
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
-    pub entering_epoch: u64,
     pub last_claim_block: u64,
     pub initial_farming_amount: BigUint<M>,
     pub compounded_reward: BigUint<M>,
@@ -102,11 +101,9 @@ pub trait FarmTokenMergeModule:
             }
         }
 
-        let current_epoch = self.blockchain().get_block_epoch();
         let current_block = self.blockchain().get_block_nonce();
         let aggregated_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
-            entering_epoch: current_epoch,
             last_claim_block: current_block,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens)?,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
