@@ -181,7 +181,7 @@ pub trait Farm:
             token_nonce,
             amount,
             opt_accept_funds_func,
-            false,
+            None,
         )
     }
 
@@ -215,7 +215,7 @@ pub trait Farm:
             second_payment.token_nonce,
             second_payment.amount,
             OptionalArg::None,
-            true,
+            Some(first_payment.amount),
         )
     }
 
@@ -223,16 +223,16 @@ pub trait Farm:
         &self,
         payment_token_id: TokenIdentifier,
         token_nonce: Nonce,
-        amount: BigUint,
+        payment_amount: BigUint,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-        is_caller_proxy: bool,
+        opt_unbond_amount: Option<BigUint>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
-        require!(amount > 0, "Payment amount cannot be zero");
+        require!(payment_amount > 0, "Payment amount cannot be zero");
 
         let farm_attributes = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
             &payment_token_id,
@@ -242,7 +242,7 @@ pub trait Farm:
         self.generate_aggregated_rewards();
 
         let mut reward = self.calculate_rewards_with_apr_limit(
-            &amount,
+            &payment_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
@@ -252,36 +252,24 @@ pub trait Farm:
         }
 
         reward += self.rule_of_three(
-            &amount,
+            &payment_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
         );
 
         let caller = self.blockchain().get_caller();
-        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &payment_amount);
 
-        let farm_token_payment = if !is_caller_proxy {
-            let min_unbond_epochs = self.min_unbond_epochs().get();
-            let current_epoch = self.blockchain().get_block_epoch();
-            let nft_nonce = self.nft_create_tokens(
-                &farm_token_id,
-                &amount,
-                &UnbondSftAttributes {
-                    unlock_epoch: current_epoch + min_unbond_epochs,
-                },
-            );
-            self.transfer_execute_custom(
-                &caller,
-                &farm_token_id,
-                nft_nonce,
-                &amount,
-                &opt_accept_funds_func,
-            )?;
-
-            EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
-        } else {
-            EsdtTokenPayment::no_payment()
+        let unbond_token_amount = match opt_unbond_amount {
+            Some(amt) => amt,
+            None => payment_amount,
         };
+        let farm_token_payment = self.create_and_send_unbond_tokens(
+            &caller,
+            farm_token_id,
+            unbond_token_amount,
+            &opt_accept_funds_func,
+        )?;
 
         self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func)?;
 
@@ -289,6 +277,33 @@ pub trait Farm:
             farm_token_payment,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         )))
+    }
+
+    fn create_and_send_unbond_tokens(
+        &self,
+        to: &ManagedAddress,
+        farm_token_id: TokenIdentifier,
+        amount: BigUint,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+        let min_unbond_epochs = self.min_unbond_epochs().get();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let nft_nonce = self.nft_create_tokens(
+            &farm_token_id,
+            &amount,
+            &UnbondSftAttributes {
+                unlock_epoch: current_epoch + min_unbond_epochs,
+            },
+        );
+        self.transfer_execute_custom(
+            to,
+            &farm_token_id,
+            nft_nonce,
+            &amount,
+            opt_accept_funds_func,
+        )?;
+
+        Ok(EsdtTokenPayment::new(farm_token_id, nft_nonce, amount))
     }
 
     #[payable("*")]
