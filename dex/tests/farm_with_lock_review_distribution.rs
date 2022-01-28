@@ -36,8 +36,8 @@ const PENALTY_PERCENT: u64 = 10;
 #[allow(dead_code)] // owner_address is unused, at least for now
 struct FarmSetup<FarmObjBuilder, FactoryObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
@@ -51,7 +51,7 @@ fn setup_factory<FactoryObjBuilder>(
     factory_builder: FactoryObjBuilder,
 ) -> ContractObjWrapper<factory::ContractObj<DebugApi>, FactoryObjBuilder>
 where
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     let factory_wrapper = blockchain_wrapper.create_sc_account(
         &rust_biguint!(0),
@@ -62,25 +62,27 @@ where
 
     // init farm contract
 
-    blockchain_wrapper.execute_tx(&owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
-        let asset_token_id = managed_token_id!(LKMEX_TOKEN_ID);
-        let default_unlock_period = ManagedMultiResultVec::from(ManagedVec::from(vec![
-            UnlockMilestone {
-                unlock_epoch: 20,
-                unlock_percent: 50,
-            },
-            UnlockMilestone {
-                unlock_epoch: 30,
-                unlock_percent: 50,
-            },
-        ]));
-        let result = sc.init(asset_token_id.clone(), default_unlock_period);
-        assert_eq!(result, SCResult::Ok(()));
+    blockchain_wrapper
+        .execute_tx(&owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
+            let asset_token_id = managed_token_id!(LKMEX_TOKEN_ID);
+            let default_unlock_period = ManagedMultiResultVec::from(ManagedVec::from(vec![
+                UnlockMilestone {
+                    unlock_epoch: 20,
+                    unlock_percent: 50,
+                },
+                UnlockMilestone {
+                    unlock_epoch: 30,
+                    unlock_percent: 50,
+                },
+            ]));
+            let result = sc.init(asset_token_id.clone(), default_unlock_period);
+            assert_eq!(result, SCResult::Ok(()));
 
-        sc.locked_asset_token_id().set(&asset_token_id);
+            sc.locked_asset_token_id().set(&asset_token_id);
 
-        StateChange::Commit
-    });
+            StateChange::Commit
+        })
+        .assert_ok();
 
     let farm_token_roles = [
         EsdtLocalRole::NftCreate,
@@ -102,8 +104,8 @@ fn setup_farm<FarmObjBuilder, FactoryObjBuilder>(
     per_block_reward_amount: RustBigUint,
 ) -> FarmSetup<FarmObjBuilder, FactoryObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
@@ -122,41 +124,45 @@ where
 
     // init farm contract
 
-    blockchain_wrapper.execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
-        let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
-        let farming_token_id = managed_token_id!(LP_TOKEN_ID);
-        let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-        let pair_address = managed_address!(&Address::zero());
+    blockchain_wrapper
+        .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+            let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
+            let farming_token_id = managed_token_id!(LP_TOKEN_ID);
+            let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
+            let pair_address = managed_address!(&Address::zero());
 
-        sc.init(
-            reward_token_id,
-            farming_token_id,
-            locked_asset_factory_address.into(),
-            division_safety_constant,
-            pair_address,
-        );
+            sc.init(
+                reward_token_id,
+                farming_token_id,
+                locked_asset_factory_address.into(),
+                division_safety_constant,
+                pair_address,
+            );
 
-        let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-        sc.farm_token_id().set(&farm_token_id);
+            let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
+            sc.farm_token_id().set(&farm_token_id);
 
-        sc.per_block_reward_amount()
-            .set(&to_managed_biguint(per_block_reward_amount));
-        sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-        sc.penalty_percent().set(&PENALTY_PERCENT);
+            sc.per_block_reward_amount()
+                .set(&to_managed_biguint(per_block_reward_amount));
+            sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
+            sc.penalty_percent().set(&PENALTY_PERCENT);
 
-        sc.state().set(&State::Active);
-        sc.produce_rewards_enabled().set(&true);
+            sc.state().set(&State::Active);
+            sc.produce_rewards_enabled().set(&true);
 
-        StateChange::Commit
-    });
+            StateChange::Commit
+        })
+        .assert_ok();
 
-    blockchain_wrapper.execute_tx(&owner_addr, &factory_wrapper, &rust_zero, |sc| {
-        let farm_address = ManagedAddress::from_address(farm_wrapper.address_ref());
-        let result = sc.whitelist(farm_address);
-        assert_eq!(result, SCResult::Ok(()));
+    blockchain_wrapper
+        .execute_tx(&owner_addr, &factory_wrapper, &rust_zero, |sc| {
+            let farm_address = ManagedAddress::from_address(farm_wrapper.address_ref());
+            let result = sc.whitelist(farm_address);
+            assert_eq!(result, SCResult::Ok(()));
 
-        StateChange::Commit
-    });
+            StateChange::Commit
+        })
+        .assert_ok();
 
     let farm_token_roles = [
         EsdtLocalRole::NftCreate,
@@ -228,8 +234,8 @@ fn enter_farm<FarmObjBuilder, FactoryObjBuilder>(
     caller: &Address,
     farm_in_amount: RustBigUint,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     let mut payments = Vec::new();
     payments.push(TxInputESDT {
@@ -244,17 +250,19 @@ fn enter_farm<FarmObjBuilder, FactoryObjBuilder>(
     }
 
     let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock.execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-        let payment = sc.enter_farm(OptionalArg::None);
-        assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-        check_biguint_eq(
-            payment.amount,
-            expected_total_out_amount,
-            "Enter farm, farm token payment mismatch.",
-        );
+    b_mock
+        .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
+            let payment = sc.enter_farm(OptionalArg::None);
+            assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+            check_biguint_eq(
+                payment.amount,
+                expected_total_out_amount,
+                "Enter farm, farm token payment mismatch.",
+            );
 
-        StateChange::Commit
-    });
+            StateChange::Commit
+        })
+        .assert_ok();
 
     let mut sc_call =
         ScCallMandos::new(&caller, farm_setup.farm_wrapper.address_ref(), "enterFarm");
@@ -282,36 +290,38 @@ fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
     expected_mex_balance: RustBigUint,
     expected_attributes: LockedAssetTokenAttributesEx<DebugApi>,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock.execute_esdt_transfer(
-        &caller,
-        &farm_setup.farm_wrapper,
-        FARM_TOKEN_ID,
-        farm_token_nonce,
-        &farm_out_amount.clone(),
-        |sc| {
-            let multi_result = sc.exit_farm(OptionalArg::None);
+    b_mock
+        .execute_esdt_transfer(
+            &caller,
+            &farm_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            farm_token_nonce,
+            &farm_out_amount.clone(),
+            |sc| {
+                let multi_result = sc.exit_farm(OptionalArg::None);
 
-            let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result) = multi_result.into_tuple();
 
-            assert_eq!(
-                first_result.token_identifier,
-                managed_token_id!(LP_TOKEN_ID)
-            );
-            assert_eq!(first_result.token_nonce, 0);
+                assert_eq!(
+                    first_result.token_identifier,
+                    managed_token_id!(LP_TOKEN_ID)
+                );
+                assert_eq!(first_result.token_nonce, 0);
 
-            assert_eq!(
-                second_result.token_identifier,
-                managed_token_id!(LKMEX_TOKEN_ID)
-            );
-            assert_eq!(second_result.token_nonce, 1);
+                assert_eq!(
+                    second_result.token_identifier,
+                    managed_token_id!(LKMEX_TOKEN_ID)
+                );
+                assert_eq!(second_result.token_nonce, 1);
 
-            StateChange::Commit
-        },
-    );
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 
     b_mock.check_nft_balance(
         &caller,
@@ -326,26 +336,29 @@ fn reward_per_block_rate_change<FarmObjBuilder, FactoryObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     new_rate: RustBigUint,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
-    farm_setup.blockchain_wrapper.execute_tx(
-        &farm_setup.owner_address,
-        &farm_setup.farm_wrapper,
-        &rust_biguint!(0),
-        |sc| {
-            sc.set_per_block_rewards(to_managed_biguint(new_rate));
-            StateChange::Commit
-        },
-    );
+    farm_setup
+        .blockchain_wrapper
+        .execute_tx(
+            &farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_per_block_rewards(to_managed_biguint(new_rate));
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 }
 
 fn handle_action<FarmObjBuilder, FactoryObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     action: Action,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     match action {
         Action::EnterFarm(caller, amount) => enter_farm(farm_setup, &caller, amount),
@@ -384,8 +397,8 @@ fn check_expected<FarmObjBuilder, FactoryObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>,
     expected: Expected,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     farm_setup
         .blockchain_wrapper
@@ -405,7 +418,8 @@ fn check_expected<FarmObjBuilder, FactoryObjBuilder>(
                 expected.total_farm_supply,
                 "Total farm token supply mismatch.",
             );
-        });
+        })
+        .assert_ok();
 }
 
 fn step<FarmObjBuilder, FactoryObjBuilder>(
@@ -414,8 +428,8 @@ fn step<FarmObjBuilder, FactoryObjBuilder>(
     action: Action,
     expected: Expected,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     farm_setup
         .blockchain_wrapper
@@ -429,8 +443,8 @@ fn new_address_with_lp_tokens<FarmObjBuilder, FactoryObjBuilder>(
     amount: RustBigUint,
 ) -> Address
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm_with_lock::ContractObj<DebugApi>,
-    FactoryObjBuilder: 'static + Copy + Fn(DebugApi) -> factory::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
 {
     let blockchain_wrapper = &mut farm_setup.blockchain_wrapper;
     let address = blockchain_wrapper.create_user_account(&rust_biguint!(0));

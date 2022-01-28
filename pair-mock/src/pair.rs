@@ -121,7 +121,7 @@ pub trait PairMock {
             .unwrap_or(ManagedBuffer::new());
 
         let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
-        self.raw_vm_api().direct_esdt_execute(
+        Self::Api::send_api_impl().direct_esdt_execute(
             &caller,
             &lp_token_id,
             &lp_token_amount,

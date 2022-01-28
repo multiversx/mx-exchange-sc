@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::*;
-use common_macros::assert;
+
 use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
@@ -47,8 +47,7 @@ pub trait FarmTokenMergeModule:
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<&FarmToken<Self::Api>>,
     ) -> FarmTokenAttributes<Self::Api> {
-        assert!(
-            self,
+        require!(
             !payments.is_empty() || replic.is_some(),
             ERROR_NO_TOKEN_TO_MERGE
         );
@@ -57,11 +56,10 @@ pub trait FarmTokenMergeModule:
         let farm_token_id = self.farm_token_id().get();
 
         for payment in payments.iter() {
-            assert!(self, payment.amount != 0u64, ERROR_ZERO_AMOUNT);
-            assert!(
-                self,
+            require!(payment.amount != 0u64, ERROR_ZERO_AMOUNT);
+            require!(
                 payment.token_identifier == farm_token_id,
-                ERROR_NOT_A_FARM_TOKEN,
+                ERROR_NOT_A_FARM_TOKEN
             );
 
             tokens.push(FarmToken {
@@ -81,7 +79,7 @@ pub trait FarmTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            if let Some(t) = tokens.get(0) {
+            if let Some(t) = tokens.try_get(0) {
                 return t.attributes;
             }
         }

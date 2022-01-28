@@ -4,7 +4,6 @@ use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::Context;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
-use common_macros::assert;
 
 use super::amm;
 use super::config;
@@ -17,11 +16,7 @@ pub trait LiquidityPoolModule:
 {
     fn pool_add_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
         let zero = &BigUint::zero();
-        assert!(
-            self,
-            context.get_lp_token_supply() != zero,
-            ERROR_ZERO_AMOUNT
-        );
+        require!(context.get_lp_token_supply() != zero, ERROR_ZERO_AMOUNT);
 
         let first_payment_amount = context.get_first_amount_optimal();
         let second_payment_amount = context.get_second_amount_optimal();
@@ -33,7 +28,7 @@ pub trait LiquidityPoolModule:
             &(&(first_payment_amount * lp_token_supply) / first_token_reserve),
             &(&(second_payment_amount * lp_token_supply) / second_token_reserve),
         );
-        assert!(self, &liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
+        require!(&liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
 
         context.increase_lp_token_supply(&liquidity);
         context.set_liquidity_added(liquidity);
@@ -42,18 +37,14 @@ pub trait LiquidityPoolModule:
 
     fn pool_add_initial_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
         let zero = &BigUint::zero();
-        assert!(
-            self,
-            context.get_lp_token_supply() == zero,
-            ERROR_ZERO_AMOUNT,
-        );
+        require!(context.get_lp_token_supply() == zero, ERROR_ZERO_AMOUNT);
 
         let liquidity = self.biguint_min(
             context.get_first_amount_optimal(),
             context.get_second_amount_optimal(),
         );
         let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
-        assert!(self, liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
+        require!(liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
 
         let lpt = context.get_lp_token_id();
         self.send().esdt_local_mint(lpt, 0, &minimum_liquidity);
@@ -78,42 +69,29 @@ pub trait LiquidityPoolModule:
         let total_supply = context.get_lp_token_supply();
         let liquidity = &context.get_lp_token_payment().amount;
 
-        assert!(
-            self,
+        require!(
             total_supply >= &(liquidity + MINIMUM_LIQUIDITY),
             ERROR_NOT_ENOUGH_LP
         );
 
         let first_amount_removed = (liquidity * context.get_first_token_reserve()) / total_supply;
-        assert!(
-            self,
-            first_amount_removed > 0u64,
-            ERROR_INSUFFICIENT_LIQ_BURNED
-        );
-        assert!(
-            self,
+        require!(first_amount_removed > 0u64, ERROR_INSUFFICIENT_LIQ_BURNED);
+        require!(
             &first_amount_removed >= context.get_first_token_amount_min(),
             ERROR_SLIPPAGE_ON_REMOVE
         );
-        assert!(
-            self,
+        require!(
             context.get_first_token_reserve() > &first_amount_removed,
             ERROR_NOT_ENOUGH_RESERVE
         );
 
         let second_amount_removed = (liquidity * context.get_second_token_reserve()) / total_supply;
-        assert!(
-            self,
-            second_amount_removed > 0u64,
-            ERROR_INSUFFICIENT_LIQ_BURNED
-        );
-        assert!(
-            self,
+        require!(second_amount_removed > 0u64, ERROR_INSUFFICIENT_LIQ_BURNED);
+        require!(
             &second_amount_removed >= context.get_second_token_amount_min(),
             ERROR_SLIPPAGE_ON_REMOVE
         );
-        assert!(
-            self,
+        require!(
             context.get_second_token_reserve() > &second_amount_removed,
             ERROR_NOT_ENOUGH_RESERVE
         );
@@ -154,10 +132,9 @@ pub trait LiquidityPoolModule:
         let second_token_amount_desired = &context.get_first_payment().amount;
         let first_token_amount_min = context.get_first_token_amount_min();
         let second_token_amount_min = context.get_second_token_amount_min();
-        assert!(
-            self,
+        require!(
             first_token_reserve != zero && second_token_reserve != zero,
-            ERROR_INITIAL_LIQUIDITY_NOT_ADDED,
+            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
         );
 
         let second_token_amount_optimal = self.quote(
@@ -167,10 +144,9 @@ pub trait LiquidityPoolModule:
         );
 
         if &second_token_amount_optimal <= second_token_amount_desired {
-            assert!(
-                self,
+            require!(
                 &second_token_amount_optimal >= second_token_amount_min,
-                ERROR_INSUFFICIENT_SECOND_TOKEN,
+                ERROR_INSUFFICIENT_SECOND_TOKEN
             );
 
             (
@@ -183,15 +159,13 @@ pub trait LiquidityPoolModule:
                 second_token_reserve,
                 first_token_reserve,
             );
-            assert!(
-                self,
+            require!(
                 &first_token_amount_optimal <= first_token_amount_desired,
-                ERROR_OPTIMAL_GRATER_THAN_PAID,
+                ERROR_OPTIMAL_GRATER_THAN_PAID
             );
-            assert!(
-                self,
+            require!(
                 &first_token_amount_optimal >= first_token_amount_min,
-                ERROR_INSUFFICIENT_FIRST_TOKEN,
+                ERROR_INSUFFICIENT_FIRST_TOKEN
             );
 
             (
@@ -245,10 +219,9 @@ pub trait LiquidityPoolModule:
         let a_to_b = token_in == context.get_first_token_id();
         match a_to_b {
             true => {
-                assert!(
-                    self,
+                require!(
                     context.get_first_token_reserve() != &0u64,
-                    ERROR_ZERO_AMOUNT,
+                    ERROR_ZERO_AMOUNT
                 );
 
                 let amount_out = self.get_amount_out_no_fee(
@@ -256,10 +229,9 @@ pub trait LiquidityPoolModule:
                     context.get_first_token_reserve(),
                     context.get_second_token_reserve(),
                 );
-                assert!(
-                    self,
+                require!(
                     context.get_second_token_reserve() > &amount_out && amount_out != 0u64,
-                    ERROR_ZERO_AMOUNT,
+                    ERROR_ZERO_AMOUNT
                 );
 
                 let new_first_amount = context.get_first_token_reserve() + amount_in;
@@ -270,10 +242,9 @@ pub trait LiquidityPoolModule:
                 amount_out
             }
             false => {
-                assert!(
-                    self,
+                require!(
                     context.get_second_token_reserve() != &0u64,
-                    ERROR_ZERO_AMOUNT,
+                    ERROR_ZERO_AMOUNT
                 );
 
                 let amount_out = self.get_amount_out_no_fee(
@@ -281,10 +252,9 @@ pub trait LiquidityPoolModule:
                     context.get_second_token_reserve(),
                     context.get_first_token_reserve(),
                 );
-                assert!(
-                    self,
+                require!(
                     context.get_first_token_reserve() > &amount_out && amount_out != 0u64,
-                    ERROR_ZERO_AMOUNT,
+                    ERROR_ZERO_AMOUNT
                 );
 
                 let new_first_amount = context.get_first_token_reserve() - &amount_out;

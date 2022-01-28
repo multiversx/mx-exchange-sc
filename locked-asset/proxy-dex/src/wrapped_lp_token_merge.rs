@@ -38,7 +38,7 @@ pub trait WrappedLpTokenMerge:
     fn merge_wrapped_lp_tokens_and_send(
         &self,
         caller: &ManagedAddress,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedLpToken<Self::Api>>,
         opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
@@ -58,7 +58,7 @@ pub trait WrappedLpTokenMerge:
         let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens)?;
         let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
         let lp_token_amount = self.create_payment(
-            &tokens.get(0).unwrap().attributes.lp_token_id,
+            &tokens.get(0).attributes.lp_token_id,
             0,
             &merged_wrapped_lp_amount,
         );
@@ -93,7 +93,7 @@ pub trait WrappedLpTokenMerge:
 
     fn get_wrapped_lp_tokens_from_deposit(
         &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<ManagedVec<WrappedLpToken<Self::Api>>> {
         let mut result = ManagedVec::new();
 
@@ -114,7 +114,7 @@ pub trait WrappedLpTokenMerge:
         &self,
         tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
     ) -> SCResult<()> {
-        let lp_token_id = tokens.get(0).unwrap().attributes.lp_token_id.clone();
+        let lp_token_id = tokens.get(0).attributes.lp_token_id.clone();
 
         for elem in tokens.iter() {
             require!(
@@ -127,7 +127,7 @@ pub trait WrappedLpTokenMerge:
 
     fn require_all_tokens_are_wrapped_lp_tokens(
         &self,
-        tokens: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        tokens: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         wrapped_lp_token_id: &TokenIdentifier,
     ) -> SCResult<()> {
         for elem in tokens {
@@ -160,7 +160,7 @@ pub trait WrappedLpTokenMerge:
         let locked_asset_token = self.locked_asset_token_id().get();
 
         if tokens.len() == 1 {
-            let token = tokens.get(0).unwrap();
+            let token = tokens.get(0);
 
             let amount = self.rule_of_three_non_zero_result(
                 &token.token_amount.amount,

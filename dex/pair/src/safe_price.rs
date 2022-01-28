@@ -7,7 +7,6 @@ use crate::{
     contexts::base::Context,
     errors::{ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT},
 };
-use common_macros::assert;
 
 const MAX_OBSERVATIONS_PER_RECORD: u64 = 10;
 
@@ -153,12 +152,11 @@ pub trait SafePriceModule:
 
             (r_in, r_out, t_out)
         } else {
-            assert!(self, ERROR_UNKNOWN_TOKEN);
+            sc_panic!(ERROR_UNKNOWN_TOKEN);
         };
-        assert!(
-            self,
+        require!(
             input.amount != 0u64 && r_in != 0u64 && r_out != 0u64,
-            ERROR_ZERO_AMOUNT,
+            ERROR_ZERO_AMOUNT
         );
 
         EsdtTokenPayment::new(t_out, 0, self.quote(&input.amount, &r_in, &r_out))

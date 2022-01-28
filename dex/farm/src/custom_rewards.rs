@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::*;
-use common_macros::assert;
+
 use contexts::generic::StorageCache;
 
 #[elrond_wasm::module]
@@ -66,7 +66,7 @@ pub trait CustomRewardsModule:
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
         self.require_permissions();
-        assert!(self, per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+        require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
 
         let mut storage = StorageCache::default();
         storage.reward_token_id = Some(self.reward_token_id().get());

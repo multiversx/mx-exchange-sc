@@ -1,9 +1,9 @@
 #![no_std]
+#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_macros::assert;
 use common_structs::{FarmTokenAttributes, Nonce};
 use elrond_wasm::elrond_codec::TopEncode;
 
@@ -25,11 +25,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         num_decimals: usize,
     ) -> AsyncCall {
         self.require_permissions();
-        assert!(
-            self,
-            self.farm_token_id().is_empty(),
-            b"Token exists already"
-        );
+        require!(self.farm_token_id().is_empty(), "Token exists already");
 
         self.register_token(
             register_cost,
@@ -97,7 +93,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     #[endpoint(setLocalRolesFarmToken)]
     fn set_local_roles_farm_token(&self) -> AsyncCall {
         self.require_permissions();
-        assert!(self, !self.farm_token_id().is_empty(), b"No farm token");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
         self.set_local_roles(token)

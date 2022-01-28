@@ -17,7 +17,7 @@ mod liquidity_pool;
 pub mod safe_price;
 
 use crate::errors::*;
-use common_macros::assert;
+
 use config::State;
 use contexts::base::*;
 use contexts::ctx_helper;
@@ -56,16 +56,12 @@ pub trait Pair<ContractReader>:
         special_fee_percent: u64,
         #[var_args] initial_liquidity_adder: OptionalArg<ManagedAddress>,
     ) {
-        assert!(self, first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        assert!(self, second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        assert!(self, first_token_id != second_token_id, ERROR_SAME_TOKENS);
+        require!(first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
         let lp_token_id = self.lp_token_identifier().get();
-        assert!(self, first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        assert!(
-            self,
-            second_token_id != lp_token_id,
-            ERROR_POOL_TOKEN_IS_PLT
-        );
+        require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
+        require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
         self.set_fee_percents(total_fee_percent, special_fee_percent);
 
         self.state().set(&State::Inactive);
@@ -93,56 +89,48 @@ pub trait Pair<ContractReader>:
             BigUint::from(1u64),
             opt_accept_funds_func,
         );
-        assert!(
-            self,
+        require!(
             self.initial_liquidity_adder()
                 .get()
                 .map_or(true, |adder| &adder == context.get_caller()),
             ERROR_PERMISSION_DENIED
         );
 
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             self.is_state_active(context.get_contract_state()),
-            ERROR_NOT_ACTIVE,
+            ERROR_NOT_ACTIVE
         );
 
         self.load_lp_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_lp_token_id().is_empty(),
-            ERROR_LP_TOKEN_NOT_ISSUED,
+            ERROR_LP_TOKEN_NOT_ISSUED
         );
 
         self.load_pool_token_ids(&mut context);
-        assert!(
-            self,
+        require!(
             context.payment_tokens_match_pool_tokens(),
-            ERROR_BAD_PAYMENT_TOKENS,
+            ERROR_BAD_PAYMENT_TOKENS
         );
 
         self.load_lp_token_supply(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_lp_token_supply() == &0u64,
-            ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED,
+            ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED
         );
         self.update_safe_state_from_context(&context);
 
@@ -174,46 +162,39 @@ pub trait Pair<ContractReader>:
             second_token_amount_min,
             opt_accept_funds_func,
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             self.initial_liquidity_adder().get().is_none(),
             ERROR_INITIAL_LIQUIDITY_NOT_ADDED
         );
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             self.is_state_active(context.get_contract_state()),
-            ERROR_NOT_ACTIVE,
+            ERROR_NOT_ACTIVE
         );
 
         self.load_lp_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_lp_token_id().is_empty(),
-            ERROR_LP_TOKEN_NOT_ISSUED,
+            ERROR_LP_TOKEN_NOT_ISSUED
         );
 
         self.load_pool_token_ids(&mut context);
-        assert!(
-            self,
+        require!(
             context.payment_tokens_match_pool_tokens(),
-            ERROR_BAD_PAYMENT_TOKENS,
+            ERROR_BAD_PAYMENT_TOKENS
         );
 
         self.load_pool_reserves(&mut context);
@@ -230,11 +211,7 @@ pub trait Pair<ContractReader>:
         }
 
         let new_k = self.calculate_k(&context);
-        assert!(
-            self,
-            context.get_initial_k() <= &new_k,
-            ERROR_K_INVARIANT_FAILED
-        );
+        require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         let lpt = context.get_lp_token_id();
         let liq_added = context.get_liquidity_added();
@@ -267,39 +244,33 @@ pub trait Pair<ContractReader>:
             second_token_amount_min,
             opt_accept_funds_func,
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             self.is_state_active(context.get_contract_state()),
-            ERROR_NOT_ACTIVE,
+            ERROR_NOT_ACTIVE
         );
 
         self.load_lp_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_lp_token_id().is_empty(),
-            ERROR_LP_TOKEN_NOT_ISSUED,
+            ERROR_LP_TOKEN_NOT_ISSUED
         );
-        assert!(
-            self,
+        require!(
             context.get_lp_token_id() == &context.get_lp_token_payment().token_identifier,
-            ERROR_BAD_PAYMENT_TOKENS,
+            ERROR_BAD_PAYMENT_TOKENS
         );
 
         self.load_pool_token_ids(&mut context);
@@ -311,11 +282,7 @@ pub trait Pair<ContractReader>:
         self.pool_remove_liquidity(&mut context);
 
         let new_k = self.calculate_k(&context);
-        assert!(
-            self,
-            &new_k <= context.get_initial_k(),
-            ERROR_K_INVARIANT_FAILED
-        );
+        require!(&new_k <= context.get_initial_k(), ERROR_K_INVARIANT_FAILED);
 
         let lpt = context.get_lp_token_id();
         self.burn(lpt, &context.get_lp_token_payment().amount);
@@ -345,38 +312,32 @@ pub trait Pair<ContractReader>:
             BigUint::from(1u64),
             OptionalArg::None,
         );
-        assert!(
-            self,
+        require!(
             self.whitelist().contains(context.get_caller()),
-            ERROR_NOT_WHITELISTED,
+            ERROR_NOT_WHITELISTED
         );
 
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
 
         self.load_lp_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_lp_token_id().is_empty(),
-            ERROR_LP_TOKEN_NOT_ISSUED,
+            ERROR_LP_TOKEN_NOT_ISSUED
         );
-        assert!(
-            self,
+        require!(
             context.get_lp_token_id() == &context.get_lp_token_payment().token_identifier,
-            ERROR_BAD_PAYMENT_TOKENS,
+            ERROR_BAD_PAYMENT_TOKENS
         );
 
         self.load_pool_token_ids(&mut context);
@@ -431,40 +392,31 @@ pub trait Pair<ContractReader>:
             BigUint::from(1u64),
             OptionalArg::None,
         );
-        assert!(
-            self,
+        require!(
             self.whitelist().contains(&context.get_caller()),
             ERROR_NOT_WHITELISTED
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             self.can_swap(&context.get_contract_state()),
             ERROR_SWAP_NOT_ENABLED
         );
 
         self.load_pool_token_ids(&mut context);
-        assert!(
-            self,
-            context.input_tokens_match_pool_tokens(),
-            ERROR_INVALID_ARGS,
-        );
+        require!(context.input_tokens_match_pool_tokens(), ERROR_INVALID_ARGS);
 
         self.load_pool_reserves(&mut context);
         self.update_safe_state_from_context(&context);
@@ -472,15 +424,11 @@ pub trait Pair<ContractReader>:
 
         context.set_final_input_amount(amount_in.clone());
         let amount_out = self.swap_safe_no_fee(&mut context, &token_in, &amount_in);
-        assert!(self, amount_out > 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount_out > 0u64, ERROR_ZERO_AMOUNT);
         context.set_final_output_amount(amount_out.clone());
 
         let new_k = self.calculate_k(&context);
-        assert!(
-            self,
-            context.get_initial_k() <= &new_k,
-            ERROR_K_INVARIANT_FAILED,
-        );
+        require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         self.commit_changes(&context);
         self.burn(&token_out, &amount_out);
@@ -506,41 +454,32 @@ pub trait Pair<ContractReader>:
             amount_out_min,
             opt_accept_funds_func.clone(),
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             self.can_swap(&context.get_contract_state()),
-            ERROR_SWAP_NOT_ENABLED,
+            ERROR_SWAP_NOT_ENABLED
         );
 
         self.load_pool_token_ids(&mut context);
-        assert!(
-            self,
-            context.input_tokens_match_pool_tokens(),
-            ERROR_INVALID_ARGS,
-        );
+        require!(context.input_tokens_match_pool_tokens(), ERROR_INVALID_ARGS);
 
         self.load_pool_reserves(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_reserve_out() > context.get_amount_out_min(),
-            ERROR_NOT_ENOUGH_RESERVE,
+            ERROR_NOT_ENOUGH_RESERVE
         );
         self.update_safe_state_from_context(&context);
 
@@ -548,11 +487,7 @@ pub trait Pair<ContractReader>:
         self.perform_swap_fixed_input(&mut context);
 
         let new_k = self.calculate_k(&context);
-        assert!(
-            self,
-            context.get_initial_k() <= &new_k,
-            ERROR_K_INVARIANT_FAILED
-        );
+        require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         if self.is_fee_enabled() {
             let fee_amount = context.get_fee_amount().clone();
@@ -585,39 +520,30 @@ pub trait Pair<ContractReader>:
             amount_out.clone(),
             opt_accept_funds_func.clone(),
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS,
+            ERROR_INVALID_ARGS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS,
+            ERROR_INVALID_PAYMENTS
         );
-        assert!(
-            self,
+        require!(
             context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS,
+            ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             self.can_swap(&context.get_contract_state()),
-            ERROR_SWAP_NOT_ENABLED,
+            ERROR_SWAP_NOT_ENABLED
         );
 
         self.load_pool_token_ids(&mut context);
-        assert!(
-            self,
-            context.input_tokens_match_pool_tokens(),
-            ERROR_INVALID_ARGS,
-        );
+        require!(context.input_tokens_match_pool_tokens(), ERROR_INVALID_ARGS);
 
         self.load_pool_reserves(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_reserve_out() > context.get_amount_out(),
             ERROR_NOT_ENOUGH_RESERVE
         );
@@ -627,11 +553,7 @@ pub trait Pair<ContractReader>:
         self.perform_swap_fixed_output(&mut context);
 
         let new_k = self.calculate_k(&context);
-        assert!(
-            self,
-            context.get_initial_k() <= &new_k,
-            ERROR_K_INVARIANT_FAILED
-        );
+        require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
         if self.is_fee_enabled() {
             let fee_amount = context.get_fee_amount().clone();
@@ -648,18 +570,16 @@ pub trait Pair<ContractReader>:
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {
         self.require_permissions();
-        assert!(
-            self,
+        require!(
             self.lp_token_identifier().is_empty(),
-            ERROR_LP_TOKEN_NOT_ISSUED,
+            ERROR_LP_TOKEN_NOT_ISSUED
         );
-        assert!(
-            self,
+        require!(
             token_identifier != self.first_token_id().get()
                 && token_identifier != self.second_token_id().get(),
-            ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS,
+            ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS
         );
-        assert!(self, token_identifier.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(token_identifier.is_esdt(), ERROR_NOT_AN_ESDT);
         self.lp_token_identifier().set(&token_identifier);
     }
 
@@ -683,7 +603,7 @@ pub trait Pair<ContractReader>:
 
     #[view(getAmountOut)]
     fn get_amount_out_view(&self, token_in: TokenIdentifier, amount_in: BigUint) -> BigUint {
-        assert!(self, amount_in > 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount_in > 0u64, ERROR_ZERO_AMOUNT);
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -691,33 +611,25 @@ pub trait Pair<ContractReader>:
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
 
         if token_in == first_token_id {
-            assert!(self, second_token_reserve > 0u64, ERROR_NOT_ENOUGH_RESERVE);
+            require!(second_token_reserve > 0u64, ERROR_NOT_ENOUGH_RESERVE);
             let amount_out =
                 self.get_amount_out(&amount_in, &first_token_reserve, &second_token_reserve);
-            assert!(
-                self,
-                second_token_reserve > amount_out,
-                ERROR_NOT_ENOUGH_RESERVE
-            );
+            require!(second_token_reserve > amount_out, ERROR_NOT_ENOUGH_RESERVE);
             amount_out
         } else if token_in == second_token_id {
-            assert!(self, first_token_reserve > 0u64, ERROR_NOT_ENOUGH_RESERVE);
+            require!(first_token_reserve > 0u64, ERROR_NOT_ENOUGH_RESERVE);
             let amount_out =
                 self.get_amount_out(&amount_in, &second_token_reserve, &first_token_reserve);
-            assert!(
-                self,
-                first_token_reserve > amount_out,
-                ERROR_NOT_ENOUGH_RESERVE
-            );
+            require!(first_token_reserve > amount_out, ERROR_NOT_ENOUGH_RESERVE);
             amount_out
         } else {
-            assert!(self, ERROR_UNKNOWN_TOKEN);
+            sc_panic!(ERROR_UNKNOWN_TOKEN);
         }
     }
 
     #[view(getAmountIn)]
     fn get_amount_in_view(&self, token_wanted: TokenIdentifier, amount_wanted: BigUint) -> BigUint {
-        assert!(self, amount_wanted > 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount_wanted > 0u64, ERROR_ZERO_AMOUNT);
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -725,31 +637,29 @@ pub trait Pair<ContractReader>:
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
 
         if token_wanted == first_token_id {
-            assert!(
-                self,
+            require!(
                 first_token_reserve > amount_wanted,
-                ERROR_NOT_ENOUGH_RESERVE,
+                ERROR_NOT_ENOUGH_RESERVE
             );
             let amount_in =
                 self.get_amount_in(&amount_wanted, &second_token_reserve, &first_token_reserve);
             amount_in
         } else if token_wanted == second_token_id {
-            assert!(
-                self,
+            require!(
                 second_token_reserve > amount_wanted,
-                ERROR_NOT_ENOUGH_RESERVE,
+                ERROR_NOT_ENOUGH_RESERVE
             );
             let amount_in =
                 self.get_amount_in(&amount_wanted, &first_token_reserve, &second_token_reserve);
             amount_in
         } else {
-            assert!(self, ERROR_UNKNOWN_TOKEN);
+            sc_panic!(ERROR_UNKNOWN_TOKEN);
         }
     }
 
     #[view(getEquivalent)]
     fn get_equivalent(&self, token_in: TokenIdentifier, amount_in: BigUint) -> BigUint {
-        assert!(self, amount_in > 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount_in > 0u64, ERROR_ZERO_AMOUNT);
         let zero = BigUint::zero();
 
         let first_token_id = self.first_token_id().get();
@@ -765,7 +675,7 @@ pub trait Pair<ContractReader>:
         } else if token_in == second_token_id {
             self.quote(&amount_in, &second_token_reserve, &first_token_reserve)
         } else {
-            assert!(self, ERROR_UNKNOWN_TOKEN);
+            sc_panic!(ERROR_UNKNOWN_TOKEN);
         }
     }
 
@@ -786,17 +696,15 @@ pub trait Pair<ContractReader>:
             context.get_reserve_in(),
             context.get_reserve_out(),
         );
-        assert!(
-            self,
+        require!(
             &amount_out_optimal >= context.get_amount_out_min(),
-            ERROR_SLIPPAGE_EXCEEDED,
+            ERROR_SLIPPAGE_EXCEEDED
         );
-        assert!(
-            self,
+        require!(
             context.get_reserve_out() > &amount_out_optimal,
-            ERROR_NOT_ENOUGH_RESERVE,
+            ERROR_NOT_ENOUGH_RESERVE
         );
-        assert!(self, amount_out_optimal != 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount_out_optimal != 0u64, ERROR_ZERO_AMOUNT);
         context.set_final_output_amount(amount_out_optimal.clone());
 
         let mut fee_amount = BigUint::zero();
@@ -818,12 +726,11 @@ pub trait Pair<ContractReader>:
             context.get_reserve_in(),
             context.get_reserve_out(),
         );
-        assert!(
-            self,
+        require!(
             &amount_in_optimal <= context.get_amount_in_max(),
             ERROR_SLIPPAGE_EXCEEDED
         );
-        assert!(self, amount_in_optimal != 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount_in_optimal != 0u64, ERROR_ZERO_AMOUNT);
         context.set_final_input_amount(amount_in_optimal.clone());
 
         let mut fee_amount = BigUint::zero();

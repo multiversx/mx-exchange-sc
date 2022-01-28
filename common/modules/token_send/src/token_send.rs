@@ -22,7 +22,7 @@ pub trait TokenSendModule {
             function = ManagedBuffer::new();
         }
 
-        self.raw_vm_api()
+        Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(
                 destination,
                 payments,
@@ -79,13 +79,13 @@ pub trait TokenSendModule {
             function = ManagedBuffer::new();
         }
 
-        self.raw_vm_api()
+        Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(to, &payments, gas_limit, &function, &arg_buffer)
             .into()
     }
 
     fn get_all_payments_managed_vec(&self) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        self.raw_vm_api().get_all_esdt_transfers()
+        Self::Api::call_value_api_impl().get_all_esdt_transfers()
     }
 
     fn create_payment(

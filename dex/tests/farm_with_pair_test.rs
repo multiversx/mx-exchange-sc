@@ -17,8 +17,8 @@ const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 
 struct FarmSetup<PairObjBuilder, FarmObjBuilder>
 where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     pub wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
@@ -28,8 +28,8 @@ where
 
 impl<PairObjBuilder, FarmObjBuilder> FarmSetup<PairObjBuilder, FarmObjBuilder>
 where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     pub fn into_fields(
         self,
@@ -54,8 +54,8 @@ fn setup_pair_and_farm<PairObjBuilder, FarmObjBuilder>(
     farm_builder: FarmObjBuilder,
 ) -> FarmSetup<PairObjBuilder, FarmObjBuilder>
 where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let mut wrapper = BlockchainStateWrapper::new();

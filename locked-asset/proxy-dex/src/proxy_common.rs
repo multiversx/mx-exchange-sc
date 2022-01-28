@@ -34,7 +34,10 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
         token_info.decode_attributes().into()
     }
 
-    fn burn_payment_tokens(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
+    fn burn_payment_tokens(
+        &self,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
+    ) {
         for payment in payments {
             self.send().esdt_local_burn(
                 &payment.token_identifier,

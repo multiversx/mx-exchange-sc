@@ -9,7 +9,6 @@ use crate::SwapTokensFixedInputResultType;
 use crate::SwapTokensFixedOutputResultType;
 
 use crate::errors::*;
-use common_macros::assert;
 
 use super::add_liquidity::*;
 use super::base::*;
@@ -196,7 +195,7 @@ pub trait CtxHelper:
             context.get_output_payments(),
             context.get_opt_accept_funds_func(),
         );
-        assert!(self, result.is_ok(), ERROR_PAYMENT_FAILED);
+        require!(result.is_ok(), ERROR_PAYMENT_FAILED);
     }
 
     fn commit_changes(&self, context: &dyn Context<Self::Api>) {

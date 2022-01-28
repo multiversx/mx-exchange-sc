@@ -6,7 +6,7 @@ use super::config;
 use super::errors::*;
 use super::liquidity_pool;
 use crate::contexts::base::Context;
-use common_macros::assert;
+
 use common_structs::TokenPair;
 
 mod self_proxy {
@@ -52,14 +52,14 @@ pub trait FeeModule:
     fn whitelist_endpoint(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_new = self.whitelist().insert(address);
-        assert!(self, is_new, ERROR_ALREADY_WHITELISTED);
+        require!(is_new, ERROR_ALREADY_WHITELISTED);
     }
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         self.require_permissions();
         let is_removed = self.whitelist().remove(&address);
-        assert!(self, is_removed, ERROR_NOT_WHITELISTED);
+        require!(is_removed, ERROR_NOT_WHITELISTED);
     }
 
     #[endpoint(addTrustedSwapPair)]
@@ -70,13 +70,13 @@ pub trait FeeModule:
         second_token: TokenIdentifier,
     ) {
         self.require_permissions();
-        assert!(self, first_token != second_token, ERROR_SAME_TOKENS);
+        require!(first_token != second_token, ERROR_SAME_TOKENS);
         let token_pair = TokenPair {
             first_token,
             second_token,
         };
         let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
-        assert!(self, is_new, ERROR_PAIR_ALREADY_TRUSTED);
+        require!(is_new, ERROR_PAIR_ALREADY_TRUSTED);
     }
 
     #[endpoint(removeTrustedSwapPair)]
@@ -98,7 +98,7 @@ pub trait FeeModule:
                 second_token: first_token,
             };
             is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
-            assert!(self, is_removed, ERROR_PAIR_NOT_TRUSTED);
+            require!(is_removed, ERROR_PAIR_NOT_TRUSTED);
         }
     }
 
@@ -173,7 +173,7 @@ pub trait FeeModule:
                 fee_address,
             );
         } else {
-            assert!(self, ERROR_NOTHING_TO_DO_WITH_FEE_SLICE);
+            sc_panic!(ERROR_NOTHING_TO_DO_WITH_FEE_SLICE);
         }
     }
 
@@ -304,12 +304,12 @@ pub trait FeeModule:
             .any(|dest_address| dest_address == fee_to_address);
 
         if enabled {
-            assert!(self, !is_dest, ERROR_ALREADY_FEE_DEST);
+            require!(!is_dest, ERROR_ALREADY_FEE_DEST);
             self.destination_map().insert(fee_to_address, fee_token);
         } else {
-            assert!(self, is_dest, ERROR_NOT_FEE_DEST);
+            require!(is_dest, ERROR_NOT_FEE_DEST);
             let dest_fee_token = self.destination_map().get(&fee_to_address).unwrap();
-            assert!(self, fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
+            require!(fee_token == dest_fee_token, ERROR_BAD_TOKEN_FEE_DEST);
             self.destination_map().remove(&fee_to_address);
         }
     }

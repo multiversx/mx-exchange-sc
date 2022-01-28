@@ -22,7 +22,7 @@ use pair::*;
 #[allow(dead_code)]
 struct PairSetup<PairObjBuilder>
 where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
@@ -32,7 +32,7 @@ where
 
 fn setup_pair<PairObjBuilder>(pair_builder: PairObjBuilder) -> PairSetup<PairObjBuilder>
 where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
@@ -44,31 +44,33 @@ where
         PAIR_WASM_PATH,
     );
 
-    blockchain_wrapper.execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
-        let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
-        let second_token_id = managed_token_id!(MEX_TOKEN_ID);
-        let router_address = managed_address!(&owner_addr);
-        let router_owner_address = managed_address!(&owner_addr);
-        let total_fee_percent = 300u64;
-        let special_fee_percent = 50u64;
+    blockchain_wrapper
+        .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
+            let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
+            let second_token_id = managed_token_id!(MEX_TOKEN_ID);
+            let router_address = managed_address!(&owner_addr);
+            let router_owner_address = managed_address!(&owner_addr);
+            let total_fee_percent = 300u64;
+            let special_fee_percent = 50u64;
 
-        sc.init(
-            first_token_id,
-            second_token_id,
-            router_address,
-            router_owner_address,
-            total_fee_percent,
-            special_fee_percent,
-            OptionalArg::None,
-        );
+            sc.init(
+                first_token_id,
+                second_token_id,
+                router_address,
+                router_owner_address,
+                total_fee_percent,
+                special_fee_percent,
+                OptionalArg::None,
+            );
 
-        let lp_token_id = managed_token_id!(LP_TOKEN_ID);
-        sc.lp_token_identifier().set(&lp_token_id);
+            let lp_token_id = managed_token_id!(LP_TOKEN_ID);
+            sc.lp_token_identifier().set(&lp_token_id);
 
-        sc.state().set(&State::Active);
+            sc.state().set(&State::Active);
 
-        StateChange::Commit
-    });
+            StateChange::Commit
+        })
+        .assert_ok();
 
     let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
     blockchain_wrapper.set_esdt_local_roles(
@@ -107,7 +109,7 @@ fn add_liquidity<PairObjBuilder>(
     expected_first_amount: u64,
     expected_second_amount: u64,
 ) where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     let payments = vec![
         TxInputESDT {
@@ -122,35 +124,38 @@ fn add_liquidity<PairObjBuilder>(
         },
     ];
 
-    pair_setup.blockchain_wrapper.execute_esdt_multi_transfer(
-        &pair_setup.user_address,
-        &pair_setup.pair_wrapper,
-        &payments,
-        |sc| {
-            let MultiResult3 { 0: payments } = sc.add_liquidity(
-                managed_biguint!(first_token_min),
-                managed_biguint!(second_token_min),
-                OptionalArg::None,
-            );
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_multi_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &payments,
+            |sc| {
+                let MultiResult3 { 0: payments } = sc.add_liquidity(
+                    managed_biguint!(first_token_min),
+                    managed_biguint!(second_token_min),
+                    OptionalArg::None,
+                );
 
-            assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
-            assert_eq!(payments.0.token_nonce, 0);
-            assert_eq!(payments.0.amount, managed_biguint!(expected_lp_amount));
+                assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
+                assert_eq!(payments.0.token_nonce, 0);
+                assert_eq!(payments.0.amount, managed_biguint!(expected_lp_amount));
 
-            assert_eq!(
-                payments.1.token_identifier,
-                managed_token_id!(WEGLD_TOKEN_ID)
-            );
-            assert_eq!(payments.1.token_nonce, 0);
-            assert_eq!(payments.1.amount, managed_biguint!(expected_first_amount));
+                assert_eq!(
+                    payments.1.token_identifier,
+                    managed_token_id!(WEGLD_TOKEN_ID)
+                );
+                assert_eq!(payments.1.token_nonce, 0);
+                assert_eq!(payments.1.amount, managed_biguint!(expected_first_amount));
 
-            assert_eq!(payments.2.token_identifier, managed_token_id!(MEX_TOKEN_ID));
-            assert_eq!(payments.2.token_nonce, 0);
-            assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
+                assert_eq!(payments.2.token_identifier, managed_token_id!(MEX_TOKEN_ID));
+                assert_eq!(payments.2.token_nonce, 0);
+                assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
 
-            StateChange::Commit
-        },
-    );
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 }
 
 fn swap_fixed_input<PairObjBuilder>(
@@ -161,29 +166,32 @@ fn swap_fixed_input<PairObjBuilder>(
     desired_amount_min: u64,
     expected_amount: u64,
 ) where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
-    pair_setup.blockchain_wrapper.execute_esdt_multi_transfer(
-        &pair_setup.user_address,
-        &pair_setup.pair_wrapper,
-        &vec![],
-        |sc| {
-            let ret = sc.swap_tokens_fixed_input(
-                managed_token_id!(payment_token_id),
-                0,
-                managed_biguint!(payment_amount),
-                managed_token_id!(desired_token_id),
-                managed_biguint!(desired_amount_min),
-                OptionalArg::None,
-            );
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_multi_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &vec![],
+            |sc| {
+                let ret = sc.swap_tokens_fixed_input(
+                    managed_token_id!(payment_token_id),
+                    0,
+                    managed_biguint!(payment_amount),
+                    managed_token_id!(desired_token_id),
+                    managed_biguint!(desired_amount_min),
+                    OptionalArg::None,
+                );
 
-            assert_eq!(ret.token_identifier, managed_token_id!(desired_token_id));
-            assert_eq!(ret.token_nonce, 0);
-            assert_eq!(ret.amount, managed_biguint!(expected_amount));
+                assert_eq!(ret.token_identifier, managed_token_id!(desired_token_id));
+                assert_eq!(ret.token_nonce, 0);
+                assert_eq!(ret.amount, managed_biguint!(expected_amount));
 
-            StateChange::Commit
-        },
-    );
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 }
 
 fn check_current_safe_state<PairObjBuilder>(
@@ -196,7 +204,7 @@ fn check_current_safe_state<PairObjBuilder>(
     first_reserve_weighted: u64,
     second_reserve_weighted: u64,
 ) where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     pair_setup
         .blockchain_wrapper
@@ -222,7 +230,8 @@ fn check_current_safe_state<PairObjBuilder>(
                 state.second_token_reserve_weighted,
                 managed_biguint!(second_reserve_weighted)
             );
-        });
+        })
+        .assert_ok();
 }
 
 fn check_future_safe_state<PairObjBuilder>(
@@ -235,7 +244,7 @@ fn check_future_safe_state<PairObjBuilder>(
     first_reserve_weighted: u64,
     second_reserve_weighted: u64,
 ) where
-    PairObjBuilder: 'static + Copy + Fn(DebugApi) -> pair::ContractObj<DebugApi>,
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     pair_setup
         .blockchain_wrapper
@@ -261,7 +270,8 @@ fn check_future_safe_state<PairObjBuilder>(
                 state.second_token_reserve_weighted,
                 managed_biguint!(second_reserve_weighted)
             );
-        });
+        })
+        .assert_ok();
 }
 
 #[test]

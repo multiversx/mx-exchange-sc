@@ -69,7 +69,10 @@ pub trait ProxyPairModule:
         let first_token_nonce = payment_0.token_nonce;
         let first_token_amount_desired = payment_0.amount.clone();
         require!(first_token_nonce == 0, "bad first token nonce");
-        require!(first_token_amount_desired > 0, "first payment amount zero");
+        require!(
+            first_token_amount_desired > 0u32,
+            "first payment amount zero"
+        );
         require!(
             first_token_amount_desired >= first_token_amount_min,
             "bad first token min"
@@ -84,7 +87,7 @@ pub trait ProxyPairModule:
         );
         require!(second_token_nonce != 0, "bad second token nonce");
         require!(
-            second_token_amount_desired > 0,
+            second_token_amount_desired > 0u32,
             "second payment amount zero"
         );
         require!(
@@ -111,7 +114,7 @@ pub trait ProxyPairModule:
         let first_token_used = result_tuple.1;
         let second_token_used = result_tuple.2;
         require!(
-            lp_received.amount > 0,
+            lp_received.amount > 0u32,
             "LP token amount should be greater than 0"
         );
         require!(
@@ -342,7 +345,7 @@ pub trait ProxyPairModule:
         locked_tokens_consumed: &BigUint,
         locked_tokens_nonce: Nonce,
         caller: &ManagedAddress,
-        additional_payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        additional_payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(WrappedLpToken<Self::Api>, bool)> {
         self.merge_wrapped_lp_tokens_and_send(
             caller,
