@@ -2,12 +2,16 @@
 
 elrond_wasm::imports!();
 
+use pair::safe_price::ProxyTrait as _;
+
 use dual_yield_token::DualYieldTokenAttributes;
 use farm_staking::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 use pair::RemoveLiquidityResultType;
 
 pub mod dual_yield_token;
 pub mod lp_farm_token;
+
+pub type SafePriceResult<Api> = MultiResult2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
 #[elrond_wasm::contract]
 pub trait FarmStakingProxy:
@@ -93,7 +97,7 @@ pub trait FarmStakingProxy:
             lp_farm_token_payment.token_nonce,
             &lp_farm_token_payment.amount,
         )?;
-        let staking_token_amount = self.get_lp_tokens_value_in_staking_token(&lp_tokens_in_farm);
+        let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
         let staking_farm_address = self.staking_farm_address().get();
         let received_staking_farm_token: EnterFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
@@ -145,8 +149,7 @@ pub trait FarmStakingProxy:
                 attributes.lp_farm_token_nonce,
                 &attributes.lp_farm_token_amount,
             )?;
-            let new_staking_farm_value =
-                self.get_lp_tokens_value_in_staking_token(&lp_tokens_in_position);
+            let new_staking_farm_value = self.get_lp_tokens_safe_price(lp_tokens_in_position);
 
             lp_farm_tokens.push(EsdtTokenPayment::new(
                 lp_farm_token_id.clone(),
@@ -318,9 +321,23 @@ pub trait FarmStakingProxy:
         )
     }
 
-    // TODO: Call some method in the pair contract
-    fn get_lp_tokens_value_in_staking_token(&self, lp_tokens_amount: &BigUint) -> BigUint {
-        lp_tokens_amount.clone()
+    fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
+        let pair_address = self.pair_address().get();
+        let result: SafePriceResult<Self::Api> = self
+            .pair_proxy_obj(pair_address)
+            .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
+            .execute_on_dest_context();
+        let (first_token_info, second_token_info) = result.into_tuple();
+        let staking_token_id = self.staking_token_id().get();
+
+        if first_token_info.token_identifier == staking_token_id {
+            first_token_info.amount
+        } else if second_token_info.token_identifier == staking_token_id {
+            second_token_info.amount
+        } else {
+            self.raw_vm_api()
+                .signal_error(b"Invalid Pair contract called");
+        }
     }
 
     // proxies
