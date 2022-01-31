@@ -34,7 +34,7 @@ pub trait FactoryModule {
         owner: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-    ) -> SCResult<ManagedAddress> {
+    ) -> ManagedAddress {
         require!(
             !self.pair_template_address().is_empty(),
             "pair contract template is empty"
@@ -70,7 +70,7 @@ pub trait FactoryModule {
                 self.blockchain().get_block_nonce(),
             ),
         );
-        Ok(new_address)
+        new_address
     }
 
     fn upgrade_pair(

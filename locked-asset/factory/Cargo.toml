@@ -10,6 +10,9 @@ path = "src/lib.rs"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false

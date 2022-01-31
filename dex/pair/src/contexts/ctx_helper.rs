@@ -8,8 +8,6 @@ use crate::RemoveLiquidityResultType;
 use crate::SwapTokensFixedInputResultType;
 use crate::SwapTokensFixedOutputResultType;
 
-use crate::errors::*;
-
 use super::add_liquidity::*;
 use super::base::*;
 use super::remove_liquidity::*;
@@ -31,7 +29,8 @@ pub trait CtxHelper:
         let caller = self.blockchain().get_caller();
 
         let payment_tuple: Option<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> =
-            self.get_all_payments_managed_vec()
+            self.call_value()
+                .all_esdt_transfers()
                 .into_iter()
                 .collect_tuple();
         let (first_payment, second_payment) = match payment_tuple {
@@ -190,12 +189,11 @@ pub trait CtxHelper:
     }
 
     fn execute_output_payments(&self, context: &dyn Context<Self::Api>) {
-        let result = self.send_multiple_tokens_if_not_zero(
+        self.send_multiple_tokens_if_not_zero(
             context.get_caller(),
             context.get_output_payments(),
             context.get_opt_accept_funds_func(),
         );
-        require!(result.is_ok(), ERROR_PAYMENT_FAILED);
     }
 
     fn commit_changes(&self, context: &dyn Context<Self::Api>) {

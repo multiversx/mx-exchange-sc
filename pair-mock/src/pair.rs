@@ -2,6 +2,7 @@
 
 elrond_wasm::imports!();
 
+use common_errors::*;
 use itertools::Itertools;
 
 type AddLiquidityResultType<BigUint> =
@@ -74,7 +75,7 @@ pub trait PairMock {
         &self,
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<AddLiquidityResultType<Self::Api>> {
+    ) -> AddLiquidityResultType<Self::Api> {
         // let payments = self.call_value().all_esdt_transfers();
         require!(self.state().get(), "Inactive");
 
@@ -119,20 +120,22 @@ pub trait PairMock {
         let func_name = opt_accept_funds_func.into_option().unwrap_or_default();
 
         let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
-        Self::Api::send_api_impl().direct_esdt_execute(
-            &caller,
-            &lp_token_id,
-            &lp_token_amount,
-            self.transfer_exec_gas_limit().get(),
-            &func_name,
-            &ManagedArgBuffer::new_empty(),
-        )?;
+        Self::Api::send_api_impl()
+            .direct_esdt_execute(
+                &caller,
+                &lp_token_id,
+                &lp_token_amount,
+                self.transfer_exec_gas_limit().get(),
+                &func_name,
+                &ManagedArgBuffer::new_empty(),
+            )
+            .unwrap_or_else(|_| sc_panic!(ERROR_PAYMENT_FAILED));
 
-        Ok(MultiResult3::from((
+        MultiResult3::from((
             EsdtTokenPayment::new(lp_token_id, 0, lp_token_amount),
             EsdtTokenPayment::new(expected_first_token_id, 0, BigUint::zero()),
             EsdtTokenPayment::new(expected_second_token_id, 0, BigUint::zero()),
-        )))
+        ))
     }
 
     #[storage_mapper("first_token_id")]

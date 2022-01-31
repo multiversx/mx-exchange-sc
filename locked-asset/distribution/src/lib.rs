@@ -37,11 +37,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
 
     #[init]
-    fn init(
-        &self,
-        asset_token_id: TokenIdentifier,
-        locked_asset_factory_address: ManagedAddress,
-    ) -> SCResult<()> {
+    fn init(&self, asset_token_id: TokenIdentifier, locked_asset_factory_address: ManagedAddress) {
         require!(
             asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
@@ -50,13 +46,12 @@ pub trait Distribution: global_op::GlobalOperationModule {
         self.asset_token_id().set(&asset_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(setCommunityDistribution)]
-    fn set_community_distribution(&self, total_amount: BigUint, spread_epoch: u64) -> SCResult<()> {
-        self.require_global_op_ongoing()?;
+    fn set_community_distribution(&self, total_amount: BigUint, spread_epoch: u64) {
+        self.require_global_op_ongoing();
         require!(total_amount > 0, "Zero amount");
         require!(
             spread_epoch >= self.blockchain().get_block_epoch(),
@@ -77,7 +72,6 @@ pub trait Distribution: global_op::GlobalOperationModule {
             after_planning_amount: total_amount,
         };
         self.community_distribution_list().push_front(distrib);
-        Ok(())
     }
 
     #[only_owner]
@@ -86,26 +80,26 @@ pub trait Distribution: global_op::GlobalOperationModule {
         &self,
         spread_epoch: u64,
         #[var_args] user_locked_assets: ManagedVarArgs<MultiArg2<ManagedAddress, BigUint>>,
-    ) -> SCResult<()> {
-        self.require_global_op_ongoing()?;
-        self.require_community_distribution_list_not_empty()?;
+    ) {
+        self.require_global_op_ongoing();
+        self.require_community_distribution_list_not_empty();
 
         require!(!user_locked_assets.is_empty(), "Empty assets vec");
         self.add_all_user_assets_to_map(spread_epoch, user_locked_assets)
     }
 
     #[endpoint(claimLockedAssets)]
-    fn claim_locked_assets(&self) -> SCResult<BigUint> {
-        self.require_global_op_not_ongoing()?;
-        self.require_unlock_period_not_empty()?;
-        self.require_community_distribution_list_not_empty()?;
+    fn claim_locked_assets(&self) -> BigUint {
+        self.require_global_op_not_ongoing();
+        self.require_unlock_period_not_empty();
+        self.require_community_distribution_list_not_empty();
 
         let caller = self.blockchain().get_caller();
         let mut cummulated_amount = BigUint::zero();
 
         let locked_assets = self.calculate_user_locked_assets(&caller, true);
         if locked_assets.is_empty() {
-            return Ok(cummulated_amount);
+            return cummulated_amount;
         }
 
         let to = self.locked_asset_factory_address().get();
@@ -128,63 +122,55 @@ pub trait Distribution: global_op::GlobalOperationModule {
             cummulated_amount += amount;
         }
 
-        Ok(cummulated_amount)
+        cummulated_amount
     }
 
     #[endpoint(clearUnclaimableAssets)]
-    fn clear_unclaimable_assets(&self) -> SCResult<usize> {
+    fn clear_unclaimable_assets(&self) -> usize {
         let biggest_unclaimable_asset_epoch = self.get_biggest_unclaimable_asset_epoch();
         self.undo_user_assets_between_epochs(0, biggest_unclaimable_asset_epoch)
     }
 
     #[only_owner]
     #[endpoint(undoLastCommunityDistribution)]
-    fn undo_last_community_distrib(&self) -> SCResult<()> {
-        self.require_global_op_ongoing()?;
-        self.require_community_distribution_list_not_empty()?;
+    fn undo_last_community_distrib(&self) {
+        self.require_global_op_ongoing();
+        self.require_community_distribution_list_not_empty();
         self.community_distribution_list().pop_front();
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(undoUserDistributedAssetsBetweenEpochs)]
-    fn undo_user_assets_between_epochs(&self, lower: u64, higher: u64) -> SCResult<usize> {
-        self.require_global_op_ongoing()?;
-        self.require_community_distribution_list_not_empty()?;
+    fn undo_user_assets_between_epochs(&self, lower: u64, higher: u64) -> usize {
+        self.require_global_op_ongoing();
+        self.require_community_distribution_list_not_empty();
         require!(lower <= higher, "Bad input values");
-        Ok(self.remove_asset_entries_between_epochs(lower, higher))
+        self.remove_asset_entries_between_epochs(lower, higher)
     }
 
     #[only_owner]
     #[endpoint(setUnlockPeriod)]
-    fn set_unlock_period(
-        &self,
-        #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
-    ) -> SCResult<()> {
+    fn set_unlock_period(&self, #[var_args] milestones: ManagedVarArgs<UnlockMilestone>) {
         let unlock_milestones = milestones.to_vec();
-        self.validate_unlock_milestones(&unlock_milestones)?;
+        self.validate_unlock_milestones(&unlock_milestones);
         self.unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
-        Ok(())
     }
 
     #[view(calculateLockedAssets)]
-    fn calculate_locked_assets_view(&self, address: ManagedAddress) -> SCResult<BigUint> {
-        self.require_global_op_not_ongoing()?;
-        self.require_community_distribution_list_not_empty()?;
+    fn calculate_locked_assets_view(&self, address: ManagedAddress) -> BigUint {
+        self.require_global_op_not_ongoing();
+        self.require_community_distribution_list_not_empty();
         let locked_assets = self.calculate_user_locked_assets(&address, false);
 
         let mut cummulated_amount = BigUint::zero();
         for elem in locked_assets.iter() {
             cummulated_amount += elem.biguint;
         }
-        Ok(cummulated_amount)
+        cummulated_amount
     }
 
-    fn validate_unlock_milestones(
-        &self,
-        unlock_milestones: &ManagedVec<UnlockMilestone>,
-    ) -> SCResult<()> {
+    fn validate_unlock_milestones(&self, unlock_milestones: &ManagedVec<UnlockMilestone>) {
         require!(!unlock_milestones.is_empty(), "Empty param");
 
         let mut percents_sum: u8 = 0;
@@ -204,14 +190,13 @@ pub trait Distribution: global_op::GlobalOperationModule {
         }
 
         require!(percents_sum == 100, "Percents do not sum up to 100");
-        Ok(())
     }
 
     fn add_all_user_assets_to_map(
         &self,
         spread_epoch: u64,
         user_assets: ManagedVarArgs<MultiArg2<ManagedAddress, BigUint>>,
-    ) -> SCResult<()> {
+    ) {
         let mut last_community_distrib = self
             .community_distribution_list()
             .front()
@@ -230,14 +215,12 @@ pub trait Distribution: global_op::GlobalOperationModule {
                 "User assets sums above community total assets"
             );
             last_community_distrib.after_planning_amount -= &asset_amount;
-            self.add_user_locked_asset_entry(caller, asset_amount, spread_epoch)?;
+            self.add_user_locked_asset_entry(caller, asset_amount, spread_epoch);
         }
 
         self.community_distribution_list().pop_front();
         self.community_distribution_list()
             .push_front(last_community_distrib);
-
-        Ok(())
     }
 
     fn add_user_locked_asset_entry(
@@ -245,7 +228,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
         caller: ManagedAddress,
         asset_amount: BigUint,
         spread_epoch: u64,
-    ) -> SCResult<()> {
+    ) {
         let key = UserLockedAssetKey {
             caller,
             spread_epoch,
@@ -255,7 +238,6 @@ pub trait Distribution: global_op::GlobalOperationModule {
             "Vector has duplicates"
         );
         self.user_locked_asset_map().insert(key, asset_amount);
-        Ok(())
     }
 
     fn calculate_user_locked_assets(
@@ -331,32 +313,25 @@ pub trait Distribution: global_op::GlobalOperationModule {
         map_len_before - self.user_locked_asset_map().len()
     }
 
-    fn require_community_distribution_list_not_empty(&self) -> SCResult<()> {
+    fn require_community_distribution_list_not_empty(&self) {
         require!(
             !self.community_distribution_list().is_empty(),
             "Empty community assets list"
         );
-        Ok(())
     }
 
-    fn require_unlock_period_not_empty(&self) -> SCResult<()> {
+    fn require_unlock_period_not_empty(&self) {
         require!(!self.unlock_period().is_empty(), "Empty unlock schedule");
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(deleteUserDistributedLockedAssets)]
-    fn delete_user_distributed_locked_assets(
-        &self,
-        spread_epoch: u64,
-        address: ManagedAddress,
-    ) -> SCResult<()> {
-        self.require_global_op_ongoing()?;
+    fn delete_user_distributed_locked_assets(&self, spread_epoch: u64, address: ManagedAddress) {
+        self.require_global_op_ongoing();
         self.user_locked_asset_map().remove(&UserLockedAssetKey {
             caller: address,
             spread_epoch,
         });
-        Ok(())
     }
 
     #[view(getUsersDistributedLockedAssetsLength)]

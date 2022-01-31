@@ -490,8 +490,7 @@ pub trait Farm:
             0,
             farming_amount,
             opt_accept_funds_func,
-        )
-        .unwrap_or_signal_error::<Self::Api>();
+        );
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {

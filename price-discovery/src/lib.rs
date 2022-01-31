@@ -25,7 +25,7 @@ pub trait PriceDiscovery:
         accepted_token_id: TokenIdentifier,
         start_epoch: u64,
         end_epoch: u64,
-    ) -> SCResult<()> {
+    ) {
         require!(
             self.blockchain().is_smart_contract(&dex_sc_address),
             "Invalid DEX SC address"
@@ -55,8 +55,6 @@ pub trait PriceDiscovery:
         self.accepted_token_id().set(&accepted_token_id);
         self.start_epoch().set(&start_epoch);
         self.end_epoch().set(&end_epoch);
-
-        Ok(())
     }
 
     #[payable("*")]
@@ -65,8 +63,8 @@ pub trait PriceDiscovery:
         &self,
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
-        self.require_active()?;
+    ) {
+        self.require_active();
 
         let accepted_token_id = self.accepted_token_id().get();
         let launched_token_id = self.launched_token_id().get();
@@ -75,13 +73,11 @@ pub trait PriceDiscovery:
         } else if payment_token == launched_token_id {
             LAUNCHED_TOKEN_REDEEM_NONCE
         } else {
-            return sc_error!(INVALID_PAYMENT_ERR_MSG);
+            sc_panic!(INVALID_PAYMENT_ERR_MSG);
         };
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
-
-        Ok(())
     }
 
     #[payable("*")]
@@ -91,8 +87,8 @@ pub trait PriceDiscovery:
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_nonce] payment_nonce: u64,
         #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
-        self.require_active()?;
+    ) {
+        self.require_active();
 
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
@@ -100,7 +96,7 @@ pub trait PriceDiscovery:
         let refund_token_id = match payment_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => self.launched_token_id().get(),
             ACCEPTED_TOKEN_REDEEM_NONCE => self.accepted_token_id().get(),
-            _ => return sc_error!(INVALID_PAYMENT_ERR_MSG),
+            _ => sc_panic!(INVALID_PAYMENT_ERR_MSG),
         };
 
         self.burn_redeem_token(payment_nonce, &payment_amount);
@@ -108,8 +104,6 @@ pub trait PriceDiscovery:
         let caller = self.blockchain().get_caller();
         self.send()
             .direct(&caller, &refund_token_id, 0, &payment_amount, &[]);
-
-        Ok(())
     }
 
     #[payable("*")]
@@ -119,8 +113,8 @@ pub trait PriceDiscovery:
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_nonce] payment_nonce: u64,
         #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
-        self.require_deposit_period_ended()?;
+    ) {
+        self.require_deposit_period_ended();
         require!(!self.lp_token_id().is_empty(), "Pool not created yet");
 
         let redeem_token_id = self.redeem_token_id().get();
@@ -135,13 +129,11 @@ pub trait PriceDiscovery:
         let lp_token_id = self.lp_token_id().get();
         self.send()
             .direct(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
-
-        Ok(())
     }
 
     // private
 
-    fn require_active(&self) -> SCResult<()> {
+    fn require_active(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         let start_epoch = self.start_epoch().get();
         let end_epoch = self.end_epoch().get();
@@ -150,8 +142,6 @@ pub trait PriceDiscovery:
             "Deposit period not started yet"
         );
         require!(current_epoch < end_epoch, "Deposit period ended");
-
-        Ok(())
     }
 
     fn compute_lp_amount_to_send(

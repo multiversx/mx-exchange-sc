@@ -1,6 +1,5 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, SCResult, StaticSCError,
-    TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -64,7 +63,7 @@ where
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
             let pair_address = managed_address!(&Address::zero());
 
-            let result = sc.init(
+            sc.init(
                 reward_token_id,
                 farming_token_id,
                 division_safety_constant,
@@ -72,7 +71,6 @@ where
                 managed_biguint!(MAX_APR),
                 MIN_UNBOND_EPOCHS,
             );
-            assert_eq!(result, SCResult::Ok(()));
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
             sc.farm_token_id().set(&farm_token_id);
@@ -98,11 +96,10 @@ where
             0,
             &TOTAL_REWARDS_AMOUNT.into(),
             |sc| {
-                let result = sc.top_up_rewards(
+                sc.top_up_rewards(
                     managed_token_id!(REWARD_TOKEN_ID),
                     managed_biguint!(TOTAL_REWARDS_AMOUNT),
                 );
-                assert_eq!(result, SCResult::Ok(()));
 
                 StateChange::Commit
             },
@@ -175,17 +172,10 @@ fn stake_farm<FarmObjBuilder>(
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                let result = sc.stake_farm(OptionalArg::None);
-                match result {
-                    SCResult::Ok(payment) => {
-                        assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-                        assert_eq!(payment.token_nonce, expected_farm_token_nonce);
-                        assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount))
-                    }
-                    SCResult::Err(err) => {
-                        panic_sc_err(err);
-                    }
-                }
+                let payment = sc.stake_farm(OptionalArg::None);
+                assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+                assert_eq!(payment.token_nonce, expected_farm_token_nonce);
+                assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
 
                 StateChange::Commit
             },
@@ -230,25 +220,18 @@ fn unbond_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_tokem_amount),
             |sc| {
-                let result = sc.unbond_farm(
+                let payment = sc.unbond_farm(
                     managed_token_id!(FARM_TOKEN_ID),
                     farm_token_nonce,
                     managed_biguint!(farm_tokem_amount),
                     OptionalArg::None,
                 );
-                match result {
-                    SCResult::Ok(payment) => {
-                        assert_eq!(
-                            payment.token_identifier,
-                            managed_token_id!(FARMING_TOKEN_ID)
-                        );
-                        assert_eq!(payment.token_nonce, 0);
-                        assert_eq!(payment.amount, managed_biguint!(expected_farming_token_out))
-                    }
-                    SCResult::Err(err) => {
-                        panic_sc_err(err);
-                    }
-                }
+                assert_eq!(
+                    payment.token_identifier,
+                    managed_token_id!(FARMING_TOKEN_ID)
+                );
+                assert_eq!(payment.token_nonce, 0);
+                assert_eq!(payment.amount, managed_biguint!(expected_farming_token_out));
 
                 StateChange::Commit
             },
@@ -284,36 +267,31 @@ fn unstake_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let result = sc.unstake_farm(
+                let multi_result = sc.unstake_farm(
                     managed_token_id!(FARM_TOKEN_ID),
                     farm_token_nonce,
                     managed_biguint!(farm_token_amount),
                     OptionalArg::None,
                 );
 
-                match result {
-                    SCResult::Ok(multi_result) => {
-                        let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result) = multi_result.into_tuple();
 
-                        assert_eq!(
-                            first_result.token_identifier,
-                            managed_token_id!(FARM_TOKEN_ID)
-                        );
-                        assert_eq!(first_result.token_nonce, expected_new_farm_token_nonce);
-                        assert_eq!(
-                            first_result.amount,
-                            managed_biguint!(expected_new_farm_token_amount)
-                        );
+                assert_eq!(
+                    first_result.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(first_result.token_nonce, expected_new_farm_token_nonce);
+                assert_eq!(
+                    first_result.amount,
+                    managed_biguint!(expected_new_farm_token_amount)
+                );
 
-                        assert_eq!(
-                            second_result.token_identifier,
-                            managed_token_id!(REWARD_TOKEN_ID)
-                        );
-                        assert_eq!(second_result.token_nonce, 0);
-                        assert_eq!(second_result.amount, managed_biguint!(expected_rewards_out))
-                    }
-                    SCResult::Err(err) => panic_sc_err(err),
-                }
+                assert_eq!(
+                    second_result.token_identifier,
+                    managed_token_id!(REWARD_TOKEN_ID)
+                );
+                assert_eq!(second_result.token_nonce, 0);
+                assert_eq!(second_result.amount, managed_biguint!(expected_rewards_out));
 
                 StateChange::Commit
             },
@@ -362,31 +340,26 @@ fn claim_rewards<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let result = sc.claim_rewards(OptionalArg::None);
+                let multi_result = sc.claim_rewards(OptionalArg::None);
 
-                match result {
-                    SCResult::Ok(multi_result) => {
-                        let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result) = multi_result.into_tuple();
 
-                        assert_eq!(
-                            first_result.token_identifier,
-                            managed_token_id!(FARM_TOKEN_ID)
-                        );
-                        assert_eq!(first_result.token_nonce, expected_farm_token_nonce_out);
-                        assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
+                assert_eq!(
+                    first_result.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(first_result.token_nonce, expected_farm_token_nonce_out);
+                assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
 
-                        assert_eq!(
-                            second_result.token_identifier,
-                            managed_token_id!(REWARD_TOKEN_ID)
-                        );
-                        assert_eq!(second_result.token_nonce, 0);
-                        assert_eq!(
-                            second_result.amount,
-                            managed_biguint!(expected_reward_token_out)
-                        )
-                    }
-                    SCResult::Err(err) => panic_sc_err(err),
-                }
+                assert_eq!(
+                    second_result.token_identifier,
+                    managed_token_id!(REWARD_TOKEN_ID)
+                );
+                assert_eq!(second_result.token_nonce, 0);
+                assert_eq!(
+                    second_result.amount,
+                    managed_biguint!(expected_reward_token_out)
+                );
 
                 StateChange::Commit
             },
@@ -454,11 +427,6 @@ where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
 {
     farm_setup.blockchain_wrapper.set_block_epoch(block_epoch);
-}
-
-fn panic_sc_err(err: StaticSCError) -> ! {
-    let err_str = String::from_utf8(err.as_bytes().to_vec()).unwrap();
-    panic!("{:?}", err_str);
 }
 
 #[test]

@@ -5,7 +5,7 @@ use common_structs::{
 };
 use elrond_wasm::types::{
     Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedMultiResultVec, ManagedVec,
-    OptionalArg, SCResult, TokenIdentifier,
+    OptionalArg, TokenIdentifier,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -75,8 +75,7 @@ where
                     unlock_percent: 50,
                 },
             ]));
-            let result = sc.init(asset_token_id.clone(), default_unlock_period);
-            assert_eq!(result, SCResult::Ok(()));
+            sc.init(asset_token_id.clone(), default_unlock_period);
 
             sc.locked_asset_token_id().set(&asset_token_id);
 
@@ -157,8 +156,7 @@ where
     blockchain_wrapper
         .execute_tx(&owner_addr, &factory_wrapper, &rust_zero, |sc| {
             let farm_address = ManagedAddress::from_address(farm_wrapper.address_ref());
-            let result = sc.whitelist(farm_address);
-            assert_eq!(result, SCResult::Ok(()));
+            sc.whitelist(farm_address);
 
             StateChange::Commit
         })

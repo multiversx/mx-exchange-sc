@@ -10,5 +10,8 @@ path = "src/token_send.rs"
 [dependencies.common_structs]
 path = "../../common_structs"
 
+[dependencies.common_errors]
+path = "../../common_errors"
+
 [dependencies.elrond-wasm]
 version = "0.27.2"
