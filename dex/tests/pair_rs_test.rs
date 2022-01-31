@@ -209,7 +209,7 @@ fn check_current_safe_state<PairObjBuilder>(
     pair_setup
         .blockchain_wrapper
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            let state = sc.get_current_state();
+            let state = sc.get_current_state_or_default();
 
             assert_eq!(state.first_obs_block, from);
             assert_eq!(state.last_obs_block, to);
@@ -249,7 +249,7 @@ fn check_future_safe_state<PairObjBuilder>(
     pair_setup
         .blockchain_wrapper
         .execute_query(&pair_setup.pair_wrapper, |sc| {
-            let state = sc.get_future_state();
+            let state = sc.get_future_state_or_default();
 
             assert_eq!(state.first_obs_block, from);
             assert_eq!(state.last_obs_block, to);
