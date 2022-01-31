@@ -20,6 +20,7 @@ elrond_wasm_node::wasm_endpoints! {
         getBurnedTokenAmount
         getCurrentBlockFee
         getDivisionSafetyConstant
+        getFarmMigrationConfiguration
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
@@ -44,6 +45,7 @@ elrond_wasm_node::wasm_endpoints! {
         pause
         registerFarmToken
         resume
+        setFarmMigrationConfig
         setLocalRolesFarmToken
         setPerBlockRewardAmount
         set_locked_rewards_apr_multiplier
@@ -51,5 +53,6 @@ elrond_wasm_node::wasm_endpoints! {
         set_penalty_percent
         set_transfer_exec_gas_limit
         start_produce_rewards
+        stopRewardsAndMigrateRps
     )
 }
