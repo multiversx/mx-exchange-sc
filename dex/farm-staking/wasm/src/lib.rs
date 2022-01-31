@@ -22,7 +22,6 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
-        getFarmingTokenTotalLiquidity
         getLastErrorMessage
         getLastRewardBlockNonce
         getLockedAssetFactoryManagedAddress
