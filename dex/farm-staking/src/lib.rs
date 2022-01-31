@@ -330,8 +330,7 @@ pub trait Farm:
             token_nonce,
         );
         let unlock_epoch = token_info
-            .decode_attributes::<UnbondSftAttributes>()
-            .unwrap()
+            .decode_attributes_or_exit::<UnbondSftAttributes>()
             .unlock_epoch;
         let current_epoch = self.blockchain().get_block_epoch();
         require!(current_epoch >= unlock_epoch, "Unbond period not over");

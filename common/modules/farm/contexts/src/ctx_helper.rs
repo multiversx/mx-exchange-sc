@@ -115,8 +115,7 @@ pub trait CtxHelper:
         context.set_input_attributes(
             self.blockchain()
                 .get_esdt_token_data(&self.blockchain().get_sc_address(), &farm_token_id, nonce)
-                .decode_attributes()
-                .unwrap_or_else(|_| sc_panic!("Error decoding attributes")),
+                .decode_attributes_or_exit(),
         )
     }
 

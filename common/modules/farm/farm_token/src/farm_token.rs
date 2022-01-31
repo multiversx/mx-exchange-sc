@@ -140,9 +140,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             token_nonce,
         );
 
-        token_info
-            .decode_attributes()
-            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
+        token_info.decode_attributes_or_exit()
     }
 
     fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {

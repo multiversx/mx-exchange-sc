@@ -167,8 +167,6 @@ pub trait FarmTokenMergeModule:
             token_nonce,
         );
 
-        token_info
-            .decode_attributes()
-            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
+        token_info.decode_attributes_or_exit()
     }
 }
