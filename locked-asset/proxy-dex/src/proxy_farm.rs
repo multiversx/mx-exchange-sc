@@ -379,19 +379,19 @@ pub trait ProxyFarmModule:
         #[payment_nonce] token_nonce: Nonce,
         #[payment_amount] amount: BigUint,
         farm_address: ManagedAddress,
-    ) -> SCResult<()> {
-        self.require_is_intermediated_farm(&farm_address)?;
-        self.require_wrapped_farm_token_id_not_empty()?;
-        self.require_wrapped_lp_token_id_not_empty()?;
+    ) {
+        self.require_is_intermediated_farm(&farm_address);
+        self.require_wrapped_farm_token_id_not_empty();
+        self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().ok_or("bad payment len")?;
+        let payment_0 = payments_iter.next().unwrap();
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;
         let payment_amount = payment_0.amount.clone();
-        require!(payment_amount != 0, "Payment amount cannot be zero");
+        require!(payment_amount != 0u64, "Payment amount cannot be zero");
 
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
         require!(
@@ -401,7 +401,7 @@ pub trait ProxyFarmModule:
 
         // The actual work starts here
         let wrapped_farm_token_attrs =
-            self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce)?;
+            self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce);
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
         let farm_amount = payment_amount.clone();
@@ -432,10 +432,7 @@ pub trait ProxyFarmModule:
             new_nonce,
             &new_pos.amount,
             &OptionalArg::None,
-        )
-        .unwrap_or_signal_error(self.type_manager());
-
-        Ok(())
+        );
     }
 
     fn create_wrapped_farm_tokens_by_merging_and_send(

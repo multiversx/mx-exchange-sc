@@ -588,9 +588,9 @@ pub trait Farm:
         &self,
         #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
-        assert!(self, !self.farm_configuration().is_empty(), b"empty config");
+        require!(!self.farm_configuration().is_empty(), "empty config");
         let config = self.farm_configuration().get();
-        assert!(self, config.is_old, b"bad config");
+        require!(config.migration_role.is_old(), "bad config");
 
         let new_farm_address = config.new_farm_address;
         let mut context = self.new_farm_context(OptionalArg::None);
@@ -598,21 +598,19 @@ pub trait Farm:
         // Same as Exit Farm, since we want to migrate the rewards and compounded tokens also
         {
             self.load_state(&mut context);
-            assert!(
-                self,
+            require!(
                 context.get_contract_state().unwrap() == &State::Migrate,
                 ERROR_NOT_MIGRATION
             );
 
             self.load_farm_token_id(&mut context);
-            assert!(
-                self,
+            require!(
                 !context.get_farm_token_id().unwrap().is_empty(),
-                ERROR_NO_FARM_TOKEN,
+                ERROR_NO_FARM_TOKEN
             );
 
             self.load_farming_token_id(&mut context);
-            assert!(self, context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS,);
+            require!(context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS);
 
             self.load_reward_token_id(&mut context);
             self.load_reward_reserve(&mut context);
@@ -653,33 +651,31 @@ pub trait Farm:
         &self,
         #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
-        assert!(self, !self.farm_configuration().is_empty(), b"empty config");
+        require!(self.farm_configuration().is_empty(), "empty config");
         let config = self.farm_configuration().get();
-        assert!(self, !config.is_old, b"bad config");
+        require!(!config.migration_role.is_old(), "bad config");
 
         let caller = self.blockchain().get_caller();
-        assert!(self, caller == config.old_farm_address, b"bad caller");
+        require!(caller == config.old_farm_address, "bad caller");
 
         let payments = self.call_value().all_esdt_transfers();
-        assert!(self, payments.len() == 2, b"bad payments len");
+        require!(payments.len() == 2, "bad payments len");
 
-        let old_position = payments.get(0).unwrap();
-        assert!(self, old_position.amount != 0u64, b"bad farm amount");
+        let old_position = payments.get(0);
+        require!(old_position.amount != 0u64, "bad farm amount");
 
-        assert!(
-            self,
+        require!(
             old_position.token_identifier == config.old_farm_token_id,
-            b"bad farm token id"
+            "bad farm token id"
         );
 
-        let reward = payments.get(1).unwrap();
-        assert!(self, reward.amount != 0u64, b"bad reward amount");
+        let reward = payments.get(1);
+        require!(reward.amount != 0u64, "bad reward amount");
 
         let reward_token_id = self.reward_token_id().get();
-        assert!(
-            self,
+        require!(
             reward.token_identifier == reward_token_id,
-            b"bad reward token id"
+            "bad reward token id"
         );
 
         // The actual work starts here
@@ -720,8 +716,7 @@ pub trait Farm:
             new_pos_nonce,
             &new_pos_amount,
             &OptionalArg::None,
-        )
-        .unwrap_or_signal_error();
+        );
 
         EsdtTokenPayment::new(new_pos_token_id, new_pos_nonce, new_pos_amount)
     }
@@ -729,19 +724,32 @@ pub trait Farm:
     // Each farm that will be migrated and the newer version to which we migrate to
     // will have to be configured using this function.
     #[only_owner]
-    #[endpoint(setFarmConfiguration)]
-    fn set_farm_configuration(
+    #[endpoint(setFarmMigrationConfig)]
+    fn set_farm_migration_config(
         &self,
-        is_old: bool,
         old_farm_address: ManagedAddress,
         old_farm_token_id: TokenIdentifier,
         new_farm_address: ManagedAddress,
+        new_farm_with_lock_address: ManagedAddress,
     ) {
-        self.farm_configuration().set(&FarmContractConfig {
-            is_old,
+        let sc_address = self.blockchain().get_sc_address();
+        let migration_role = if sc_address == old_farm_address {
+            FarmMigrationRole::Old
+        } else if sc_address == new_farm_address {
+            FarmMigrationRole::New
+        } else if sc_address == new_farm_with_lock_address {
+            FarmMigrationRole::NewWithLock
+        } else {
+            sc_panic!("bad config")
+        };
+        require!(migration_role.is_new(), "bad config");
+
+        self.farm_configuration().set(&FarmMigrationConfig {
+            migration_role,
             old_farm_address,
             old_farm_token_id,
             new_farm_address,
+            new_farm_with_lock_address,
         });
     }
 
@@ -749,9 +757,9 @@ pub trait Farm:
     #[only_owner]
     #[endpoint(stopRewardsAndMigrateRps)]
     fn stop_rewards_and_migrate_rps(&self) {
-        assert!(self, !self.farm_configuration().is_empty(), b"empty config");
+        require!(!self.farm_configuration().is_empty(), "empty config");
         let config = self.farm_configuration().get();
-        assert!(self, config.is_old, b"bad config");
+        require!(config.migration_role.is_old(), "bad config");
 
         self.state().set(&State::Migrate);
         self.end_produce_rewards();
@@ -765,11 +773,11 @@ pub trait Farm:
     // with positions being untouched.
     #[endpoint(setRpsAndStartRewards)]
     fn set_rps_and_start_rewards(&self, rps: BigUint) {
-        assert!(self, !self.farm_configuration().is_empty(), b"empty config");
+        require!(!self.farm_configuration().is_empty(), "empty config");
         let config = self.farm_configuration().get();
-        assert!(self, !config.is_old, b"bad config");
+        require!(!config.migration_role.is_old(), "bad config");
         let caller = self.blockchain().get_caller();
-        assert!(self, caller == config.old_farm_address, b"bad caller");
+        require!(caller == config.old_farm_address, "bad caller");
 
         self.reward_per_share().set(&rps);
         self.start_produce_rewards();
@@ -781,13 +789,33 @@ pub trait Farm:
 
     #[view(getFarmConfiguration)]
     #[storage_mapper("farm_configuration")]
-    fn farm_configuration(&self) -> SingleValueMapper<FarmContractConfig<Self::Api>>;
+    fn farm_configuration(&self) -> SingleValueMapper<FarmMigrationConfig<Self::Api>>;
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
+pub enum FarmMigrationRole {
+    Old,
+    New,
+    NewWithLock,
+}
+
+impl FarmMigrationRole {
+    pub fn is_old(&self) -> bool {
+        self == &FarmMigrationRole::Old
+    }
+    pub fn is_new(&self) -> bool {
+        self == &FarmMigrationRole::New
+    }
+    pub fn is_new_with_lock(&self) -> bool {
+        self == &FarmMigrationRole::NewWithLock
+    }
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct FarmContractConfig<M: ManagedTypeApi> {
-    is_old: bool,
+pub struct FarmMigrationConfig<M: ManagedTypeApi> {
+    migration_role: FarmMigrationRole,
     old_farm_address: ManagedAddress<M>,
     old_farm_token_id: TokenIdentifier<M>,
     new_farm_address: ManagedAddress<M>,
+    new_farm_with_lock_address: ManagedAddress<M>,
 }
