@@ -194,6 +194,8 @@ pub trait Farm:
 
         require!(payments.len() == 2, "Invalid payments amount");
 
+        // first payment are the staking tokens, taken from the liquidity pool
+        // they will be sent to the user on unbond
         let first_payment = payments.get(0);
         let staking_token_id = self.farming_token_id().get();
         require!(
