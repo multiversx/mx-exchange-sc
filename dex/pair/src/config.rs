@@ -2,7 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::errors::*;
-use common_macros::assert;
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
 pub enum State {
@@ -29,11 +28,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
         let caller = self.blockchain().get_caller();
         let owner = self.router_owner_address().get();
         let router = self.router_address().get();
-        assert!(
-            self,
-            caller == owner || caller == router,
-            ERROR_PERMISSION_DENIED
-        );
+        require!(caller == owner || caller == router, ERROR_PERMISSION_DENIED);
     }
 
     #[endpoint]
@@ -66,8 +61,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
     }
 
     fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
-        assert!(
-            self,
+        require!(
             total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
             ERROR_BAD_PERCENTS
         );

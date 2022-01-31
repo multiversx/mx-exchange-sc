@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 
 use common_errors::ERROR_PERMISSIONS;
-use common_macros::assert;
 
 #[elrond_wasm::module]
 pub trait WhitelistModule {
@@ -23,7 +22,7 @@ pub trait WhitelistModule {
     }
 
     fn require_whitelisted(&self, address: &ManagedAddress) {
-        assert!(self, self.is_whitelisted(address), ERROR_PERMISSIONS);
+        require!(self.is_whitelisted(address), ERROR_PERMISSIONS);
     }
 
     #[view(isWhitelisted)]

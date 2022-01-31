@@ -38,25 +38,24 @@ pub trait RedeemTokenModule {
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(
             self.redeem_token_id().is_empty(),
             "Redeem token already issued"
         );
 
-        Ok(self
-            .esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
-                &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
-            ))
-            .register_and_set_all_roles(
-                payment_amount,
-                token_name,
-                token_ticker,
-                META_SFT_TOKEN_TYPE_NAME.into(),
-                nr_decimals,
-            )
-            .async_call()
-            .with_callback(self.callbacks().issue_callback()))
+        self.esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
+            &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
+        ))
+        .register_and_set_all_roles(
+            payment_amount,
+            token_name,
+            token_ticker,
+            META_SFT_TOKEN_TYPE_NAME.into(),
+            nr_decimals,
+        )
+        .async_call()
+        .with_callback(self.callbacks().issue_callback())
     }
 
     #[callback]

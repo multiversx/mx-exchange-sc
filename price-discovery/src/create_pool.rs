@@ -22,9 +22,9 @@ mod liquidity_pool_proxy {
 #[elrond_wasm::module]
 pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
     #[endpoint(createDexLiquidityPool)]
-    fn create_dex_liquidity_pool(&self) -> SCResult<()> {
+    fn create_dex_liquidity_pool(&self) {
         require!(self.lp_token_id().is_empty(), "Pool already created");
-        self.require_deposit_period_ended()?;
+        self.require_deposit_period_ended();
 
         let launched_token_id = self.launched_token_id().get();
         let accepted_token_id = self.accepted_token_id().get();
@@ -65,18 +65,14 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         let (lp_token, _, _) = contract_call.execute_on_dest_context().into_tuple();
         self.lp_token_id().set(&lp_token.token_identifier);
         self.total_lp_tokens_received().set(&lp_token.amount);
-
-        Ok(())
     }
 
     // private
 
-    fn require_deposit_period_ended(&self) -> SCResult<()> {
+    fn require_deposit_period_ended(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         let end_epoch = self.end_epoch().get();
         require!(current_epoch >= end_epoch, "Deposit period has not ended");
-
-        Ok(())
     }
 
     #[proxy]

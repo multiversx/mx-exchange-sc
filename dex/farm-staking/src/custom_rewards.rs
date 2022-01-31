@@ -49,51 +49,44 @@ pub trait CustomRewardsModule:
         &self,
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
+    ) {
         self.require_permissions();
 
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 
         self.increase_reward_reserve(&payment_amount);
-
-        Ok(())
     }
 
     #[endpoint]
-    fn end_produce_rewards(&self) -> SCResult<()> {
+    fn end_produce_rewards(&self) {
         self.require_permissions();
 
         self.generate_aggregated_rewards();
         self.produce_rewards_enabled().set(&false);
-
-        Ok(())
     }
 
     #[endpoint(setPerBlockRewardAmount)]
-    fn set_per_block_rewards(&self, per_block_amount: BigUint) -> SCResult<()> {
+    fn set_per_block_rewards(&self, per_block_amount: BigUint) {
         self.require_permissions();
         require!(per_block_amount != 0, "Amount cannot be zero");
 
         self.generate_aggregated_rewards();
         self.per_block_reward_amount().set(&per_block_amount);
-        Ok(())
     }
 
     #[endpoint(setMaxApr)]
-    fn set_max_apr(&self, max_apr: BigUint) -> SCResult<()> {
+    fn set_max_apr(&self, max_apr: BigUint) {
         self.require_permissions();
         require!(max_apr != 0, "Max APR cannot be zero");
 
         self.max_annual_percentage_rewards().set(&max_apr);
-        Ok(())
     }
 
     #[endpoint(setMinUnbondEpochs)]
-    fn set_min_unbond_epochs(&self, min_unbond_epochs: u64) -> SCResult<()> {
+    fn set_min_unbond_epochs(&self, min_unbond_epochs: u64) {
         self.require_permissions();
         self.min_unbond_epochs().set(&min_unbond_epochs);
-        Ok(())
     }
 
     fn calculate_per_block_rewards(
@@ -117,11 +110,10 @@ pub trait CustomRewardsModule:
         });
     }
 
-    fn decrease_reward_reserve(&self, amount: &BigUint) -> SCResult<()> {
+    fn decrease_reward_reserve(&self, amount: &BigUint) {
         self.reward_reserve().update(|reserve| {
             require!(&*reserve >= amount, "Not enough reserves");
             *reserve -= amount;
-            Ok(())
         })
     }
 
@@ -180,7 +172,7 @@ pub trait CustomRewardsModule:
     }
 
     #[endpoint(startProduceRewards)]
-    fn start_produce_rewards(&self) -> SCResult<()> {
+    fn start_produce_rewards(&self) {
         self.require_permissions();
         require!(
             self.per_block_reward_amount().get() != 0,
@@ -193,7 +185,6 @@ pub trait CustomRewardsModule:
         let current_nonce = self.blockchain().get_block_nonce();
         self.produce_rewards_enabled().set(&true);
         self.last_reward_block_nonce().set(&current_nonce);
-        Ok(())
     }
 
     #[inline(always)]

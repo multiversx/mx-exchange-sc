@@ -8,9 +8,6 @@ use crate::RemoveLiquidityResultType;
 use crate::SwapTokensFixedInputResultType;
 use crate::SwapTokensFixedOutputResultType;
 
-use crate::errors::*;
-use common_macros::assert;
-
 use super::add_liquidity::*;
 use super::base::*;
 use super::remove_liquidity::*;
@@ -32,7 +29,8 @@ pub trait CtxHelper:
         let caller = self.blockchain().get_caller();
 
         let payment_tuple: Option<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> =
-            self.get_all_payments_managed_vec()
+            self.call_value()
+                .all_esdt_transfers()
                 .into_iter()
                 .collect_tuple();
         let (first_payment, second_payment) = match payment_tuple {
@@ -191,12 +189,11 @@ pub trait CtxHelper:
     }
 
     fn execute_output_payments(&self, context: &dyn Context<Self::Api>) {
-        let result = self.send_multiple_tokens_if_not_zero(
+        self.send_multiple_tokens_if_not_zero(
             context.get_caller(),
             context.get_output_payments(),
             context.get_opt_accept_funds_func(),
         );
-        assert!(self, result.is_ok(), ERROR_PAYMENT_FAILED);
     }
 
     fn commit_changes(&self, context: &dyn Context<Self::Api>) {
@@ -252,9 +249,9 @@ pub trait CtxHelper:
         context: &SwapContext<Self::Api>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
         self.create_payment(
-            &context.get_token_out(),
+            context.get_token_out(),
             0,
-            &context.get_final_output_amount(),
+            context.get_final_output_amount(),
         )
     }
 
@@ -265,11 +262,11 @@ pub trait CtxHelper:
         let residuum = context.get_amount_in_max() - context.get_final_input_amount();
         MultiResult2::from((
             self.create_payment(
-                &context.get_token_out(),
+                context.get_token_out(),
                 0,
-                &context.get_final_output_amount(),
+                context.get_final_output_amount(),
             ),
-            self.create_payment(&context.get_token_in(), 0, &residuum),
+            self.create_payment(context.get_token_in(), 0, &residuum),
         ))
     }
 }

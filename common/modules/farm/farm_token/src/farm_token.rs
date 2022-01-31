@@ -1,9 +1,9 @@
 #![no_std]
+#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_macros::assert;
 use common_structs::{FarmTokenAttributes, Nonce};
 use elrond_wasm::elrond_codec::TopEncode;
 
@@ -25,11 +25,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         num_decimals: usize,
     ) -> AsyncCall {
         self.require_permissions();
-        assert!(
-            self,
-            self.farm_token_id().is_empty(),
-            b"Token exists already"
-        );
+        require!(self.farm_token_id().is_empty(), "Token exists already");
 
         self.register_token(
             register_cost,
@@ -97,7 +93,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     #[endpoint(setLocalRolesFarmToken)]
     fn set_local_roles_farm_token(&self) -> AsyncCall {
         self.require_permissions();
-        assert!(self, !self.farm_token_id().is_empty(), b"No farm token");
+        require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
         self.set_local_roles(token)
@@ -115,7 +111,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             .set_special_roles(
                 &self.blockchain().get_sc_address(),
                 &token,
-                (&roles[..]).into_iter().cloned(),
+                roles.iter().cloned(),
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
@@ -137,14 +133,16 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: u64,
-    ) -> SCResult<FarmTokenAttributes<Self::Api>> {
+    ) -> FarmTokenAttributes<Self::Api> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        token_info.decode_attributes().into()
+        token_info
+            .decode_attributes()
+            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
     }
 
     fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {

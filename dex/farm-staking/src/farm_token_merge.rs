@@ -3,7 +3,17 @@ elrond_wasm::derive_imports!();
 
 use token_merge::ValueWeight;
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Debug,
+)]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub last_claim_block: u64,
@@ -29,11 +39,12 @@ pub trait FarmTokenMergeModule:
     fn merge_farm_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments_managed_vec();
+        let payments = self.call_value().all_esdt_transfers();
 
-        let attrs = self.get_merged_farm_token_attributes(&payments, None, None)?;
+        let attrs = self.get_merged_farm_token_attributes(&payments, None, None);
+
         let farm_token_id = self.farm_token_id().get();
         self.burn_farm_tokens_from_payments(&payments);
 
@@ -46,9 +57,9 @@ pub trait FarmTokenMergeModule:
             new_nonce,
             &new_amount,
             &opt_accept_funds_func,
-        )?;
+        );
 
-        Ok(self.create_payment(&farm_token_id, new_nonce, &new_amount))
+        self.create_payment(&farm_token_id, new_nonce, &new_amount)
     }
 
     fn get_merged_farm_token_attributes(
@@ -58,7 +69,7 @@ pub trait FarmTokenMergeModule:
         opt_custom_attributes_for_payments: Option<
             &ManagedVec<StakingFarmTokenAttributes<Self::Api>>,
         >,
-    ) -> SCResult<StakingFarmTokenAttributes<Self::Api>> {
+    ) -> StakingFarmTokenAttributes<Self::Api> {
         require!(
             !payments.is_empty() || replic.is_some(),
             "No tokens to merge"
@@ -76,9 +87,9 @@ pub trait FarmTokenMergeModule:
                 "Not a farm token"
             );
 
-            let attributes = match custom_attributes.get(i) {
+            let attributes = match custom_attributes.try_get(i) {
                 Some(attr) => attr,
-                None => self.get_attributes(&payment.token_identifier, payment.token_nonce)?,
+                None => self.get_attributes(&payment.token_identifier, payment.token_nonce),
             };
             tokens.push(StakingFarmToken {
                 token_amount: self.create_payment(
@@ -95,20 +106,18 @@ pub trait FarmTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            if let Some(t) = tokens.get(0) {
-                return Ok(t.attributes);
+            if let Some(t) = tokens.try_get(0) {
+                return t.attributes;
             }
         }
 
         let current_block = self.blockchain().get_block_nonce();
-        let aggregated_attributes = StakingFarmTokenAttributes {
+        StakingFarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             last_claim_block: current_block,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
-        };
-
-        Ok(aggregated_attributes)
+        }
     }
 
     fn aggregated_reward_per_share(
@@ -119,7 +128,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         self.weighted_average_ceil(dataset)
@@ -151,17 +160,15 @@ pub trait FarmTokenMergeModule:
         aggregated_amount
     }
 
-    fn get_attributes<T: TopDecode>(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> SCResult<T> {
+    fn get_attributes<T: TopDecode>(&self, token_id: &TokenIdentifier, token_nonce: u64) -> T {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        token_info.decode_attributes().into()
+        token_info
+            .decode_attributes()
+            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
     }
 }

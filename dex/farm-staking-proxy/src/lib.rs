@@ -69,8 +69,9 @@ pub trait FarmStakingProxy:
         &self,
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<()> {
-        let lp_farm_token_payment: EsdtTokenPayment<Self::Api> =
-            payments.get(0).ok_or("empty payments")?;
+        let lp_farm_token_payment: EsdtTokenPayment<Self::Api> = payments
+            .try_get(0)
+            .unwrap_or_else(|| sc_panic!("empty payments"));
         let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
@@ -286,7 +287,7 @@ pub trait FarmStakingProxy:
         user_payments.push(staking_rewards);
         user_payments.push(unbond_staking_farm_token);
 
-        self.raw_vm_api()
+        Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(
                 &caller,
                 &user_payments,
@@ -335,8 +336,7 @@ pub trait FarmStakingProxy:
         } else if second_token_info.token_identifier == staking_token_id {
             second_token_info.amount
         } else {
-            self.raw_vm_api()
-                .signal_error(b"Invalid Pair contract called");
+            sc_panic!("Invalid Pair contract called");
         }
     }
 

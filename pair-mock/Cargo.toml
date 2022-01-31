@@ -8,11 +8,14 @@ publish = false
 [lib]
 path = "src/pair.rs"
 
+[dependencies.common_errors]
+path = "../common/common_errors"
+
 [dependencies.elrond-wasm]
-version = "0.25.0"
+version = "0.27.2"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.25.0"
+version = "0.27.2"
 
 [dependencies.itertools]
 version = "0.10.1"
