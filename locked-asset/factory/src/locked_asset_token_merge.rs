@@ -47,7 +47,10 @@ pub trait LockedAssetTokenMergeModule:
         Ok(self.create_payment(&locked_asset_token, new_nonce, &amount))
     }
 
-    fn burn_tokens_from_payments(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
+    fn burn_tokens_from_payments(
+        &self,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
+    ) {
         for entry in payments {
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
@@ -56,7 +59,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(BigUint, LockedAssetTokenAttributesEx<Self::Api>)> {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
@@ -82,11 +85,8 @@ pub trait LockedAssetTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            let token_0 = tokens.get(0).unwrap();
-            return Ok((
-                token_0.token_amount.amount.clone(),
-                token_0.attributes.clone(),
-            ));
+            let token_0 = tokens.get(0);
+            return Ok((token_0.token_amount.amount.clone(), token_0.attributes));
         }
 
         let attrs = LockedAssetTokenAttributesEx {

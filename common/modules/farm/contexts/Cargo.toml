@@ -10,9 +10,6 @@ path = "src/mod.rs"
 [dependencies.common_structs]
 path = "../../../common_structs"
 
-[dependencies.common_macros]
-path = "../../../common_macros"
-
 [dependencies.common_errors]
 path = "../../../common_errors"
 
@@ -32,4 +29,4 @@ path = "../../token_merge"
 path = "../config"
 
 [dependencies.elrond-wasm]
-version = "0.25.0"
+version = "0.27.2"

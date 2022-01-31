@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 
 use super::generic::*;
 use common_errors::*;
-use common_macros::assert;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
@@ -25,7 +24,7 @@ pub trait CtxHelper:
         let first_payment = payments_iter.next().unwrap();
 
         let mut additional_payments = ManagedVec::new();
-        while let Some(payment) = payments_iter.next() {
+        for payment in payments_iter {
             additional_payments.push(payment);
         }
 
@@ -103,7 +102,7 @@ pub trait CtxHelper:
             context.get_output_payments(),
             context.get_opt_accept_funds_func(),
         );
-        assert!(self, result.is_ok(), ERROR_PAYMENT_FAILED);
+        require!(result.is_ok(), ERROR_PAYMENT_FAILED);
     }
 
     #[inline]
@@ -179,7 +178,7 @@ pub trait CtxHelper:
         context: &GenericContext<Self::Api>,
     ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         MultiResult2::from((
-            context.get_output_payments().get(0).unwrap(),
+            context.get_output_payments().get(0),
             context.get_final_reward().unwrap().clone(),
         ))
     }

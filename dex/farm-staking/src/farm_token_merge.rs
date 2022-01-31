@@ -3,7 +3,17 @@ elrond_wasm::derive_imports!();
 
 use token_merge::ValueWeight;
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Debug,
+)]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub entering_epoch: u64,
@@ -55,7 +65,7 @@ pub trait FarmTokenMergeModule:
 
     fn get_merged_farm_token_attributes(
         &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<StakingFarmToken<Self::Api>>,
     ) -> SCResult<StakingFarmTokenAttributes<Self::Api>> {
         require!(
@@ -88,7 +98,7 @@ pub trait FarmTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            if let Some(t) = tokens.get(0) {
+            if let Some(t) = tokens.try_get(0) {
                 return Ok(t.attributes);
             }
         }
@@ -115,7 +125,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         self.weighted_average_ceil(dataset)

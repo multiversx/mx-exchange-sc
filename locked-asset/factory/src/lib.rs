@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(generic_associated_types)]
 #![feature(exact_size_is_empty)]
 
 mod attr_ex_helper;
@@ -349,7 +350,7 @@ pub trait LockedAssetFactory:
     }
 
     #[callback]
-    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<(TokenIdentifier)>) {
+    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();

@@ -1,6 +1,7 @@
 #![no_std]
-#![allow(clippy::too_many_arguments)]
+#![feature(generic_associated_types)]
 #![feature(exact_size_is_empty)]
+#![allow(clippy::too_many_arguments)]
 
 pub mod custom_rewards;
 pub mod farm_token_merge;
@@ -26,7 +27,7 @@ type ExitFarmResultType<BigUint> =
     MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type UnbondFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct UnbondSftAttributes {
     pub unlock_epoch: u64,
 }
@@ -110,17 +111,17 @@ pub trait Farm:
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let payment_0 = payments_vec.get(0).ok_or("empty payments")?;
+        let payment_0 = payments_vec.try_get(0).ok_or("empty payments")?;
         let additional_payments = payments_vec
             .slice(1, payments_vec.len())
             .unwrap_or_default();
 
         let token_in = payment_0.token_identifier.clone();
-        let enter_amount = payment_0.amount.clone();
+        let enter_amount = payment_0.amount;
 
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
-        require!(enter_amount > 0, "Cannot farm with amount of 0");
+        require!(enter_amount > 0u32, "Cannot farm with amount of 0");
 
         self.farming_token_total_liquidity()
             .update(|liq| *liq += &enter_amount);
@@ -168,8 +169,8 @@ pub trait Farm:
             &reward_token_id,
             &self.reward_reserve().get(),
             &new_farm_token.attributes,
-            created_with_merge,
-        );
+            created_with_merge
+            );
         */
         Ok(new_farm_token.token_amount)
     }
@@ -266,8 +267,8 @@ pub trait Farm:
             reward_nonce,
             &reward,
             &self.reward_reserve().get(),
-            &farm_attributes,
-        );
+            &farm_attributes
+            );
         */
         Ok(MultiResult2::from((
             self.create_payment(&farm_token_id, nft_nonce, &initial_farming_token_amount),
@@ -325,7 +326,7 @@ pub trait Farm:
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let payment_0 = payments_vec.get(0).ok_or("empty payments")?;
+        let payment_0 = payments_vec.try_get(0).ok_or("empty payments")?;
         let additional_payments = payments_vec
             .slice(1, payments_vec.len())
             .unwrap_or_default();
@@ -334,7 +335,7 @@ pub trait Farm:
         let amount = payment_0.amount.clone();
         let token_nonce = payment_0.token_nonce;
 
-        require!(amount > 0, "Zero amount");
+        require!(amount > 0u32, "Zero amount");
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
         let farm_attributes = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
@@ -351,7 +352,7 @@ pub trait Farm:
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
         );
-        if reward > 0 {
+        if reward > 0u32 {
             self.decrease_reward_reserve(&reward)?;
         }
 
@@ -377,7 +378,7 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
-        let farm_amount = amount.clone();
+        let farm_amount = amount;
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
             &farm_amount,
             &farm_token_id,
@@ -411,8 +412,8 @@ pub trait Farm:
             &self.reward_reserve().get(),
             &farm_attributes,
             &new_farm_token.attributes,
-            created_with_merge,
-        );
+            created_with_merge
+            );
         */
         Ok(MultiResult2::from((
             new_farm_token.token_amount,
@@ -429,7 +430,7 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
 
         let payments_vec = self.get_all_payments_managed_vec();
-        let payment_0 = payments_vec.get(0).ok_or("empty payments")?;
+        let payment_0 = payments_vec.try_get(0).ok_or("empty payments")?;
         let additional_payments = payments_vec
             .slice(1, payments_vec.len())
             .unwrap_or_default();
@@ -437,7 +438,7 @@ pub trait Farm:
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_amount = payment_0.amount.clone();
         let payment_token_nonce = payment_0.token_nonce;
-        require!(payment_amount > 0, "Zero amount");
+        require!(payment_amount > 0u32, "Zero amount");
 
         require!(!self.farm_token_id().is_empty(), "No farm token");
         let farm_token_id = self.farm_token_id().get();
@@ -463,7 +464,7 @@ pub trait Farm:
             farm_attributes.last_claim_block,
         );
 
-        if reward > 0 {
+        if reward > 0u32 {
             self.decrease_reward_reserve(&reward)?;
         }
 
@@ -522,8 +523,8 @@ pub trait Farm:
             &self.reward_reserve().get(),
             &farm_attributes,
             &new_farm_token.attributes,
-            created_with_merge,
-        );
+            created_with_merge
+            );
         */
         Ok(new_farm_token.token_amount)
     }

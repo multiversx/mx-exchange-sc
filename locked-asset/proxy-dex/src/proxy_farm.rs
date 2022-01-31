@@ -64,8 +64,8 @@ pub trait ProxyFarmModule:
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
-        let amount = payment_0.amount.clone();
-        require!(amount != 0, "Payment amount cannot be zero");
+        let amount = payment_0.amount;
+        require!(amount != 0u32, "Payment amount cannot be zero");
 
         let farming_token_id: TokenIdentifier;
         if token_id == self.wrapped_lp_token_id().get() {
@@ -84,7 +84,7 @@ pub trait ProxyFarmModule:
         let farm_token_nonce = farm_result.token_nonce;
         let farm_token_total_amount = farm_result.amount;
         require!(
-            farm_token_total_amount > 0,
+            farm_token_total_amount > 0u32,
             "Farm token amount received should be greater than 0"
         );
 
@@ -207,8 +207,8 @@ pub trait ProxyFarmModule:
 
         let token_id = payment_0.token_identifier.clone();
         let token_nonce = payment_0.token_nonce;
-        let amount = payment_0.amount.clone();
-        require!(amount != 0, "Payment amount cannot be zero");
+        let amount = payment_0.amount;
+        require!(amount != 0u32, "Payment amount cannot be zero");
 
         require!(
             token_id == self.wrapped_farm_token_id().get(),
@@ -230,7 +230,7 @@ pub trait ProxyFarmModule:
         let new_farm_token_nonce = new_farm_token.token_nonce;
         let new_farm_token_total_amount = new_farm_token.amount;
         require!(
-            new_farm_token_total_amount > 0,
+            new_farm_token_total_amount > 0u32,
             "Farm token amount received should be greater than 0"
         );
 
@@ -299,8 +299,8 @@ pub trait ProxyFarmModule:
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;
-        let payment_amount = payment_0.amount.clone();
-        require!(payment_amount != 0, "Payment amount cannot be zero");
+        let payment_amount = payment_0.amount;
+        require!(payment_amount != 0u32, "Payment amount cannot be zero");
 
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
         require!(
@@ -326,7 +326,7 @@ pub trait ProxyFarmModule:
         let new_farm_token_nonce = new_farm_token.token_nonce;
         let new_farm_token_amount = new_farm_token.amount;
         require!(
-            new_farm_token_amount > 0,
+            new_farm_token_amount > 0u32,
             "Farm token amount received should be greater than 0"
         );
 
@@ -376,7 +376,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
         farm_address: &ManagedAddress,
         caller: &ManagedAddress,
-        additional_payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
+        additional_payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) -> SCResult<(WrappedFarmToken<Self::Api>, bool)> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
