@@ -24,11 +24,11 @@ path = "../../common/modules/token_send"
 path = "../../common/modules/token_merge"
 
 [dependencies.elrond-wasm]
-version = "0.27.2"
+version = "0.27.3"
 features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.27.2"
+version = "0.27.3"
 
 [dependencies]
 wee_alloc = "0.4"
