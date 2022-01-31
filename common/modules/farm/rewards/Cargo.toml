@@ -26,4 +26,4 @@ path = "../farm_token"
 path = "../../token_send"
 
 [dependencies.elrond-wasm]
-version = "=0.25.0"
+version = "0.25.0"
