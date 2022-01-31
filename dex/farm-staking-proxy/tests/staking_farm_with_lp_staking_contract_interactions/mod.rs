@@ -12,17 +12,7 @@ use farm_staking_config::ConfigModule as _;
 use farm_staking::whitelist::WhitelistModule;
 use farm_staking_proxy::*;
 
-const STAKING_REWARD_TOKEN_ID: &[u8] = b"RIDE-abcdef";
-const STAKING_TOKEN_ID: &[u8] = STAKING_REWARD_TOKEN_ID;
-const LP_FARM_TOKEN_ID: &[u8] = b"LPFARM-abcdef";
-const STAKING_FARM_TOKEN_ID: &[u8] = b"STKFARM-abcdef";
-
-const STAKING_FARM_WASM_PATH: &str = "farm-staking/output/farm-staking.wasm";
-const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-const MAX_APR: u64 = 5_000; // 50%
-const UNBOND_EPOCHS: u64 = 10;
-
-const PROXY_WASM_PATH: &str = "farm-staking-proxy/output/farm-staking-proxy";
+use crate::constants::*;
 
 pub fn setup_staking_farm<StakingContractObjBuilder>(
     owner_addr: &Address,

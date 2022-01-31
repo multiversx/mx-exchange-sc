@@ -15,26 +15,7 @@ use ::config as farm_config;
 use farm::*;
 use farm_config::ConfigModule as _;
 
-// pair constants
-pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
-pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
-pub const RIDE_TOKEN_ID: &[u8] = b"RIDE-abcdef";
-pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP farm
-
-pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
-pub const USER_TOTAL_RIDE_TOKENS: u64 = 5_000_000_000;
-
-// LP farm constants
-
-pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
-pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
-pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
-pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-pub const MIN_FARMING_EPOCHS: u8 = 2;
-pub const PENALTY_PERCENT: u64 = 10;
-pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
-
-pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
+use crate::constants::*;
 
 pub fn setup_pair<PairObjBuilder>(
     owner_addr: &Address,
@@ -203,7 +184,7 @@ where
             pair_address,
         );
 
-        let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
+        let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
         sc.farm_token_id().set(&farm_token_id);
 
         sc.per_block_reward_amount()
@@ -224,7 +205,7 @@ where
     ];
     blockchain_wrapper.set_esdt_local_roles(
         farm_wrapper.address_ref(),
-        FARM_TOKEN_ID,
+        LP_FARM_TOKEN_ID,
         &farm_token_roles[..],
     );
 
@@ -283,7 +264,10 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock.execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
         let payment = sc.enter_farm(OptionalArg::None);
-        assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+        assert_eq!(
+            payment.token_identifier,
+            managed_token_id!(LP_FARM_TOKEN_ID)
+        );
         assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
 
         StateChange::Commit

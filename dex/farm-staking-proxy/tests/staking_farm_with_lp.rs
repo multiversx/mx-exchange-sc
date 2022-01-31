@@ -1,10 +1,12 @@
 use elrond_wasm_debug::{rust_biguint, testing_framework::BlockchainStateWrapper};
 
-mod staking_farm_with_lp_external_contracts;
-pub use staking_farm_with_lp_external_contracts::*;
+pub mod constants;
+pub mod staking_farm_with_lp_external_contracts;
+pub mod staking_farm_with_lp_staking_contract_interactions;
 
-mod staking_farm_with_lp_staking_contract_interactions;
-pub use staking_farm_with_lp_staking_contract_interactions::*;
+use constants::*;
+use staking_farm_with_lp_external_contracts::*;
+use staking_farm_with_lp_staking_contract_interactions::*;
 
 #[test]
 fn test_all_setup() {
