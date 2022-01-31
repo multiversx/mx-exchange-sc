@@ -23,12 +23,8 @@ fn test_all_setup() {
         farm::contract_obj,
         USER_TOTAL_LP_TOKENS,
     );
-    let staking_farm_wrapper = setup_staking_farm(
-        &owner_addr,
-        pair_wrapper.address_ref(),
-        &mut wrapper,
-        farm_staking::contract_obj,
-    );
+    let staking_farm_wrapper =
+        setup_staking_farm(&owner_addr, &mut wrapper, farm_staking::contract_obj);
     let _proxy_wrapper = setup_proxy(
         &owner_addr,
         lp_farm_wrapper.address_ref(),

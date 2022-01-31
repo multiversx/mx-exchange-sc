@@ -11,13 +11,12 @@ pub const USER_TOTAL_RIDE_TOKENS: u64 = 5_000_000_000;
 // LP farm constants
 
 pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
-pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 pub const LP_FARM_TOKEN_ID: &[u8] = b"LPFARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u8 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
-pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
+pub const USER_TOTAL_LP_TOKENS: u64 = 1_000_000;
 
 // Staking farm constants
 

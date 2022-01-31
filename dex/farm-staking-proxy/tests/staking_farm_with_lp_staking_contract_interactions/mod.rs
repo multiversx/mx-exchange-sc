@@ -1,4 +1,6 @@
-use elrond_wasm::types::{Address, BigUint, ManagedAddress, SCResult, TokenIdentifier};
+use elrond_wasm::types::{
+    Address, BigUint, EsdtLocalRole, ManagedAddress, SCResult, TokenIdentifier,
+};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
@@ -16,7 +18,6 @@ use crate::constants::*;
 
 pub fn setup_staking_farm<StakingContractObjBuilder>(
     owner_addr: &Address,
-    pair_address: &Address,
     blockchain_wrapper: &mut BlockchainStateWrapper,
     builder: StakingContractObjBuilder,
 ) -> ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>
@@ -36,25 +37,35 @@ where
             let reward_token_id = managed_token_id!(STAKING_REWARD_TOKEN_ID);
             let farming_token_id = managed_token_id!(STAKING_TOKEN_ID);
             let div_const = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-            let pair_addr = managed_address!(pair_address);
             let max_apr = managed_biguint!(MAX_APR);
 
             sc.init(
                 reward_token_id,
                 farming_token_id,
                 div_const,
-                pair_addr,
                 max_apr,
                 UNBOND_EPOCHS,
             );
 
+            sc.farm_token_id()
+                .set(&managed_token_id!(STAKING_FARM_TOKEN_ID));
             sc.state().set(&farm_staking_config::State::Active);
+            sc.produce_rewards_enabled().set(&true);
 
             StateChange::Commit
         })
         .assert_ok();
 
-    // TODO: Setup farm token & roles
+    let farm_token_roles = [
+        EsdtLocalRole::NftCreate,
+        EsdtLocalRole::NftAddQuantity,
+        EsdtLocalRole::NftBurn,
+    ];
+    blockchain_wrapper.set_esdt_local_roles(
+        farm_staking_wrapper.address_ref(),
+        STAKING_FARM_TOKEN_ID,
+        &farm_token_roles[..],
+    );
 
     farm_staking_wrapper
 }

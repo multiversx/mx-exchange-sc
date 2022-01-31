@@ -89,7 +89,7 @@ where
         1_000_000,
         1_001_000,
         1_000_000,
-        1_000_000,
+        USER_TOTAL_LP_TOKENS,
         1_001_000,
         1_001_000,
     );
@@ -177,7 +177,7 @@ where
 
     blockchain_wrapper
         .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
-            let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
+            let reward_token_id = managed_token_id!(RIDE_TOKEN_ID);
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
             let pair_address = managed_address!(&Address::zero());
@@ -225,14 +225,8 @@ where
     let reward_token_roles = [EsdtLocalRole::Mint];
     blockchain_wrapper.set_esdt_local_roles(
         farm_wrapper.address_ref(),
-        MEX_TOKEN_ID,
+        RIDE_TOKEN_ID,
         &reward_token_roles[..],
-    );
-
-    blockchain_wrapper.set_esdt_balance(
-        &user_addr,
-        LP_TOKEN_ID,
-        &rust_biguint!(USER_TOTAL_LP_TOKENS),
     );
 
     enter_farm(

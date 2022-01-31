@@ -51,7 +51,6 @@ pub trait Farm:
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
-        pair_contract_address: ManagedAddress,
         max_apr: BigUint,
         min_unbond_epochs: u64,
     ) {
@@ -90,7 +89,6 @@ pub trait Farm:
         self.owner().set(&self.blockchain().get_caller());
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
-        self.pair_contract_address().set(&pair_contract_address);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.min_unbond_epochs().set(&min_unbond_epochs);
     }
@@ -577,30 +575,6 @@ pub trait Farm:
         );
 
         new_farm_token.token_amount
-    }
-
-    fn burn_farming_tokens(
-        &self,
-        farming_token_id: &TokenIdentifier,
-        farming_amount: &BigUint,
-        reward_token_id: &TokenIdentifier,
-    ) {
-        let pair_contract_address = self.pair_contract_address().get();
-        if pair_contract_address.is_zero() {
-            self.send()
-                .esdt_local_burn(farming_token_id, 0, farming_amount);
-        } else {
-            let gas_limit = self.burn_gas_limit().get();
-            self.pair_contract_proxy(pair_contract_address)
-                .remove_liquidity_and_burn_token(
-                    farming_token_id.clone(),
-                    0,
-                    farming_amount.clone(),
-                    reward_token_id.clone(),
-                )
-                .with_gas_limit(gas_limit)
-                .transfer_execute();
-        }
     }
 
     fn create_farm_tokens_by_merging(
