@@ -3,7 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_macros::assert;
 use common_structs::Nonce;
 
 #[elrond_wasm::module]
@@ -28,15 +27,13 @@ pub trait RewardsModule:
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) {
         self.require_permissions();
-        assert!(
-            self,
+        require!(
             self.per_block_reward_amount().get() != 0u64,
-            b"Cannot produce zero reward amount"
+            "Cannot produce zero reward amount"
         );
-        assert!(
-            self,
+        require!(
             !self.produce_rewards_enabled().get(),
-            b"Producing rewards is already enabled"
+            "Producing rewards is already enabled"
         );
         let current_nonce = self.blockchain().get_block_nonce();
         self.produce_rewards_enabled().set(&true);

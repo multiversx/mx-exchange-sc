@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::*;
-use common_macros::assert;
+
 use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
 use token_merge::ValueWeight;
@@ -21,7 +21,7 @@ pub trait FarmTokenMergeModule:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_all_payments_managed_vec();
+        let payments = self.call_value().all_esdt_transfers();
 
         let attrs = self.get_merged_farm_token_attributes(&payments, Option::None);
         let farm_token_id = self.farm_token_id().get();
@@ -36,8 +36,7 @@ pub trait FarmTokenMergeModule:
             new_nonce,
             &new_amount,
             &opt_accept_funds_func,
-        )
-        .unwrap();
+        );
 
         self.create_payment(&farm_token_id, new_nonce, &new_amount)
     }
@@ -47,8 +46,7 @@ pub trait FarmTokenMergeModule:
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<&FarmToken<Self::Api>>,
     ) -> FarmTokenAttributes<Self::Api> {
-        assert!(
-            self,
+        require!(
             !payments.is_empty() || replic.is_some(),
             ERROR_NO_TOKEN_TO_MERGE
         );
@@ -57,11 +55,10 @@ pub trait FarmTokenMergeModule:
         let farm_token_id = self.farm_token_id().get();
 
         for payment in payments.iter() {
-            assert!(self, payment.amount != 0u64, ERROR_ZERO_AMOUNT);
-            assert!(
-                self,
+            require!(payment.amount != 0u64, ERROR_ZERO_AMOUNT);
+            require!(
                 payment.token_identifier == farm_token_id,
-                ERROR_NOT_A_FARM_TOKEN,
+                ERROR_NOT_A_FARM_TOKEN
             );
 
             tokens.push(FarmToken {
@@ -71,8 +68,7 @@ pub trait FarmTokenMergeModule:
                     &payment.amount,
                 ),
                 attributes: self
-                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce)
-                    .unwrap(),
+                    .get_farm_attributes(&payment.token_identifier, payment.token_nonce),
             });
         }
 
@@ -81,22 +77,20 @@ pub trait FarmTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            if let Some(t) = tokens.get(0) {
+            if let Some(t) = tokens.try_get(0) {
                 return t.attributes;
             }
         }
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let aggregated_attributes = FarmTokenAttributes {
+        FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: current_epoch,
             original_entering_epoch: current_epoch,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
-        };
-
-        aggregated_attributes
+        }
     }
 
     fn aggregated_reward_per_share(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> BigUint {
@@ -104,7 +98,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         self.weighted_average_ceil(dataset)
@@ -150,7 +144,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: BigUint::from(x.attributes.original_entering_epoch),
-                weight: x.token_amount.amount.clone(),
+                weight: x.token_amount.amount,
             })
         });
         let avg = self.weighted_average(dataset);

@@ -4,10 +4,10 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::*;
-use common_macros::assert;
+
 use common_structs::Nonce;
 
-pub const MAX_PENALTY_PERCENT: u64 = 10_000;
+pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
 pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35_000_000;
@@ -32,13 +32,13 @@ pub trait ConfigModule: token_send::TokenSendModule {
     fn require_permissions(&self) {
         let caller = self.blockchain().get_caller();
         let owner = self.owner().get();
-        assert!(self, caller == owner, ERROR_PERMISSIONS);
+        require!(caller == owner, ERROR_PERMISSIONS);
     }
 
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) {
         self.require_permissions();
-        assert!(self, percent < MAX_PENALTY_PERCENT, ERROR_PARAMETERS,);
+        require!(percent < MAX_PERCENT, ERROR_PARAMETERS);
         self.penalty_percent().set(&percent);
     }
 

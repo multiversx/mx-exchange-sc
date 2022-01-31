@@ -1,0 +1,54 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
+#![no_std]
+
+elrond_wasm_node::wasm_endpoints! {
+    farm_staking
+    (
+        callBack
+        calculateRewardsForGivenPosition
+        claimRewards
+        compoundRewards
+        end_produce_rewards
+        getAnnualPercentageRewards
+        getBurnGasLimit
+        getDivisionSafetyConstant
+        getFarmTokenId
+        getFarmTokenSupply
+        getFarmingTokenId
+        getFarmingTokenTotalLiquidity
+        getLastErrorMessage
+        getLastRewardBlockNonce
+        getLockedAssetFactoryManagedAddress
+        getMinUnbondEpochs
+        getMinimumFarmingEpoch
+        getOwner
+        getPairContractManagedAddress
+        getPenaltyPercent
+        getPerBlockRewardAmount
+        getRewardPerShare
+        getRewardReserve
+        getRewardTokenId
+        getState
+        getTransferExecGasLimit
+        mergeFarmTokens
+        pause
+        registerFarmToken
+        resume
+        setLocalRolesFarmToken
+        setMaxApr
+        setMinUnbondEpochs
+        setPerBlockRewardAmount
+        set_burn_gas_limit
+        set_minimum_farming_epochs
+        set_penalty_percent
+        set_transfer_exec_gas_limit
+        stakeFarm
+        startProduceRewards
+        topUpRewards
+        unbondFarm
+        unstakeFarm
+    )
+}

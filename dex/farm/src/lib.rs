@@ -6,7 +6,7 @@ pub mod custom_rewards;
 pub mod farm_token_merge;
 
 use common_errors::*;
-use common_macros::assert;
+
 use common_structs::{Epoch, FarmTokenAttributes};
 use config::State;
 use contexts::generic::{GenericContext, StorageCache};
@@ -17,7 +17,7 @@ elrond_wasm::derive_imports!();
 
 use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PENALTY_PERCENT,
+    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -50,12 +50,12 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) {
-        assert!(self, reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        assert!(self, farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        assert!(self, division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
+        require!(reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
         let farm_token = self.farm_token_id().get();
-        assert!(self, reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
-        assert!(self, farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
+        require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
+        require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(&State::Inactive);
         self.penalty_percent()
@@ -83,25 +83,19 @@ pub trait Farm:
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_contract_state().unwrap() == &State::Active,
             ERROR_NOT_ACTIVE
         );
 
         self.load_farm_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_farm_token_id().unwrap().is_empty(),
-            ERROR_NO_FARM_TOKEN,
+            ERROR_NO_FARM_TOKEN
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(
-            self,
-            context.is_accepted_payment_enter(),
-            ERROR_BAD_PAYMENTS,
-        );
+        require!(context.is_accepted_payment_enter(), ERROR_BAD_PAYMENTS);
 
         self.load_reward_token_id(&mut context);
         self.load_reward_reserve(&mut context);
@@ -130,7 +124,7 @@ pub trait Farm:
             original_entering_epoch: context.get_block_epoch(),
             initial_farming_amount: first_payment_amount.clone(),
             compounded_reward: BigUint::zero(),
-            current_farm_amount: first_payment_amount.clone(),
+            current_farm_amount: first_payment_amount,
         };
         let virtual_position = FarmToken {
             token_amount: virtual_position_token_amount,
@@ -152,12 +146,7 @@ pub trait Farm:
         self.execute_output_payments(&context);
         self.emit_enter_farm_event(&context);
 
-        context
-            .get_output_payments()
-            .get(0)
-            .as_ref()
-            .unwrap()
-            .clone()
+        context.get_output_payments().get(0)
     }
 
     #[payable("*")]
@@ -169,21 +158,19 @@ pub trait Farm:
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_contract_state().unwrap() == &State::Active,
             ERROR_NOT_ACTIVE
         );
 
         self.load_farm_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_farm_token_id().unwrap().is_empty(),
-            ERROR_NO_FARM_TOKEN,
+            ERROR_NO_FARM_TOKEN
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(self, context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS,);
+        require!(context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS);
 
         self.load_reward_token_id(&mut context);
         self.load_reward_reserve(&mut context);
@@ -221,25 +208,19 @@ pub trait Farm:
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_contract_state().unwrap() == &State::Active,
             ERROR_NOT_ACTIVE
         );
 
         self.load_farm_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_farm_token_id().unwrap().is_empty(),
-            ERROR_NO_FARM_TOKEN,
+            ERROR_NO_FARM_TOKEN
         );
 
         self.load_farming_token_id(&mut context);
-        assert!(
-            self,
-            context.is_accepted_payment_claim(),
-            ERROR_BAD_PAYMENTS,
-        );
+        require!(context.is_accepted_payment_claim(), ERROR_BAD_PAYMENTS);
 
         self.load_reward_token_id(&mut context);
         self.load_reward_reserve(&mut context);
@@ -318,29 +299,22 @@ pub trait Farm:
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
-        assert!(
-            self,
+        require!(
             context.get_contract_state().unwrap() == &State::Active,
             ERROR_NOT_ACTIVE
         );
 
         self.load_farm_token_id(&mut context);
-        assert!(
-            self,
+        require!(
             !context.get_farm_token_id().unwrap().is_empty(),
-            ERROR_NO_FARM_TOKEN,
+            ERROR_NO_FARM_TOKEN
         );
 
         self.load_farming_token_id(&mut context);
         self.load_reward_token_id(&mut context);
-        assert!(
-            self,
-            context.is_accepted_payment_compound(),
-            ERROR_BAD_PAYMENTS,
-        );
+        require!(context.is_accepted_payment_compound(), ERROR_BAD_PAYMENTS);
 
-        assert!(
-            self,
+        require!(
             context.get_farming_token_id().unwrap() == context.get_reward_token_id().unwrap(),
             ERROR_DIFFERENT_TOKEN_IDS
         );
@@ -412,12 +386,7 @@ pub trait Farm:
         context.set_final_reward_for_emit_compound_event();
         self.emit_compound_rewards_event(&context);
 
-        context
-            .get_output_payments()
-            .get(0)
-            .as_ref()
-            .unwrap()
-            .clone()
+        context.get_output_payments().get(0)
     }
 
     fn aggregated_original_entering_epoch_on_compound(
@@ -515,8 +484,7 @@ pub trait Farm:
             0,
             farming_amount,
             opt_accept_funds_func,
-        )
-        .unwrap_or_signal_error(self.type_manager());
+        );
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
@@ -527,8 +495,7 @@ pub trait Farm:
                 0,
                 context.get_position_reward().unwrap(),
                 context.get_opt_accept_funds_func(),
-            )
-            .unwrap_or_signal_error(self.type_manager());
+            );
         }
 
         context.set_final_reward(self.create_payment(
@@ -544,9 +511,9 @@ pub trait Farm:
         amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
-        assert!(self, amount > 0u64, ERROR_ZERO_AMOUNT);
+        require!(amount > 0u64, ERROR_ZERO_AMOUNT);
         let farm_token_supply = self.farm_token_supply().get();
-        assert!(self, farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
+        require!(farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let current_block_nonce = self.blockchain().get_block_nonce();
@@ -579,7 +546,7 @@ pub trait Farm:
 
     #[inline]
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
-        amount * self.penalty_percent().get() / MAX_PENALTY_PERCENT
+        amount * self.penalty_percent().get() / MAX_PERCENT
     }
 
     fn burn_penalty(&self, context: &mut GenericContext<Self::Api>) {

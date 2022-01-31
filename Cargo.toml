@@ -3,6 +3,8 @@ members = [
   "dex",
   "dex/farm",
   "dex/farm/meta",
+  "dex/farm-staking",
+  "dex/farm-staking/meta",
   "dex/farm_with_lock",
   "dex/farm_with_lock/meta",
   "dex/pair",
