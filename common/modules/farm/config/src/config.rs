@@ -18,7 +18,6 @@ pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 pub enum State {
     Inactive,
     Active,
-    Migrate,
 }
 
 #[elrond_wasm::module]

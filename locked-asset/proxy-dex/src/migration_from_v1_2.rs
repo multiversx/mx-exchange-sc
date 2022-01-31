@@ -54,7 +54,7 @@ pub trait MigrationModule:
 
         let payment_token_id = payment_0.token_identifier.clone();
         let payment_token_nonce = payment_0.token_nonce;
-        let payment_amount = payment_0.amount.clone();
+        let payment_amount = payment_0.amount;
         require!(payment_amount != 0u64, "Payment amount cannot be zero");
 
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
@@ -68,11 +68,11 @@ pub trait MigrationModule:
             self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce);
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
-        let farm_amount = payment_amount.clone();
+        let farm_amount = payment_amount;
 
         // Get the new farm position from the new contract.
         let new_pos = self
-            .farm_v1_2_contract_proxy(farm_address.clone())
+            .farm_v1_2_contract_proxy(farm_address)
             .migrate_to_new_farm(OptionalArg::Some(self.blockchain().get_sc_address()))
             .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
