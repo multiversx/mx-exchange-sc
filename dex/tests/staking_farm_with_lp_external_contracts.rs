@@ -9,32 +9,32 @@ use elrond_wasm_debug::{
 
 use pair::config as pair_config;
 use pair::*;
-use pair_config::*;
+use pair_config::ConfigModule as _;
 
 use ::config as farm_config;
 use farm::*;
-use farm_config::*;
+use farm_config::ConfigModule as _;
 
 // pair constants
-const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
-const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
-const RIDE_TOKEN_ID: &[u8] = b"RIDE-abcdef";
-const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP farm
+pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
+pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
+pub const RIDE_TOKEN_ID: &[u8] = b"RIDE-abcdef";
+pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP farm
 
-const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
-const USER_TOTAL_RIDE_TOKENS: u64 = 5_000_000_000;
+pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
+pub const USER_TOTAL_RIDE_TOKENS: u64 = 5_000_000_000;
 
 // LP farm constants
 
-const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
-const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
-const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
-const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-const MIN_FARMING_EPOCHS: u8 = 2;
-const PENALTY_PERCENT: u64 = 10;
-const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
+pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
+pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
+pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
+pub const MIN_FARMING_EPOCHS: u8 = 2;
+pub const PENALTY_PERCENT: u64 = 10;
+pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 
-const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
+pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
 
 pub fn setup_pair<PairObjBuilder>(
     owner_addr: &Address,
@@ -175,6 +175,7 @@ pub fn setup_lp_farm<FarmObjBuilder>(
     user_addr: &Address,
     blockchain_wrapper: &mut BlockchainStateWrapper,
     farm_builder: FarmObjBuilder,
+    user_farm_in_amount: u64,
 ) -> ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
@@ -241,12 +242,50 @@ where
         &reward_token_roles[..],
     );
 
-    let user_addr = blockchain_wrapper.create_user_account(&rust_biguint!(100_000_000));
     blockchain_wrapper.set_esdt_balance(
         &user_addr,
         LP_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_LP_TOKENS),
     );
 
+    enter_farm(
+        user_addr,
+        blockchain_wrapper,
+        &farm_wrapper,
+        user_farm_in_amount,
+        &[],
+    );
+
     farm_wrapper
+}
+
+fn enter_farm<FarmObjBuilder>(
+    user_address: &Address,
+    b_mock: &mut BlockchainStateWrapper,
+    farm_wrapper: &ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    farm_in_amount: u64,
+    additional_farm_tokens: &[TxInputESDT],
+) where
+    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+{
+    let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
+    payments.push(TxInputESDT {
+        token_identifier: LP_TOKEN_ID.to_vec(),
+        nonce: 0,
+        value: rust_biguint!(farm_in_amount),
+    });
+    payments.extend_from_slice(additional_farm_tokens);
+
+    let mut expected_total_out_amount = 0;
+    for payment in payments.iter() {
+        expected_total_out_amount += payment.value.to_u64_digits()[0];
+    }
+
+    b_mock.execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
+        let payment = sc.enter_farm(OptionalArg::None);
+        assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+        assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
+
+        StateChange::Commit
+    });
 }
