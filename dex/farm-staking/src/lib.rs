@@ -251,18 +251,19 @@ pub trait Farm:
             self.decrease_reward_reserve(&reward)?;
         }
 
-        reward += self.rule_of_three(
+        let compound_reward_part = self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
             &farm_attributes.compounded_reward,
         );
+        reward += &compound_reward_part;
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &payment_amount);
 
         let unbond_token_amount = match opt_unbond_amount {
             Some(amt) => amt,
-            None => payment_amount,
+            None => payment_amount - compound_reward_part,
         };
         let farm_token_payment = self.create_and_send_unbond_tokens(
             &caller,
