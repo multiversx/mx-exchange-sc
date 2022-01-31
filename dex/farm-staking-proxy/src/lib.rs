@@ -28,7 +28,7 @@ pub trait FarmStakingProxy:
         staking_token_id: TokenIdentifier,
         lp_farm_token_id: TokenIdentifier,
         staking_farm_token_id: TokenIdentifier,
-    ) -> SCResult<()> {
+    ) {
         require!(
             self.blockchain().is_smart_contract(&lp_farm_address),
             "Invalid LP Farm address"
@@ -59,8 +59,6 @@ pub trait FarmStakingProxy:
         self.staking_token_id().set(&staking_token_id);
         self.lp_farm_token_id().set(&lp_farm_token_id);
         self.staking_farm_token_id().set(&staking_farm_token_id);
-
-        Ok(())
     }
 
     #[payable("*")]
@@ -68,7 +66,7 @@ pub trait FarmStakingProxy:
     fn stake_farm_tokens(
         &self,
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<()> {
+    ) {
         let lp_farm_token_payment: EsdtTokenPayment<Self::Api> = payments
             .try_get(0)
             .unwrap_or_else(|| sc_panic!("empty payments"));
@@ -79,12 +77,12 @@ pub trait FarmStakingProxy:
             lp_farm_token_payment.token_identifier == lp_farm_token_id,
             "Invalid first payment"
         );
-        self.require_all_payments_dual_yield_tokens(&additional_payments)?;
+        self.require_all_payments_dual_yield_tokens(&additional_payments);
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut staking_farm_tokens = ManagedVec::new();
         for p in &additional_payments {
-            let attributes = self.get_dual_yield_token_attributes(p.token_nonce)?;
+            let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
             staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
                 attributes.lp_farm_token_nonce,
@@ -97,7 +95,7 @@ pub trait FarmStakingProxy:
         let lp_tokens_in_farm = self.get_lp_tokens_in_farm_position(
             lp_farm_token_payment.token_nonce,
             &lp_farm_token_payment.amount,
-        )?;
+        );
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
         let staking_farm_address = self.staking_farm_address().get();
         let received_staking_farm_token: EnterFarmResultType<Self::Api> = self
@@ -114,17 +112,12 @@ pub trait FarmStakingProxy:
             received_staking_farm_token.token_nonce,
             received_staking_farm_token.amount.clone(),
         );
-
-        Ok(())
     }
 
     #[payable("*")]
     #[endpoint(claimDualYield)]
-    fn claim_dual_yield(
-        &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<()> {
-        self.require_all_payments_dual_yield_tokens(&payments)?;
+    fn claim_dual_yield(&self, #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>) {
+        self.require_all_payments_dual_yield_tokens(&payments);
 
         let mut lp_farm_tokens = ManagedVec::new();
         let mut staking_farm_tokens = ManagedVec::new();
@@ -134,7 +127,7 @@ pub trait FarmStakingProxy:
         let staking_farm_token_id = self.staking_farm_token_id().get();
 
         for p in &payments {
-            let attributes = self.get_dual_yield_token_attributes(p.token_nonce)?;
+            let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
             let staking_farm_token_amount =
                 self.get_staking_farm_token_amount_equivalent(&attributes, &p.amount);
 
@@ -149,7 +142,7 @@ pub trait FarmStakingProxy:
             let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
                 attributes.lp_farm_token_nonce,
                 &attributes.lp_farm_token_amount,
-            )?;
+            );
             let new_staking_farm_value = self.get_lp_tokens_safe_price(lp_tokens_in_position);
 
             lp_farm_tokens.push(EsdtTokenPayment::new(
@@ -198,15 +191,13 @@ pub trait FarmStakingProxy:
             new_staking_farm_tokens.token_nonce,
             new_staking_farm_tokens.amount.clone(),
         );
-
-        Ok(())
     }
 
     fn exit_farm(
         &self,
         payment_amount: &BigUint,
         attributes: &DualYieldTokenAttributes<Self::Api>,
-    ) -> SCResult<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> {
+    ) -> (EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>) {
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_token_amount =
             self.get_lp_farm_token_amount_equivalent(attributes, payment_amount);
@@ -220,13 +211,14 @@ pub trait FarmStakingProxy:
                 lp_farm_token_amount,
             )
             .execute_on_dest_context();
-        Ok(exit_farm_result.into_tuple())
+
+        exit_farm_result.into_tuple()
     }
 
     fn remove_liquidity(
         &self,
         lp_tokens: EsdtTokenPayment<Self::Api>,
-    ) -> SCResult<(EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>)> {
+    ) -> (EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>) {
         let pair_address = self.pair_address().get();
         let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
             .pair_proxy_obj(pair_address)
@@ -249,9 +241,10 @@ pub trait FarmStakingProxy:
             } else if pair_second_token_payment.token_identifier == staking_token_id {
                 (pair_second_token_payment, pair_first_token_payment)
             } else {
-                return sc_error!("Invalid payments received from Pair");
+                sc_panic!("Invalid payments received from Pair");
             };
-        Ok((staking_token_payment, other_token_payment))
+
+        (staking_token_payment, other_token_payment)
     }
 
     fn unstake(
@@ -261,7 +254,7 @@ pub trait FarmStakingProxy:
         lp_farm_rewards: EsdtTokenPayment<Self::Api>,
         staking_token_payment: EsdtTokenPayment<Self::Api>,
         other_token_payment: EsdtTokenPayment<Self::Api>,
-    ) -> SCResult<()> {
+    ) {
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let staking_farm_token_amount =
             self.get_staking_farm_token_amount_equivalent(attributes, payment_amount);
@@ -287,15 +280,13 @@ pub trait FarmStakingProxy:
         user_payments.push(staking_rewards);
         user_payments.push(unbond_staking_farm_token);
 
-        Self::Api::send_api_impl()
-            .direct_multi_esdt_transfer_execute(
-                &caller,
-                &user_payments,
-                0,
-                &ManagedBuffer::new(),
-                &ManagedArgBuffer::new_empty(),
-            )
-            .into()
+        let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
+            &caller,
+            &user_payments,
+            0,
+            &ManagedBuffer::new(),
+            &ManagedArgBuffer::new_empty(),
+        );
     }
 
     #[payable("*")]
@@ -305,14 +296,14 @@ pub trait FarmStakingProxy:
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_nonce] payment_nonce: u64,
         #[payment_amount] payment_amount: BigUint,
-    ) -> SCResult<()> {
-        self.require_dual_yield_token(&payment_token)?;
+    ) {
+        self.require_dual_yield_token(&payment_token);
 
-        let attributes = self.get_dual_yield_token_attributes(payment_nonce)?;
+        let attributes = self.get_dual_yield_token_attributes(payment_nonce);
 
-        let (lp_tokens, lp_farm_rewards) = self.exit_farm(&payment_amount, &attributes)?;
+        let (lp_tokens, lp_farm_rewards) = self.exit_farm(&payment_amount, &attributes);
 
-        let (staking_token_payment, other_token_payment) = self.remove_liquidity(lp_tokens)?;
+        let (staking_token_payment, other_token_payment) = self.remove_liquidity(lp_tokens);
         self.unstake(
             &payment_amount,
             &attributes,

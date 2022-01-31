@@ -46,28 +46,27 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(
             self.dual_yield_token_id().is_empty(),
             "Token already issued"
         );
 
-        Ok(self
-            .esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
-                &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
-            ))
-            .register_and_set_all_roles(
-                payment_amount,
-                token_display_name,
-                token_ticker,
-                META_SFT_TOKEN_TYPE_NAME.into(),
-                num_decimals,
-            )
-            .async_call()
-            .with_callback(
-                self.callbacks()
-                    .issue_callback(&self.blockchain().get_caller()),
-            ))
+        self.esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
+            &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
+        ))
+        .register_and_set_all_roles(
+            payment_amount,
+            token_display_name,
+            token_ticker,
+            META_SFT_TOKEN_TYPE_NAME.into(),
+            num_decimals,
+        )
+        .async_call()
+        .with_callback(
+            self.callbacks()
+                .issue_callback(&self.blockchain().get_caller()),
+        )
     }
 
     #[callback]
@@ -93,19 +92,17 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         }
     }
 
-    fn require_dual_yield_token(&self, token_id: &TokenIdentifier) -> SCResult<()> {
+    fn require_dual_yield_token(&self, token_id: &TokenIdentifier) {
         let dual_yield_token_id = self.dual_yield_token_id().get();
         require!(token_id == &dual_yield_token_id, "Invalid payment token");
-
-        Ok(())
     }
 
     fn require_all_payments_dual_yield_tokens(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<()> {
+    ) {
         if payments.is_empty() {
-            return Ok(());
+            return;
         }
 
         let dual_yield_token_id = self.dual_yield_token_id().get();
@@ -115,8 +112,6 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
                 "Invalid payment token"
             );
         }
-
-        Ok(())
     }
 
     fn create_and_send_dual_yield_tokens(
@@ -160,7 +155,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     fn get_dual_yield_token_attributes(
         &self,
         dual_yield_token_nonce: u64,
-    ) -> SCResult<DualYieldTokenAttributes<Self::Api>> {
+    ) -> DualYieldTokenAttributes<Self::Api> {
         let own_sc_address = self.blockchain().get_sc_address();
         let dual_yield_token_id = self.dual_yield_token_id().get();
         let token_info = self.blockchain().get_esdt_token_data(
@@ -169,7 +164,8 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             dual_yield_token_nonce,
         );
 
-        token_info.decode_attributes().into()
+        // TODO: Use the new decode_or_panic function
+        token_info.decode_attributes().unwrap()
     }
 
     fn get_lp_farm_token_amount_equivalent(

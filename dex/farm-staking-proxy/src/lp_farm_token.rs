@@ -9,7 +9,7 @@ pub trait LpFarmTokenModule: token_merge::TokenMergeModule {
         &self,
         farm_token_nonce: u64,
         farm_token_amount: &BigUint,
-    ) -> SCResult<BigUint> {
+    ) -> BigUint {
         let own_sc_address = self.blockchain().get_sc_address();
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let token_data = self.blockchain().get_esdt_token_data(
@@ -17,13 +17,16 @@ pub trait LpFarmTokenModule: token_merge::TokenMergeModule {
             &lp_farm_token_id,
             farm_token_nonce,
         );
-        let attributes = token_data.decode_attributes::<FarmTokenAttributes<Self::Api>>()?;
+        // TODO: Use new decode_or_panic function
+        let attributes = token_data
+            .decode_attributes::<FarmTokenAttributes<Self::Api>>()
+            .unwrap();
 
-        Ok(self.rule_of_three_non_zero_result(
+        self.rule_of_three_non_zero_result(
             farm_token_amount,
             &attributes.current_farm_amount,
             &attributes.initial_farming_amount,
-        ))
+        )
     }
 
     #[view(getLpFarmTokenId)]

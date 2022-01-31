@@ -30,3 +30,4 @@ pub const UNBOND_EPOCHS: u64 = 10;
 // Proxy constants
 
 pub const PROXY_WASM_PATH: &str = "farm-staking-proxy/output/farm-staking-proxy";
+pub const DUAL_YIELD_TOKEN_ID: &[u8] = b"DYIELD-abcdef";

@@ -1,5 +1,5 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, SCResult, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, ManagedVec, TokenIdentifier,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -8,10 +8,11 @@ use elrond_wasm_debug::{
 };
 
 use ::config as farm_staking_config;
+use farm_staking::whitelist::WhitelistModule;
 use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 
-use farm_staking::whitelist::WhitelistModule;
+use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
 use farm_staking_proxy::*;
 
 use crate::constants::*;
@@ -112,7 +113,7 @@ where
 
     blockchain_wrapper
         .execute_tx(&owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
-            let result = sc.init(
+            sc.init(
                 managed_address!(lp_farm_address),
                 managed_address!(staking_farm_address),
                 managed_address!(pair_address),
@@ -120,11 +121,62 @@ where
                 managed_token_id!(LP_FARM_TOKEN_ID),
                 managed_token_id!(STAKING_FARM_TOKEN_ID),
             );
-            assert_eq!(result, SCResult::Ok(()));
+
+            sc.dual_yield_token_id()
+                .set(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
 
             StateChange::Commit
         })
         .assert_ok();
 
+    let dual_yield_token_roles = [
+        EsdtLocalRole::NftCreate,
+        EsdtLocalRole::NftAddQuantity,
+        EsdtLocalRole::NftBurn,
+    ];
+    blockchain_wrapper.set_esdt_local_roles(
+        farm_staking_wrapper.address_ref(),
+        DUAL_YIELD_TOKEN_ID,
+        &dual_yield_token_roles[..],
+    );
+
     farm_staking_wrapper
+}
+
+pub fn stake_farm_lp<StakingContractObjBuilder, ProxyContractObjBuilder>(
+    user_addr: &Address,
+    lp_farm_token_nonce: u64,
+    lp_farm_token_stake_amount: u64,
+    b_mock: &mut BlockchainStateWrapper,
+    staking_farm_wrapper: &ContractObjWrapper<
+        farm_staking::ContractObj<DebugApi>,
+        StakingContractObjBuilder,
+    >,
+    proxy_wrapper: &ContractObjWrapper<
+        farm_staking_proxy::ContractObj<DebugApi>,
+        ProxyContractObjBuilder,
+    >,
+) where
+    StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
+    ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
+{
+    b_mock
+        .execute_esdt_transfer(
+            user_addr,
+            proxy_wrapper,
+            LP_FARM_TOKEN_ID,
+            lp_farm_token_nonce,
+            &rust_biguint!(lp_farm_token_stake_amount),
+            |sc| {
+                let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
+                    managed_token_id!(LP_FARM_TOKEN_ID),
+                    lp_farm_token_nonce,
+                    managed_biguint!(lp_farm_token_stake_amount),
+                ));
+                sc.stake_farm_tokens(payments);
+
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 }

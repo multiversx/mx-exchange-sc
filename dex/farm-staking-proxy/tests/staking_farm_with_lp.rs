@@ -1,3 +1,4 @@
+use elrond_wasm::types::Address;
 use elrond_wasm_debug::{
     rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -12,7 +13,7 @@ use constants::*;
 use staking_farm_with_lp_external_contracts::*;
 use staking_farm_with_lp_staking_contract_interactions::*;
 
-struct FarmStakingSetup<
+pub struct FarmStakingSetup<
     PairObjBuilder,
     FarmObjBuilder,
     StakingContractObjBuilder,
@@ -23,6 +24,8 @@ struct FarmStakingSetup<
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
 {
+    pub owner_addr: Address,
+    pub user_addr: Address,
     pub b_mock: BlockchainStateWrapper,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
     pub lp_farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
@@ -72,7 +75,16 @@ where
         proxy_builder,
     );
 
+    add_proxy_to_whitelist(
+        &owner_addr,
+        proxy_wrapper.address_ref(),
+        &mut b_mock,
+        &staking_farm_wrapper,
+    );
+
     FarmStakingSetup {
+        owner_addr,
+        user_addr,
         b_mock,
         pair_wrapper,
         lp_farm_wrapper,
@@ -88,5 +100,25 @@ fn test_all_setup() {
         farm::contract_obj,
         farm_staking::contract_obj,
         farm_staking_proxy::contract_obj,
+    );
+}
+
+#[test]
+fn test_stake_farm_proxy() {
+    let mut setup = setup_all(
+        pair::contract_obj,
+        farm::contract_obj,
+        farm_staking::contract_obj,
+        farm_staking_proxy::contract_obj,
+    );
+    let b_mock = &mut setup.b_mock;
+
+    stake_farm_lp(
+        &setup.user_addr,
+        1,
+        USER_TOTAL_LP_TOKENS,
+        b_mock,
+        &setup.staking_farm_wrapper,
+        &setup.proxy_wrapper,
     );
 }
