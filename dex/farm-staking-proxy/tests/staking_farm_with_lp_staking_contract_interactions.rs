@@ -10,13 +10,19 @@ use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 
 use farm_staking::whitelist::WhitelistModule;
+use farm_staking_proxy::*;
 
-const STAKING_FARM_WASM_PATH: &str = "farm-staking/output/farm-staking.wasm";
 const STAKING_REWARD_TOKEN_ID: &[u8] = b"RIDE-abcdef";
 const STAKING_TOKEN_ID: &[u8] = STAKING_REWARD_TOKEN_ID;
+const LP_FARM_TOKEN_ID: &[u8] = b"LPFARM-abcdef";
+const STAKING_FARM_TOKEN_ID: &[u8] = b"STKFARM-abcdef";
+
+const STAKING_FARM_WASM_PATH: &str = "farm-staking/output/farm-staking.wasm";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 const MAX_APR: u64 = 5_000; // 50%
 const UNBOND_EPOCHS: u64 = 10;
+
+const PROXY_WASM_PATH: &str = "farm-staking-proxy/output/farm-staking-proxy";
 
 pub fn setup_staking_farm<StakingContractObjBuilder>(
     owner_addr: &Address,
@@ -32,7 +38,7 @@ where
         &rust_zero,
         Some(owner_addr),
         builder,
-        STAKING_FARM_WASM_PATH,
+        PROXY_WASM_PATH,
     );
 
     blockchain_wrapper.execute_tx(&owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
@@ -57,6 +63,8 @@ where
         StateChange::Commit
     });
 
+    // TODO: Setup farm token & roles
+
     farm_staking_wrapper
 }
 
@@ -77,4 +85,41 @@ pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
 
         StateChange::Commit
     })
+}
+
+pub fn setup_proxy<ProxyContractObjBuilder>(
+    owner_addr: &Address,
+    lp_farm_address: &Address,
+    staking_farm_address: &Address,
+    pair_address: &Address,
+    blockchain_wrapper: &mut BlockchainStateWrapper,
+    builder: ProxyContractObjBuilder,
+) -> ContractObjWrapper<farm_staking_proxy::ContractObj<DebugApi>, ProxyContractObjBuilder>
+where
+    ProxyContractObjBuilder:
+        'static + Copy + Fn(DebugApi) -> farm_staking_proxy::ContractObj<DebugApi>,
+{
+    let rust_zero = rust_biguint!(0u64);
+    let farm_staking_wrapper = blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(owner_addr),
+        builder,
+        STAKING_FARM_WASM_PATH,
+    );
+
+    blockchain_wrapper.execute_tx(&owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
+        let result = sc.init(
+            managed_address!(lp_farm_address),
+            managed_address!(staking_farm_address),
+            managed_address!(pair_address),
+            managed_token_id!(STAKING_TOKEN_ID),
+            managed_token_id!(LP_FARM_TOKEN_ID),
+            managed_token_id!(STAKING_FARM_TOKEN_ID),
+        );
+        assert_eq!(result, SCResult::Ok(()));
+
+        StateChange::Commit
+    });
+
+    farm_staking_wrapper
 }
