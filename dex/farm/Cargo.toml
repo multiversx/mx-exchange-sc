@@ -41,12 +41,9 @@ path = "../../common/common_structs"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dependencies.common_macros]
-path = "../../common/common_macros"
-
 [dependencies.elrond-wasm]
-version = "0.25.0"
+version = "0.27.3"
 features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.25.0"
+version = "0.27.3"

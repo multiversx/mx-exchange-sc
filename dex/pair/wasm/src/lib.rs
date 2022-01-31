@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     pair
     (
-        init
         addInitialLiquidity
         addLiquidity
         addTrustedSwapPair
@@ -48,6 +47,8 @@ elrond_wasm_node::wasm_endpoints! {
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput
+        updateAndGetSafePrice
+        updateAndGetTokensForGivenPositionWithSafePrice
         whitelist
     )
 }

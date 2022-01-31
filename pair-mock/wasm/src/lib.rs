@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     pair_mock
     (
-        init
         addInitialLiquidity
     )
 }

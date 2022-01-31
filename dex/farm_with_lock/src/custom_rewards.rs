@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::*;
-use common_macros::assert;
+
 use contexts::generic::StorageCache;
 
 #[elrond_wasm::module]
@@ -46,12 +46,15 @@ pub trait CustomRewardsModule:
     fn end_produce_rewards(&self) {
         self.require_permissions();
 
-        let mut storage = StorageCache::default();
-        storage.reward_token_id = Some(self.reward_token_id().get());
-        storage.division_safety_constant = Some(self.division_safety_constant().get());
-        storage.farm_token_supply = Some(self.farm_token_supply().get());
-        storage.reward_reserve = Some(self.reward_reserve().get());
-        storage.reward_per_share = Some(self.reward_per_share().get());
+        // TODO: duplicated code
+        let mut storage = StorageCache {
+            reward_token_id: Some(self.reward_token_id().get()),
+            division_safety_constant: Some(self.division_safety_constant().get()),
+            farm_token_supply: Some(self.farm_token_supply().get()),
+            reward_reserve: Some(self.reward_reserve().get()),
+            reward_per_share: Some(self.reward_per_share().get()),
+            ..Default::default()
+        };
 
         self.generate_aggregated_rewards(&mut storage);
         self.reward_per_share()
@@ -65,14 +68,17 @@ pub trait CustomRewardsModule:
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
         self.require_permissions();
-        assert!(self, per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+        require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
 
-        let mut storage = StorageCache::default();
-        storage.reward_token_id = Some(self.reward_token_id().get());
-        storage.division_safety_constant = Some(self.division_safety_constant().get());
-        storage.farm_token_supply = Some(self.farm_token_supply().get());
-        storage.reward_reserve = Some(self.reward_reserve().get());
-        storage.reward_per_share = Some(self.reward_per_share().get());
+        // TODO: duplicated code
+        let mut storage = StorageCache {
+            reward_token_id: Some(self.reward_token_id().get()),
+            division_safety_constant: Some(self.division_safety_constant().get()),
+            farm_token_supply: Some(self.farm_token_supply().get()),
+            reward_reserve: Some(self.reward_reserve().get()),
+            reward_per_share: Some(self.reward_per_share().get()),
+            ..Default::default()
+        };
 
         self.generate_aggregated_rewards(&mut storage);
         self.reward_per_share()
