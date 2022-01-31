@@ -372,8 +372,8 @@ pub trait ProxyFarmModule:
     }
 
     #[payable("*")]
-    #[endpoint(migratePosition)]
-    fn migrate_position(
+    #[endpoint(migrateV1_2Position)]
+    fn migrate_v1_2_position(
         &self,
         #[payment_token] token_id: TokenIdentifier,
         #[payment_nonce] token_nonce: Nonce,
@@ -408,7 +408,7 @@ pub trait ProxyFarmModule:
 
         // Get the new farm position from the new contract.
         let new_pos = self
-            .farm_contract_proxy(farm_address.clone())
+            .farm_v1_2_contract_proxy(farm_address.clone())
             .migrate_to_new_farm(OptionalArg::Some(self.blockchain().get_sc_address()))
             .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
@@ -542,5 +542,25 @@ pub trait ProxyFarmModule:
 
     fn require_wrapped_farm_token_id_not_empty(&self) {
         require!(!self.wrapped_farm_token_id().is_empty(), "Empty token id");
+    }
+
+    #[proxy]
+    fn farm_v1_2_contract_proxy(
+        &self,
+        to: ManagedAddress,
+    ) -> farm_v1_2_contract_proxy::Proxy<Self::Api>;
+}
+
+mod farm_v1_2_contract_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait Farm {
+        #[payable("*")]
+        #[endpoint(migrateToNewFarm)]
+        fn migrate_to_new_farm(
+            &self,
+            #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
+        ) -> EsdtTokenPayment<Self::Api>;
     }
 }
