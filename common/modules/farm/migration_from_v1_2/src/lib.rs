@@ -1,3 +1,5 @@
+#![no_std]
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -128,7 +130,7 @@ pub trait MigrationModule:
         } else {
             sc_panic!("bad config")
         };
-        require!(migration_role.is_new_with_lock(), "bad config");
+        require!(!migration_role.is_old(), "bad config");
 
         self.farm_migration_config().set(&FarmMigrationConfig {
             migration_role,

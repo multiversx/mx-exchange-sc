@@ -4,7 +4,6 @@
 
 pub mod custom_rewards;
 pub mod farm_token_merge;
-pub mod migration_from_v1_2;
 
 use common_errors::*;
 
