@@ -11,4 +11,12 @@ do
     (set -x; erdpy --verbose contract clean $smart_contract_folder)
 done
 
-find . -name "*.lock" -type f -delete
+# not wasm, but worth cleaning from time to time
+
+cargo clean
+cd elrond-wasm-node
+cargo clean
+cd ..
+cd elrond-wasm-output
+cargo clean
+cd ..

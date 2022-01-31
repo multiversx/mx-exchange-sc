@@ -5,7 +5,7 @@ use common_structs::{FarmTokenAttributes, FarmTokenAttributesV1_2};
 use config::State;
 
 #[elrond_wasm::module]
-pub trait MigrationFromV1_2:
+pub trait MigrationModule:
     config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
