@@ -302,7 +302,7 @@ pub trait Farm:
             &farm_token_id,
             nft_nonce,
             &amount,
-            &opt_accept_funds_func,
+            opt_accept_funds_func,
         );
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)

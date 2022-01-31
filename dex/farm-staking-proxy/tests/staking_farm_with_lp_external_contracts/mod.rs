@@ -11,7 +11,7 @@ use pair::config as pair_config;
 use pair::*;
 use pair_config::ConfigModule as _;
 
-use config as farm_config;
+use ::config as farm_config;
 use farm::*;
 use farm_config::ConfigModule as _;
 
