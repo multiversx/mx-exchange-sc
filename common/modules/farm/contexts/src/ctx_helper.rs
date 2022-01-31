@@ -2,8 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use super::generic::*;
-use common_errors::*;
-use common_macros::assert;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
@@ -25,7 +23,7 @@ pub trait CtxHelper:
         let first_payment = payments_iter.next().unwrap();
 
         let mut additional_payments = ManagedVec::new();
-        while let Some(payment) = payments_iter.next() {
+        for payment in payments_iter {
             additional_payments.push(payment);
         }
 
@@ -98,12 +96,11 @@ pub trait CtxHelper:
 
     #[inline]
     fn execute_output_payments(&self, context: &GenericContext<Self::Api>) {
-        let result = self.send_multiple_tokens_if_not_zero(
+        self.send_multiple_tokens_if_not_zero(
             context.get_caller(),
             context.get_output_payments(),
             context.get_opt_accept_funds_func(),
         );
-        assert!(self, result.is_ok(), ERROR_PAYMENT_FAILED);
     }
 
     #[inline]
@@ -118,8 +115,7 @@ pub trait CtxHelper:
         context.set_input_attributes(
             self.blockchain()
                 .get_esdt_token_data(&self.blockchain().get_sc_address(), &farm_token_id, nonce)
-                .decode_attributes()
-                .unwrap(),
+                .decode_attributes_or_exit(),
         )
     }
 
@@ -179,7 +175,7 @@ pub trait CtxHelper:
         context: &GenericContext<Self::Api>,
     ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         MultiResult2::from((
-            context.get_output_payments().get(0).unwrap(),
+            context.get_output_payments().get(0),
             context.get_final_reward().unwrap().clone(),
         ))
     }

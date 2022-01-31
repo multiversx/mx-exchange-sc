@@ -91,7 +91,7 @@ pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
 #[elrond_wasm::module]
 pub trait EventsModule {
     fn emit_enter_farm_event(&self, ctx: &GenericContext<Self::Api>) {
-        let output = ctx.get_output_payments().get(0).unwrap();
+        let output = ctx.get_output_payments().get(0);
 
         self.enter_farm_event(
             ctx.get_caller(),
@@ -147,7 +147,7 @@ pub trait EventsModule {
     fn emit_claim_rewards_event(&self, ctx: &GenericContext<Self::Api>) {
         let first_pay = ctx.get_tx_input().get_payments().get_first();
         let reward = ctx.get_final_reward().unwrap();
-        let output = ctx.get_output_payments().get(0).unwrap();
+        let output = ctx.get_output_payments().get(0);
 
         self.claim_rewards_event(
             ctx.get_caller(),
@@ -179,7 +179,7 @@ pub trait EventsModule {
     fn emit_compound_rewards_event(self, ctx: &GenericContext<Self::Api>) {
         let first_pay = ctx.get_tx_input().get_payments().get_first();
         let reward = ctx.get_final_reward().unwrap();
-        let output = ctx.get_output_payments().get(0).unwrap();
+        let output = ctx.get_output_payments().get(0);
 
         self.compound_rewards_event(
             ctx.get_caller(),

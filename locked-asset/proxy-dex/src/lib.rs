@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(generic_associated_types)]
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
@@ -35,7 +36,7 @@ pub trait ProxyDexImpl:
         asset_token_id: TokenIdentifier,
         locked_asset_token_id: TokenIdentifier,
         locked_asset_factory_address: ManagedAddress,
-    ) -> SCResult<()> {
+    ) {
         require!(
             asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
@@ -53,7 +54,6 @@ pub trait ProxyDexImpl:
         self.locked_asset_token_id().set(&locked_asset_token_id);
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
-        Ok(())
     }
 
     #[only_owner]
@@ -65,18 +65,18 @@ pub trait ProxyDexImpl:
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(
             self.wrapped_lp_token_id().is_empty(),
             "Token exists already"
         );
-        Ok(self.register_meta_esdt(
+        self.register_meta_esdt(
             register_cost,
             token_display_name,
             token_ticker,
             num_decimals,
             RegisterRequestType::ProxyPair,
-        ))
+        )
     }
 
     #[only_owner]
@@ -88,18 +88,18 @@ pub trait ProxyDexImpl:
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(
             self.wrapped_farm_token_id().is_empty(),
             "Token exists already"
         );
-        Ok(self.register_meta_esdt(
+        self.register_meta_esdt(
             register_cost,
             token_display_name,
             token_ticker,
             num_decimals,
             RegisterRequestType::ProxyFarm,
-        ))
+        )
     }
 
     fn register_meta_esdt(

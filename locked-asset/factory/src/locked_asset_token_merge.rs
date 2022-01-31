@@ -23,14 +23,14 @@ pub trait LockedAssetTokenMergeModule:
     fn merge_locked_asset_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let payments_vec = self.get_all_payments_managed_vec();
+        let payments_vec = self.call_value().all_esdt_transfers();
         require!(!payments_vec.is_empty(), "Empty payment vec");
         let payments_iter = payments_vec.iter();
 
         let (amount, attrs) =
-            self.get_merged_locked_asset_token_amount_and_attributes(payments_iter.clone())?;
+            self.get_merged_locked_asset_token_amount_and_attributes(payments_iter.clone());
         let locked_asset_token = self.locked_asset_token_id().get();
 
         self.burn_tokens_from_payments(payments_iter);
@@ -42,12 +42,15 @@ pub trait LockedAssetTokenMergeModule:
             new_nonce,
             &amount,
             &opt_accept_funds_func,
-        )?;
+        );
 
-        Ok(self.create_payment(&locked_asset_token, new_nonce, &amount))
+        self.create_payment(&locked_asset_token, new_nonce, &amount)
     }
 
-    fn burn_tokens_from_payments(&self, payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>) {
+    fn burn_tokens_from_payments(
+        &self,
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
+    ) {
         for entry in payments {
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
@@ -56,8 +59,8 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: ManagedVecIterator<EsdtTokenPayment<Self::Api>>,
-    ) -> SCResult<(BigUint, LockedAssetTokenAttributesEx<Self::Api>)> {
+        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
+    ) -> (BigUint, LockedAssetTokenAttributesEx<Self::Api>) {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
         let mut tokens = ManagedVec::new();
@@ -82,19 +85,16 @@ pub trait LockedAssetTokenMergeModule:
         }
 
         if tokens.len() == 1 {
-            let token_0 = tokens.get(0).unwrap();
-            return Ok((
-                token_0.token_amount.amount.clone(),
-                token_0.attributes.clone(),
-            ));
+            let token_0 = tokens.get(0);
+            return (token_0.token_amount.amount.clone(), token_0.attributes);
         }
 
         let attrs = LockedAssetTokenAttributesEx {
-            unlock_schedule: self.aggregated_unlock_schedule(&tokens)?,
+            unlock_schedule: self.aggregated_unlock_schedule(&tokens),
             is_merged: true,
         };
 
-        Ok((sum_amount, attrs))
+        (sum_amount, attrs)
     }
 
     fn calculate_new_unlock_milestones(
@@ -125,7 +125,7 @@ pub trait LockedAssetTokenMergeModule:
     fn aggregated_unlock_schedule(
         &self,
         tokens: &ManagedVec<LockedTokenEx<Self::Api>>,
-    ) -> SCResult<UnlockScheduleEx<Self::Api>> {
+    ) -> UnlockScheduleEx<Self::Api> {
         let mut array =
             ArrayVec::<EpochAmountPair<Self::Api>, DOUBLE_MAX_MILESTONES_IN_SCHEDULE>::new();
 
@@ -184,8 +184,8 @@ pub trait LockedAssetTokenMergeModule:
         let new_unlock_milestones =
             self.calculate_new_unlock_milestones(&unlock_epoch_amount_merged, &sum);
 
-        Ok(UnlockScheduleEx {
+        UnlockScheduleEx {
             unlock_milestones: new_unlock_milestones,
-        })
+        }
     }
 }

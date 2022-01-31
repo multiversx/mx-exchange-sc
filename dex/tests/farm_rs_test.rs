@@ -30,7 +30,7 @@ const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
 #[allow(dead_code)] // owner_address is unused, at least for now
 struct FarmSetup<FarmObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
@@ -40,7 +40,7 @@ where
 
 fn setup_farm<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
@@ -54,32 +54,34 @@ where
 
     // init farm contract
 
-    blockchain_wrapper.execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
-        let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
-        let farming_token_id = managed_token_id!(LP_TOKEN_ID);
-        let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-        let pair_address = managed_address!(&Address::zero());
+    blockchain_wrapper
+        .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+            let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
+            let farming_token_id = managed_token_id!(LP_TOKEN_ID);
+            let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
+            let pair_address = managed_address!(&Address::zero());
 
-        sc.init(
-            reward_token_id,
-            farming_token_id,
-            division_safety_constant,
-            pair_address,
-        );
+            sc.init(
+                reward_token_id,
+                farming_token_id,
+                division_safety_constant,
+                pair_address,
+            );
 
-        let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-        sc.farm_token_id().set(&farm_token_id);
+            let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
+            sc.farm_token_id().set(&farm_token_id);
 
-        sc.per_block_reward_amount()
-            .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
-        sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-        sc.penalty_percent().set(&PENALTY_PERCENT);
+            sc.per_block_reward_amount()
+                .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
+            sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
+            sc.penalty_percent().set(&PENALTY_PERCENT);
 
-        sc.state().set(&State::Active);
-        sc.produce_rewards_enabled().set(&true);
+            sc.state().set(&State::Active);
+            sc.produce_rewards_enabled().set(&true);
 
-        StateChange::Commit
-    });
+            StateChange::Commit
+        })
+        .assert_ok();
 
     let farm_token_roles = [
         EsdtLocalRole::NftCreate,
@@ -132,7 +134,7 @@ fn enter_farm<FarmObjBuilder>(
     expected_initial_farming_amount: u64,
     expected_compounded_reward: u64,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
     payments.push(TxInputESDT {
@@ -148,19 +150,21 @@ fn enter_farm<FarmObjBuilder>(
     }
 
     let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock.execute_esdt_multi_transfer(
-        &farm_setup.user_address,
-        &farm_setup.farm_wrapper,
-        &payments,
-        |sc| {
-            let payment = sc.enter_farm(OptionalArg::None);
-            assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-            assert_eq!(payment.token_nonce, expected_farm_token_nonce);
-            assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
+    b_mock
+        .execute_esdt_multi_transfer(
+            &farm_setup.user_address,
+            &farm_setup.farm_wrapper,
+            &payments,
+            |sc| {
+                let payment = sc.enter_farm(OptionalArg::None);
+                assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+                assert_eq!(payment.token_nonce, expected_farm_token_nonce);
+                assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
 
-            StateChange::Commit
-        },
-    );
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 
     let _ = DebugApi::dummy();
 
@@ -209,37 +213,39 @@ fn exit_farm<FarmObjBuilder>(
     expected_user_mex_balance: &RustBigUint,
     expected_user_lp_token_balance: &RustBigUint,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock.execute_esdt_transfer(
-        &farm_setup.user_address,
-        &farm_setup.farm_wrapper,
-        FARM_TOKEN_ID,
-        farm_token_nonce,
-        &rust_biguint!(farm_token_amount),
-        |sc| {
-            let multi_result = sc.exit_farm(OptionalArg::None);
+    b_mock
+        .execute_esdt_transfer(
+            &farm_setup.user_address,
+            &farm_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            farm_token_nonce,
+            &rust_biguint!(farm_token_amount),
+            |sc| {
+                let multi_result = sc.exit_farm(OptionalArg::None);
 
-            let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result) = multi_result.into_tuple();
 
-            assert_eq!(
-                first_result.token_identifier,
-                managed_token_id!(LP_TOKEN_ID)
-            );
-            assert_eq!(first_result.token_nonce, 0);
-            assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
+                assert_eq!(
+                    first_result.token_identifier,
+                    managed_token_id!(LP_TOKEN_ID)
+                );
+                assert_eq!(first_result.token_nonce, 0);
+                assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
 
-            assert_eq!(
-                second_result.token_identifier,
-                managed_token_id!(MEX_TOKEN_ID)
-            );
-            assert_eq!(second_result.token_nonce, 0);
-            assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
+                assert_eq!(
+                    second_result.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(second_result.token_nonce, 0);
+                assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
 
-            StateChange::Commit
-        },
-    );
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 
     b_mock.check_esdt_balance(
         &farm_setup.user_address,
@@ -263,37 +269,39 @@ fn claim_rewards<FarmObjBuilder>(
     expected_farm_token_nonce_out: u64,
     expected_reward_per_share: u64,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock.execute_esdt_transfer(
-        &farm_setup.user_address,
-        &farm_setup.farm_wrapper,
-        FARM_TOKEN_ID,
-        farm_token_nonce,
-        &rust_biguint!(farm_token_amount),
-        |sc| {
-            let multi_result = sc.claim_rewards(OptionalArg::None);
+    b_mock
+        .execute_esdt_transfer(
+            &farm_setup.user_address,
+            &farm_setup.farm_wrapper,
+            FARM_TOKEN_ID,
+            farm_token_nonce,
+            &rust_biguint!(farm_token_amount),
+            |sc| {
+                let multi_result = sc.claim_rewards(OptionalArg::None);
 
-            let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result) = multi_result.into_tuple();
 
-            assert_eq!(
-                first_result.token_identifier,
-                managed_token_id!(FARM_TOKEN_ID)
-            );
-            assert_eq!(first_result.token_nonce, expected_farm_token_nonce_out);
-            assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
+                assert_eq!(
+                    first_result.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(first_result.token_nonce, expected_farm_token_nonce_out);
+                assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
 
-            assert_eq!(
-                second_result.token_identifier,
-                managed_token_id!(MEX_TOKEN_ID)
-            );
-            assert_eq!(second_result.token_nonce, 0);
-            assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
+                assert_eq!(
+                    second_result.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(second_result.token_nonce, 0);
+                assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
 
-            StateChange::Commit
-        },
-    );
+                StateChange::Commit
+            },
+        )
+        .assert_ok();
 
     let _ = DebugApi::dummy();
     let expected_attributes = FarmTokenAttributes::<DebugApi> {
@@ -330,28 +338,30 @@ fn check_farm_token_supply<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     expected_farm_token_supply: u64,
 ) where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock.execute_query(&farm_setup.farm_wrapper, |sc| {
-        let actual_farm_supply = sc.farm_token_supply().get();
-        assert_eq!(
-            managed_biguint!(expected_farm_token_supply),
-            actual_farm_supply
-        );
-    });
+    b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            let actual_farm_supply = sc.farm_token_supply().get();
+            assert_eq!(
+                managed_biguint!(expected_farm_token_supply),
+                actual_farm_supply
+            );
+        })
+        .assert_ok();
 }
 
 fn set_block_nonce<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, block_nonce: u64)
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     farm_setup.blockchain_wrapper.set_block_nonce(block_nonce);
 }
 
 fn set_block_epoch<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>, block_epoch: u64)
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     farm_setup.blockchain_wrapper.set_block_epoch(block_epoch);
 }
@@ -474,7 +484,7 @@ fn test_claim_rewards() {
 
 fn steps_enter_farm_twice<FarmObjBuilder>(farm_builder: FarmObjBuilder) -> FarmSetup<FarmObjBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn(DebugApi) -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let mut farm_setup = setup_farm(farm_builder);
 

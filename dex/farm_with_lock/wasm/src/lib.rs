@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     farm_with_lock
     (
-        init
         callBack
         calculateRewardsForGivenPosition
         claimRewards

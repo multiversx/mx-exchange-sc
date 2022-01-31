@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     proxy_dex
     (
-        init
         callBack
         addFarmToIntermediate
         addLiquidityProxy

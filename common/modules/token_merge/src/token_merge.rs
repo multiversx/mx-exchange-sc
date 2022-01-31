@@ -1,10 +1,10 @@
 #![no_std]
+#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_macros::assert;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct ValueWeight<M: ManagedTypeApi> {
@@ -51,7 +51,7 @@ pub trait TokenMergeModule {
         value: &BigUint,
     ) -> BigUint {
         let res = &(part * value) / total;
-        assert!(self, res != 0u64, ERROR_ZERO_AMOUNT);
+        require!(res != 0u64, ERROR_ZERO_AMOUNT);
         res
     }
 }

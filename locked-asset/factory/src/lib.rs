@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(generic_associated_types)]
 #![feature(exact_size_is_empty)]
 
 mod attr_ex_helper;
@@ -35,7 +36,7 @@ pub trait LockedAssetFactory:
         &self,
         asset_token_id: TokenIdentifier,
         #[var_args] default_unlock_period: ManagedVarArgs<UnlockMilestone>,
-    ) -> SCResult<()> {
+    ) {
         require!(
             asset_token_id.is_esdt(),
             "Asset token ID is not a valid esdt identifier"
@@ -45,7 +46,7 @@ pub trait LockedAssetFactory:
             "Asset token ID cannot be the same as Locked asset token ID"
         );
         let unlock_milestones = default_unlock_period.to_vec();
-        self.validate_unlock_milestones(&unlock_milestones)?;
+        self.validate_unlock_milestones(&unlock_milestones);
 
         self.transfer_exec_gas_limit()
             .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
@@ -56,7 +57,6 @@ pub trait LockedAssetFactory:
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
         self.set_extended_attributes_activation_nonce();
-        Ok(())
     }
 
     fn set_extended_attributes_activation_nonce(&self) {
@@ -80,18 +80,16 @@ pub trait LockedAssetFactory:
 
     #[only_owner]
     #[endpoint]
-    fn whitelist(&self, address: ManagedAddress) -> SCResult<()> {
+    fn whitelist(&self, address: ManagedAddress) {
         let is_new = self.whitelisted_contracts().insert(address);
         require!(is_new, "ManagedAddress already whitelisted");
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(removeWhitelist)]
-    fn remove_whitelist(&self, address: ManagedAddress) -> SCResult<()> {
+    fn remove_whitelist(&self, address: ManagedAddress) {
         let is_removed = self.whitelisted_contracts().remove(&address);
         require!(is_removed, "ManagedAddresss not whitelisted");
-        Ok(())
     }
 
     #[endpoint(createAndForwardCustomPeriod)]
@@ -101,7 +99,7 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -115,8 +113,7 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &OptionalArg::None)?;
+        let new_token = self.produce_tokens_and_send(&amount, &attr, &address, &OptionalArg::None);
 
         self.emit_create_and_forward_event(
             &caller,
@@ -127,7 +124,7 @@ pub trait LockedAssetFactory:
             &attr,
             month_start_epoch,
         );
-        Ok(new_token)
+        new_token
     }
 
     #[endpoint(createAndForward)]
@@ -137,7 +134,7 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -157,7 +154,7 @@ pub trait LockedAssetFactory:
         };
 
         let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func)?;
+            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func);
 
         self.emit_create_and_forward_event(
             &caller,
@@ -168,7 +165,7 @@ pub trait LockedAssetFactory:
             &attr,
             start_epoch,
         );
-        Ok(new_token)
+        new_token
     }
 
     #[payable("*")]
@@ -178,7 +175,7 @@ pub trait LockedAssetFactory:
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] amount: BigUint,
         #[payment_nonce] token_nonce: Nonce,
-    ) -> SCResult<()> {
+    ) {
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
@@ -227,7 +224,7 @@ pub trait LockedAssetFactory:
                 &output_locked_asset_attributes,
                 &caller,
                 &OptionalArg::None,
-            )?;
+            );
         }
 
         self.send()
@@ -246,20 +243,15 @@ pub trait LockedAssetFactory:
             &attributes,
             &output_locked_asset_attributes,
         );
-        Ok(())
     }
 
     #[only_owner]
     #[endpoint(setUnlockPeriod)]
-    fn set_unlock_period(
-        &self,
-        #[var_args] milestones: ManagedVarArgs<UnlockMilestone>,
-    ) -> SCResult<()> {
+    fn set_unlock_period(&self, #[var_args] milestones: ManagedVarArgs<UnlockMilestone>) {
         let unlock_milestones = milestones.to_vec();
-        self.validate_unlock_milestones(&unlock_milestones)?;
+        self.validate_unlock_milestones(&unlock_milestones);
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
-        Ok(())
     }
 
     fn get_month_start_epoch(&self, epoch: Epoch) -> Epoch {
@@ -272,7 +264,7 @@ pub trait LockedAssetFactory:
         attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         address: &ManagedAddress,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
@@ -281,7 +273,7 @@ pub trait LockedAssetFactory:
                     cached_nonce,
                     address,
                     opt_accept_funds_func,
-                )?;
+                );
                 cached_nonce
             }
             Option::None => {
@@ -299,7 +291,7 @@ pub trait LockedAssetFactory:
                     address,
                     attributes,
                     opt_accept_funds_func,
-                )?;
+                );
 
                 if do_cache_result {
                     self.cache_unlock_schedule_and_nonce(&attributes.unlock_schedule, new_nonce);
@@ -309,7 +301,7 @@ pub trait LockedAssetFactory:
         };
 
         let token_id = self.locked_asset_token_id().get();
-        Ok(self.create_payment(&token_id, sent_nonce, amount))
+        self.create_payment(&token_id, sent_nonce, amount)
     }
 
     #[only_owner]
@@ -321,14 +313,13 @@ pub trait LockedAssetFactory:
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(
             self.locked_asset_token_id().is_empty(),
             "Token exists already"
         );
 
-        Ok(self
-            .send()
+        self.send()
             .esdt_system_sc_proxy()
             .register_meta_esdt(
                 register_cost,
@@ -345,11 +336,11 @@ pub trait LockedAssetFactory:
                 },
             )
             .async_call()
-            .with_callback(self.callbacks().register_callback()))
+            .with_callback(self.callbacks().register_callback())
     }
 
     #[callback]
-    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<(TokenIdentifier)>) {
+    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
                 self.last_error_message().clear();
@@ -379,14 +370,13 @@ pub trait LockedAssetFactory:
         &self,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) -> SCResult<AsyncCall> {
+    ) -> AsyncCall {
         require!(
             !self.locked_asset_token_id().is_empty(),
             "Locked Asset Token not registered"
         );
 
-        Ok(self
-            .send()
+        self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &address,
@@ -394,7 +384,7 @@ pub trait LockedAssetFactory:
                 roles.into_iter(),
             )
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback()))
+            .with_callback(self.callbacks().change_roles_callback())
     }
 
     #[callback]

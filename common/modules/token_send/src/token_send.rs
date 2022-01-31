@@ -2,6 +2,7 @@
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+use common_errors::*;
 
 #[elrond_wasm::module]
 pub trait TokenSendModule {
@@ -10,7 +11,7 @@ pub trait TokenSendModule {
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
+    ) {
         let gas_limit: u64;
         let function: ManagedBuffer;
         let accept_funds_func = opt_accept_funds_func.clone().into_option();
@@ -22,7 +23,7 @@ pub trait TokenSendModule {
             function = ManagedBuffer::new();
         }
 
-        self.raw_vm_api()
+        Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(
                 destination,
                 payments,
@@ -30,7 +31,7 @@ pub trait TokenSendModule {
                 &function,
                 &ManagedArgBuffer::new_empty(),
             )
-            .into()
+            .unwrap_or_else(|_| sc_panic!(ERROR_PAYMENT_FAILED))
     }
 
     fn send_multiple_tokens_if_not_zero(
@@ -38,7 +39,7 @@ pub trait TokenSendModule {
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
+    ) {
         let mut non_zero_payments = ManagedVec::new();
         for payment in payments.iter() {
             if payment.amount > 0u32 {
@@ -47,7 +48,7 @@ pub trait TokenSendModule {
         }
 
         match non_zero_payments.len() {
-            0 => Ok(()),
+            0 => {}
             _ => self.send_multiple_tokens(destination, &non_zero_payments, opt_accept_funds_func),
         }
     }
@@ -59,9 +60,9 @@ pub trait TokenSendModule {
         nonce: u64,
         amount: &BigUint,
         opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
+    ) {
         if amount == &0u32 {
-            return Ok(());
+            return;
         }
 
         let arg_buffer = ManagedArgBuffer::new_empty();
@@ -79,13 +80,9 @@ pub trait TokenSendModule {
             function = ManagedBuffer::new();
         }
 
-        self.raw_vm_api()
+        Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(to, &payments, gas_limit, &function, &arg_buffer)
-            .into()
-    }
-
-    fn get_all_payments_managed_vec(&self) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        self.raw_vm_api().get_all_esdt_transfers()
+            .unwrap_or_else(|_| sc_panic!(ERROR_PAYMENT_FAILED))
     }
 
     fn create_payment(

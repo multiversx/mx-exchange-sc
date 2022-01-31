@@ -13,11 +13,8 @@ path = "../../../common_structs"
 [dependencies.common_errors]
 path = "../../../common_errors"
 
-[dependencies.common_macros]
-path = "../../../common_macros"
-
 [dependencies.token_send]
 path = "../../token_send"
 
 [dependencies.elrond-wasm]
-version = "0.25.0"
+version = "0.27.3"
