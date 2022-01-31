@@ -17,9 +17,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
             token_nonce,
         );
 
-        token_info
-            .decode_attributes()
-            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
+        token_info.decode_attributes_or_exit()
     }
 
     fn get_wrapped_farm_token_attributes(
@@ -33,9 +31,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
             token_nonce,
         );
 
-        token_info
-            .decode_attributes()
-            .unwrap_or_else(|_| sc_panic!("Error decoding attributes"))
+        token_info.decode_attributes_or_exit()
     }
 
     fn burn_payment_tokens(
