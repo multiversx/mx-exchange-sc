@@ -16,10 +16,10 @@ version = "0.10.1"
 default-features = false
 
 [dependencies.elrond-wasm]
-version = "0.27.2"
+version = "0.27.3"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.27.2"
+version = "0.27.3"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
