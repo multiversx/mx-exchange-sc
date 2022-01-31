@@ -104,7 +104,7 @@ pub trait SafePriceModule:
     ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         self.update_safe_state_on_the_fly();
 
-        let c_state = self.current_state().get();
+        let c_state = self.get_current_state_or_default();
         let total_supply = self.lp_token_supply().get();
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
@@ -137,7 +137,7 @@ pub trait SafePriceModule:
 
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let c_state = self.current_state().get();
+        let c_state = self.get_current_state_or_default();
 
         let (r_in, r_out, t_out) = if input.token_identifier == first_token_id {
             let r_in = c_state.first_token_reserve_weighted.clone();
@@ -178,8 +178,8 @@ pub trait SafePriceModule:
 
     fn update_safe_state(&self, first_token_reserve: &BigUint, second_token_reserve: &BigUint) {
         let current_block = self.blockchain().get_block_nonce();
-        let mut current_state = self.get_current_state();
-        let mut future_state = self.get_future_state();
+        let mut current_state = self.get_current_state_or_default();
+        let mut future_state = self.get_future_state_or_default();
 
         //Skip executing the update more than once per block.
         if current_state.contains_block(current_block) {
@@ -234,7 +234,7 @@ pub trait SafePriceModule:
     }
 
     #[inline]
-    fn get_current_state(&self) -> CumulativeState<Self::Api> {
+    fn get_current_state_or_default(&self) -> CumulativeState<Self::Api> {
         if self.current_state().is_empty() {
             Default::default()
         } else {
@@ -243,7 +243,7 @@ pub trait SafePriceModule:
     }
 
     #[inline]
-    fn get_future_state(&self) -> CumulativeState<Self::Api> {
+    fn get_future_state_or_default(&self) -> CumulativeState<Self::Api> {
         if self.future_state().is_empty() {
             Default::default()
         } else {
