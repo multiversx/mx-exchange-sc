@@ -649,3 +649,130 @@ fn test_aggregated_unlock_schedule() {
         })
         .assert_ok();
 }
+
+#[test]
+fn test_aggregated_unlock_schedule_with_1_offset() {
+    let mut blockchain_wrapper = BlockchainStateWrapper::new();
+    let factory = blockchain_wrapper.create_sc_account(
+        &rust_biguint!(0),
+        None,
+        factory::contract_obj,
+        SC_WASM_PATH,
+    );
+
+    blockchain_wrapper
+        .execute_query(&factory, |sc| {
+            let mut tokens = ManagedVec::new();
+            let token1 = LockedTokenEx::<DebugApi> {
+                token_amount: EsdtTokenPayment {
+                    token_type: EsdtTokenType::NonFungible,    //placeholder
+                    token_identifier: TokenIdentifier::egld(), //placeholder
+                    token_nonce: 0,                            //placeholder
+                    amount: managed_biguint!(608_212_266_882_971_044),
+                },
+                attributes: LockedAssetTokenAttributesEx {
+                    unlock_schedule: UnlockScheduleEx {
+                        unlock_milestones: ManagedVec::from(vec![
+                            UnlockMilestoneEx {
+                                unlock_epoch: 468,
+                                unlock_percent: 14_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 348,
+                                unlock_percent: 14_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 408,
+                                unlock_percent: 14_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 318,
+                                unlock_percent: 14_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 0,
+                                unlock_percent: 16_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 378,
+                                unlock_percent: 14_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 438,
+                                unlock_percent: 14_00,
+                            },
+                        ]),
+                    },
+                    is_merged: false,
+                },
+            };
+            let token2 = LockedTokenEx::<DebugApi> {
+                token_amount: EsdtTokenPayment {
+                    token_type: EsdtTokenType::NonFungible,    //placeholder
+                    token_identifier: TokenIdentifier::egld(), //placeholder
+                    token_nonce: 0,                            //placeholder
+                    amount: managed_biguint!(700_000_000_000_000_000),
+                },
+                attributes: LockedAssetTokenAttributesEx {
+                    unlock_schedule: UnlockScheduleEx {
+                        unlock_milestones: ManagedVec::from(vec![
+                            UnlockMilestoneEx {
+                                unlock_epoch: 378 + 1, //Notice the +1
+                                unlock_percent: 17_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 408 + 1, //Notice the +1
+                                unlock_percent: 17_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 438 + 1, //Notice the +1
+                                unlock_percent: 17_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 468,
+                                unlock_percent: 16_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 498,
+                                unlock_percent: 16_00,
+                            },
+                            UnlockMilestoneEx {
+                                unlock_epoch: 528,
+                                unlock_percent: 16_00,
+                            },
+                        ]),
+                    },
+                    is_merged: false,
+                },
+            };
+
+            tokens.push(token1);
+            tokens.push(token2);
+
+            let result = sc.aggregated_unlock_schedule(&tokens);
+            let result = result.unlock_milestones;
+
+            //In the end, the milestones with {$epoch, and ($epoch + 1)} should be placed under ($epoch + 1).
+
+            assert_eq!(result.len(), 9);
+
+            let el = result.get(0);
+            assert_eq!(el.unlock_epoch, 0);
+
+            let el = result.get(1);
+            assert_eq!(el.unlock_epoch, 318);
+
+            let el = result.get(2);
+            assert_eq!(el.unlock_epoch, 348);
+
+            let el = result.get(3);
+            assert_eq!(el.unlock_epoch, 378 + 1);
+
+            let el = result.get(4);
+            assert_eq!(el.unlock_epoch, 408 + 1);
+
+            let el = result.get(5);
+            assert_eq!(el.unlock_epoch, 438 + 1);
+        })
+        .assert_ok();
+}
