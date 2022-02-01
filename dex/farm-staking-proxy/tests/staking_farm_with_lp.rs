@@ -57,6 +57,8 @@ where
     let owner_addr = b_mock.create_user_account(&rust_zero);
     let user_addr = b_mock.create_user_account(&rust_biguint!(100_000_000));
 
+    b_mock.set_block_nonce(50);
+
     let pair_wrapper = setup_pair(&owner_addr, &user_addr, &mut b_mock, pair_builder);
     let lp_farm_wrapper = setup_lp_farm(
         &owner_addr,

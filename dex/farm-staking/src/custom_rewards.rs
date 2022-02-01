@@ -30,10 +30,10 @@ pub trait CustomRewardsModule:
         if extra_rewards > 0 {
             let mut accumulated_rewards = self.accumulated_rewards().get();
             let total_rewards = &accumulated_rewards + &extra_rewards;
-            let reserve = self.reward_reserve().get();
-            if total_rewards > reserve {
-                let amount_over_reserve = reserve - total_rewards;
-                extra_rewards -= amount_over_reserve;
+            let reward_capacity = self.reward_capacity().get();
+            if total_rewards > reward_capacity {
+                let amount_over_capacity = total_rewards - reward_capacity;
+                extra_rewards -= amount_over_capacity;
             }
 
             accumulated_rewards += &extra_rewards;
@@ -55,7 +55,7 @@ pub trait CustomRewardsModule:
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 
-        self.increase_reward_reserve(&payment_amount);
+        self.reward_capacity().update(|r| *r += payment_amount);
     }
 
     #[endpoint]
@@ -102,19 +102,6 @@ pub trait CustomRewardsModule:
         let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
 
         per_block_reward * block_nonce_diff
-    }
-
-    fn increase_reward_reserve(&self, amount: &BigUint) {
-        self.reward_reserve().update(|reserve| {
-            *reserve += amount;
-        });
-    }
-
-    fn decrease_reward_reserve(&self, amount: &BigUint) {
-        self.reward_reserve().update(|reserve| {
-            require!(&*reserve >= amount, "Not enough reserves");
-            *reserve -= amount;
-        })
     }
 
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
@@ -201,8 +188,8 @@ pub trait CustomRewardsModule:
     fn accumulated_rewards(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getRewardReserve)]
-    #[storage_mapper("reward_reserve")]
-    fn reward_reserve(&self) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("reward_capacity")]
+    fn reward_capacity(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getAnnualPercentageRewards)]
     #[storage_mapper("annualPercentageRewards")]

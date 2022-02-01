@@ -245,10 +245,6 @@ pub trait Farm:
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
         );
-        if reward > 0u32 {
-            self.decrease_reward_reserve(&reward);
-        }
-
         let compound_reward_part = self.rule_of_three(
             &payment_amount,
             &farm_attributes.current_farm_amount,
@@ -408,10 +404,6 @@ pub trait Farm:
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
         );
-        if reward > 0u32 {
-            self.decrease_reward_reserve(&reward);
-        }
-
         let new_compound_reward_amount = self.rule_of_three(
             &old_farming_amount,
             &farm_attributes.current_farm_amount,
@@ -538,10 +530,6 @@ pub trait Farm:
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
         );
-
-        if reward > 0u32 {
-            self.decrease_reward_reserve(&reward);
-        }
 
         let new_farm_contribution = &payment_amount + &reward;
         let new_compound_reward_amount = &self.rule_of_three(
