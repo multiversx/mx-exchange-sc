@@ -17,10 +17,7 @@ pub trait LpFarmTokenModule: token_merge::TokenMergeModule {
             &lp_farm_token_id,
             farm_token_nonce,
         );
-        // TODO: Use new decode_or_panic function
-        let attributes = token_data
-            .decode_attributes::<FarmTokenAttributes<Self::Api>>()
-            .unwrap();
+        let attributes = token_data.decode_attributes_or_exit::<FarmTokenAttributes<Self::Api>>();
 
         self.rule_of_three_non_zero_result(
             farm_token_amount,

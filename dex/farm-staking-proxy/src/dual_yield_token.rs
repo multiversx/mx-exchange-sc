@@ -164,8 +164,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             dual_yield_token_nonce,
         );
 
-        // TODO: Use the new decode_or_panic function
-        token_info.decode_attributes().unwrap()
+        token_info.decode_attributes_or_exit()
     }
 
     fn get_lp_farm_token_amount_equivalent(
