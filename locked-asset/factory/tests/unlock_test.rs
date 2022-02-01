@@ -752,7 +752,7 @@ fn test_aggregated_unlock_schedule_with_1_offset() {
             let result = sc.aggregated_unlock_schedule(&tokens);
             let result = result.unlock_milestones;
 
-            //In the end, the milestones with {$epoch, and ($epoch + 1)} should be placed under $epoch.
+            //In the end, the milestones with {$epoch, and ($epoch + 1)} should be placed under ($epoch + 1).
 
             assert_eq!(result.len(), 9);
 
@@ -766,13 +766,13 @@ fn test_aggregated_unlock_schedule_with_1_offset() {
             assert_eq!(el.unlock_epoch, 348);
 
             let el = result.get(3);
-            assert_eq!(el.unlock_epoch, 378);
+            assert_eq!(el.unlock_epoch, 378 + 1);
 
             let el = result.get(4);
-            assert_eq!(el.unlock_epoch, 408);
+            assert_eq!(el.unlock_epoch, 408 + 1);
 
             let el = result.get(5);
-            assert_eq!(el.unlock_epoch, 438);
+            assert_eq!(el.unlock_epoch, 438 + 1);
         })
         .assert_ok();
 }
