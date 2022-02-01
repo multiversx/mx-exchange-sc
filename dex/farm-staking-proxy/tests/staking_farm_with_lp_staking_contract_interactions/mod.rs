@@ -4,6 +4,7 @@ use elrond_wasm::types::{
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
+    tx_mock::TxContextStack,
     DebugApi,
 };
 
@@ -12,7 +13,7 @@ use farm_staking::whitelist::WhitelistModule;
 use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 
-use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
+use farm_staking_proxy::dual_yield_token::{DualYieldTokenAttributes, DualYieldTokenModule};
 use farm_staking_proxy::*;
 
 use crate::{
@@ -106,7 +107,15 @@ where
         }
     }
 
-    pub fn stake_farm_lp(&mut self, lp_farm_token_nonce: u64, lp_farm_token_stake_amount: u64) {
+    pub fn stake_farm_lp(
+        &mut self,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_stake_amount: u64,
+        expected_staking_farm_token_nonce: u64,
+        expected_staking_token_amount: u64,
+    ) -> u64 {
+        let mut dual_yield_nonce = 0;
+
         self.b_mock
             .execute_esdt_transfer(
                 &self.user_addr,
@@ -120,11 +129,39 @@ where
                         lp_farm_token_nonce,
                         managed_biguint!(lp_farm_token_stake_amount),
                     ));
-                    sc.stake_farm_tokens(payments);
+                    let dual_yield_tokens = sc.stake_farm_tokens(payments);
+                    dual_yield_nonce = dual_yield_tokens.token_nonce;
+
+                    assert_eq!(
+                        dual_yield_tokens.amount,
+                        managed_biguint!(expected_staking_token_amount)
+                    );
 
                     StateChange::Commit
                 },
             )
             .assert_ok();
+
+        self.b_mock.execute_in_managed_environment(|| {
+            let expected_dual_yield_attributes = DualYieldTokenAttributes::<DebugApi> {
+                lp_farm_token_nonce,
+                lp_farm_token_amount: managed_biguint!(lp_farm_token_stake_amount),
+                staking_farm_token_nonce: expected_staking_farm_token_nonce,
+                staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
+                total_dual_yield_tokens_for_position: managed_biguint!(
+                    expected_staking_token_amount
+                ),
+            };
+
+            self.b_mock.check_nft_balance(
+                &self.user_addr,
+                DUAL_YIELD_TOKEN_ID,
+                dual_yield_nonce,
+                &rust_biguint!(expected_staking_token_amount),
+                &expected_dual_yield_attributes,
+            );
+        });
+
+        dual_yield_nonce
     }
 }

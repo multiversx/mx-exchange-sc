@@ -12,6 +12,7 @@ pub mod dual_yield_token;
 pub mod lp_farm_token;
 
 pub type SafePriceResult<Api> = MultiResult2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
+pub type StakeResult<Api> = EsdtTokenPayment<Api>;
 
 #[elrond_wasm::contract]
 pub trait FarmStakingProxy:
@@ -66,7 +67,7 @@ pub trait FarmStakingProxy:
     fn stake_farm_tokens(
         &self,
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) {
+    ) -> StakeResult<Self::Api> {
         let lp_farm_token_payment: EsdtTokenPayment<Self::Api> = payments
             .try_get(0)
             .unwrap_or_else(|| sc_panic!("empty payments"));
@@ -106,12 +107,12 @@ pub trait FarmStakingProxy:
         let caller = self.blockchain().get_caller();
         self.create_and_send_dual_yield_tokens(
             &caller,
-            &received_staking_farm_token.amount,
+            received_staking_farm_token.amount.clone(),
             lp_farm_token_payment.token_nonce,
             lp_farm_token_payment.amount,
             received_staking_farm_token.token_nonce,
-            received_staking_farm_token.amount.clone(),
-        );
+            received_staking_farm_token.amount,
+        )
     }
 
     #[payable("*")]
@@ -185,11 +186,11 @@ pub trait FarmStakingProxy:
         );
         self.create_and_send_dual_yield_tokens(
             &caller,
-            &new_staking_farm_tokens.amount,
+            new_staking_farm_tokens.amount.clone(),
             new_lp_farm_tokens.token_nonce,
             new_lp_farm_tokens.amount,
             new_staking_farm_tokens.token_nonce,
-            new_staking_farm_tokens.amount.clone(),
+            new_staking_farm_tokens.amount,
         );
     }
 
