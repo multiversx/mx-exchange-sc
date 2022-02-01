@@ -187,7 +187,7 @@ pub trait CustomRewardsModule:
     #[storage_mapper("accumulatedRewards")]
     fn accumulated_rewards(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getRewardReserve)]
+    #[view(getRewardCapacity)]
     #[storage_mapper("reward_capacity")]
     fn reward_capacity(&self) -> SingleValueMapper<BigUint>;
 
