@@ -5,8 +5,8 @@ pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const RIDE_TOKEN_ID: &[u8] = b"RIDE-abcdef";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP farm
 
-pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
-pub const USER_TOTAL_RIDE_TOKENS: u64 = 5_000_000_000;
+pub const USER_TOTAL_WEGLD_TOKENS: u64 = 2_000_000;
+pub const USER_TOTAL_RIDE_TOKENS: u64 = 2_000_000;
 
 // LP farm constants
 
@@ -31,3 +31,7 @@ pub const UNBOND_EPOCHS: u64 = 10;
 
 pub const PROXY_WASM_PATH: &str = "farm-staking-proxy/output/farm-staking-proxy";
 pub const DUAL_YIELD_TOKEN_ID: &[u8] = b"DYIELD-abcdef";
+
+// General
+
+pub const BLOCK_NONCE_AFTER_SETUP: u64 = 100;

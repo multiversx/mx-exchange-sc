@@ -101,7 +101,7 @@ pub trait FarmStakingProxy:
         let received_staking_farm_token: EnterFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
             .stake_farm_through_proxy(staking_farm_tokens, staking_token_amount)
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
 
         let caller = self.blockchain().get_caller();
         self.create_and_send_dual_yield_tokens(

@@ -20,21 +20,17 @@ use crate::constants::*;
 pub fn setup_pair<PairObjBuilder>(
     owner_addr: &Address,
     user_addr: &Address,
-    blockchain_wrapper: &mut BlockchainStateWrapper,
+    b_mock: &mut BlockchainStateWrapper,
     pair_builder: PairObjBuilder,
 ) -> ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>
 where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let pair_wrapper = blockchain_wrapper.create_sc_account(
-        &rust_zero,
-        Some(owner_addr),
-        pair_builder,
-        PAIR_WASM_PATH,
-    );
+    let pair_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), pair_builder, PAIR_WASM_PATH);
 
-    blockchain_wrapper
+    b_mock
         .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
             let second_token_id = managed_token_id!(RIDE_TOKEN_ID);
@@ -63,27 +59,25 @@ where
         .assert_ok();
 
     let lp_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
-    blockchain_wrapper.set_esdt_local_roles(
-        pair_wrapper.address_ref(),
-        LP_TOKEN_ID,
-        &lp_token_roles[..],
-    );
+    b_mock.set_esdt_local_roles(pair_wrapper.address_ref(), LP_TOKEN_ID, &lp_token_roles[..]);
 
     // set user balance
-    blockchain_wrapper.set_esdt_balance(
+    b_mock.set_esdt_balance(
         &user_addr,
         WEGLD_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
     );
-    blockchain_wrapper.set_esdt_balance(
+    b_mock.set_esdt_balance(
         &user_addr,
         RIDE_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
 
+    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 2);
+
     add_liquidity(
         user_addr,
-        blockchain_wrapper,
+        b_mock,
         &pair_wrapper,
         1_001_000,
         1_000_000,
@@ -94,12 +88,42 @@ where
         1_001_000,
     );
 
+    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 1);
+
+    // need to add liqudidity again for the safe price to be set
+    let temp_user_addr = b_mock.create_user_account(&rust_zero);
+    b_mock.set_esdt_balance(
+        &temp_user_addr,
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
+    );
+    b_mock.set_esdt_balance(
+        &temp_user_addr,
+        RIDE_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
+    );
+
+    add_liquidity(
+        &temp_user_addr,
+        b_mock,
+        &pair_wrapper,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        USER_TOTAL_LP_TOKENS + 1_000,
+        1_001_000,
+        1_001_000,
+    );
+
+    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP);
+
     pair_wrapper
 }
 
 fn add_liquidity<PairObjBuilder>(
     user_address: &Address,
-    blockchain_wrapper: &mut BlockchainStateWrapper,
+    b_mock: &mut BlockchainStateWrapper,
     pair_wrapper: &ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
     first_token_amount: u64,
     first_token_min: u64,
@@ -124,7 +148,7 @@ fn add_liquidity<PairObjBuilder>(
         },
     ];
 
-    blockchain_wrapper
+    b_mock
         .execute_esdt_multi_transfer(user_address, pair_wrapper, &payments, |sc| {
             let MultiResult3 { 0: payments } = sc.add_liquidity(
                 managed_biguint!(first_token_min),
@@ -158,7 +182,7 @@ fn add_liquidity<PairObjBuilder>(
 pub fn setup_lp_farm<FarmObjBuilder>(
     owner_addr: &Address,
     user_addr: &Address,
-    blockchain_wrapper: &mut BlockchainStateWrapper,
+    b_mock: &mut BlockchainStateWrapper,
     farm_builder: FarmObjBuilder,
     user_farm_in_amount: u64,
 ) -> ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>
@@ -166,16 +190,12 @@ where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let farm_wrapper = blockchain_wrapper.create_sc_account(
-        &rust_zero,
-        Some(&owner_addr),
-        farm_builder,
-        FARM_WASM_PATH,
-    );
+    let farm_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(&owner_addr), farm_builder, FARM_WASM_PATH);
 
     // init farm contract
 
-    blockchain_wrapper
+    b_mock
         .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
             let reward_token_id = managed_token_id!(RIDE_TOKEN_ID);
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
@@ -209,33 +229,27 @@ where
         EsdtLocalRole::NftAddQuantity,
         EsdtLocalRole::NftBurn,
     ];
-    blockchain_wrapper.set_esdt_local_roles(
+    b_mock.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         LP_FARM_TOKEN_ID,
         &farm_token_roles[..],
     );
 
     let farming_token_roles = [EsdtLocalRole::Burn];
-    blockchain_wrapper.set_esdt_local_roles(
+    b_mock.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         LP_TOKEN_ID,
         &farming_token_roles[..],
     );
 
     let reward_token_roles = [EsdtLocalRole::Mint];
-    blockchain_wrapper.set_esdt_local_roles(
+    b_mock.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         RIDE_TOKEN_ID,
         &reward_token_roles[..],
     );
 
-    enter_farm(
-        user_addr,
-        blockchain_wrapper,
-        &farm_wrapper,
-        user_farm_in_amount,
-        &[],
-    );
+    enter_farm(user_addr, b_mock, &farm_wrapper, user_farm_in_amount, &[]);
 
     farm_wrapper
 }
