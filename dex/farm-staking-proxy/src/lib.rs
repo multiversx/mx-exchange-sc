@@ -14,6 +14,7 @@ pub mod lp_farm_token;
 pub type SafePriceResult<Api> = MultiResult2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 pub type StakeResult<Api> = EsdtTokenPayment<Api>;
 pub type ClaimDualYieldResult<Api> = ManagedMultiResultVec<Api, EsdtTokenPayment<Api>>;
+pub type UnstakeResult<Api> = ManagedMultiResultVec<Api, EsdtTokenPayment<Api>>;
 
 #[elrond_wasm::contract]
 pub trait FarmStakingProxy:
@@ -264,7 +265,7 @@ pub trait FarmStakingProxy:
         lp_farm_rewards: EsdtTokenPayment<Self::Api>,
         staking_token_payment: EsdtTokenPayment<Self::Api>,
         other_token_payment: EsdtTokenPayment<Self::Api>,
-    ) {
+    ) -> UnstakeResult<Self::Api> {
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let staking_farm_token_amount =
             self.get_staking_farm_token_amount_equivalent(attributes, payment_amount);
@@ -297,6 +298,8 @@ pub trait FarmStakingProxy:
             &ManagedBuffer::new(),
             &ManagedArgBuffer::new_empty(),
         );
+
+        user_payments.into()
     }
 
     #[payable("*")]
@@ -306,7 +309,7 @@ pub trait FarmStakingProxy:
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_nonce] payment_nonce: u64,
         #[payment_amount] payment_amount: BigUint,
-    ) {
+    ) -> UnstakeResult<Self::Api> {
         self.require_dual_yield_token(&payment_token);
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
@@ -331,18 +334,6 @@ pub trait FarmStakingProxy:
             .execute_on_dest_context();
         let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();
-
-        /*
-        let current_block = self.blockchain().get_block_nonce();
-        sc_print!(
-            "Safe price at block {:x}: token A: {}, {:x}, token B: {}, {:x}",
-            current_block,
-            first_token_info.token_identifier,
-            first_token_info.amount,
-            second_token_info.token_identifier,
-            second_token_info.amount
-        );
-        */
 
         if first_token_info.token_identifier == staking_token_id {
             first_token_info.amount
