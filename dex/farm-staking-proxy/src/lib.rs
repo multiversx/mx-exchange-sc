@@ -286,9 +286,15 @@ pub trait FarmStakingProxy:
 
         let caller = self.blockchain().get_caller();
         let mut user_payments = ManagedVec::new();
-        user_payments.push(other_token_payment);
-        user_payments.push(lp_farm_rewards);
-        user_payments.push(staking_rewards);
+        if other_token_payment.amount > 0 {
+            user_payments.push(other_token_payment);
+        }
+        if lp_farm_rewards.amount > 0 {
+            user_payments.push(lp_farm_rewards);
+        }
+        if staking_rewards.amount > 0 {
+            user_payments.push(staking_rewards);
+        }
         user_payments.push(unbond_staking_farm_token);
 
         let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(

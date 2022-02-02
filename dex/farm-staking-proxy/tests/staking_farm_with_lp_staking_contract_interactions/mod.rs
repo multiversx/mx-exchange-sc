@@ -1,13 +1,15 @@
-use elrond_wasm::types::{Address, BigUint, EsdtTokenPayment, ManagedVec, TokenIdentifier};
+use elrond_wasm::types::{
+    Address, BigUint, EsdtTokenPayment, ManagedVec, OptionalArg, TokenIdentifier,
+};
 use elrond_wasm_debug::{
     managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
     DebugApi,
 };
 
+use farm_staking::*;
 /*
 use ::config as farm_staking_config;
-use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 */
 
@@ -239,14 +241,31 @@ where
                             managed_biguint!(dual_yield_token_amount),
                         )
                         .to_vec();
-                    let wegld_payment = received_tokens.get(0);
-                    let lp_farm_rewards = received_tokens.get(1);
-                    let staking_rewards = received_tokens.get(2);
-                    let unbond_tokens = received_tokens.get(3);
 
-                    assert_eq!(wegld_payment.amount, expected_wegld_amount);
-                    assert_eq!(lp_farm_rewards.amount, expected_lp_farm_rewards);
-                    assert_eq!(staking_rewards.amount, expected_staking_rewards);
+                    let mut vec_index = 0;
+
+                    if expected_wegld_amount > 0 {
+                        let wegld_payment = received_tokens.get(vec_index);
+                        assert_eq!(wegld_payment.amount, expected_wegld_amount);
+
+                        vec_index += 1;
+                    }
+
+                    if expected_lp_farm_rewards > 0 {
+                        let lp_farm_rewards = received_tokens.get(vec_index);
+                        assert_eq!(lp_farm_rewards.amount, expected_lp_farm_rewards);
+
+                        vec_index += 1;
+                    }
+
+                    if expected_staking_rewards > 0 {
+                        let staking_rewards = received_tokens.get(vec_index);
+                        assert_eq!(staking_rewards.amount, expected_staking_rewards);
+
+                        vec_index += 1;
+                    }
+
+                    let unbond_tokens = received_tokens.get(vec_index);
                     assert_eq!(unbond_tokens.amount, expected_unbond_token_amount);
 
                     unbond_token_nonce = unbond_tokens.token_nonce;
@@ -271,5 +290,33 @@ where
         });
 
         unbond_token_nonce
+    }
+
+    pub fn unbond(
+        &mut self,
+        unbond_token_nonce: u64,
+        unbond_token_amount: u64,
+        expected_token_out_amount: u64,
+    ) {
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user_addr,
+                &self.staking_farm_wrapper,
+                STAKING_FARM_TOKEN_ID,
+                unbond_token_nonce,
+                &rust_biguint!(unbond_token_amount),
+                |sc| {
+                    let received_tokens = sc.unbond_farm(
+                        managed_token_id!(STAKING_FARM_TOKEN_ID),
+                        unbond_token_nonce,
+                        managed_biguint!(unbond_token_amount),
+                        OptionalArg::None,
+                    );
+                    assert_eq!(received_tokens.amount, expected_token_out_amount);
+
+                    StateChange::Commit
+                },
+            )
+            .assert_ok();
     }
 }
