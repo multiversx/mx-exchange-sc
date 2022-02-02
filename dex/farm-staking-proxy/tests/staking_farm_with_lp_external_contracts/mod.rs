@@ -8,6 +8,7 @@ use elrond_wasm_debug::{
 };
 
 use pair::config as pair_config;
+use pair::safe_price::SafePriceModule;
 use pair::*;
 use pair_config::ConfigModule as _;
 
@@ -73,7 +74,7 @@ where
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
 
-    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 2);
+    b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
 
     let temp_user_addr = b_mock.create_user_account(&rust_zero);
     b_mock.set_esdt_balance(
@@ -100,7 +101,7 @@ where
         1_001_000_000,
     );
 
-    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 1);
+    b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
 
     add_liquidity(
         &user_addr,
@@ -115,7 +116,24 @@ where
         1_001_000_000,
     );
 
-    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP);
+    let mut i = 10;
+    while i <= BLOCK_NONCE_AFTER_PAIR_SETUP {
+        b_mock.set_block_nonce(i);
+
+        b_mock
+            .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
+                sc.update_and_get_tokens_for_given_position_with_safe_price(managed_biguint!(
+                    1_000_000_000
+                ));
+
+                StateChange::Commit
+            })
+            .assert_ok();
+
+        i += 5;
+    }
+
+    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP);
 
     pair_wrapper
 }
@@ -218,7 +236,8 @@ where
             sc.produce_rewards_enabled().set(&true);
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
-            sc.last_reward_block_nonce().set(&BLOCK_NONCE_AFTER_SETUP);
+            sc.last_reward_block_nonce()
+                .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
 
             StateChange::Commit
         })

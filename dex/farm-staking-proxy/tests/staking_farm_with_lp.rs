@@ -25,7 +25,7 @@ fn test_stake_farm_proxy() {
         farm_staking_proxy::contract_obj,
     );
 
-    let expected_staking_token_amount = 500_500_000; // safe price of USER_TOTAL_LP_TOKENS in RIDE tokens
+    let expected_staking_token_amount = 1_001_000_000; // safe price of USER_TOTAL_LP_TOKENS in RIDE tokens
     let _dual_yield_token_nonce =
         setup.stake_farm_lp(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
 }
@@ -39,18 +39,20 @@ fn test_claim_rewards_farm_proxy_full() {
         farm_staking_proxy::contract_obj,
     );
 
-    let expected_staking_token_amount = 500_500_000;
+    let expected_staking_token_amount = 1_001_000_000;
     let dual_yield_token_nonce_after_stake =
         setup.stake_farm_lp(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
 
-    setup.b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP + 20);
+    setup
+        .b_mock
+        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
-        24_999,
-        940,
-        955500000, // update after investigations
+        99_999,
+        1_900,
+        dual_yield_token_amount,
     );
 }

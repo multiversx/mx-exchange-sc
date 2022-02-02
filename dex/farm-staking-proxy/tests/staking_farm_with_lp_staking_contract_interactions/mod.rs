@@ -1,19 +1,17 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedVec, TokenIdentifier,
-};
+use elrond_wasm::types::{Address, BigUint, EsdtTokenPayment, ManagedVec, TokenIdentifier};
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
-    tx_mock::TxContextStack,
     DebugApi,
 };
 
+/*
 use ::config as farm_staking_config;
-use farm_staking::whitelist::WhitelistModule;
 use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
+*/
 
-use farm_staking_proxy::dual_yield_token::{DualYieldTokenAttributes, DualYieldTokenModule};
+use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
 
 use crate::{

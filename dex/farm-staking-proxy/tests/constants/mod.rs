@@ -1,4 +1,3 @@
-
 // Pair constants
 
 pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
@@ -9,6 +8,10 @@ pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP 
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 2_000_000_000;
 pub const USER_TOTAL_RIDE_TOKENS: u64 = 2_000_000_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 1_001_000_000;
+
+pub const BLOCK_NONCE_FIRST_ADD_LIQ: u64 = 5;
+pub const BLOCK_NONCE_SECOND_ADD_LIQ: u64 = 6;
+pub const BLOCK_NONCE_AFTER_PAIR_SETUP: u64 = 100;
 
 // LP farm constants
 
@@ -34,7 +37,3 @@ pub const REWARD_CAPACITY: u64 = 1_000_000_000_000;
 
 pub const PROXY_WASM_PATH: &str = "farm-staking-proxy/output/farm-staking-proxy";
 pub const DUAL_YIELD_TOKEN_ID: &[u8] = b"DYIELD-abcdef";
-
-// General
-
-pub const BLOCK_NONCE_AFTER_SETUP: u64 = 100;
