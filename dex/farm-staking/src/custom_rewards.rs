@@ -148,8 +148,6 @@ pub trait CustomRewardsModule:
             return unbounded_rewards;
         }
 
-        /*
-
         let max_apr = self.max_annual_percentage_rewards().get();
         let current_block = self.blockchain().get_block_nonce();
         let block_diff = current_block - last_claim_block;
@@ -158,10 +156,6 @@ pub trait CustomRewardsModule:
         let max_rewards_for_user = max_rewards_for_user_per_block * block_diff;
 
         core::cmp::min(unbounded_rewards, max_rewards_for_user)
-
-        */
-
-        unbounded_rewards
     }
 
     #[endpoint(startProduceRewards)]
