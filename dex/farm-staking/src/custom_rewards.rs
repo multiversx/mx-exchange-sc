@@ -26,36 +26,21 @@ pub trait CustomRewardsModule:
     }
 
     fn generate_aggregated_rewards(&self) {
-        let extra_rewards = self.calculate_extra_rewards_since_last_allocation();
+        let mut extra_rewards = self.calculate_extra_rewards_since_last_allocation();
         if extra_rewards > 0 {
-            self.increase_reward_reserve(&extra_rewards);
+            let mut accumulated_rewards = self.accumulated_rewards().get();
+            let total_rewards = &accumulated_rewards + &extra_rewards;
+            let reward_capacity = self.reward_capacity().get();
+            if total_rewards > reward_capacity {
+                let amount_over_capacity = total_rewards - reward_capacity;
+                extra_rewards -= amount_over_capacity;
+            }
+
+            accumulated_rewards += &extra_rewards;
+            self.accumulated_rewards().set(&accumulated_rewards);
+
             self.update_reward_per_share(&extra_rewards);
         }
-    }
-
-    fn calculate_rewards_with_apr_limit(
-        &self,
-        amount: &BigUint,
-        current_reward_per_share: &BigUint,
-        initial_reward_per_share: &BigUint,
-        last_claim_block: u64,
-    ) -> BigUint {
-        let unbounded_rewards =
-            self.calculate_reward(amount, current_reward_per_share, initial_reward_per_share);
-        if unbounded_rewards == 0u32 {
-            return unbounded_rewards;
-        }
-
-        let farming_token_total_liquidity = self.farming_token_total_liquidity().get();
-        let max_apr = self.max_annual_percentage_rewards().get();
-        let max_rewards_per_block =
-            farming_token_total_liquidity * max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
-
-        let current_block = self.blockchain().get_block_nonce();
-        let block_diff = current_block - last_claim_block;
-        let max_rewards = max_rewards_per_block * block_diff;
-
-        core::cmp::min(unbounded_rewards, max_rewards)
     }
 
     #[payable("*")]
@@ -70,7 +55,7 @@ pub trait CustomRewardsModule:
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 
-        self.increase_reward_reserve(&payment_amount);
+        self.reward_capacity().update(|r| *r += payment_amount);
     }
 
     #[endpoint]
@@ -119,19 +104,6 @@ pub trait CustomRewardsModule:
         per_block_reward * block_nonce_diff
     }
 
-    fn increase_reward_reserve(&self, amount: &BigUint) {
-        self.reward_reserve().update(|reserve| {
-            *reserve += amount;
-        });
-    }
-
-    fn decrease_reward_reserve(&self, amount: &BigUint) {
-        self.reward_reserve().update(|reserve| {
-            require!(&*reserve >= amount, "Not enough reserves");
-            *reserve -= amount;
-        })
-    }
-
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
         let farm_token_supply = self.farm_token_supply().get();
         if farm_token_supply > 0 {
@@ -163,6 +135,29 @@ pub trait CustomRewardsModule:
         }
     }
 
+    fn calculate_rewards_with_apr_limit(
+        &self,
+        amount: &BigUint,
+        current_reward_per_share: &BigUint,
+        initial_reward_per_share: &BigUint,
+        last_claim_block: u64,
+    ) -> BigUint {
+        let unbounded_rewards =
+            self.calculate_reward(amount, current_reward_per_share, initial_reward_per_share);
+        if unbounded_rewards == 0u32 {
+            return unbounded_rewards;
+        }
+
+        let max_apr = self.max_annual_percentage_rewards().get();
+        let current_block = self.blockchain().get_block_nonce();
+        let block_diff = current_block - last_claim_block;
+
+        let max_rewards_for_user_per_block = amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
+        let max_rewards_for_user = max_rewards_for_user_per_block * block_diff;
+
+        core::cmp::min(unbounded_rewards, max_rewards_for_user)
+    }
+
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) {
         self.require_permissions();
@@ -188,17 +183,17 @@ pub trait CustomRewardsModule:
     #[storage_mapper("reward_per_share")]
     fn reward_per_share(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getRewardReserve)]
-    #[storage_mapper("reward_reserve")]
-    fn reward_reserve(&self) -> SingleValueMapper<BigUint>;
+    #[view(getAccumulatedRewards)]
+    #[storage_mapper("accumulatedRewards")]
+    fn accumulated_rewards(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getRewardCapacity)]
+    #[storage_mapper("reward_capacity")]
+    fn reward_capacity(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getAnnualPercentageRewards)]
     #[storage_mapper("annualPercentageRewards")]
     fn max_annual_percentage_rewards(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getFarmingTokenTotalLiquidity)]
-    #[storage_mapper("farmingTokenTotalLiquidity")]
-    fn farming_token_total_liquidity(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getMinUnbondEpochs)]
     #[storage_mapper("minUnbondEpochs")]

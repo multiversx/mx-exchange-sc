@@ -1,0 +1,17 @@
+[package]
+name = "farm-staking-proxy-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = [ "you",]
+
+[dev-dependencies]
+
+[dependencies.farm-staking-proxy]
+path = ".."
+
+[dependencies.elrond-wasm]
+version = "0.27.2"
+
+[dependencies.elrond-wasm-debug]
+version = "0.27.2"

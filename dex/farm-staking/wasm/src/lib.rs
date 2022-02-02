@@ -8,17 +8,19 @@ elrond_wasm_node::wasm_endpoints! {
     farm_staking
     (
         callBack
+        addAddressToWhitelist
         calculateRewardsForGivenPosition
         claimRewards
+        claimRewardsWithNewValue
         compoundRewards
         end_produce_rewards
+        getAccumulatedRewards
         getAnnualPercentageRewards
         getBurnGasLimit
         getDivisionSafetyConstant
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
-        getFarmingTokenTotalLiquidity
         getLastErrorMessage
         getLastRewardBlockNonce
         getLockedAssetFactoryManagedAddress
@@ -33,9 +35,11 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardTokenId
         getState
         getTransferExecGasLimit
+        isWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
+        removeAddressFromWhitelist
         resume
         setLocalRolesFarmToken
         setMaxApr
@@ -46,9 +50,11 @@ elrond_wasm_node::wasm_endpoints! {
         set_penalty_percent
         set_transfer_exec_gas_limit
         stakeFarm
+        stakeFarmThroughProxy
         startProduceRewards
         topUpRewards
         unbondFarm
         unstakeFarm
+        unstakeFarmThroughProxy
     )
 }
