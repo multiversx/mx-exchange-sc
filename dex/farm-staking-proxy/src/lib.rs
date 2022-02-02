@@ -237,8 +237,8 @@ pub trait FarmStakingProxy:
                 lp_tokens.token_identifier,
                 lp_tokens.token_nonce,
                 lp_tokens.amount,
-                BigUint::zero(),
-                BigUint::zero(),
+                BigUint::from(1u32),
+                BigUint::from(1u32),
                 OptionalArg::None,
             )
             .execute_on_dest_context();
@@ -281,7 +281,7 @@ pub trait FarmStakingProxy:
         let unstake_result: ExitFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
             .unstake_farm_through_proxy(staking_sc_payments)
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (unbond_staking_farm_token, staking_rewards) = unstake_result.into_tuple();
 
         let caller = self.blockchain().get_caller();

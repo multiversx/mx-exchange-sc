@@ -11,6 +11,7 @@ use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 */
 
+use farm_staking::UnbondSftAttributes;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
 
@@ -209,5 +210,66 @@ where
             .assert_ok();
 
         dual_yield_nonce
+    }
+
+    pub fn unstake(
+        &mut self,
+        dual_yield_token_nonce: u64,
+        dual_yield_token_amount: u64,
+        expected_wegld_amount: u64,
+        expected_lp_farm_rewards: u64,
+        expected_staking_rewards: u64,
+        expected_unbond_token_amount: u64,
+        expected_unbond_token_unlock_epoch: u64,
+    ) -> u64 {
+        let mut unbond_token_nonce = 0;
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user_addr,
+                &self.proxy_wrapper,
+                DUAL_YIELD_TOKEN_ID,
+                dual_yield_token_nonce,
+                &rust_biguint!(dual_yield_token_amount),
+                |sc| {
+                    let received_tokens = sc
+                        .unstake_farm_tokens(
+                            managed_token_id!(DUAL_YIELD_TOKEN_ID),
+                            dual_yield_token_nonce,
+                            managed_biguint!(dual_yield_token_amount),
+                        )
+                        .to_vec();
+                    let wegld_payment = received_tokens.get(0);
+                    let lp_farm_rewards = received_tokens.get(1);
+                    let staking_rewards = received_tokens.get(2);
+                    let unbond_tokens = received_tokens.get(3);
+
+                    assert_eq!(wegld_payment.amount, expected_wegld_amount);
+                    assert_eq!(lp_farm_rewards.amount, expected_lp_farm_rewards);
+                    assert_eq!(staking_rewards.amount, expected_staking_rewards);
+                    assert_eq!(unbond_tokens.amount, expected_unbond_token_amount);
+
+                    unbond_token_nonce = unbond_tokens.token_nonce;
+
+                    StateChange::Commit
+                },
+            )
+            .assert_ok();
+
+        self.b_mock.execute_in_managed_environment(|| {
+            let expected_attributes = UnbondSftAttributes {
+                unlock_epoch: expected_unbond_token_unlock_epoch,
+            };
+
+            self.b_mock.check_nft_balance(
+                &self.user_addr,
+                STAKING_FARM_TOKEN_ID,
+                unbond_token_nonce,
+                &rust_biguint!(expected_unbond_token_amount),
+                &expected_attributes,
+            );
+        });
+
+        unbond_token_nonce
     }
 }

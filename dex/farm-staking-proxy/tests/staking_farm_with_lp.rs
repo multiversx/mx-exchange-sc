@@ -129,3 +129,32 @@ fn test_claim_rewards_farm_proxy_twice() {
         dual_yield_token_amount,
     );
 }
+
+#[test]
+fn test_unstake_through_proxy_no_claim() {
+    let mut setup = FarmStakingSetup::new(
+        pair::contract_obj,
+        farm::contract_obj,
+        farm_staking::contract_obj,
+        farm_staking_proxy::contract_obj,
+    );
+
+    let expected_staking_token_amount = 1_001_000_000;
+    let dual_yield_token_nonce_after_stake =
+        setup.stake_farm_lp(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
+
+    setup
+        .b_mock
+        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+
+    let dual_yield_token_amount = 1_001_000_000;
+    setup.unstake(
+        dual_yield_token_nonce_after_stake,
+        dual_yield_token_amount,
+        999_999_000,
+        99_999,
+        1_900,
+        999_999_000,
+        10,
+    );
+}
