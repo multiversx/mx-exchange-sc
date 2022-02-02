@@ -45,13 +45,12 @@ fn test_claim_rewards_farm_proxy_full() {
 
     setup.b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP + 20);
 
-    /*
     let dual_yield_token_amount = expected_staking_token_amount;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
-        2_777, // update value
-        19_999, // update value
+        24_999,
+        940,
+        955500000, // update after investigations
     );
-    */
 }

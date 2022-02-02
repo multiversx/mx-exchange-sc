@@ -171,6 +171,7 @@ where
         dual_yield_token_amount: u64,
         expected_lp_farm_reward_amount: u64,
         expected_staking_farm_reward_amount: u64,
+        expected_new_dual_yield_token_amount: u64,
     ) -> u64 {
         let mut dual_yield_nonce = 0;
 
@@ -201,7 +202,7 @@ where
                     );
                     assert_eq!(
                         new_dual_yield_tokens.amount,
-                        managed_biguint!(dual_yield_token_amount)
+                        expected_new_dual_yield_token_amount
                     );
 
                     StateChange::Commit
