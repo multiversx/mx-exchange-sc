@@ -6,6 +6,7 @@ pub mod config;
 mod events;
 mod farm_token;
 pub mod farm_token_merge;
+mod migration;
 mod rewards;
 
 use common_structs::{Epoch, FarmTokenAttributes, Nonce};
@@ -36,6 +37,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule
+    + migration::MigrationModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
