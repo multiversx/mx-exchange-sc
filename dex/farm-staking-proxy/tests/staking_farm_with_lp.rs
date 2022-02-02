@@ -196,3 +196,37 @@ fn unstake_through_proxy_after_claim() {
         10,
     );
 }
+
+#[test]
+fn unbond_test() {
+    let mut setup = FarmStakingSetup::new(
+        pair::contract_obj,
+        farm::contract_obj,
+        farm_staking::contract_obj,
+        farm_staking_proxy::contract_obj,
+    );
+
+    let expected_staking_token_amount = 1_001_000_000;
+    let dual_yield_token_nonce_after_stake =
+        setup.stake_farm_lp(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
+
+    setup
+        .b_mock
+        .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+
+    let dual_yield_token_amount = 1_001_000_000;
+    let unbond_token_nonce = setup.unstake(
+        dual_yield_token_nonce_after_stake,
+        dual_yield_token_amount,
+        999_999_000,
+        99_999,
+        1_900,
+        999_999_000,
+        10,
+    );
+
+    setup.b_mock.set_block_epoch(20);
+
+    let unbond_amount = 999_999_000;
+    setup.unbond(unbond_token_nonce, unbond_amount, unbond_amount);
+}
