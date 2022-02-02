@@ -38,6 +38,7 @@ pub trait Farm:
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
+    + migration_from_v1_2::MigrationModule
 {
     #[proxy]
     fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;

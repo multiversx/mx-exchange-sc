@@ -38,6 +38,7 @@ pub trait Farm:
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
+    + migration_from_v1_2::MigrationModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;

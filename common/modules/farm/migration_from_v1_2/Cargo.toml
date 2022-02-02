@@ -1,0 +1,29 @@
+[package]
+name = "migration_from_v1_2"
+version = "0.0.0"
+authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.common_structs]
+path = "../../../common_structs"
+
+[dependencies.common_errors]
+path = "../../../common_errors"
+
+[dependencies.config]
+path = "../config"
+
+[dependencies.farm_token]
+path = "../farm_token"
+
+[dependencies.token_send]
+path = "../../token_send"
+
+[dependencies.rewards]
+path = "../rewards"
+
+[dependencies.elrond-wasm]
+version = "0.27.2"

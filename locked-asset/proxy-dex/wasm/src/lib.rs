@@ -25,6 +25,7 @@ elrond_wasm_node::wasm_endpoints! {
         getWrappedLpTokenId
         mergeWrappedFarmTokens
         mergeWrappedLpTokens
+        migrateV1_2Position
         registerProxyFarm
         registerProxyPair
         removeIntermediatedFarm
