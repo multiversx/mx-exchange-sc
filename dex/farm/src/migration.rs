@@ -44,7 +44,7 @@ pub trait MigrationModule:
         require!(self.state().get() == State::Migrate, "bad state");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        require!(self.farm_migration_config().is_empty(), "empty config");
+        require!(!self.farm_migration_config().is_empty(), "empty config");
         let migration_config = self.farm_migration_config().get();
         require!(migration_config.migration_role.is_old(), "bad config");
 
