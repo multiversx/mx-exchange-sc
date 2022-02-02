@@ -122,14 +122,6 @@ pub trait SafePriceModule:
             (first_worth, second_worth)
         };
 
-        self.print().print_biguint(&total_supply);
-        self.print()
-            .print_biguint(&c_state.first_token_reserve_weighted);
-        self.print()
-            .print_biguint(&c_state.second_token_reserve_weighted);
-        self.print().print_biguint(&first_token_worth);
-        self.print().print_biguint(&second_token_worth);
-
         MultiResult2::from((
             EsdtTokenPayment::new(first_token_id, 0, first_token_worth),
             EsdtTokenPayment::new(second_token_id, 0, second_token_worth),
