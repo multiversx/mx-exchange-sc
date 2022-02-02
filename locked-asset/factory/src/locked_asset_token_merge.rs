@@ -163,9 +163,9 @@ pub trait LockedAssetTokenMergeModule:
         for elem in array.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
 
-            if elem.epoch == last.epoch {
+            if elem.epoch == last.epoch || elem.epoch == last.epoch + 1 {
                 let new_elem = EpochAmountPair {
-                    epoch: last.epoch,
+                    epoch: elem.epoch,
                     amount: &last.amount + &elem.amount,
                 };
                 unlock_epoch_amount_merged.pop();

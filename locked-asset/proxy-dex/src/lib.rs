@@ -7,6 +7,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod events;
+mod migration_from_v1_2;
 mod proxy_common;
 mod proxy_farm;
 mod proxy_pair;
@@ -29,6 +30,7 @@ pub trait ProxyDexImpl:
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge
     + events::EventsModule
+    + migration_from_v1_2::MigrationModule
 {
     #[init]
     fn init(

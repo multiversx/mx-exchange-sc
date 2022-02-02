@@ -11,6 +11,8 @@ pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
 pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
 
+use core::fmt::Debug;
+
 #[derive(ManagedVecItem)]
 pub struct LockedTokenEx<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
@@ -21,6 +23,18 @@ pub struct LockedTokenEx<M: ManagedTypeApi> {
 pub struct EpochAmountPair<M: ManagedTypeApi> {
     pub epoch: u64,
     pub amount: BigUint<M>,
+}
+
+impl<M> Debug for EpochAmountPair<M>
+where
+    M: ManagedTypeApi,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("EpochAmountPair")
+            .field("epoch", &self.epoch)
+            .field("amount", &self.amount)
+            .finish()
+    }
 }
 
 #[elrond_wasm::module]
