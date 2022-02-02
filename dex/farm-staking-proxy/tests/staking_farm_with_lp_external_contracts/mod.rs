@@ -75,22 +75,6 @@ where
 
     b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 2);
 
-    add_liquidity(
-        user_addr,
-        b_mock,
-        &pair_wrapper,
-        1_001_000,
-        1_000_000,
-        1_001_000,
-        1_000_000,
-        USER_TOTAL_LP_TOKENS,
-        1_001_000,
-        1_001_000,
-    );
-
-    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 1);
-
-    // need to add liqudidity again for the safe price to be set
     let temp_user_addr = b_mock.create_user_account(&rust_zero);
     b_mock.set_esdt_balance(
         &temp_user_addr,
@@ -107,13 +91,28 @@ where
         &temp_user_addr,
         b_mock,
         &pair_wrapper,
-        1_001_000,
-        1_000_000,
-        1_001_000,
-        1_000_000,
-        USER_TOTAL_LP_TOKENS + 1_000,
-        1_001_000,
-        1_001_000,
+        1_001_000_000,
+        1_000_000_000,
+        1_001_000_000,
+        1_000_000_000,
+        1_000_999_000,
+        1_001_000_000,
+        1_001_000_000,
+    );
+
+    b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP - 1);
+
+    add_liquidity(
+        &user_addr,
+        b_mock,
+        &pair_wrapper,
+        1_001_000_000,
+        1_000_000_000,
+        1_001_000_000,
+        1_000_000_000,
+        USER_TOTAL_LP_TOKENS,
+        1_001_000_000,
+        1_001_000_000,
     );
 
     b_mock.set_block_nonce(BLOCK_NONCE_AFTER_SETUP);

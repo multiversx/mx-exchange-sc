@@ -6,8 +6,9 @@ pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const RIDE_TOKEN_ID: &[u8] = b"RIDE-abcdef";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP farm
 
-pub const USER_TOTAL_WEGLD_TOKENS: u64 = 2_000_000;
-pub const USER_TOTAL_RIDE_TOKENS: u64 = 2_000_000;
+pub const USER_TOTAL_WEGLD_TOKENS: u64 = 2_000_000_000;
+pub const USER_TOTAL_RIDE_TOKENS: u64 = 2_000_000_000;
+pub const USER_TOTAL_LP_TOKENS: u64 = 1_001_000_000;
 
 // LP farm constants
 
@@ -17,7 +18,6 @@ pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u8 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
 pub const LP_FARM_PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
-pub const USER_TOTAL_LP_TOKENS: u64 = 1_000_000;
 
 // Staking farm constants
 
