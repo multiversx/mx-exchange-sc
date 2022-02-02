@@ -297,7 +297,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 first_token_id: first_token_id.clone(),
                 second_token_id: second_token_id.clone(),
             })
-            .unwrap_or_else(|| ManagedAddress::zero());
+            .unwrap_or_else(ManagedAddress::zero);
 
         if pair_address.is_zero() {
             pair_address = self
@@ -306,7 +306,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                     first_token_id: second_token_id,
                     second_token_id: first_token_id,
                 })
-                .unwrap_or_else(|| ManagedAddress::zero());
+                .unwrap_or_else(ManagedAddress::zero);
         }
 
         Ok(pair_address)

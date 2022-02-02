@@ -1,0 +1,103 @@
+{
+    "name": "remove pair",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "complete_setup.scen.json"
+        },
+        {
+            "step": "scCall",
+            "txId": "get-pair",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "getPair",
+                "arguments": [
+                    "str:ALC-abcdef",
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "sc:pair_contract"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "create-pair",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:router_contract",
+                "function": "removePair",
+                "arguments": [
+                    "str:ALC-abcdef",
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "200,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "4",
+                "message": "str:Endpoint can only be called by owner",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "create-pair",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "removePair",
+                "arguments": [
+                    "str:ALC-abcdef",
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "200,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "sc:pair_contract"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "get-pair",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:router_contract",
+                "function": "getPair",
+                "arguments": [
+                    "str:ALC-abcdef",
+                    "str:WEGLD-abcdef"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}
