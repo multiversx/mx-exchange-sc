@@ -122,6 +122,14 @@ pub trait SafePriceModule:
             (first_worth, second_worth)
         };
 
+        self.print().print_biguint(&total_supply);
+        self.print()
+            .print_biguint(&c_state.first_token_reserve_weighted);
+        self.print()
+            .print_biguint(&c_state.second_token_reserve_weighted);
+        self.print().print_biguint(&first_token_worth);
+        self.print().print_biguint(&second_token_worth);
+
         MultiResult2::from((
             EsdtTokenPayment::new(first_token_id, 0, first_token_worth),
             EsdtTokenPayment::new(second_token_id, 0, second_token_worth),
@@ -180,6 +188,11 @@ pub trait SafePriceModule:
         let current_block = self.blockchain().get_block_nonce();
         let mut current_state = self.get_current_state_or_default();
         let mut future_state = self.get_future_state_or_default();
+
+        //Skip executing if reserves are 0. This will only happen once, first add_liq after init.
+        if first_token_reserve == &0u64 || second_token_reserve == &0u64 {
+            return;
+        }
 
         //Skip executing the update more than once per block.
         if current_state.contains_block(current_block) {
