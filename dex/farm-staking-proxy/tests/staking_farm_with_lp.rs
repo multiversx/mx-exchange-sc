@@ -25,7 +25,7 @@ fn test_stake_farm_proxy() {
         farm_staking_proxy::contract_obj,
     );
 
-    let expected_staking_token_amount = 500_000; // safe price of USER_TOTAL_LP_TOKENS in RIDE tokens
+    let expected_staking_token_amount = 500_500_000; // safe price of USER_TOTAL_LP_TOKENS in RIDE tokens
     let _dual_yield_token_nonce =
         setup.stake_farm_lp(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
 }
@@ -39,7 +39,7 @@ fn test_claim_rewards_farm_proxy_full() {
         farm_staking_proxy::contract_obj,
     );
 
-    let expected_staking_token_amount = 500_000;
+    let expected_staking_token_amount = 500_500_000;
     let dual_yield_token_nonce_after_stake =
         setup.stake_farm_lp(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
 
