@@ -164,4 +164,51 @@ where
 
         dual_yield_nonce
     }
+
+    pub fn claim_rewards(
+        &mut self,
+        dual_yield_token_nonce: u64,
+        dual_yield_token_amount: u64,
+        expected_lp_farm_reward_amount: u64,
+        expected_staking_farm_reward_amount: u64,
+    ) -> u64 {
+        let mut dual_yield_nonce = 0;
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user_addr,
+                &self.proxy_wrapper,
+                DUAL_YIELD_TOKEN_ID,
+                dual_yield_token_nonce,
+                &rust_biguint!(dual_yield_token_amount),
+                |sc| {
+                    let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
+                        managed_token_id!(DUAL_YIELD_TOKEN_ID),
+                        dual_yield_token_nonce,
+                        managed_biguint!(dual_yield_token_amount),
+                    ));
+                    let received_tokens = sc.claim_dual_yield(payments).to_vec();
+                    let lp_farm_rewards = received_tokens.get(0);
+                    let staking_farm_rewards = received_tokens.get(1);
+                    let new_dual_yield_tokens = received_tokens.get(2);
+
+                    dual_yield_nonce = new_dual_yield_tokens.token_nonce;
+
+                    assert_eq!(lp_farm_rewards.amount, expected_lp_farm_reward_amount);
+                    assert_eq!(
+                        staking_farm_rewards.amount,
+                        expected_staking_farm_reward_amount
+                    );
+                    assert_eq!(
+                        new_dual_yield_tokens.amount,
+                        managed_biguint!(dual_yield_token_amount)
+                    );
+
+                    StateChange::Commit
+                },
+            )
+            .assert_ok();
+
+        dual_yield_nonce
+    }
 }

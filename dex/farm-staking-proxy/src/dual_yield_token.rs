@@ -123,6 +123,32 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         staking_farm_token_nonce: u64,
         staking_farm_token_amount: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
+        let payment = self.create_dual_yield_tokens(
+            amount,
+            lp_farm_token_nonce,
+            lp_farm_token_amount,
+            staking_farm_token_nonce,
+            staking_farm_token_amount,
+        );
+        self.send().direct(
+            to,
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+            &[],
+        );
+
+        payment
+    }
+
+    fn create_dual_yield_tokens(
+        &self,
+        amount: BigUint,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_amount: BigUint,
+        staking_farm_token_nonce: u64,
+        staking_farm_token_amount: BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
         let dual_yield_token_id = self.dual_yield_token_id().get();
         let empty_buffer = ManagedBuffer::new();
         let attributes = DualYieldTokenAttributes {
@@ -132,7 +158,6 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             staking_farm_token_amount,
             total_dual_yield_tokens_for_position: amount.clone(),
         };
-
         let new_token_nonce = self.send().esdt_nft_create(
             &dual_yield_token_id,
             &amount,
@@ -142,8 +167,6 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             &attributes,
             &ManagedVec::new(),
         );
-        self.send()
-            .direct(to, &dual_yield_token_id, new_token_nonce, &amount, &[]);
 
         EsdtTokenPayment::new(dual_yield_token_id, new_token_nonce, amount)
     }

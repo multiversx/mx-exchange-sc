@@ -212,13 +212,14 @@ where
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
             sc.farm_token_id().set(&farm_token_id);
 
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
             sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
             sc.penalty_percent().set(&PENALTY_PERCENT);
 
             sc.state().set(&farm_config::State::Active);
             sc.produce_rewards_enabled().set(&true);
+            sc.per_block_reward_amount()
+                .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
+            sc.last_reward_block_nonce().set(&BLOCK_NONCE_AFTER_SETUP);
 
             StateChange::Commit
         })

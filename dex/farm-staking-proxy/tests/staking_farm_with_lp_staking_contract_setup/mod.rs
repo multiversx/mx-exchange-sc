@@ -1,6 +1,4 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, ManagedVec, TokenIdentifier,
-};
+use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, TokenIdentifier};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
@@ -12,6 +10,7 @@ use farm_staking::whitelist::WhitelistModule;
 use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 
+use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
 use farm_staking_proxy::*;
 
@@ -19,22 +18,18 @@ use crate::constants::*;
 
 pub fn setup_staking_farm<StakingContractObjBuilder>(
     owner_addr: &Address,
-    blockchain_wrapper: &mut BlockchainStateWrapper,
+    b_mock: &mut BlockchainStateWrapper,
     builder: StakingContractObjBuilder,
 ) -> ContractObjWrapper<farm_staking::ContractObj<DebugApi>, StakingContractObjBuilder>
 where
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let farm_staking_wrapper = blockchain_wrapper.create_sc_account(
-        &rust_zero,
-        Some(owner_addr),
-        builder,
-        PROXY_WASM_PATH,
-    );
+    let farm_staking_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), builder, PROXY_WASM_PATH);
 
-    blockchain_wrapper
-        .execute_tx(&owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
+    b_mock
+        .execute_tx(owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
             let reward_token_id = managed_token_id!(STAKING_REWARD_TOKEN_ID);
             let farming_token_id = managed_token_id!(STAKING_TOKEN_ID);
             let div_const = managed_biguint!(DIVISION_SAFETY_CONSTANT);
@@ -50,19 +45,30 @@ where
 
             sc.farm_token_id()
                 .set(&managed_token_id!(STAKING_FARM_TOKEN_ID));
+
             sc.state().set(&farm_staking_config::State::Active);
             sc.produce_rewards_enabled().set(&true);
+            sc.per_block_reward_amount()
+                .set(&managed_biguint!(STAKING_FARM_PER_BLOCK_REWARD_AMOUNT));
+            sc.last_reward_block_nonce().set(&BLOCK_NONCE_AFTER_SETUP);
+            sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
 
             StateChange::Commit
         })
         .assert_ok();
+
+    b_mock.set_esdt_balance(
+        farm_staking_wrapper.address_ref(),
+        STAKING_REWARD_TOKEN_ID,
+        &rust_biguint!(REWARD_CAPACITY),
+    );
 
     let farm_token_roles = [
         EsdtLocalRole::NftCreate,
         EsdtLocalRole::NftAddQuantity,
         EsdtLocalRole::NftBurn,
     ];
-    blockchain_wrapper.set_esdt_local_roles(
+    b_mock.set_esdt_local_roles(
         farm_staking_wrapper.address_ref(),
         STAKING_FARM_TOKEN_ID,
         &farm_token_roles[..],
@@ -74,7 +80,7 @@ where
 pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
     owner_addr: &Address,
     proxy_address: &Address,
-    blockchain_wrapper: &mut BlockchainStateWrapper,
+    b_mock: &mut BlockchainStateWrapper,
     staking_farm_builder: &ContractObjWrapper<
         farm_staking::ContractObj<DebugApi>,
         StakingContractObjBuilder,
@@ -83,7 +89,7 @@ pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
     StakingContractObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    blockchain_wrapper
+    b_mock
         .execute_tx(owner_addr, staking_farm_builder, &rust_zero, |sc| {
             sc.add_address_to_whitelist(managed_address!(proxy_address));
 
@@ -97,22 +103,18 @@ pub fn setup_proxy<ProxyContractObjBuilder>(
     lp_farm_address: &Address,
     staking_farm_address: &Address,
     pair_address: &Address,
-    blockchain_wrapper: &mut BlockchainStateWrapper,
+    b_mock: &mut BlockchainStateWrapper,
     builder: ProxyContractObjBuilder,
 ) -> ContractObjWrapper<farm_staking_proxy::ContractObj<DebugApi>, ProxyContractObjBuilder>
 where
     ProxyContractObjBuilder: 'static + Copy + Fn() -> farm_staking_proxy::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let farm_staking_wrapper = blockchain_wrapper.create_sc_account(
-        &rust_zero,
-        Some(owner_addr),
-        builder,
-        STAKING_FARM_WASM_PATH,
-    );
+    let proxy_wrapper =
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), builder, PROXY_WASM_PATH);
 
-    blockchain_wrapper
-        .execute_tx(&owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
+    b_mock
+        .execute_tx(&owner_addr, &proxy_wrapper, &rust_zero, |sc| {
             sc.init(
                 managed_address!(lp_farm_address),
                 managed_address!(staking_farm_address),
@@ -134,11 +136,11 @@ where
         EsdtLocalRole::NftAddQuantity,
         EsdtLocalRole::NftBurn,
     ];
-    blockchain_wrapper.set_esdt_local_roles(
-        farm_staking_wrapper.address_ref(),
+    b_mock.set_esdt_local_roles(
+        proxy_wrapper.address_ref(),
         DUAL_YIELD_TOKEN_ID,
         &dual_yield_token_roles[..],
     );
 
-    farm_staking_wrapper
+    proxy_wrapper
 }
