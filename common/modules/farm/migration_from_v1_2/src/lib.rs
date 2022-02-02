@@ -34,7 +34,7 @@ pub trait MigrationModule:
     ) -> EsdtTokenPayment<Self::Api> {
         require!(self.state().get() == State::Active, "not active");
 
-        require!(self.farm_migration_config().is_empty(), "empty config");
+        require!(!self.farm_migration_config().is_empty(), "empty config");
         let config = self.farm_migration_config().get();
         require!(!config.migration_role.is_old(), "bad config");
 
