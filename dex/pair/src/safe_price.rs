@@ -181,6 +181,11 @@ pub trait SafePriceModule:
         let mut current_state = self.get_current_state_or_default();
         let mut future_state = self.get_future_state_or_default();
 
+        //Skip executing if reserves are 0. This will only happen once, first add_liq after init.
+        if first_token_reserve == &0u64 || second_token_reserve == &0u64 {
+            return;
+        }
+
         //Skip executing the update more than once per block.
         if current_state.contains_block(current_block) {
             return;
