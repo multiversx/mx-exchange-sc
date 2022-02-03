@@ -17,10 +17,7 @@ mod farm_v1_2_contract_proxy {
     pub trait Farm {
         #[payable("*")]
         #[endpoint(migrateToNewFarm)]
-        fn migrate_to_new_farm(
-            &self,
-            #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
-        ) -> EsdtTokenPayment<Self::Api>;
+        fn migrate_to_new_farm(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment<Self::Api>;
     }
 }
 
@@ -73,7 +70,7 @@ pub trait MigrationModule:
         // Get the new farm position from the new contract.
         let new_pos = self
             .farm_v1_2_contract_proxy(farm_address)
-            .migrate_to_new_farm(OptionalArg::Some(self.blockchain().get_sc_address()))
+            .migrate_to_new_farm(self.blockchain().get_sc_address())
             .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
 
