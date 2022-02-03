@@ -28,10 +28,7 @@ pub trait MigrationModule:
 {
     #[payable("*")]
     #[endpoint(migrateFromV1_2Farm)]
-    fn migrate_from_v1_2_farm(
-        &self,
-        #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn migrate_from_v1_2_farm(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         require!(self.state().get() == State::Active, "not active");
 
         require!(!self.farm_migration_config().is_empty(), "empty config");
@@ -107,10 +104,6 @@ pub trait MigrationModule:
                 current_farm_amount: old_attrs.current_farm_amount,
             },
         );
-
-        let orig_caller = orig_caller_opt
-            .into_option()
-            .unwrap_or_else(|| caller.clone());
 
         // Use this function since it works regardless of wasm ocasional unalignment.
         self.transfer_execute_custom(
