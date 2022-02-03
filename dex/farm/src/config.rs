@@ -154,4 +154,8 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getBurnedTokenAmount)]
     #[storage_mapper("burned_tokens")]
     fn burned_tokens(&self, token_id: &TokenIdentifier) -> SingleValueMapper<BigUint>;
+
+    #[view(getFarmingTokenReserve)]
+    #[storage_mapper("farming_token_reserve")]
+    fn farming_token_reserve(&self) -> SingleValueMapper<BigUint>;
 }

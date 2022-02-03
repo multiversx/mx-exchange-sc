@@ -78,6 +78,8 @@ pub trait MigrationModule:
         );
 
         self.farm_token_supply().update(|x| *x -= &amount);
+        self.farming_token_reserve()
+            .update(|x| *x -= &initial_farming_token_amount);
 
         let mut payments = ManagedVec::new();
         payments.push(EsdtTokenPayment::new(payment_token_id, token_nonce, amount));

@@ -729,8 +729,4 @@ pub trait Farm:
         self.farming_token_reserve().set(&(&current - amount));
         Ok(())
     }
-
-    #[view(getFarmingTokenReserve)]
-    #[storage_mapper("farming_token_reserve")]
-    fn farming_token_reserve(&self) -> SingleValueMapper<BigUint>;
 }
