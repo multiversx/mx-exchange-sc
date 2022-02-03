@@ -28,7 +28,7 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
             self.blockchain().is_smart_contract(&dex_sc_address),
             "Invalid DEX SC address"
         );
-        self.dex_sc_address().set_if_empty(&dex_sc_address);
+        self.dex_sc_address().set(&dex_sc_address);
     }
 
     #[endpoint(createDexLiquidityPool)]

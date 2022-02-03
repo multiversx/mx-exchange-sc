@@ -30,6 +30,7 @@ where
     pub owner_address: Address,
     pub first_user_address: Address,
     pub second_user_address: Address,
+    pub sc_dex_address: Address,
     pub pd_wrapper: ContractObjWrapper<price_discovery::ContractObj<DebugApi>, PriceDiscObjBuilder>,
     pub dex_wrapper: ContractObjWrapper<pair_mock::ContractObj<DebugApi>, DexObjBuilder>,
 }
@@ -133,7 +134,6 @@ where
     blockchain_wrapper
         .execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
             sc.init(
-                managed_address!(dex_wrapper.address_ref()),
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
                 START_EPOCH,
@@ -147,11 +147,21 @@ where
         })
         .assert_ok();
 
+    let sc_dex_address = dex_wrapper.address_ref().clone();
+
+    blockchain_wrapper
+        .execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
+            sc.set_pair_address(ManagedAddress::from_address(&sc_dex_address));
+            StateChange::Commit
+        })
+        .assert_ok();
+
     PriceDiscSetup {
         blockchain_wrapper,
         owner_address,
         first_user_address,
         second_user_address,
+        sc_dex_address,
         pd_wrapper,
         dex_wrapper,
     }
