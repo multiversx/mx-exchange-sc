@@ -35,7 +35,6 @@
                         "str:farm_token_id": "str:FARM-abcdef",
                         "str:router_address": "address:owner",
                         "str:state": "1",
-                        "str:owner": "address:owner",
                         "str:per_block_reward_amount": "5000",
                         "str:last_reward_block_nonce": "0",
                         "str:minimum_farming_epochs": "2",

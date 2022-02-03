@@ -28,7 +28,6 @@
                         "str:reward_token_id": "str:MEX-abcdef",
                         "str:router_address": "address:owner",
                         "str:state": "1",
-                        "str:owner": "address:owner",
                         "str:minimum_farming_epochs": "2",
                         "str:penalty_percent": "100",
                         "str:locked_asset_factory_address": "sc:locked_asset_factory",

@@ -57,7 +57,6 @@
                         "str:farm_token_id": "str:FARM-abcdef",
                         "str:router_address": "sc:router_contract",
                         "str:state": "1",
-                        "str:owner": "address:owner",
                         "str:minimum_farming_epochs": "2",
                         "str:division_safety_constant": "1000000000000",
                         "str:penalty_percent": "100",

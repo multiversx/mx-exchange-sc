@@ -25,8 +25,7 @@
                         "str:reward_token_id": "str:WEGLD-abcdef",
                         "str:farm_token_id": "str:FARM-abcdef",
                         "str:router_address": "sc:router_contract",
-                        "str:state": "1",
-                        "str:owner": "address:owner"
+                        "str:state": "1"
                     },
                     "code": "file:../farm/output/farm.wasm"
                 }
@@ -97,7 +96,6 @@
                     "storage": {
                         "str:farm_token_id": "str:FARM-abcdef",
                         "str:router_address": "sc:router_contract",
-                        "str:owner": "address:owner",
                         "str:state": "1",
                         "str:farming_token_id": "str:WEGLD-abcdef",
                         "str:reward_token_id": "str:WEGLD-abcdef",
