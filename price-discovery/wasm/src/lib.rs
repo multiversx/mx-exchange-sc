@@ -21,6 +21,7 @@ elrond_wasm_node::wasm_endpoints! {
         getStartEpoch
         issueRedeemToken
         redeem
+        setPairAddress
         totalLpTokensReceived
         withdraw
     )

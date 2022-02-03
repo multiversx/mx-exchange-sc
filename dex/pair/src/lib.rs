@@ -174,10 +174,6 @@ pub trait Pair<ContractReader>:
             context.get_tx_input().is_valid(),
             ERROR_ARGS_NOT_MATCH_PAYMENTS
         );
-        require!(
-            self.initial_liquidity_adder().get().is_none(),
-            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
-        );
 
         self.load_state(&mut context);
         require!(
@@ -191,6 +187,13 @@ pub trait Pair<ContractReader>:
             ERROR_LP_TOKEN_NOT_ISSUED
         );
 
+        self.load_lp_token_supply(&mut context);
+        require!(
+            self.initial_liquidity_adder().get().is_none()
+                || context.get_lp_token_supply() != &0u64,
+            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
+        );
+
         self.load_pool_token_ids(&mut context);
         require!(
             context.payment_tokens_match_pool_tokens(),
@@ -199,7 +202,6 @@ pub trait Pair<ContractReader>:
 
         self.load_pool_reserves(&mut context);
         self.update_safe_state_from_context(&context);
-        self.load_lp_token_supply(&mut context);
         self.load_initial_k(&mut context);
 
         self.calculate_optimal_amounts(&mut context);
