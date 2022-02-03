@@ -146,16 +146,17 @@ fn test_unstake_through_proxy_no_claim() {
     setup
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+    setup.b_mock.set_block_epoch(20);
 
     let dual_yield_token_amount = 1_001_000_000;
     setup.unstake(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
-        999_999_000,
+        1_001_000_000,
         99_999,
         1_900,
-        999_999_000,
-        10,
+        1_001_000_000,
+        30,
     );
 }
 
