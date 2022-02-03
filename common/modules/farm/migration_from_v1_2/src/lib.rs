@@ -151,8 +151,6 @@ pub trait MigrationModule:
             migration_role,
             old_farm_address,
             old_farm_token_id,
-            new_farm_address,
-            new_farm_with_lock_address,
         });
     }
 
@@ -190,9 +188,7 @@ impl FarmMigrationRole {
     pub fn is_old(&self) -> bool {
         self == &FarmMigrationRole::Old
     }
-    pub fn is_new(&self) -> bool {
-        self == &FarmMigrationRole::New
-    }
+
     pub fn is_new_with_lock(&self) -> bool {
         self == &FarmMigrationRole::NewWithLock
     }
@@ -203,6 +199,4 @@ pub struct FarmMigrationConfig<M: ManagedTypeApi> {
     migration_role: FarmMigrationRole,
     old_farm_address: ManagedAddress<M>,
     old_farm_token_id: TokenIdentifier<M>,
-    new_farm_address: ManagedAddress<M>,
-    new_farm_with_lock_address: ManagedAddress<M>,
 }
