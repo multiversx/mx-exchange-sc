@@ -75,7 +75,7 @@ pub trait Farm:
             farming_token_id != farm_token,
             "Farming token ID cannot be farm token ID"
         );
-        require!(max_apr > 0, "Invalid max APR percentage");
+        require!(max_apr > 0u64, "Invalid max APR percentage");
 
         self.state().set(&State::Inactive);
         self.minimum_farming_epochs()
@@ -86,7 +86,6 @@ pub trait Farm:
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
-        self.owner().set(&self.blockchain().get_caller());
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);

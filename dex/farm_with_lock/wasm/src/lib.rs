@@ -24,7 +24,6 @@ elrond_wasm_node::wasm_endpoints! {
         getLastRewardBlockNonce
         getLockedAssetFactoryManagedAddress
         getMinimumFarmingEpoch
-        getOwner
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount

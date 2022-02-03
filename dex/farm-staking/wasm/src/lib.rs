@@ -26,12 +26,11 @@ elrond_wasm_node::wasm_endpoints! {
         getLockedAssetFactoryManagedAddress
         getMinUnbondEpochs
         getMinimumFarmingEpoch
-        getOwner
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getRewardCapacity
         getRewardPerShare
-        getRewardReserve
         getRewardTokenId
         getState
         getTransferExecGasLimit

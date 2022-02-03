@@ -73,7 +73,6 @@ pub trait Farm:
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
-        self.owner().set(&self.blockchain().get_caller());
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.locked_asset_factory_address()

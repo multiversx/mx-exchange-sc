@@ -43,6 +43,7 @@ pub trait CustomRewardsModule:
         }
     }
 
+    #[only_owner]
     #[payable("*")]
     #[endpoint(topUpRewards)]
     fn top_up_rewards(
@@ -50,42 +51,39 @@ pub trait CustomRewardsModule:
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_amount] payment_amount: BigUint,
     ) {
-        self.require_permissions();
-
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 
         self.reward_capacity().update(|r| *r += payment_amount);
     }
 
+    #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {
-        self.require_permissions();
-
         self.generate_aggregated_rewards();
         self.produce_rewards_enabled().set(&false);
     }
 
+    #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        self.require_permissions();
         require!(per_block_amount != 0, "Amount cannot be zero");
 
         self.generate_aggregated_rewards();
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
+    #[only_owner]
     #[endpoint(setMaxApr)]
     fn set_max_apr(&self, max_apr: BigUint) {
-        self.require_permissions();
         require!(max_apr != 0, "Max APR cannot be zero");
 
         self.max_annual_percentage_rewards().set(&max_apr);
     }
 
+    #[only_owner]
     #[endpoint(setMinUnbondEpochs)]
     fn set_min_unbond_epochs(&self, min_unbond_epochs: u64) {
-        self.require_permissions();
         self.min_unbond_epochs().set(&min_unbond_epochs);
     }
 
@@ -158,9 +156,9 @@ pub trait CustomRewardsModule:
         core::cmp::min(unbounded_rewards, max_rewards_for_user)
     }
 
+    #[only_owner]
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) {
-        self.require_permissions();
         require!(
             self.per_block_reward_amount().get() != 0,
             "Cannot produce zero reward amount"

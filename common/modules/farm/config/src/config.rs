@@ -28,46 +28,40 @@ pub trait ConfigModule: token_send::TokenSendModule {
         state == State::Active
     }
 
-    fn require_permissions(&self) {
-        let caller = self.blockchain().get_caller();
-        let owner = self.owner().get();
-        require!(caller == owner, ERROR_PERMISSIONS);
-    }
-
+    #[only_owner]
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) {
-        self.require_permissions();
         require!(percent < MAX_PERCENT, ERROR_PARAMETERS);
         self.penalty_percent().set(&percent);
     }
 
+    #[only_owner]
     #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: u8) {
-        self.require_permissions();
         self.minimum_farming_epochs().set(&epochs);
     }
 
+    #[only_owner]
     #[endpoint]
     fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
-        self.require_permissions();
         self.transfer_exec_gas_limit().set(&gas_limit);
     }
 
+    #[only_owner]
     #[endpoint]
     fn set_burn_gas_limit(&self, gas_limit: u64) {
-        self.require_permissions();
         self.burn_gas_limit().set(&gas_limit);
     }
 
+    #[only_owner]
     #[endpoint]
     fn pause(&self) {
-        self.require_permissions();
         self.state().set(&State::Inactive);
     }
 
+    #[only_owner]
     #[endpoint]
     fn resume(&self) {
-        self.require_permissions();
         self.state().set(&State::Active);
     }
 
@@ -82,10 +76,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getState)]
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<State>;
-
-    #[view(getOwner)]
-    #[storage_mapper("owner")]
-    fn owner(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getFarmingTokenId)]
     #[storage_mapper("farming_token_id")]

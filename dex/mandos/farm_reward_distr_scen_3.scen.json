@@ -61,14 +61,13 @@
                         "str:state": "1",
                         "str:minimum_farming_epochs": "2",
                         "str:router_address": "address:alice",
-                        "str:owner": "address:alice",
                         "str:penalty_percent": "0",
                         "str:division_safety_constant": "1000000000000",
                         "str:per_block_reward_amount": "100",
                         "str:produce_rewards_enabled": "1"
                     },
                     "code": "file:../farm/output/farm.wasm",
-                    "owner": "address:owner"
+                    "owner": "address:alice"
                 }
             }
         },
