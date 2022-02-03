@@ -16,7 +16,7 @@ mod farm_v1_4_contract_proxy {
         #[endpoint(migrateFromV1_2Farm)]
         fn migrate_from_v1_2_farm(
             &self,
-            #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
+            orig_caller: ManagedAddress,
         ) -> EsdtTokenPayment<Self::Api>;
 
         #[endpoint(setRpsAndStartRewards)]
@@ -39,7 +39,7 @@ pub trait MigrationModule:
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] token_nonce: u64,
         #[payment_amount] amount: BigUint,
-        #[var_args] orig_caller_opt: OptionalArg<ManagedAddress>,
+        orig_caller: ManagedAddress,
     ) -> SCResult<EsdtTokenPayment<Self::Api>> {
         require!(self.state().get() == State::Migrate, "bad state");
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -96,7 +96,7 @@ pub trait MigrationModule:
 
         Ok(self
             .farm_v1_4_contract_proxy(new_farm_dest)
-            .migrate_from_v1_2_farm(orig_caller_opt)
+            .migrate_from_v1_2_farm(orig_caller)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
     }
