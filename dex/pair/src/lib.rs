@@ -146,6 +146,8 @@ pub trait Pair<ContractReader>:
         self.execute_output_payments(&context);
         self.emit_add_liquidity_event(&context);
 
+        self.initial_liquidity_adder().clear();
+
         self.construct_and_get_add_liquidity_output_results(&context)
     }
 
