@@ -54,7 +54,6 @@ pub trait MigrationModule:
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
 
         let mut reward = self.calculate_reward(
             &amount,
