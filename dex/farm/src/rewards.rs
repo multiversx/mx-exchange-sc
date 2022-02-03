@@ -152,8 +152,12 @@ pub trait RewardsModule:
     }
 
     #[endpoint]
-    fn end_produce_rewards(&self) -> SCResult<()> {
+    fn end_produce_rewards_as_owner(&self) -> SCResult<()> {
         self.require_permissions()?;
+        self.end_produce_rewards()
+    }
+
+    fn end_produce_rewards(&self) -> SCResult<()> {
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
         self.produce_rewards_enabled().set(&false);
