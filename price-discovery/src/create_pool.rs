@@ -21,8 +21,19 @@ mod liquidity_pool_proxy {
 
 #[elrond_wasm::module]
 pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
+    #[only_owner]
+    #[endpoint(setPairAddress)]
+    fn set_pair_address(&self, dex_sc_address: ManagedAddress) {
+        require!(
+            self.blockchain().is_smart_contract(&dex_sc_address),
+            "Invalid DEX SC address"
+        );
+        self.dex_sc_address().set_if_empty(&dex_sc_address);
+    }
+
     #[endpoint(createDexLiquidityPool)]
     fn create_dex_liquidity_pool(&self) {
+        require!(!self.dex_sc_address().is_empty(), "Pair address not set");
         require!(self.lp_token_id().is_empty(), "Pool already created");
         self.require_deposit_period_ended();
 

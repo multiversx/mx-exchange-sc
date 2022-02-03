@@ -20,16 +20,11 @@ pub trait PriceDiscovery:
     #[init]
     fn init(
         &self,
-        dex_sc_address: ManagedAddress,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
         start_epoch: u64,
         end_epoch: u64,
     ) {
-        require!(
-            self.blockchain().is_smart_contract(&dex_sc_address),
-            "Invalid DEX SC address"
-        );
         require!(
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
@@ -50,7 +45,6 @@ pub trait PriceDiscovery:
             "Start epoch must be before end epoch"
         );
 
-        self.dex_sc_address().set(&dex_sc_address);
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
         self.start_epoch().set(&start_epoch);
@@ -142,6 +136,7 @@ pub trait PriceDiscovery:
             "Deposit period not started yet"
         );
         require!(current_epoch < end_epoch, "Deposit period ended");
+        require!(!self.dex_sc_address().is_empty(), "Pair address not set");
     }
 
     fn compute_lp_amount_to_send(
