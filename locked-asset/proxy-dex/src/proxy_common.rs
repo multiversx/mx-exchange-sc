@@ -92,4 +92,13 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
         }
         result
     }
+
+    #[proxy]
+    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
+
+    #[proxy]
+    fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
+
+    #[proxy]
+    fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
 }

@@ -8,6 +8,7 @@ elrond_wasm::derive_imports!();
 use common_structs::{Nonce, WrappedLpTokenAttributes};
 use itertools::Itertools;
 use pair::config::ProxyTrait as _;
+use pair::ProxyTrait as _;
 
 use super::events;
 use super::proxy_common;
@@ -33,9 +34,6 @@ pub trait ProxyPairModule:
     + token_send::TokenSendModule
     + events::EventsModule
 {
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
     #[only_owner]
     #[endpoint(addPairToIntermediate)]
     fn add_pair_to_intermediate(&self, pair_address: ManagedAddress) {

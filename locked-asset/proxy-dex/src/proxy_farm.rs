@@ -10,6 +10,7 @@ use super::proxy_common;
 use super::proxy_pair;
 use super::wrapped_farm_token_merge;
 use super::wrapped_lp_token_merge;
+use farm::ProxyTrait as _;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -34,9 +35,6 @@ pub trait ProxyFarmModule:
     + wrapped_lp_token_merge::WrappedLpTokenMerge
     + events::EventsModule
 {
-    #[proxy]
-    fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
-
     #[only_owner]
     #[endpoint(addFarmToIntermediate)]
     fn add_farm_to_intermediate(&self, farm_address: ManagedAddress) {

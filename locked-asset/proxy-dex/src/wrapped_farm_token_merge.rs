@@ -23,12 +23,6 @@ pub trait WrappedFarmTokenMerge:
     + proxy_common::ProxyCommonModule
     + wrapped_lp_token_merge::WrappedLpTokenMerge
 {
-    #[proxy]
-    fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
-
-    #[proxy]
-    fn farm_contract_merge_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
-
     #[payable("*")]
     #[endpoint(mergeWrappedFarmTokens)]
     fn merge_wrapped_farm_tokens(
@@ -228,7 +222,7 @@ pub trait WrappedFarmTokenMerge:
             ));
         }
 
-        self.farm_contract_merge_proxy(farm_contract.clone())
+        self.farm_contract_proxy(farm_contract.clone())
             .merge_farm_tokens(OptionalArg::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
