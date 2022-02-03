@@ -1,19 +1,15 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtTokenPayment, ManagedAddress, ManagedVec, TokenIdentifier,
+    Address, BigUint, EsdtTokenPayment, ManagedVec, OptionalArg, TokenIdentifier,
 };
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
-    tx_mock::TxContextStack,
     DebugApi,
 };
 
-use ::config as farm_staking_config;
-use farm_staking::whitelist::WhitelistModule;
 use farm_staking::*;
-use farm_staking_config::ConfigModule as _;
-
-use farm_staking_proxy::dual_yield_token::{DualYieldTokenAttributes, DualYieldTokenModule};
+use farm_staking::UnbondSftAttributes;
+use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
 
 use crate::{
@@ -211,5 +207,111 @@ where
             .assert_ok();
 
         dual_yield_nonce
+    }
+
+    pub fn unstake(
+        &mut self,
+        dual_yield_token_nonce: u64,
+        dual_yield_token_amount: u64,
+        expected_wegld_amount: u64,
+        expected_lp_farm_rewards: u64,
+        expected_staking_rewards: u64,
+        expected_unbond_token_amount: u64,
+        expected_unbond_token_unlock_epoch: u64,
+    ) -> u64 {
+        let mut unbond_token_nonce = 0;
+
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user_addr,
+                &self.proxy_wrapper,
+                DUAL_YIELD_TOKEN_ID,
+                dual_yield_token_nonce,
+                &rust_biguint!(dual_yield_token_amount),
+                |sc| {
+                    let received_tokens = sc
+                        .unstake_farm_tokens(
+                            managed_token_id!(DUAL_YIELD_TOKEN_ID),
+                            dual_yield_token_nonce,
+                            managed_biguint!(dual_yield_token_amount),
+                        )
+                        .to_vec();
+
+                    let mut vec_index = 0;
+
+                    if expected_wegld_amount > 0 {
+                        let wegld_payment = received_tokens.get(vec_index);
+                        assert_eq!(wegld_payment.amount, expected_wegld_amount);
+
+                        vec_index += 1;
+                    }
+
+                    if expected_lp_farm_rewards > 0 {
+                        let lp_farm_rewards = received_tokens.get(vec_index);
+                        assert_eq!(lp_farm_rewards.amount, expected_lp_farm_rewards);
+
+                        vec_index += 1;
+                    }
+
+                    if expected_staking_rewards > 0 {
+                        let staking_rewards = received_tokens.get(vec_index);
+                        assert_eq!(staking_rewards.amount, expected_staking_rewards);
+
+                        vec_index += 1;
+                    }
+
+                    let unbond_tokens = received_tokens.get(vec_index);
+                    assert_eq!(unbond_tokens.amount, expected_unbond_token_amount);
+
+                    unbond_token_nonce = unbond_tokens.token_nonce;
+
+                    StateChange::Commit
+                },
+            )
+            .assert_ok();
+
+        self.b_mock.execute_in_managed_environment(|| {
+            let expected_attributes = UnbondSftAttributes {
+                unlock_epoch: expected_unbond_token_unlock_epoch,
+            };
+
+            self.b_mock.check_nft_balance(
+                &self.user_addr,
+                STAKING_FARM_TOKEN_ID,
+                unbond_token_nonce,
+                &rust_biguint!(expected_unbond_token_amount),
+                &expected_attributes,
+            );
+        });
+
+        unbond_token_nonce
+    }
+
+    pub fn unbond(
+        &mut self,
+        unbond_token_nonce: u64,
+        unbond_token_amount: u64,
+        expected_token_out_amount: u64,
+    ) {
+        self.b_mock
+            .execute_esdt_transfer(
+                &self.user_addr,
+                &self.staking_farm_wrapper,
+                STAKING_FARM_TOKEN_ID,
+                unbond_token_nonce,
+                &rust_biguint!(unbond_token_amount),
+                |sc| {
+                    let received_tokens = sc.unbond_farm(
+                        managed_token_id!(STAKING_FARM_TOKEN_ID),
+                        unbond_token_nonce,
+                        managed_biguint!(unbond_token_amount),
+                        OptionalArg::None,
+                    );
+                    assert_eq!(received_tokens.amount, expected_token_out_amount);
+
+                    StateChange::Commit
+                },
+            )
+            .assert_ok();
     }
 }

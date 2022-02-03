@@ -237,8 +237,8 @@ pub trait FarmStakingProxy:
                 lp_tokens.token_identifier,
                 lp_tokens.token_nonce,
                 lp_tokens.amount,
-                BigUint::zero(),
-                BigUint::zero(),
+                BigUint::from(1u32),
+                BigUint::from(1u32),
                 OptionalArg::None,
             )
             .execute_on_dest_context();
@@ -281,14 +281,20 @@ pub trait FarmStakingProxy:
         let unstake_result: ExitFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
             .unstake_farm_through_proxy(staking_sc_payments)
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (unbond_staking_farm_token, staking_rewards) = unstake_result.into_tuple();
 
         let caller = self.blockchain().get_caller();
         let mut user_payments = ManagedVec::new();
-        user_payments.push(other_token_payment);
-        user_payments.push(lp_farm_rewards);
-        user_payments.push(staking_rewards);
+        if other_token_payment.amount > 0 {
+            user_payments.push(other_token_payment);
+        }
+        if lp_farm_rewards.amount > 0 {
+            user_payments.push(lp_farm_rewards);
+        }
+        if staking_rewards.amount > 0 {
+            user_payments.push(staking_rewards);
+        }
         user_payments.push(unbond_staking_farm_token);
 
         let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
