@@ -36,36 +36,28 @@ pub trait MigrationModule:
     #[endpoint(migrateV1_2Position)]
     fn migrate_v1_2_position(
         &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: u64,
-        #[payment_amount] amount: BigUint,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] payment_token_nonce: u64,
+        #[payment_amount] payment_amount: BigUint,
         farm_address: ManagedAddress,
     ) {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments_vec.iter();
-        let payment_0 = payments_iter.next().unwrap();
-
-        let payment_token_id = payment_0.token_identifier.clone();
-        let payment_token_nonce = payment_0.token_nonce;
-        let payment_amount = payment_0.amount;
-        require!(payment_amount != 0u64, "Payment amount cannot be zero");
-
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
         require!(
             payment_token_id == wrapped_farm_token,
             "Should only be used with wrapped farm tokens"
         );
+        require!(payment_amount != 0u64, "Payment amount cannot be zero");
 
         // The actual work starts here
         let wrapped_farm_token_attrs =
             self.get_wrapped_farm_token_attributes(&payment_token_id, payment_token_nonce);
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
-        let farm_amount = payment_amount;
+        let farm_amount = payment_amount.clone();
 
         // Get the new farm position from the new contract.
         let new_pos = self
@@ -75,7 +67,8 @@ pub trait MigrationModule:
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
 
         // Burn the old proxy farm position
-        self.send().esdt_local_burn(&token_id, token_nonce, &amount);
+        self.send()
+            .esdt_local_burn(&payment_token_id, payment_token_nonce, &payment_amount);
 
         // Create a new proxy farm position based on the new farm position.
         let new_attrs = WrappedFarmTokenAttributes {
