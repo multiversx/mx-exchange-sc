@@ -111,19 +111,10 @@ pub trait MigrationModule:
         new_farm_with_lock_address: ManagedAddress,
     ) -> SCResult<()> {
         let sc_address = self.blockchain().get_sc_address();
-        let migration_role = if sc_address == old_farm_address {
-            FarmMigrationRole::Old
-        } else if sc_address == new_farm_address {
-            FarmMigrationRole::New
-        } else if sc_address == new_farm_with_lock_address {
-            FarmMigrationRole::NewWithLock
-        } else {
-            unreachable!();
-        };
-        require!(migration_role.is_old(), "bad config");
+        require!(sc_address == old_farm_address, "bad config");
 
         self.farm_migration_config().set(&FarmMigrationConfig {
-            migration_role,
+            migration_role: FarmMigrationRole::Old,
             old_farm_address,
             old_farm_token_id,
             new_farm_address,

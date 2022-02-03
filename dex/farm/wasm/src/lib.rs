@@ -13,7 +13,7 @@ elrond_wasm_node::wasm_endpoints! {
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
-        end_produce_rewards
+        end_produce_rewards_as_owner
         enterFarm
         enterFarmAndLockRewards
         exitFarm
@@ -42,6 +42,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTransferExecGasLimit
         getUndistributedFees
         mergeFarmTokens
+        migrateToNewFarm
         pause
         registerFarmToken
         resume
