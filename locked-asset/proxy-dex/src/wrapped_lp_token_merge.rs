@@ -13,9 +13,6 @@ use proxy_pair::WrappedLpToken;
 pub trait WrappedLpTokenMerge:
     token_merge::TokenMergeModule + token_send::TokenSendModule + proxy_common::ProxyCommonModule
 {
-    #[proxy]
-    fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
-
     #[payable("*")]
     #[endpoint(mergeWrappedLpTokens)]
     fn merge_wrapped_lp_tokens(
@@ -187,7 +184,7 @@ pub trait WrappedLpTokenMerge:
             ));
         }
 
-        self.locked_asset_factory(locked_asset_factory_addr)
+        self.locked_asset_factory_proxy(locked_asset_factory_addr)
             .merge_locked_asset_tokens(OptionalArg::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
