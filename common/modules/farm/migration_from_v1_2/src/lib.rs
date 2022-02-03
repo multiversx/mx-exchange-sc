@@ -145,7 +145,6 @@ pub trait MigrationModule:
         } else {
             sc_panic!("bad config")
         };
-        require!(!migration_role.is_old(), "bad config");
 
         self.farm_migration_config().set(&FarmMigrationConfig {
             migration_role,

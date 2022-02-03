@@ -42,10 +42,9 @@ pub trait CustomRewardsModule:
         }
     }
 
+    #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {
-        self.require_permissions();
-
         // TODO: duplicated code
         let mut storage = StorageCache {
             reward_token_id: Some(self.reward_token_id().get()),
@@ -65,9 +64,9 @@ pub trait CustomRewardsModule:
         self.produce_rewards_enabled().set(&false);
     }
 
+    #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        self.require_permissions();
         require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
 
         // TODO: duplicated code

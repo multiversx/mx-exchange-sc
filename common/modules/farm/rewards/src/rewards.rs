@@ -24,9 +24,13 @@ pub trait RewardsModule:
         per_block_reward * block_nonce_diff
     }
 
+    #[only_owner]
     #[endpoint(startProduceRewards)]
+    fn start_produce_rewards_as_owner(&self) {
+        self.start_produce_rewards();
+    }
+
     fn start_produce_rewards(&self) {
-        self.require_permissions();
         require!(
             self.per_block_reward_amount().get() != 0u64,
             "Cannot produce zero reward amount"

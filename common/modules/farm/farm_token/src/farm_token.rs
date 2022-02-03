@@ -15,6 +15,7 @@ pub struct FarmToken<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]
     fn register_farm_token(
@@ -24,7 +25,6 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) -> AsyncCall {
-        self.require_permissions();
         require!(self.farm_token_id().is_empty(), "Token exists already");
 
         self.register_token(
@@ -90,9 +90,9 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         }
     }
 
+    #[only_owner]
     #[endpoint(setLocalRolesFarmToken)]
     fn set_local_roles_farm_token(&self) -> AsyncCall {
-        self.require_permissions();
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
