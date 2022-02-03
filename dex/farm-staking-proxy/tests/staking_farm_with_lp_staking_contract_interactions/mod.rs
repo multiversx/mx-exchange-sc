@@ -8,11 +8,6 @@ use elrond_wasm_debug::{
 };
 
 use farm_staking::*;
-/*
-use ::config as farm_staking_config;
-use farm_staking_config::ConfigModule as _;
-*/
-
 use farm_staking::UnbondSftAttributes;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
