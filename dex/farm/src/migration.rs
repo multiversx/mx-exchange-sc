@@ -87,7 +87,10 @@ pub trait MigrationModule:
             0,
             initial_farming_token_amount,
         ));
-        payments.push(EsdtTokenPayment::new(reward_token_id, 0, reward));
+
+        if reward > 0u64 {
+            payments.push(EsdtTokenPayment::new(reward_token_id, 0, reward));
+        }
 
         let new_farm_dest = if farm_attributes.with_locked_rewards {
             migration_config.new_farm_with_lock_address
