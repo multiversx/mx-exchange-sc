@@ -39,7 +39,10 @@ pub trait MigrationModule:
         require!(caller == config.old_farm_address, "bad caller");
 
         let payments = self.call_value().all_esdt_transfers();
-        require!(payments.len() == 3, "bad payments len");
+        require!(
+            payments.len() == 3 || payments.len() == 2,
+            "bad payments len"
+        );
 
         let old_position = payments.get(0);
         require!(old_position.amount != 0u64, "bad farm amount");
@@ -55,16 +58,16 @@ pub trait MigrationModule:
             "bad farming token id"
         );
 
-        let reward = payments.get(2);
-        require!(reward.amount != 0u64, "bad reward amount");
-        let reward_token_id = self.reward_token_id().get();
-        require!(
-            reward.token_identifier == reward_token_id,
-            "bad reward token id"
-        );
-
-        // The actual work starts here
-        self.reward_reserve().update(|x| *x += &reward.amount);
+        if payments.len() == 3 {
+            let reward = payments.get(2);
+            require!(reward.amount != 0u64, "bad reward amount");
+            let reward_token_id = self.reward_token_id().get();
+            require!(
+                reward.token_identifier == reward_token_id,
+                "bad reward token id"
+            );
+            self.reward_reserve().update(|x| *x += &reward.amount);
+        }
 
         let old_attrs: FarmTokenAttributesV1_2<Self::Api> = self
             .blockchain()
