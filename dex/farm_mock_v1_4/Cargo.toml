@@ -1,0 +1,16 @@
+[package]
+name = "farm_mock_v1_4"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.23.0"
+features = ["cb_closure_managed_deser"]
+
+[dev-dependencies.elrond-wasm-debug]
+version = "=0.23.0"
