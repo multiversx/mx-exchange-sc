@@ -7,6 +7,8 @@ members = [
   "dex/pair/meta",
   "dex/router",
   "dex/router/meta",
+  "dex/farm_mock_v1_4",
+  "dex/farm_mock_v1_4/meta",
 
   "locked-asset/",
   "locked-asset/distribution",

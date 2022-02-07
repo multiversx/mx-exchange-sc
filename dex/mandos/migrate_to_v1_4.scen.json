@@ -1,0 +1,124 @@
+{
+    "name": "exit farm",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "enter_farm.scen.json"
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "sc:farm_mock": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {},
+                    "storage": {},
+                    "code": "file:../farm_mock_v1_4/output/farm_mock_v1_4.wasm",
+                    "owner": "address:owner"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "unstake",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "setFarmMigrationConfig",
+                "arguments": [
+                    "sc:farm_contract",
+                    "str:FARM-abcdef",
+                    "sc:farm_mock",
+                    "sc:farm_mock"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "unstake",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm_contract",
+                "function": "stopRewardsAndMigrateRps",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "unstake",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:farm_contract",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:FARM-abcdef",
+                        "nonce": "2",
+                        "value": "100,000"
+                    }
+                ],
+                "function": "migrateToNewFarm",
+                "arguments": [
+                    "address:user1"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "*",
+                    "*"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "sc:farm_contract": {
+                    "nonce": "*",
+                    "balance": "0",
+                    "esdt": {
+                        "str:WEGLD-abcdef": "0",
+                        "str:LPTOK-abcdef": "199900000",
+                        "str:FARM-abcdef": {
+                            "lastNonce": "2",
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:state": "2",
+                        "str:farm_token_supply": "199900000",
+                        "+": ""
+                    },
+                    "code": "file:../farm/output/farm.wasm"
+                },
+                "+": ""
+            }
+        }
+    ]
+}

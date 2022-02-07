@@ -60,7 +60,8 @@
                         "str:penalty_percent": "100",
                         "str:pair_contract_address": "sc:pair_contract"
                     },
-                    "code": "file:../../farm/output/farm.wasm"
+                    "code": "file:../../farm/output/farm.wasm",
+                    "owner": "address:owner"
                 }
             }
         }

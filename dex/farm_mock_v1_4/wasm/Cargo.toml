@@ -1,0 +1,32 @@
+[package]
+name = "farm_mock_v1_4-wasm"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = [ "cdylib",]
+
+[workspace]
+members = [ ".",]
+
+[dev-dependencies]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+
+[dependencies.farm_mock_v1_4]
+default-features = false
+path = ".."
+
+[dependencies.elrond-wasm-node]
+version = "=0.23.0"
+
+[dependencies.elrond-wasm-output]
+version = "=0.23.0"
+features = ["wasm-output-mode"]
