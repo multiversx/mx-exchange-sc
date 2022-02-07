@@ -19,6 +19,9 @@ path = "../common/modules/farm/config"
 [dev-dependencies.rewards]
 path = "../common/modules/farm/rewards"
 
+[dev-dependencies.migration_from_v1_2]
+path = "../common/modules/farm/migration_from_v1_2"
+
 [dev-dependencies.common_structs]
 path = "../common/common_structs"
 
