@@ -138,16 +138,4 @@ pub trait FarmTokenMergeModule:
             .for_each(|x| aggregated_amount += &x.token_amount.amount);
         aggregated_amount
     }
-
-    fn aggregated_original_entering_epoch(&self, tokens: &ManagedVec<FarmToken<Self::Api>>) -> u64 {
-        let mut dataset = ManagedVec::new();
-        tokens.iter().for_each(|x| {
-            dataset.push(ValueWeight {
-                value: BigUint::from(x.attributes.original_entering_epoch),
-                weight: x.token_amount.amount,
-            })
-        });
-        let avg = self.weighted_average(dataset);
-        avg.to_u64().unwrap()
-    }
 }
