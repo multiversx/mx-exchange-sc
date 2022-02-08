@@ -523,17 +523,12 @@ pub trait Farm:
             / self.farm_token_supply().get();
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let mut reward = if future_reward_per_share > attributes.reward_per_share {
+        let reward = if future_reward_per_share > attributes.reward_per_share {
             let reward_per_share_diff = future_reward_per_share - attributes.reward_per_share;
             amount * &reward_per_share_diff / self.division_safety_constant().get()
         } else {
             BigUint::zero()
         };
-
-        if self.should_apply_penalty(attributes.entering_epoch) {
-            let penalty = self.get_penalty_amount(&reward);
-            reward -= penalty;
-        }
 
         reward
     }
