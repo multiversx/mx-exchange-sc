@@ -238,25 +238,19 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
-        let mut reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_rewards_with_apr_limit(
             &payment_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
             farm_attributes.last_claim_block,
         );
-        let compound_reward_part = self.rule_of_three(
-            &payment_amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.compounded_reward,
-        );
-        reward += &compound_reward_part;
 
         let caller = self.blockchain().get_caller();
         self.burn_farm_tokens(&payment_token_id, token_nonce, &payment_amount);
 
         let unbond_token_amount = match opt_unbond_amount {
             Some(amt) => amt,
-            None => payment_amount - compound_reward_part,
+            None => payment_amount, // payment_amount = initial_farming + compounded_rewards
         };
         let farm_token_payment = self.create_and_send_unbond_tokens(
             &caller,
