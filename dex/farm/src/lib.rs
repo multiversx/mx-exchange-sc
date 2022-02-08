@@ -523,14 +523,13 @@ pub trait Farm:
             / self.farm_token_supply().get();
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-        let reward = if future_reward_per_share > attributes.reward_per_share {
+
+        if future_reward_per_share > attributes.reward_per_share {
             let reward_per_share_diff = future_reward_per_share - attributes.reward_per_share;
             amount * &reward_per_share_diff / self.division_safety_constant().get()
         } else {
             BigUint::zero()
-        };
-
-        reward
+        }
     }
 
     #[inline]
