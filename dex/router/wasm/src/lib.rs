@@ -20,7 +20,9 @@ elrond_wasm_node::wasm_endpoints! {
         getPairTemplateAddress
         getState
         getTemporaryOwnerPeriod
+        getTransferExecGasLimit
         issueLpToken
+        multiPairSwap
         pause
         removePair
         resume
