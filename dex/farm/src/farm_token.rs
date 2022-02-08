@@ -90,29 +90,28 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     }
 
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) -> SCResult<AsyncCall> {
+    fn set_local_roles_farm_token(
+        &self,
+        address: ManagedAddress,
+        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+    ) -> SCResult<AsyncCall> {
         require!(self.is_active(), "Not active");
         self.require_permissions()?;
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
-        Ok(self.set_local_roles(token))
+        Ok(self.set_local_roles(token, address, roles))
     }
 
-    fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall {
-        let roles = [
-            EsdtLocalRole::NftCreate,
-            EsdtLocalRole::NftAddQuantity,
-            EsdtLocalRole::NftBurn,
-        ];
-
+    fn set_local_roles(
+        &self,
+        token: TokenIdentifier,
+        address: ManagedAddress,
+        roles: ManagedVarArgs<EsdtLocalRole>,
+    ) -> AsyncCall {
         self.send()
             .esdt_system_sc_proxy()
-            .set_special_roles(
-                &self.blockchain().get_sc_address(),
-                &token,
-                (&roles[..]).into_iter().cloned(),
-            )
+            .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
     }
