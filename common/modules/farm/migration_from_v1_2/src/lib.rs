@@ -62,12 +62,12 @@ pub trait MigrationModule:
         let new_pos_token_id = self.farm_token_id().get();
         let new_pos_amount = farming_tokens.amount.clone();
 
-        // Use this function because it also updates the farm token supply for this contract instance.
-        let new_pos_nonce = self.mint_farm_tokens(
+        //Note that this function does not modify the farm supply
+        let new_pos_nonce = self.nft_create_tokens(
             &new_pos_token_id,
             &new_pos_amount,
             &FarmTokenAttributes {
-                reward_per_share: self.reward_per_share().get(),
+                reward_per_share: old_attrs.reward_per_share,
                 entering_epoch: old_attrs.entering_epoch,
                 original_entering_epoch: old_attrs.original_entering_epoch,
                 initial_farming_amount: farming_tokens.amount.clone(),
@@ -117,13 +117,12 @@ pub trait MigrationModule:
         });
     }
 
-    #[endpoint(setRpsAndRegisterBlock)]
+    #[endpoint(setRpsAndStartRewards)]
     fn set_rps_and_start_rewards(&self, rps: BigUint) {
         require!(
             !self.produce_rewards_enabled().get(),
-            "rewards should be turned off"
+            "rewards already enabled"
         );
-        require!(self.rps_registration_block().is_empty(), "already called");
 
         require!(!self.farm_migration_config().is_empty(), "empty config");
         let config = self.farm_migration_config().get();
@@ -131,21 +130,16 @@ pub trait MigrationModule:
         let caller = self.blockchain().get_caller();
         require!(caller == config.old_farm_address, "bad caller");
 
-        let current_block = self.blockchain().get_block_nonce();
-        self.rps_registration_block().set(&current_block);
-
         self.reward_per_share().set(&rps);
+        self.start_produce_rewards();
         self.state().set(&State::Active);
     }
 
-    #[endpoint(startRewardsFromRpsRegistrationBlock)]
-    fn start_rewards_from_rps_registration_block(&self) {
-        //TODO: implement
+    #[only_owner]
+    #[endpoint(setFarmTokenSupply)]
+    fn set_farm_token_supply(&self, supply: BigUint) {
+        self.farm_token_supply().set(&supply);
     }
-
-    #[view(getRpsRegistrationBlock)]
-    #[storage_mapper("rps_registration_block")]
-    fn rps_registration_block(&self) -> SingleValueMapper<u64>;
 
     #[view(getFarmMigrationConfiguration)]
     #[storage_mapper("farm_migration_config")]
