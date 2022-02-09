@@ -17,7 +17,10 @@ mod farm_v1_2_contract_proxy {
     pub trait Farm {
         #[payable("*")]
         #[endpoint(migrateToNewFarm)]
-        fn migrate_to_new_farm(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment<Self::Api>;
+        fn migrate_to_new_farm(
+            &self,
+            orig_caller: ManagedAddress,
+        ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
     }
 }
 
@@ -60,11 +63,12 @@ pub trait MigrationModule:
         let farm_amount = payment_amount.clone();
 
         // Get the new farm position from the new contract.
-        let new_pos = self
+        let (new_pos, reward) = self
             .farm_v1_2_contract_proxy(farm_address)
             .migrate_to_new_farm(self.blockchain().get_sc_address())
             .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+            .into_tuple();
 
         // Burn the old proxy farm position
         self.send()
@@ -80,13 +84,17 @@ pub trait MigrationModule:
             farming_token_amount: wrapped_farm_token_attrs.farming_token_amount,
         };
         let new_nonce = self.nft_create_tokens(&wrapped_farm_token, &new_pos.amount, &new_attrs);
-        self.transfer_execute_custom(
-            &self.blockchain().get_caller(),
-            &wrapped_farm_token,
+
+        let mut payments = ManagedVec::new();
+        payments.push(EsdtTokenPayment::new(
+            wrapped_farm_token,
             new_nonce,
-            &new_pos.amount,
-            &OptionalArg::None,
-        );
+            new_pos.amount,
+        ));
+        payments.push(reward);
+
+        let caller = self.blockchain().get_caller();
+        self.send_multiple_tokens(&caller, &payments, &OptionalArg::None);
     }
 
     #[proxy]

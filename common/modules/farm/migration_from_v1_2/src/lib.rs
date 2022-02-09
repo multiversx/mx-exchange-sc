@@ -28,7 +28,11 @@ pub trait MigrationModule:
 {
     #[payable("*")]
     #[endpoint(migrateFromV1_2Farm)]
-    fn migrate_from_v1_2_farm(&self, orig_caller: ManagedAddress) -> EsdtTokenPayment<Self::Api> {
+    fn migrate_from_v1_2_farm(
+        &self,
+        old_attrs: FarmTokenAttributesV1_2<Self::Api>,
+        orig_caller: ManagedAddress,
+    ) -> EsdtTokenPayment<Self::Api> {
         require!(self.state().get() == State::Active, "not active");
 
         require!(!self.farm_migration_config().is_empty(), "empty config");
@@ -38,71 +42,37 @@ pub trait MigrationModule:
         let caller = self.blockchain().get_caller();
         require!(caller == config.old_farm_address, "bad caller");
 
-        let payments = self.call_value().all_esdt_transfers();
-        let payments_len = payments.len();
-        require!(payments_len == 3 || payments_len == 2, "bad payments len");
-
-        let old_position = payments.get(0);
-        require!(old_position.amount != 0u64, "bad farm amount");
+        //Make sure this is the right farm SC based on old farm token attrs.
         require!(
-            old_position.token_identifier == config.old_farm_token_id,
-            "bad farm token id"
+            old_attrs.with_locked_rewards == config.migration_role.is_new_with_lock(),
+            "bad lock option"
         );
 
-        let farming_tokens = payments.get(1);
+        let payments = self.call_value().all_esdt_transfers();
+        let payments_len = payments.len();
+        require!(payments_len == 1, "bad payments len");
+
+        let farming_tokens = payments.get(0);
         require!(farming_tokens.amount != 0u64, "bad farming amount");
         require!(
             farming_tokens.token_identifier == self.farming_token_id().get(),
             "bad farming token id"
         );
 
-        if payments_len == 3 {
-            let reward = payments.get(2);
-            require!(reward.amount != 0u64, "bad reward amount");
-            let reward_token_id = self.reward_token_id().get();
-            require!(
-                reward.token_identifier == reward_token_id,
-                "bad reward token id"
-            );
-            self.reward_reserve().update(|x| *x += &reward.amount);
-        }
-
-        let old_attrs: FarmTokenAttributesV1_2<Self::Api> = self
-            .blockchain()
-            .get_esdt_token_data(
-                &self.blockchain().get_sc_address(),
-                &old_position.token_identifier,
-                old_position.token_nonce,
-            )
-            .decode_attributes()
-            .unwrap();
-        require!(
-            old_attrs.with_locked_rewards == config.migration_role.is_new_with_lock(),
-            "bad lock option"
-        );
-
-        // Do not call burn_farm_tokens since this farm tokens belong to other contract
-        // which already updated its farm token supply counter.
-        self.send().esdt_local_burn(
-            &old_position.token_identifier,
-            old_position.token_nonce,
-            &old_position.amount,
-        );
-
         let new_pos_token_id = self.farm_token_id().get();
-        let new_pos_amount = old_position.amount;
+        let new_pos_amount = farming_tokens.amount.clone();
 
         // Use this function because it also updates the farm token supply for this contract instance.
         let new_pos_nonce = self.mint_farm_tokens(
             &new_pos_token_id,
             &new_pos_amount,
             &FarmTokenAttributes {
-                reward_per_share: old_attrs.reward_per_share,
+                reward_per_share: self.reward_per_share().get(),
                 entering_epoch: old_attrs.entering_epoch,
                 original_entering_epoch: old_attrs.original_entering_epoch,
-                initial_farming_amount: old_attrs.initial_farming_amount,
-                compounded_reward: old_attrs.compounded_reward,
-                current_farm_amount: old_attrs.current_farm_amount,
+                initial_farming_amount: farming_tokens.amount.clone(),
+                compounded_reward: BigUint::zero(),
+                current_farm_amount: new_pos_amount.clone(),
             },
         );
 
@@ -147,12 +117,13 @@ pub trait MigrationModule:
         });
     }
 
-    #[endpoint(setRpsAndStartRewards)]
+    #[endpoint(setRpsAndRegisterBlock)]
     fn set_rps_and_start_rewards(&self, rps: BigUint) {
         require!(
             !self.produce_rewards_enabled().get(),
-            "rewards already enabled"
+            "rewards should be turned off"
         );
+        require!(self.rps_registration_block().is_empty(), "already called");
 
         require!(!self.farm_migration_config().is_empty(), "empty config");
         let config = self.farm_migration_config().get();
@@ -160,10 +131,21 @@ pub trait MigrationModule:
         let caller = self.blockchain().get_caller();
         require!(caller == config.old_farm_address, "bad caller");
 
+        let current_block = self.blockchain().get_block_nonce();
+        self.rps_registration_block().set(&current_block);
+
         self.reward_per_share().set(&rps);
-        self.start_produce_rewards();
         self.state().set(&State::Active);
     }
+
+    #[endpoint(startRewardsFromRpsRegistrationBlock)]
+    fn start_rewards_from_rps_registration_block(&self) {
+        //TODO: implement
+    }
+
+    #[view(getRpsRegistrationBlock)]
+    #[storage_mapper("rps_registration_block")]
+    fn rps_registration_block(&self) -> SingleValueMapper<u64>;
 
     #[view(getFarmMigrationConfiguration)]
     #[storage_mapper("farm_migration_config")]
