@@ -40,9 +40,6 @@ pub trait Farm:
     + migration::MigrationModule
 {
     #[proxy]
-    fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
-
-    #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[init]
@@ -605,46 +602,6 @@ pub trait Farm:
             farming_amount,
             opt_accept_funds_func,
         )?;
-        Ok(())
-    }
-
-    fn send_rewards(
-        &self,
-        reward_token_id: &mut TokenIdentifier,
-        reward_nonce: &mut Nonce,
-        reward_amount: &mut BigUint,
-        destination: &ManagedAddress,
-        with_locked_rewards: bool,
-        entering_epoch: Epoch,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
-    ) -> SCResult<()> {
-        if reward_amount > &mut 0 {
-            if with_locked_rewards {
-                self.send()
-                    .esdt_local_burn(reward_token_id, 0, reward_amount);
-                let locked_asset_factory_address = self.locked_asset_factory_address().get();
-                let result = self
-                    .locked_asset_factory(locked_asset_factory_address)
-                    .create_and_forward(
-                        reward_amount.clone(),
-                        destination.clone(),
-                        entering_epoch,
-                        opt_accept_funds_func.clone(),
-                    )
-                    .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
-                *reward_token_id = result.token_identifier;
-                *reward_nonce = result.token_nonce;
-                *reward_amount = result.amount;
-            } else {
-                self.transfer_execute_custom(
-                    destination,
-                    reward_token_id,
-                    0,
-                    reward_amount,
-                    opt_accept_funds_func,
-                )?;
-            }
-        }
         Ok(())
     }
 

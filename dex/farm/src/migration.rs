@@ -8,6 +8,8 @@ use super::farm_token;
 use super::rewards;
 
 mod farm_v1_4_contract_proxy {
+    use common_structs::FarmTokenAttributes;
+
     elrond_wasm::imports!();
 
     #[elrond_wasm::proxy]
@@ -16,6 +18,7 @@ mod farm_v1_4_contract_proxy {
         #[endpoint(migrateFromV1_2Farm)]
         fn migrate_from_v1_2_farm(
             &self,
+            farm_attributes: FarmTokenAttributes<Self::Api>,
             orig_caller: ManagedAddress,
         ) -> EsdtTokenPayment<Self::Api>;
 
@@ -40,7 +43,7 @@ pub trait MigrationModule:
         #[payment_nonce] token_nonce: u64,
         #[payment_amount] amount: BigUint,
         orig_caller: ManagedAddress,
-    ) -> SCResult<EsdtTokenPayment<Self::Api>> {
+    ) -> SCResult<MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>> {
         require!(self.state().get() == State::Migrate, "bad state");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
@@ -53,7 +56,7 @@ pub trait MigrationModule:
         require!(amount > 0u64, "Payment amount cannot be zero");
 
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
-        let reward_token_id = self.reward_token_id().get();
+        let mut reward_token_id = self.reward_token_id().get();
 
         let mut reward = self.calculate_reward(
             &amount,
@@ -76,21 +79,9 @@ pub trait MigrationModule:
             &farm_attributes.compounded_reward,
         );
 
-        self.farm_token_supply().update(|x| *x -= &amount);
+        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount);
         self.farming_token_reserve()
             .update(|x| *x -= &initial_farming_token_amount);
-
-        let mut payments = ManagedVec::new();
-        payments.push(EsdtTokenPayment::new(payment_token_id, token_nonce, amount));
-        payments.push(EsdtTokenPayment::new(
-            farming_token_id,
-            0,
-            initial_farming_token_amount,
-        ));
-
-        if reward > 0u64 {
-            payments.push(EsdtTokenPayment::new(reward_token_id, 0, reward));
-        }
 
         let new_farm_dest = if farm_attributes.with_locked_rewards {
             migration_config.new_farm_with_lock_address
@@ -98,11 +89,27 @@ pub trait MigrationModule:
             migration_config.new_farm_address
         };
 
-        Ok(self
+        let new_position = self
             .farm_v1_4_contract_proxy(new_farm_dest)
-            .migrate_from_v1_2_farm(orig_caller)
-            .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after)))
+            .migrate_from_v1_2_farm(farm_attributes.clone(), orig_caller.clone())
+            .add_token_transfer(farming_token_id, 0, initial_farming_token_amount)
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+
+        let mut reward_nonce = 0u64;
+        self.send_rewards(
+            &mut reward_token_id,
+            &mut reward_nonce,
+            &mut reward,
+            &orig_caller,
+            farm_attributes.with_locked_rewards,
+            farm_attributes.original_entering_epoch,
+            &OptionalArg::None,
+        )?;
+
+        Ok(MultiResult2::from((
+            new_position,
+            EsdtTokenPayment::new(reward_token_id, reward_nonce, reward),
+        )))
     }
 
     #[only_owner]
