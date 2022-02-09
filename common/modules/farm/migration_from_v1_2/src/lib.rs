@@ -70,7 +70,7 @@ pub trait MigrationModule:
                 reward_per_share: old_attrs.reward_per_share,
                 entering_epoch: old_attrs.entering_epoch,
                 original_entering_epoch: old_attrs.original_entering_epoch,
-                initial_farming_amount: farming_tokens.amount.clone(),
+                initial_farming_amount: farming_tokens.amount,
                 compounded_reward: BigUint::zero(),
                 current_farm_amount: new_pos_amount.clone(),
             },
