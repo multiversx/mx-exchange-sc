@@ -57,12 +57,10 @@ where
 
     blockchain_wrapper
         .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
-            let reward_token_id = managed_token_id!(REWARD_TOKEN_ID);
             let farming_token_id = managed_token_id!(FARMING_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
 
             sc.init(
-                reward_token_id,
                 farming_token_id,
                 division_safety_constant,
                 managed_biguint!(MAX_APR),
