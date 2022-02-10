@@ -1,5 +1,7 @@
 #![no_std]
 
+use common_structs::FarmTokenAttributes;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -10,7 +12,11 @@ pub trait FarmMockV14 {
 
     #[payable("*")]
     #[endpoint(migrateFromV1_2Farm)]
-    fn migrate_from_v1_2_farm(&self, _orig_caller: ManagedAddress) -> EsdtTokenPayment<Self::Api> {
+    fn migrate_from_v1_2_farm(
+        &self,
+        _attrs: FarmTokenAttributes<Self::Api>,
+        _orig_caller: ManagedAddress,
+    ) -> EsdtTokenPayment<Self::Api> {
         EsdtTokenPayment::new(TokenIdentifier::egld(), 0, BigUint::zero())
     }
 
