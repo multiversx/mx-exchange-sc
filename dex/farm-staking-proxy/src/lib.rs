@@ -148,7 +148,7 @@ pub trait FarmStakingProxy:
                 self.get_lp_farm_token_amount_equivalent(&attributes, &p.amount);
             let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
                 attributes.lp_farm_token_nonce,
-                &attributes.lp_farm_token_amount,
+                &lp_farm_token_amount,
             );
             let new_staking_farm_value = self.get_lp_tokens_safe_price(lp_tokens_in_position);
 
