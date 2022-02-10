@@ -89,7 +89,7 @@ pub trait FarmStakingProxy:
             let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
             staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
-                attributes.lp_farm_token_nonce,
+                attributes.staking_farm_token_nonce,
                 p.amount.clone(),
             ));
 
