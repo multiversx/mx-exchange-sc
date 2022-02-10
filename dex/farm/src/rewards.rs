@@ -11,6 +11,9 @@ use common_structs::Nonce;
 pub trait RewardsModule:
     config::ConfigModule + token_send::TokenSendModule + farm_token::FarmTokenModule
 {
+    #[proxy]
+    fn locked_asset_factory(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
+
     fn calculate_per_block_rewards(
         &self,
         current_block_nonce: Nonce,
@@ -132,6 +135,46 @@ pub trait RewardsModule:
                     .set(&Some((current_block, amount.clone())));
             }
         }
+    }
+
+    fn send_rewards(
+        &self,
+        reward_token_id: &mut TokenIdentifier,
+        reward_nonce: &mut u64,
+        reward_amount: &mut BigUint,
+        destination: &ManagedAddress,
+        with_locked_rewards: bool,
+        entering_epoch: u64,
+        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+    ) -> SCResult<()> {
+        if reward_amount > &mut 0u64 {
+            if with_locked_rewards {
+                self.send()
+                    .esdt_local_burn(reward_token_id, 0, reward_amount);
+                let locked_asset_factory_address = self.locked_asset_factory_address().get();
+                let result = self
+                    .locked_asset_factory(locked_asset_factory_address)
+                    .create_and_forward(
+                        reward_amount.clone(),
+                        destination.clone(),
+                        entering_epoch,
+                        opt_accept_funds_func.clone(),
+                    )
+                    .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+                *reward_token_id = result.token_identifier;
+                *reward_nonce = result.token_nonce;
+                *reward_amount = result.amount;
+            } else {
+                self.transfer_execute_custom(
+                    destination,
+                    reward_token_id,
+                    0,
+                    reward_amount,
+                    opt_accept_funds_func,
+                )?;
+            }
+        }
+        Ok(())
     }
 
     #[endpoint]
