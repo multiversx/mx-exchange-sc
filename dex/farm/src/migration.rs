@@ -55,7 +55,7 @@ pub trait MigrationModule:
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(amount > 0u64, "Payment amount cannot be zero");
 
-        let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
+        let mut farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let mut reward_token_id = self.reward_token_id().get();
 
         let mut reward = self.calculate_reward(
@@ -88,6 +88,9 @@ pub trait MigrationModule:
         } else {
             migration_config.new_farm_address
         };
+
+        //Reset since the rewards will be send in this tx
+        farm_attributes.reward_per_share = self.reward_per_share().get();
 
         let new_position = self
             .farm_v1_4_contract_proxy(new_farm_dest)
