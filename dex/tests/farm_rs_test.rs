@@ -644,27 +644,15 @@ where
     b_mock.set_esdt_balance(&owner, LP_TOKEN_ID, &nft_balance);
     b_mock.set_esdt_balance(&owner, MEX_TOKEN_ID, &nft_balance);
 
-    let payments = vec![
-        TxInputESDT {
-            token_identifier: OLD_FARM_TOKEN_ID.to_vec(),
-            nonce: 1,
-            value: nft_balance.clone(),
-        },
-        TxInputESDT {
-            token_identifier: LP_TOKEN_ID.to_vec(),
-            nonce: 0,
-            value: nft_balance.clone(),
-        },
-        TxInputESDT {
-            token_identifier: MEX_TOKEN_ID.to_vec(),
-            nonce: 0,
-            value: nft_balance.clone(),
-        },
-    ];
+    let payments = vec![TxInputESDT {
+        token_identifier: LP_TOKEN_ID.to_vec(),
+        nonce: 0,
+        value: nft_balance.clone(),
+    }];
 
     b_mock
         .execute_esdt_multi_transfer(&owner, &farm_setup.farm_wrapper, &payments, |sc| {
-            sc.migrate_from_v1_2_farm(managed_address!(&owner));
+            sc.migrate_from_v1_2_farm(nft_attributes, managed_address!(&owner));
 
             StateChange::Commit
         })
