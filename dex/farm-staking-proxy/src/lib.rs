@@ -183,25 +183,25 @@ pub trait FarmStakingProxy:
             new_staking_farm_tokens.amount,
         );
 
-        let mut user_rewards = ManagedVec::new();
+        let mut user_output_payments = ManagedVec::new();
         if lp_farm_rewards.amount > 0 {
-            user_rewards.push(lp_farm_rewards);
+            user_output_payments.push(lp_farm_rewards);
         }
         if staking_farm_rewards.amount > 0 {
-            user_rewards.push(staking_farm_rewards);
+            user_output_payments.push(staking_farm_rewards);
         }
-        user_rewards.push(new_dual_yield_tokens);
+        user_output_payments.push(new_dual_yield_tokens);
 
         let caller = self.blockchain().get_caller();
         let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
             &caller,
-            &user_rewards,
+            &user_output_payments,
             0,
             &ManagedBuffer::new(),
             &ManagedArgBuffer::new_empty(),
         );
 
-        user_rewards.into()
+        user_output_payments.into()
     }
 
     fn exit_farm(
