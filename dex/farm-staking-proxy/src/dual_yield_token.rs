@@ -199,8 +199,8 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     ) -> BigUint {
         self.rule_of_three_non_zero_result(
             amount,
-            &attributes.lp_farm_token_amount,
             &attributes.total_dual_yield_tokens_for_position,
+            &attributes.lp_farm_token_amount,
         )
     }
 
@@ -211,8 +211,8 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     ) -> BigUint {
         self.rule_of_three_non_zero_result(
             amount,
-            &attributes.staking_farm_token_amount,
             &attributes.total_dual_yield_tokens_for_position,
+            &attributes.staking_farm_token_amount,
         )
     }
 
