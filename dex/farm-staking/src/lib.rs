@@ -48,16 +48,11 @@ pub trait Farm:
     #[init]
     fn init(
         &self,
-        reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
     ) {
-        require!(
-            reward_token_id.is_esdt(),
-            "Reward token ID is not a valid esdt identifier"
-        );
         require!(
             farming_token_id.is_esdt(),
             "Farming token ID is not a valid esdt identifier"
@@ -67,10 +62,6 @@ pub trait Farm:
             "Division constant cannot be 0"
         );
         let farm_token = self.farm_token_id().get();
-        require!(
-            reward_token_id != farm_token,
-            "Reward token ID cannot be farm token ID"
-        );
         require!(
             farming_token_id != farm_token,
             "Farming token ID cannot be farm token ID"
@@ -86,7 +77,8 @@ pub trait Farm:
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
-        self.reward_token_id().set(&reward_token_id);
+        // farming and reward token are the same
+        self.reward_token_id().set(&farming_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.min_unbond_epochs().set(&min_unbond_epochs);
