@@ -110,7 +110,6 @@ pub trait FarmStakingProxy:
         let caller = self.blockchain().get_caller();
         self.create_and_send_dual_yield_tokens(
             &caller,
-            received_staking_farm_token.amount.clone(),
             lp_farm_token_payment.token_nonce,
             lp_farm_token_payment.amount,
             received_staking_farm_token.token_nonce,
@@ -136,7 +135,7 @@ pub trait FarmStakingProxy:
         for p in &payments {
             let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
             let staking_farm_token_amount =
-                self.get_staking_farm_token_amount_equivalent(&attributes, &p.amount);
+                self.get_staking_farm_token_amount_equivalent(&p.amount);
 
             staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
@@ -176,32 +175,31 @@ pub trait FarmStakingProxy:
         let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
 
         let new_dual_yield_tokens = self.create_dual_yield_tokens(
-            new_staking_farm_tokens.amount.clone(),
             new_lp_farm_tokens.token_nonce,
             new_lp_farm_tokens.amount,
             new_staking_farm_tokens.token_nonce,
             new_staking_farm_tokens.amount,
         );
 
-        let mut user_rewards = ManagedVec::new();
+        let mut user_output_payments = ManagedVec::new();
         if lp_farm_rewards.amount > 0 {
-            user_rewards.push(lp_farm_rewards);
+            user_output_payments.push(lp_farm_rewards);
         }
         if staking_farm_rewards.amount > 0 {
-            user_rewards.push(staking_farm_rewards);
+            user_output_payments.push(staking_farm_rewards);
         }
-        user_rewards.push(new_dual_yield_tokens);
+        user_output_payments.push(new_dual_yield_tokens);
 
         let caller = self.blockchain().get_caller();
         let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
             &caller,
-            &user_rewards,
+            &user_output_payments,
             0,
             &ManagedBuffer::new(),
             &ManagedArgBuffer::new_empty(),
         );
 
-        user_rewards.into()
+        user_output_payments.into()
     }
 
     fn exit_farm(
@@ -268,7 +266,7 @@ pub trait FarmStakingProxy:
     ) -> UnstakeResult<Self::Api> {
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let staking_farm_token_amount =
-            self.get_staking_farm_token_amount_equivalent(attributes, payment_amount);
+            self.get_staking_farm_token_amount_equivalent(payment_amount);
         let mut staking_sc_payments = ManagedVec::new();
         staking_sc_payments.push(staking_token_payment);
         staking_sc_payments.push(EsdtTokenPayment::new(
