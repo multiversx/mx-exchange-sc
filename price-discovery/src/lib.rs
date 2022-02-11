@@ -178,7 +178,7 @@ pub trait PriceDiscovery:
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) {
-        self.require_deposit_period_ended();
+        self.require_redeem_allowed();
         require!(!self.lp_token_id().is_empty(), "Pool not created yet");
 
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
@@ -238,5 +238,18 @@ pub trait PriceDiscovery:
             }
             _ => BigUint::zero(),
         }
+    }
+
+    fn require_redeem_allowed(&self) {
+        let pool_creation_epoch = self.pool_creation_epoch().get();
+        require!(pool_creation_epoch > 0, "Liquidity Pool not created yet");
+
+        let unbond_epochs = self.unbond_period_epochs().get();
+        let redeem_activation_epoch = pool_creation_epoch + unbond_epochs;
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            current_epoch >= redeem_activation_epoch,
+            "Unbond period not finished yet"
+        );
     }
 }

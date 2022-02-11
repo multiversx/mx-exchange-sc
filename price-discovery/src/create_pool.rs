@@ -76,6 +76,9 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         let (lp_token, _, _) = contract_call.execute_on_dest_context().into_tuple();
         self.lp_token_id().set(&lp_token.token_identifier);
         self.total_lp_tokens_received().set(&lp_token.amount);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.pool_creation_epoch().set(&current_epoch);
     }
 
     // private
@@ -96,4 +99,7 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
     #[view(getDexScAddress)]
     #[storage_mapper("dexScAddress")]
     fn dex_sc_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("poolCreationEpoch")]
+    fn pool_creation_epoch(&self) -> SingleValueMapper<u64>;
 }
