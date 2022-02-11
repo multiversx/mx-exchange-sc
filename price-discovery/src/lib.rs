@@ -160,9 +160,19 @@ pub trait PriceDiscovery:
 
         self.burn_redeem_token(payment_nonce, &payment_amount);
 
+        let penalty_percentage = phase.to_penalty_percentage();
+        let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
+        if penalty_amount > 0 {
+            self.accumulated_penalty(payment_nonce)
+                .update(|p| *p += &penalty_amount);
+        }
+
         let caller = self.blockchain().get_caller();
-        self.send()
-            .direct(&caller, &refund_token_id, 0, &payment_amount, &[]);
+        let withdraw_amount = payment_amount - penalty_amount;
+        if withdraw_amount > 0 {
+            self.send()
+                .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
+        }
     }
 
     #[payable("*")]
