@@ -1,11 +1,15 @@
 #![no_std]
 
-use crate::redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NONCE};
+use crate::{
+    phase::MAX_PERCENTAGE,
+    redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NONCE},
+};
 
 elrond_wasm::imports!();
 
 pub mod common_storage;
 pub mod create_pool;
+pub mod phase;
 pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
@@ -14,6 +18,7 @@ const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + create_pool::CreatePoolModule
+    + phase::PhaseModule
     + redeem_token::RedeemTokenModule
     + token_merge::TokenMergeModule
 {
@@ -22,8 +27,13 @@ pub trait PriceDiscovery:
         &self,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
-        start_epoch: u64,
-        end_epoch: u64,
+        start_block: u64,
+        end_block: u64,
+        no_limit_phase_duration_blocks: u64,
+        penalty_phase_duration_blocks: u64,
+        unbond_period_epochs: u64,
+        penalty_min_percentage: BigUint,
+        penalty_max_percentage: BigUint,
     ) {
         require!(
             launched_token_id.is_valid_esdt_identifier(),
@@ -34,21 +44,61 @@ pub trait PriceDiscovery:
             "Invalid payment token ID"
         );
 
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            current_epoch < start_epoch,
-            "Start epoch cannot be in the past"
+        self.check_valid_init_periods(
+            start_block,
+            end_block,
+            no_limit_phase_duration_blocks,
+            penalty_phase_duration_blocks,
         );
-        require!(current_epoch < end_epoch, "End epoch cannot be in the past");
+
         require!(
-            start_epoch < end_epoch,
-            "Start epoch must be before end epoch"
+            penalty_min_percentage <= penalty_max_percentage,
+            "Min percentage higher than max percentage"
+        );
+        require!(
+            penalty_max_percentage < MAX_PERCENTAGE,
+            "Max percentage higher than 100%"
         );
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
-        self.start_epoch().set(&start_epoch);
-        self.end_epoch().set(&end_epoch);
+        self.start_block().set(&start_block);
+        self.end_block().set(&end_block);
+
+        self.no_limit_phase_duration_blocks()
+            .set(&no_limit_phase_duration_blocks);
+        self.penalty_phase_duration_blocks()
+            .set(&penalty_phase_duration_blocks);
+        self.unbond_period_epochs().set(&unbond_period_epochs);
+        self.penalty_min_percentage().set(&penalty_min_percentage);
+        self.penalty_max_percentage().set(&penalty_max_percentage);
+    }
+
+    #[inline]
+    fn check_valid_init_periods(
+        &self,
+        start_block: u64,
+        end_block: u64,
+        no_limit_phase_duration_blocks: u64,
+        penalty_phase_duration_blocks: u64,
+    ) {
+        let current_block = self.blockchain().get_block_nonce();
+        require!(
+            current_block < start_block,
+            "Start block cannot be in the past"
+        );
+        require!(current_block < end_block, "End epoch cannot be in the past");
+        require!(
+            start_block < end_block,
+            "Start epoch must be before end epoch"
+        );
+
+        let block_diff = end_block - start_block;
+        let phases_total_duration = no_limit_phase_duration_blocks + penalty_phase_duration_blocks;
+        require!(
+            phases_total_duration <= block_diff,
+            "Phase durations last more than the whole start to end period"
+        );
     }
 
     #[payable("*")]
@@ -121,14 +171,14 @@ pub trait PriceDiscovery:
     // private
 
     fn require_active(&self) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let start_epoch = self.start_epoch().get();
-        let end_epoch = self.end_epoch().get();
+        let current_block = self.blockchain().get_block_nonce();
+        let start_block = self.start_block().get();
+        let end_block = self.end_block().get();
         require!(
-            start_epoch <= current_epoch,
+            start_block <= current_block,
             "Deposit period not started yet"
         );
-        require!(current_epoch < end_epoch, "Deposit period ended");
+        require!(current_block < end_block, "Deposit period ended");
         require!(!self.dex_sc_address().is_empty(), "Pair address not set");
     }
 

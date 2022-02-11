@@ -81,9 +81,9 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
     // private
 
     fn require_deposit_period_ended(&self) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let end_epoch = self.end_epoch().get();
-        require!(current_epoch >= end_epoch, "Deposit period has not ended");
+        let current_block = self.blockchain().get_block_nonce();
+        let end_block = self.end_block().get();
+        require!(current_block >= end_block, "Deposit period has not ended");
     }
 
     #[proxy]
