@@ -3,13 +3,12 @@ elrond_wasm::derive_imports!();
 
 pub const MAX_PERCENTAGE: u64 = 10_000; // 100%
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
     Idle,
     NoPenalty,
-    LinearIncreasingPenalty {
-        current_penalty_percentage: BigUint<M>,
-    },
+    LinearIncreasingPenalty { penalty_percentage: BigUint<M> },
+    OnlyWithdrawFixedPenalty { penalty_percentage: BigUint<M> },
     Unbond,
 }
 
@@ -29,32 +28,67 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
             return Phase::NoPenalty;
         }
 
-        let penalty_phase_duration_blocks = self.penalty_phase_duration_blocks().get();
-        let penalty_phase_start = no_limit_phase_end;
-        let penalty_phase_end = penalty_phase_start + penalty_phase_duration_blocks;
-        if current_block < penalty_phase_end {
-            let blocks_passed_in_penalty_phase = current_block - penalty_phase_start;
+        let linear_penalty_phase_duration_blocks =
+            self.linear_penalty_phase_duration_blocks().get();
+        let linear_penalty_phase_start = no_limit_phase_end;
+        let linear_penalty_phase_end =
+            linear_penalty_phase_start + linear_penalty_phase_duration_blocks;
+        if current_block < linear_penalty_phase_end {
+            let blocks_passed_in_penalty_phase = current_block - linear_penalty_phase_start;
             let min_percentage = self.penalty_min_percentage().get();
             let max_percentage = self.penalty_max_percentage().get();
             let percentage_diff = &max_percentage - &min_percentage;
 
             // TODO: Think about precision
-            let penalty_percentage_increase =
-                percentage_diff * blocks_passed_in_penalty_phase / penalty_phase_duration_blocks;
+            let penalty_percentage_increase = percentage_diff * blocks_passed_in_penalty_phase
+                / linear_penalty_phase_duration_blocks;
 
             return Phase::LinearIncreasingPenalty {
-                current_penalty_percentage: min_percentage + penalty_percentage_increase,
+                penalty_percentage: min_percentage + penalty_percentage_increase,
+            };
+        }
+
+        let fixed_penalty_phase_duration_blocks = self.fixed_penalty_phase_duration_blocks().get();
+        let fixed_penalty_phase_start = linear_penalty_phase_end;
+        let fixed_penalty_phase_end =
+            fixed_penalty_phase_start + fixed_penalty_phase_duration_blocks;
+        if current_block < fixed_penalty_phase_end {
+            return Phase::OnlyWithdrawFixedPenalty {
+                penalty_percentage: self.fixed_penalty_percentage().get(),
             };
         }
 
         Phase::Unbond
     }
 
+    fn require_deposit_allowed(&self, phase: &Phase<Self::Api>) {
+        match phase {
+            Phase::Idle
+            | Phase::OnlyWithdrawFixedPenalty {
+                penalty_percentage: _,
+            }
+            | Phase::Unbond => {
+                sc_panic!("Deposit not allowed in this phase")
+            }
+            _ => {}
+        };
+    }
+
+    fn require_withdraw_allowed(&self, phase: &Phase<Self::Api>) {
+        match phase {
+            Phase::Idle | Phase::Unbond => sc_panic!("Withdraw not allowed in this phase"),
+            _ => {}
+        };
+    }
+
     #[storage_mapper("noLimitPhaseDurationBocks")]
     fn no_limit_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 
-    #[storage_mapper("penaltyPhaseDurationBlocks")]
-    fn penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
+    #[storage_mapper("linearPenaltyPhaseDurationBlocks")]
+    fn linear_penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("fixedPenaltyPhaseDurationBlocks")]
+    fn fixed_penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("unbondPeriodEpochs")]
     fn unbond_period_epochs(&self) -> SingleValueMapper<u64>;
@@ -64,4 +98,7 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
 
     #[storage_mapper("penaltyMaxPercentage")]
     fn penalty_max_percentage(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("fixedPenaltyPercentage")]
+    fn fixed_penalty_percentage(&self) -> SingleValueMapper<BigUint>;
 }

@@ -86,6 +86,10 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         require!(current_block >= end_block, "Deposit period has not ended");
     }
 
+    fn require_dex_address_set(&self) {
+        require!(!self.dex_sc_address().is_empty(), "Pair address not set");
+    }
+
     #[proxy]
     fn dex_proxy(&self, sc_address: ManagedAddress) -> liquidity_pool_proxy::Proxy<Self::Api>;
 

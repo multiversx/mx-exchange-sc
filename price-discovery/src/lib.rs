@@ -30,10 +30,12 @@ pub trait PriceDiscovery:
         start_block: u64,
         end_block: u64,
         no_limit_phase_duration_blocks: u64,
-        penalty_phase_duration_blocks: u64,
+        linear_penalty_phase_duration_blocks: u64,
+        fixed_penalty_phase_duration_blocks: u64,
         unbond_period_epochs: u64,
         penalty_min_percentage: BigUint,
         penalty_max_percentage: BigUint,
+        fixed_penalty_percentage: BigUint,
     ) {
         require!(
             launched_token_id.is_valid_esdt_identifier(),
@@ -48,7 +50,8 @@ pub trait PriceDiscovery:
             start_block,
             end_block,
             no_limit_phase_duration_blocks,
-            penalty_phase_duration_blocks,
+            linear_penalty_phase_duration_blocks,
+            fixed_penalty_phase_duration_blocks,
         );
 
         require!(
@@ -59,6 +62,10 @@ pub trait PriceDiscovery:
             penalty_max_percentage < MAX_PERCENTAGE,
             "Max percentage higher than 100%"
         );
+        require!(
+            fixed_penalty_percentage < MAX_PERCENTAGE,
+            "Fixed percentage higher than 100%"
+        );
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
@@ -67,11 +74,15 @@ pub trait PriceDiscovery:
 
         self.no_limit_phase_duration_blocks()
             .set(&no_limit_phase_duration_blocks);
-        self.penalty_phase_duration_blocks()
-            .set(&penalty_phase_duration_blocks);
+        self.linear_penalty_phase_duration_blocks()
+            .set(&linear_penalty_phase_duration_blocks);
+        self.fixed_penalty_phase_duration_blocks()
+            .set(&fixed_penalty_phase_duration_blocks);
         self.unbond_period_epochs().set(&unbond_period_epochs);
         self.penalty_min_percentage().set(&penalty_min_percentage);
         self.penalty_max_percentage().set(&penalty_max_percentage);
+        self.fixed_penalty_percentage()
+            .set(&fixed_penalty_percentage);
     }
 
     #[inline]
@@ -80,7 +91,8 @@ pub trait PriceDiscovery:
         start_block: u64,
         end_block: u64,
         no_limit_phase_duration_blocks: u64,
-        penalty_phase_duration_blocks: u64,
+        linear_penalty_phase_duration_blocks: u64,
+        fixed_penalty_phase_duration_blocks: u64,
     ) {
         let current_block = self.blockchain().get_block_nonce();
         require!(
@@ -94,7 +106,9 @@ pub trait PriceDiscovery:
         );
 
         let block_diff = end_block - start_block;
-        let phases_total_duration = no_limit_phase_duration_blocks + penalty_phase_duration_blocks;
+        let phases_total_duration = no_limit_phase_duration_blocks
+            + linear_penalty_phase_duration_blocks
+            + fixed_penalty_phase_duration_blocks;
         require!(
             phases_total_duration <= block_diff,
             "Phase durations last more than the whole start to end period"
@@ -104,7 +118,10 @@ pub trait PriceDiscovery:
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) {
-        self.require_active();
+        self.require_dex_address_set();
+
+        let phase = self.get_current_phase();
+        self.require_deposit_allowed(&phase);
 
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let accepted_token_id = self.accepted_token_id().get();
@@ -124,7 +141,10 @@ pub trait PriceDiscovery:
     #[payable("*")]
     #[endpoint]
     fn withdraw(&self) {
-        self.require_active();
+        self.require_dex_address_set();
+
+        let phase = self.get_current_phase();
+        self.require_withdraw_allowed(&phase);
 
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let payment_nonce = self.call_value().esdt_token_nonce();
@@ -169,18 +189,6 @@ pub trait PriceDiscovery:
     }
 
     // private
-
-    fn require_active(&self) {
-        let current_block = self.blockchain().get_block_nonce();
-        let start_block = self.start_block().get();
-        let end_block = self.end_block().get();
-        require!(
-            start_block <= current_block,
-            "Deposit period not started yet"
-        );
-        require!(current_block < end_block, "Deposit period ended");
-        require!(!self.dex_sc_address().is_empty(), "Pair address not set");
-    }
 
     fn compute_lp_amount_to_send(
         &self,
