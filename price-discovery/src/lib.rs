@@ -1,7 +1,7 @@
 #![no_std]
 
 use crate::{
-    phase::MAX_PERCENTAGE,
+    common_storage::MAX_PERCENTAGE,
     redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NONCE},
 };
 
@@ -177,10 +177,10 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        self.burn_redeem_token(payment_nonce, &payment_amount);
-
-        let lp_token_amount = self.compute_lp_amount_to_send(payment_nonce, payment_amount);
+        let lp_token_amount = self.compute_lp_amount_to_send(payment_nonce, &payment_amount);
         require!(lp_token_amount > 0u32, "Nothing to redeem");
+
+        self.burn_redeem_token(payment_nonce, &payment_amount);
 
         let caller = self.blockchain().get_caller();
         let lp_token_id = self.lp_token_id().get();
@@ -193,26 +193,38 @@ pub trait PriceDiscovery:
     fn compute_lp_amount_to_send(
         &self,
         redeem_token_nonce: u64,
-        redeem_token_amount: BigUint,
+        redeem_token_amount: &BigUint,
     ) -> BigUint {
         let total_lp_tokens = self.total_lp_tokens_received().get();
+        let percentage_of_redeeem_token_supply =
+            self.get_percentage_of_total_supply(redeem_token_nonce, redeem_token_amount);
+        let penalty_mapper = self.accumulated_penalty(redeem_token_nonce);
+
+        let accumulated_penalty_amount = penalty_mapper.get();
+        let bonus =
+            percentage_of_redeeem_token_supply * accumulated_penalty_amount / MAX_PERCENTAGE;
+        penalty_mapper.update(|amt| *amt -= &bonus);
 
         match redeem_token_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => {
                 let launched_token_final_amount = self.launched_token_final_amount().get();
-                self.rule_of_three(
-                    &redeem_token_amount,
+                let base_lp_amount = self.rule_of_three(
+                    redeem_token_amount,
                     &launched_token_final_amount,
                     &total_lp_tokens,
-                ) / 2u32
+                ) / 2u32;
+
+                base_lp_amount + bonus
             }
             ACCEPTED_TOKEN_REDEEM_NONCE => {
                 let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                self.rule_of_three(
-                    &redeem_token_amount,
+                let base_lp_amount = self.rule_of_three(
+                    redeem_token_amount,
                     &accepted_token_final_amount,
                     &total_lp_tokens,
-                ) / 2u32
+                ) / 2u32;
+
+                base_lp_amount + bonus
             }
             _ => BigUint::zero(),
         }

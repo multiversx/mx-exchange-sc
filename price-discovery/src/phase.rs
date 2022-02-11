@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub const MAX_PERCENTAGE: u64 = 10_000; // 100%
-
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
     Idle,
@@ -10,6 +8,16 @@ pub enum Phase<M: ManagedTypeApi> {
     LinearIncreasingPenalty { penalty_percentage: BigUint<M> },
     OnlyWithdrawFixedPenalty { penalty_percentage: BigUint<M> },
     Unbond,
+}
+
+impl<M: ManagedTypeApi> Phase<M> {
+    pub fn to_penalty_percentage(self) -> BigUint<M> {
+        match self {
+            Self::LinearIncreasingPenalty { penalty_percentage } => penalty_percentage,
+            Self::OnlyWithdrawFixedPenalty { penalty_percentage } => penalty_percentage,
+            _ => BigUint::zero(),
+        }
+    }
 }
 
 #[elrond_wasm::module]
@@ -39,7 +47,6 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
             let max_percentage = self.penalty_max_percentage().get();
             let percentage_diff = &max_percentage - &min_percentage;
 
-            // TODO: Think about precision
             let penalty_percentage_increase = percentage_diff * blocks_passed_in_penalty_phase
                 / linear_penalty_phase_duration_blocks;
 

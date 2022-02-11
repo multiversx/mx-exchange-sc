@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 use hex_literal::hex;
 
+use crate::common_storage::MAX_PERCENTAGE;
+
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
@@ -103,12 +105,24 @@ pub trait RedeemTokenModule {
     fn mint_and_send_redeem_token(&self, to: &ManagedAddress, nonce: u64, amount: &BigUint) {
         let redeem_token_id = self.redeem_token_id().get();
         self.send().esdt_local_mint(&redeem_token_id, nonce, amount);
+
+        self.redeem_token_total_circulating_supply(nonce)
+            .update(|supply| *supply += amount);
+
         self.send().direct(to, &redeem_token_id, nonce, amount, &[]);
     }
 
     fn burn_redeem_token(&self, nonce: u64, amount: &BigUint) {
         let redeem_token_id = self.redeem_token_id().get();
         self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
+
+        self.redeem_token_total_circulating_supply(nonce)
+            .update(|supply| *supply -= amount);
+    }
+
+    fn get_percentage_of_total_supply(&self, nonce: u64, amount: &BigUint) -> BigUint {
+        let total_supply = self.redeem_token_total_circulating_supply(nonce).get();
+        amount * MAX_PERCENTAGE / total_supply
     }
 
     #[proxy]
@@ -117,4 +131,8 @@ pub trait RedeemTokenModule {
     #[view(getRedeemTokenId)]
     #[storage_mapper("redeemTokenId")]
     fn redeem_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("totalCirculatingSupply")]
+    fn redeem_token_total_circulating_supply(&self, token_nonce: u64)
+        -> SingleValueMapper<BigUint>;
 }

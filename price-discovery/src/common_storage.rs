@@ -1,5 +1,7 @@
 elrond_wasm::imports!();
 
+pub const MAX_PERCENTAGE: u64 = 10_000_000_000_000; // 100%
+
 #[elrond_wasm::module]
 pub trait CommonStorageModule {
     #[view(getLaunchedTokenId)]
@@ -33,4 +35,7 @@ pub trait CommonStorageModule {
     #[view(getEndBlock)]
     #[storage_mapper("endBlock")]
     fn end_block(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("accumulatedPenalty")]
+    fn accumulated_penalty(&self, redeem_token_nonce: u64) -> SingleValueMapper<BigUint>;
 }
