@@ -53,13 +53,10 @@ pub trait PriceDiscovery:
 
     #[payable("*")]
     #[endpoint]
-    fn deposit(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: BigUint,
-    ) {
+    fn deposit(&self) {
         self.require_active();
 
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let accepted_token_id = self.accepted_token_id().get();
         let launched_token_id = self.launched_token_id().get();
         let redeem_token_nonce = if payment_token == accepted_token_id {
@@ -76,13 +73,11 @@ pub trait PriceDiscovery:
 
     #[payable("*")]
     #[endpoint]
-    fn withdraw(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_nonce] payment_nonce: u64,
-        #[payment_amount] payment_amount: BigUint,
-    ) {
+    fn withdraw(&self) {
         self.require_active();
+
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let payment_nonce = self.call_value().esdt_token_nonce();
 
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
@@ -102,14 +97,12 @@ pub trait PriceDiscovery:
 
     #[payable("*")]
     #[endpoint]
-    fn redeem(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_nonce] payment_nonce: u64,
-        #[payment_amount] payment_amount: BigUint,
-    ) {
+    fn redeem(&self) {
         self.require_deposit_period_ended();
         require!(!self.lp_token_id().is_empty(), "Pool not created yet");
+
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let payment_nonce = self.call_value().esdt_token_nonce();
 
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);

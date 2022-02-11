@@ -34,11 +34,12 @@ pub trait RedeemTokenModule {
     #[endpoint(issueRedeemToken)]
     fn issue_redeem_token(
         &self,
-        #[payment_amount] payment_amount: BigUint,
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
     ) -> AsyncCall {
+        let payment_amount = self.call_value().egld_value();
+
         require!(
             self.redeem_token_id().is_empty(),
             "Redeem token already issued"
@@ -68,7 +69,7 @@ pub trait RedeemTokenModule {
                 let zero = BigUint::zero();
                 let one = BigUint::from(1u32);
                 let empty_buffer = ManagedBuffer::new();
-                let empty_vec = ManagedVec::new();
+                let empty_vec = ManagedVec::from_raw_handle(empty_buffer.get_raw_handle());
 
                 let _ = self.send().esdt_nft_create(
                     &redeem_token_id,
@@ -93,8 +94,7 @@ pub trait RedeemTokenModule {
                 let caller = self.blockchain().get_owner_address();
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
-                    self.send()
-                        .direct(&caller, &token_id, 0, &returned_tokens, &[]);
+                    self.send().direct_egld(&caller, &returned_tokens, &[]);
                 }
             }
         }

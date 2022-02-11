@@ -1,8 +1,7 @@
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier};
+use elrond_wasm_debug::testing_framework::*;
 use elrond_wasm_debug::tx_mock::TxResult;
-use elrond_wasm_debug::{managed_address, managed_token_id, rust_biguint, DebugApi};
-use elrond_wasm_debug::{managed_biguint, testing_framework::*};
-use num_traits::ToPrimitive;
+use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
@@ -184,10 +183,7 @@ pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
             0,
             amount,
             |sc| {
-                sc.deposit(
-                    managed_token_id!(LAUNCHED_TOKEN_ID),
-                    managed_biguint!(amount.to_u64().unwrap()),
-                );
+                sc.deposit();
 
                 state_change
             },
@@ -213,10 +209,7 @@ where
         0,
         amount,
         |sc| {
-            sc.deposit(
-                managed_token_id!(ACCEPTED_TOKEN_ID),
-                managed_biguint!(amount.to_u64().unwrap()),
-            );
+            sc.deposit();
 
             state_change
         },
@@ -241,11 +234,7 @@ where
         ACCEPTED_TOKEN_REDEEM_NONCE,
         amount,
         |sc| {
-            let _ = sc.withdraw(
-                managed_token_id!(REDEEM_TOKEN_ID),
-                ACCEPTED_TOKEN_REDEEM_NONCE,
-                managed_biguint!(amount.to_u64().unwrap()),
-            );
+            let _ = sc.withdraw();
 
             state_change
         },
@@ -271,11 +260,7 @@ where
         sft_nonce,
         amount,
         |sc| {
-            sc.redeem(
-                managed_token_id!(REDEEM_TOKEN_ID),
-                sft_nonce,
-                managed_biguint!(amount.to_u64().unwrap()),
-            );
+            sc.redeem();
 
             state_change
         },
