@@ -50,7 +50,6 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     #[endpoint(issueDualYieldToken)]
     fn issue_dual_yield_token(
         &self,
-        #[payment_amount] payment_amount: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
@@ -60,6 +59,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             "Token already issued"
         );
 
+        let payment_amount = self.call_value().egld_value();
         self.esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
             &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
         ))
