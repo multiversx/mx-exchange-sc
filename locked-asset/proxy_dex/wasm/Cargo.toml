@@ -1,5 +1,5 @@
 [package]
-name = "farm_with_lock-wasm"
+name = "proxy_dex-wasm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,13 +20,13 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.farm_with_lock]
+[dependencies.proxy_dex]
 default-features = false
 path = ".."
 
 [dependencies.elrond-wasm-node]
-version = "0.27"
+version = "0.27.3"
 
 [dependencies.elrond-wasm-output]
-version = "0.27"
+version = "0.27.3"
 features = ["wasm-output-mode"]

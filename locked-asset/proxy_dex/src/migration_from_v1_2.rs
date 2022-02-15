@@ -95,7 +95,10 @@ pub trait MigrationModule:
             new_nonce,
             new_pos.amount,
         ));
-        payments.push(reward);
+
+        if reward.amount != 0u64 {
+            payments.push(reward);
+        }
 
         let caller = self.blockchain().get_caller();
         self.send_multiple_tokens(&caller, &payments, &OptionalArg::None);
