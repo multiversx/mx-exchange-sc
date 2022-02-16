@@ -215,7 +215,11 @@ pub trait FarmStakingProxy:
 
     #[payable("*")]
     #[endpoint(unstakeFarmTokens)]
-    fn unstake_farm_tokens(&self) -> UnstakeResult<Self::Api> {
+    fn unstake_farm_tokens(
+        &self,
+        pair_first_token_min_amount: BigUint,
+        pair_second_token_min_amount: BigUint,
+    ) -> UnstakeResult<Self::Api> {
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let payment_nonce = self.call_value().esdt_token_nonce();
 
@@ -225,7 +229,11 @@ pub trait FarmStakingProxy:
 
         let (lp_tokens, lp_farm_rewards) = self.exit_farm(&payment_amount, &attributes);
 
-        let (staking_token_payment, other_token_payment) = self.remove_liquidity(lp_tokens);
+        let (staking_token_payment, other_token_payment) = self.remove_liquidity(
+            lp_tokens,
+            pair_first_token_min_amount,
+            pair_second_token_min_amount,
+        );
         let unstake_result = self.unstake(
             &payment_amount,
             &attributes,
@@ -264,6 +272,8 @@ pub trait FarmStakingProxy:
     fn remove_liquidity(
         &self,
         lp_tokens: EsdtTokenPayment<Self::Api>,
+        pair_first_token_min_amount: BigUint,
+        pair_second_token_min_amount: BigUint,
     ) -> (EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>) {
         let pair_address = self.pair_address().get();
         let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
@@ -272,8 +282,8 @@ pub trait FarmStakingProxy:
                 lp_tokens.token_identifier,
                 lp_tokens.token_nonce,
                 lp_tokens.amount,
-                BigUint::from(1u32),
-                BigUint::from(1u32),
+                pair_first_token_min_amount,
+                pair_second_token_min_amount,
                 OptionalArg::None,
             )
             .execute_on_dest_context();
