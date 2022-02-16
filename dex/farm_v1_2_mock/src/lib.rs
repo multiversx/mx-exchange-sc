@@ -27,7 +27,7 @@ pub trait FarmV12Mock {
         #[payment_amount] amount: BigUint,
         _orig_caller: ManagedAddress,
     ) -> SCResult<MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>> {
-        let payment_1 = EsdtTokenPayment::new(payment_token_id.clone(), token_nonce, amount);
+        let payment_1 = EsdtTokenPayment::new(payment_token_id, token_nonce, amount);
         let payment_2 = EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero());
 
         Ok(MultiResult2::from((payment_1, payment_2)))
