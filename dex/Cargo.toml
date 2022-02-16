@@ -45,3 +45,6 @@ path = "pair"
 
 [dev-dependencies.router]
 path = "router"
+
+[dependencies]
+rand = "0.8.4"

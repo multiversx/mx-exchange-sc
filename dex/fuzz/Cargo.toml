@@ -1,0 +1,48 @@
+[package]
+name = "fuzz"
+version = "0.0.0"
+authors = [ "sorin-petreasca <sorin.petreasca@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "0.27.3"
+
+[dependencies.elrond-wasm-debug]
+version = "0.27.3"
+
+[dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dependencies.rewards]
+path = "../../common/modules/farm/rewards"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.farm-staking]
+path = "../farm-staking"
+
+[dependencies.farm_with_lock]
+path = "../farm_with_lock"
+
+[dependencies.factory]
+path = "../../locked-asset/factory"
+
+[dependencies.farm]
+path = "../farm"
+
+[dependencies.pair]
+path = "../pair"
+
+[dependencies.router]
+path = "../router"
+
+[dependencies]
+num-bigint = "0.4.2"
+
+[dependencies]
+rand = "0.8.4"
+
