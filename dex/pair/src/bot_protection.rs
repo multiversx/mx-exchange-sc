@@ -23,9 +23,11 @@ pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
             return;
         }
 
+        let caller = ctx.get_caller();
         let bp_config = self.bp_swap_config().get();
         let current_block = self.blockchain().get_block_nonce();
         if bp_config.protect_stop_block < current_block {
+            self.num_swaps_by_address(caller).clear();
             return;
         }
 
@@ -35,7 +37,6 @@ pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
             return;
         }
 
-        let caller = ctx.get_caller();
         let num_swaps = self.num_swaps_by_address(caller).get();
         require!(
             num_swaps < bp_config.max_num_actions_per_address,
@@ -64,9 +65,11 @@ pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
             return;
         }
 
+        let caller = ctx.get_caller();
         let bp_config = self.bp_remove_config().get();
         let current_block = self.blockchain().get_block_nonce();
         if bp_config.protect_stop_block < current_block {
+            self.num_removes_by_address(caller).clear();
             return;
         }
 
@@ -75,7 +78,6 @@ pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
             return;
         }
 
-        let caller = ctx.get_caller();
         let num_removes = self.num_removes_by_address(caller).get();
         require!(
             num_removes < bp_config.max_num_actions_per_address,
@@ -97,9 +99,11 @@ pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
             return;
         }
 
+        let caller = ctx.get_caller();
         let bp_config = self.bp_add_config().get();
         let current_block = self.blockchain().get_block_nonce();
         if bp_config.protect_stop_block < current_block {
+            self.num_adds_by_address(caller).clear();
             return;
         }
 
@@ -108,7 +112,6 @@ pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
             return;
         }
 
-        let caller = ctx.get_caller();
         let num_adds = self.num_adds_by_address(caller).get();
         require!(
             num_adds < bp_config.max_num_actions_per_address,
