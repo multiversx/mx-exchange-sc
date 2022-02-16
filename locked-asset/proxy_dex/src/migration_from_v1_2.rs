@@ -81,7 +81,11 @@ pub trait MigrationModule:
             farm_token_amount: new_pos.amount.clone(),
             farming_token_id: wrapped_farm_token_attrs.farming_token_id,
             farming_token_nonce: wrapped_farm_token_attrs.farming_token_nonce,
-            farming_token_amount: wrapped_farm_token_attrs.farming_token_amount,
+            farming_token_amount: self.rule_of_three_non_zero_result(
+                &payment_amount,
+                &wrapped_farm_token_attrs.farm_token_amount,
+                &wrapped_farm_token_attrs.farming_token_amount,
+            ),
         };
         let new_nonce = self.nft_create_tokens(&wrapped_farm_token, &new_pos.amount, &new_attrs);
 
@@ -91,7 +95,10 @@ pub trait MigrationModule:
             new_nonce,
             new_pos.amount,
         ));
-        payments.push(reward);
+
+        if reward.amount != 0u64 {
+            payments.push(reward);
+        }
 
         let caller = self.blockchain().get_caller();
         self.send_multiple_tokens(&caller, &payments, &OptionalArg::None);

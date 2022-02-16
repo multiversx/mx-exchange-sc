@@ -38,6 +38,7 @@ elrond_wasm_node::wasm_endpoints! {
         registerFarmToken
         resume
         setFarmMigrationConfig
+        setFarmTokenSupply
         setLocalRolesFarmToken
         setPerBlockRewardAmount
         setRpsAndStartRewards
