@@ -154,6 +154,8 @@ pub trait FarmStakingProxy:
                 lp_farm_token_amount,
             ));
             new_staking_farm_values.push(new_staking_farm_value);
+
+            self.burn_dual_yield_tokens(p.token_nonce, &p.amount);
         }
 
         let lp_farm_address = self.lp_farm_address().get();
@@ -178,7 +180,6 @@ pub trait FarmStakingProxy:
             new_staking_farm_tokens.token_nonce,
             new_staking_farm_tokens.amount,
         );
-        self.burn_multiple_dual_yield_tokens(&payments);
 
         let mut user_output_payments = ManagedVec::new();
         if lp_farm_rewards.amount > 0 {
@@ -347,15 +348,6 @@ pub trait FarmStakingProxy:
             second_token_info.amount
         } else {
             sc_panic!("Invalid Pair contract called");
-        }
-    }
-
-    fn burn_multiple_dual_yield_tokens(
-        &self,
-        dual_yield_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) {
-        for token in dual_yield_tokens {
-            self.burn_dual_yield_tokens(token.token_nonce, &token.amount);
         }
     }
 
