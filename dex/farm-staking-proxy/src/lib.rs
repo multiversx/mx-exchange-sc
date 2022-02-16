@@ -178,6 +178,7 @@ pub trait FarmStakingProxy:
             new_staking_farm_tokens.token_nonce,
             new_staking_farm_tokens.amount,
         );
+        self.burn_multiple_dual_yield_tokens(&payments);
 
         let mut user_output_payments = ManagedVec::new();
         if lp_farm_rewards.amount > 0 {
@@ -318,13 +319,17 @@ pub trait FarmStakingProxy:
         let (lp_tokens, lp_farm_rewards) = self.exit_farm(&payment_amount, &attributes);
 
         let (staking_token_payment, other_token_payment) = self.remove_liquidity(lp_tokens);
-        self.unstake(
+        let unstake_result = self.unstake(
             &payment_amount,
             &attributes,
             lp_farm_rewards,
             staking_token_payment,
             other_token_payment,
-        )
+        );
+
+        self.burn_dual_yield_tokens(payment_nonce, &payment_amount);
+
+        unstake_result
     }
 
     fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
@@ -342,6 +347,15 @@ pub trait FarmStakingProxy:
             second_token_info.amount
         } else {
             sc_panic!("Invalid Pair contract called");
+        }
+    }
+
+    fn burn_multiple_dual_yield_tokens(
+        &self,
+        dual_yield_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+    ) {
+        for token in dual_yield_tokens {
+            self.burn_dual_yield_tokens(token.token_nonce, &token.amount);
         }
     }
 
