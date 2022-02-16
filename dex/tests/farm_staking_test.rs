@@ -1,6 +1,4 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedVec, OptionalArg, TokenIdentifier,
-};
+use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, TokenIdentifier};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
@@ -93,10 +91,7 @@ where
             0,
             &TOTAL_REWARDS_AMOUNT.into(),
             |sc| {
-                sc.top_up_rewards(
-                    managed_token_id!(REWARD_TOKEN_ID),
-                    managed_biguint!(TOTAL_REWARDS_AMOUNT),
-                );
+                sc.top_up_rewards();
 
                 StateChange::Commit
             },
@@ -167,20 +162,7 @@ fn stake_farm<FarmObjBuilder>(
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                let mut payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
-                    managed_token_id!(FARMING_TOKEN_ID),
-                    0,
-                    managed_biguint!(farm_in_amount),
-                ));
-                for p in additional_farm_tokens {
-                    payments.push(EsdtTokenPayment::new(
-                        managed_token_id!(p.token_identifier.as_slice()),
-                        p.nonce,
-                        managed_biguint!(p.value.to_u64_digits()[0]),
-                    ));
-                }
-
-                let payment = sc.stake_farm(payments, OptionalArg::None);
+                let payment = sc.stake_farm_endpoint();
                 assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                 assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                 assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
@@ -226,12 +208,7 @@ fn unbond_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_tokem_amount),
             |sc| {
-                let payment = sc.unbond_farm(
-                    managed_token_id!(FARM_TOKEN_ID),
-                    farm_token_nonce,
-                    managed_biguint!(farm_tokem_amount),
-                    OptionalArg::None,
-                );
+                let payment = sc.unbond_farm();
                 assert_eq!(
                     payment.token_identifier,
                     managed_token_id!(FARMING_TOKEN_ID)
@@ -273,12 +250,7 @@ fn unstake_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.unstake_farm(
-                    managed_token_id!(FARM_TOKEN_ID),
-                    farm_token_nonce,
-                    managed_biguint!(farm_token_amount),
-                    OptionalArg::None,
-                );
+                let multi_result = sc.unstake_farm();
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -346,14 +318,7 @@ fn claim_rewards<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
-                    managed_token_id!(FARM_TOKEN_ID),
-                    farm_token_nonce,
-                    managed_biguint!(farm_token_amount),
-                ));
-
-                let multi_result = sc.claim_rewards(payments, OptionalArg::None);
-
+                let multi_result = sc.claim_rewards();
                 let (first_result, second_result) = multi_result.into_tuple();
 
                 assert_eq!(
