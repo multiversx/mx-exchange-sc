@@ -74,7 +74,7 @@ pub trait Farm:
             "Farming token ID cannot be farm token ID"
         );
 
-        self.state().set_if_empty(&State::Inactive);
+        self.state().set(&State::Inactive);
         self.penalty_percent()
             .set_if_empty(&DEFAULT_PENALTY_PERCENT);
         self.locked_rewards_apr_multiplier()
