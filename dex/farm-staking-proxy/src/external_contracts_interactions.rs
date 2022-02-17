@@ -68,7 +68,7 @@ pub trait ExternalContractsInteractionsModule:
         self.lp_farm_proxy_obj(lp_farm_address)
             .merge_farm_tokens(OptionalArg::None)
             .with_multi_token_transfer(additional_lp_tokens)
-            .execute_on_dest_context()
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     // staking farm
