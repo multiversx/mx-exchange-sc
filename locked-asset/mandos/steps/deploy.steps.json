@@ -140,7 +140,7 @@
             "tx": {
                 "from": "address:owner",
                 "value": "0",
-                "contractCode": "file:../../proxy-dex/output/proxy-dex.wasm",
+                "contractCode": "file:../../proxy_dex/output/proxy_dex.wasm",
                 "arguments": [
                     "str:MEX-abcdef",
                     "str:LKMEX-abcdef",
@@ -250,7 +250,7 @@
                         "str:locked_asset_token_id": "str:LKMEX-abcdef",
                         "str:locked_asset_factory_address": "sc:locked_asset_factory"
                     },
-                    "code": "file:../../proxy-dex/output/proxy-dex.wasm",
+                    "code": "file:../../proxy_dex/output/proxy_dex.wasm",
                     "owner": "address:owner"
                 }
             }

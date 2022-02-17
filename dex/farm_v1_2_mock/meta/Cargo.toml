@@ -1,13 +1,12 @@
 [package]
-name = "farm-staking-proxy-meta"
+name = "farm_v1_2_mock-abi"
+
 version = "0.0.0"
+authors = [ "you",]
 edition = "2018"
 publish = false
-authors = [ "you",]
 
-[dev-dependencies]
-
-[dependencies.farm-staking-proxy]
+[dependencies.farm_v1_2_mock]
 path = ".."
 
 [dependencies.elrond-wasm]
