@@ -30,18 +30,11 @@ where
 
     b_mock
         .execute_tx(owner_addr, &farm_staking_wrapper, &rust_zero, |sc| {
-            let reward_token_id = managed_token_id!(STAKING_REWARD_TOKEN_ID);
             let farming_token_id = managed_token_id!(STAKING_TOKEN_ID);
             let div_const = managed_biguint!(DIVISION_SAFETY_CONSTANT);
             let max_apr = managed_biguint!(MAX_APR);
 
-            sc.init(
-                reward_token_id,
-                farming_token_id,
-                div_const,
-                max_apr,
-                UNBOND_EPOCHS,
-            );
+            sc.init(farming_token_id, div_const, max_apr, UNBOND_EPOCHS);
 
             sc.farm_token_id()
                 .set(&managed_token_id!(STAKING_FARM_TOKEN_ID));
