@@ -330,16 +330,21 @@ fn test_stake_farm_through_proxy_with_merging() {
         )
     });
 
-    /*
-
-    // check staking farm SC tokens
-    setup.b_mock.check_nft_balance(
+    // check farm staking SC tokens
+    setup.b_mock.check_esdt_balance(
         setup.staking_farm_wrapper.address_ref(),
-        LP_FARM_TOKEN_ID,
-        2,
-        &rust_biguint!(0),
-        &(),
+        RIDE_TOKEN_ID,
+        &rust_biguint!(1_000_000_000_000),
     );
 
-    */
+    // check proxy SC tokens
+    setup.b_mock.execute_in_managed_environment(|| {
+        setup.b_mock.check_nft_balance(
+            setup.proxy_wrapper.address_ref(),
+            LP_FARM_TOKEN_ID,
+            2,
+            &rust_biguint!(1_000_000_000),
+            &(),
+        )
+    });
 }
