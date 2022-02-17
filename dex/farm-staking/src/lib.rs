@@ -84,6 +84,7 @@ pub trait Farm:
         self.min_unbond_epochs().set(&min_unbond_epochs);
     }
 
+    #[payable("*")]
     #[endpoint(stakeFarmThroughProxy)]
     fn stake_farm_through_proxy(
         &self,
