@@ -7,9 +7,9 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod events;
-mod migration_from_v1_2;
-mod proxy_common;
-mod proxy_farm;
+pub mod migration_from_v1_2;
+pub mod proxy_common;
+pub mod proxy_farm;
 mod proxy_pair;
 mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;

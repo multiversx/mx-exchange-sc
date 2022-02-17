@@ -1,12 +1,12 @@
 [package]
-name = "proxy-dex-meta"
+name = "proxy_dex-meta"
 
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
 publish = false
 
-[dependencies.proxy-dex]
+[dependencies.proxy_dex]
 path = ".."
 
 [dependencies.elrond-wasm]

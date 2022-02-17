@@ -8,6 +8,7 @@ const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
+pub mod bot_protection;
 pub mod config;
 mod contexts;
 mod errors;
@@ -44,6 +45,7 @@ pub trait Pair<ContractReader>:
     + events::EventsModule
     + ctx_helper::CtxHelper
     + safe_price::SafePriceModule
+    + bot_protection::BPModule
 {
     #[init]
     fn init(
@@ -211,6 +213,7 @@ pub trait Pair<ContractReader>:
         } else {
             self.pool_add_liquidity(&mut context);
         }
+        self.require_can_proceed_add(&context);
 
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
@@ -282,6 +285,7 @@ pub trait Pair<ContractReader>:
         self.load_initial_k(&mut context);
 
         self.pool_remove_liquidity(&mut context);
+        self.require_can_proceed_remove(&context);
 
         let new_k = self.calculate_k(&context);
         require!(&new_k <= context.get_initial_k(), ERROR_K_INVARIANT_FAILED);
@@ -348,6 +352,7 @@ pub trait Pair<ContractReader>:
         self.load_lp_token_supply(&mut context);
 
         self.pool_remove_liquidity(&mut context);
+        self.require_can_proceed_remove(&context);
 
         self.burn(&token_in, &amount_in);
         self.lp_token_supply().update(|x| *x -= &amount_in);
@@ -429,6 +434,8 @@ pub trait Pair<ContractReader>:
         require!(amount_out > 0u64, ERROR_ZERO_AMOUNT);
         context.set_final_output_amount(amount_out.clone());
 
+        self.require_can_proceed_swap(&context);
+
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
@@ -487,6 +494,8 @@ pub trait Pair<ContractReader>:
 
         self.load_initial_k(&mut context);
         self.perform_swap_fixed_input(&mut context);
+
+        self.require_can_proceed_swap(&context);
 
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
@@ -553,6 +562,8 @@ pub trait Pair<ContractReader>:
 
         self.load_initial_k(&mut context);
         self.perform_swap_fixed_output(&mut context);
+
+        self.require_can_proceed_swap(&context);
 
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);

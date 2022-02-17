@@ -12,6 +12,9 @@ elrond_wasm_node::wasm_endpoints! {
         addTrustedSwapPair
         getAmountIn
         getAmountOut
+        getBPAddConfig
+        getBPRemoveConfig
+        getBPSwapConfig
         getEquivalent
         getExternSwapGasLimit
         getFeeDestinations
@@ -19,6 +22,9 @@ elrond_wasm_node::wasm_endpoints! {
         getFirstTokenId
         getInitialLiquidtyAdder
         getLpTokenIdentifier
+        getNumAddsByAddress
+        getNumRemovesByAddress
+        getNumSwapsByAddress
         getReserve
         getReservesAndTotalSupply
         getRouterManagedAddress
@@ -38,6 +44,9 @@ elrond_wasm_node::wasm_endpoints! {
         removeTrustedSwapPair
         removeWhitelist
         resume
+        setBPAddConfig
+        setBPRemoveConfig
+        setBPSwapConfig
         setFeeOn
         setFeePercents
         setLpTokenIdentifier

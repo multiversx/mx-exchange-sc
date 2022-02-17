@@ -1,5 +1,5 @@
 [package]
-name = "proxy-dex"
+name = "proxy_dex"
 version = "0.0.0"
 edition = "2018"
 publish = false

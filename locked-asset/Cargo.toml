@@ -28,5 +28,5 @@ path = "distribution"
 [dependencies.factory]
 path = "factory"
 
-[dependencies.proxy-dex]
-path = "proxy-dex"
+[dependencies.proxy_dex]
+path = "proxy_dex"
