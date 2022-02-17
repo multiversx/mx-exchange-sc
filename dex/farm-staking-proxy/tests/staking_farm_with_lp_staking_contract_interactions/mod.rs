@@ -2,6 +2,7 @@ use elrond_wasm::types::{Address, BigUint};
 use elrond_wasm_debug::{
     managed_biguint, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
+    tx_mock::TxInputESDT,
     DebugApi,
 };
 
@@ -17,6 +18,11 @@ use crate::{
         add_proxy_to_whitelist, setup_proxy, setup_staking_farm,
     },
 };
+
+pub struct NonceAmountPair {
+    pub nonce: u64,
+    pub amount: u64,
+}
 
 pub struct FarmStakingSetup<
     PairObjBuilder,
@@ -147,6 +153,41 @@ where
                 &expected_dual_yield_attributes,
             );
         });
+
+        dual_yield_nonce
+    }
+
+    pub fn stake_farm_lp_proxy_multiple(
+        &mut self,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_stake_amount: u64,
+        dual_yield_tokens: Vec<NonceAmountPair>,
+    ) -> u64 {
+        let mut dual_yield_nonce = 0;
+
+        let mut transfers = Vec::new();
+        transfers.push(TxInputESDT {
+            token_identifier: LP_FARM_TOKEN_ID.to_vec(),
+            nonce: lp_farm_token_nonce,
+            value: rust_biguint!(lp_farm_token_stake_amount),
+        });
+
+        for pair in dual_yield_tokens {
+            transfers.push(TxInputESDT {
+                token_identifier: DUAL_YIELD_TOKEN_ID.to_vec(),
+                nonce: pair.nonce,
+                value: rust_biguint!(pair.amount),
+            })
+        }
+
+        self.b_mock
+            .execute_esdt_multi_transfer(&self.user_addr, &self.proxy_wrapper, &transfers, |sc| {
+                let new_dual_yield_token = sc.stake_farm_tokens();
+                dual_yield_nonce = new_dual_yield_token.token_nonce;
+
+                StateChange::Commit
+            })
+            .assert_ok();
 
         dual_yield_nonce
     }
