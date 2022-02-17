@@ -214,7 +214,9 @@ where
                 dual_yield_token_nonce,
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
-                    let received_tokens = sc.unstake_farm_tokens().to_vec();
+                    let received_tokens = sc
+                        .unstake_farm_tokens(managed_biguint!(1), managed_biguint!(1))
+                        .to_vec();
                     let mut vec_index = 0;
 
                     if expected_wegld_amount > 0 {

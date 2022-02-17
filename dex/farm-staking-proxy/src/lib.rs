@@ -2,6 +2,7 @@
 
 elrond_wasm::imports!();
 
+use farm::farm_token_merge::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 
 use dual_yield_token::DualYieldTokenAttributes;
@@ -83,20 +84,30 @@ pub trait FarmStakingProxy:
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut staking_farm_tokens = ManagedVec::new();
+        let mut additional_lp_farm_tokens = ManagedVec::new();
         for p in &additional_payments {
             let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
+
             staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
                 attributes.staking_farm_token_nonce,
-                p.amount.clone(),
+                self.get_staking_farm_token_amount_equivalent(&p.amount),
+            ));
+
+            additional_lp_farm_tokens.push(EsdtTokenPayment::new(
+                lp_farm_token_id.clone(),
+                attributes.lp_farm_token_nonce,
+                self.get_lp_farm_token_amount_equivalent(&attributes, &p.amount),
             ));
 
             self.burn_dual_yield_tokens(p.token_nonce, &p.amount);
         }
 
+        let merged_lp_farm_tokens =
+            self.merge_lp_farm_tokens(lp_farm_token_payment, additional_lp_farm_tokens);
         let lp_tokens_in_farm = self.get_lp_tokens_in_farm_position(
-            lp_farm_token_payment.token_nonce,
-            &lp_farm_token_payment.amount,
+            merged_lp_farm_tokens.token_nonce,
+            &merged_lp_farm_tokens.amount,
         );
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
         let staking_farm_address = self.staking_farm_address().get();
@@ -109,8 +120,8 @@ pub trait FarmStakingProxy:
         let caller = self.blockchain().get_caller();
         self.create_and_send_dual_yield_tokens(
             &caller,
-            lp_farm_token_payment.token_nonce,
-            lp_farm_token_payment.amount,
+            merged_lp_farm_tokens.token_nonce,
+            merged_lp_farm_tokens.amount,
             received_staking_farm_token.token_nonce,
             received_staking_farm_token.amount,
         )
@@ -154,6 +165,8 @@ pub trait FarmStakingProxy:
                 lp_farm_token_amount,
             ));
             new_staking_farm_values.push(new_staking_farm_value);
+
+            self.burn_dual_yield_tokens(p.token_nonce, &p.amount);
         }
 
         let lp_farm_address = self.lp_farm_address().get();
@@ -200,6 +213,40 @@ pub trait FarmStakingProxy:
         user_output_payments.into()
     }
 
+    #[payable("*")]
+    #[endpoint(unstakeFarmTokens)]
+    fn unstake_farm_tokens(
+        &self,
+        pair_first_token_min_amount: BigUint,
+        pair_second_token_min_amount: BigUint,
+    ) -> UnstakeResult<Self::Api> {
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let payment_nonce = self.call_value().esdt_token_nonce();
+
+        self.require_dual_yield_token(&payment_token);
+
+        let attributes = self.get_dual_yield_token_attributes(payment_nonce);
+
+        let (lp_tokens, lp_farm_rewards) = self.exit_farm(&payment_amount, &attributes);
+
+        let (staking_token_payment, other_token_payment) = self.remove_liquidity(
+            lp_tokens,
+            pair_first_token_min_amount,
+            pair_second_token_min_amount,
+        );
+        let unstake_result = self.unstake(
+            &payment_amount,
+            &attributes,
+            lp_farm_rewards,
+            staking_token_payment,
+            other_token_payment,
+        );
+
+        self.burn_dual_yield_tokens(payment_nonce, &payment_amount);
+
+        unstake_result
+    }
+
     fn exit_farm(
         &self,
         payment_amount: &BigUint,
@@ -225,6 +272,8 @@ pub trait FarmStakingProxy:
     fn remove_liquidity(
         &self,
         lp_tokens: EsdtTokenPayment<Self::Api>,
+        pair_first_token_min_amount: BigUint,
+        pair_second_token_min_amount: BigUint,
     ) -> (EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>) {
         let pair_address = self.pair_address().get();
         let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
@@ -233,8 +282,8 @@ pub trait FarmStakingProxy:
                 lp_tokens.token_identifier,
                 lp_tokens.token_nonce,
                 lp_tokens.amount,
-                BigUint::from(1u32),
-                BigUint::from(1u32),
+                pair_first_token_min_amount,
+                pair_second_token_min_amount,
                 OptionalArg::None,
             )
             .execute_on_dest_context();
@@ -305,28 +354,6 @@ pub trait FarmStakingProxy:
         user_payments.into()
     }
 
-    #[payable("*")]
-    #[endpoint(unstakeFarmTokens)]
-    fn unstake_farm_tokens(&self) -> UnstakeResult<Self::Api> {
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
-        let payment_nonce = self.call_value().esdt_token_nonce();
-
-        self.require_dual_yield_token(&payment_token);
-
-        let attributes = self.get_dual_yield_token_attributes(payment_nonce);
-
-        let (lp_tokens, lp_farm_rewards) = self.exit_farm(&payment_amount, &attributes);
-
-        let (staking_token_payment, other_token_payment) = self.remove_liquidity(lp_tokens);
-        self.unstake(
-            &payment_amount,
-            &attributes,
-            lp_farm_rewards,
-            staking_token_payment,
-            other_token_payment,
-        )
-    }
-
     fn get_lp_tokens_safe_price(&self, lp_tokens_amount: BigUint) -> BigUint {
         let pair_address = self.pair_address().get();
         let result: SafePriceResult<Self::Api> = self
@@ -343,6 +370,24 @@ pub trait FarmStakingProxy:
         } else {
             sc_panic!("Invalid Pair contract called");
         }
+    }
+
+    fn merge_lp_farm_tokens(
+        &self,
+        base_lp_token: EsdtTokenPayment<Self::Api>,
+        mut additional_lp_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        if additional_lp_tokens.is_empty() {
+            return base_lp_token;
+        }
+
+        additional_lp_tokens.push(base_lp_token);
+
+        let lp_farm_address = self.lp_farm_address().get();
+        self.lp_farm_proxy_obj(lp_farm_address)
+            .merge_farm_tokens(OptionalArg::None)
+            .with_multi_token_transfer(additional_lp_tokens)
+            .execute_on_dest_context()
     }
 
     // proxies
