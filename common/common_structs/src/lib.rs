@@ -7,6 +7,8 @@ elrond_wasm::derive_imports!();
 pub type Nonce = u64;
 pub type Epoch = u64;
 
+pub mod whitelist;
+
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Eq)]
 pub struct TokenPair<M: ManagedTypeApi> {
     pub first_token: TokenIdentifier<M>,
