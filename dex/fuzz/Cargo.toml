@@ -42,6 +42,4 @@ path = "../router"
 
 [dependencies]
 num-bigint = "0.4.2"
-
-[dependencies]
 rand = "0.8.4"

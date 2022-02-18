@@ -77,13 +77,13 @@ use rand::distributions::weighted::WeightedIndex;
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        println!("");
+        println!();
         println!("Statistics:");
         println!(
             "Total number of events: {}",
             fuzzer_data.fuzz_args.num_events
         );
-        println!("");
+        println!();
         println!(
             "swapFixedInputHits: {}",
             fuzzer_data.statistics.swap_fixed_input_hits
@@ -92,7 +92,7 @@ use rand::distributions::weighted::WeightedIndex;
             "swapFixedInputMisses: {}",
             fuzzer_data.statistics.swap_fixed_input_misses
         );
-        println!("");
+        println!();
         println!(
             "swapFixedOutputHits: {}",
             fuzzer_data.statistics.swap_fixed_output_hits
@@ -101,7 +101,7 @@ use rand::distributions::weighted::WeightedIndex;
             "swapFixedOutputMissed: {}",
             fuzzer_data.statistics.swap_fixed_output_misses
         );
-        println!("");
+        println!();
         println!(
             "addLiquidityHits: {}",
             fuzzer_data.statistics.add_liquidity_hits
@@ -114,7 +114,7 @@ use rand::distributions::weighted::WeightedIndex;
             "addLiquidityPriceChecks: {}",
             fuzzer_data.statistics.add_liquidity_price_checks
         );
-        println!("");
+        println!();
         println!(
             "removeLiquidityHits: {}",
             fuzzer_data.statistics.remove_liquidity_hits
@@ -127,7 +127,7 @@ use rand::distributions::weighted::WeightedIndex;
             "removeLiquidityPriceChecks: {}",
             fuzzer_data.statistics.remove_liquidity_price_checks
         );
-        println!("");
+        println!();
         println!(
             "queryPairHits: {}",
             fuzzer_data.statistics.query_pairs_hits
@@ -136,7 +136,7 @@ use rand::distributions::weighted::WeightedIndex;
             "queryPairMisses: {}",
             fuzzer_data.statistics.query_pairs_misses
         );
-        println!("");
+        println!();
         println!(
             "enterFarmHits: {}",
             fuzzer_data.statistics.enter_farm_hits
@@ -145,7 +145,7 @@ use rand::distributions::weighted::WeightedIndex;
             "enterFarmMisses: {}",
             fuzzer_data.statistics.enter_farm_misses
         );
-        println!("");
+        println!();
         println!(
             "exitFarmHits: {}",
             fuzzer_data.statistics.exit_farm_hits
@@ -158,7 +158,7 @@ use rand::distributions::weighted::WeightedIndex;
             "exitFarmWithRewards: {}",
             fuzzer_data.statistics.exit_farm_with_rewards
         );
-        println!("");
+        println!();
         println!(
             "claimRewardsHits: {}",
             fuzzer_data.statistics.claim_rewards_hits
@@ -171,7 +171,7 @@ use rand::distributions::weighted::WeightedIndex;
             "claimRewardsWithRewards: {}",
             fuzzer_data.statistics.claim_rewards_with_rewards
         );
-        println!("");
+        println!();
         println!(
             "compoundRewardsHits: {}",
             fuzzer_data.statistics.compound_rewards_hits
@@ -180,6 +180,6 @@ use rand::distributions::weighted::WeightedIndex;
             "compoundRewardsMisses: {}",
             fuzzer_data.statistics.compound_rewards_misses
         );
-        println!("");
+        println!();
     }
 }
