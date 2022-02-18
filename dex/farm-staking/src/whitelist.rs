@@ -21,7 +21,7 @@ where
 {
     pub fn contains(&self, item: &T) -> bool {
         let mapper = self.build_mapper_for_item(item);
-        mapper.is_empty()
+        !mapper.is_empty()
     }
 
     pub fn add(&mut self, item: &T) {
