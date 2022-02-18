@@ -53,11 +53,7 @@ pub mod fuzz_pair_test {
             || second_token_before < rust_biguint!(second_token_amount)
         {
             println!("Not enough token user balance");
-            let statistic_value = fuzzer_data.statistics.add_liquidity_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .add_liquidity_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.add_liquidity_misses += 1;
 
             return;
         }
@@ -93,18 +89,10 @@ pub mod fuzz_pair_test {
         let tx_result_string = tx_result.result_message;
 
         if tx_result_string.trim().is_empty() {
-            let statistic_value = fuzzer_data.statistics.add_liquidity_hits.get() + 1;
-            fuzzer_data
-                .statistics
-                .add_liquidity_hits
-                .set(statistic_value);
+            fuzzer_data.statistics.add_liquidity_hits += 1;
         } else {
             println!("Add liquidity error: {}", tx_result_string);
-            let statistic_value = fuzzer_data.statistics.add_liquidity_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .add_liquidity_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.add_liquidity_misses += 1;
         }
     }
 
@@ -136,11 +124,7 @@ pub mod fuzz_pair_test {
 
         if lp_token_before < rust_biguint!(lp_token_amount) {
             println!("Not enough LP token user balance");
-            let statistic_value = fuzzer_data.statistics.remove_liquidity_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .remove_liquidity_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.remove_liquidity_misses += 1;
 
             return;
         }
@@ -172,18 +156,10 @@ pub mod fuzz_pair_test {
         let tx_result_string = tx_result.result_message;
 
         if tx_result_string.trim().is_empty() {
-            let statistic_value = fuzzer_data.statistics.remove_liquidity_hits.get() + 1;
-            fuzzer_data
-                .statistics
-                .remove_liquidity_hits
-                .set(statistic_value);
+            fuzzer_data.statistics.remove_liquidity_hits += 1;
         } else {
             println!("Remove liquidity error: {}", tx_result_string);
-            let statistic_value = fuzzer_data.statistics.remove_liquidity_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .remove_liquidity_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.remove_liquidity_misses += 1;
         }
     }
 
@@ -222,11 +198,7 @@ pub mod fuzz_pair_test {
         if swap_input {
             if first_token_before < rust_biguint!(payment_amount) {
                 println!("Not enough payment token user balance");
-                let statistic_value = fuzzer_data.statistics.swap_fixed_input_misses.get() + 1;
-                fuzzer_data
-                    .statistics
-                    .swap_fixed_input_misses
-                    .set(statistic_value);
+                fuzzer_data.statistics.swap_fixed_input_misses += 1;
 
                 return;
             }
@@ -252,28 +224,16 @@ pub mod fuzz_pair_test {
             let tx_result_string = tx_result.result_message;
 
             if tx_result_string.trim().is_empty() {
-                let statistic_value = fuzzer_data.statistics.swap_fixed_input_hits.get() + 1;
-                fuzzer_data
-                    .statistics
-                    .swap_fixed_input_hits
-                    .set(statistic_value);
+                fuzzer_data.statistics.swap_fixed_input_hits += 1;
             } else {
                 println!("Swap fixed input error: {}", tx_result_string);
-                let statistic_value = fuzzer_data.statistics.swap_fixed_input_misses.get() + 1;
-                fuzzer_data
-                    .statistics
-                    .swap_fixed_input_misses
-                    .set(statistic_value);
+                fuzzer_data.statistics.swap_fixed_input_misses += 1;
             }
         } else {
             //swap output
             if first_token_before < rust_biguint!(payment_amount_max) {
                 println!("Not enough token user balance");
-                let statistic_value = fuzzer_data.statistics.add_liquidity_misses.get() + 1;
-                fuzzer_data
-                    .statistics
-                    .add_liquidity_misses
-                    .set(statistic_value);
+                fuzzer_data.statistics.add_liquidity_misses += 1;
                 return;
             }
 
@@ -298,18 +258,10 @@ pub mod fuzz_pair_test {
             let tx_result_string = tx_result.result_message;
 
             if tx_result_string.trim().is_empty() {
-                let statistic_value = fuzzer_data.statistics.swap_fixed_output_hits.get() + 1;
-                fuzzer_data
-                    .statistics
-                    .swap_fixed_output_hits
-                    .set(statistic_value);
+                fuzzer_data.statistics.swap_fixed_output_hits += 1;
             } else {
                 println!("Swap fixed output error: {}", tx_result_string);
-                let statistic_value = fuzzer_data.statistics.swap_fixed_output_misses.get() + 1;
-                fuzzer_data
-                    .statistics
-                    .swap_fixed_output_misses
-                    .set(statistic_value);
+                fuzzer_data.statistics.swap_fixed_output_misses += 1;
             }
         }
     }

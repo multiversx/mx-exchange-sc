@@ -3,8 +3,6 @@ pub mod fuzz_data_tests {
     elrond_wasm::imports!();
     elrond_wasm::derive_imports!();
 
-    use std::cell::Cell;
-
     use ::config::ConfigModule;
     use elrond_wasm::types::{
         Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
@@ -393,63 +391,63 @@ pub mod fuzz_data_tests {
 
     #[derive(Clone, PartialEq)]
     pub struct EventsStatistics {
-        pub swap_fixed_input_hits: Cell<u64>,
-        pub swap_fixed_input_misses: Cell<u64>,
+        pub swap_fixed_input_hits: u64,
+        pub swap_fixed_input_misses: u64,
 
-        pub swap_fixed_output_hits: Cell<u64>,
-        pub swap_fixed_output_misses: Cell<u64>,
+        pub swap_fixed_output_hits: u64,
+        pub swap_fixed_output_misses: u64,
 
-        pub add_liquidity_hits: Cell<u64>,
-        pub add_liquidity_misses: Cell<u64>,
-        pub add_liquidity_price_checks: Cell<u64>,
+        pub add_liquidity_hits: u64,
+        pub add_liquidity_misses: u64,
+        pub add_liquidity_price_checks: u64,
 
-        pub remove_liquidity_hits: Cell<u64>,
-        pub remove_liquidity_misses: Cell<u64>,
-        pub remove_liquidity_price_checks: Cell<u64>,
+        pub remove_liquidity_hits: u64,
+        pub remove_liquidity_misses: u64,
+        pub remove_liquidity_price_checks: u64,
 
-        pub query_pairs_hits: Cell<u64>,
-        pub query_pairs_misses: Cell<u64>,
+        pub query_pairs_hits: u64,
+        pub query_pairs_misses: u64,
 
-        pub enter_farm_hits: Cell<u64>,
-        pub enter_farm_misses: Cell<u64>,
+        pub enter_farm_hits: u64,
+        pub enter_farm_misses: u64,
 
-        pub exit_farm_hits: Cell<u64>,
-        pub exit_farm_misses: Cell<u64>,
-        pub exit_farm_with_rewards: Cell<u64>,
+        pub exit_farm_hits: u64,
+        pub exit_farm_misses: u64,
+        pub exit_farm_with_rewards: u64,
 
-        pub claim_rewards_hits: Cell<u64>,
-        pub claim_rewards_misses: Cell<u64>,
-        pub claim_rewards_with_rewards: Cell<u64>,
+        pub claim_rewards_hits: u64,
+        pub claim_rewards_misses: u64,
+        pub claim_rewards_with_rewards: u64,
 
-        pub compound_rewards_hits: Cell<u64>,
-        pub compound_rewards_misses: Cell<u64>,
+        pub compound_rewards_hits: u64,
+        pub compound_rewards_misses: u64,
     }
 
     impl EventsStatistics {
         pub fn new() -> EventsStatistics {
             EventsStatistics {
-                swap_fixed_input_hits: Cell::new(0),
-                swap_fixed_input_misses: Cell::new(0),
-                swap_fixed_output_hits: Cell::new(0),
-                swap_fixed_output_misses: Cell::new(0),
-                add_liquidity_hits: Cell::new(0),
-                add_liquidity_misses: Cell::new(0),
-                add_liquidity_price_checks: Cell::new(0),
-                remove_liquidity_hits: Cell::new(0),
-                remove_liquidity_misses: Cell::new(0),
-                remove_liquidity_price_checks: Cell::new(0),
-                query_pairs_hits: Cell::new(0),
-                query_pairs_misses: Cell::new(0),
-                enter_farm_hits: Cell::new(0),
-                enter_farm_misses: Cell::new(0),
-                exit_farm_hits: Cell::new(0),
-                exit_farm_misses: Cell::new(0),
-                exit_farm_with_rewards: Cell::new(0),
-                claim_rewards_hits: Cell::new(0),
-                claim_rewards_misses: Cell::new(0),
-                claim_rewards_with_rewards: Cell::new(0),
-                compound_rewards_hits: Cell::new(0),
-                compound_rewards_misses: Cell::new(0),
+                swap_fixed_input_hits: 0,
+                swap_fixed_input_misses: 0,
+                swap_fixed_output_hits: 0,
+                swap_fixed_output_misses: 0,
+                add_liquidity_hits: 0,
+                add_liquidity_misses: 0,
+                add_liquidity_price_checks: 0,
+                remove_liquidity_hits: 0,
+                remove_liquidity_misses: 0,
+                remove_liquidity_price_checks: 0,
+                query_pairs_hits: 0,
+                query_pairs_misses: 0,
+                enter_farm_hits: 0,
+                enter_farm_misses: 0,
+                exit_farm_hits: 0,
+                exit_farm_misses: 0,
+                exit_farm_with_rewards: 0,
+                claim_rewards_hits: 0,
+                claim_rewards_misses: 0,
+                claim_rewards_with_rewards: 0,
+                compound_rewards_hits: 0,
+                compound_rewards_misses: 0,
             }
         }
     }

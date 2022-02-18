@@ -37,11 +37,7 @@ pub mod fuzz_farm_test {
 
         if lp_token_before < farm_in_amount {
             println!("Not enough LP token user balance");
-            let statistic_value = fuzzer_data.statistics.enter_farm_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .enter_farm_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.enter_farm_misses += 1;
 
             return;
         }
@@ -67,15 +63,10 @@ pub mod fuzz_farm_test {
         let tx_result_string = tx_result.result_message;
 
         if tx_result_string.trim().is_empty() {
-            let statistic_value = fuzzer_data.statistics.enter_farm_hits.get() + 1;
-            fuzzer_data.statistics.enter_farm_hits.set(statistic_value);
+            fuzzer_data.statistics.enter_farm_hits += 1;
         } else {
             println!("Enter farm errors: {}", tx_result_string);
-            let statistic_value = fuzzer_data.statistics.enter_farm_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .enter_farm_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.enter_farm_misses += 1;
         }
     }
 
@@ -106,8 +97,7 @@ pub mod fuzz_farm_test {
 
         if farm_token_before < farm_out_amount {
             println!("Not enough farm token user balance");
-            let statistic_value = fuzzer_data.statistics.exit_farm_misses.get() + 1;
-            fuzzer_data.statistics.exit_farm_misses.set(statistic_value);
+            fuzzer_data.statistics.exit_farm_misses += 1;
 
             return;
         }
@@ -128,12 +118,10 @@ pub mod fuzz_farm_test {
         let tx_result_string = tx_result.result_message;
 
         if tx_result_string.trim().is_empty() {
-            let statistic_value = fuzzer_data.statistics.exit_farm_hits.get() + 1;
-            fuzzer_data.statistics.exit_farm_hits.set(statistic_value);
+            fuzzer_data.statistics.exit_farm_hits += 1;
         } else {
             println!("Exit farm error: {}", tx_result_string);
-            let statistic_value = fuzzer_data.statistics.exit_farm_misses.get() + 1;
-            fuzzer_data.statistics.exit_farm_misses.set(statistic_value);
+            fuzzer_data.statistics.exit_farm_misses += 1;
         }
     }
 
@@ -175,18 +163,10 @@ pub mod fuzz_farm_test {
         let tx_result_string = tx_result.result_message;
 
         if tx_result_string.trim().is_empty() {
-            let statistic_value = fuzzer_data.statistics.claim_rewards_hits.get() + 1;
-            fuzzer_data
-                .statistics
-                .claim_rewards_hits
-                .set(statistic_value);
+            fuzzer_data.statistics.claim_rewards_hits += 1;
         } else {
             println!("Claim rewards error: {}", tx_result_string);
-            let statistic_value = fuzzer_data.statistics.claim_rewards_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .claim_rewards_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.claim_rewards_misses += 1;
         }
     }
 
@@ -228,18 +208,10 @@ pub mod fuzz_farm_test {
         let tx_result_string = tx_result.result_message;
 
         if tx_result_string.trim().is_empty() {
-            let statistic_value = fuzzer_data.statistics.compound_rewards_hits.get() + 1;
-            fuzzer_data
-                .statistics
-                .compound_rewards_hits
-                .set(statistic_value);
+            fuzzer_data.statistics.compound_rewards_hits += 1;
         } else {
             println!("Compound rewards error: {}", tx_result_string);
-            let statistic_value = fuzzer_data.statistics.compound_rewards_misses.get() + 1;
-            fuzzer_data
-                .statistics
-                .compound_rewards_misses
-                .set(statistic_value);
+            fuzzer_data.statistics.compound_rewards_misses += 1;
         }
     }
 }
