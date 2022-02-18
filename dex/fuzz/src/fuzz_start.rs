@@ -19,7 +19,7 @@ use rand::Rng;
 
         for block_nonce in 1..=fuzzer_data.fuzz_args.num_events {
             let mut rng = rand::thread_rng();
-            let random_choice = rng.gen_range(1..=7);
+            let random_choice = rng.gen_range(1..=5);
 
             match random_choice {
                 1 => {
@@ -40,16 +40,15 @@ use rand::Rng;
                 }
                 5 => {
                     println!("Event no. {}: Exit farm", (block_nonce));
-                    exit_farm(&mut fuzzer_data, 0);
+                    exit_farm(&mut fuzzer_data);
                 }
-
                 6 => {
                     println!("Event no. {}: Claim reward", (block_nonce));
-                    claim_rewards(&mut fuzzer_data, 1);
+                    claim_rewards(&mut fuzzer_data);
                 }
                 7 => {
                     println!("Event no. {}: Compound reward", (block_nonce));
-                    compound_rewards(&mut fuzzer_data, 0); //block_nonce),
+                    compound_rewards(&mut fuzzer_data);
                 }
                 _ => println!("No event triggered"),
             }

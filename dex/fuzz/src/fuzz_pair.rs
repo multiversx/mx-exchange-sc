@@ -30,7 +30,6 @@ pub mod fuzz_pair_test {
 
         let first_token = swap_pair.first_token.as_bytes();
         let second_token = swap_pair.second_token.as_bytes();
-        let lp_token = swap_pair.lp_token.as_bytes();
 
         let mut rng = rand::thread_rng();
 
@@ -49,9 +48,19 @@ pub mod fuzz_pair_test {
             fuzzer_data
                 .blockchain_wrapper
                 .get_esdt_balance(&caller, second_token, 0);
-        let lp_token_before = fuzzer_data
-            .blockchain_wrapper
-            .get_esdt_balance(&caller, lp_token, 0);
+
+        if first_token_before < rust_biguint!(first_token_amount)
+            || second_token_before < rust_biguint!(second_token_amount)
+        {
+            println!("Not enough token user balance");
+            let statistic_value = fuzzer_data.statistics.add_liquidity_misses.get() + 1;
+            fuzzer_data
+                .statistics
+                .add_liquidity_misses
+                .set(statistic_value);
+
+            return;
+        }
 
         let payments = vec![
             TxInputESDT {
@@ -71,7 +80,7 @@ pub mod fuzz_pair_test {
             &swap_pair.pair_wrapper,
             &payments,
             |sc| {
-                let MultiResult3 { 0: payments } = sc.add_liquidity(
+                sc.add_liquidity(
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
                     OptionalArg::None,
@@ -111,8 +120,6 @@ pub mod fuzz_pair_test {
             .unwrap();
         let caller = fuzzer_data.users.choose(&mut rand::thread_rng()).unwrap();
 
-        let first_token = swap_pair.first_token.as_bytes();
-        let second_token = swap_pair.second_token.as_bytes();
         let lp_token = swap_pair.lp_token.as_bytes();
 
         let mut rng = rand::thread_rng();
@@ -120,20 +127,23 @@ pub mod fuzz_pair_test {
         let seed = rng.gen_range(0..fuzzer_data.fuzz_args.remove_liquidity_max_value) + 1;
 
         let lp_token_amount = seed;
-        let first_token_min = 1; //seed / 100;
-        let second_token_min = 1; //seed / 100;
+        let first_token_min = seed / 100;
+        let second_token_min = seed / 100;
 
-        let first_token_before =
-            fuzzer_data
-                .blockchain_wrapper
-                .get_esdt_balance(&caller, first_token, 0);
-        let second_token_before =
-            fuzzer_data
-                .blockchain_wrapper
-                .get_esdt_balance(&caller, second_token, 0);
         let lp_token_before = fuzzer_data
             .blockchain_wrapper
             .get_esdt_balance(&caller, lp_token, 0);
+
+        if lp_token_before < rust_biguint!(lp_token_amount) {
+            println!("Not enough LP token user balance");
+            let statistic_value = fuzzer_data.statistics.remove_liquidity_misses.get() + 1;
+            fuzzer_data
+                .statistics
+                .remove_liquidity_misses
+                .set(statistic_value);
+
+            return;
+        }
 
         let payments = vec![TxInputESDT {
             token_identifier: lp_token.to_vec(),
@@ -146,7 +156,7 @@ pub mod fuzz_pair_test {
             &swap_pair.pair_wrapper,
             &payments,
             |sc| {
-                let ret = sc.remove_liquidity(
+                sc.remove_liquidity(
                     managed_token_id!(lp_token),
                     0,
                     managed_biguint!(lp_token_amount),
@@ -187,10 +197,16 @@ pub mod fuzz_pair_test {
             .swap_pairs
             .choose(&mut rand::thread_rng())
             .unwrap();
+
         let caller = fuzzer_data.users.choose(&mut rand::thread_rng()).unwrap();
 
         let payment_token_id = swap_pair.first_token.as_bytes();
         let desired_token_id = swap_pair.second_token.as_bytes();
+
+        let first_token_before =
+            fuzzer_data
+                .blockchain_wrapper
+                .get_esdt_balance(&caller, payment_token_id, 0);
 
         let mut rng = rand::thread_rng();
 
@@ -204,12 +220,23 @@ pub mod fuzz_pair_test {
         let swap_input: bool = rng.gen();
 
         if swap_input {
+            if first_token_before < rust_biguint!(payment_amount) {
+                println!("Not enough payment token user balance");
+                let statistic_value = fuzzer_data.statistics.swap_fixed_input_misses.get() + 1;
+                fuzzer_data
+                    .statistics
+                    .swap_fixed_input_misses
+                    .set(statistic_value);
+
+                return;
+            }
+
             let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
                 &caller,
                 &swap_pair.pair_wrapper,
                 &vec![],
                 |sc| {
-                    let ret = sc.swap_tokens_fixed_input(
+                    sc.swap_tokens_fixed_input(
                         managed_token_id!(payment_token_id),
                         0,
                         managed_biguint!(payment_amount),
@@ -240,12 +267,22 @@ pub mod fuzz_pair_test {
             }
         } else {
             //swap output
+            if first_token_before < rust_biguint!(payment_amount_max) {
+                println!("Not enough token user balance");
+                let statistic_value = fuzzer_data.statistics.add_liquidity_misses.get() + 1;
+                fuzzer_data
+                    .statistics
+                    .add_liquidity_misses
+                    .set(statistic_value);
+                return;
+            }
+
             let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
                 &caller,
                 &swap_pair.pair_wrapper,
                 &vec![],
                 |sc| {
-                    let ret = sc.swap_tokens_fixed_output(
+                    sc.swap_tokens_fixed_output(
                         managed_token_id!(payment_token_id),
                         0,
                         managed_biguint!(payment_amount_max),

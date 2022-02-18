@@ -30,7 +30,7 @@ pub mod fuzz_data_tests {
     pub const WEBU_LP_TOKEN_ID: &[u8] = b"WEBULP-abcdef";
     pub const WEME_FARM_TOKEN_ID: &[u8] = b"WEMEFARM-abcdef";
     pub const WEBU_FARM_TOKEN_ID: &[u8] = b"WEBUFARM-abcdef";
-    pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEX-abcdef";
+    pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEXFARM-abcdef";
     pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
     pub const MIN_FARMING_EPOCHS: u8 = 2;
     pub const PENALTY_PERCENT: u64 = 10;
@@ -40,6 +40,57 @@ pub mod fuzz_data_tests {
     pub const USER_TOTAL_BUSD_TOKENS: u64 = 100_000_000_000;
     pub const TOTAL_FEE_PERCENT: u64 = 300;
     pub const SPECIAL_FEE_PERCENT: u64 = 50;
+
+    #[derive(Clone, TopEncode)]
+    pub struct FuzzDexExecutorInitArgs {
+        pub num_users: u64,
+        pub num_events: u64,
+        pub remove_liquidity_prob: u64,
+        pub add_liquidity_prob: u64,
+        pub swap_prob: u64,
+        pub query_pairs_prob: u64,
+        pub enter_farm_prob: u64,
+        pub exit_farm_prob: u64,
+        pub claim_rewards_prob: u64,
+        pub compound_rewards_prob: u64,
+        pub increase_block_nonce_prob: u64,
+        pub block_nonce_increase: u64,
+        pub compound_rewards_max_value: u64,
+        pub token_deposit_max_value: u64,
+        pub remove_liquidity_max_value: u64,
+        pub add_liquidity_max_value: u64,
+        pub swap_max_value: u64,
+        pub enter_farm_max_value: u64,
+        pub exit_farm_max_value: u64,
+        pub claim_rewards_max_value: u64,
+    }
+
+    impl FuzzDexExecutorInitArgs {
+        pub fn new() -> Self {
+            FuzzDexExecutorInitArgs {
+                num_users: 1,
+                num_events: 500,
+                remove_liquidity_prob: 5,
+                add_liquidity_prob: 20,
+                swap_prob: 25,
+                query_pairs_prob: 5,
+                enter_farm_prob: 18,
+                exit_farm_prob: 6,
+                claim_rewards_prob: 20,
+                compound_rewards_prob: 10,
+                increase_block_nonce_prob: 100,
+                block_nonce_increase: 1,
+                compound_rewards_max_value: 50000000u64,
+                token_deposit_max_value: 50000000u64,
+                remove_liquidity_max_value: 1000000000u64,
+                add_liquidity_max_value: 1000000000u64,
+                swap_max_value: 10000000u64,
+                enter_farm_max_value: 100000000u64,
+                exit_farm_max_value: 1000000u64,
+                claim_rewards_max_value: 50000000u64,
+            }
+        }
+    }
 
     pub struct FuzzerData<PairObjBuilder, FarmObjBuilder>
     where
@@ -109,8 +160,7 @@ pub mod fuzz_data_tests {
                 pair_builder,
             );
 
-            let swap_pairs = vec![first_swap_pair];
-            //let swap_pairs = vec![first_swap_pair, second_swap_pair];
+            let swap_pairs = vec![first_swap_pair, second_swap_pair];
 
             let first_farm = setup_farm(
                 WEME_FARM_TOKEN_ID,
@@ -119,7 +169,7 @@ pub mod fuzz_data_tests {
                 &owner_addr,
                 &mut blockchain_wrapper,
                 farm_builder,
-                rust_biguint!(100),
+                rust_biguint!(10000000000000000u64),
             );
 
             let second_farm = setup_farm(
@@ -129,7 +179,7 @@ pub mod fuzz_data_tests {
                 &owner_addr,
                 &mut blockchain_wrapper,
                 farm_builder,
-                rust_biguint!(100),
+                rust_biguint!(10000000000000000u64),
             );
 
             let third_farm = setup_farm(
@@ -139,11 +189,10 @@ pub mod fuzz_data_tests {
                 &owner_addr,
                 &mut blockchain_wrapper,
                 farm_builder,
-                rust_biguint!(100),
+                rust_biguint!(10000000000000000u64),
             );
 
-            let farms = vec![first_farm];
-            // let farms = vec![first_farm, second_farm, third_farm];
+            let farms = vec![first_farm, second_farm, third_farm];
 
             FuzzerData {
                 owner_address: owner_addr,
@@ -310,14 +359,20 @@ pub mod fuzz_data_tests {
             &farm_token_roles[..],
         );
 
-        let farming_token_roles = [EsdtLocalRole::Burn];
+        let farming_token_roles = [
+            EsdtLocalRole::Mint,
+            EsdtLocalRole::Burn,
+        ];
         blockchain_wrapper.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             farming_token,
             &farming_token_roles[..],
         );
 
-        let reward_token_roles = [EsdtLocalRole::Mint];
+        let reward_token_roles = [
+            EsdtLocalRole::Mint,
+            EsdtLocalRole::Burn,
+        ];
         blockchain_wrapper.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             reward_token,
@@ -333,57 +388,6 @@ pub mod fuzz_data_tests {
             farming_token: farming_token_string,
             reward_token: reward_token_string,
             farm_wrapper,
-        }
-    }
-
-    #[derive(Clone, TopEncode)]
-    pub struct FuzzDexExecutorInitArgs {
-        pub num_users: u64,
-        pub num_events: u64,
-        pub remove_liquidity_prob: u64,
-        pub add_liquidity_prob: u64,
-        pub swap_prob: u64,
-        pub query_pairs_prob: u64,
-        pub enter_farm_prob: u64,
-        pub exit_farm_prob: u64,
-        pub claim_rewards_prob: u64,
-        pub compound_rewards_prob: u64,
-        pub increase_block_nonce_prob: u64,
-        pub block_nonce_increase: u64,
-        pub compound_rewards_max_value: u64,
-        pub token_deposit_max_value: u64,
-        pub remove_liquidity_max_value: u64,
-        pub add_liquidity_max_value: u64,
-        pub swap_max_value: u64,
-        pub enter_farm_max_value: u64,
-        pub exit_farm_max_value: u64,
-        pub claim_rewards_max_value: u64,
-    }
-
-    impl FuzzDexExecutorInitArgs {
-        pub fn new() -> Self {
-            FuzzDexExecutorInitArgs {
-                num_users: 3,
-                num_events: 10,
-                remove_liquidity_prob: 5,
-                add_liquidity_prob: 20,
-                swap_prob: 25,
-                query_pairs_prob: 5,
-                enter_farm_prob: 18,
-                exit_farm_prob: 6,
-                claim_rewards_prob: 20,
-                compound_rewards_prob: 10,
-                increase_block_nonce_prob: 100,
-                block_nonce_increase: 1,
-                compound_rewards_max_value: 50000000u64,
-                token_deposit_max_value: 50000000u64,
-                remove_liquidity_max_value: 1000000000u64,
-                add_liquidity_max_value: 1000000000u64,
-                swap_max_value: 10000000u64,
-                enter_farm_max_value: 100000000u64,
-                exit_farm_max_value: 100000000u64,
-                claim_rewards_max_value: 50000000u64,
-            }
         }
     }
 
