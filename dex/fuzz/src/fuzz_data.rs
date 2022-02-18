@@ -3,6 +3,8 @@ pub mod fuzz_data_tests {
     elrond_wasm::imports!();
     elrond_wasm::derive_imports!();
 
+    use std::cell::Cell;
+
     use ::config::ConfigModule;
     use elrond_wasm::types::{
         Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
@@ -78,14 +80,14 @@ pub mod fuzz_data_tests {
                 compound_rewards_prob: 10,
                 increase_block_nonce_prob: 100,
                 block_nonce_increase: 1,
-                compound_rewards_max_value: 50000000u64,
+                compound_rewards_max_value: 1000000u64,
                 token_deposit_max_value: 50000000u64,
                 remove_liquidity_max_value: 1000000000u64,
                 add_liquidity_max_value: 1000000000u64,
                 swap_max_value: 10000000u64,
                 enter_farm_max_value: 100000000u64,
                 exit_farm_max_value: 1000000u64,
-                claim_rewards_max_value: 50000000u64,
+                claim_rewards_max_value: 1000000u64,
             }
         }
     }
@@ -291,6 +293,7 @@ pub mod fuzz_data_tests {
         pub farm_token: String,
         pub farming_token: String,
         pub reward_token: String,
+        pub farm_nonce: Cell<u64>,
         pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     }
 
@@ -357,20 +360,14 @@ pub mod fuzz_data_tests {
             &farm_token_roles[..],
         );
 
-        let farming_token_roles = [
-            EsdtLocalRole::Mint,
-            EsdtLocalRole::Burn,
-        ];
+        let farming_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
         blockchain_wrapper.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             farming_token,
             &farming_token_roles[..],
         );
 
-        let reward_token_roles = [
-            EsdtLocalRole::Mint,
-            EsdtLocalRole::Burn,
-        ];
+        let reward_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
         blockchain_wrapper.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             reward_token,
@@ -385,6 +382,7 @@ pub mod fuzz_data_tests {
             farm_token: farm_token_string,
             farming_token: farming_token_string,
             reward_token: reward_token_string,
+            farm_nonce: Cell::new(1),
             farm_wrapper,
         }
     }

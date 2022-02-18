@@ -18,18 +18,18 @@ use rand::distributions::weighted::WeightedIndex;
     fn start_fuzzer() {
         let mut fuzzer_data = FuzzerData::new(pair::contract_obj, farm::contract_obj);
 
-        for block_nonce in 1..=fuzzer_data.fuzz_args.num_events {
+        let mut rng = thread_rng();
+        let choices = [
+            (1, fuzzer_data.fuzz_args.add_liquidity_prob),
+            (2, fuzzer_data.fuzz_args.remove_liquidity_prob),
+            (3, fuzzer_data.fuzz_args.swap_prob),
+            (4, fuzzer_data.fuzz_args.enter_farm_prob),
+            (5, fuzzer_data.fuzz_args.exit_farm_prob),
+            (6, fuzzer_data.fuzz_args.claim_rewards_prob),
+            (7, fuzzer_data.fuzz_args.compound_rewards_prob),
+        ];
 
-            let mut rng = thread_rng();
-            let choices = [
-                (1, fuzzer_data.fuzz_args.add_liquidity_prob),
-                (2, fuzzer_data.fuzz_args.remove_liquidity_prob),
-                (3, fuzzer_data.fuzz_args.swap_prob),
-                (4, fuzzer_data.fuzz_args.enter_farm_prob),
-                (5, fuzzer_data.fuzz_args.exit_farm_prob),
-                // (6, fuzzer_data.fuzz_args.claim_rewards_prob),
-                // (7, fuzzer_data.fuzz_args.compound_rewards_prob),
-            ];
+        for block_nonce in 1..=fuzzer_data.fuzz_args.num_events {
             let choice_index = WeightedIndex::new(choices.iter().map(|choice| choice.1)).unwrap();
             let random_choice = choices[choice_index.sample(&mut rng)].0;
 

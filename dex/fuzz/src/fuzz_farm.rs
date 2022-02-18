@@ -20,6 +20,7 @@ pub mod fuzz_farm_test {
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let farm_setup = fuzzer_data.farms.choose(&mut rand::thread_rng()).unwrap();
+        let farm_nonce = farm_setup.farm_nonce.get();
 
         let lp_token_id = farm_setup.farming_token.as_bytes();
 
@@ -64,6 +65,7 @@ pub mod fuzz_farm_test {
 
         if tx_result_string.trim().is_empty() {
             fuzzer_data.statistics.enter_farm_hits += 1;
+            farm_setup.farm_nonce.set(farm_nonce + 1);
         } else {
             println!("Enter farm errors: {}", tx_result_string);
             fuzzer_data.statistics.enter_farm_misses += 1;
@@ -131,8 +133,6 @@ pub mod fuzz_farm_test {
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let farm_token_nonce = 1u64;
-
         let farm_setup = fuzzer_data.farms.choose(&mut rand::thread_rng()).unwrap();
 
         let farm_token_id = farm_setup.farm_token.as_bytes();
@@ -144,14 +144,23 @@ pub mod fuzz_farm_test {
 
         let caller = fuzzer_data.users.choose(&mut rand::thread_rng()).unwrap();
 
-        // fuzzer_data.blockchain_wrapper.set_block_epoch(5);
-        // fuzzer_data.blockchain_wrapper.set_block_nonce(10);
+        let farm_token_before =
+            fuzzer_data
+                .blockchain_wrapper
+                .get_esdt_balance(&caller, farm_token_id, 1);
+
+        if farm_token_before < farm_token_amount {
+            println!("Not enough farm token user balance");
+            fuzzer_data.statistics.claim_rewards_misses += 1;
+
+            return;
+        }
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
             &caller,
             &farm_setup.farm_wrapper,
             farm_token_id,
-            farm_token_nonce,
+            1,
             &farm_token_amount,
             |sc| {
                 sc.claim_rewards(OptionalArg::None);
@@ -176,8 +185,6 @@ pub mod fuzz_farm_test {
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let farm_token_nonce = 1u64;
-
         let farm_setup = fuzzer_data.farms.choose(&mut rand::thread_rng()).unwrap();
 
         let farm_token_id = farm_setup.farm_token.as_bytes();
@@ -189,14 +196,23 @@ pub mod fuzz_farm_test {
 
         let caller = fuzzer_data.users.choose(&mut rand::thread_rng()).unwrap();
 
-        // fuzzer_data.blockchain_wrapper.set_block_epoch(5);
-        // fuzzer_data.blockchain_wrapper.set_block_nonce(10);
+        let farm_token_before =
+            fuzzer_data
+                .blockchain_wrapper
+                .get_esdt_balance(&caller, farm_token_id, 1);
+
+        if farm_token_before < farm_token_amount {
+            println!("Not enough farm token user balance");
+            fuzzer_data.statistics.compound_rewards_misses += 1;
+
+            return;
+        }
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
             &caller,
             &farm_setup.farm_wrapper,
             farm_token_id,
-            farm_token_nonce,
+            1,
             &farm_token_amount,
             |sc| {
                 sc.compound_rewards(OptionalArg::None);
