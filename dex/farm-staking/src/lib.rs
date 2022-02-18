@@ -91,7 +91,7 @@ pub trait Farm:
         staked_token_amount: BigUint,
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
+        self.proxy_whitelist().require_whitelisted(&caller);
 
         let staked_token_id = self.farming_token_id().get();
         let staked_token_simulated_payment =
@@ -173,7 +173,7 @@ pub trait Farm:
     #[endpoint(unstakeFarmThroughProxy)]
     fn unstake_farm_through_proxy(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
+        self.proxy_whitelist().require_whitelisted(&caller);
 
         let payments = self.call_value().all_esdt_transfers();
         require!(payments.len() == 2, "Invalid payments amount");
@@ -316,7 +316,7 @@ pub trait Farm:
         new_values: ManagedVec<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
+        self.proxy_whitelist().require_whitelisted(&caller);
 
         let payments = self.call_value().all_esdt_transfers();
         require!(

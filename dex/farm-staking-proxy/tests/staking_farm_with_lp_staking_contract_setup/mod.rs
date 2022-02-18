@@ -85,7 +85,7 @@ pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
     let rust_zero = rust_biguint!(0u64);
     b_mock
         .execute_tx(owner_addr, staking_farm_builder, &rust_zero, |sc| {
-            sc.add_address_to_whitelist(managed_address!(proxy_address));
+            sc.add_proxy_to_whitelist(managed_address!(proxy_address));
 
             StateChange::Commit
         })

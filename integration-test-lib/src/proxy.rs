@@ -194,6 +194,7 @@ pub mod migration_tests {
             },
         );
 
+        let farm_addr = proxy_setup.farm_v1_2_wrapper.address_ref();
         proxy_setup
             .blockchain_wrapper
             .execute_esdt_transfer(
@@ -207,7 +208,7 @@ pub mod migration_tests {
                         managed_token_id!(WRAPPED_FARM_TOKEN_ID),
                         2,
                         managed_biguint!(50_000),
-                        managed_address!(proxy_setup.farm_v1_2_wrapper.address_ref()),
+                        managed_address!(farm_addr),
                     );
 
                     StateChange::Commit
