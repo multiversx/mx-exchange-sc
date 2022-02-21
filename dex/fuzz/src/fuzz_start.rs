@@ -9,7 +9,7 @@ use crate::fuzz_farm::fuzz_farm_test::*;
 use crate::fuzz_pair::fuzz_pair_test::*;
 use crate::fuzz_data::fuzz_data_tests::*;
 
-use elrond_wasm_debug::DebugApi;
+use elrond_wasm_debug::{DebugApi, HashMap};
 
 use rand::prelude::*;
 use rand::distributions::weighted::WeightedIndex;
@@ -17,6 +17,7 @@ use rand::distributions::weighted::WeightedIndex;
     #[test]
     fn start_fuzzer() {
         let mut fuzzer_data = FuzzerData::new(pair::contract_obj, farm::contract_obj);
+        let mut farmer_info: HashMap<Address, Vec<u64>> = HashMap::new();
 
         let mut rng = thread_rng();
         let choices = [
@@ -48,19 +49,19 @@ use rand::distributions::weighted::WeightedIndex;
                 }
                 4 => {
                     println!("Event no. {}: Enter farm", (block_nonce));
-                    enter_farm(&mut fuzzer_data);
+                    enter_farm(&mut fuzzer_data, &mut farmer_info);
                 }
                 5 => {
                     println!("Event no. {}: Exit farm", (block_nonce));
-                    exit_farm(&mut fuzzer_data);
+                    exit_farm(&mut fuzzer_data, &mut farmer_info);
                 }
                 6 => {
                     println!("Event no. {}: Claim reward", (block_nonce));
-                    claim_rewards(&mut fuzzer_data);
+                    claim_rewards(&mut fuzzer_data, &mut farmer_info);
                 }
                 7 => {
                     println!("Event no. {}: Compound reward", (block_nonce));
-                    compound_rewards(&mut fuzzer_data);
+                    compound_rewards(&mut fuzzer_data, &mut farmer_info);
                 }
                 _ => println!("No event triggered"),
             }
@@ -126,15 +127,6 @@ use rand::distributions::weighted::WeightedIndex;
         println!(
             "removeLiquidityPriceChecks: {}",
             fuzzer_data.statistics.remove_liquidity_price_checks
-        );
-        println!();
-        println!(
-            "queryPairHits: {}",
-            fuzzer_data.statistics.query_pairs_hits
-        );
-        println!(
-            "queryPairMisses: {}",
-            fuzzer_data.statistics.query_pairs_misses
         );
         println!();
         println!(

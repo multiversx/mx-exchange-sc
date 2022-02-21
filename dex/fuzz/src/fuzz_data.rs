@@ -68,8 +68,8 @@ pub mod fuzz_data_tests {
     impl FuzzDexExecutorInitArgs {
         pub fn new() -> Self {
             FuzzDexExecutorInitArgs {
-                num_users: 1,
-                num_events: 500,
+                num_users: 5,
+                num_events: 1000,
                 remove_liquidity_prob: 5,
                 add_liquidity_prob: 20,
                 swap_prob: 25,
@@ -403,9 +403,6 @@ pub mod fuzz_data_tests {
         pub remove_liquidity_misses: u64,
         pub remove_liquidity_price_checks: u64,
 
-        pub query_pairs_hits: u64,
-        pub query_pairs_misses: u64,
-
         pub enter_farm_hits: u64,
         pub enter_farm_misses: u64,
 
@@ -434,8 +431,6 @@ pub mod fuzz_data_tests {
                 remove_liquidity_hits: 0,
                 remove_liquidity_misses: 0,
                 remove_liquidity_price_checks: 0,
-                query_pairs_hits: 0,
-                query_pairs_misses: 0,
                 enter_farm_hits: 0,
                 enter_farm_misses: 0,
                 exit_farm_hits: 0,
