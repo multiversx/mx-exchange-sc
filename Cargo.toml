@@ -15,6 +15,10 @@ members = [
   "dex/router/meta",
   "dex/farm_v1_2_mock",
   "dex/farm_v1_2_mock/meta",
+  "dex/price-discovery",
+  "dex/price-discovery/meta",
+  "dex/pair-mock",
+  "dex/pair-mock/meta",
 
   "locked-asset/",
   "locked-asset/distribution",
@@ -23,11 +27,6 @@ members = [
   "locked-asset/proxy_dex/meta",
   "locked-asset/factory",
   "locked-asset/factory/meta",
-
-  "price-discovery",
-  "price-discovery/meta",
-  "pair-mock",
-  "pair-mock/meta",
 
   "integration-test-lib",
 ]
