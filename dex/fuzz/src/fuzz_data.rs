@@ -10,7 +10,7 @@ pub mod fuzz_data_tests {
         Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
     };
 
-    use elrond_wasm_debug::managed_biguint;
+    use elrond_wasm_debug::{managed_biguint, HashMap};
     use elrond_wasm_debug::{
         managed_address, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
     };
@@ -69,7 +69,7 @@ pub mod fuzz_data_tests {
         pub fn new() -> Self {
             FuzzDexExecutorInitArgs {
                 num_users: 5,
-                num_events: 1000,
+                num_events: 500,
                 remove_liquidity_prob: 5,
                 add_liquidity_prob: 20,
                 swap_prob: 25,
@@ -169,7 +169,7 @@ pub mod fuzz_data_tests {
                 &owner_addr,
                 &mut blockchain_wrapper,
                 farm_builder,
-                rust_biguint!(10000000000000000u64),
+                rust_biguint!(1000000u64),
             );
 
             let second_farm = setup_farm(
@@ -179,7 +179,7 @@ pub mod fuzz_data_tests {
                 &owner_addr,
                 &mut blockchain_wrapper,
                 farm_builder,
-                rust_biguint!(10000000000000000u64),
+                rust_biguint!(1000000u64),
             );
 
             let third_farm = setup_farm(
@@ -189,7 +189,7 @@ pub mod fuzz_data_tests {
                 &owner_addr,
                 &mut blockchain_wrapper,
                 farm_builder,
-                rust_biguint!(10000000000000000u64),
+                rust_biguint!(1000000u64),
             );
 
             let farms = vec![first_farm, second_farm, third_farm];
@@ -294,6 +294,7 @@ pub mod fuzz_data_tests {
         pub farming_token: String,
         pub reward_token: String,
         pub farm_nonce: Cell<u64>,
+        pub farmer_info: HashMap<Address, Vec<u64>>,
         pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     }
 
@@ -317,8 +318,6 @@ pub mod fuzz_data_tests {
             farm_builder,
             FARM_WASM_PATH,
         );
-
-        // init farm contract
 
         blockchain_wrapper
             .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
@@ -383,6 +382,7 @@ pub mod fuzz_data_tests {
             farming_token: farming_token_string,
             reward_token: reward_token_string,
             farm_nonce: Cell::new(1),
+            farmer_info: HashMap::new(),
             farm_wrapper,
         }
     }

@@ -9,7 +9,7 @@ use crate::fuzz_farm::fuzz_farm_test::*;
 use crate::fuzz_pair::fuzz_pair_test::*;
 use crate::fuzz_data::fuzz_data_tests::*;
 
-use elrond_wasm_debug::{DebugApi, HashMap};
+use elrond_wasm_debug::{DebugApi};
 
 use rand::prelude::*;
 use rand::distributions::weighted::WeightedIndex;
@@ -17,7 +17,6 @@ use rand::distributions::weighted::WeightedIndex;
     #[test]
     fn start_fuzzer() {
         let mut fuzzer_data = FuzzerData::new(pair::contract_obj, farm::contract_obj);
-        let mut farmer_info: HashMap<Address, Vec<u64>> = HashMap::new();
 
         let mut rng = thread_rng();
         let choices = [
@@ -49,19 +48,19 @@ use rand::distributions::weighted::WeightedIndex;
                 }
                 4 => {
                     println!("Event no. {}: Enter farm", (block_nonce));
-                    enter_farm(&mut fuzzer_data, &mut farmer_info);
+                    enter_farm(&mut fuzzer_data);
                 }
                 5 => {
                     println!("Event no. {}: Exit farm", (block_nonce));
-                    exit_farm(&mut fuzzer_data, &mut farmer_info);
+                    exit_farm(&mut fuzzer_data);
                 }
                 6 => {
                     println!("Event no. {}: Claim reward", (block_nonce));
-                    claim_rewards(&mut fuzzer_data, &mut farmer_info);
+                    claim_rewards(&mut fuzzer_data);
                 }
                 7 => {
                     println!("Event no. {}: Compound reward", (block_nonce));
-                    compound_rewards(&mut fuzzer_data, &mut farmer_info);
+                    compound_rewards(&mut fuzzer_data);
                 }
                 _ => println!("No event triggered"),
             }
