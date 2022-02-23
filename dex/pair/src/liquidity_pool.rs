@@ -129,7 +129,7 @@ pub trait LiquidityPoolModule:
         let first_token_reserve = context.get_first_token_reserve();
         let second_token_reserve = context.get_second_token_reserve();
         let first_token_amount_desired = &context.get_first_payment().amount;
-        let second_token_amount_desired = &context.get_first_payment().amount;
+        let second_token_amount_desired = &context.get_second_payment().amount;
         let first_token_amount_min = context.get_first_token_amount_min();
         let second_token_amount_min = context.get_second_token_amount_min();
         require!(
