@@ -397,11 +397,9 @@ pub mod fuzz_data_tests {
 
         pub add_liquidity_hits: u64,
         pub add_liquidity_misses: u64,
-        pub add_liquidity_price_checks: u64,
 
         pub remove_liquidity_hits: u64,
         pub remove_liquidity_misses: u64,
-        pub remove_liquidity_price_checks: u64,
 
         pub enter_farm_hits: u64,
         pub enter_farm_misses: u64,
@@ -427,10 +425,8 @@ pub mod fuzz_data_tests {
                 swap_fixed_output_misses: 0,
                 add_liquidity_hits: 0,
                 add_liquidity_misses: 0,
-                add_liquidity_price_checks: 0,
                 remove_liquidity_hits: 0,
                 remove_liquidity_misses: 0,
-                remove_liquidity_price_checks: 0,
                 enter_farm_hits: 0,
                 enter_farm_misses: 0,
                 exit_farm_hits: 0,

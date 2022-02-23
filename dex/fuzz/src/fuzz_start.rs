@@ -110,10 +110,6 @@ use rand::distributions::weighted::WeightedIndex;
             "addLiquidityMisses: {}",
             fuzzer_data.statistics.add_liquidity_misses
         );
-        println!(
-            "addLiquidityPriceChecks: {}",
-            fuzzer_data.statistics.add_liquidity_price_checks
-        );
         println!();
         println!(
             "removeLiquidityHits: {}",
@@ -122,10 +118,6 @@ use rand::distributions::weighted::WeightedIndex;
         println!(
             "removeLiquidityMisses: {}",
             fuzzer_data.statistics.remove_liquidity_misses
-        );
-        println!(
-            "removeLiquidityPriceChecks: {}",
-            fuzzer_data.statistics.remove_liquidity_price_checks
         );
         println!();
         println!(
