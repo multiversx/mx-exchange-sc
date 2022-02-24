@@ -10,18 +10,19 @@ pub mod fuzz_pair_test {
         tx_mock::TxInputESDT, DebugApi,
     };
 
-    use rand::{thread_rng, Rng};
+    use rand::prelude::*;
+    use rand::rngs::StdRng;
 
     use crate::fuzz_data::fuzz_data_tests::*;
     use pair::*;
 
     pub fn add_liquidity<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let mut rng = thread_rng();
         let pair_index = rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 
@@ -118,11 +119,11 @@ pub mod fuzz_pair_test {
 
     pub fn remove_liquidity<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let mut rng = thread_rng();
         let pair_index = rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 
@@ -212,11 +213,11 @@ pub mod fuzz_pair_test {
 
     pub fn swap_pair<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let mut rng = thread_rng();
         let pair_index = rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 

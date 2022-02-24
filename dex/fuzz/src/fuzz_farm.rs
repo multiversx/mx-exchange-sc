@@ -11,18 +11,18 @@ pub mod fuzz_farm_test {
     use crate::fuzz_data::fuzz_data_tests::*;
     use farm::*;
 
-    use rand::{prelude::SliceRandom, Rng};
-    use rand::thread_rng;
+    use rand::prelude::*;
+    use rand::rngs::StdRng;
 
     pub fn enter_farm<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let mut rng = thread_rng();
         let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 
@@ -111,13 +111,13 @@ pub mod fuzz_farm_test {
 
     pub fn exit_farm<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let mut rng = thread_rng();
         let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 
@@ -194,13 +194,13 @@ pub mod fuzz_farm_test {
 
     pub fn claim_rewards<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let mut rng = thread_rng();
         let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 
@@ -292,13 +292,13 @@ pub mod fuzz_farm_test {
 
     pub fn compound_rewards<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let mut rng = thread_rng();
         let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
         let caller_index = rng.gen_range(0..fuzzer_data.users.len());
 
