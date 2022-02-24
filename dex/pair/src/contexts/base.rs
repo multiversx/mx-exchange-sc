@@ -32,7 +32,7 @@ pub trait Context<M: ManagedTypeApi> {
 
     fn set_output_payments(&mut self, payments: ManagedVec<M, EsdtTokenPayment<M>>);
     fn get_output_payments(&self) -> &ManagedVec<M, EsdtTokenPayment<M>>;
-    fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>>;
+    fn get_opt_accept_funds_func(&self) -> &OptionalValue<ManagedBuffer<M>>;
 
     fn get_tx_input(&self) -> &dyn TxInput<M>;
 }

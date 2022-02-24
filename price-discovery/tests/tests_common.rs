@@ -1,4 +1,4 @@
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, OptionalValue, TokenIdentifier};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
@@ -60,13 +60,13 @@ where
     blockchain_wrapper
         .execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
             sc.init(
-                OptionalArg::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
-                OptionalArg::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
-                OptionalArg::None,
-                OptionalArg::None,
-                OptionalArg::None,
-                OptionalArg::None,
-                OptionalArg::None,
+                OptionalValue::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
+                OptionalValue::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
+                OptionalValue::None,
+                OptionalValue::None,
+                OptionalValue::None,
+                OptionalValue::None,
+                OptionalValue::None,
             );
 
             StateChange::Commit

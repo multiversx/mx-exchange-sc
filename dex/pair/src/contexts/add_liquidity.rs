@@ -23,7 +23,7 @@ pub struct AddLiquidityTxInput<M: ManagedTypeApi> {
 pub struct AddLiquidityArgs<M: ManagedTypeApi> {
     first_token_amount_min: BigUint<M>,
     second_token_amount_min: BigUint<M>,
-    opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
+    opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>,
 }
 
 pub struct AddLiquidityPayments<M: ManagedTypeApi> {
@@ -41,7 +41,7 @@ impl<M: ManagedTypeApi> AddLiquidityArgs<M> {
     pub fn new(
         first_token_amount_min: BigUint<M>,
         second_token_amount_min: BigUint<M>,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>,
     ) -> Self {
         AddLiquidityArgs {
             first_token_amount_min,
@@ -175,7 +175,7 @@ impl<M: ManagedTypeApi> Context<M> for AddLiquidityContext<M> {
     }
 
     #[inline]
-    fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
+    fn get_opt_accept_funds_func(&self) -> &OptionalValue<ManagedBuffer<M>> {
         &self.tx_input.args.opt_accept_funds_func
     }
 

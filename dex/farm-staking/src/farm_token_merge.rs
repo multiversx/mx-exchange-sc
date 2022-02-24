@@ -159,6 +159,6 @@ pub trait FarmTokenMergeModule:
             token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 }

@@ -22,9 +22,9 @@ use farm_token_merge::StakingFarmToken;
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type ClaimRewardsResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 pub type ExitFarmResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 pub type UnbondFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
@@ -242,7 +242,7 @@ pub trait Farm:
 
         self.send_rewards(&reward_token_id, &reward, &caller);
 
-        MultiResult2::from((
+        MultiValue2::from((
             farm_token_payment,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         ))
@@ -288,7 +288,7 @@ pub trait Farm:
             token_nonce,
         );
         let unlock_epoch = token_info
-            .decode_attributes_or_exit::<UnbondSftAttributes>()
+            .decode_attributes::<UnbondSftAttributes>()
             .unlock_epoch;
         let current_epoch = self.blockchain().get_block_epoch();
         require!(current_epoch >= unlock_epoch, "Unbond period not over");
@@ -405,7 +405,7 @@ pub trait Farm:
         );
         self.send_rewards(&reward_token_id, &reward, &caller);
 
-        MultiResult2::from((
+        MultiValue2::from((
             new_farm_token.token_amount,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         ))

@@ -1,5 +1,5 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiResult3, OptionalArg, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValue3, OptionalValue, TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
@@ -47,7 +47,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
@@ -167,10 +167,10 @@ fn add_liquidity<PairObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, pair_wrapper, &payments, |sc| {
-            let MultiResult3 { 0: payments } = sc.add_liquidity(
+            let MultiValue3 { 0: payments } = sc.add_liquidity(
                 managed_biguint!(first_token_min),
                 managed_biguint!(second_token_min),
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
@@ -297,7 +297,7 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm(OptionalArg::None);
+            let payment = sc.enter_farm(OptionalValue::None);
             assert_eq!(
                 payment.token_identifier,
                 managed_token_id!(LP_FARM_TOKEN_ID)

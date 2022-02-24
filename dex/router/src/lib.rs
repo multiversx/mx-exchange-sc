@@ -6,7 +6,7 @@ use super::factory;
 use pair::ProxyTrait as _;
 
 type SwapOperationType<M> =
-    MultiArg4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;
+    MultiValue4<ManagedAddress<M>, ManagedBuffer<M>, TokenIdentifier<M>, BigUint<M>>;
 
 pub const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
 pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
@@ -20,8 +20,8 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: u64,
-        swap_operations: MultiArgVec<SwapOperationType<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        swap_operations: MultiValueVec<SwapOperationType<Self::Api>>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) {
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
@@ -84,7 +84,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
                 amount_in,
                 token_out,
                 amount_out_min,
-                OptionalArg::None,
+                OptionalValue::None,
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
@@ -104,7 +104,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
                 amount_in_max,
                 token_out,
                 amount_out,
-                OptionalArg::None,
+                OptionalValue::None,
             )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
             .into_tuple()

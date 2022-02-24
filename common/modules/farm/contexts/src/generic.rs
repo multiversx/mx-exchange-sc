@@ -53,7 +53,7 @@ pub struct GenericTxInput<M: ManagedTypeApi> {
 }
 
 pub struct GenericArgs<M: ManagedTypeApi> {
-    opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
+    opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>,
 }
 
 pub struct GenericPayments<M: ManagedTypeApi> {
@@ -72,7 +72,7 @@ impl<M: ManagedTypeApi> GenericTxInput<M> {
 }
 
 impl<M: ManagedTypeApi> GenericArgs<M> {
-    pub fn new(opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>) -> Self {
+    pub fn new(opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>) -> Self {
         GenericArgs {
             opt_accept_funds_func,
         }
@@ -136,7 +136,7 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     }
 
     #[inline]
-    pub fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
+    pub fn get_opt_accept_funds_func(&self) -> &OptionalValue<ManagedBuffer<M>> {
         &self.tx_input.args.opt_accept_funds_func
     }
 
