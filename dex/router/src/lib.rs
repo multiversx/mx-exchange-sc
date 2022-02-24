@@ -20,7 +20,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: u64,
-        swap_operations: MultiValueVec<SwapOperationType<Self::Api>>,
+        swap_operations: ManagedMultiResultVec<SwapOperationType<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) {
         require!(nonce == 0, "Invalid nonce. Should be zero");
@@ -37,7 +37,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         let mut payments = ManagedVec::new();
         let mut last_payment = EsdtTokenPayment::new(token_id, nonce, amount);
 
-        for entry in swap_operations.into_vec() {
+        for entry in swap_operations.into_iter() {
             let (pair_address, function, token_wanted, amount_wanted) = entry.into_tuple();
             self.check_is_pair_sc(&pair_address);
 
