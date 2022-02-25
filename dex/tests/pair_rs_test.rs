@@ -1,6 +1,5 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValue3, OptionalValue, TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -68,8 +67,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -152,8 +149,6 @@ fn add_liquidity<PairObjBuilder>(
                 assert_eq!(payments.2.token_identifier, managed_token_id!(MEX_TOKEN_ID));
                 assert_eq!(payments.2.token_nonce, 0);
                 assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -190,8 +185,6 @@ fn swap_fixed_input<PairObjBuilder>(
                 assert_eq!(ret.token_identifier, managed_token_id!(desired_token_id));
                 assert_eq!(ret.token_nonce, 0);
                 assert_eq!(ret.amount, managed_biguint!(expected_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -224,8 +217,6 @@ fn swap_fixed_input_expect_error<PairObjBuilder>(
                     managed_biguint!(desired_amount_min),
                     OptionalValue::None,
                 );
-
-                StateChange::Revert
             },
         )
         .assert_user_error(expected_message);
@@ -251,8 +242,6 @@ fn set_swap_protect<PairObjBuilder>(
                     volume_percent,
                     max_num_actions_per_address,
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();

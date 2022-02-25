@@ -1,7 +1,8 @@
 use std::ops::Mul;
 
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalValue, TokenIdentifier,
+use elrond_wasm::{
+    elrond_codec::multi_types::OptionalValue,
+    types::{Address, BigUint, EsdtLocalRole},
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -76,8 +77,6 @@ where
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -168,8 +167,6 @@ fn enter_farm<FarmObjBuilder>(
                 expected_total_out_amount,
                 "Enter farm, farm token payment mismatch.",
             );
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -224,8 +221,6 @@ fn exit_farm<FarmObjBuilder>(
                     managed_token_id!(MEX_TOKEN_ID)
                 );
                 assert_eq!(second_result.token_nonce, 0);
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -247,7 +242,6 @@ fn reward_per_block_rate_change<FarmObjBuilder>(
             &rust_biguint!(0),
             |sc| {
                 sc.set_per_block_rewards(to_managed_biguint(new_rate));
-                StateChange::Commit
             },
         )
         .assert_ok();

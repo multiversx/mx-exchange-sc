@@ -3,9 +3,9 @@ use std::ops::Mul;
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedMultiResultVec, ManagedVec,
-    OptionalValue, TokenIdentifier,
+use elrond_wasm::{
+    elrond_codec::multi_types::OptionalValue,
+    types::{Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedMultiResultVec, ManagedVec},
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -78,8 +78,6 @@ where
             sc.init(asset_token_id.clone(), default_unlock_period);
 
             sc.locked_asset_token_id().set(&asset_token_id);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -148,8 +146,6 @@ where
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -157,8 +153,6 @@ where
         .execute_tx(&owner_addr, &factory_wrapper, &rust_zero, |sc| {
             let farm_address = ManagedAddress::from_address(farm_wrapper.address_ref());
             sc.whitelist(farm_address);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -257,8 +251,6 @@ fn enter_farm<FarmObjBuilder, FactoryObjBuilder>(
                 expected_total_out_amount,
                 "Enter farm, farm token payment mismatch.",
             );
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -315,8 +307,6 @@ fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
                     managed_token_id!(LKMEX_TOKEN_ID)
                 );
                 assert_eq!(second_result.token_nonce, 1);
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -345,7 +335,6 @@ fn reward_per_block_rate_change<FarmObjBuilder, FactoryObjBuilder>(
             &rust_biguint!(0),
             |sc| {
                 sc.set_per_block_rewards(to_managed_biguint(new_rate));
-                StateChange::Commit
             },
         )
         .assert_ok();

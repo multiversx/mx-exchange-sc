@@ -1,6 +1,5 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValue3, OptionalValue, TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -54,8 +53,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&pair_config::State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -125,8 +122,6 @@ where
                 sc.update_and_get_tokens_for_given_position_with_safe_price(managed_biguint!(
                     1_000_000_000
                 ));
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -190,8 +185,6 @@ fn add_liquidity<PairObjBuilder>(
             );
             assert_eq!(payments.2.token_nonce, 0);
             assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
-
-            StateChange::Commit
         })
         .assert_ok();
 }
@@ -238,8 +231,6 @@ where
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
                 .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -303,8 +294,6 @@ fn enter_farm<FarmObjBuilder>(
                 managed_token_id!(LP_FARM_TOKEN_ID)
             );
             assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
-
-            StateChange::Commit
         })
         .assert_ok();
 }
