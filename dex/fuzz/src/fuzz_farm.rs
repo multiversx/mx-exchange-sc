@@ -12,19 +12,17 @@ pub mod fuzz_farm_test {
     use farm::*;
 
     use rand::prelude::*;
-    use rand::rngs::StdRng;
 
     pub fn enter_farm<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let farm_index = fuzzer_data.rng.gen_range(0..fuzzer_data.farms.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let farm_setup = &mut fuzzer_data.farms[farm_index];
@@ -33,7 +31,7 @@ pub mod fuzz_farm_test {
         let lp_token_id = farm_setup.farming_token.as_bytes();
         let farm_token_id = farm_setup.farm_token.as_bytes();
 
-        let seed = rng.gen_range(0..fuzzer_data.fuzz_args.enter_farm_max_value) + 1;
+        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.enter_farm_max_value) + 1;
 
         let farm_in_amount = rust_biguint!(seed);
 
@@ -57,7 +55,7 @@ pub mod fuzz_farm_test {
         });
 
         //randomly add all existing farm positions for merge
-        let merge_farm_positions: bool = rng.gen();
+        let merge_farm_positions: bool = fuzzer_data.rng.gen();
         if merge_farm_positions && farm_setup.farmer_info.get(&caller).is_some() {
             for farm_token_nonce in farm_setup.farmer_info.get(&caller).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
@@ -111,15 +109,14 @@ pub mod fuzz_farm_test {
 
     pub fn exit_farm<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let farm_index = fuzzer_data.rng.gen_range(0..fuzzer_data.farms.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let farm_setup = &mut fuzzer_data.farms[farm_index];
@@ -127,11 +124,11 @@ pub mod fuzz_farm_test {
         let farm_token_id = farm_setup.farm_token.as_bytes();
         let reward_token_id = farm_setup.reward_token.as_bytes();
 
-        let seed = rng.gen_range(0..fuzzer_data.fuzz_args.exit_farm_max_value) + 1;
+        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.exit_farm_max_value) + 1;
         let mut farm_out_amount = rust_biguint!(seed);
 
         let farm_token_nonce = match farm_setup.farmer_info.get(caller) {
-            Some(s) => *s.choose(&mut rand::thread_rng()).unwrap(),
+            Some(s) => *s.choose(&mut fuzzer_data.rng).unwrap(),
             None => 0,
         };
 
@@ -194,15 +191,14 @@ pub mod fuzz_farm_test {
 
     pub fn claim_rewards<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let farm_index = fuzzer_data.rng.gen_range(0..fuzzer_data.farms.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let farm_setup = &mut fuzzer_data.farms[farm_index];
@@ -292,15 +288,14 @@ pub mod fuzz_farm_test {
 
     pub fn compound_rewards<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
-        let farm_index = rng.gen_range(0..fuzzer_data.farms.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let farm_index = fuzzer_data.rng.gen_range(0..fuzzer_data.farms.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let farm_setup = &mut fuzzer_data.farms[farm_index];

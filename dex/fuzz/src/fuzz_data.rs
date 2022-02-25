@@ -19,6 +19,8 @@ pub mod fuzz_data_tests {
 
     use farm::*;
     use pair::*;
+    use rand::SeedableRng;
+    use rand::prelude::StdRng;
 
     pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
     pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
@@ -97,6 +99,7 @@ pub mod fuzz_data_tests {
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
+        pub rng: StdRng,
         pub owner_address: Address,
         pub fuzz_args: FuzzDexExecutorInitArgs,
         pub statistics: EventsStatistics,
@@ -111,9 +114,10 @@ pub mod fuzz_data_tests {
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        pub fn new(pair_builder: PairObjBuilder, farm_builder: FarmObjBuilder) -> Self {
+        pub fn new(seed: u64, pair_builder: PairObjBuilder, farm_builder: FarmObjBuilder) -> Self {
             let egld_amount = rust_biguint!(USER_TOTAL_EGLD_TOKENS);
 
+            let rng = StdRng::seed_from_u64(seed);
             let fuzz_args = FuzzDexExecutorInitArgs::new();
             let statistics = EventsStatistics::new();
             let mut blockchain_wrapper = BlockchainStateWrapper::new();
@@ -195,6 +199,7 @@ pub mod fuzz_data_tests {
             let farms = vec![first_farm, second_farm, third_farm];
 
             FuzzerData {
+                rng,
                 owner_address: owner_addr,
                 fuzz_args,
                 statistics,

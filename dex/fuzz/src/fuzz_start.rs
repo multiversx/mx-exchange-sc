@@ -14,21 +14,18 @@ mod test {
 
     use rand::distributions::weighted::WeightedIndex;
     use rand::prelude::*;
-    use rand::rngs::StdRng;
-    use rand::SeedableRng;
     use std::time::UNIX_EPOCH;
 
     #[test]
     fn start_fuzzer() {
-        let mut fuzzer_data = FuzzerData::new(pair::contract_obj, farm::contract_obj);
 
+        // Random seed based on current time - can be given a specific value for a predetermined fuzz scenario
         let seed_base = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Incorrect output");
         let seed = seed_base.as_secs() * 1000 + seed_base.subsec_nanos() as u64 / 1_000_000; //in ms
 
-        // Random seed based on current time - can be given a specific value for a predetermined fuzz scenario
-        let mut rng = StdRng::seed_from_u64(seed);
+        let mut fuzzer_data = FuzzerData::new(seed, pair::contract_obj, farm::contract_obj);
 
         println!("Started fuzz testing with seed: {}", (seed));
 
@@ -44,36 +41,36 @@ mod test {
 
         for block_nonce in 1..=fuzzer_data.fuzz_args.num_events {
             let choice_index = WeightedIndex::new(choices.iter().map(|choice| choice.1)).unwrap();
-            let random_choice = choices[choice_index.sample(&mut rng)].0;
+            let random_choice = choices[choice_index.sample(&mut fuzzer_data.rng)].0;
 
             match random_choice {
                 1 => {
                     println!("Event no. {}: Add liquidity", (block_nonce));
-                    add_liquidity(&mut fuzzer_data, &mut rng);
+                    add_liquidity(&mut fuzzer_data);
                 }
                 2 => {
                     println!("Event no. {}: Remove liquidity", (block_nonce));
-                    remove_liquidity(&mut fuzzer_data, &mut rng);
+                    remove_liquidity(&mut fuzzer_data);
                 }
                 3 => {
                     println!("Event no. {}: Swap pair", (block_nonce));
-                    swap_pair(&mut fuzzer_data, &mut rng);
+                    swap_pair(&mut fuzzer_data);
                 }
                 4 => {
                     println!("Event no. {}: Enter farm", (block_nonce));
-                    enter_farm(&mut fuzzer_data, &mut rng);
+                    enter_farm(&mut fuzzer_data);
                 }
                 5 => {
                     println!("Event no. {}: Exit farm", (block_nonce));
-                    exit_farm(&mut fuzzer_data, &mut rng);
+                    exit_farm(&mut fuzzer_data);
                 }
                 6 => {
                     println!("Event no. {}: Claim reward", (block_nonce));
-                    claim_rewards(&mut fuzzer_data, &mut rng);
+                    claim_rewards(&mut fuzzer_data);
                 }
                 7 => {
                     println!("Event no. {}: Compound reward", (block_nonce));
-                    compound_rewards(&mut fuzzer_data, &mut rng);
+                    compound_rewards(&mut fuzzer_data);
                 }
                 _ => println!("No event triggered"),
             }

@@ -11,20 +11,18 @@ pub mod fuzz_pair_test {
     };
 
     use rand::prelude::*;
-    use rand::rngs::StdRng;
 
     use crate::fuzz_data::fuzz_data_tests::*;
     use pair::*;
 
     pub fn add_liquidity<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let pair_index = rng.gen_range(0..fuzzer_data.swap_pairs.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let swap_pair = &mut fuzzer_data.swap_pairs[pair_index];
@@ -33,7 +31,7 @@ pub mod fuzz_pair_test {
         let second_token = swap_pair.second_token.as_bytes();
         let lp_token = swap_pair.lp_token.as_bytes();
 
-        let seed = rng.gen_range(0..fuzzer_data.fuzz_args.add_liquidity_max_value) + 1;
+        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.add_liquidity_max_value) + 1;
 
         let first_token_amount = seed;
         let second_token_amount = seed;
@@ -119,13 +117,12 @@ pub mod fuzz_pair_test {
 
     pub fn remove_liquidity<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let pair_index = rng.gen_range(0..fuzzer_data.swap_pairs.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let swap_pair = &mut fuzzer_data.swap_pairs[pair_index];
@@ -134,7 +131,7 @@ pub mod fuzz_pair_test {
         let second_token = swap_pair.second_token.as_bytes();
         let lp_token = swap_pair.lp_token.as_bytes();
 
-        let seed = rng.gen_range(0..fuzzer_data.fuzz_args.remove_liquidity_max_value) + 1;
+        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.remove_liquidity_max_value) + 1;
 
         let lp_token_amount = seed;
         let first_token_min = seed / 100;
@@ -213,13 +210,12 @@ pub mod fuzz_pair_test {
 
     pub fn swap_pair<PairObjBuilder, FarmObjBuilder>(
         fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
-        rng: &mut StdRng,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     {
-        let pair_index = rng.gen_range(0..fuzzer_data.swap_pairs.len());
-        let caller_index = rng.gen_range(0..fuzzer_data.users.len());
+        let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
+        let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
 
         let caller = &fuzzer_data.users[caller_index];
         let swap_pair = &mut fuzzer_data.swap_pairs[pair_index];
@@ -237,14 +233,14 @@ pub mod fuzz_pair_test {
                 .blockchain_wrapper
                 .get_esdt_balance(&caller, desired_token_id, 0);
 
-        let seed = rng.gen_range(0..fuzzer_data.fuzz_args.swap_max_value) + 1;
+        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.swap_max_value) + 1;
 
         let payment_amount = seed;
         let desired_amount = seed;
         let payment_amount_max = seed * 10;
         let desired_amount_min = seed / 100;
 
-        let swap_fixed_input: bool = rng.gen();
+        let swap_fixed_input: bool = fuzzer_data.rng.gen();
 
         if swap_fixed_input {
             if payment_token_before < rust_biguint!(payment_amount) {
