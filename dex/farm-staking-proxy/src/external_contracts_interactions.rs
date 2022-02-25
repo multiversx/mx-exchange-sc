@@ -44,7 +44,7 @@ pub trait ExternalContractsInteractionsModule:
             .lp_farm_proxy_obj(lp_farm_address)
             .exit_farm(OptionalArg::None)
             .add_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
         let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
 
         LpFarmExitResult {
