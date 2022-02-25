@@ -15,11 +15,15 @@ pub trait CustomRewardsModule:
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_block_nonce > last_reward_nonce {
-            let extra_rewards =
+            let extra_rewards_unbounded =
                 self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+
+            let farm_token_supply = self.farm_token_supply().get();
+            let extra_rewards_apr_bounded = self.get_amount_apr_bounded(&farm_token_supply);
+
             self.last_reward_block_nonce().set(&current_block_nonce);
 
-            extra_rewards
+            core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
         } else {
             BigUint::zero()
         }
@@ -143,14 +147,18 @@ pub trait CustomRewardsModule:
             return unbounded_rewards;
         }
 
-        let max_apr = self.max_annual_percentage_rewards().get();
         let current_block = self.blockchain().get_block_nonce();
         let block_diff = current_block - last_claim_block;
 
-        let max_rewards_for_user_per_block = amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
+        let max_rewards_for_user_per_block = self.get_amount_apr_bounded(amount);
         let max_rewards_for_user = max_rewards_for_user_per_block * block_diff;
 
         core::cmp::min(unbounded_rewards, max_rewards_for_user)
+    }
+
+    fn get_amount_apr_bounded(&self, amount: &BigUint) -> BigUint {
+        let max_apr = self.max_annual_percentage_rewards().get();
+        amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR
     }
 
     #[only_owner]
