@@ -498,7 +498,7 @@ fn test_claim_rewards() {
     let expected_reward_token_out = 40;
     let expected_farming_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out);
-    let expected_reward_per_share = 500_000_000;
+    let expected_reward_per_share = 400_000;
     claim_rewards(
         &mut farm_setup,
         farm_in_amount,
@@ -541,12 +541,10 @@ where
         nonce: expected_farm_token_nonce,
         value: rust_biguint!(farm_in_amount),
     }];
-    let current_farm_supply = farm_in_amount;
 
     let total_amount = farm_in_amount + second_farm_in_amount;
     let first_reward_share = 0;
-    let second_reward_share =
-        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+    let second_reward_share = 400_000;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_amount
@@ -585,8 +583,7 @@ fn test_exit_farm_after_enter_twice() {
     let current_farm_supply = farm_in_amount;
 
     let first_reward_share = 0;
-    let second_reward_share =
-        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+    let second_reward_share = 400_000;
     let prev_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_farm_token
