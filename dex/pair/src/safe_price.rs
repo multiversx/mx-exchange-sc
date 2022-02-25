@@ -101,7 +101,7 @@ pub trait SafePriceModule:
     fn update_and_get_tokens_for_given_position_with_safe_price(
         &self,
         liquidity: BigUint,
-    ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         self.update_safe_state_on_the_fly();
 
         let c_state = self.get_current_state_or_default();
@@ -122,7 +122,7 @@ pub trait SafePriceModule:
             (first_worth, second_worth)
         };
 
-        MultiResult2::from((
+        MultiValue2::from((
             EsdtTokenPayment::new(first_token_id, 0, first_token_worth),
             EsdtTokenPayment::new(second_token_id, 0, second_token_worth),
         ))

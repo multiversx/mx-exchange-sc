@@ -38,7 +38,7 @@ pub trait RedeemTokenModule {
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(
             self.redeem_token_id().is_empty(),
             "Redeem token already issued"
@@ -56,6 +56,7 @@ pub trait RedeemTokenModule {
         )
         .async_call()
         .with_callback(self.callbacks().issue_callback())
+        .call_and_exit()
     }
 
     #[callback]

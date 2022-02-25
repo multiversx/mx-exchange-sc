@@ -24,7 +24,7 @@ pub trait CtxHelper:
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> AddLiquidityContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
@@ -56,7 +56,7 @@ pub trait CtxHelper:
         payment_amount: &BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> RemoveLiquidityContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
@@ -79,7 +79,7 @@ pub trait CtxHelper:
         payment_amount: &BigUint,
         out_token_id: TokenIdentifier,
         out_amount: BigUint,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> SwapContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
@@ -211,7 +211,7 @@ pub trait CtxHelper:
         &self,
         context: &AddLiquidityContext<Self::Api>,
     ) -> AddLiquidityResultType<Self::Api> {
-        MultiResult3::from((
+        MultiValue3::from((
             self.create_payment(context.get_lp_token_id(), 0, context.get_liquidity_added()),
             self.create_payment(
                 context.get_first_token_id(),
@@ -230,7 +230,7 @@ pub trait CtxHelper:
         &self,
         context: &RemoveLiquidityContext<Self::Api>,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        MultiResult2::from((
+        MultiValue2::from((
             self.create_payment(
                 context.get_first_token_id(),
                 0,
@@ -260,7 +260,7 @@ pub trait CtxHelper:
         context: &SwapContext<Self::Api>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
         let residuum = context.get_amount_in_max() - context.get_final_input_amount();
-        MultiResult2::from((
+        MultiValue2::from((
             self.create_payment(
                 context.get_token_out(),
                 0,

@@ -1,6 +1,7 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, OptionalArg, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, OptionalValue,
+    TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -158,7 +159,7 @@ fn enter_farm<FarmObjBuilder>(
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                let payment = sc.enter_farm(OptionalArg::None);
+                let payment = sc.enter_farm(OptionalValue::None);
                 assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                 assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                 assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
@@ -226,7 +227,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.exit_farm(OptionalArg::None);
+                let multi_result = sc.exit_farm(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -282,7 +283,7 @@ fn claim_rewards<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.claim_rewards(OptionalArg::None);
+                let multi_result = sc.claim_rewards(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 

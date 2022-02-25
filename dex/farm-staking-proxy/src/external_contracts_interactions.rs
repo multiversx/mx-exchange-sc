@@ -7,7 +7,7 @@ use crate::result_types::*;
 use farm_staking::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 use pair::RemoveLiquidityResultType;
 
-pub type SafePriceResult<Api> = MultiResult2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
+pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
 #[elrond_wasm::module]
 pub trait ExternalContractsInteractionsModule:
@@ -22,7 +22,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .claim_rewards(OptionalArg::None)
+            .claim_rewards(OptionalValue::None)
             .with_multi_token_transfer(lp_farm_tokens)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
@@ -42,7 +42,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm(OptionalArg::None)
+            .exit_farm(OptionalValue::None)
             .add_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
         let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
@@ -66,7 +66,7 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens(OptionalArg::None)
+            .merge_farm_tokens(OptionalValue::None)
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
@@ -154,7 +154,7 @@ pub trait ExternalContractsInteractionsModule:
                 lp_tokens.amount,
                 pair_first_token_min_amount,
                 pair_second_token_min_amount,
-                OptionalArg::None,
+                OptionalValue::None,
             )
             .execute_on_dest_context();
         let (pair_first_token_payment, pair_second_token_payment) =

@@ -1,5 +1,5 @@
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiArg4, MultiArgVec, OptionalArg,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValue4, MultiValueVec, OptionalValue,
     TokenIdentifier,
 };
 use elrond_wasm_debug::tx_mock::TxInputESDT;
@@ -91,7 +91,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             let lp_token_id = managed_token_id!(LPMEX_TOKEN_ID);
@@ -119,7 +119,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             let lp_token_id = managed_token_id!(LPUSDC_TOKEN_ID);
@@ -133,7 +133,7 @@ where
 
     blockchain_wrapper
         .execute_tx(&owner_addr, &router_wrapper, &rust_zero, |sc| {
-            sc.init(OptionalArg::None);
+            sc.init(OptionalValue::None);
 
             sc.pair_map().insert(
                 PairTokens {
@@ -224,7 +224,7 @@ fn add_liquidity<RouterObjBuilder, PairObjBuilder>(
                 sc.add_liquidity(
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 StateChange::Commit
@@ -255,7 +255,7 @@ fn add_liquidity<RouterObjBuilder, PairObjBuilder>(
                 sc.add_liquidity(
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 StateChange::Commit
@@ -286,7 +286,7 @@ fn multi_pair_swap<RoouterObjBuilder, PairObjBuilder>(
             |sc| {
                 let mut vec_with_managed = Vec::new();
                 for x in args.iter() {
-                    vec_with_managed.push(MultiArg4::from((
+                    vec_with_managed.push(MultiValue4::from((
                         managed_address!(&x.0),
                         managed_buffer!(&x.1),
                         managed_token_id!(x.2.to_owned()),
@@ -298,8 +298,8 @@ fn multi_pair_swap<RoouterObjBuilder, PairObjBuilder>(
                     managed_token_id!(payment_token),
                     managed_biguint!(payment_amount),
                     0,
-                    MultiArgVec(vec_with_managed),
-                    OptionalArg::None,
+                    MultiValueVec(vec_with_managed),
+                    OptionalValue::None,
                 );
 
                 StateChange::Commit

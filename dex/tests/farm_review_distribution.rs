@@ -1,7 +1,7 @@
 use std::ops::Mul;
 
 use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
+    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalValue, TokenIdentifier,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -161,7 +161,7 @@ fn enter_farm<FarmObjBuilder>(
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock
         .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm(OptionalArg::None);
+            let payment = sc.enter_farm(OptionalValue::None);
             assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
             check_biguint_eq(
                 payment.amount,
@@ -209,7 +209,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &farm_out_amount.clone(),
             |sc| {
-                let multi_result = sc.exit_farm(OptionalArg::None);
+                let multi_result = sc.exit_farm(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
