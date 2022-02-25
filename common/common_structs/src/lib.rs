@@ -7,6 +7,7 @@ elrond_wasm::derive_imports!();
 pub type Nonce = u64;
 pub type Epoch = u64;
 
+pub mod fungible_token;
 pub mod whitelist;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Eq)]

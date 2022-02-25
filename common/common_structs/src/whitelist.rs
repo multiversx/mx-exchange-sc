@@ -14,6 +14,19 @@ where
     _phantom: PhantomData<T>,
 }
 
+impl<SA, T> StorageMapper<SA> for Whitelist<SA, T>
+where
+    SA: StorageMapperApi,
+    T: NestedEncode + 'static,
+{
+    fn new(base_key: StorageKey<SA>) -> Self {
+        Self {
+            base_key,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<SA, T> Whitelist<SA, T>
 where
     SA: StorageMapperApi,
@@ -39,30 +52,11 @@ where
             SA::error_api_impl().signal_error(b"Item not whitelisted");
         }
     }
-}
 
-impl<SA, T> Whitelist<SA, T>
-where
-    SA: StorageMapperApi,
-    T: NestedEncode + 'static,
-{
     fn build_mapper_for_item(&self, item: &T) -> FlagMapper<SA> {
         let mut key = self.base_key.clone();
         key.append_item(item);
 
         FlagMapper::<SA>::new(key)
-    }
-}
-
-impl<SA, T> StorageMapper<SA> for Whitelist<SA, T>
-where
-    SA: StorageMapperApi,
-    T: NestedEncode + 'static,
-{
-    fn new(base_key: StorageKey<SA>) -> Self {
-        Self {
-            base_key,
-            _phantom: PhantomData,
-        }
     }
 }
