@@ -46,7 +46,13 @@ pub trait ExternalContractsInteractionsModule:
             .exit_farm(OptionalArg::None)
             .add_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context();
-        let (lp_tokens, lp_farm_rewards) = exit_farm_result.into_tuple();
+        let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
+        let received_lp_token_identifier = lp_tokens.token_identifier.clone();
+        let lp_token_identifier = self.get_lp_farming_token_identifier();
+
+        if lp_token_identifier != received_lp_token_identifier {
+            (lp_tokens, lp_farm_rewards) = (lp_farm_rewards, lp_tokens);
+        }
 
         LpFarmExitResult {
             lp_tokens,
