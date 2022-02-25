@@ -36,10 +36,7 @@ pub trait FarmTokenMergeModule:
 {
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments = self.call_value().all_esdt_transfers();
 
@@ -51,13 +48,8 @@ pub trait FarmTokenMergeModule:
         let new_nonce = self.mint_farm_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
         let new_amount = attrs.current_farm_amount;
 
-        self.transfer_execute_custom(
-            &caller,
-            &farm_token_id,
-            new_nonce,
-            &new_amount,
-            &opt_accept_funds_func,
-        );
+        self.send()
+            .direct(&caller, &farm_token_id, new_nonce, &new_amount, &[]);
 
         self.create_payment(&farm_token_id, new_nonce, &new_amount)
     }

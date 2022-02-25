@@ -46,11 +46,8 @@ pub trait CustomRewardsModule:
     #[only_owner]
     #[payable("*")]
     #[endpoint(topUpRewards)]
-    fn top_up_rewards(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: BigUint,
-    ) {
+    fn top_up_rewards(&self) {
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 

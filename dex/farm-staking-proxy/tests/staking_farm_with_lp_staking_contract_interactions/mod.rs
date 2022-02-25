@@ -1,9 +1,8 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtTokenPayment, ManagedVec, OptionalArg, TokenIdentifier,
-};
+use elrond_wasm::types::{Address, BigUint};
 use elrond_wasm_debug::{
-    managed_biguint, managed_token_id, rust_biguint,
+    managed_biguint, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
+    tx_mock::TxInputESDT,
     DebugApi,
 };
 
@@ -19,6 +18,11 @@ use crate::{
         add_proxy_to_whitelist, setup_proxy, setup_staking_farm,
     },
 };
+
+pub struct NonceAmountPair {
+    pub nonce: u64,
+    pub amount: u64,
+}
 
 pub struct FarmStakingSetup<
     PairObjBuilder,
@@ -120,12 +124,7 @@ where
                 lp_farm_token_nonce,
                 &rust_biguint!(lp_farm_token_stake_amount),
                 |sc| {
-                    let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
-                        managed_token_id!(LP_FARM_TOKEN_ID),
-                        lp_farm_token_nonce,
-                        managed_biguint!(lp_farm_token_stake_amount),
-                    ));
-                    let dual_yield_tokens = sc.stake_farm_tokens(payments);
+                    let dual_yield_tokens = sc.stake_farm_tokens();
                     dual_yield_nonce = dual_yield_tokens.token_nonce;
 
                     assert_eq!(
@@ -144,9 +143,6 @@ where
                 lp_farm_token_amount: managed_biguint!(lp_farm_token_stake_amount),
                 staking_farm_token_nonce: expected_staking_farm_token_nonce,
                 staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
-                total_dual_yield_tokens_for_position: managed_biguint!(
-                    expected_staking_token_amount
-                ),
             };
 
             self.b_mock.check_nft_balance(
@@ -157,6 +153,41 @@ where
                 &expected_dual_yield_attributes,
             );
         });
+
+        dual_yield_nonce
+    }
+
+    pub fn stake_farm_lp_proxy_multiple(
+        &mut self,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_stake_amount: u64,
+        dual_yield_tokens: Vec<NonceAmountPair>,
+    ) -> u64 {
+        let mut dual_yield_nonce = 0;
+
+        let mut transfers = Vec::new();
+        transfers.push(TxInputESDT {
+            token_identifier: LP_FARM_TOKEN_ID.to_vec(),
+            nonce: lp_farm_token_nonce,
+            value: rust_biguint!(lp_farm_token_stake_amount),
+        });
+
+        for pair in dual_yield_tokens {
+            transfers.push(TxInputESDT {
+                token_identifier: DUAL_YIELD_TOKEN_ID.to_vec(),
+                nonce: pair.nonce,
+                value: rust_biguint!(pair.amount),
+            })
+        }
+
+        self.b_mock
+            .execute_esdt_multi_transfer(&self.user_addr, &self.proxy_wrapper, &transfers, |sc| {
+                let new_dual_yield_token = sc.stake_farm_tokens();
+                dual_yield_nonce = new_dual_yield_token.token_nonce;
+
+                StateChange::Commit
+            })
+            .assert_ok();
 
         dual_yield_nonce
     }
@@ -179,12 +210,7 @@ where
                 dual_yield_token_nonce,
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
-                    let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
-                        managed_token_id!(DUAL_YIELD_TOKEN_ID),
-                        dual_yield_token_nonce,
-                        managed_biguint!(dual_yield_token_amount),
-                    ));
-                    let received_tokens = sc.claim_dual_yield(payments).to_vec();
+                    let received_tokens = sc.claim_dual_yield().to_vec();
                     let lp_farm_rewards = received_tokens.get(0);
                     let staking_farm_rewards = received_tokens.get(1);
                     let new_dual_yield_tokens = received_tokens.get(2);
@@ -230,13 +256,8 @@ where
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
                     let received_tokens = sc
-                        .unstake_farm_tokens(
-                            managed_token_id!(DUAL_YIELD_TOKEN_ID),
-                            dual_yield_token_nonce,
-                            managed_biguint!(dual_yield_token_amount),
-                        )
+                        .unstake_farm_tokens(managed_biguint!(1), managed_biguint!(1))
                         .to_vec();
-
                     let mut vec_index = 0;
 
                     if expected_wegld_amount > 0 {
@@ -301,12 +322,7 @@ where
                 unbond_token_nonce,
                 &rust_biguint!(unbond_token_amount),
                 |sc| {
-                    let received_tokens = sc.unbond_farm(
-                        managed_token_id!(STAKING_FARM_TOKEN_ID),
-                        unbond_token_nonce,
-                        managed_biguint!(unbond_token_amount),
-                        OptionalArg::None,
-                    );
+                    let received_tokens = sc.unbond_farm();
                     assert_eq!(received_tokens.amount, expected_token_out_amount);
 
                     StateChange::Commit
@@ -330,12 +346,7 @@ where
                 0,
                 &rust_biguint!(ride_token_stake_amount),
                 |sc| {
-                    let payments = ManagedVec::from_single_item(EsdtTokenPayment::new(
-                        managed_token_id!(RIDE_TOKEN_ID),
-                        0,
-                        managed_biguint!(ride_token_stake_amount),
-                    ));
-                    let staking_farm_tokens = sc.stake_farm(payments, OptionalArg::None);
+                    let staking_farm_tokens = sc.stake_farm_endpoint();
                     staking_farm_token_nonce = staking_farm_tokens.token_nonce;
 
                     assert_eq!(
@@ -367,7 +378,7 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let staking_farm_tokens = sc.compound_rewards(OptionalArg::None);
+                    let staking_farm_tokens = sc.compound_rewards();
                     staking_farm_token_nonce = staking_farm_tokens.token_nonce;
 
                     assert_eq!(
@@ -400,14 +411,7 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (unbond_farm_tokens, reward_tokens) = sc
-                        .unstake_farm(
-                            managed_token_id!(STAKING_FARM_TOKEN_ID),
-                            farm_token_nonce,
-                            managed_biguint!(farm_token_amount),
-                            OptionalArg::None,
-                        )
-                        .into_tuple();
+                    let (unbond_farm_tokens, reward_tokens) = sc.unstake_farm().into_tuple();
                     unbond_token_nonce = unbond_farm_tokens.token_nonce;
 
                     assert_eq!(reward_tokens.amount, expected_rewards_amount);
