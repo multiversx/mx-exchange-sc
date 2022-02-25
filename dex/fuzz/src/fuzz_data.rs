@@ -6,21 +6,19 @@ pub mod fuzz_data_tests {
     use std::cell::Cell;
 
     use ::config::ConfigModule;
-    use elrond_wasm::types::{
-        Address, BigUint, EsdtLocalRole, 
-    };
+    use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
 
-    use elrond_wasm_debug::{managed_biguint, HashMap};
     use elrond_wasm_debug::{
         managed_address, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
     };
+    use elrond_wasm_debug::{managed_biguint, HashMap};
 
     type RustBigUint = num_bigint::BigUint;
 
     use farm::*;
     use pair::*;
-    use rand::SeedableRng;
     use rand::prelude::StdRng;
+    use rand::SeedableRng;
 
     pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
     pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
@@ -266,7 +264,6 @@ pub mod fuzz_data_tests {
                 config::ConfigModule::lp_token_identifier(&sc).set(&lp_token_id);
 
                 config::ConfigModule::state(&sc).set(&config::State::Active);
-
             })
             .assert_ok();
 
@@ -347,7 +344,6 @@ pub mod fuzz_data_tests {
 
                 sc.state().set(&::config::State::Active);
                 sc.produce_rewards_enabled().set(&true);
-
             })
             .assert_ok();
 

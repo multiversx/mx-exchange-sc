@@ -5,8 +5,7 @@ pub mod fuzz_pair_test {
     elrond_wasm::derive_imports!();
 
     use elrond_wasm_debug::{
-        managed_biguint, managed_token_id, rust_biguint,
-        tx_mock::TxInputESDT, DebugApi,
+        managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT, DebugApi,
     };
 
     use rand::prelude::*;
@@ -30,7 +29,10 @@ pub mod fuzz_pair_test {
         let second_token = swap_pair.second_token.as_bytes();
         let lp_token = swap_pair.lp_token.as_bytes();
 
-        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.add_liquidity_max_value) + 1;
+        let seed = fuzzer_data
+            .rng
+            .gen_range(0..fuzzer_data.fuzz_args.add_liquidity_max_value)
+            + 1;
 
         let first_token_amount = seed;
         let second_token_amount = seed;
@@ -81,7 +83,6 @@ pub mod fuzz_pair_test {
                     managed_biguint!(second_token_min),
                     OptionalValue::None,
                 );
-
             },
         );
 
@@ -129,7 +130,10 @@ pub mod fuzz_pair_test {
         let second_token = swap_pair.second_token.as_bytes();
         let lp_token = swap_pair.lp_token.as_bytes();
 
-        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.remove_liquidity_max_value) + 1;
+        let seed = fuzzer_data
+            .rng
+            .gen_range(0..fuzzer_data.fuzz_args.remove_liquidity_max_value)
+            + 1;
 
         let lp_token_amount = seed;
         let first_token_min = seed / 100;
@@ -173,7 +177,6 @@ pub mod fuzz_pair_test {
                     managed_biguint!(second_token_min),
                     OptionalValue::None,
                 );
-
             },
         );
 
@@ -230,7 +233,10 @@ pub mod fuzz_pair_test {
                 .blockchain_wrapper
                 .get_esdt_balance(&caller, desired_token_id, 0);
 
-        let seed = fuzzer_data.rng.gen_range(0..fuzzer_data.fuzz_args.swap_max_value) + 1;
+        let seed = fuzzer_data
+            .rng
+            .gen_range(0..fuzzer_data.fuzz_args.swap_max_value)
+            + 1;
 
         let payment_amount = seed;
         let desired_amount = seed;
@@ -260,7 +266,6 @@ pub mod fuzz_pair_test {
                         managed_biguint!(desired_amount_min),
                         OptionalValue::None,
                     );
-
                 },
             );
 
@@ -309,7 +314,6 @@ pub mod fuzz_pair_test {
                         managed_biguint!(desired_amount),
                         OptionalValue::None,
                     );
-
                 },
             );
 
