@@ -51,7 +51,9 @@ pub trait ExternalContractsInteractionsModule:
         let lp_token_identifier = self.get_lp_farming_token_identifier();
 
         if lp_token_identifier != received_lp_token_identifier {
-            (lp_tokens, lp_farm_rewards) = (lp_farm_rewards, lp_tokens);
+            let aux = lp_tokens;
+            lp_tokens = lp_farm_rewards;
+            lp_farm_rewards = aux;
         }
 
         LpFarmExitResult {
