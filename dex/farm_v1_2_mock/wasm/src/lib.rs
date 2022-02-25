@@ -7,6 +7,7 @@
 elrond_wasm_node::wasm_endpoints! {
     farm_v1_2_mock
     (
+        migrateToNewFarm
     )
 }
 

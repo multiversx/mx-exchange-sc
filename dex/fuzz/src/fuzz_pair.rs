@@ -4,9 +4,8 @@ pub mod fuzz_pair_test {
     elrond_wasm::imports!();
     elrond_wasm::derive_imports!();
 
-    use elrond_wasm::types::{BigUint, OptionalArg, TokenIdentifier};
     use elrond_wasm_debug::{
-        managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+        managed_biguint, managed_token_id, rust_biguint,
         tx_mock::TxInputESDT, DebugApi,
     };
 
@@ -80,10 +79,9 @@ pub mod fuzz_pair_test {
                 sc.add_liquidity(
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
-                StateChange::Commit
             },
         );
 
@@ -173,10 +171,9 @@ pub mod fuzz_pair_test {
                     managed_biguint!(lp_token_amount),
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
-                StateChange::Commit
             },
         );
 
@@ -261,10 +258,9 @@ pub mod fuzz_pair_test {
                         managed_biguint!(payment_amount),
                         managed_token_id!(desired_token_id),
                         managed_biguint!(desired_amount_min),
-                        OptionalArg::None,
+                        OptionalValue::None,
                     );
 
-                    StateChange::Commit
                 },
             );
 
@@ -311,10 +307,9 @@ pub mod fuzz_pair_test {
                         managed_biguint!(payment_amount_max),
                         managed_token_id!(desired_token_id),
                         managed_biguint!(desired_amount),
-                        OptionalArg::None,
+                        OptionalValue::None,
                     );
 
-                    StateChange::Commit
                 },
             );
 

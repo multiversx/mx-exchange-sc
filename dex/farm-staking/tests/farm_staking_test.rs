@@ -558,7 +558,7 @@ fn test_exit_farm_after_enter_twice() {
     set_block_epoch(&mut farm_setup, 8);
     set_block_nonce(&mut farm_setup, 25);
 
-    let current_farm_supply = farm_in_amount;
+    let _current_farm_supply = farm_in_amount;
 
     let first_reward_share = 0;
     let second_reward_share = 400_000;

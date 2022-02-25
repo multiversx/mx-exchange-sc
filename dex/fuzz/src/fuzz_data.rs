@@ -7,7 +7,7 @@ pub mod fuzz_data_tests {
 
     use ::config::ConfigModule;
     use elrond_wasm::types::{
-        Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
+        Address, BigUint, EsdtLocalRole, 
     };
 
     use elrond_wasm_debug::{managed_biguint, HashMap};
@@ -259,7 +259,7 @@ pub mod fuzz_data_tests {
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 let lp_token_id = managed_token_id!(lp_token);
@@ -267,7 +267,6 @@ pub mod fuzz_data_tests {
 
                 config::ConfigModule::state(&sc).set(&config::State::Active);
 
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -349,7 +348,6 @@ pub mod fuzz_data_tests {
                 sc.state().set(&::config::State::Active);
                 sc.produce_rewards_enabled().set(&true);
 
-                StateChange::Commit
             })
             .assert_ok();
 
