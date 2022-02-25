@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use config::ConfigModule;
+use config::ProxyTrait as _;
 use farm::farm_token_merge::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 
@@ -76,7 +76,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
             .farming_token_id()
-            .get()
+            .execute_on_dest_context()
     }
 
     // staking farm
