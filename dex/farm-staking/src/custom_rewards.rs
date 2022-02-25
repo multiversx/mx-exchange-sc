@@ -19,7 +19,11 @@ pub trait CustomRewardsModule:
                 self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
             let farm_token_supply = self.farm_token_supply().get();
-            let extra_rewards_apr_bounded = self.get_amount_apr_bounded(&farm_token_supply);
+            let extra_rewards_apr_bounded_per_block =
+                self.get_amount_apr_bounded(&farm_token_supply);
+
+            let block_nonce_diff = current_block_nonce - last_reward_nonce;
+            let extra_rewards_apr_bounded = block_nonce_diff * extra_rewards_apr_bounded_per_block;
 
             self.last_reward_block_nonce().set(&current_block_nonce);
 
