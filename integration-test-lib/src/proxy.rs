@@ -73,8 +73,6 @@ pub mod migration_tests {
                     .set(&managed_token_id!(WRAPPED_FARM_TOKEN_ID));
                 sc.wrapped_lp_token_id()
                     .set(&managed_token_id!(WRAPPED_LP_TOKEN_ID));
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -93,8 +91,6 @@ pub mod migration_tests {
                     managed_biguint!(DIVISION_SAFETY_CONSTANT),
                     managed_address!(&Address::zero()),
                 );
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -116,8 +112,6 @@ pub mod migration_tests {
                     managed_address!(&Address::zero()),
                 )
                 .unwrap();
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -125,8 +119,6 @@ pub mod migration_tests {
             .execute_tx(&owner_addr, &proxy_wrapper, &rust_biguint!(0), |sc| {
                 sc.add_farm_to_intermediate(managed_address!(farm_v1_2_wrapper.address_ref()));
                 sc.add_farm_to_intermediate(managed_address!(farm_wrapper.address_ref()));
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -209,8 +201,6 @@ pub mod migration_tests {
                         managed_biguint!(50_000),
                         managed_address!(proxy_setup.farm_v1_2_wrapper.address_ref()),
                     );
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();

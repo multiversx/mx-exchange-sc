@@ -1,7 +1,5 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValue4, MultiValueVec, OptionalValue,
-    TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::{MultiValue4, OptionalValue};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedMultiResultVec};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -98,8 +96,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -126,8 +122,6 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -149,8 +143,6 @@ where
                 },
                 managed_address!(usdc_pair_wrapper.address_ref()),
             );
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -226,8 +218,6 @@ fn add_liquidity<RouterObjBuilder, PairObjBuilder>(
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
                     OptionalValue::None,
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -257,8 +247,6 @@ fn add_liquidity<RouterObjBuilder, PairObjBuilder>(
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
                     OptionalValue::None,
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -284,9 +272,9 @@ fn multi_pair_swap<RoouterObjBuilder, PairObjBuilder>(
             0,
             &payment_amount_big,
             |sc| {
-                let mut vec_with_managed = Vec::new();
+                let mut swap_operations = ManagedMultiResultVec::new();
                 for x in args.iter() {
-                    vec_with_managed.push(MultiValue4::from((
+                    swap_operations.push(MultiValue4::from((
                         managed_address!(&x.0),
                         managed_buffer!(&x.1),
                         managed_token_id!(x.2.to_owned()),
@@ -298,11 +286,9 @@ fn multi_pair_swap<RoouterObjBuilder, PairObjBuilder>(
                     managed_token_id!(payment_token),
                     managed_biguint!(payment_amount),
                     0,
-                    MultiValueVec(vec_with_managed),
+                    swap_operations,
                     OptionalValue::None,
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();

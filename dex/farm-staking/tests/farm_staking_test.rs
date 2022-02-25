@@ -1,4 +1,4 @@
-use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, TokenIdentifier};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
@@ -75,8 +75,6 @@ where
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -90,8 +88,6 @@ where
             &TOTAL_REWARDS_AMOUNT.into(),
             |sc| {
                 sc.top_up_rewards();
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -163,8 +159,6 @@ fn stake_farm<FarmObjBuilder>(
                 assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                 assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                 assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -211,8 +205,6 @@ fn unbond_farm<FarmObjBuilder>(
                 );
                 assert_eq!(payment.token_nonce, 0);
                 assert_eq!(payment.amount, managed_biguint!(expected_farming_token_out));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -266,8 +258,6 @@ fn unstake_farm<FarmObjBuilder>(
                 );
                 assert_eq!(second_result.token_nonce, 0);
                 assert_eq!(second_result.amount, managed_biguint!(expected_rewards_out));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -332,8 +322,6 @@ fn claim_rewards<FarmObjBuilder>(
                     second_result.amount,
                     managed_biguint!(expected_reward_token_out)
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();
