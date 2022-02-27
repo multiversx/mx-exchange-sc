@@ -290,6 +290,9 @@ pub trait Farm:
         let current_epoch = self.blockchain().get_block_epoch();
         require!(current_epoch >= unlock_epoch, "Unbond period not over");
 
+        self.send()
+            .esdt_local_burn(&farm_token_id, token_nonce, &amount);
+
         let caller = self.blockchain().get_caller();
         let farming_token_id = self.farming_token_id().get();
         self.send()
