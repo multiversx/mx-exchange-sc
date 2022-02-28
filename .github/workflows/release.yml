@@ -20,13 +20,14 @@ jobs:
 
       - name: Build WASM files
         run: |
-          erdpy deps check rust
-          erdpy deps check wasm-opt
           which erdpy
           echo $HOME
           whoami
           echo $UID
           ls
+          ls $HOME/elrondsdk
+          erdpy deps check wasm-opt
+          
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
