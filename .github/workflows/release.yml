@@ -1,0 +1,58 @@
+name: Create release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: elrondnetwork/elrond-sdk-erdpy-rust:latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+
+      - name: Build WASM files
+        run: |
+          erdpy contract build ./dex/pair
+          erdpy contract build ./dex/farm
+          erdpy contract build ./dex/router
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: built-contracts
+          path: |
+            ./dex/pair/output/pair.wasm
+            ./dex/pair/output/pair.abi.json
+            ./dex/pair/output/farm.wasm
+            ./dex/pair/output/farm.abi.json
+            ./dex/pair/output/router.wasm
+            ./dex/pair/output/router.abi.json
+          if-no-files-found: error
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: assets
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: assets
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          hub release create --draft --message="Release draft from Github Actions" vNext
+          for i in $(find ./assets -name '*.tgz' -type f); do
+            hub release edit --attach=${i} --message="" vNext
+          done
