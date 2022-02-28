@@ -22,25 +22,17 @@ jobs:
         run: |
           # https://github.com/actions/runner/issues/863
           export HOME=/home/elrond
-          echo $HOME
-          whoami
-          echo $UID
-          ls
-          ls $HOME/elrondsdk
+          erdpy deps check rust
           erdpy deps check wasm-opt
-          
+          bash ./build-wasm.sh
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
           name: built-contracts
           path: |
-            ./dex/pair/output/pair.wasm
-            ./dex/pair/output/pair.abi.json
-            ./dex/farm/output/farm.wasm
-            ./dex/farm/output/farm.abi.json
-            ./dex/router/output/router.wasm
-            ./dex/router/output/router.abi.json
+            ./**/output/*.wasm
+            ./**/output/*.abi.json
           if-no-files-found: error
 
   release:
