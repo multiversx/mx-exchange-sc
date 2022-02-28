@@ -53,7 +53,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          hub release create --draft --message="Release draft from Github Actions" vNext
+          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes
           for i in $(find ./assets -type f); do
-            hub release edit --attach=${i} --message="checksum $(sha256sum ${i})" vNext
+            gh release upload vNext ${i}#checksum $(sha256sum ${i})
           done
