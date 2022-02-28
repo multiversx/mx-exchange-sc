@@ -15,9 +15,9 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
-        path: /home/elrond
         with:
           fetch-depth: "0"
+          path: /home/elrond
 
       - name: Build WASM files
         run: |
