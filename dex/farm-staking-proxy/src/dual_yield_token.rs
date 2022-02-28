@@ -53,7 +53,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(
             self.dual_yield_token_id().is_empty(),
             "Token already issued"
@@ -75,6 +75,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             self.callbacks()
                 .issue_callback(&self.blockchain().get_caller()),
         )
+        .call_and_exit()
     }
 
     #[callback]
@@ -82,12 +83,12 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         &self,
         caller: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
-    ) -> OptionalResult<ManagedBuffer> {
+    ) -> OptionalValue<ManagedBuffer> {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
                 self.dual_yield_token_id().set(&token_id);
 
-                OptionalResult::None
+                OptionalValue::None
             }
             ManagedAsyncCallResult::Err(err) => {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
@@ -95,7 +96,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
 
-                OptionalResult::Some(err.err_msg)
+                OptionalValue::Some(err.err_msg)
             }
         }
     }
@@ -194,7 +195,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             dual_yield_token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 
     fn get_lp_farm_token_amount_equivalent(

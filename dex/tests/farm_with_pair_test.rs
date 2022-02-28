@@ -2,7 +2,7 @@
 use elrond_wasm::types::Address;
 use elrond_wasm_debug::{
     rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 use farm::*;
@@ -70,7 +70,6 @@ where
     wrapper.execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
         // sc.init();
 
-        StateChange::Commit
     });
 
     // init farm contract
@@ -78,7 +77,6 @@ where
     wrapper.execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
         // sc.init();
 
-        StateChange::Commit
     });
 
     FarmSetup {

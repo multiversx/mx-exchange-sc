@@ -56,7 +56,7 @@ fn test_claim_rewards_farm_proxy_full() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 }
@@ -83,7 +83,7 @@ fn test_claim_rewards_farm_proxy_half() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999 / 2,
-        940, // ~= 1_900 / 2 = 950, approximations somewhere make it go slightly lower
+        949,
         dual_yield_token_amount,
     );
 }
@@ -111,7 +111,7 @@ fn test_claim_rewards_farm_proxy_twice() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 
@@ -125,7 +125,7 @@ fn test_claim_rewards_farm_proxy_twice() {
         dual_yield_token_nonce_after_first_claim,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 }
@@ -154,7 +154,7 @@ fn test_unstake_through_proxy_no_claim() {
         dual_yield_token_amount,
         1_001_000_000,
         99_999,
-        1_900,
+        1_899,
         1_001_000_000,
         30,
     );
@@ -183,7 +183,7 @@ fn unstake_through_proxy_after_claim() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 
@@ -222,7 +222,7 @@ fn unbond_test() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 
@@ -313,7 +313,7 @@ fn test_stake_farm_through_proxy_with_merging() {
         DUAL_YIELD_TOKEN_ID,
         first_dual_yield_token_nonce,
         &rust_biguint!(0),
-        &(),
+        &vec![0, 1, 4, 400000000, 0, 1, 4, 400000000], //old attributes
     );
     setup.b_mock.execute_in_managed_environment(|| {
         setup.b_mock.check_nft_balance(
@@ -344,7 +344,7 @@ fn test_stake_farm_through_proxy_with_merging() {
             LP_FARM_TOKEN_ID,
             2,
             &rust_biguint!(1_000_000_000),
-            &(),
+            &vec![0, 0, 0, 0, 0, 4, 1000000000, 0, 4, 1000000000], //current attributes
         )
     });
 }

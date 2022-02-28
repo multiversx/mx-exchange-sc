@@ -20,7 +20,7 @@ mod farm_v1_2_contract_proxy {
         fn migrate_to_new_farm(
             &self,
             orig_caller: ManagedAddress,
-        ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
+        ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
     }
 }
 
@@ -101,7 +101,7 @@ pub trait MigrationModule:
         }
 
         let caller = self.blockchain().get_caller();
-        self.send_multiple_tokens(&caller, &payments, &OptionalArg::None);
+        self.send_multiple_tokens(&caller, &payments, &OptionalValue::None);
     }
 
     #[proxy]

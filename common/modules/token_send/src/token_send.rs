@@ -10,7 +10,7 @@ pub trait TokenSendModule {
         &self,
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) {
         let gas_limit: u64;
         let function: ManagedBuffer;
@@ -38,7 +38,7 @@ pub trait TokenSendModule {
         &self,
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) {
         let mut non_zero_payments = ManagedVec::new();
         for payment in payments.iter() {
@@ -59,7 +59,7 @@ pub trait TokenSendModule {
         token: &TokenIdentifier,
         nonce: u64,
         amount: &BigUint,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) {
         if amount == &0u32 {
             return;

@@ -17,7 +17,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
             token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 
     fn get_wrapped_farm_token_attributes(
@@ -31,7 +31,7 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
             token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 
     fn burn_payment_tokens(
