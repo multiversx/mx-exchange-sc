@@ -10,7 +10,7 @@ jobs:
     container: 
       image: elrondnetwork/elrond-sdk-erdpy-rust:latest
       # See: https://github.com/actions/checkout/issues/47
-      options: --user elrond:elrond
+      options: --user 1001
     steps:
       - name: Check out code
         uses: actions/checkout@v2
