@@ -13,7 +13,7 @@ pub trait CtxHelper:
 {
     fn new_farm_context(
         &self,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> GenericContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
@@ -115,7 +115,7 @@ pub trait CtxHelper:
         context.set_input_attributes(
             self.blockchain()
                 .get_esdt_token_data(&self.blockchain().get_sc_address(), &farm_token_id, nonce)
-                .decode_attributes_or_exit(),
+                .decode_attributes(),
         )
     }
 
@@ -173,8 +173,8 @@ pub trait CtxHelper:
     fn construct_and_get_result(
         &self,
         context: &GenericContext<Self::Api>,
-    ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
-        MultiResult2::from((
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        MultiValue2::from((
             context.get_output_payments().get(0),
             context.get_final_reward().unwrap().clone(),
         ))

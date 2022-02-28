@@ -1,4 +1,4 @@
-use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, TokenIdentifier};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
@@ -75,8 +75,6 @@ where
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -90,8 +88,6 @@ where
             &TOTAL_REWARDS_AMOUNT.into(),
             |sc| {
                 sc.top_up_rewards();
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -135,7 +131,6 @@ fn stake_farm<FarmObjBuilder>(
     additional_farm_tokens: &[TxInputESDT],
     expected_farm_token_nonce: u64,
     expected_reward_per_share: u64,
-    expected_last_claim_block: u64,
     expected_compounded_reward: u64,
 ) where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
@@ -164,8 +159,6 @@ fn stake_farm<FarmObjBuilder>(
                 assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                 assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                 assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -173,7 +166,6 @@ fn stake_farm<FarmObjBuilder>(
     let _ = DebugApi::dummy();
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
-        last_claim_block: expected_last_claim_block,
         compounded_reward: managed_biguint!(expected_compounded_reward),
         current_farm_amount: managed_biguint!(expected_total_out_amount),
     };
@@ -213,8 +205,6 @@ fn unbond_farm<FarmObjBuilder>(
                 );
                 assert_eq!(payment.token_nonce, 0);
                 assert_eq!(payment.amount, managed_biguint!(expected_farming_token_out));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -268,8 +258,6 @@ fn unstake_farm<FarmObjBuilder>(
                 );
                 assert_eq!(second_result.token_nonce, 0);
                 assert_eq!(second_result.amount, managed_biguint!(expected_rewards_out));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -303,7 +291,6 @@ fn claim_rewards<FarmObjBuilder>(
     expected_user_farming_token_balance: &RustBigUint,
     expected_farm_token_nonce_out: u64,
     expected_reward_per_share: u64,
-    expected_last_claim_block: u64,
 ) where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
 {
@@ -335,8 +322,6 @@ fn claim_rewards<FarmObjBuilder>(
                     second_result.amount,
                     managed_biguint!(expected_reward_token_out)
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -344,7 +329,6 @@ fn claim_rewards<FarmObjBuilder>(
     let _ = DebugApi::dummy();
     let expected_attributes = StakingFarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
-        last_claim_block: expected_last_claim_block,
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_token_amount),
     };
@@ -420,7 +404,6 @@ fn test_enter_farm() {
         expected_farm_token_nonce,
         0,
         0,
-        0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 }
@@ -436,7 +419,6 @@ fn test_unstake_farm() {
         farm_in_amount,
         &[],
         expected_farm_token_nonce,
-        0,
         0,
         0,
     );
@@ -487,7 +469,6 @@ fn test_claim_rewards() {
         expected_farm_token_nonce,
         0,
         0,
-        0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 
@@ -498,7 +479,7 @@ fn test_claim_rewards() {
     let expected_reward_token_out = 40;
     let expected_farming_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS - farm_in_amount + expected_reward_token_out);
-    let expected_reward_per_share = 500_000_000;
+    let expected_reward_per_share = 400_000;
     claim_rewards(
         &mut farm_setup,
         farm_in_amount,
@@ -508,7 +489,6 @@ fn test_claim_rewards() {
         &expected_farming_token_balance,
         expected_farm_token_nonce + 1,
         expected_reward_per_share,
-        10,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 }
@@ -528,7 +508,6 @@ where
         expected_farm_token_nonce,
         0,
         0,
-        0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 
@@ -541,12 +520,10 @@ where
         nonce: expected_farm_token_nonce,
         value: rust_biguint!(farm_in_amount),
     }];
-    let current_farm_supply = farm_in_amount;
 
     let total_amount = farm_in_amount + second_farm_in_amount;
     let first_reward_share = 0;
-    let second_reward_share =
-        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+    let second_reward_share = 400_000;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_amount
@@ -559,7 +536,6 @@ where
         &prev_farm_tokens,
         expected_farm_token_nonce + 1,
         expected_reward_per_share,
-        10,
         0,
     );
     check_farm_token_supply(&mut farm_setup, total_amount);
@@ -577,35 +553,13 @@ fn test_exit_farm_after_enter_twice() {
     let mut farm_setup = steps_enter_farm_twice(farm_staking::contract_obj);
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
-    let total_farm_token = farm_in_amount + second_farm_in_amount;
 
     set_block_epoch(&mut farm_setup, 8);
     set_block_nonce(&mut farm_setup, 25);
 
-    let current_farm_supply = farm_in_amount;
+    let _current_farm_supply = farm_in_amount;
 
-    let first_reward_share = 0;
-    let second_reward_share =
-        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
-    let prev_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_farm_token
-        - 1)
-        / total_farm_token;
-    let new_reward_per_share = prev_reward_per_share
-        + 25 * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
-    let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
-
-    let expected_reward_amount =
-        total_farm_token * reward_per_share_diff / DIVISION_SAFETY_CONSTANT;
-
-    let block_diff = 25 - 10;
-    // 100_000_000 * 2_500 / 10_000 / (31_536_000 / 6) * 15 ~= 60 with BigUint div approximations
-    let expected_rewards_max_apr =
-        farm_in_amount * MAX_APR / MAX_PERCENT / BLOCKS_IN_YEAR * block_diff;
-    let expected_rewards = core::cmp::min(expected_reward_amount, expected_rewards_max_apr);
-    assert_eq!(expected_rewards, 60);
-
+    let expected_rewards = 83;
     let expected_ride_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount - second_farm_in_amount
             + expected_rewards;
@@ -636,7 +590,6 @@ fn test_unbond() {
         farm_in_amount,
         &[],
         expected_farm_token_nonce,
-        0,
         0,
         0,
     );

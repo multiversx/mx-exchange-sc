@@ -1,5 +1,4 @@
-use elrond_wasm::types::TokenIdentifier;
-use elrond_wasm_debug::{managed_biguint, testing_framework::*};
+use elrond_wasm_debug::managed_biguint;
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 use pair_mock::*;
 use price_discovery::common_storage::*;
@@ -21,7 +20,7 @@ fn test_deposit_launched_tokens_ok() {
 
     let init_deposit_amt = rust_biguint!(5_000_000_000);
 
-    call_deposit_initial_tokens(&mut pd_setup, &init_deposit_amt, StateChange::Commit);
+    call_deposit_initial_tokens(&mut pd_setup, &init_deposit_amt);
 
     pd_setup.blockchain_wrapper.check_esdt_balance(
         pd_setup.pd_wrapper.address_ref(),
@@ -42,7 +41,6 @@ fn deposit_too_early() {
         &mut pd_setup,
         &first_user_address,
         &rust_biguint!(1_000_000_000),
-        StateChange::Revert,
     )
     .assert_user_error("Deposit period not started yet");
 }
@@ -55,18 +53,12 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 {
     pd_setup.blockchain_wrapper.set_block_epoch(START_EPOCH + 1);
 
-    call_deposit_initial_tokens(pd_setup, &rust_biguint!(5_000_000_000), StateChange::Commit);
+    call_deposit_initial_tokens(pd_setup, &rust_biguint!(5_000_000_000));
 
     // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
     let first_user_address = pd_setup.first_user_address.clone();
     let first_deposit_amt = rust_biguint!(1_000_000_000);
-    call_deposit(
-        pd_setup,
-        &first_user_address,
-        &first_deposit_amt,
-        StateChange::Commit,
-    )
-    .assert_ok();
+    call_deposit(pd_setup, &first_user_address, &first_deposit_amt).assert_ok();
 
     pd_setup.blockchain_wrapper.check_nft_balance(
         &first_user_address,
@@ -79,13 +71,7 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
     // second user deposit
     let second_user_address = pd_setup.second_user_address.clone();
     let second_deposit_amt = rust_biguint!(500_000_000);
-    call_deposit(
-        pd_setup,
-        &second_user_address,
-        &second_deposit_amt,
-        StateChange::Commit,
-    )
-    .assert_ok();
+    call_deposit(pd_setup, &second_user_address, &second_deposit_amt).assert_ok();
 
     pd_setup.blockchain_wrapper.check_nft_balance(
         &second_user_address,
@@ -119,13 +105,7 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
     let balance_before = rust_biguint!(0);
     let deposit_amt = rust_biguint!(1_000_000_000);
     let withdraw_amt = rust_biguint!(400_000_000);
-    call_withdraw(
-        pd_setup,
-        &first_user_address,
-        &withdraw_amt,
-        StateChange::Commit,
-    )
-    .assert_ok();
+    call_withdraw(pd_setup, &first_user_address, &withdraw_amt).assert_ok();
 
     pd_setup.blockchain_wrapper.check_nft_balance(
         &first_user_address,
@@ -175,13 +155,8 @@ fn withdraw_too_late() {
 
     let first_user_address = pd_setup.first_user_address.clone();
     let withdraw_amt = rust_biguint!(400_000_000);
-    call_withdraw(
-        &mut pd_setup,
-        &first_user_address,
-        &withdraw_amt,
-        StateChange::Revert,
-    )
-    .assert_user_error("Deposit period ended");
+    call_withdraw(&mut pd_setup, &first_user_address, &withdraw_amt)
+        .assert_user_error("Deposit period ended");
 }
 
 #[test]
@@ -191,7 +166,7 @@ fn create_pool_too_early() {
     withdraw_ok_steps(&mut pd_setup);
 
     let first_user_address = pd_setup.first_user_address.clone();
-    call_create_dex_liquidity_pool(&mut pd_setup, &first_user_address, StateChange::Revert)
+    call_create_dex_liquidity_pool(&mut pd_setup, &first_user_address)
         .assert_user_error("Deposit period has not ended");
 }
 
@@ -204,7 +179,7 @@ fn create_pool_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
     pd_setup.blockchain_wrapper.set_block_epoch(END_EPOCH + 1);
 
     let first_user_address = pd_setup.first_user_address.clone();
-    call_create_dex_liquidity_pool(pd_setup, &first_user_address, StateChange::Commit).assert_ok();
+    call_create_dex_liquidity_pool(pd_setup, &first_user_address).assert_ok();
 }
 
 #[test]
@@ -249,7 +224,7 @@ fn try_create_pool_twice() {
     create_pool_ok_steps(&mut pd_setup);
 
     let first_user_address = pd_setup.first_user_address.clone();
-    call_create_dex_liquidity_pool(&mut pd_setup, &first_user_address, StateChange::Commit)
+    call_create_dex_liquidity_pool(&mut pd_setup, &first_user_address)
         .assert_user_error("Pool already created");
 }
 
@@ -267,7 +242,6 @@ fn redeem_before_pool_created() {
         &first_user_address,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &rust_biguint!(600_000_000),
-        StateChange::Revert,
     )
     .assert_user_error("Pool not created yet");
 }
@@ -286,7 +260,6 @@ fn redeem_ok() {
         &first_user_address,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &first_user_redeem_token_amount,
-        StateChange::Commit,
     )
     .assert_ok();
 
@@ -297,7 +270,6 @@ fn redeem_ok() {
         &second_user_address,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &second_user_redeem_token_amount,
-        StateChange::Commit,
     )
     .assert_ok();
 
@@ -308,7 +280,6 @@ fn redeem_ok() {
         &owner_address,
         LAUNCHED_TOKEN_REDEEM_NONCE,
         &owner_redeem_amount,
-        StateChange::Commit,
     )
     .assert_ok();
 

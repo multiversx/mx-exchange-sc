@@ -22,9 +22,9 @@ use farm_token_merge::StakingFarmToken;
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type ClaimRewardsResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 pub type ExitFarmResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 pub type UnbondFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
@@ -133,10 +133,8 @@ pub trait Farm:
 
         self.generate_aggregated_rewards();
 
-        let block = self.blockchain().get_block_nonce();
         let attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            last_claim_block: block,
             compounded_reward: BigUint::zero(),
             current_farm_amount: enter_amount.clone(),
         };
@@ -223,11 +221,10 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
-        let reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_reward(
             &payment_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
-            farm_attributes.last_claim_block,
         );
 
         let caller = self.blockchain().get_caller();
@@ -242,7 +239,7 @@ pub trait Farm:
 
         self.send_rewards(&reward_token_id, &reward, &caller);
 
-        MultiResult2::from((
+        MultiValue2::from((
             farm_token_payment,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         ))
@@ -288,10 +285,13 @@ pub trait Farm:
             token_nonce,
         );
         let unlock_epoch = token_info
-            .decode_attributes_or_exit::<UnbondSftAttributes>()
+            .decode_attributes::<UnbondSftAttributes>()
             .unlock_epoch;
         let current_epoch = self.blockchain().get_block_epoch();
         require!(current_epoch >= unlock_epoch, "Unbond period not over");
+
+        self.send()
+            .esdt_local_burn(&farm_token_id, token_nonce, &amount);
 
         let caller = self.blockchain().get_caller();
         let farming_token_id = self.farming_token_id().get();
@@ -355,11 +355,10 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
-        let reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_reward(
             &old_farming_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
-            farm_attributes.last_claim_block,
         );
         let new_compound_reward_amount = self.rule_of_three(
             &old_farming_amount,
@@ -373,7 +372,6 @@ pub trait Farm:
 
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            last_claim_block: self.blockchain().get_block_nonce(),
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farming_amount.clone(),
         };
@@ -405,7 +403,7 @@ pub trait Farm:
         );
         self.send_rewards(&reward_token_id, &reward, &caller);
 
-        MultiResult2::from((
+        MultiValue2::from((
             new_farm_token.token_amount,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         ))
@@ -478,11 +476,10 @@ pub trait Farm:
             &payment_token_id,
             payment_token_nonce,
         );
-        let reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_reward(
             &payment_amount,
             &current_rps,
             &farm_attributes.reward_per_share,
-            farm_attributes.last_claim_block,
         );
 
         let new_farm_contribution = &payment_amount + &reward;
@@ -492,10 +489,8 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         ) + &reward;
 
-        let current_block = self.blockchain().get_block_nonce();
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: current_rps,
-            last_claim_block: current_block,
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farm_contribution.clone(),
         };
@@ -615,11 +610,10 @@ pub trait Farm:
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
 
-        self.calculate_rewards_with_apr_limit(
+        self.calculate_reward(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
-            attributes.last_claim_block,
         )
     }
 }

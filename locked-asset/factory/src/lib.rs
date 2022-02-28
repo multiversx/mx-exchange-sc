@@ -113,7 +113,8 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        let new_token = self.produce_tokens_and_send(&amount, &attr, &address, &OptionalArg::None);
+        let new_token =
+            self.produce_tokens_and_send(&amount, &attr, &address, &OptionalValue::None);
 
         self.emit_create_and_forward_event(
             &caller,
@@ -133,7 +134,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         require!(
@@ -223,7 +224,7 @@ pub trait LockedAssetFactory:
                 &locked_remaining,
                 &output_locked_asset_attributes,
                 &caller,
-                &OptionalArg::None,
+                &OptionalValue::None,
             );
         }
 
@@ -263,7 +264,7 @@ pub trait LockedAssetFactory:
         amount: &BigUint,
         attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
@@ -313,7 +314,7 @@ pub trait LockedAssetFactory:
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(
             self.locked_asset_token_id().is_empty(),
             "Token exists already"
@@ -337,6 +338,7 @@ pub trait LockedAssetFactory:
             )
             .async_call()
             .with_callback(self.callbacks().register_callback())
+            .call_and_exit()
     }
 
     #[callback]
@@ -370,7 +372,7 @@ pub trait LockedAssetFactory:
         &self,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) -> AsyncCall {
+    ) {
         require!(
             !self.locked_asset_token_id().is_empty(),
             "Locked Asset Token not registered"
@@ -385,6 +387,7 @@ pub trait LockedAssetFactory:
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
+            .call_and_exit()
     }
 
     #[callback]
