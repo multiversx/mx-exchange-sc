@@ -49,15 +49,11 @@ jobs:
         with:
           path: assets
 
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: assets
-
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           hub release create --draft --message="Release draft from Github Actions" vNext
           for i in $(find ./assets -type f); do
-            hub release edit --attach=${i} --message="" vNext
+            hub release edit --attach=${i} --message="checksum $(sha256sum ${i})" vNext
           done
