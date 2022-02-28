@@ -55,5 +55,5 @@ jobs:
         run: |
           gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes
           for i in $(find ./assets -type f); do
-            gh release upload vNext ${i}#checksum $(sha256sum ${i})
+            gh release upload vNext "${i}#checksum $(sha256sum ${i})"
           done
