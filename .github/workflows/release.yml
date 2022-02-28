@@ -10,7 +10,8 @@ jobs:
     container: 
       image: elrondnetwork/elrond-sdk-erdpy-rust:latest
       # See: https://github.com/actions/checkout/issues/47
-      options: --user 1001
+      # User "elrond" has UID = 1001 (specified on the image)
+      options: --user elrond:elrond
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -19,9 +20,13 @@ jobs:
 
       - name: Build WASM files
         run: |
-          erdpy contract build ./dex/pair
-          erdpy contract build ./dex/farm
-          erdpy contract build ./dex/router
+          erdpy deps check rust
+          erdpy deps check wasm-opt
+          which erdpy
+          echo $HOME
+          whoami
+          echo $UID
+          ls
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
@@ -30,10 +35,10 @@ jobs:
           path: |
             ./dex/pair/output/pair.wasm
             ./dex/pair/output/pair.abi.json
-            ./dex/pair/output/farm.wasm
-            ./dex/pair/output/farm.abi.json
-            ./dex/pair/output/router.wasm
-            ./dex/pair/output/router.abi.json
+            ./dex/farm/output/farm.wasm
+            ./dex/farm/output/farm.abi.json
+            ./dex/router/output/router.wasm
+            ./dex/router/output/router.abi.json
           if-no-files-found: error
 
   release:
@@ -45,7 +50,7 @@ jobs:
         with:
           fetch-depth: "0"
 
-      - name: Download all workflow run artifacts
+      - name: Download all workflow artifacts
         uses: actions/download-artifact@v2
         with:
           path: assets
@@ -59,6 +64,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           hub release create --draft --message="Release draft from Github Actions" vNext
-          for i in $(find ./assets -name '*.tgz' -type f); do
+          for i in $(find ./assets -type f); do
             hub release edit --attach=${i} --message="" vNext
           done
