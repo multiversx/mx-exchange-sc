@@ -82,7 +82,7 @@ pub trait MigrationModule:
             &new_pos_token_id,
             new_pos_nonce,
             &new_pos_amount,
-            &OptionalArg::None,
+            &OptionalValue::None,
         );
 
         EsdtTokenPayment::new(new_pos_token_id, new_pos_nonce, new_pos_amount)

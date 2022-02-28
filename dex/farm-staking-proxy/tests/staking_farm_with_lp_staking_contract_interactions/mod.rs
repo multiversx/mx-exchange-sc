@@ -1,7 +1,7 @@
-use elrond_wasm::types::{Address, BigUint};
+use elrond_wasm::types::Address;
 use elrond_wasm_debug::{
     managed_biguint, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     tx_mock::TxInputESDT,
     DebugApi,
 };
@@ -131,8 +131,6 @@ where
                         dual_yield_tokens.amount,
                         managed_biguint!(expected_staking_token_amount)
                     );
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();
@@ -184,8 +182,6 @@ where
             .execute_esdt_multi_transfer(&self.user_addr, &self.proxy_wrapper, &transfers, |sc| {
                 let new_dual_yield_token = sc.stake_farm_tokens();
                 dual_yield_nonce = new_dual_yield_token.token_nonce;
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -226,8 +222,6 @@ where
                         new_dual_yield_tokens.amount,
                         expected_new_dual_yield_token_amount
                     );
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();
@@ -285,8 +279,6 @@ where
                     assert_eq!(unbond_tokens.amount, expected_unbond_token_amount);
 
                     unbond_token_nonce = unbond_tokens.token_nonce;
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();
@@ -324,8 +316,6 @@ where
                 |sc| {
                     let received_tokens = sc.unbond_farm();
                     assert_eq!(received_tokens.amount, expected_token_out_amount);
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();
@@ -353,8 +343,6 @@ where
                         staking_farm_tokens.amount,
                         managed_biguint!(expected_staking_token_amount)
                     );
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();
@@ -385,8 +373,6 @@ where
                         staking_farm_tokens.amount,
                         managed_biguint!(expected_new_farm_token_amount)
                     );
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();
@@ -419,8 +405,6 @@ where
                         unbond_farm_tokens.amount,
                         managed_biguint!(expected_unbond_token_amount)
                     );
-
-                    StateChange::Commit
                 },
             )
             .assert_ok();

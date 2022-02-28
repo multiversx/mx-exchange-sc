@@ -1,6 +1,5 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiResult3, OptionalArg, TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -61,15 +60,13 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -132,10 +129,10 @@ fn add_liquidity<PairObjBuilder>(
             &pair_setup.pair_wrapper,
             &payments,
             |sc| {
-                let MultiResult3 { 0: payments } = sc.add_liquidity(
+                let MultiValue3 { 0: payments } = sc.add_liquidity(
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
@@ -152,8 +149,6 @@ fn add_liquidity<PairObjBuilder>(
                 assert_eq!(payments.2.token_identifier, managed_token_id!(MEX_TOKEN_ID));
                 assert_eq!(payments.2.token_nonce, 0);
                 assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -184,14 +179,12 @@ fn swap_fixed_input<PairObjBuilder>(
                     managed_biguint!(payment_amount),
                     managed_token_id!(desired_token_id),
                     managed_biguint!(desired_amount_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 assert_eq!(ret.token_identifier, managed_token_id!(desired_token_id));
                 assert_eq!(ret.token_nonce, 0);
                 assert_eq!(ret.amount, managed_biguint!(expected_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -222,10 +215,8 @@ fn swap_fixed_input_expect_error<PairObjBuilder>(
                     managed_biguint!(payment_amount),
                     managed_token_id!(desired_token_id),
                     managed_biguint!(desired_amount_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
-
-                StateChange::Revert
             },
         )
         .assert_user_error(expected_message);
@@ -251,8 +242,6 @@ fn set_swap_protect<PairObjBuilder>(
                     volume_percent,
                     max_num_actions_per_address,
                 );
-
-                StateChange::Commit
             },
         )
         .assert_ok();

@@ -18,7 +18,6 @@ mod test {
 
     #[test]
     fn start_fuzzer() {
-
         // Random seed based on current time - can be given a specific value for a predetermined fuzz scenario
         let seed_base = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -94,10 +93,7 @@ mod test {
             "Total number of events: {}",
             fuzzer_data.fuzz_args.num_events
         );
-        println!(
-            "Random seed used: {}",
-            seed
-        );
+        println!("Random seed used: {}", seed);
         println!();
         println!(
             "swapFixedInputHits: {}",
