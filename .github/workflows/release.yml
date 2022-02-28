@@ -53,8 +53,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes
+          echo "## Checksums (SHA 256):\n\n" >> notes.txt
+
           for i in $(find ./assets -type f); do
-            export checksum=($(sha256sum ${i}))
-            gh release upload vNext "${i}#checksum ${checksum}"
+            filename=$(basename ${i})
+            checksum=($(sha256sum ${i}))
+            echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
+
+          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
+          gh release upload vNext $(find ./assets -type f)
