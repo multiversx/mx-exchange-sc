@@ -15,6 +15,7 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+        path: /home/elrond
         with:
           fetch-depth: "0"
 
@@ -22,45 +23,47 @@ jobs:
         run: |
           # https://github.com/actions/runner/issues/863
           export HOME=/home/elrond
-          erdpy deps check rust
-          erdpy deps check wasm-opt
-          bash ./build-wasm.sh
+          cd $HOME
+          ls
+          #erdpy deps check rust
+          #erdpy deps check wasm-opt
+          #bash ./build-wasm.sh
 
-      - name: Save artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: built-contracts
-          path: |
-            ./**/output/*.wasm
-            ./**/output/*.abi.json
-          if-no-files-found: error
+  #     - name: Save artifacts
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: built-contracts
+  #         path: |
+  #           ./**/output/*.wasm
+  #           ./**/output/*.abi.json
+  #         if-no-files-found: error
 
-  release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: "0"
+  # release:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out code
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: "0"
 
-      - name: Download all workflow artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: assets
+  #     - name: Download all workflow artifacts
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         path: assets
 
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "## Checksums (SHA 256):" >> notes.txt
-          echo "" >> notes.txt
+  #     - name: Create release
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         echo "## Checksums (SHA 256):" >> notes.txt
+  #         echo "" >> notes.txt
 
-          for i in $(find ./assets -type f); do
-            filename=$(basename ${i})
-            checksum=($(sha256sum ${i}))
-            echo " - **${filename}**: \`${checksum}\`" >> notes.txt
-          done
+  #         for i in $(find ./assets -type f); do
+  #           filename=$(basename ${i})
+  #           checksum=($(sha256sum ${i}))
+  #           echo " - **${filename}**: \`${checksum}\`" >> notes.txt
+  #         done
 
-          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
-          gh release upload vNext $(find ./assets -type f)
+  #         gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
+  #         gh release upload vNext $(find ./assets -type f)
