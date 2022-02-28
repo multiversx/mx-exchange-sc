@@ -25,7 +25,7 @@ pub trait Router:
     factory::FactoryModule + events::EventsModule + lib::Lib + token_send::TokenSendModule
 {
     #[init]
-    fn init(&self, #[var_args] pair_template_address_opt: OptionalArg<ManagedAddress>) {
+    fn init(&self, #[var_args] pair_template_address_opt: OptionalValue<ManagedAddress>) {
         self.state().set_if_empty(&true);
         self.pair_creation_enabled().set_if_empty(&false);
 
@@ -64,7 +64,7 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-        #[var_args] opt_fee_percents: OptionalArg<MultiArg2<u64, u64>>,
+        #[var_args] opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -174,7 +174,7 @@ pub trait Router:
         pair_address: ManagedAddress,
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
-    ) -> AsyncCall {
+    ) {
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
@@ -223,10 +223,11 @@ pub trait Router:
                 self.callbacks()
                     .lp_token_issue_callback(&caller, &pair_address),
             )
+            .call_and_exit()
     }
 
     #[endpoint(setLocalRoles)]
-    fn set_local_roles(&self, pair_address: ManagedAddress) -> AsyncCall {
+    fn set_local_roles(&self, pair_address: ManagedAddress) {
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
@@ -243,6 +244,7 @@ pub trait Router:
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
+            .call_and_exit()
     }
 
     #[only_owner]
@@ -252,7 +254,7 @@ pub trait Router:
         token: TokenIdentifier,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) -> AsyncCall {
+    ) {
         require!(self.is_active(), "Not active");
 
         self.send()
@@ -260,6 +262,7 @@ pub trait Router:
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
+            .call_and_exit()
     }
 
     #[only_owner]

@@ -1,7 +1,7 @@
-use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, TokenIdentifier};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper, StateChange},
+    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 
@@ -46,8 +46,6 @@ where
             sc.last_reward_block_nonce()
                 .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
             sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -86,8 +84,6 @@ pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
     b_mock
         .execute_tx(owner_addr, staking_farm_builder, &rust_zero, |sc| {
             sc.add_address_to_whitelist(managed_address!(proxy_address));
-
-            StateChange::Commit
         })
         .assert_ok();
 }
@@ -120,8 +116,6 @@ where
 
             sc.dual_yield_token_id()
                 .set(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
-
-            StateChange::Commit
         })
         .assert_ok();
 

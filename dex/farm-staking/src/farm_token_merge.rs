@@ -16,7 +16,6 @@ use token_merge::ValueWeight;
 )]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
-    pub last_claim_block: u64,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
 }
@@ -103,10 +102,8 @@ pub trait FarmTokenMergeModule:
             }
         }
 
-        let current_block = self.blockchain().get_block_nonce();
         StakingFarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
-            last_claim_block: current_block,
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
         }
@@ -159,6 +156,6 @@ pub trait FarmTokenMergeModule:
             token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 }

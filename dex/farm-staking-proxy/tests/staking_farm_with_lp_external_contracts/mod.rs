@@ -1,6 +1,5 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiResult3, OptionalArg, TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -47,15 +46,13 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&pair_config::State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -125,8 +122,6 @@ where
                 sc.update_and_get_tokens_for_given_position_with_safe_price(managed_biguint!(
                     1_000_000_000
                 ));
-
-                StateChange::Commit
             })
             .assert_ok();
 
@@ -167,10 +162,10 @@ fn add_liquidity<PairObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, pair_wrapper, &payments, |sc| {
-            let MultiResult3 { 0: payments } = sc.add_liquidity(
+            let MultiValue3 { 0: payments } = sc.add_liquidity(
                 managed_biguint!(first_token_min),
                 managed_biguint!(second_token_min),
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
@@ -190,8 +185,6 @@ fn add_liquidity<PairObjBuilder>(
             );
             assert_eq!(payments.2.token_nonce, 0);
             assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
-
-            StateChange::Commit
         })
         .assert_ok();
 }
@@ -238,8 +231,6 @@ where
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
                 .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -297,14 +288,12 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm(OptionalArg::None);
+            let payment = sc.enter_farm(OptionalValue::None);
             assert_eq!(
                 payment.token_identifier,
                 managed_token_id!(LP_FARM_TOKEN_ID)
             );
             assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
-
-            StateChange::Commit
         })
         .assert_ok();
 }

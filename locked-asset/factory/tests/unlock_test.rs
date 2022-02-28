@@ -1,6 +1,5 @@
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
-use elrond_wasm::types::{EsdtTokenPayment, EsdtTokenType, ManagedVec};
-use elrond_wasm_debug::testing_framework::BigUint;
+use elrond_wasm::types::{EsdtTokenPayment, EsdtTokenType, ManagedVec, TokenIdentifier};
 use elrond_wasm_debug::{managed_biguint, rust_biguint, testing_framework::*, DebugApi};
 
 const SC_WASM_PATH: &'static str = "output/factory.wasm";

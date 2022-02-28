@@ -24,7 +24,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(self.farm_token_id().is_empty(), "Token exists already");
 
         self.register_token(
@@ -41,7 +41,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         self.send()
             .esdt_system_sc_proxy()
             .register_meta_esdt(
@@ -63,6 +63,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
                 self.callbacks()
                     .register_callback(&self.blockchain().get_caller()),
             )
+            .call_and_exit()
     }
 
     #[callback]
@@ -92,14 +93,14 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
 
     #[only_owner]
     #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) -> AsyncCall {
+    fn set_local_roles_farm_token(&self) {
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
         let token = self.farm_token_id().get();
         self.set_local_roles(token)
     }
 
-    fn set_local_roles(&self, token: TokenIdentifier) -> AsyncCall {
+    fn set_local_roles(&self, token: TokenIdentifier) {
         let roles = [
             EsdtLocalRole::NftCreate,
             EsdtLocalRole::NftAddQuantity,
@@ -115,6 +116,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             )
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
+            .call_and_exit()
     }
 
     #[callback]
@@ -140,7 +142,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 
     fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {

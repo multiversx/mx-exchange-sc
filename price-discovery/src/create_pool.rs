@@ -10,8 +10,8 @@ mod liquidity_pool_proxy {
         fn add_initial_liquidity(
             &self,
             #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-            #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-        ) -> MultiResult3<
+            #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        ) -> MultiValue3<
             EsdtTokenPayment<Self::Api>,
             EsdtTokenPayment<Self::Api>,
             EsdtTokenPayment<Self::Api>,
@@ -71,7 +71,7 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         let dex_sc_address = self.dex_sc_address().get();
         let contract_call = self
             .dex_proxy(dex_sc_address)
-            .add_initial_liquidity(payments, OptionalArg::None);
+            .add_initial_liquidity(payments, OptionalValue::None);
 
         let (lp_token, _, _) = contract_call.execute_on_dest_context().into_tuple();
         self.lp_token_id().set(&lp_token.token_identifier);
