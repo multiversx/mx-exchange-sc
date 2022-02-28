@@ -6,7 +6,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: elrondnetwork/elrond-sdk-erdpy-rust:latest
+    # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
+    container: 
+      image: elrondnetwork/elrond-sdk-erdpy-rust:latest
+      # See: https://github.com/actions/checkout/issues/47
+      options: --user elrond:elrond
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -38,6 +42,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
 
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v2
