@@ -20,7 +20,8 @@ jobs:
 
       - name: Build WASM files
         run: |
-          which erdpy
+          # https://github.com/actions/runner/issues/863
+          export HOME=/home/elrond
           echo $HOME
           whoami
           echo $UID
