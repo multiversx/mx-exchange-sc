@@ -15,10 +15,10 @@ use super::proxy_common;
 use super::wrapped_lp_token_merge;
 
 type AddLiquidityResultType<BigUint> =
-    MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 type RemoveLiquidityResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
@@ -146,7 +146,7 @@ pub trait ProxyPairModule:
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
-        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalArg::None);
+        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalValue::None);
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -235,7 +235,7 @@ pub trait ProxyPairModule:
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
-            &OptionalArg::None,
+            &OptionalValue::None,
         );
 
         //Do cleanup
@@ -303,7 +303,7 @@ pub trait ProxyPairModule:
             .add_liquidity(
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::None,
+                OptionalValue::None,
             )
             .with_multi_token_transfer(all_token_payments)
             .execute_on_dest_context()
@@ -324,7 +324,7 @@ pub trait ProxyPairModule:
                 liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalArg::None,
+                OptionalValue::None,
             )
             .execute_on_dest_context()
     }
@@ -360,7 +360,7 @@ pub trait ProxyPairModule:
                     locked_assets_nonce: locked_tokens_nonce,
                 },
             }),
-            OptionalArg::None,
+            OptionalValue::None,
         )
     }
 

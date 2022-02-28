@@ -15,11 +15,19 @@ pub trait CustomRewardsModule:
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_block_nonce > last_reward_nonce {
-            let extra_rewards =
+            let extra_rewards_unbounded =
                 self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+
+            let farm_token_supply = self.farm_token_supply().get();
+            let extra_rewards_apr_bounded_per_block =
+                self.get_amount_apr_bounded(&farm_token_supply);
+
+            let block_nonce_diff = current_block_nonce - last_reward_nonce;
+            let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
+
             self.last_reward_block_nonce().set(&current_block_nonce);
 
-            extra_rewards
+            core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
         } else {
             BigUint::zero()
         }
@@ -46,11 +54,8 @@ pub trait CustomRewardsModule:
     #[only_owner]
     #[payable("*")]
     #[endpoint(topUpRewards)]
-    fn top_up_rewards(
-        &self,
-        #[payment_token] payment_token: TokenIdentifier,
-        #[payment_amount] payment_amount: BigUint,
-    ) {
+    fn top_up_rewards(&self) {
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 
@@ -133,27 +138,9 @@ pub trait CustomRewardsModule:
         }
     }
 
-    fn calculate_rewards_with_apr_limit(
-        &self,
-        amount: &BigUint,
-        current_reward_per_share: &BigUint,
-        initial_reward_per_share: &BigUint,
-        last_claim_block: u64,
-    ) -> BigUint {
-        let unbounded_rewards =
-            self.calculate_reward(amount, current_reward_per_share, initial_reward_per_share);
-        if unbounded_rewards == 0u32 {
-            return unbounded_rewards;
-        }
-
+    fn get_amount_apr_bounded(&self, amount: &BigUint) -> BigUint {
         let max_apr = self.max_annual_percentage_rewards().get();
-        let current_block = self.blockchain().get_block_nonce();
-        let block_diff = current_block - last_claim_block;
-
-        let max_rewards_for_user_per_block = amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR;
-        let max_rewards_for_user = max_rewards_for_user_per_block * block_diff;
-
-        core::cmp::min(unbounded_rewards, max_rewards_for_user)
+        amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR
     }
 
     #[only_owner]

@@ -22,9 +22,9 @@ use farm_token_merge::StakingFarmToken;
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type ClaimRewardsResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 pub type ExitFarmResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 pub type UnbondFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
@@ -48,16 +48,11 @@ pub trait Farm:
     #[init]
     fn init(
         &self,
-        reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
     ) {
-        require!(
-            reward_token_id.is_esdt(),
-            "Reward token ID is not a valid esdt identifier"
-        );
         require!(
             farming_token_id.is_esdt(),
             "Farming token ID is not a valid esdt identifier"
@@ -67,10 +62,6 @@ pub trait Farm:
             "Division constant cannot be 0"
         );
         let farm_token = self.farm_token_id().get();
-        require!(
-            reward_token_id != farm_token,
-            "Reward token ID cannot be farm token ID"
-        );
         require!(
             farming_token_id != farm_token,
             "Farming token ID cannot be farm token ID"
@@ -86,16 +77,17 @@ pub trait Farm:
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
-        self.reward_token_id().set(&reward_token_id);
+        // farming and reward token are the same
+        self.reward_token_id().set(&farming_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.min_unbond_epochs().set(&min_unbond_epochs);
     }
 
+    #[payable("*")]
     #[endpoint(stakeFarmThroughProxy)]
     fn stake_farm_through_proxy(
         &self,
-        #[payment_multi] farm_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
         staked_token_amount: BigUint,
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
@@ -105,18 +97,24 @@ pub trait Farm:
         let staked_token_simulated_payment =
             EsdtTokenPayment::new(staked_token_id, 0, staked_token_amount);
 
+        let farm_tokens = self.call_value().all_esdt_transfers();
         let mut payments = ManagedVec::from_single_item(staked_token_simulated_payment);
         payments.append_vec(farm_tokens);
 
-        self.stake_farm(payments, OptionalArg::None)
+        self.stake_farm(payments)
     }
 
     #[payable("*")]
     #[endpoint(stakeFarm)]
+    fn stake_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
+        let payments = self.call_value().all_esdt_transfers();
+
+        self.stake_farm(payments)
+    }
+
     fn stake_farm(
         &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> EnterFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -135,10 +133,8 @@ pub trait Farm:
 
         self.generate_aggregated_rewards();
 
-        let block = self.blockchain().get_block_nonce();
         let attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            last_claim_block: block,
             compounded_reward: BigUint::zero(),
             current_farm_amount: enter_amount.clone(),
         };
@@ -151,12 +147,12 @@ pub trait Farm:
             &attributes,
             &additional_payments,
         );
-        self.transfer_execute_custom(
+        self.send().direct(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &opt_accept_funds_func,
+            &[],
         );
 
         new_farm_token.token_amount
@@ -164,31 +160,20 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(unstakeFarm)]
-    fn unstake_farm(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: Nonce,
-        #[payment_amount] amount: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> ExitFarmResultType<Self::Api> {
-        self.unstake_farm_common(
-            payment_token_id,
-            token_nonce,
-            amount,
-            opt_accept_funds_func,
-            None,
-        )
+    fn unstake_farm(&self) -> ExitFarmResultType<Self::Api> {
+        let (amount, payment_token_id) = self.call_value().payment_token_pair();
+        let token_nonce = self.call_value().esdt_token_nonce();
+
+        self.unstake_farm_common(payment_token_id, token_nonce, amount, None)
     }
 
     #[payable("*")]
     #[endpoint(unstakeFarmThroughProxy)]
-    fn unstake_farm_through_proxy(
-        &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> ExitFarmResultType<Self::Api> {
+    fn unstake_farm_through_proxy(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
 
+        let payments = self.call_value().all_esdt_transfers();
         require!(payments.len() == 2, "Invalid payments amount");
 
         // first payment are the staking tokens, taken from the liquidity pool
@@ -211,7 +196,6 @@ pub trait Farm:
             second_payment.token_identifier,
             second_payment.token_nonce,
             second_payment.amount,
-            OptionalArg::None,
             Some(first_payment.amount),
         )
     }
@@ -221,7 +205,6 @@ pub trait Farm:
         payment_token_id: TokenIdentifier,
         token_nonce: Nonce,
         payment_amount: BigUint,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
         opt_unbond_amount: Option<BigUint>,
     ) -> ExitFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
@@ -238,11 +221,10 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
-        let reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_reward(
             &payment_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
-            farm_attributes.last_claim_block,
         );
 
         let caller = self.blockchain().get_caller();
@@ -252,16 +234,12 @@ pub trait Farm:
             Some(amt) => amt,
             None => payment_amount, // payment_amount = initial_farming + compounded_rewards
         };
-        let farm_token_payment = self.create_and_send_unbond_tokens(
-            &caller,
-            farm_token_id,
-            unbond_token_amount,
-            &opt_accept_funds_func,
-        );
+        let farm_token_payment =
+            self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
 
-        self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func);
+        self.send_rewards(&reward_token_id, &reward, &caller);
 
-        MultiResult2::from((
+        MultiValue2::from((
             farm_token_payment,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         ))
@@ -272,7 +250,6 @@ pub trait Farm:
         to: &ManagedAddress,
         farm_token_id: TokenIdentifier,
         amount: BigUint,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let min_unbond_epochs = self.min_unbond_epochs().get();
         let current_epoch = self.blockchain().get_block_epoch();
@@ -283,28 +260,20 @@ pub trait Farm:
                 unlock_epoch: current_epoch + min_unbond_epochs,
             },
         );
-        self.transfer_execute_custom(
-            to,
-            &farm_token_id,
-            nft_nonce,
-            &amount,
-            opt_accept_funds_func,
-        );
+        self.send()
+            .direct(to, &farm_token_id, nft_nonce, &amount, &[]);
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
     }
 
     #[payable("*")]
     #[endpoint(unbondFarm)]
-    fn unbond_farm(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: Nonce,
-        #[payment_amount] amount: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> UnbondFarmResultType<Self::Api> {
+    fn unbond_farm(&self) -> UnbondFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
+
+        let (amount, payment_token_id) = self.call_value().payment_token_pair();
+        let token_nonce = self.call_value().esdt_token_nonce();
 
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
@@ -316,56 +285,51 @@ pub trait Farm:
             token_nonce,
         );
         let unlock_epoch = token_info
-            .decode_attributes_or_exit::<UnbondSftAttributes>()
+            .decode_attributes::<UnbondSftAttributes>()
             .unlock_epoch;
         let current_epoch = self.blockchain().get_block_epoch();
         require!(current_epoch >= unlock_epoch, "Unbond period not over");
 
+        self.send()
+            .esdt_local_burn(&farm_token_id, token_nonce, &amount);
+
         let caller = self.blockchain().get_caller();
         let farming_token_id = self.farming_token_id().get();
-        self.transfer_execute_custom(
-            &caller,
-            &farming_token_id,
-            0,
-            &amount,
-            &opt_accept_funds_func,
-        );
+        self.send()
+            .direct(&caller, &farming_token_id, 0, &amount, &[]);
 
         EsdtTokenPayment::new(farming_token_id, 0, amount)
     }
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> ClaimRewardsResultType<Self::Api> {
-        self.claim_rewards_common(payments, opt_accept_funds_func, None)
+    fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
+        let payments = self.call_value().all_esdt_transfers();
+
+        self.claim_rewards_common(payments, None)
     }
 
     #[payable("*")]
     #[endpoint(claimRewardsWithNewValue)]
     fn claim_rewards_with_new_value(
         &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
         new_values: ManagedVec<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
 
+        let payments = self.call_value().all_esdt_transfers();
         require!(
             payments.len() == new_values.len(),
             "Arguments length mismatch"
         );
 
-        self.claim_rewards_common(payments, OptionalArg::None, Some(new_values))
+        self.claim_rewards_common(payments, Some(new_values))
     }
 
     fn claim_rewards_common(
         &self,
         payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer>,
         opt_new_farm_values: Option<ManagedVec<BigUint>>,
     ) -> ClaimRewardsResultType<Self::Api> {
         require!(self.is_active(), "Not active");
@@ -391,11 +355,10 @@ pub trait Farm:
         let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
-        let reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_reward(
             &old_farming_amount,
             &self.reward_per_share().get(),
             &farm_attributes.reward_per_share,
-            farm_attributes.last_claim_block,
         );
         let new_compound_reward_amount = self.rule_of_three(
             &old_farming_amount,
@@ -409,7 +372,6 @@ pub trait Farm:
 
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
-            last_claim_block: self.blockchain().get_block_nonce(),
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farming_amount.clone(),
         };
@@ -431,17 +393,17 @@ pub trait Farm:
                 &additional_payments,
             ),
         };
-        self.transfer_execute_custom(
+
+        self.send().direct(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &opt_accept_funds_func,
+            &[],
         );
+        self.send_rewards(&reward_token_id, &reward, &caller);
 
-        self.send_rewards(&reward_token_id, &reward, &caller, &opt_accept_funds_func);
-
-        MultiResult2::from((
+        MultiValue2::from((
             new_farm_token.token_amount,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         ))
@@ -481,10 +443,7 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> CompoundRewardsResultType<Self::Api> {
+    fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
         require!(self.is_active(), "Not active");
 
         let payments_vec = self.call_value().all_esdt_transfers();
@@ -517,11 +476,10 @@ pub trait Farm:
             &payment_token_id,
             payment_token_nonce,
         );
-        let reward = self.calculate_rewards_with_apr_limit(
+        let reward = self.calculate_reward(
             &payment_amount,
             &current_rps,
             &farm_attributes.reward_per_share,
-            farm_attributes.last_claim_block,
         );
 
         let new_farm_contribution = &payment_amount + &reward;
@@ -531,10 +489,8 @@ pub trait Farm:
             &farm_attributes.compounded_reward,
         ) + &reward;
 
-        let current_block = self.blockchain().get_block_nonce();
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: current_rps,
-            last_claim_block: current_block,
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farm_contribution.clone(),
         };
@@ -547,12 +503,12 @@ pub trait Farm:
             &new_attributes,
             &additional_payments,
         );
-        self.transfer_execute_custom(
+        self.send().direct(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &opt_accept_funds_func,
+            &[],
         );
 
         new_farm_token.token_amount
@@ -628,16 +584,10 @@ pub trait Farm:
         reward_token_id: &TokenIdentifier,
         reward_amount: &BigUint,
         destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
     ) {
-        if reward_amount > &mut 0 {
-            self.transfer_execute_custom(
-                destination,
-                reward_token_id,
-                0,
-                reward_amount,
-                opt_accept_funds_func,
-            );
+        if reward_amount > &0 {
+            self.send()
+                .direct(destination, reward_token_id, 0, reward_amount, &[]);
         }
     }
 
@@ -660,11 +610,10 @@ pub trait Farm:
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
 
-        self.calculate_rewards_with_apr_limit(
+        self.calculate_reward(
             &amount,
             &future_reward_per_share,
             &attributes.reward_per_share,
-            attributes.last_claim_block,
         )
     }
 }

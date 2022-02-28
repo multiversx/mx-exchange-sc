@@ -22,7 +22,7 @@ pub trait LockedAssetTokenMergeModule:
     #[endpoint(mergeLockedAssetTokens)]
     fn merge_locked_asset_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments_vec = self.call_value().all_esdt_transfers();

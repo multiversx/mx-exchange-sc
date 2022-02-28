@@ -146,7 +146,7 @@ deployProxyContract() {
         --gas-limit=1499999999 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
-        --bytecode="../proxy-dex/output/proxy-dex.wasm" \
+        --bytecode="../proxy_dex/output/proxy_dex.wasm" \
         --arguments $asset_token $locked_asset_token \
         --outfile="deploy-proxy-internal.interaction.json" --send || return
 
@@ -168,7 +168,7 @@ upgradeProxyContract() {
         --gas-limit=300000000 \
         --proxy=${PROXY} --chain=${CHAIN_ID} \
         --metadata-payable \
-        --bytecode="../proxy-dex/output/proxy-dex.wasm" \
+        --bytecode="../proxy_dex/output/proxy_dex.wasm" \
         --arguments $asset_token $locked_asset_token \
         --outfile="upgrade-proxy-internal.interaction.json" --send || return
 

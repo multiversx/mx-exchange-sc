@@ -32,7 +32,15 @@ pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
     pub lp_farm_token_amount: BigUint<M>,
     pub staking_farm_token_nonce: u64,
     pub staking_farm_token_amount: BigUint<M>,
-    pub total_dual_yield_tokens_for_position: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
+    /// dual yield tokens are always created with an amount equal to staking_farm_token_amount,
+    /// so we just return this field instead of duplicating
+    #[inline]
+    pub fn get_total_dual_yield_tokens_for_position(&self) -> &BigUint<M> {
+        &self.staking_farm_token_amount
+    }
 }
 
 #[elrond_wasm::module]
@@ -42,16 +50,16 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     #[endpoint(issueDualYieldToken)]
     fn issue_dual_yield_token(
         &self,
-        #[payment_amount] payment_amount: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(
             self.dual_yield_token_id().is_empty(),
             "Token already issued"
         );
 
+        let payment_amount = self.call_value().egld_value();
         self.esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
             &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
         ))
@@ -67,6 +75,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             self.callbacks()
                 .issue_callback(&self.blockchain().get_caller()),
         )
+        .call_and_exit()
     }
 
     #[callback]
@@ -74,12 +83,12 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         &self,
         caller: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
-    ) -> OptionalResult<ManagedBuffer> {
+    ) -> OptionalValue<ManagedBuffer> {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
                 self.dual_yield_token_id().set(&token_id);
 
-                OptionalResult::None
+                OptionalValue::None
             }
             ManagedAsyncCallResult::Err(err) => {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
@@ -87,7 +96,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
 
-                OptionalResult::Some(err.err_msg)
+                OptionalValue::Some(err.err_msg)
             }
         }
     }
@@ -117,14 +126,12 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     fn create_and_send_dual_yield_tokens(
         &self,
         to: &ManagedAddress,
-        amount: BigUint,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
         staking_farm_token_nonce: u64,
         staking_farm_token_amount: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
         let payment = self.create_dual_yield_tokens(
-            amount,
             lp_farm_token_nonce,
             lp_farm_token_amount,
             staking_farm_token_nonce,
@@ -143,7 +150,6 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
 
     fn create_dual_yield_tokens(
         &self,
-        amount: BigUint,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
         staking_farm_token_nonce: u64,
@@ -156,11 +162,11 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             lp_farm_token_amount,
             staking_farm_token_nonce,
             staking_farm_token_amount,
-            total_dual_yield_tokens_for_position: amount.clone(),
         };
+        let amount = attributes.get_total_dual_yield_tokens_for_position();
         let new_token_nonce = self.send().esdt_nft_create(
             &dual_yield_token_id,
-            &amount,
+            amount,
             &empty_buffer,
             &BigUint::zero(),
             &empty_buffer,
@@ -168,7 +174,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             &ManagedVec::new(),
         );
 
-        EsdtTokenPayment::new(dual_yield_token_id, new_token_nonce, amount)
+        EsdtTokenPayment::new(dual_yield_token_id, new_token_nonce, amount.clone())
     }
 
     fn burn_dual_yield_tokens(&self, sft_nonce: u64, amount: &BigUint) {
@@ -189,7 +195,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             dual_yield_token_nonce,
         );
 
-        token_info.decode_attributes_or_exit()
+        token_info.decode_attributes()
     }
 
     fn get_lp_farm_token_amount_equivalent(
@@ -199,21 +205,16 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     ) -> BigUint {
         self.rule_of_three_non_zero_result(
             amount,
+            attributes.get_total_dual_yield_tokens_for_position(),
             &attributes.lp_farm_token_amount,
-            &attributes.total_dual_yield_tokens_for_position,
         )
     }
 
-    fn get_staking_farm_token_amount_equivalent(
-        &self,
-        attributes: &DualYieldTokenAttributes<Self::Api>,
-        amount: &BigUint,
-    ) -> BigUint {
-        self.rule_of_three_non_zero_result(
-            amount,
-            &attributes.staking_farm_token_amount,
-            &attributes.total_dual_yield_tokens_for_position,
-        )
+    #[inline]
+    fn get_staking_farm_token_amount_equivalent(&self, amount: &BigUint) -> BigUint {
+        // since staking_farm_token_amount is equal to the total dual yield tokens,
+        // we simply return the amount
+        amount.clone()
     }
 
     #[proxy]

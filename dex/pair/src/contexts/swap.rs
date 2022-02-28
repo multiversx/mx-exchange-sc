@@ -23,7 +23,7 @@ pub struct SwapTxInput<M: ManagedTypeApi> {
 pub struct SwapArgs<M: ManagedTypeApi> {
     pub output_token_id: TokenIdentifier<M>,
     pub output_amount: BigUint<M>,
-    opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
+    opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>,
 }
 
 pub struct SwapPayments<M: ManagedTypeApi> {
@@ -40,7 +40,7 @@ impl<M: ManagedTypeApi> SwapArgs<M> {
     pub fn new(
         output_token_id: TokenIdentifier<M>,
         output_amount: BigUint<M>,
-        opt_accept_funds_func: OptionalArg<ManagedBuffer<M>>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>,
     ) -> Self {
         SwapArgs {
             output_token_id,
@@ -168,7 +168,7 @@ impl<M: ManagedTypeApi> Context<M> for SwapContext<M> {
     }
 
     #[inline]
-    fn get_opt_accept_funds_func(&self) -> &OptionalArg<ManagedBuffer<M>> {
+    fn get_opt_accept_funds_func(&self) -> &OptionalValue<ManagedBuffer<M>> {
         &self.tx_input.args.opt_accept_funds_func
     }
 

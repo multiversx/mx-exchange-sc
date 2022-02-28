@@ -15,9 +15,9 @@ use farm::ProxyTrait as _;
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedFarmToken<M: ManagedTypeApi> {
@@ -155,7 +155,7 @@ pub trait ProxyFarmModule:
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
             &farming_token_returned.amount,
-            &OptionalArg::None,
+            &OptionalValue::None,
         );
 
         self.transfer_execute_custom(
@@ -163,7 +163,7 @@ pub trait ProxyFarmModule:
             &reward_token_returned.token_identifier,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-            &OptionalArg::None,
+            &OptionalValue::None,
         );
         self.send().esdt_local_burn(&token_id, token_nonce, &amount);
 
@@ -240,7 +240,7 @@ pub trait ProxyFarmModule:
             &reward_token_returned.token_identifier,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-            &OptionalArg::None,
+            &OptionalValue::None,
         );
 
         // Create new Wrapped tokens and send them.
@@ -386,7 +386,7 @@ pub trait ProxyFarmModule:
                 token_amount: self.create_payment(&wrapped_farm_token_id, 0, amount),
                 attributes: attributes.clone(),
             }),
-            OptionalArg::None,
+            OptionalValue::None,
         )
     }
 
@@ -409,7 +409,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .enter_farm(OptionalArg::None)
+            .enter_farm(OptionalValue::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
@@ -422,7 +422,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm(OptionalArg::None)
+            .exit_farm(OptionalValue::None)
             .add_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -442,7 +442,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards(OptionalArg::None)
+            .claim_rewards(OptionalValue::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
@@ -462,7 +462,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards(OptionalArg::None)
+            .compound_rewards(OptionalValue::None)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }

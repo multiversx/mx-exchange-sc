@@ -1,6 +1,5 @@
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, MultiResult3, OptionalArg, TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -15,6 +14,7 @@ const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
 const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
+use pair::bot_protection::*;
 use pair::config::*;
 use pair::safe_price::*;
 use pair::*;
@@ -60,15 +60,13 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalArg::None,
+                OptionalValue::None,
             );
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&State::Active);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -131,10 +129,10 @@ fn add_liquidity<PairObjBuilder>(
             &pair_setup.pair_wrapper,
             &payments,
             |sc| {
-                let MultiResult3 { 0: payments } = sc.add_liquidity(
+                let MultiValue3 { 0: payments } = sc.add_liquidity(
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
@@ -151,8 +149,6 @@ fn add_liquidity<PairObjBuilder>(
                 assert_eq!(payments.2.token_identifier, managed_token_id!(MEX_TOKEN_ID));
                 assert_eq!(payments.2.token_nonce, 0);
                 assert_eq!(payments.2.amount, managed_biguint!(expected_second_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -170,10 +166,12 @@ fn swap_fixed_input<PairObjBuilder>(
 {
     pair_setup
         .blockchain_wrapper
-        .execute_esdt_multi_transfer(
+        .execute_esdt_transfer(
             &pair_setup.user_address,
             &pair_setup.pair_wrapper,
-            &vec![],
+            &payment_token_id,
+            0,
+            &rust_biguint!(payment_amount),
             |sc| {
                 let ret = sc.swap_tokens_fixed_input(
                     managed_token_id!(payment_token_id),
@@ -181,14 +179,69 @@ fn swap_fixed_input<PairObjBuilder>(
                     managed_biguint!(payment_amount),
                     managed_token_id!(desired_token_id),
                     managed_biguint!(desired_amount_min),
-                    OptionalArg::None,
+                    OptionalValue::None,
                 );
 
                 assert_eq!(ret.token_identifier, managed_token_id!(desired_token_id));
                 assert_eq!(ret.token_nonce, 0);
                 assert_eq!(ret.amount, managed_biguint!(expected_amount));
+            },
+        )
+        .assert_ok();
+}
 
-                StateChange::Commit
+fn swap_fixed_input_expect_error<PairObjBuilder>(
+    pair_setup: &mut PairSetup<PairObjBuilder>,
+    payment_token_id: &[u8],
+    payment_amount: u64,
+    desired_token_id: &[u8],
+    desired_amount_min: u64,
+    expected_message: &str,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &payment_token_id,
+            0,
+            &rust_biguint!(payment_amount),
+            |sc| {
+                sc.swap_tokens_fixed_input(
+                    managed_token_id!(payment_token_id),
+                    0,
+                    managed_biguint!(payment_amount),
+                    managed_token_id!(desired_token_id),
+                    managed_biguint!(desired_amount_min),
+                    OptionalValue::None,
+                );
+            },
+        )
+        .assert_user_error(expected_message);
+}
+
+fn set_swap_protect<PairObjBuilder>(
+    pair_setup: &mut PairSetup<PairObjBuilder>,
+    protect_stop_block: u64,
+    volume_percent: u64,
+    max_num_actions_per_address: u64,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(
+            &pair_setup.owner_address,
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_bp_swap_config(
+                    protect_stop_block,
+                    volume_percent,
+                    max_num_actions_per_address,
+                );
             },
         )
         .assert_ok();
@@ -623,5 +676,65 @@ fn test_safe_price() {
         991_130,
         1_011_000,
         991_130,
+    );
+}
+
+#[test]
+fn test_swap_protect() {
+    let mut pair_setup = setup_pair(pair::contract_obj);
+
+    add_liquidity(
+        &mut pair_setup,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        1_000_000,
+        1_001_000,
+        1_001_000,
+    );
+
+    let protect_until_block = 10;
+    let max_volume_percent = 10_000;
+    let max_num_swaps = 2;
+    set_swap_protect(
+        &mut pair_setup,
+        protect_until_block,
+        max_volume_percent,
+        max_num_swaps,
+    );
+
+    swap_fixed_input_expect_error(
+        &mut pair_setup,
+        WEGLD_TOKEN_ID,
+        500_000,
+        MEX_TOKEN_ID,
+        1,
+        "swap amount in too large",
+    );
+
+    swap_fixed_input(&mut pair_setup, WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 1, 996);
+    swap_fixed_input(&mut pair_setup, WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 1, 994);
+
+    swap_fixed_input_expect_error(
+        &mut pair_setup,
+        WEGLD_TOKEN_ID,
+        1_000,
+        MEX_TOKEN_ID,
+        1,
+        "too many swaps by address",
+    );
+
+    pair_setup
+        .blockchain_wrapper
+        .set_block_nonce(protect_until_block + 1);
+
+    swap_fixed_input(
+        &mut pair_setup,
+        WEGLD_TOKEN_ID,
+        500_000,
+        MEX_TOKEN_ID,
+        1,
+        331_672,
     );
 }

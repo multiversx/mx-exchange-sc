@@ -1,5 +1,5 @@
 [package]
-name = "proxy-dex-wasm"
+name = "farm_v1_2_mock-wasm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,13 +20,13 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.proxy-dex]
+[dependencies.farm_v1_2_mock]
 default-features = false
 path = ".."
 
 [dependencies.elrond-wasm-node]
-version = "0.27.3"
+version = "0.28.0"
 
 [dependencies.elrond-wasm-output]
-version = "0.27.3"
+version = "0.28.0"
 features = ["wasm-output-mode"]

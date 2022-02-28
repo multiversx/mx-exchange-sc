@@ -3,7 +3,11 @@ pub mod staking_farm_with_lp_external_contracts;
 pub mod staking_farm_with_lp_staking_contract_interactions;
 pub mod staking_farm_with_lp_staking_contract_setup;
 
+elrond_wasm::imports!();
+
 use constants::*;
+use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
+use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use staking_farm_with_lp_staking_contract_interactions::*;
 
 #[test]
@@ -52,7 +56,7 @@ fn test_claim_rewards_farm_proxy_full() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 }
@@ -66,24 +70,20 @@ fn test_claim_rewards_farm_proxy_half() {
         farm_staking_proxy::contract_obj,
     );
 
-    let expected_staking_token_amount = 1_001_000_000 / 2;
-    let dual_yield_token_nonce_after_stake = setup.stake_farm_lp_proxy(
-        1,
-        USER_TOTAL_LP_TOKENS / 2,
-        1,
-        expected_staking_token_amount,
-    );
+    let expected_staking_token_amount = 1_001_000_000;
+    let dual_yield_token_nonce_after_stake =
+        setup.stake_farm_lp_proxy(1, USER_TOTAL_LP_TOKENS, 1, expected_staking_token_amount);
 
     setup
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
 
-    let dual_yield_token_amount = expected_staking_token_amount;
+    let dual_yield_token_amount = expected_staking_token_amount / 2;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999 / 2,
-        940, // ~= 1_900 / 2 = 950, approximations somewhere make it go slightly lower
+        949,
         dual_yield_token_amount,
     );
 }
@@ -111,7 +111,7 @@ fn test_claim_rewards_farm_proxy_twice() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 
@@ -125,7 +125,7 @@ fn test_claim_rewards_farm_proxy_twice() {
         dual_yield_token_nonce_after_first_claim,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 }
@@ -154,7 +154,7 @@ fn test_unstake_through_proxy_no_claim() {
         dual_yield_token_amount,
         1_001_000_000,
         99_999,
-        1_900,
+        1_899,
         1_001_000_000,
         30,
     );
@@ -183,7 +183,7 @@ fn unstake_through_proxy_after_claim() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 
@@ -222,7 +222,7 @@ fn unbond_test() {
         dual_yield_token_nonce_after_stake,
         dual_yield_token_amount,
         99_999,
-        1_900,
+        1_899,
         dual_yield_token_amount,
     );
 
@@ -271,4 +271,80 @@ fn farm_staking_compound_rewards_and_unstake_test() {
         0,
         expected_nr_unbond_tokens,
     );
+}
+
+#[test]
+fn test_stake_farm_through_proxy_with_merging() {
+    let mut setup = FarmStakingSetup::new(
+        pair::contract_obj,
+        farm::contract_obj,
+        farm_staking::contract_obj,
+        farm_staking_proxy::contract_obj,
+    );
+
+    let first_dual_yield_token_nonce = setup.stake_farm_lp_proxy(1, 400_000_000, 1, 400_000_000);
+
+    setup.b_mock.execute_in_managed_environment(|| {
+        setup.b_mock.check_nft_balance(
+            &setup.user_addr,
+            DUAL_YIELD_TOKEN_ID,
+            first_dual_yield_token_nonce,
+            &rust_biguint!(400_000_000),
+            &DualYieldTokenAttributes::<DebugApi> {
+                lp_farm_token_nonce: 1,
+                lp_farm_token_amount: managed_biguint!(400_000_000),
+                staking_farm_token_nonce: 1,
+                staking_farm_token_amount: managed_biguint!(400_000_000),
+            },
+        )
+    });
+
+    let mut dual_yield_token_payments = Vec::new();
+    dual_yield_token_payments.push(NonceAmountPair {
+        nonce: first_dual_yield_token_nonce,
+        amount: 400_000_000,
+    });
+    let new_dual_yield_token_nonce =
+        setup.stake_farm_lp_proxy_multiple(1, 600_000_000, dual_yield_token_payments);
+
+    // check user staking farm tokens
+    setup.b_mock.check_nft_balance(
+        &setup.user_addr,
+        DUAL_YIELD_TOKEN_ID,
+        first_dual_yield_token_nonce,
+        &rust_biguint!(0),
+        &vec![0, 1, 4, 400000000, 0, 1, 4, 400000000], //old attributes
+    );
+    setup.b_mock.execute_in_managed_environment(|| {
+        setup.b_mock.check_nft_balance(
+            &setup.user_addr,
+            DUAL_YIELD_TOKEN_ID,
+            new_dual_yield_token_nonce,
+            &rust_biguint!(1_000_000_000),
+            &DualYieldTokenAttributes::<DebugApi> {
+                lp_farm_token_nonce: 2,
+                lp_farm_token_amount: managed_biguint!(1_000_000_000),
+                staking_farm_token_nonce: 2,
+                staking_farm_token_amount: managed_biguint!(1_000_000_000),
+            },
+        )
+    });
+
+    // check farm staking SC tokens
+    setup.b_mock.check_esdt_balance(
+        setup.staking_farm_wrapper.address_ref(),
+        RIDE_TOKEN_ID,
+        &rust_biguint!(1_000_000_000_000),
+    );
+
+    // check proxy SC tokens
+    setup.b_mock.execute_in_managed_environment(|| {
+        setup.b_mock.check_nft_balance(
+            setup.proxy_wrapper.address_ref(),
+            LP_FARM_TOKEN_ID,
+            2,
+            &rust_biguint!(1_000_000_000),
+            &vec![0, 0, 0, 0, 0, 4, 1000000000, 0, 4, 1000000000], //current attributes
+        )
+    });
 }

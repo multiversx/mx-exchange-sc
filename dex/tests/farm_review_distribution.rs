@@ -1,7 +1,8 @@
 use std::ops::Mul;
 
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier,
+use elrond_wasm::{
+    elrond_codec::multi_types::OptionalValue,
+    types::{Address, BigUint, EsdtLocalRole},
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -76,8 +77,6 @@ where
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -161,15 +160,13 @@ fn enter_farm<FarmObjBuilder>(
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock
         .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm(OptionalArg::None);
+            let payment = sc.enter_farm(OptionalValue::None);
             assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
             check_biguint_eq(
                 payment.amount,
                 expected_total_out_amount,
                 "Enter farm, farm token payment mismatch.",
             );
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -209,7 +206,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &farm_out_amount.clone(),
             |sc| {
-                let multi_result = sc.exit_farm(OptionalArg::None);
+                let multi_result = sc.exit_farm(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -224,8 +221,6 @@ fn exit_farm<FarmObjBuilder>(
                     managed_token_id!(MEX_TOKEN_ID)
                 );
                 assert_eq!(second_result.token_nonce, 0);
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -247,7 +242,6 @@ fn reward_per_block_rate_change<FarmObjBuilder>(
             &rust_biguint!(0),
             |sc| {
                 sc.set_per_block_rewards(to_managed_biguint(new_rate));
-                StateChange::Commit
             },
         )
         .assert_ok();

@@ -1,7 +1,6 @@
 use common_structs::FarmTokenAttributes;
-use elrond_wasm::types::{
-    Address, BigUint, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, OptionalArg, TokenIdentifier,
-};
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
+use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -80,8 +79,6 @@ where
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -158,12 +155,10 @@ fn enter_farm<FarmObjBuilder>(
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                let payment = sc.enter_farm(OptionalArg::None);
+                let payment = sc.enter_farm(OptionalValue::None);
                 assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                 assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                 assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -226,7 +221,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.exit_farm(OptionalArg::None);
+                let multi_result = sc.exit_farm(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -243,8 +238,6 @@ fn exit_farm<FarmObjBuilder>(
                 );
                 assert_eq!(second_result.token_nonce, 0);
                 assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -282,7 +275,7 @@ fn claim_rewards<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.claim_rewards(OptionalArg::None);
+                let multi_result = sc.claim_rewards(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -299,8 +292,6 @@ fn claim_rewards<FarmObjBuilder>(
                 );
                 assert_eq!(second_result.token_nonce, 0);
                 assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
-
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -605,7 +596,6 @@ where
                     managed_address!(&own),
                     managed_address!(&owner),
                 );
-                StateChange::Commit
             },
         )
         .assert_ok();
@@ -644,29 +634,15 @@ where
     b_mock.set_esdt_balance(&owner, LP_TOKEN_ID, &nft_balance);
     b_mock.set_esdt_balance(&owner, MEX_TOKEN_ID, &nft_balance);
 
-    let payments = vec![
-        TxInputESDT {
-            token_identifier: OLD_FARM_TOKEN_ID.to_vec(),
-            nonce: 1,
-            value: nft_balance.clone(),
-        },
-        TxInputESDT {
-            token_identifier: LP_TOKEN_ID.to_vec(),
-            nonce: 0,
-            value: nft_balance.clone(),
-        },
-        TxInputESDT {
-            token_identifier: MEX_TOKEN_ID.to_vec(),
-            nonce: 0,
-            value: nft_balance.clone(),
-        },
-    ];
+    let payments = vec![TxInputESDT {
+        token_identifier: LP_TOKEN_ID.to_vec(),
+        nonce: 0,
+        value: nft_balance.clone(),
+    }];
 
     b_mock
         .execute_esdt_multi_transfer(&owner, &farm_setup.farm_wrapper, &payments, |sc| {
-            sc.migrate_from_v1_2_farm(managed_address!(&owner));
-
-            StateChange::Commit
+            sc.migrate_from_v1_2_farm(nft_attributes, managed_address!(&owner));
         })
         .assert_ok();
 

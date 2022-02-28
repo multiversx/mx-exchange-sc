@@ -7,9 +7,9 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 mod events;
-mod migration_from_v1_2;
-mod proxy_common;
-mod proxy_farm;
+pub mod migration_from_v1_2;
+pub mod proxy_common;
+pub mod proxy_farm;
 mod proxy_pair;
 mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;
@@ -67,7 +67,7 @@ pub trait ProxyDexImpl:
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(
             self.wrapped_lp_token_id().is_empty(),
             "Token exists already"
@@ -90,7 +90,7 @@ pub trait ProxyDexImpl:
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         require!(
             self.wrapped_farm_token_id().is_empty(),
             "Token exists already"
@@ -111,7 +111,7 @@ pub trait ProxyDexImpl:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
         request_type: RegisterRequestType,
-    ) -> AsyncCall {
+    ) {
         self.send()
             .esdt_system_sc_proxy()
             .register_meta_esdt(
@@ -130,6 +130,7 @@ pub trait ProxyDexImpl:
             )
             .async_call()
             .with_callback(self.callbacks().register_callback(request_type))
+            .call_and_exit()
     }
 
     #[callback]
@@ -177,12 +178,13 @@ pub trait ProxyDexImpl:
         token: TokenIdentifier,
         address: ManagedAddress,
         #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) -> AsyncCall {
+    ) {
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
+            .call_and_exit()
     }
 
     #[callback]

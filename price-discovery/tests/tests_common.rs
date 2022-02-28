@@ -1,7 +1,9 @@
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, OptionalArg, TokenIdentifier};
-use elrond_wasm_debug::testing_framework::*;
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress};
 use elrond_wasm_debug::tx_mock::TxResult;
+use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
+use num_traits::ToPrimitive;
 
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
@@ -59,16 +61,14 @@ where
     blockchain_wrapper
         .execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
             sc.init(
-                OptionalArg::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
-                OptionalArg::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
-                OptionalArg::None,
-                OptionalArg::None,
-                OptionalArg::None,
-                OptionalArg::None,
-                OptionalArg::None,
+                OptionalValue::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
+                OptionalValue::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
+                OptionalValue::None,
+                OptionalValue::None,
+                OptionalValue::None,
+                OptionalValue::None,
+                OptionalValue::None,
             );
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -141,8 +141,6 @@ where
 
             sc.redeem_token_id()
                 .set(&managed_token_id!(REDEEM_TOKEN_ID));
-
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -151,7 +149,6 @@ where
     blockchain_wrapper
         .execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
             sc.set_pair_address(ManagedAddress::from_address(&sc_dex_address));
-            StateChange::Commit
         })
         .assert_ok();
 
@@ -169,7 +166,6 @@ where
 pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
     pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
     amount: &num_bigint::BigUint,
-    state_change: StateChange,
 ) where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
@@ -184,8 +180,6 @@ pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
             amount,
             |sc| {
                 sc.deposit();
-
-                state_change
             },
         )
         .assert_ok();
@@ -195,7 +189,6 @@ pub fn call_deposit<PriceDiscObjBuilder, DexObjBuilder>(
     pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
     caller: &Address,
     amount: &num_bigint::BigUint,
-    state_change: StateChange,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
@@ -210,8 +203,6 @@ where
         amount,
         |sc| {
             sc.deposit();
-
-            state_change
         },
     )
 }
@@ -220,7 +211,6 @@ pub fn call_withdraw<PriceDiscObjBuilder, DexObjBuilder>(
     pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
     caller: &Address,
     amount: &num_bigint::BigUint,
-    state_change: StateChange,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
@@ -235,8 +225,6 @@ where
         amount,
         |sc| {
             let _ = sc.withdraw();
-
-            state_change
         },
     )
 }
@@ -246,7 +234,6 @@ pub fn call_redeem<PriceDiscObjBuilder, DexObjBuilder>(
     caller: &Address,
     sft_nonce: u64,
     amount: &num_bigint::BigUint,
-    state_change: StateChange,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
@@ -261,8 +248,6 @@ where
         amount,
         |sc| {
             sc.redeem();
-
-            state_change
         },
     )
 }
@@ -270,7 +255,6 @@ where
 pub fn call_create_dex_liquidity_pool<PriceDiscObjBuilder, DexObjBuilder>(
     pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
     caller: &Address,
-    state_change: StateChange,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
@@ -279,7 +263,5 @@ where
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
     b_wrapper.execute_tx(caller, &pd_setup.pd_wrapper, &rust_biguint!(0), |sc| {
         sc.create_dex_liquidity_pool();
-
-        state_change
     })
 }

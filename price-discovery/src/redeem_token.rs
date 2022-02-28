@@ -39,7 +39,7 @@ pub trait RedeemTokenModule {
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
-    ) -> AsyncCall {
+    ) {
         let payment_amount = self.call_value().egld_value();
 
         require!(
@@ -59,6 +59,7 @@ pub trait RedeemTokenModule {
         )
         .async_call()
         .with_callback(self.callbacks().issue_callback())
+        .call_and_exit()
     }
 
     #[callback]

@@ -23,9 +23,9 @@ use config::{
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -78,7 +78,7 @@ pub trait Farm:
     #[endpoint(enterFarm)]
     fn enter_farm(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EnterFarmResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
@@ -153,7 +153,7 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ExitFarmResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
@@ -203,7 +203,7 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ClaimRewardsResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
@@ -294,7 +294,7 @@ pub trait Farm:
     #[endpoint(compoundRewards)]
     fn compound_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> CompoundRewardsResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
@@ -443,7 +443,7 @@ pub trait Farm:
         farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
         destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalArg<ManagedBuffer>,
+        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) {
         self.transfer_execute_custom(
             destination,

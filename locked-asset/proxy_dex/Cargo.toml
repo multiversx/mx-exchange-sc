@@ -1,5 +1,5 @@
 [package]
-name = "proxy-dex"
+name = "proxy_dex"
 version = "0.0.0"
 edition = "2018"
 publish = false
@@ -30,8 +30,8 @@ path = "../../common/modules/token_merge"
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.27.3"
+version = "0.28.0"
 features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.27.3"
+version = "0.28.0"

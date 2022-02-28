@@ -8,6 +8,7 @@ const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
+pub mod bot_protection;
 pub mod config;
 mod contexts;
 mod errors;
@@ -24,15 +25,15 @@ use contexts::ctx_helper;
 use contexts::swap::SwapContext;
 
 pub type AddLiquidityResultType<BigUint> =
-    MultiResult3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 pub type RemoveLiquidityResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 pub type SwapTokensFixedOutputResultType<BigUint> =
-    MultiResult2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Pair<ContractReader>:
@@ -44,6 +45,7 @@ pub trait Pair<ContractReader>:
     + events::EventsModule
     + ctx_helper::CtxHelper
     + safe_price::SafePriceModule
+    + bot_protection::BPModule
 {
     #[init]
     fn init(
@@ -54,7 +56,7 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        #[var_args] initial_liquidity_adder: OptionalArg<ManagedAddress>,
+        #[var_args] initial_liquidity_adder: OptionalValue<ManagedAddress>,
     ) {
         require!(first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
         require!(second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
@@ -82,7 +84,7 @@ pub trait Pair<ContractReader>:
     #[endpoint(addInitialLiquidity)]
     fn add_initial_liquidity(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> AddLiquidityResultType<Self::Api> {
         let mut context = self.new_add_liquidity_context(
             BigUint::from(1u64),
@@ -155,7 +157,7 @@ pub trait Pair<ContractReader>:
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> AddLiquidityResultType<Self::Api> {
         let mut context = self.new_add_liquidity_context(
             first_token_amount_min,
@@ -211,6 +213,7 @@ pub trait Pair<ContractReader>:
         } else {
             self.pool_add_liquidity(&mut context);
         }
+        self.require_can_proceed_add(&context);
 
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
@@ -236,7 +239,7 @@ pub trait Pair<ContractReader>:
         #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> RemoveLiquidityResultType<Self::Api> {
         let mut context = self.new_remove_liquidity_context(
             &token_id,
@@ -282,6 +285,7 @@ pub trait Pair<ContractReader>:
         self.load_initial_k(&mut context);
 
         self.pool_remove_liquidity(&mut context);
+        self.require_can_proceed_remove(&context);
 
         let new_k = self.calculate_k(&context);
         require!(&new_k <= context.get_initial_k(), ERROR_K_INVARIANT_FAILED);
@@ -312,7 +316,7 @@ pub trait Pair<ContractReader>:
             &amount_in,
             BigUint::from(1u64),
             BigUint::from(1u64),
-            OptionalArg::None,
+            OptionalValue::None,
         );
         require!(
             self.whitelist().contains(context.get_caller()),
@@ -348,6 +352,7 @@ pub trait Pair<ContractReader>:
         self.load_lp_token_supply(&mut context);
 
         self.pool_remove_liquidity(&mut context);
+        self.require_can_proceed_remove(&context);
 
         self.burn(&token_in, &amount_in);
         self.lp_token_supply().update(|x| *x -= &amount_in);
@@ -392,7 +397,7 @@ pub trait Pair<ContractReader>:
             &amount_in,
             token_out.clone(),
             BigUint::from(1u64),
-            OptionalArg::None,
+            OptionalValue::None,
         );
         require!(
             self.whitelist().contains(context.get_caller()),
@@ -429,6 +434,8 @@ pub trait Pair<ContractReader>:
         require!(amount_out > 0u64, ERROR_ZERO_AMOUNT);
         context.set_final_output_amount(amount_out.clone());
 
+        self.require_can_proceed_swap(&context);
+
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
@@ -446,7 +453,7 @@ pub trait Pair<ContractReader>:
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
         let mut context = self.new_swap_context(
             &token_in,
@@ -488,6 +495,8 @@ pub trait Pair<ContractReader>:
         self.load_initial_k(&mut context);
         self.perform_swap_fixed_input(&mut context);
 
+        self.require_can_proceed_swap(&context);
+
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
@@ -512,7 +521,7 @@ pub trait Pair<ContractReader>:
         #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
         amount_out: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
         let mut context = self.new_swap_context(
             &token_in,
@@ -554,6 +563,8 @@ pub trait Pair<ContractReader>:
         self.load_initial_k(&mut context);
         self.perform_swap_fixed_output(&mut context);
 
+        self.require_can_proceed_swap(&context);
+
         let new_k = self.calculate_k(&context);
         require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
 
@@ -589,12 +600,12 @@ pub trait Pair<ContractReader>:
     fn get_tokens_for_given_position(
         &self,
         liquidity: BigUint,
-    ) -> MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         self.get_both_tokens_for_given_position(liquidity)
     }
 
     #[view(getReservesAndTotalSupply)]
-    fn get_reserves_and_total_supply(&self) -> MultiResult3<BigUint, BigUint, BigUint> {
+    fn get_reserves_and_total_supply(&self) -> MultiValue3<BigUint, BigUint, BigUint> {
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
