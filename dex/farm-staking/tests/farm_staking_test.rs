@@ -553,34 +553,13 @@ fn test_exit_farm_after_enter_twice() {
     let mut farm_setup = steps_enter_farm_twice(farm_staking::contract_obj);
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
-    let total_farm_token = farm_in_amount + second_farm_in_amount;
 
     set_block_epoch(&mut farm_setup, 8);
     set_block_nonce(&mut farm_setup, 25);
 
     let _current_farm_supply = farm_in_amount;
 
-    let first_reward_share = 0;
-    let second_reward_share = 400_000;
-    let prev_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_farm_token
-        - 1)
-        / total_farm_token;
-    let new_reward_per_share = prev_reward_per_share
-        + 25 * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
-    let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
-
-    let expected_reward_amount =
-        total_farm_token * reward_per_share_diff / DIVISION_SAFETY_CONSTANT;
-
-    let block_diff = 25 - 10;
-    // 100_000_000 * 2_500 / 10_000 / (31_536_000 / 6) * 15 ~= 60 with BigUint div approximations
-    let expected_rewards_max_apr =
-        farm_in_amount * MAX_APR / MAX_PERCENT / BLOCKS_IN_YEAR * block_diff;
-    let expected_rewards = core::cmp::min(expected_reward_amount, expected_rewards_max_apr);
-    assert_eq!(expected_rewards, 60);
-
+    let expected_rewards = 83;
     let expected_ride_token_balance =
         rust_biguint!(USER_TOTAL_RIDE_TOKENS) - farm_in_amount - second_farm_in_amount
             + expected_rewards;
