@@ -53,7 +53,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## Checksums (SHA 256):\n\n" >> notes.txt
+          echo "## Checksums (SHA 256):" >> notes.txt
+          echo "" >> notes.txt
 
           for i in $(find ./assets -type f); do
             filename=$(basename ${i})
