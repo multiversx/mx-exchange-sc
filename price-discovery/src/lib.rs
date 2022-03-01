@@ -20,7 +20,6 @@ pub trait PriceDiscovery:
     + create_pool::CreatePoolModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
-    + token_merge::TokenMergeModule
 {
     #[init]
     fn init(
@@ -207,31 +206,24 @@ pub trait PriceDiscovery:
         let total_lp_tokens = self.total_lp_tokens_received().get();
         let percentage_of_redeeem_token_supply =
             self.get_percentage_of_total_supply(redeem_token_nonce, redeem_token_amount);
-        let penalty_mapper = self.accumulated_penalty(redeem_token_nonce);
 
-        let accumulated_penalty_amount = penalty_mapper.get();
-        let bonus =
-            percentage_of_redeeem_token_supply * accumulated_penalty_amount / MAX_PERCENTAGE;
-        penalty_mapper.update(|amt| *amt -= &bonus);
+        let extra_lp_tokens = self.extra_lp_tokens().get();
+        let bonus = percentage_of_redeeem_token_supply * extra_lp_tokens / MAX_PERCENTAGE / 2u32;
+        self.extra_lp_tokens()
+            .update(|extra_amt| *extra_amt -= &bonus);
 
         match redeem_token_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => {
                 let launched_token_final_amount = self.launched_token_final_amount().get();
-                let base_lp_amount = self.rule_of_three(
-                    redeem_token_amount,
-                    &launched_token_final_amount,
-                    &total_lp_tokens,
-                ) / 2u32;
+                let base_lp_amount =
+                    redeem_token_amount * &total_lp_tokens / launched_token_final_amount / 2u32;
 
                 base_lp_amount + bonus
             }
             ACCEPTED_TOKEN_REDEEM_NONCE => {
                 let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                let base_lp_amount = self.rule_of_three(
-                    redeem_token_amount,
-                    &accepted_token_final_amount,
-                    &total_lp_tokens,
-                ) / 2u32;
+                let base_lp_amount =
+                    redeem_token_amount * &total_lp_tokens / accepted_token_final_amount / 2u32;
 
                 base_lp_amount + bonus
             }

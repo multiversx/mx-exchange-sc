@@ -28,6 +28,9 @@ pub trait CommonStorageModule {
     #[storage_mapper("totalLpTokensReceived")]
     fn total_lp_tokens_received(&self) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("extraLpTokens")]
+    fn extra_lp_tokens(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getStartBlock)]
     #[storage_mapper("startBlock")]
     fn start_block(&self) -> SingleValueMapper<u64>;
