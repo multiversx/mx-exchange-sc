@@ -72,18 +72,18 @@ pub trait Config {
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
-        require!(new_value != 0, "Quorum can't be set to 0");
+        require!(new_value != 0u64, "Quorum can't be set to 0");
 
         self.quorum().set(&new_value);
     }
 
     fn try_change_min_weight_for_proposal(&self, new_value: BigUint) {
         require!(
-            new_value != 0,
+            new_value != 0u64,
             "Min token balance for proposing can't be set to 0"
         );
 
-        self.min_token_balance_for_proposing().set(&new_value);
+        self.min_weight_for_proposal().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
@@ -109,9 +109,9 @@ pub trait Config {
     #[storage_mapper("quorum")]
     fn quorum(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getMinTokenBalanceForProposing)]
-    #[storage_mapper("minTokenBalanceForProposing")]
-    fn min_token_balance_for_proposing(&self) -> SingleValueMapper<BigUint>;
+    #[view(getMinWeightForProposal)]
+    #[storage_mapper("minWeightForProposal")]
+    fn min_weight_for_proposal(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getVotingDelayInBlocks)]
     #[storage_mapper("votingDelayInBlocks")]

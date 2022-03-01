@@ -8,6 +8,10 @@ pub trait Validation: config::Config {
         todo!()
     }
 
+    fn require_is_accepted_payment_for_voting(&self, _payment: &EsdtTokenPayment<Self::Api>) {
+        todo!()
+    }
+
     fn require_are_accepted_args_for_proposal(&self, _args: &ProposalCreationArgs<Self::Api>) {
         todo!()
     }

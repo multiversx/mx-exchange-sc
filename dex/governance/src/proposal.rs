@@ -10,6 +10,7 @@ pub enum ProposalStatus {
     Defeated = 3,
     Succeeded = 4,
     Expired = 5,
+    Executed = 6,
 }
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, TypeAbi)]
@@ -33,6 +34,8 @@ pub struct Proposal<M: ManagedTypeApi> {
     pub creation_block: u64,
     pub proposer: ManagedAddress<M>,
     pub description: ManagedBuffer<M>,
+
+    pub executed: bool,
     pub actions: ManagedVec<M, Action<M>>,
 
     pub num_upvotes: BigUint<M>,
@@ -42,8 +45,8 @@ pub struct Proposal<M: ManagedTypeApi> {
 #[elrond_wasm::module]
 pub trait ProposalHelper: config::Config {
     #[view(getProposalStatus)]
-    fn get_proposal_status(&self, _proposal: Proposal<Self::Api>) -> ProposalStatus {
-        unreachable!();
+    fn get_proposal_status(&self, _proposal: &Proposal<Self::Api>) -> ProposalStatus {
+        todo!();
     }
 
     fn new_proposal_from_args(&self, args: ProposalCreationArgs<Self::Api>) -> Proposal<Self::Api> {
@@ -52,9 +55,14 @@ pub trait ProposalHelper: config::Config {
             creation_block: self.blockchain().get_block_nonce(),
             proposer: self.blockchain().get_caller(),
             description: args.description,
+            executed: false,
             actions: args.actions,
             num_upvotes: BigUint::zero(),
             num_downvotes: BigUint::zero(),
         }
+    }
+
+    fn execute_proposal(&self, _proposal: &Proposal<Self::Api>) {
+        todo!()
     }
 }
