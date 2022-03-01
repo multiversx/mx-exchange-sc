@@ -12,17 +12,10 @@ pub trait Config {
     }
 
     #[endpoint(changeMinTokenBalanceForProposing)]
-    fn change_min_token_balance_for_proposing(&self, new_value: BigUint) {
+    fn change_min_weight_for_proposal(&self, new_value: BigUint) {
         self.require_caller_self();
 
-        self.try_change_min_token_balance_for_proposing(new_value);
-    }
-
-    #[endpoint(changeMaxActionsPerProposal)]
-    fn change_max_actions_per_proposal(&self, new_value: usize) {
-        self.require_caller_self();
-
-        self.try_change_max_actions_per_proposal(new_value);
+        self.try_change_min_weight_for_proposal(new_value);
     }
 
     #[endpoint(changeVotingDelayInBlocks)]
@@ -84,19 +77,13 @@ pub trait Config {
         self.quorum().set(&new_value);
     }
 
-    fn try_change_min_token_balance_for_proposing(&self, new_value: BigUint) {
+    fn try_change_min_weight_for_proposal(&self, new_value: BigUint) {
         require!(
             new_value != 0,
             "Min token balance for proposing can't be set to 0"
         );
 
         self.min_token_balance_for_proposing().set(&new_value);
-    }
-
-    fn try_change_max_actions_per_proposal(&self, new_value: usize) {
-        require!(new_value != 0, "Max actions per proposal can't be set to 0");
-
-        self.max_actions_per_proposal().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
@@ -125,10 +112,6 @@ pub trait Config {
     #[view(getMinTokenBalanceForProposing)]
     #[storage_mapper("minTokenBalanceForProposing")]
     fn min_token_balance_for_proposing(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getMaxActionsPerProposal)]
-    #[storage_mapper("maxActionsPerProposal")]
-    fn max_actions_per_proposal(&self) -> SingleValueMapper<usize>;
 
     #[view(getVotingDelayInBlocks)]
     #[storage_mapper("votingDelayInBlocks")]

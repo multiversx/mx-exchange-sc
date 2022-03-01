@@ -100,24 +100,6 @@ pub struct UnlockSchedule<M: ManagedTypeApi> {
     pub unlock_milestones: ManagedVec<M, UnlockMilestone>,
 }
 
-
-
-100 Locked Mex, nonce = 10
-
-100 * 10^18 amount
-
-                10% 100 * 10^18 = Y
-Vec: {300, 10}, {330, 10}, ..., suma procentelor = 100
-
-epoca = 310
-
-10 * 10^18 amount MEX
-
-90 * 10^18 amount Locked MEx, attrs?
-
-     x % din 90 * 10^18 = Y
-Vec: {330, 11}, ..., suma procentelor = 100
-
 #[derive(
     TopEncode,
     TopDecode,

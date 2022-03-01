@@ -26,8 +26,7 @@ pub trait Governance:
         voting_period_in_blocks: u64,
         vote_nft_id: TokenIdentifier,
         mex_token_id: TokenIdentifier,
-        max_actions_per_proposal: usize,
-        min_token_balance_for_proposal: BigUint,
+        min_weight_for_proposal: BigUint,
         governance_token_ids: ManagedVec<TokenIdentifier>,
     ) {
         self.try_change_quorum(quorum);
@@ -36,8 +35,7 @@ pub trait Governance:
         self.try_change_governance_token_ids(governance_token_ids);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
-        self.try_change_max_actions_per_proposal(max_actions_per_proposal);
-        self.try_change_min_token_balance_for_proposing(min_token_balance_for_proposal);
+        self.try_change_min_weight_for_proposal(min_weight_for_proposal);
     }
 
     #[payable("*")]
