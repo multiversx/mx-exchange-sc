@@ -16,11 +16,10 @@ jobs:
       # We don't use actions/checkout, since we want to have control over the location of the repository
       # (in order to achieve deterministic builds)
       - name: Check out code
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Cloning ref: ${{ github.ref_name }}"
-          gh repo clone ElrondNetwork/sc-dex-rs /home/elrond/sc-dex-rs -- --branch=${{ github.ref_name }} --depth=1
+          cd /home/elrond
+          git clone https://github.com/ElrondNetwork/sc-dex-rs.git --branch=${{ github.ref_name }} --depth=1
 
       - name: Build WASM files
         run: |
