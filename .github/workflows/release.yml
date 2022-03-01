@@ -3,70 +3,67 @@ name: Create release
 on:
   workflow_dispatch:
 
+env:
+  # https://github.com/actions/runner/issues/863 ($HOME is overridden for containers)
+  ELROND_HOME: /home/elrond
+  REPO_PATH: /home/elrond/sc-dex-rs
+  REPO_URL: https://github.com/ElrondNetwork/sc-dex-rs.git
+
 jobs:
   build:
     runs-on: ubuntu-latest
     # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
     container: 
       image: elrondnetwork/elrond-sdk-erdpy-rust:latest
-      # See: https://github.com/actions/checkout/issues/47
-      # User "elrond" has UID = 1001 (specified on the image)
-      # options: --user elrond:elrond
     steps:
-      # We don't use actions/checkout, since we want to have control over the location of the repository
-      # (in order to achieve deterministic builds)
+      # We don't use actions/checkout, since we want to control the location of the repository,
+      # in order to achieve deterministic builds.
       - name: Check out code
         run: |
-          echo "Cloning ref: ${{ github.ref_name }}"
-          cd /home/elrond
-          git clone https://github.com/ElrondNetwork/sc-dex-rs.git --branch=${{ github.ref_name }} --depth=1
+          echo "Cloning ref: $GITHUB_REF_NAME"
+          cd $ELROND_HOME && git clone $REPO_URL --branch=$GITHUB_REF_NAME --depth=1
 
       - name: Build WASM files
         run: |
-          # https://github.com/actions/runner/issues/863
           # Setting $HOME is required by erdpy.
-          export HOME=/home/elrond
-          ls
-          erdpy deps check rust
-          erdpy deps check wasm-opt
-          cd $HOME/sc-dex-rs
-          bash ./build-wasm.sh
+          export HOME=$ELROND_HOME
+          cd $REPO_PATH && bash ./build-wasm.sh
 
-  #     - name: Save artifacts
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: built-contracts
-  #         path: |
-  #           ./**/output/*.wasm
-  #           ./**/output/*.abi.json
-  #         if-no-files-found: error
+      - name: Save artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: built-contracts
+          path: |
+            ${{ env.REPO_PATH }}/**/output/*.wasm
+            ${{ env.REPO_PATH }}/**/output/*.abi.json
+          if-no-files-found: error
 
-  # release:
-  #   needs: [build]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Check out code
-  #       uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: "0"
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
 
-  #     - name: Download all workflow artifacts
-  #       uses: actions/download-artifact@v2
-  #       with:
-  #         path: assets
+      - name: Download all workflow artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: assets
 
-  #     - name: Create release
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       run: |
-  #         echo "## Checksums (SHA 256):" >> notes.txt
-  #         echo "" >> notes.txt
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## Checksums (SHA 256):" >> notes.txt
+          echo "" >> notes.txt
 
-  #         for i in $(find ./assets -type f); do
-  #           filename=$(basename ${i})
-  #           checksum=($(sha256sum ${i}))
-  #           echo " - **${filename}**: \`${checksum}\`" >> notes.txt
-  #         done
+          for i in $(find ./assets -type f); do
+            filename=$(basename ${i})
+            checksum=($(sha256sum ${i}))
+            echo " - **${filename}**: \`${checksum}\`" >> notes.txt
+          done
 
-  #         gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
-  #         gh release upload vNext $(find ./assets -type f)
+          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
+          gh release upload vNext $(find ./assets -type f)
