@@ -16,8 +16,13 @@ elrond_wasm_node::wasm_endpoints! {
         execute
         getGovernanceTokenId
         getMaxActionsPerProposal
+        getMexTokenId
         getMinTokenBalanceForProposing
+        getProposal
+        getProposalIdCounter
+        getProposalStatus
         getQuorum
+        getVoteNFTId
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
         propose

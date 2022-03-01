@@ -1,6 +1,5 @@
 elrond_wasm::imports!();
 
-use crate::deposit::*;
 use crate::proposal::*;
 
 #[elrond_wasm::module]
@@ -50,13 +49,33 @@ pub trait Config {
         );
     }
 
-    fn try_change_governance_token(&self, token_id: TokenIdentifier) {
+    fn try_change_mex_token_id(&self, token_id: TokenIdentifier) {
         require!(
-            token_id.is_valid_esdt_identifier(),
-            "Invalid ESDT token ID provided for governance_token_id"
+            token_id.is_esdt(),
+            "Invalid ESDT token ID provided for vote_nft"
         );
 
-        self.governance_token_id().set(&token_id);
+        self.mex_token_id().set(&token_id);
+    }
+
+    fn try_change_vote_nft_id(&self, token_id: TokenIdentifier) {
+        require!(
+            token_id.is_esdt(),
+            "Invalid ESDT token ID provided for vote_nft"
+        );
+
+        self.vote_nft_id().set(&token_id);
+    }
+
+    fn try_change_governance_token_ids(&self, token_ids: ManagedVec<TokenIdentifier>) {
+        for token_id in token_ids.iter() {
+            require!(
+                token_id.is_esdt(),
+                "Invalid ESDT token ID provided for token_ids"
+            );
+        }
+
+        self.governance_token_ids().set(&token_ids);
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
@@ -96,8 +115,8 @@ pub trait Config {
     }
 
     #[view(getGovernanceTokenId)]
-    #[storage_mapper("governanceTokenId")]
-    fn governance_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    #[storage_mapper("governanceTokenIds")]
+    fn governance_token_ids(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
 
     #[view(getQuorum)]
     #[storage_mapper("quorum")]
@@ -127,7 +146,11 @@ pub trait Config {
     #[storage_mapper("proposalIdCounter")]
     fn proposal_id_counter(&self) -> SingleValueMapper<u64>;
 
-    #[view(getUserDeposit)]
-    #[storage_mapper("user_deposit")]
-    fn user_deposit(&self, address: ManagedAddress) -> SingleValueMapper<UserDeposit<Self::Api>>;
+    #[view(getVoteNFTId)]
+    #[storage_mapper("voteNFTId")]
+    fn vote_nft_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getMexTokenId)]
+    #[storage_mapper("mexTokenId")]
+    fn mex_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

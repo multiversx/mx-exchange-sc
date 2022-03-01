@@ -9,8 +9,8 @@ publish = false
 path = "src/contract.rs"
 
 [dependencies.elrond-wasm]
-version = "0.27.4"
+version = "0.28"
 features = ["cb_closure_managed_deser"]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.27.4"
+version = "0.28"

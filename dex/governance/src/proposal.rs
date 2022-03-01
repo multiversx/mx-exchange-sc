@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::config;
+
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
 pub enum ProposalStatus {
     Pending = 1,
@@ -20,21 +22,39 @@ pub struct Action<M: ManagedTypeApi> {
 }
 
 #[derive(TopEncode, TopDecode, TypeAbi)]
+pub struct ProposalCreationArgs<M: ManagedTypeApi> {
+    pub description: ManagedBuffer<M>,
+    pub actions: ManagedVec<M, Action<M>>,
+}
+
+#[derive(TopEncode, TopDecode, TypeAbi)]
 pub struct Proposal<M: ManagedTypeApi> {
+    pub id: u64,
     pub creation_block: u64,
     pub proposer: ManagedAddress<M>,
     pub description: ManagedBuffer<M>,
     pub actions: ManagedVec<M, Action<M>>,
 
-    pub num_votes: BigUint<M>,
+    pub num_upvotes: BigUint<M>,
     pub num_downvotes: BigUint<M>,
-    pub funds: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
 #[elrond_wasm::module]
-pub trait ProposalHelper {
+pub trait ProposalHelper: config::Config {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, _proposal: Proposal<Self::Api>) -> ProposalStatus {
         unreachable!();
+    }
+
+    fn new_proposal_from_args(&self, args: ProposalCreationArgs<Self::Api>) -> Proposal<Self::Api> {
+        Proposal {
+            id: self.proposal_id_counter().get(),
+            creation_block: self.blockchain().get_block_nonce(),
+            proposer: self.blockchain().get_caller(),
+            description: args.description,
+            actions: args.actions,
+            num_upvotes: BigUint::zero(),
+            num_downvotes: BigUint::zero(),
+        }
     }
 }
