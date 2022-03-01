@@ -179,7 +179,6 @@ pub trait PriceDiscovery:
     #[endpoint]
     fn redeem(&self) {
         self.require_redeem_allowed();
-        require!(!self.lp_token_id().is_empty(), "Pool not created yet");
 
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let payment_nonce = self.call_value().esdt_token_nonce();

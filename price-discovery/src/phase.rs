@@ -47,8 +47,12 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
             let max_percentage = self.penalty_max_percentage().get();
             let percentage_diff = &max_percentage - &min_percentage;
 
-            let penalty_percentage_increase = percentage_diff * blocks_passed_in_penalty_phase
-                / linear_penalty_phase_duration_blocks;
+            let penalty_percentage_increase = if linear_penalty_phase_duration_blocks > 1 {
+                percentage_diff * blocks_passed_in_penalty_phase
+                    / (linear_penalty_phase_duration_blocks - 1)
+            } else {
+                BigUint::zero()
+            };
 
             return Phase::LinearIncreasingPenalty {
                 penalty_percentage: min_percentage + penalty_percentage_increase,
