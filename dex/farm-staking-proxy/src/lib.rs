@@ -27,6 +27,7 @@ pub trait FarmStakingProxy:
         staking_token_id: TokenIdentifier,
         lp_farm_token_id: TokenIdentifier,
         staking_farm_token_id: TokenIdentifier,
+        lp_token_id: TokenIdentifier,
     ) {
         require!(
             self.blockchain().is_smart_contract(&lp_farm_address),
@@ -47,12 +48,15 @@ pub trait FarmStakingProxy:
             "Invalid Staking Farm token ID"
         );
 
+        require!(lp_token_id.is_esdt(), "Invalide LP token ID");
+
         self.lp_farm_address().set(&lp_farm_address);
         self.staking_farm_address().set(&staking_farm_address);
         self.pair_address().set(&pair_address);
         self.staking_token_id().set(&staking_token_id);
         self.lp_farm_token_id().set(&lp_farm_token_id);
         self.staking_farm_token_id().set(&staking_farm_token_id);
+        self.lp_token_id().set(&lp_token_id);
     }
 
     #[payable("*")]

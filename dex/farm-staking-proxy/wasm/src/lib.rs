@@ -13,6 +13,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmTokenId
         getLpFarmAddress
         getLpFarmTokenId
+        getLpTokenId
         getPairAddress
         getStakingFarmAddress
         getStakingTokenId
