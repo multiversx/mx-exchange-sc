@@ -40,16 +40,10 @@ pub trait FarmStakingProxy:
             self.blockchain().is_smart_contract(&pair_address),
             "Invalid Pair address"
         );
+        require!(staking_token_id.is_esdt(), "Invalid Staking token ID");
+        require!(lp_farm_token_id.is_esdt(), "Invalid Farm token ID");
         require!(
-            staking_token_id.is_valid_esdt_identifier(),
-            "Invalid Staking token ID"
-        );
-        require!(
-            lp_farm_token_id.is_valid_esdt_identifier(),
-            "Invalid LP token ID"
-        );
-        require!(
-            staking_farm_token_id.is_valid_esdt_identifier(),
+            staking_farm_token_id.is_esdt(),
             "Invalid Staking Farm token ID"
         );
 
