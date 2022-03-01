@@ -6,7 +6,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: elrondnetwork/elrond-sdk-erdpy-rust:latest
+    # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
+    container: 
+      image: elrondnetwork/elrond-sdk-erdpy-rust:latest
+      # See: https://github.com/actions/checkout/issues/47
+      # User "elrond" has UID = 1001 (specified on the image)
+      options: --user elrond:elrond
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -15,21 +20,19 @@ jobs:
 
       - name: Build WASM files
         run: |
-          erdpy contract build ./dex/pair
-          erdpy contract build ./dex/farm
-          erdpy contract build ./dex/router
+          # https://github.com/actions/runner/issues/863
+          export HOME=/home/elrond
+          erdpy deps check rust
+          erdpy deps check wasm-opt
+          bash ./build-wasm.sh
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
           name: built-contracts
           path: |
-            ./dex/pair/output/pair.wasm
-            ./dex/pair/output/pair.abi.json
-            ./dex/pair/output/farm.wasm
-            ./dex/pair/output/farm.abi.json
-            ./dex/pair/output/router.wasm
-            ./dex/pair/output/router.abi.json
+            ./**/output/*.wasm
+            ./**/output/*.abi.json
           if-no-files-found: error
 
   release:
@@ -38,21 +41,26 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
 
-      - name: Download all workflow run artifacts
+      - name: Download all workflow artifacts
         uses: actions/download-artifact@v2
         with:
           path: assets
-
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: assets
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          hub release create --draft --message="Release draft from Github Actions" vNext
-          for i in $(find ./assets -name '*.tgz' -type f); do
-            hub release edit --attach=${i} --message="" vNext
+          echo "## Checksums (SHA 256):" >> notes.txt
+          echo "" >> notes.txt
+
+          for i in $(find ./assets -type f); do
+            filename=$(basename ${i})
+            checksum=($(sha256sum ${i}))
+            echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
+
+          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
+          gh release upload vNext $(find ./assets -type f)
