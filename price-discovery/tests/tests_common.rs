@@ -3,7 +3,6 @@ use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
-use num_traits::ToPrimitive;
 
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
