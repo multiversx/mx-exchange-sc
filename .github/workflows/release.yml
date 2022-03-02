@@ -3,36 +3,39 @@ name: Create release
 on:
   workflow_dispatch:
 
+env:
+  # https://github.com/actions/runner/issues/863 ($HOME is overridden for containers)
+  ELROND_HOME: /home/elrond
+  REPO_PATH: /home/elrond/sc-dex-rs
+  REPO_URL: https://github.com/ElrondNetwork/sc-dex-rs.git
+
 jobs:
   build:
     runs-on: ubuntu-latest
     # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
     container: 
       image: elrondnetwork/elrond-sdk-erdpy-rust:latest
-      # See: https://github.com/actions/checkout/issues/47
-      # User "elrond" has UID = 1001 (specified on the image)
-      options: --user elrond:elrond
     steps:
+      # We don't use actions/checkout, since we want to control the location of the repository,
+      # in order to achieve deterministic builds.
       - name: Check out code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: "0"
+        run: |
+          echo "Cloning ref: $GITHUB_REF_NAME"
+          cd $ELROND_HOME && git clone $REPO_URL --branch=$GITHUB_REF_NAME --depth=1
 
       - name: Build WASM files
         run: |
-          # https://github.com/actions/runner/issues/863
-          export HOME=/home/elrond
-          erdpy deps check rust
-          erdpy deps check wasm-opt
-          bash ./build-wasm.sh
+          # Setting $HOME is required by erdpy.
+          export HOME=$ELROND_HOME
+          cd $REPO_PATH && bash ./build-wasm.sh
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
           name: built-contracts
           path: |
-            ./**/output/*.wasm
-            ./**/output/*.abi.json
+            ${{ env.REPO_PATH }}/**/output/*.wasm
+            ${{ env.REPO_PATH }}/**/output/*.abi.json
           if-no-files-found: error
 
   release:
