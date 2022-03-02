@@ -85,7 +85,7 @@ pub trait Governance:
         require!(pstat == ProposalStatus::Succeeded, PROPOSAL_NOT_SUCCEEDED);
 
         self.execute_proposal(&proposal);
-        proposal.executed = true;
+        proposal.was_executed = true;
         self.proposal(proposal_id).set(&proposal);
     }
 
@@ -109,5 +109,31 @@ pub trait Governance:
         self.send_back(vote_nft);
 
         self.proposal(proposal_id).set(&proposal);
+    }
+
+    #[payable("*")]
+    #[endpoint(reclaimTokens)]
+    fn reclaim_tokens(&self) {
+        let payment = self.call_value().payment();
+
+        let vote_nft_id = self.vote_nft_id().get();
+        require!(payment.token_identifier == vote_nft_id, BAD_TOKEN_ID);
+
+        let attr = self.get_vote_attr(&payment);
+        let proposal = self.proposal(attr.proposal_id).get();
+
+        let pstat = self.get_proposal_status(&proposal);
+        match pstat {
+            ProposalStatus::Succeeded | ProposalStatus::Defeated | ProposalStatus::Executed => {
+                self.send_back(attr.payment);
+                self.burn_vote_nft(payment);
+            }
+            ProposalStatus::Active => {
+                sc_panic!(PROPOSAL_STILL_ACTIVE)
+            }
+            ProposalStatus::Pending => {
+                unreachable!()
+            }
+        }
     }
 }

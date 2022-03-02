@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     governance
     (
-        changeMaxActionsPerProposal
         changeMinTokenBalanceForProposing
         changeQuorum
         changeVotingDelayInBlocks
@@ -15,9 +14,8 @@ elrond_wasm_node::wasm_endpoints! {
         downvote
         execute
         getGovernanceTokenId
-        getMaxActionsPerProposal
         getMexTokenId
-        getMinTokenBalanceForProposing
+        getMinWeightForProposal
         getProposal
         getProposalIdCounter
         getProposalStatus
@@ -26,7 +24,8 @@ elrond_wasm_node::wasm_endpoints! {
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
         propose
-        vote
+        reclaimTokens
+        upvote
     )
 }
 
