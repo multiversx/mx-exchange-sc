@@ -1,5 +1,7 @@
 elrond_wasm::imports!();
 
+pub const MAX_PERCENTAGE: u64 = 10_000_000_000_000; // 100%
+
 #[elrond_wasm::module]
 pub trait CommonStorageModule {
     #[view(getLaunchedTokenId)]
@@ -26,11 +28,17 @@ pub trait CommonStorageModule {
     #[storage_mapper("totalLpTokensReceived")]
     fn total_lp_tokens_received(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getStartEpoch)]
-    #[storage_mapper("startEpoch")]
-    fn start_epoch(&self) -> SingleValueMapper<u64>;
+    #[storage_mapper("extraLpTokens")]
+    fn extra_lp_tokens(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getEndEpoch)]
-    #[storage_mapper("endEpoch")]
-    fn end_epoch(&self) -> SingleValueMapper<u64>;
+    #[view(getStartBlock)]
+    #[storage_mapper("startBlock")]
+    fn start_block(&self) -> SingleValueMapper<u64>;
+
+    #[view(getEndBlock)]
+    #[storage_mapper("endBlock")]
+    fn end_block(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("accumulatedPenalty")]
+    fn accumulated_penalty(&self, redeem_token_nonce: u64) -> SingleValueMapper<BigUint>;
 }

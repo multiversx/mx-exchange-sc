@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 use hex_literal::hex;
 
+use crate::common_storage::MAX_PERCENTAGE;
+
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
@@ -34,11 +36,12 @@ pub trait RedeemTokenModule {
     #[endpoint(issueRedeemToken)]
     fn issue_redeem_token(
         &self,
-        #[payment_amount] payment_amount: BigUint,
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
     ) {
+        let payment_amount = self.call_value().egld_value();
+
         require!(
             self.redeem_token_id().is_empty(),
             "Redeem token already issued"
@@ -69,7 +72,7 @@ pub trait RedeemTokenModule {
                 let zero = BigUint::zero();
                 let one = BigUint::from(1u32);
                 let empty_buffer = ManagedBuffer::new();
-                let empty_vec = ManagedVec::new();
+                let empty_vec = ManagedVec::from_raw_handle(empty_buffer.get_raw_handle());
 
                 let _ = self.send().esdt_nft_create(
                     &redeem_token_id,
@@ -94,8 +97,7 @@ pub trait RedeemTokenModule {
                 let caller = self.blockchain().get_owner_address();
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
-                    self.send()
-                        .direct(&caller, &token_id, 0, &returned_tokens, &[]);
+                    self.send().direct_egld(&caller, &returned_tokens, &[]);
                 }
             }
         }
@@ -104,12 +106,24 @@ pub trait RedeemTokenModule {
     fn mint_and_send_redeem_token(&self, to: &ManagedAddress, nonce: u64, amount: &BigUint) {
         let redeem_token_id = self.redeem_token_id().get();
         self.send().esdt_local_mint(&redeem_token_id, nonce, amount);
+
+        self.redeem_token_total_circulating_supply(nonce)
+            .update(|supply| *supply += amount);
+
         self.send().direct(to, &redeem_token_id, nonce, amount, &[]);
     }
 
     fn burn_redeem_token(&self, nonce: u64, amount: &BigUint) {
         let redeem_token_id = self.redeem_token_id().get();
         self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
+
+        self.redeem_token_total_circulating_supply(nonce)
+            .update(|supply| *supply -= amount);
+    }
+
+    fn get_percentage_of_total_supply(&self, nonce: u64, amount: &BigUint) -> BigUint {
+        let total_supply = self.redeem_token_total_circulating_supply(nonce).get();
+        amount * MAX_PERCENTAGE / total_supply
     }
 
     #[proxy]
@@ -118,4 +132,8 @@ pub trait RedeemTokenModule {
     #[view(getRedeemTokenId)]
     #[storage_mapper("redeemTokenId")]
     fn redeem_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("totalCirculatingSupply")]
+    fn redeem_token_total_circulating_supply(&self, token_nonce: u64)
+        -> SingleValueMapper<BigUint>;
 }
