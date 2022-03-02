@@ -1,6 +1,5 @@
 elrond_wasm::imports!();
 
-use config::ProxyTrait as _;
 use farm::farm_token_merge::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 
@@ -48,7 +47,7 @@ pub trait ExternalContractsInteractionsModule:
             .execute_on_dest_context();
         let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
         let received_lp_token_identifier = lp_tokens.token_identifier.clone();
-        let lp_token_identifier = self.get_lp_farming_token_identifier();
+        let lp_token_identifier = self.lp_token_id().get();
 
         if lp_token_identifier != received_lp_token_identifier {
             core::mem::swap(&mut lp_tokens, &mut lp_farm_rewards);
@@ -76,13 +75,6 @@ pub trait ExternalContractsInteractionsModule:
             .merge_farm_tokens(OptionalValue::None)
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
-    }
-
-    fn get_lp_farming_token_identifier(&self) -> TokenIdentifier {
-        let lp_farm_address = self.lp_farm_address().get();
-        self.lp_farm_proxy_obj(lp_farm_address)
-            .farming_token_id()
-            .execute_on_dest_context()
     }
 
     // staking farm
@@ -240,4 +232,8 @@ pub trait ExternalContractsInteractionsModule:
     #[view(getFarmTokenId)]
     #[storage_mapper("farmTokenId")]
     fn staking_farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getLpTokenId)]
+    #[storage_mapper("lpTokenId")]
+    fn lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

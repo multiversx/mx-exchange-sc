@@ -3,7 +3,6 @@ use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
-use num_traits::ToPrimitive;
 
 use price_discovery::create_pool::*;
 use price_discovery::redeem_token::*;
@@ -19,8 +18,16 @@ pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub const REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
 
-pub const START_EPOCH: u64 = 5;
-pub const END_EPOCH: u64 = 10;
+pub const START_BLOCK: u64 = 10;
+pub const END_BLOCK: u64 = 50;
+pub const NO_LIMIT_PHASE_DURATION_BLOCKS: u64 = 5;
+pub const LINEAR_PENALTY_PHASE_DURATION_BLOCKS: u64 = 5;
+pub const FIXED_PENALTY_PHASE_DURATION_BLOCKS: u64 = 5;
+pub const UNBOND_EPOCHS: u64 = 7;
+
+pub const MIN_PENALTY_PERCENTAGE: u64 = 1_000_000_000_000; // 10%
+pub const MAX_PENALTY_PERCENTAGE: u64 = 5_000_000_000_000; // 50%
+pub const FIXED_PENALTY_PERCENTAGE: u64 = 2_500_000_000_000; // 25%
 
 pub struct PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
 where
@@ -127,7 +134,7 @@ where
         &(),
     );
 
-    blockchain_wrapper.set_block_epoch(START_EPOCH - 1);
+    blockchain_wrapper.set_block_nonce(START_BLOCK - 1);
 
     // init Price Discovery SC
     blockchain_wrapper
@@ -135,8 +142,15 @@ where
             sc.init(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
-                START_EPOCH,
-                END_EPOCH,
+                START_BLOCK,
+                END_BLOCK,
+                NO_LIMIT_PHASE_DURATION_BLOCKS,
+                LINEAR_PENALTY_PHASE_DURATION_BLOCKS,
+                FIXED_PENALTY_PHASE_DURATION_BLOCKS,
+                UNBOND_EPOCHS,
+                managed_biguint!(MIN_PENALTY_PERCENTAGE),
+                managed_biguint!(MAX_PENALTY_PERCENTAGE),
+                managed_biguint!(FIXED_PENALTY_PERCENTAGE),
             );
 
             sc.redeem_token_id()
@@ -179,10 +193,7 @@ pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
             0,
             amount,
             |sc| {
-                sc.deposit(
-                    managed_token_id!(LAUNCHED_TOKEN_ID),
-                    managed_biguint!(amount.to_u64().unwrap()),
-                );
+                sc.deposit();
             },
         )
         .assert_ok();
@@ -205,10 +216,7 @@ where
         0,
         amount,
         |sc| {
-            sc.deposit(
-                managed_token_id!(ACCEPTED_TOKEN_ID),
-                managed_biguint!(amount.to_u64().unwrap()),
-            );
+            sc.deposit();
         },
     )
 }
@@ -230,11 +238,7 @@ where
         ACCEPTED_TOKEN_REDEEM_NONCE,
         amount,
         |sc| {
-            let _ = sc.withdraw(
-                managed_token_id!(REDEEM_TOKEN_ID),
-                ACCEPTED_TOKEN_REDEEM_NONCE,
-                managed_biguint!(amount.to_u64().unwrap()),
-            );
+            let _ = sc.withdraw();
         },
     )
 }
@@ -257,11 +261,7 @@ where
         sft_nonce,
         amount,
         |sc| {
-            sc.redeem(
-                managed_token_id!(REDEEM_TOKEN_ID),
-                sft_nonce,
-                managed_biguint!(amount.to_u64().unwrap()),
-            );
+            sc.redeem();
         },
     )
 }

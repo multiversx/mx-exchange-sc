@@ -12,13 +12,14 @@ elrond_wasm_node::wasm_endpoints! {
         deposit
         getAcceptedTokenFinalAmount
         getAcceptedTokenId
+        getCurrentPhase
         getDexScAddress
-        getEndEpoch
+        getEndBlock
         getLaunchedTokenFinalAmount
         getLaunchedTokenId
         getLpTokenId
         getRedeemTokenId
-        getStartEpoch
+        getStartBlock
         issueRedeemToken
         redeem
         setPairAddress

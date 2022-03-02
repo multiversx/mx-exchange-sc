@@ -112,6 +112,7 @@ where
                 managed_token_id!(STAKING_TOKEN_ID),
                 managed_token_id!(LP_FARM_TOKEN_ID),
                 managed_token_id!(STAKING_FARM_TOKEN_ID),
+                managed_token_id!(LP_TOKEN_ID),
             );
 
             sc.dual_yield_token_id()
