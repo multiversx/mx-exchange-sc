@@ -1,31 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use hex_literal::hex;
-
-const META_SFT_TOKEN_TYPE_NAME: &[u8] = b"META";
-const ESDT_SYSTEM_SC_ADDRESS_ARRAY: [u8; 32] =
-    hex!("000000000000000000010000000000000000000000000000000000000002ffff");
-
-// temporary until added to Rust framework
-mod esdt_system_sc {
-    elrond_wasm::imports!();
-
-    #[elrond_wasm::proxy]
-    pub trait EsdtSystemSc {
-        #[payable("EGLD")]
-        #[endpoint(registerAndSetAllRoles)]
-        fn register_and_set_all_roles(
-            &self,
-            #[payment_amount] payment_amount: BigUint,
-            token_name: ManagedBuffer,
-            token_ticker: ManagedBuffer,
-            token_type: ManagedBuffer,
-            num_decimals: usize,
-        );
-    }
-}
-
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
     pub lp_farm_token_nonce: u64,
@@ -47,8 +22,8 @@ impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
 pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     #[only_owner]
     #[payable("EGLD")]
-    #[endpoint(issueDualYieldToken)]
-    fn issue_dual_yield_token(
+    #[endpoint(registerDualYieldToken)]
+    fn register_dual_yield_token(
         &self,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
@@ -59,44 +34,106 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
             "Token already issued"
         );
 
-        let payment_amount = self.call_value().egld_value();
-        self.esdt_system_sc_proxy(ManagedAddress::new_from_bytes(
-            &ESDT_SYSTEM_SC_ADDRESS_ARRAY,
-        ))
-        .register_and_set_all_roles(
-            payment_amount,
+        let register_cost = self.call_value().egld_value();
+
+        self.register_token(
+            register_cost,
             token_display_name,
             token_ticker,
-            META_SFT_TOKEN_TYPE_NAME.into(),
             num_decimals,
         )
-        .async_call()
-        .with_callback(
-            self.callbacks()
-                .issue_callback(&self.blockchain().get_caller()),
-        )
-        .call_and_exit()
+    }
+
+    fn register_token(
+        &self,
+        register_cost: BigUint,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        num_decimals: usize,
+    ) {
+        self.send()
+            .esdt_system_sc_proxy()
+            .register_meta_esdt(
+                register_cost,
+                &token_display_name,
+                &token_ticker,
+                MetaTokenProperties {
+                    num_decimals,
+                    can_freeze: true,
+                    can_wipe: true,
+                    can_pause: true,
+                    can_change_owner: true,
+                    can_upgrade: true,
+                    can_add_special_roles: true,
+                },
+            )
+            .async_call()
+            .with_callback(
+                self.callbacks()
+                    .register_callback(&self.blockchain().get_caller()),
+            )
+            .call_and_exit()
     }
 
     #[callback]
-    fn issue_callback(
+    fn register_callback(
         &self,
         caller: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
-    ) -> OptionalValue<ManagedBuffer> {
+    ) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
-                self.dual_yield_token_id().set(&token_id);
+                self.last_error_message().clear();
 
-                OptionalValue::None
+                self.dual_yield_token_id().set_if_empty(&token_id);
             }
-            ManagedAsyncCallResult::Err(err) => {
+            ManagedAsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
+
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
+            }
+        }
+    }
 
-                OptionalValue::Some(err.err_msg)
+    #[only_owner]
+    #[endpoint(setLocalRolesDualYieldToken)]
+    fn set_local_roles_dual_yield_token(&self) {
+        require!(!self.dual_yield_token_id().is_empty(), "No farm token");
+
+        let token = self.dual_yield_token_id().get();
+        self.set_local_roles(token)
+    }
+
+    fn set_local_roles(&self, token: TokenIdentifier) {
+        let roles = [
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ];
+
+        self.send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(
+                &self.blockchain().get_sc_address(),
+                &token,
+                roles.iter().cloned(),
+            )
+            .async_call()
+            .with_callback(self.callbacks().change_roles_callback())
+            .call_and_exit()
+    }
+
+    #[callback]
+    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
+        match result {
+            ManagedAsyncCallResult::Ok(()) => {
+                self.last_error_message().clear();
+            }
+            ManagedAsyncCallResult::Err(message) => {
+                self.last_error_message().set(&message.err_msg);
             }
         }
     }
@@ -217,10 +254,11 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
         amount.clone()
     }
 
-    #[proxy]
-    fn esdt_system_sc_proxy(&self, sc_address: ManagedAddress) -> esdt_system_sc::Proxy<Self::Api>;
-
     #[view(getDualYieldTokenId)]
     #[storage_mapper("dualYieldTokenId")]
     fn dual_yield_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[view(getLastErrorMessage)]
+    #[storage_mapper("last_error_message")]
+    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 }
