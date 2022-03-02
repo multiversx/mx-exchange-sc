@@ -10,6 +10,7 @@ path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
 version = "0.28.0"
+features = ["cb_closure_managed_deser"]
 
 [dependencies]
 hex-literal = "0.3.1"
