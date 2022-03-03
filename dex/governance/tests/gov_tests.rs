@@ -393,3 +393,168 @@ fn test_basic_reclaim() {
         &rust_biguint!(USER_TOTAL_MEX_TOKENS),
     );
 }
+
+#[test]
+fn test_vote() {
+    let mut gov_setup = setup_gov(governance::contract_obj);
+
+    gov_setup.blockchain_wrapper.set_block_nonce(0);
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_tx(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                let dummy_proposal = Proposal::<DebugApi> {
+                    actions: ManagedVec::from(Vec::<Action<DebugApi>>::new()),
+                    creation_block: 0,
+                    description: managed_buffer!(&[]),
+                    id: 0,
+                    num_downvotes: managed_biguint!(0),
+                    num_upvotes: managed_biguint!(0),
+                    proposer: managed_address!(&Address::zero()),
+                    was_executed: false,
+                };
+
+                sc.proposal(0).set(dummy_proposal);
+            },
+        )
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let status = sc.get_proposal_status_view(0);
+            assert_eq!(ProposalStatus::Pending, status);
+        })
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(101),
+            |sc| {
+                sc.upvote(0);
+            },
+        )
+        .assert_error(4, &String::from_utf8(PROPOSAL_NOT_ACTIVE.to_vec()).unwrap());
+
+    gov_setup
+        .blockchain_wrapper
+        .set_block_nonce(VOTING_DELAY_IN_BLOCKS);
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let status = sc.get_proposal_status_view(0);
+            assert_eq!(ProposalStatus::Active, status);
+        })
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(101),
+            |sc| {
+                sc.upvote(0);
+            },
+        )
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(102),
+            |sc| {
+                sc.downvote(0);
+            },
+        )
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let proposal = sc.proposal(0).get();
+
+            assert_eq!(0, proposal.id,);
+            assert_eq!(0, proposal.creation_block);
+            assert_eq!(managed_address!(&Address::zero()), proposal.proposer);
+            assert_eq!(0, proposal.description.len());
+            assert_eq!(false, proposal.was_executed);
+            assert_eq!(0, proposal.actions.len());
+            assert_eq!(managed_biguint!(101), proposal.num_upvotes,);
+            assert_eq!(managed_biguint!(102), proposal.num_downvotes);
+        })
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            VOTE_NFT_ID,
+            2,
+            &rust_biguint!(1),
+            |sc| {
+                sc.redeem();
+            },
+        )
+        .assert_error(
+            4,
+            &String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap(),
+        );
+
+    gov_setup
+        .blockchain_wrapper
+        .set_block_nonce(VOTING_DELAY_IN_BLOCKS + VOTING_PERIOD_IN_BLOCKS);
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let status = sc.get_proposal_status_view(0);
+            assert_eq!(ProposalStatus::Defeated, status);
+        })
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            VOTE_NFT_ID,
+            1,
+            &rust_biguint!(1),
+            |sc| {
+                sc.redeem();
+            },
+        )
+        .assert_ok();
+
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            VOTE_NFT_ID,
+            2,
+            &rust_biguint!(1),
+            |sc| {
+                sc.redeem();
+            },
+        )
+        .assert_ok();
+}

@@ -24,7 +24,7 @@ elrond_wasm_node::wasm_endpoints! {
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
         propose
-        reclaimTokens
+        redeem
         upvote
     )
 }

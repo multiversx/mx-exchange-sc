@@ -1,5 +1,7 @@
 elrond_wasm::imports!();
 
+use core::mem::swap;
+
 use farm::farm_token_merge::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 
@@ -50,7 +52,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_token_identifier = self.lp_token_id().get();
 
         if lp_token_identifier != received_lp_token_identifier {
-            core::mem::swap(&mut lp_tokens, &mut lp_farm_rewards);
+            swap(&mut lp_tokens, &mut lp_farm_rewards);
         }
 
         LpFarmExitResult {
