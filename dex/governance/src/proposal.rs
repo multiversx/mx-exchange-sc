@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 use crate::config;
 use crate::errors::*;
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub enum ProposalStatus {
     Pending = 1,
     Active = 2,

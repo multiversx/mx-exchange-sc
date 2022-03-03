@@ -6,12 +6,12 @@ use proposal::ProposalCreationArgs;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-mod config;
-mod errors;
+pub mod config;
+pub mod errors;
 mod lib;
-mod proposal;
+pub mod proposal;
 mod validation;
-mod vote;
+pub mod vote;
 
 use crate::errors::*;
 use crate::proposal::*;
@@ -46,7 +46,6 @@ pub trait Governance:
     fn propose(&self, args: ProposalCreationArgs<Self::Api>) -> u64 {
         let payment = self.call_value().payment();
         self.require_is_accepted_payment_for_proposal(&payment);
-        self.require_are_accepted_args_for_proposal(&args);
 
         let vote_weight = self.get_vote_weight(&payment);
         let min_weight = self.min_weight_for_proposal().get();
@@ -128,11 +127,8 @@ pub trait Governance:
                 self.send_back(attr.payment);
                 self.burn_vote_nft(payment);
             }
-            ProposalStatus::Active => {
-                sc_panic!(PROPOSAL_STILL_ACTIVE)
-            }
-            ProposalStatus::Pending => {
-                unreachable!()
+            ProposalStatus::Active | ProposalStatus::Pending => {
+                sc_panic!(VOTING_PERIOD_NOT_ENDED)
             }
         }
     }

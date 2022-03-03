@@ -3,13 +3,13 @@ elrond_wasm::derive_imports!();
 
 use crate::config;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub enum VoteType {
     Upvote = 1,
     DownVote = 2,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct VoteNFTAttributes<M: ManagedTypeApi> {
     pub proposal_id: u64,
     pub vote_type: VoteType,

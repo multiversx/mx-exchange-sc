@@ -13,3 +13,6 @@ version = "0.28"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.28"
+
+[dev-dependencies]
+num-bigint = "0.4.2"

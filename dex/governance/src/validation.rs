@@ -2,7 +2,6 @@ elrond_wasm::imports!();
 
 use crate::config;
 use crate::errors::*;
-use crate::proposal::ProposalCreationArgs;
 
 #[elrond_wasm::module]
 pub trait Validation: config::Config {
@@ -32,9 +31,5 @@ pub trait Validation: config::Config {
         }
 
         require!(found, BAD_TOKEN_ID);
-    }
-
-    fn require_are_accepted_args_for_proposal(&self, args: &ProposalCreationArgs<Self::Api>) {
-        require!(args.actions.len() != 0, INVALID_ARGS);
     }
 }
