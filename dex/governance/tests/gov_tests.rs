@@ -121,7 +121,7 @@ fn test_propose_bad_token() {
                 });
             },
         )
-        .assert_error(4, &String::from_utf8(BAD_TOKEN_ID.to_vec()).unwrap());
+        .assert_user_error(&String::from_utf8(BAD_TOKEN_ID.to_vec()).unwrap());
 }
 
 #[test]
@@ -143,10 +143,7 @@ fn test_propose_bad_amount() {
                 });
             },
         )
-        .assert_error(
-            4,
-            &String::from_utf8(NOT_ENOUGH_FUNDS_TO_PROPOSE.to_vec()).unwrap(),
-        );
+        .assert_user_error(&String::from_utf8(NOT_ENOUGH_FUNDS_TO_PROPOSE.to_vec()).unwrap());
 }
 
 #[test]
@@ -363,10 +360,7 @@ fn test_basic_reclaim() {
                 sc.redeem();
             },
         )
-        .assert_error(
-            4,
-            &String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap(),
-        );
+        .assert_user_error(&String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap());
 
     gov_setup
         .blockchain_wrapper
@@ -443,7 +437,7 @@ fn test_vote() {
                 sc.upvote(0);
             },
         )
-        .assert_error(4, &String::from_utf8(PROPOSAL_NOT_ACTIVE.to_vec()).unwrap());
+        .assert_user_error(&String::from_utf8(PROPOSAL_NOT_ACTIVE.to_vec()).unwrap());
 
     gov_setup
         .blockchain_wrapper
@@ -513,10 +507,7 @@ fn test_vote() {
                 sc.redeem();
             },
         )
-        .assert_error(
-            4,
-            &String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap(),
-        );
+        .assert_user_error(&String::from_utf8(VOTING_PERIOD_NOT_ENDED.to_vec()).unwrap());
 
     gov_setup
         .blockchain_wrapper
