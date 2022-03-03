@@ -360,7 +360,7 @@ fn test_basic_reclaim() {
             1,
             &rust_biguint!(1),
             |sc| {
-                sc.reclaim_tokens();
+                sc.redeem();
             },
         )
         .assert_error(
@@ -381,7 +381,7 @@ fn test_basic_reclaim() {
             1,
             &rust_biguint!(1),
             |sc| {
-                sc.reclaim_tokens();
+                sc.redeem();
             },
         )
         .assert_ok();

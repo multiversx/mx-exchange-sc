@@ -111,8 +111,8 @@ pub trait Governance:
     }
 
     #[payable("*")]
-    #[endpoint(reclaimTokens)]
-    fn reclaim_tokens(&self) {
+    #[endpoint]
+    fn redeem(&self) {
         let payment = self.call_value().payment();
 
         let vote_nft_id = self.vote_nft_id().get();
@@ -123,9 +123,12 @@ pub trait Governance:
 
         let pstat = self.get_proposal_status(&proposal);
         match pstat {
-            ProposalStatus::Succeeded | ProposalStatus::Defeated | ProposalStatus::Executed => {
+            ProposalStatus::Defeated | ProposalStatus::Executed => {
                 self.send_back(attr.payment);
                 self.burn_vote_nft(payment);
+            }
+            ProposalStatus::Succeeded => {
+                sc_panic!(PROPOSAL_NEEDS_TO_BE_EXECUTED)
             }
             ProposalStatus::Active | ProposalStatus::Pending => {
                 sc_panic!(VOTING_PERIOD_NOT_ENDED)
