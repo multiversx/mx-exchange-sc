@@ -1,5 +1,6 @@
 elrond_wasm::imports!();
 
+use crate::errors::*;
 use crate::proposal::*;
 
 #[elrond_wasm::module]
@@ -36,67 +37,49 @@ pub trait Config {
         let caller = self.blockchain().get_caller();
         let sc_address = self.blockchain().get_sc_address();
 
-        require!(
-            caller == sc_address,
-            "Only the SC itself may call this function"
-        );
+        require!(caller == sc_address, INVALID_CALLER_NOT_SELF);
     }
 
     fn try_change_mex_token_id(&self, token_id: TokenIdentifier) {
-        require!(
-            token_id.is_esdt(),
-            "Invalid ESDT token ID provided for vote_nft"
-        );
+        require!(token_id.is_esdt(), INVALID_ESDT);
 
         self.mex_token_id().set(&token_id);
     }
 
     fn try_change_vote_nft_id(&self, token_id: TokenIdentifier) {
-        require!(
-            token_id.is_esdt(),
-            "Invalid ESDT token ID provided for vote_nft"
-        );
+        require!(token_id.is_esdt(), INVALID_ESDT);
 
         self.vote_nft_id().set(&token_id);
     }
 
     fn try_change_governance_token_ids(&self, token_ids: ManagedVec<TokenIdentifier>) {
         for token_id in token_ids.iter() {
-            require!(
-                token_id.is_esdt(),
-                "Invalid ESDT token ID provided for token_ids"
-            );
+            require!(token_id.is_esdt(), INVALID_ESDT);
         }
 
         self.governance_token_ids().set(&token_ids);
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
-        require!(new_value != 0u64, "Quorum can't be set to 0");
+        require!(new_value != 0u64, ZERO_VALUE);
 
         self.quorum().set(&new_value);
     }
 
     fn try_change_min_weight_for_proposal(&self, new_value: BigUint) {
-        require!(
-            new_value != 0u64,
-            "Min token balance for proposing can't be set to 0"
-        );
+        require!(new_value != 0u64, ZERO_VALUE);
 
         self.min_weight_for_proposal().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
-        require!(new_value != 0, "Voting delay in blocks can't be set to 0");
+        require!(new_value != 0, ZERO_VALUE);
 
         self.voting_delay_in_blocks().set(&new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
-        require!(
-            new_value != 0,
-            "Voting period (in blocks) can't be set to 0"
-        );
+        require!(new_value != 0, ZERO_VALUE);
 
         self.voting_period_in_blocks().set(&new_value);
     }

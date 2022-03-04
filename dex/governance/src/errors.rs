@@ -5,3 +5,7 @@ pub const PROPOSAL_NOT_FOUND: &[u8] = b"proposal not found";
 pub const NOT_ENOUGH_FUNDS_TO_PROPOSE: &[u8] = b"not enough funds to propose";
 pub const VOTING_PERIOD_NOT_ENDED: &[u8] = b"voting period not ended";
 pub const PROPOSAL_NEEDS_TO_BE_EXECUTED: &[u8] = b"successful proposal needs to be executed";
+pub const ZERO_VALUE: &[u8] = b"value cannot be zero";
+pub const INVALID_ESDT: &[u8] = b"invalid esdt";
+pub const INVALID_CALLER_NOT_SELF: &[u8] = b"caller should be self";
+pub const ALREADY_REDEEMED: &[u8] = b"already redeemed";

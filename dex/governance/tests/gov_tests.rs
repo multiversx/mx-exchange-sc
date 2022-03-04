@@ -60,7 +60,11 @@ where
         })
         .assert_ok();
 
-    let vote_nft_roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
+    let vote_nft_roles = [
+        EsdtLocalRole::NftCreate,
+        EsdtLocalRole::NftBurn,
+        EsdtLocalRole::NftUpdateAttributes,
+    ];
     blockchain_wrapper.set_esdt_local_roles(
         gov_wrapper.address_ref(),
         VOTE_NFT_ID,
@@ -169,6 +173,7 @@ fn test_basic_propose() {
         .assert_ok();
 
     // Owner has to have its Vote NFT
+    let owner_address = gov_setup.owner_address.clone();
     gov_setup
         .blockchain_wrapper
         .execute_in_managed_environment(|| {
@@ -178,9 +183,11 @@ fn test_basic_propose() {
                 1,
                 &rust_biguint!(1),
                 &VoteNFTAttributes::<DebugApi> {
+                    was_redeemed: false,
                     proposal_id: 0,
                     vote_type: VoteType::Upvote,
                     vote_weight: managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
+                    voter: managed_address!(&owner_address),
                     payment: EsdtTokenPayment::new(
                         managed_token_id!(MEX_TOKEN_ID),
                         0,
@@ -191,7 +198,6 @@ fn test_basic_propose() {
         });
 
     // SC Storage for proposal should be set correctly
-    let owner_address = gov_setup.owner_address.clone();
     gov_setup
         .blockchain_wrapper
         .execute_query(&gov_setup.gov_wrapper, |sc| {

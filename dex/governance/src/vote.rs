@@ -11,9 +11,11 @@ pub enum VoteType {
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct VoteNFTAttributes<M: ManagedTypeApi> {
+    pub was_redeemed: bool,
     pub proposal_id: u64,
     pub vote_type: VoteType,
     pub vote_weight: BigUint<M>,
+    pub voter: ManagedAddress<M>,
     pub payment: EsdtTokenPayment<M>,
 }
 
@@ -29,10 +31,12 @@ pub trait VoteHelper: config::Config {
         let big_one = BigUint::from(1u64);
         let vote_nft_id = self.vote_nft_id().get();
         let attr = VoteNFTAttributes {
-            payment,
+            was_redeemed: false,
             proposal_id,
             vote_type,
             vote_weight,
+            voter: self.blockchain().get_caller(),
+            payment,
         };
 
         let nonce = self.send().esdt_nft_create(
@@ -46,6 +50,16 @@ pub trait VoteHelper: config::Config {
         );
 
         EsdtTokenPayment::new(vote_nft_id, nonce, big_one)
+    }
+
+    fn update_vote_nft_attributes(
+        &self,
+        vote_nft_id: &TokenIdentifier,
+        nonce: u64,
+        new_attr: &VoteNFTAttributes<Self::Api>,
+    ) {
+        self.send()
+            .nft_update_attributes(&vote_nft_id, nonce, &new_attr);
     }
 
     fn get_vote_attr(&self, payment: &EsdtTokenPayment<Self::Api>) -> VoteNFTAttributes<Self::Api> {
