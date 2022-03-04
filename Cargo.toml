@@ -16,6 +16,8 @@ members = [
   "dex/farm_v1_2_mock",
   "dex/farm_v1_2_mock/meta",
   "dex/fuzz",
+  "dex/governance",
+  "dex/governance/meta",
 
   "locked-asset/",
   "locked-asset/distribution",

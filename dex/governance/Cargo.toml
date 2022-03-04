@@ -1,0 +1,18 @@
+[package]
+name = "governance"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/contract.rs"
+
+[dependencies.elrond-wasm]
+version = "0.28"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.28"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
