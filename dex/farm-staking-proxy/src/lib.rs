@@ -96,12 +96,12 @@ pub trait FarmStakingProxy:
             self.burn_dual_yield_tokens(p.token_nonce, &p.amount);
         }
 
-        let lp_tokens_in_farm = self.get_lp_tokens_in_farm_position(
-            lp_farm_token_payment.token_nonce,
-            &lp_farm_token_payment.amount,
-        );
         let merged_lp_farm_tokens =
             self.merge_lp_farm_tokens(lp_farm_token_payment, additional_lp_farm_tokens);
+        let lp_tokens_in_farm = self.get_lp_tokens_in_farm_position(
+            merged_lp_farm_tokens.token_nonce,
+            &merged_lp_farm_tokens.amount,
+        );
 
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
         let received_staking_farm_token = self
