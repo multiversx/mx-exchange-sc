@@ -45,3 +45,7 @@ path = "pair"
 
 [dev-dependencies.router]
 path = "router"
+
+[dev-dependencies.governance]
+path = "governance"
+
