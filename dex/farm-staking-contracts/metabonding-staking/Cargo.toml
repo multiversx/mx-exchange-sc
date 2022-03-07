@@ -19,3 +19,9 @@ path = "../../../locked-asset/factory"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.28.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.common_structs]
+path = "../../../common/common_structs"

@@ -10,7 +10,7 @@ pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
 const UNBOND_EPOCHS: u64 = 7;
 
 #[elrond_wasm::contract]
-pub trait FarmMetabondingProxy: locked_asset_token::LockedAssetTokenModule {
+pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
     #[init]
     fn init(
         &self,
