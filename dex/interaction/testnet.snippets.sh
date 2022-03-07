@@ -95,7 +95,7 @@ deployRouterContract() {
           --bytecode="../router/output/router.wasm" \
           --outfile="deploy-route-internal.interaction.json" --send || return
     
-    ADDRESS=$(erdpy data parse --file="deploy-route-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-route-internal.interaction.json" --expression="data['contractAddress']")
 
     erdpy data store --key=router-address --value=${ADDRESS}
 
@@ -305,7 +305,7 @@ deployPairContract() {
           --arguments $first_token $second_token $router_address $user_address_decode 0x000000000000012C 0x0000000000000032 \
           --outfile="deploy-pair-internal.interaction.json" --send || return
     
-    ADDRESS=$(erdpy data parse --file="deploy-pair-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-pair-internal.interaction.json" --expression="data['contractAddress']")
 
     echo ""
     echo "Pair Smart contract address: ${ADDRESS}"
@@ -496,7 +496,7 @@ deployFarmContract() {
         --arguments $router_address $farmed_token $farming_token $locked_asset_factory_address 0xE8D4A51000 \
         --outfile="deploy-farm-internal.interaction.json" --send || return
 
-    ADDRESS=$(erdpy data parse --file="deploy-farm-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-farm-internal.interaction.json" --expression="data['contractAddress']")
 
     erdpy data store --key=address-devnet --value=${ADDRESS}
 
@@ -796,7 +796,7 @@ deployWEGLDContract() {
           --bytecode="/home/elrond/Elrond/sc-bridge-elrond/egld-esdt-swap/output/egld-esdt-swap.wasm" \
           --outfile="deploy-wegld-internal.interaction.json" --wait-result --send || return
     
-    ADDRESS=$(erdpy data parse --file="deploy-wegld-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-wegld-internal.interaction.json" --expression="data['contractAddress']")
 
     erdpy data store --key=router-address --value=${ADDRESS}
 
