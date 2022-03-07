@@ -9,31 +9,31 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.config]
-path = "../../common/modules/farm/config"
+path = "../../../common/modules/farm/config"
 
 [dependencies.farm_token]
-path = "../../common/modules/farm/farm_token"
+path = "../../../common/modules/farm/farm_token"
 
 [dependencies.rewards]
-path = "../../common/modules/farm/rewards"
+path = "../../../common/modules/farm/rewards"
 
 [dependencies.token_send]
-path = "../../common/modules/token_send"
+path = "../../../common/modules/token_send"
 
 [dependencies.token_merge]
-path = "../../common/modules/token_merge"
+path = "../../../common/modules/token_merge"
 
 [dependencies.factory]
-path = "../../locked-asset/factory"
+path = "../../../locked-asset/factory"
 
 [dependencies.pair]
-path = "../pair"
+path = "../../pair"
 
 [dependencies.common_structs]
-path = "../../common/common_structs"
+path = "../../../common/common_structs"
 
 [dependencies.common_errors]
-path = "../../common/common_errors"
+path = "../../../common/common_errors"
 
 [dependencies.elrond-wasm]
 version = "0.28.0"
