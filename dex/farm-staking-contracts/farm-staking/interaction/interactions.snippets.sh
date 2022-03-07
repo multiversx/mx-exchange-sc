@@ -46,7 +46,7 @@ deployStakeFarmContract() {
         --arguments $staking_token $DIVISION_SAFETY_CONSTANT $2 $3 \
         --outfile="deploy-stake-farm-internal.interaction.json" --send || return
 
-    ADDRESS=$(erdpy data parse --file="deploy-stake-farm-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-stake-farm-internal.interaction.json" --expression="data['contractAddress']")
 
     echo ""
     echo "Staking Smart Contract address: ${ADDRESS}"
