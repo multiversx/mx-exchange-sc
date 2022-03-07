@@ -1,3 +1,4 @@
+use elrond_wasm::types::MultiValueEncoded;
 use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, ManagedVec};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -56,6 +57,7 @@ where
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
                 ManagedVec::from(vec![managed_token_id!(MEX_TOKEN_ID)]),
+                MultiValueEncoded::new(),
             );
         })
         .assert_ok();

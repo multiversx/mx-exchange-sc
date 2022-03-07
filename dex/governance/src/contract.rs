@@ -31,6 +31,9 @@ pub trait Governance:
         mex_token_id: TokenIdentifier,
         min_weight_for_proposal: BigUint,
         governance_token_ids: ManagedVec<TokenIdentifier>,
+        #[var_args] price_providers: MultiValueEncoded<
+            MultiValue2<TokenIdentifier, ManagedAddress>,
+        >,
     ) {
         self.try_change_quorum(quorum);
         self.try_change_vote_nft_id(vote_nft_id);
@@ -39,6 +42,7 @@ pub trait Governance:
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
         self.try_change_min_weight_for_proposal(min_weight_for_proposal);
+        self.try_change_price_providers(price_providers);
     }
 
     #[payable("*")]
@@ -99,6 +103,8 @@ pub trait Governance:
         self.require_is_accepted_payment_for_voting(&payment);
 
         let vote_weight = self.get_vote_weight(&payment);
+        require!(vote_weight != 0, ZERO_VALUE);
+
         match vote_type {
             VoteType::Upvote => proposal.num_upvotes += &vote_weight,
             VoteType::DownVote => proposal.num_downvotes += &vote_weight,

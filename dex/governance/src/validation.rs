@@ -6,14 +6,18 @@ use crate::errors::*;
 #[elrond_wasm::module]
 pub trait Validation: config::Config {
     fn require_is_accepted_payment_for_proposal(&self, payment: &EsdtTokenPayment<Self::Api>) {
-        let governance_token_ids = self.governance_token_ids().get();
-        let found = governance_token_ids.contains(&payment.token_identifier);
-        require!(found, BAD_TOKEN_ID);
+        require!(
+            self.governance_token_ids()
+                .contains(&payment.token_identifier),
+            BAD_TOKEN_ID
+        );
     }
 
     fn require_is_accepted_payment_for_voting(&self, payment: &EsdtTokenPayment<Self::Api>) {
-        let governance_token_ids = self.governance_token_ids().get();
-        let found = governance_token_ids.contains(&payment.token_identifier);
-        require!(found, BAD_TOKEN_ID);
+        require!(
+            self.governance_token_ids()
+                .contains(&payment.token_identifier),
+            BAD_TOKEN_ID
+        );
     }
 }

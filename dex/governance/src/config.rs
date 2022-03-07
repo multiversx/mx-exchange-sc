@@ -33,6 +33,25 @@ pub trait Config {
         self.try_change_voting_period_in_blocks(new_value);
     }
 
+    #[endpoint(changeGovernanceTokenIds)]
+    fn change_governance_token_ids(&self, token_ids: ManagedVec<TokenIdentifier>) {
+        self.require_caller_self();
+
+        self.try_change_governance_token_ids(token_ids);
+    }
+
+    #[endpoint(changePriceProviders)]
+    fn change_price_providers(
+        &self,
+        #[var_args] price_providers: MultiValueEncoded<
+            MultiValue2<TokenIdentifier, ManagedAddress>,
+        >,
+    ) {
+        self.require_caller_self();
+
+        self.try_change_price_providers(price_providers);
+    }
+
     fn require_caller_self(&self) {
         let caller = self.blockchain().get_caller();
         let sc_address = self.blockchain().get_sc_address();
@@ -53,11 +72,30 @@ pub trait Config {
     }
 
     fn try_change_governance_token_ids(&self, token_ids: ManagedVec<TokenIdentifier>) {
-        for token_id in token_ids.iter() {
-            require!(token_id.is_esdt(), INVALID_ESDT);
-        }
+        self.governance_token_ids().clear();
 
-        self.governance_token_ids().set(&token_ids);
+        for token_id in token_ids.into_iter() {
+            require!(token_id.is_esdt(), INVALID_ESDT);
+
+            self.governance_token_ids().insert(token_id);
+        }
+    }
+
+    fn try_change_price_providers(
+        &self,
+        #[var_args] price_providers: MultiValueEncoded<
+            MultiValue2<TokenIdentifier, ManagedAddress>,
+        >,
+    ) {
+        self.price_providers().clear();
+
+        for provider in price_providers.into_iter() {
+            let tuple = provider.into_tuple();
+            require!(tuple.0.is_esdt(), INVALID_ESDT);
+            require!(!tuple.1.is_zero(), ZERO_VALUE);
+
+            self.price_providers().insert(tuple.0, tuple.1);
+        }
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
@@ -86,7 +124,7 @@ pub trait Config {
 
     #[view(getGovernanceTokenId)]
     #[storage_mapper("governanceTokenIds")]
-    fn governance_token_ids(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;
+    fn governance_token_ids(&self) -> SetMapper<TokenIdentifier>;
 
     #[view(getQuorum)]
     #[storage_mapper("quorum")]
@@ -119,4 +157,7 @@ pub trait Config {
     #[view(getMexTokenId)]
     #[storage_mapper("mexTokenId")]
     fn mex_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
+    #[storage_mapper("price_providers")]
+    fn price_providers(&self) -> MapMapper<TokenIdentifier, ManagedAddress>;
 }
