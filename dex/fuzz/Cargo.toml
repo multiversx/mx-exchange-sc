@@ -23,7 +23,7 @@ path = "../../common/modules/farm/rewards"
 path = "../../common/common_structs"
 
 [dependencies.farm-staking]
-path = "../farm-staking"
+path = "../farm-staking-contracts/farm-staking"
 
 [dependencies.farm_with_lock]
 path = "../farm_with_lock"
