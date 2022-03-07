@@ -125,15 +125,12 @@ pub trait Governance:
         let pstat = self.get_proposal_status(&proposal);
 
         match pstat {
-            ProposalStatus::Defeated | ProposalStatus::Executed => {
+            ProposalStatus::Succeeded | ProposalStatus::Defeated | ProposalStatus::Executed => {
                 attr.was_redeemed = true;
                 self.update_vote_nft_attributes(&vote_nft_id, payment.token_nonce, &attr);
 
-                self.send_back(attr.payment.clone());
+                self.send_back(attr.payment);
                 self.send_back(payment);
-            }
-            ProposalStatus::Succeeded => {
-                sc_panic!(PROPOSAL_NEEDS_TO_BE_EXECUTED)
             }
             ProposalStatus::Active | ProposalStatus::Pending => {
                 sc_panic!(VOTING_PERIOD_NOT_ENDED)

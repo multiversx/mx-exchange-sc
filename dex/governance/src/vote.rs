@@ -59,7 +59,7 @@ pub trait VoteHelper: config::Config {
         new_attr: &VoteNFTAttributes<Self::Api>,
     ) {
         self.send()
-            .nft_update_attributes(&vote_nft_id, nonce, &new_attr);
+            .nft_update_attributes(vote_nft_id, nonce, new_attr);
     }
 
     fn get_vote_attr(&self, payment: &EsdtTokenPayment<Self::Api>) -> VoteNFTAttributes<Self::Api> {
