@@ -320,12 +320,12 @@ fn test_stake_farm_through_proxy_with_merging() {
             &setup.user_addr,
             DUAL_YIELD_TOKEN_ID,
             new_dual_yield_token_nonce,
-            &rust_biguint!(1_400_000_000),
+            &rust_biguint!(1_000_000_000),
             &DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 2,
                 lp_farm_token_amount: managed_biguint!(1_000_000_000),
                 staking_farm_token_nonce: 2,
-                staking_farm_token_amount: managed_biguint!(1_400_000_000),
+                staking_farm_token_amount: managed_biguint!(1_000_000_000),
             },
         )
     });
