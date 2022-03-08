@@ -1,20 +1,14 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::types::{
-    Address, EsdtLocalRole, EsdtTokenPayment, EsdtTokenType, ManagedVec, TokenIdentifier,
-};
-use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT, TxResult};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
+use elrond_wasm_debug::tx_mock::{TxInputESDT, TxResult};
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    DebugApi,
+    managed_address, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
 };
-use factory::locked_asset::{LockedAssetModule, LockedTokenEx};
+use factory::locked_asset::LockedAssetModule;
 use factory::*;
 use metabonding_staking::MetabondingStaking;
-
-type RustBigUint = num_bigint::BigUint;
 
 pub const METABONDING_STAKING_WASM_PATH: &'static str = "1.wasm";
 pub const LOCKED_ASSET_FACTORY_WASM_PATH: &'static str = "2.wasm";
