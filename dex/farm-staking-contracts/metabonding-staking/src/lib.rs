@@ -31,6 +31,9 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         let caller = self.blockchain().get_caller();
         let new_locked_asset_token = self.merge_locked_asset_tokens_if_needed(&caller, payments);
 
+        self.total_locked_asset_supply()
+            .update(|total_supply| *total_supply += &new_locked_asset_token.amount);
+
         self.staking_entry_for_user(&caller).set(&StakingEntry::new(
             new_locked_asset_token.token_nonce,
             new_locked_asset_token.amount,
@@ -65,6 +68,9 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epoch = unsafe { staking_entry.opt_unbond_epoch.unwrap_unchecked() };
         require!(current_epoch >= unbond_epoch, "Unbond period in progress");
+
+        self.total_locked_asset_supply()
+            .update(|total_supply| *total_supply -= &staking_entry.amount);
 
         entry_mapper.clear();
         self.user_list().swap_remove(&caller);

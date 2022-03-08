@@ -59,6 +59,9 @@ pub trait LockedAssetTokenModule {
                 "Cannot stake during unbond period"
             );
 
+            self.total_locked_asset_supply()
+                .update(|total_supply| *total_supply -= &prev_entry.amount);
+
             let prev_entry_as_payment = EsdtTokenPayment::new(
                 self.locked_asset_token_id().get(),
                 prev_entry.nonce,
@@ -89,6 +92,10 @@ pub trait LockedAssetTokenModule {
     #[view(getLockedAssetFactoryAddress)]
     #[storage_mapper("lockedAssetFactoryAddress")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getTotalLockedAssetSupply)]
+    #[storage_mapper("totalLockedAssetSupply")]
+    fn total_locked_asset_supply(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("stakingEntryForUser")]
     fn staking_entry_for_user(

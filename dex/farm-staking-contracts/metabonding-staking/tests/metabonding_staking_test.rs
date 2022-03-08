@@ -35,7 +35,26 @@ fn test_stake_second() {
     let mut setup =
         MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
     setup.call_stake_locked_asset(3, 100_000_000).assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_supply = managed_biguint!(100_000_000);
+            let actual_supply = sc.total_locked_asset_supply().get();
+            assert_eq!(actual_supply, expected_supply);
+        })
+        .assert_ok();
+
     setup.call_stake_locked_asset(4, 1_000_000).assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_supply = managed_biguint!(101_000_000);
+            let actual_supply = sc.total_locked_asset_supply().get();
+            assert_eq!(actual_supply, expected_supply);
+        })
+        .assert_ok();
 
     // tokens are merged into a single one
     let user_addr = setup.user_address.clone();
@@ -166,6 +185,15 @@ fn test_unbond() {
         })
         .assert_ok();
 
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_supply = managed_biguint!(101_000_000);
+            let actual_supply = sc.total_locked_asset_supply().get();
+            assert_eq!(actual_supply, expected_supply);
+        })
+        .assert_ok();
+
     // try unbond too early
     setup
         .call_unbond()
@@ -173,6 +201,15 @@ fn test_unbond() {
 
     setup.b_mock.set_block_epoch(UNBOND_EPOCHS);
     setup.call_unbond().assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_supply = managed_biguint!(0);
+            let actual_supply = sc.total_locked_asset_supply().get();
+            assert_eq!(actual_supply, expected_supply);
+        })
+        .assert_ok();
 
     // checking attributes for LKMEX tokens is out of scope
     // so we just check with the raw expected value
