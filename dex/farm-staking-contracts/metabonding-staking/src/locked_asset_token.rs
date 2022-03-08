@@ -30,7 +30,7 @@ impl<M: ManagedTypeApi> StakingEntry<M> {
 #[elrond_wasm::module]
 pub trait LockedAssetTokenModule {
     fn require_all_locked_asset_payments(&self, payments: &PaymentsVec<Self::Api>) {
-        require!(payments.len() > 0, "No payments");
+        require!(!payments.is_empty(), "No payments");
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
         for p in payments {

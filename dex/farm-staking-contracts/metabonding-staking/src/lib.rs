@@ -85,6 +85,21 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         );
     }
 
+    #[view(getStakedAmountForUser)]
+    fn get_staked_amount_for_user(&self, user_address: ManagedAddress) -> BigUint {
+        let entry_mapper = self.staking_entry_for_user(&user_address);
+        if entry_mapper.is_empty() {
+            BigUint::zero()
+        } else {
+            let entry: StakingEntry<Self::Api> = entry_mapper.get();
+            if entry.is_unstaked() {
+                BigUint::zero()
+            } else {
+                entry.amount
+            }
+        }
+    }
+
     #[view(getSnapshot)]
     fn get_snapshot(&self) -> ManagedMultiResultVec<SnapshotEntry<Self::Api>> {
         let mut result = ManagedMultiResultVec::new();
