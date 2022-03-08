@@ -1,0 +1,27 @@
+[package]
+name = "metabonding-staking"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "0.28.0"
+
+[dependencies.elrond-wasm-modules]
+version = "0.28.0"
+
+[dependencies.factory]
+path = "../../../locked-asset/factory"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.28.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.common_structs]
+path = "../../../common/common_structs"

@@ -46,7 +46,7 @@ deployLockedAssetContract() {
           --arguments $token_identifier 0x000000000000000564 \
           --outfile="deploy-locked-asset-internal.interaction.json" --send || return
     
-    ADDRESS=$(erdpy data parse --file="deploy-locked-asset-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-locked-asset-internal.interaction.json" --expression="data['contractAddress']")
 
     echo ""
     echo "Locked Asset Factory contract address: ${ADDRESS}"
@@ -150,7 +150,7 @@ deployProxyContract() {
         --arguments $asset_token $locked_asset_token \
         --outfile="deploy-proxy-internal.interaction.json" --send || return
 
-    ADDRESS=$(erdpy data parse --file="deploy-proxy-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-proxy-internal.interaction.json" --expression="data['contractAddress']")
 
     echo ""
     echo "Proxy Smart Contract address: ${ADDRESS}"
@@ -485,7 +485,7 @@ deployDistributionContract() {
         --arguments $asset_token $locked_asset_address \
         --outfile="deploy-distribution-internal.interaction.json" --send || return
 
-    ADDRESS=$(erdpy data parse --file="deploy-distribution-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-distribution-internal.interaction.json" --expression="data['contractAddress']")
 
     echo ""
     echo "Distribution Smart Contract address: ${ADDRESS}"

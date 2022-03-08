@@ -62,7 +62,7 @@ deployProxyStakeFarmContract() {
         --arguments $lp_farm_address $staking_farm_address $pair_address $staking_token $lp_farm_token $staking_farm_token $lp_token\
         --outfile="deploy-proxy-stake-farm-internal.interaction.json" --send || return
 
-    ADDRESS=$(erdpy data parse --file="deploy-proxy-stake-farm-internal.interaction.json" --expression="data['emitted_tx']['address']")
+    ADDRESS=$(erdpy data parse --file="deploy-proxy-stake-farm-internal.interaction.json" --expression="data['contractAddress']")
 
     echo ""
     echo "Metastaking Smart Contract address: ${ADDRESS}"

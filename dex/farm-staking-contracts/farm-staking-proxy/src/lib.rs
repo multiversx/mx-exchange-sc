@@ -76,12 +76,12 @@ pub trait FarmStakingProxy:
         self.require_all_payments_dual_yield_tokens(&additional_payments);
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
-        let mut staking_farm_tokens = ManagedVec::new();
+        let mut additional_staking_farm_tokens = ManagedVec::new();
         let mut additional_lp_farm_tokens = ManagedVec::new();
         for p in &additional_payments {
             let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
 
-            staking_farm_tokens.push(EsdtTokenPayment::new(
+            additional_staking_farm_tokens.push(EsdtTokenPayment::new(
                 staking_farm_token_id.clone(),
                 attributes.staking_farm_token_nonce,
                 self.get_staking_farm_token_amount_equivalent(&p.amount),
@@ -100,13 +100,13 @@ pub trait FarmStakingProxy:
             lp_farm_token_payment.token_nonce,
             &lp_farm_token_payment.amount,
         );
-        let merged_lp_farm_tokens =
-            self.merge_lp_farm_tokens(lp_farm_token_payment, additional_lp_farm_tokens);
-
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
         let received_staking_farm_token = self
-            .staking_farm_enter(staking_token_amount, staking_farm_tokens)
+            .staking_farm_enter(staking_token_amount, additional_staking_farm_tokens)
             .received_staking_farm_token;
+
+        let merged_lp_farm_tokens =
+            self.merge_lp_farm_tokens(lp_farm_token_payment, additional_lp_farm_tokens);
 
         let caller = self.blockchain().get_caller();
         self.create_and_send_dual_yield_tokens(
