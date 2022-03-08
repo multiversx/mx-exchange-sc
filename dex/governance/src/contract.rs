@@ -125,19 +125,14 @@ pub trait Governance:
         let vote_nft_id = self.vote_nft_id().get();
         require!(payment.token_identifier == vote_nft_id, BAD_TOKEN_ID);
 
-        let mut attr = self.get_vote_attr(&payment);
-        require!(!attr.was_redeemed, ALREADY_REDEEMED);
-
+        let attr = self.get_vote_attr(&payment);
         let proposal = self.proposal(attr.proposal_id).get();
         let pstat = self.get_proposal_status(&proposal);
 
         match pstat {
             ProposalStatus::Succeeded | ProposalStatus::Defeated | ProposalStatus::Executed => {
-                attr.was_redeemed = true;
-                self.update_vote_nft_attributes(&vote_nft_id, payment.token_nonce, &attr);
-
                 self.send_back(attr.payment);
-                self.send_back(payment);
+                self.burn_vote_nft(payment);
             }
             ProposalStatus::Active | ProposalStatus::Pending => {
                 sc_panic!(VOTING_PERIOD_NOT_ENDED)

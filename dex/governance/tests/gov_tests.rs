@@ -237,7 +237,6 @@ fn test_basic_propose() {
                 1,
                 &rust_biguint!(1),
                 &VoteNFTAttributes::<DebugApi> {
-                    was_redeemed: false,
                     proposal_id: 0,
                     vote_type: VoteType::Upvote,
                     vote_weight: managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
@@ -643,7 +642,6 @@ fn test_basic_propose_with_lpmex() {
                 1,
                 &rust_biguint!(1),
                 &VoteNFTAttributes::<DebugApi> {
-                    was_redeemed: false,
                     proposal_id: 0,
                     vote_type: VoteType::Upvote,
                     vote_weight: managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
