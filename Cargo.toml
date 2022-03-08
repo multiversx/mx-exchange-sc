@@ -7,6 +7,8 @@ members = [
   "dex/farm-staking-contracts/farm-staking/meta",
   "dex/farm-staking-contracts/farm-staking-proxy",
   "dex/farm-staking-contracts/farm-staking-proxy/meta",
+  "dex/farm-staking-contracts/metabonding-staking",
+  "dex/farm-staking-contracts/metabonding-staking/meta",
   "dex/farm_with_lock",
   "dex/farm_with_lock/meta",
   "dex/pair",
