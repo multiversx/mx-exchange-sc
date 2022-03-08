@@ -7,7 +7,7 @@ elrond_wasm::imports!();
 pub mod locked_asset_token;
 
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
-const UNBOND_EPOCHS: u64 = 7;
+pub const UNBOND_EPOCHS: u64 = 10;
 
 #[elrond_wasm::contract]
 pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {

@@ -1,113 +1,203 @@
-use common_structs::UnlockMilestone;
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
-use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    DebugApi,
+pub mod metabonding_staking_setup;
+use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, tx_mock::TxInputESDT};
+use metabonding_staking::{
+    locked_asset_token::{LockedAssetTokenModule, StakingEntry},
+    UNBOND_EPOCHS,
 };
-use factory::locked_asset::LockedAssetModule;
-use factory::*;
-use metabonding_staking::MetabondingStaking;
+use metabonding_staking_setup::*;
 
-type RustBigUint = num_bigint::BigUint;
-
-const METABONDING_STAKING_WASM_PATH: &'static str = "1.wasm";
-const LOCKED_ASSET_FACTORY_WASM_PATH: &'static str = "2.wasm";
-const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
-const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-123456";
-
-struct MetabondingStakingSetup<MetabondingStakingObjBuilder, LockedAssetFactoryObjBuilder>
-where
-    MetabondingStakingObjBuilder:
-        'static + Copy + Fn() -> metabonding_staking::ContractObj<DebugApi>,
-    LockedAssetFactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-{
-    pub b_mock: BlockchainStateWrapper,
-    pub owner_address: Address,
-    pub user_address: Address,
-    pub mbs_wrapper: ContractObjWrapper<
-        metabonding_staking::ContractObj<DebugApi>,
-        MetabondingStakingObjBuilder,
-    >,
-    pub laf_wrapper:
-        ContractObjWrapper<factory::ContractObj<DebugApi>, LockedAssetFactoryObjBuilder>,
+#[test]
+fn test_init() {
+    let _ = MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
 }
 
-impl<MetabondingStakingObjBuilder, LockedAssetFactoryObjBuilder>
-    MetabondingStakingSetup<MetabondingStakingObjBuilder, LockedAssetFactoryObjBuilder>
-where
-    MetabondingStakingObjBuilder:
-        'static + Copy + Fn() -> metabonding_staking::ContractObj<DebugApi>,
-    LockedAssetFactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-{
-    pub fn new(
-        mbs_builder: MetabondingStakingObjBuilder,
-        laf_builder: LockedAssetFactoryObjBuilder,
-    ) -> Self {
-        let rust_zero = rust_biguint!(0u64);
-        let mut b_mock = BlockchainStateWrapper::new();
-        let owner_addr = b_mock.create_user_account(&rust_zero);
-        let user_addr = b_mock.create_user_account(&rust_zero);
+#[test]
+fn test_stake_first() {
+    let mut setup =
+        MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
+    setup.call_stake_locked_asset(3, 100_000_000).assert_ok();
 
-        let laf_wrapper = b_mock.create_sc_account(
-            &rust_zero,
-            Some(&owner_addr),
-            laf_builder,
-            LOCKED_ASSET_FACTORY_WASM_PATH,
-        );
-        let mbs_wrapper = b_mock.create_sc_account(
-            &rust_zero,
-            Some(&owner_addr),
-            mbs_builder,
-            METABONDING_STAKING_WASM_PATH,
-        );
+    let user_addr = setup.user_address.clone();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry::new(3, managed_biguint!(100_000_000));
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
+}
 
-        // init Locked Asset Factory contract
+#[test]
+fn test_stake_second() {
+    let mut setup =
+        MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
+    setup.call_stake_locked_asset(3, 100_000_000).assert_ok();
+    setup.call_stake_locked_asset(4, 1_000_000).assert_ok();
 
-        b_mock
-            .execute_tx(&owner_addr, &laf_wrapper, &rust_zero, |sc| {
-                let asset_token_id = managed_token_id!(ASSET_TOKEN_ID);
-                let unlocked_percents = ManagedVec::from_single_item(UnlockMilestone {
-                    unlock_epoch: 5,
-                    unlock_percent: 100,
-                });
+    // tokens are merged into a single one
+    let user_addr = setup.user_address.clone();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry::new(1, managed_biguint!(101_000_000));
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
+}
 
-                sc.init(asset_token_id, unlocked_percents.into());
+#[test]
+fn test_stake_multiple() {
+    let mut setup =
+        MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
+    let payments = [
+        TxInputESDT {
+            token_identifier: LOCKED_ASSET_TOKEN_ID.to_vec(),
+            nonce: 3,
+            value: rust_biguint!(100_000_000),
+        },
+        TxInputESDT {
+            token_identifier: LOCKED_ASSET_TOKEN_ID.to_vec(),
+            nonce: 4,
+            value: rust_biguint!(1_000_000),
+        },
+    ];
 
-                let locked_asset_token_id = managed_token_id!(LOCKED_ASSET_TOKEN_ID);
-                sc.locked_asset_token_id().set(&locked_asset_token_id);
-            })
-            .assert_ok();
+    setup
+        .call_stake_locked_asset_multiple(&payments)
+        .assert_ok();
 
-        let locked_asset_token_roles = [
-            EsdtLocalRole::NftCreate,
-            EsdtLocalRole::NftAddQuantity,
-            EsdtLocalRole::NftBurn,
-        ];
-        b_mock.set_esdt_local_roles(
-            laf_wrapper.address_ref(),
-            LOCKED_ASSET_TOKEN_ID,
-            &locked_asset_token_roles[..],
-        );
+    // tokens are merged into a single one
+    let user_addr = setup.user_address.clone();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry::new(1, managed_biguint!(101_000_000));
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
+}
 
-        // init Metabonding Staking contract
+#[test]
+fn test_unstake() {
+    let mut setup =
+        MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
+    setup.call_stake_locked_asset(3, 100_000_000).assert_ok();
+    setup.call_stake_locked_asset(4, 1_000_000).assert_ok();
 
-        b_mock
-            .execute_tx(&owner_addr, &mbs_wrapper, &rust_zero, |sc| {
-                let locked_asset_token_id = managed_token_id!(LOCKED_ASSET_TOKEN_ID);
-                let locked_asset_factory_addr = managed_address!(laf_wrapper.address_ref());
+    // tokens are merged into a single one
+    let user_addr = setup.user_address.clone();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry::new(1, managed_biguint!(101_000_000));
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
 
-                sc.init(locked_asset_token_id, locked_asset_factory_addr);
-            })
-            .assert_ok();
+    setup.call_unstake().assert_ok();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry {
+                nonce: 1,
+                amount: managed_biguint!(101_000_000),
+                opt_unbond_epoch: Option::Some(10),
+            };
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
 
-        Self {
-            b_mock,
-            laf_wrapper,
-            mbs_wrapper,
-            owner_address: owner_addr,
-            user_address: user_addr,
-        }
-    }
+    // try unstake again
+    setup.call_unstake().assert_user_error("Already unstaked");
+}
+
+#[test]
+fn test_unbond() {
+    let mut setup =
+        MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
+
+    setup.call_stake_locked_asset(3, 100_000_000).assert_ok();
+    setup.call_stake_locked_asset(4, 1_000_000).assert_ok();
+
+    // tokens are merged into a single one
+    let user_addr = setup.user_address.clone();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry::new(1, managed_biguint!(101_000_000));
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
+
+    // try unbond before unstake
+    setup.call_unbond().assert_user_error("Must unstake first");
+
+    setup.call_unstake().assert_ok();
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let expected_entry = StakingEntry {
+                nonce: 1,
+                amount: managed_biguint!(101_000_000),
+                opt_unbond_epoch: Option::Some(10),
+            };
+            let actual_entry = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .get();
+            assert_eq!(actual_entry, expected_entry);
+        })
+        .assert_ok();
+
+    // try unbond too early
+    setup
+        .call_unbond()
+        .assert_user_error("Unbond period in progress");
+
+    setup.b_mock.set_block_epoch(UNBOND_EPOCHS);
+    setup.call_unbond().assert_ok();
+
+    // checking attributes for LKMEX tokens is out of scope
+    // so we just check with the raw expected value
+    let attributes: Vec<u8> = vec![
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 38, 173, 0, 0, 0, 0, 0, 0, 1, 104, 0,
+        0, 0, 0, 0, 0, 58, 162, 0, 0, 0, 0, 0, 0, 1, 134, 0, 0, 0, 0, 0, 0, 58, 162, 0, 0, 0, 0, 0,
+        0, 1, 164, 0, 0, 0, 0, 0, 0, 58, 171, 0, 0, 0, 0, 0, 0, 1, 194, 0, 0, 0, 0, 0, 0, 58, 172,
+        0, 0, 0, 0, 0, 0, 1, 224, 0, 0, 0, 0, 0, 0, 58, 172, 0, 0, 0, 0, 0, 0, 1, 254, 0, 0, 0, 0,
+        0, 0, 58, 172, 1,
+    ];
+    setup.b_mock.check_nft_balance(
+        &setup.user_address,
+        LOCKED_ASSET_TOKEN_ID,
+        1,
+        &rust_biguint!(101_000_000),
+        &attributes,
+    );
+
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let entry_is_empty = sc
+                .staking_entry_for_user(&managed_address!(&user_addr))
+                .is_empty();
+            assert_eq!(entry_is_empty, true);
+        })
+        .assert_ok();
 }

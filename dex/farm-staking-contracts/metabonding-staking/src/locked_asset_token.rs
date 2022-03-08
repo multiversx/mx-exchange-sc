@@ -5,7 +5,7 @@ use factory::locked_asset_token_merge::ProxyTrait as _;
 
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, Debug, PartialEq)]
 pub struct StakingEntry<M: ManagedTypeApi> {
     pub nonce: u64,
     pub amount: BigUint<M>,
