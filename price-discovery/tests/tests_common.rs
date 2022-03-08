@@ -17,6 +17,8 @@ pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub const REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
+pub const EXTRA_REWARDS_TOKEN_ID: &[u8] = b"EGLD";
+pub const MIN_PRICE: u64 = 0;
 
 pub const START_BLOCK: u64 = 10;
 pub const END_BLOCK: u64 = 50;
@@ -142,6 +144,8 @@ where
             sc.init(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
+                managed_token_id!(EXTRA_REWARDS_TOKEN_ID),
+                managed_biguint!(MIN_PRICE),
                 START_BLOCK,
                 END_BLOCK,
                 NO_LIMIT_PHASE_DURATION_BLOCKS,

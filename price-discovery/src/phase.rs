@@ -92,6 +92,13 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
         };
     }
 
+    fn require_deposit_extra_rewards_allowed(&self, phase: &Phase<Self::Api>) {
+        require!(
+            phase != &Phase::Unbond,
+            "Deposit extra rewards not allowed in this phase"
+        );
+    }
+
     #[storage_mapper("noLimitPhaseDurationBocks")]
     fn no_limit_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 

@@ -13,6 +13,12 @@ pub mod phase;
 pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
+const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000;
+
+pub struct RewardsPair<M: ManagedTypeApi> {
+    pub lp_tokens_amount: BigUint<M>,
+    pub extra_rewards_amount: BigUint<M>,
+}
 
 #[elrond_wasm::contract]
 pub trait PriceDiscovery:
@@ -26,6 +32,8 @@ pub trait PriceDiscovery:
         &self,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
+        extra_rewards_token_id: TokenIdentifier,
+        min_launched_token_price: BigUint,
         start_block: u64,
         end_block: u64,
         no_limit_phase_duration_blocks: u64,
@@ -36,6 +44,8 @@ pub trait PriceDiscovery:
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
     ) {
+        /* Disabled until the validate token ID function is activated
+
         require!(
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
@@ -44,6 +54,12 @@ pub trait PriceDiscovery:
             accepted_token_id.is_egld() || accepted_token_id.is_valid_esdt_identifier(),
             "Invalid payment token ID"
         );
+        require!(
+            extra_rewards_token_id.is_egld() || extra_rewards_token_id.is_valid_esdt_identifier(),
+            "Invalid extra rewards token ID"
+        );
+
+        */
 
         self.check_valid_init_periods(
             start_block,
@@ -68,6 +84,9 @@ pub trait PriceDiscovery:
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
+        self.extra_rewards_token_id().set(&extra_rewards_token_id);
+        self.min_launched_token_price()
+            .set(&min_launched_token_price);
         self.start_block().set(&start_block);
         self.end_block().set(&end_block);
 
@@ -114,6 +133,23 @@ pub trait PriceDiscovery:
         );
     }
 
+    #[only_owner]
+    #[payable("*")]
+    #[endpoint(depositExtraRewards)]
+    fn deposit_extra_rewards(&self) {
+        self.require_dex_address_set();
+
+        let phase = self.get_current_phase();
+        self.require_deposit_extra_rewards_allowed(&phase);
+
+        let payment_token = self.call_value().token();
+        let extra_rewards_token_id = self.extra_rewards_token_id().get();
+        require!(
+            payment_token == extra_rewards_token_id,
+            INVALID_PAYMENT_ERR_MSG
+        );
+    }
+
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) {
@@ -135,6 +171,8 @@ pub trait PriceDiscovery:
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
+
+        self.require_launched_token_over_min_price();
     }
 
     #[payable("*")]
@@ -172,6 +210,8 @@ pub trait PriceDiscovery:
             self.send()
                 .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
         }
+
+        self.require_launched_token_over_min_price();
     }
 
     #[payable("*")]
@@ -185,15 +225,31 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let lp_token_amount = self.compute_lp_amount_to_send(payment_nonce, &payment_amount);
-        require!(lp_token_amount > 0u32, "Nothing to redeem");
+        let rewards = self.compute_lp_amount_to_send(payment_nonce, &payment_amount);
+        let mut user_payments = ManagedVec::new();
+        if rewards.lp_tokens_amount > 0 {
+            let lp_token_id = self.lp_token_id().get();
+            user_payments.push(EsdtTokenPayment::new(
+                lp_token_id,
+                0,
+                rewards.lp_tokens_amount,
+            ));
+        }
+        if rewards.extra_rewards_amount > 0 {
+            let extra_rewards_token_id = self.extra_rewards_token_id().get();
+            user_payments.push(EsdtTokenPayment::new(
+                extra_rewards_token_id,
+                0,
+                rewards.extra_rewards_amount,
+            ));
+        }
+
+        require!(!user_payments.is_empty(), "Nothing to redeem");
 
         self.burn_redeem_token(payment_nonce, &payment_amount);
 
         let caller = self.blockchain().get_caller();
-        let lp_token_id = self.lp_token_id().get();
-        self.send()
-            .direct(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
+        self.send().direct_multi(&caller, &user_payments, &[]);
     }
 
     // private
@@ -202,15 +258,23 @@ pub trait PriceDiscovery:
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
-    ) -> BigUint {
+    ) -> RewardsPair<Self::Api> {
         let total_lp_tokens = self.total_lp_tokens_received().get();
         let percentage_of_redeeem_token_supply =
             self.get_percentage_of_total_supply(redeem_token_nonce, redeem_token_amount);
 
         let extra_lp_tokens = self.extra_lp_tokens().get();
-        let bonus = percentage_of_redeeem_token_supply * extra_lp_tokens / MAX_PERCENTAGE / 2u32;
+        let bonus = self.get_rewards_share(&percentage_of_redeeem_token_supply, &extra_lp_tokens);
         self.extra_lp_tokens()
             .update(|extra_amt| *extra_amt -= &bonus);
+
+        let extra_rewards_total_amount = self.extra_rewards_final_amount().get();
+        let extra_rewards_for_user = self.get_rewards_share(
+            &percentage_of_redeeem_token_supply,
+            &extra_rewards_total_amount,
+        );
+        self.extra_rewards_final_amount()
+            .update(|extra_rew| *extra_rew -= &extra_rewards_for_user);
 
         match redeem_token_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => {
@@ -218,17 +282,34 @@ pub trait PriceDiscovery:
                 let base_lp_amount =
                     redeem_token_amount * &total_lp_tokens / launched_token_final_amount / 2u32;
 
-                base_lp_amount + bonus
+                RewardsPair {
+                    lp_tokens_amount: base_lp_amount + bonus,
+                    extra_rewards_amount: extra_rewards_for_user,
+                }
             }
             ACCEPTED_TOKEN_REDEEM_NONCE => {
                 let accepted_token_final_amount = self.accepted_token_final_amount().get();
                 let base_lp_amount =
                     redeem_token_amount * &total_lp_tokens / accepted_token_final_amount / 2u32;
 
-                base_lp_amount + bonus
+                RewardsPair {
+                    lp_tokens_amount: base_lp_amount + bonus,
+                    extra_rewards_amount: extra_rewards_for_user,
+                }
             }
-            _ => BigUint::zero(),
+            _ => RewardsPair {
+                lp_tokens_amount: BigUint::zero(),
+                extra_rewards_amount: BigUint::zero(),
+            },
         }
+    }
+
+    fn get_rewards_share(
+        &self,
+        percentage_of_redeeem_token_supply: &BigUint,
+        total_rewards_amount: &BigUint,
+    ) -> BigUint {
+        percentage_of_redeeem_token_supply * total_rewards_amount / MAX_PERCENTAGE / 2u32
     }
 
     fn require_redeem_allowed(&self) {
@@ -243,4 +324,24 @@ pub trait PriceDiscovery:
             "Unbond period not finished yet"
         );
     }
+
+    fn require_launched_token_over_min_price(&self) {
+        let launched_token_id = self.launched_token_id().get();
+        let accepted_token_id = self.accepted_token_id().get();
+
+        let min_price = self.min_launched_token_price().get();
+        let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
+        let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
+
+        require!(launched_token_balance > 0, "No launched tokens available");
+        require!(
+            accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance
+                >= min_price * MIN_PRICE_PRECISION,
+            "Launched token below min price"
+        );
+    }
+
+    #[view(getMinLaunchedTokenPrice)]
+    #[storage_mapper("minLaunchedTokenPrice")]
+    fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
 }

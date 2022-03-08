@@ -41,9 +41,11 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
         let launched_token_id = self.launched_token_id().get();
         let accepted_token_id = self.accepted_token_id().get();
+        let extra_rewards_token_id = self.extra_rewards_token_id().get();
 
         let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
         let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
+        let extra_rewards_balance = self.blockchain().get_sc_balance(&extra_rewards_token_id, 0);
         let launched_token_accumulated_penalty =
             self.accumulated_penalty(LAUNCHED_TOKEN_REDEEM_NONCE).get();
         let accepted_token_accumulated_penalty =
@@ -59,10 +61,13 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
             &launched_token_balance - &launched_token_accumulated_penalty;
         let accepted_token_final_amount =
             &accepted_token_balance - &accepted_token_accumulated_penalty;
+        let extra_rewards_final_amount = extra_rewards_balance;
         self.launched_token_final_amount()
             .set(&launched_token_final_amount);
         self.accepted_token_final_amount()
             .set(&accepted_token_final_amount);
+        self.extra_rewards_final_amount()
+            .set(&extra_rewards_final_amount);
 
         let mut payments = ManagedVec::<Self::Api, EsdtTokenPayment<Self::Api>>::new();
         payments.push(EsdtTokenPayment {

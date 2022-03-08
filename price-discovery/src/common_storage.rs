@@ -12,6 +12,10 @@ pub trait CommonStorageModule {
     #[storage_mapper("acceptedTokenId")]
     fn accepted_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
+    #[view(getExtraRewardsTokenId)]
+    #[storage_mapper("extraRewardsTokenId")]
+    fn extra_rewards_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
     #[view(getLpTokenId)]
     #[storage_mapper("lpTokenId")]
     fn lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
@@ -24,12 +28,18 @@ pub trait CommonStorageModule {
     #[storage_mapper("acceptedTokenFinalAmount")]
     fn accepted_token_final_amount(&self) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("extraRewardsFinalAmount")]
+    fn extra_rewards_final_amount(&self) -> SingleValueMapper<BigUint>;
+
     #[view(totalLpTokensReceived)]
     #[storage_mapper("totalLpTokensReceived")]
     fn total_lp_tokens_received(&self) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("extraLpTokens")]
     fn extra_lp_tokens(&self) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("extraRewards")]
+    fn extra_rewards(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getStartBlock)]
     #[storage_mapper("startBlock")]
