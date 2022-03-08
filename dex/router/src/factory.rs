@@ -104,8 +104,8 @@ pub trait FactoryModule {
     fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
 
     #[view(getAllPairsManagedAddresses)]
-    fn get_all_pairs_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_all_pairs_addresses(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.pair_map().values() {
             result.push(pair);
         }
@@ -113,8 +113,8 @@ pub trait FactoryModule {
     }
 
     #[view(getAllPairTokens)]
-    fn get_all_token_pairs(&self) -> ManagedMultiResultVec<PairTokens<Self::Api>> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_all_token_pairs(&self) -> MultiValueEncoded<PairTokens<Self::Api>> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.pair_map().keys() {
             result.push(pair);
         }
@@ -122,10 +122,8 @@ pub trait FactoryModule {
     }
 
     #[view(getAllPairContractMetadata)]
-    fn get_all_pair_contract_metadata(
-        &self,
-    ) -> ManagedMultiResultVec<PairContractMetadata<Self::Api>> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_all_pair_contract_metadata(&self) -> MultiValueEncoded<PairContractMetadata<Self::Api>> {
+        let mut result = MultiValueEncoded::new();
         for (k, v) in self.pair_map().iter() {
             let pair_metadata = PairContractMetadata {
                 first_token_id: k.first_token_id,

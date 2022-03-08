@@ -16,3 +16,6 @@ version = "0.29"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.pair-mock]
+path = "../../pair-mock"
