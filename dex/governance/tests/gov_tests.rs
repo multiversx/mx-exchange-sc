@@ -127,6 +127,16 @@ where
     );
     blockchain_wrapper.set_esdt_balance(
         &user_addr,
+        LPMEX_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_MEX_TOKENS),
+    );
+    blockchain_wrapper.set_esdt_balance(
+        &owner_addr,
+        LPMEX_TOKEN_ID,
+        &rust_biguint!(USER_TOTAL_MEX_TOKENS),
+    );
+    blockchain_wrapper.set_esdt_balance(
+        &user_addr,
         FAKE_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_MEX_TOKENS),
     );
@@ -597,5 +607,75 @@ fn test_vote() {
                 sc.redeem();
             },
         )
+        .assert_ok();
+}
+
+#[test]
+fn test_basic_propose_with_lpmex() {
+    let mut gov_setup = setup_gov(governance::contract_obj, pair_mock::contract_obj);
+
+    // User makes a basic proposal
+    gov_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &gov_setup.owner_address,
+            &gov_setup.gov_wrapper,
+            LPMEX_TOKEN_ID,
+            0,
+            &rust_biguint!(MIN_WEIGHT_FOR_PROPOSAL * 2),
+            |sc| {
+                sc.propose(ProposalCreationArgs {
+                    description: managed_buffer!(&b""[..]),
+                    actions: ManagedVec::from(Vec::<Action<DebugApi>>::new()),
+                });
+            },
+        )
+        .assert_ok();
+
+    // Owner has to have its Vote NFT
+    let owner_address = gov_setup.owner_address.clone();
+    gov_setup
+        .blockchain_wrapper
+        .execute_in_managed_environment(|| {
+            gov_setup.blockchain_wrapper.check_nft_balance(
+                &gov_setup.owner_address,
+                VOTE_NFT_ID,
+                1,
+                &rust_biguint!(1),
+                &VoteNFTAttributes::<DebugApi> {
+                    was_redeemed: false,
+                    proposal_id: 0,
+                    vote_type: VoteType::Upvote,
+                    vote_weight: managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
+                    voter: managed_address!(&owner_address),
+                    payment: EsdtTokenPayment::new(
+                        managed_token_id!(LPMEX_TOKEN_ID),
+                        0,
+                        managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL * 2),
+                    ),
+                },
+            );
+        });
+
+    // SC Storage for proposal should be set correctly
+    gov_setup
+        .blockchain_wrapper
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let proposal = sc.proposal(0).get();
+
+            assert_eq!(0, proposal.id,);
+            assert_eq!(0, proposal.creation_block);
+            assert_eq!(managed_address!(&owner_address), proposal.proposer);
+            assert_eq!(0, proposal.description.len());
+            assert_eq!(false, proposal.was_executed);
+            assert_eq!(0, proposal.actions.len());
+            assert_eq!(
+                managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
+                proposal.num_upvotes,
+            );
+            assert_eq!(managed_biguint!(0), proposal.num_downvotes);
+
+            assert_eq!(1, sc.proposal_id_counter().get());
+        })
         .assert_ok();
 }

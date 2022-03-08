@@ -138,6 +138,17 @@ pub trait PairMock {
         ))
     }
 
+    #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
+    fn update_and_get_tokens_for_given_position_with_safe_price(
+        &self,
+        liquidity: BigUint,
+    ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
+        MultiValue2::from((
+            EsdtTokenPayment::new(self.first_token_id().get(), 0, liquidity.clone() / 2u64),
+            EsdtTokenPayment::new(self.second_token_id().get(), 0, liquidity.clone() / 2u64),
+        ))
+    }
+
     #[storage_mapper("first_token_id")]
     fn first_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 

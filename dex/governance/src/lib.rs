@@ -18,6 +18,8 @@ mod price_provider_proxy {
 #[elrond_wasm::module]
 pub trait Lib: config::Config {
     fn get_vote_weight(&self, payment: &EsdtTokenPayment<Self::Api>) -> BigUint {
+        let mex_token_id = self.mex_token_id().get();
+
         if payment.token_identifier == self.mex_token_id().get() {
             return payment.amount.clone();
         }
@@ -29,11 +31,11 @@ pub trait Lib: config::Config {
                 .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
                 .into_tuple();
 
-            if payment.token_identifier == token1.token_identifier {
+            if token1.token_identifier == mex_token_id {
                 return token1.amount;
             }
 
-            if payment.token_identifier == token2.token_identifier {
+            if token2.token_identifier == mex_token_id {
                 return token2.amount;
             }
         }
