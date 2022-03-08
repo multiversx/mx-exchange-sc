@@ -10,6 +10,8 @@ elrond_wasm_node::wasm_endpoints! {
         getLockedAssetFactoryAddress
         getLockedAssetTokenId
         getSnapshot
+        getStakedAmountForUser
+        getTotalLockedAssetSupply
         getUserList
         stakeLockedAsset
         unbond

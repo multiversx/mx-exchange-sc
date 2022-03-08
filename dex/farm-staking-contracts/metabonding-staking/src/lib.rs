@@ -66,7 +66,7 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         require!(staking_entry.is_unstaked(), "Must unstake first");
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = unsafe { staking_entry.opt_unbond_epoch.unwrap_unchecked() };
+        let unbond_epoch = staking_entry.opt_unbond_epoch.unwrap();
         require!(current_epoch >= unbond_epoch, "Unbond period in progress");
 
         self.total_locked_asset_supply()
