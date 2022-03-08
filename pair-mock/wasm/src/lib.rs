@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     pair_mock
     (
         addInitialLiquidity
+        updateAndGetTokensForGivenPositionWithSafePrice
     )
 }
 

@@ -101,8 +101,8 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
     }
 
     #[view(getSnapshot)]
-    fn get_snapshot(&self) -> ManagedMultiResultVec<SnapshotEntry<Self::Api>> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_snapshot(&self) -> MultiValueEncoded<SnapshotEntry<Self::Api>> {
+        let mut result = MultiValueEncoded::new();
 
         for user_address in self.user_list().iter() {
             let entry: StakingEntry<Self::Api> = self.staking_entry_for_user(&user_address).get();

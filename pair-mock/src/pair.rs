@@ -145,7 +145,7 @@ pub trait PairMock {
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
         MultiValue2::from((
             EsdtTokenPayment::new(self.first_token_id().get(), 0, liquidity.clone() / 2u64),
-            EsdtTokenPayment::new(self.second_token_id().get(), 0, liquidity.clone() / 2u64),
+            EsdtTokenPayment::new(self.second_token_id().get(), 0, liquidity / 2u64),
         ))
     }
 
