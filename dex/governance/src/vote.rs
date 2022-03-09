@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use crate::config;
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone)]
 pub enum VoteType {
     Upvote = 1,
     DownVote = 2,
