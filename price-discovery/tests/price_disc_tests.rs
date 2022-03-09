@@ -301,7 +301,7 @@ fn withdraw_too_late() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
-    pd_setup.blockchain_wrapper.set_block_nonce(END_BLOCK - 1);
+    pd_setup.blockchain_wrapper.set_block_nonce(END_BLOCK + 1);
 
     let caller_addr = pd_setup.first_user_address.clone();
     call_withdraw(&mut pd_setup, &caller_addr, &rust_biguint!(1_000))

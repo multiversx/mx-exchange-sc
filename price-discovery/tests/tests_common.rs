@@ -21,10 +21,13 @@ pub const EXTRA_REWARDS_TOKEN_ID: &[u8] = b"EGLD";
 pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
 
 pub const START_BLOCK: u64 = 10;
-pub const END_BLOCK: u64 = 50;
 pub const NO_LIMIT_PHASE_DURATION_BLOCKS: u64 = 5;
 pub const LINEAR_PENALTY_PHASE_DURATION_BLOCKS: u64 = 5;
 pub const FIXED_PENALTY_PHASE_DURATION_BLOCKS: u64 = 5;
+pub const END_BLOCK: u64 = START_BLOCK
+    + NO_LIMIT_PHASE_DURATION_BLOCKS
+    + LINEAR_PENALTY_PHASE_DURATION_BLOCKS
+    + FIXED_PENALTY_PHASE_DURATION_BLOCKS;
 pub const UNBOND_EPOCHS: u64 = 7;
 
 pub const MIN_PENALTY_PERCENTAGE: u64 = 1_000_000_000_000; // 10%
@@ -147,7 +150,6 @@ where
                 managed_token_id!(EXTRA_REWARDS_TOKEN_ID),
                 managed_biguint!(0),
                 START_BLOCK,
-                END_BLOCK,
                 NO_LIMIT_PHASE_DURATION_BLOCKS,
                 LINEAR_PENALTY_PHASE_DURATION_BLOCKS,
                 FIXED_PENALTY_PHASE_DURATION_BLOCKS,

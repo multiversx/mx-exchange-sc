@@ -35,7 +35,6 @@ pub trait PriceDiscovery:
         extra_rewards_token_id: TokenIdentifier,
         min_launched_token_price: BigUint,
         start_block: u64,
-        end_block: u64,
         no_limit_phase_duration_blocks: u64,
         linear_penalty_phase_duration_blocks: u64,
         fixed_penalty_phase_duration_blocks: u64,
@@ -60,14 +59,16 @@ pub trait PriceDiscovery:
         );
 
         */
-
-        self.check_valid_init_periods(
-            start_block,
-            end_block,
-            no_limit_phase_duration_blocks,
-            linear_penalty_phase_duration_blocks,
-            fixed_penalty_phase_duration_blocks,
+        let current_block = self.blockchain().get_block_nonce();
+        require!(
+            current_block < start_block,
+            "Start block cannot be in the past"
         );
+
+        let end_block = start_block
+            + no_limit_phase_duration_blocks
+            + linear_penalty_phase_duration_blocks
+            + fixed_penalty_phase_duration_blocks;
 
         require!(
             penalty_min_percentage <= penalty_max_percentage,
@@ -101,36 +102,6 @@ pub trait PriceDiscovery:
         self.penalty_max_percentage().set(&penalty_max_percentage);
         self.fixed_penalty_percentage()
             .set(&fixed_penalty_percentage);
-    }
-
-    #[inline]
-    fn check_valid_init_periods(
-        &self,
-        start_block: u64,
-        end_block: u64,
-        no_limit_phase_duration_blocks: u64,
-        linear_penalty_phase_duration_blocks: u64,
-        fixed_penalty_phase_duration_blocks: u64,
-    ) {
-        let current_block = self.blockchain().get_block_nonce();
-        require!(
-            current_block < start_block,
-            "Start block cannot be in the past"
-        );
-        require!(current_block < end_block, "End epoch cannot be in the past");
-        require!(
-            start_block < end_block,
-            "Start epoch must be before end epoch"
-        );
-
-        let block_diff = end_block - start_block;
-        let phases_total_duration = no_limit_phase_duration_blocks
-            + linear_penalty_phase_duration_blocks
-            + fixed_penalty_phase_duration_blocks;
-        require!(
-            phases_total_duration <= block_diff,
-            "Phase durations last more than the whole start to end period"
-        );
     }
 
     #[only_owner]
