@@ -179,7 +179,7 @@ fn test_propose_bad_token() {
                 });
             },
         )
-        .assert_user_error(&String::from_utf8(BAD_TOKEN_ID.to_vec()).unwrap());
+        .assert_user_error(&String::from_utf8(UNREGISTERED_TOKEN_ID.to_vec()).unwrap());
 }
 
 #[test]

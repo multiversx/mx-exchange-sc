@@ -50,7 +50,7 @@ pub trait Governance:
     #[endpoint]
     fn propose(&self, args: ProposalCreationArgs<Self::Api>) -> u64 {
         let payment = self.call_value().payment();
-        self.require_is_accepted_payment_for_proposal(&payment);
+        self.require_is_accepted_payment(&payment);
 
         let vote_weight = self.get_vote_weight(&payment);
         let min_weight = self.min_weight_for_proposal().get();
@@ -101,10 +101,10 @@ pub trait Governance:
         require!(pstat == ProposalStatus::Active, PROPOSAL_NOT_ACTIVE);
 
         let payment = self.call_value().payment();
-        self.require_is_accepted_payment_for_voting(&payment);
+        self.require_is_accepted_payment(&payment);
 
         let vote_weight = self.get_vote_weight(&payment);
-        require!(vote_weight != 0, ZERO_VALUE);
+        require!(vote_weight != 0, ERROR_ZERO_VALUE);
 
         match vote_type {
             VoteType::Upvote => proposal.num_upvotes += &vote_weight,
@@ -123,7 +123,7 @@ pub trait Governance:
         let payment = self.call_value().payment();
 
         let vote_nft_id = self.vote_nft_id().get();
-        require!(payment.token_identifier == vote_nft_id, BAD_TOKEN_ID);
+        require!(payment.token_identifier == vote_nft_id, BAD_PAYMENT_TOKEN);
 
         let attr = self.get_vote_attr(&payment);
         let proposal = self.proposal(attr.proposal_id).get();

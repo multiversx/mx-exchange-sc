@@ -92,32 +92,32 @@ pub trait Config {
         for provider in price_providers.into_iter() {
             let tuple = provider.into_tuple();
             require!(tuple.0.is_esdt(), INVALID_ESDT);
-            require!(!tuple.1.is_zero(), ZERO_VALUE);
+            require!(!tuple.1.is_zero(), ERROR_ZERO_VALUE);
 
             self.price_providers().insert(tuple.0, tuple.1);
         }
     }
 
     fn try_change_quorum(&self, new_value: BigUint) {
-        require!(new_value != 0u64, ZERO_VALUE);
+        require!(new_value != 0u64, ERROR_ZERO_VALUE);
 
         self.quorum().set(&new_value);
     }
 
     fn try_change_min_weight_for_proposal(&self, new_value: BigUint) {
-        require!(new_value != 0u64, ZERO_VALUE);
+        require!(new_value != 0u64, ERROR_ZERO_VALUE);
 
         self.min_weight_for_proposal().set(&new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
-        require!(new_value != 0, ZERO_VALUE);
+        require!(new_value != 0, ERROR_ZERO_VALUE);
 
         self.voting_delay_in_blocks().set(&new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
-        require!(new_value != 0, ZERO_VALUE);
+        require!(new_value != 0, ERROR_ZERO_VALUE);
 
         self.voting_period_in_blocks().set(&new_value);
     }
