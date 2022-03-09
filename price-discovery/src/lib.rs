@@ -226,7 +226,7 @@ pub trait PriceDiscovery:
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
         let rewards = self.compute_rewards(payment_nonce, &payment_amount);
-        self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
+        self.burn_redeem_token(payment_nonce, &payment_amount);
 
         let caller = self.blockchain().get_caller();
         if rewards.lp_tokens_amount > 0 {
