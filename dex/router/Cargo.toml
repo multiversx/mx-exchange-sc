@@ -12,11 +12,10 @@ path = "src/contract.rs"
 path = "../../common/modules/token_send"
 
 [dependencies.elrond-wasm]
-version = "0.28.0"
-features = ["cb_closure_managed_deser"]
+version = "0.29"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.28.0"
+version = "0.29"
 
 [dependencies.pair]
 path = "../pair"

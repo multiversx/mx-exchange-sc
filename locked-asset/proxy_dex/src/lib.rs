@@ -177,7 +177,7 @@ pub trait ProxyDexImpl:
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: MultiValueEncoded<EsdtLocalRole>,
     ) {
         self.send()
             .esdt_system_sc_proxy()

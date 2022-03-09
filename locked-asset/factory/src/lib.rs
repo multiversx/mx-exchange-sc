@@ -35,7 +35,7 @@ pub trait LockedAssetFactory:
     fn init(
         &self,
         asset_token_id: TokenIdentifier,
-        #[var_args] default_unlock_period: ManagedVarArgs<UnlockMilestone>,
+        #[var_args] default_unlock_period: MultiValueEncoded<UnlockMilestone>,
     ) {
         require!(
             asset_token_id.is_esdt(),
@@ -248,7 +248,7 @@ pub trait LockedAssetFactory:
 
     #[only_owner]
     #[endpoint(setUnlockPeriod)]
-    fn set_unlock_period(&self, #[var_args] milestones: ManagedVarArgs<UnlockMilestone>) {
+    fn set_unlock_period(&self, #[var_args] milestones: MultiValueEncoded<UnlockMilestone>) {
         let unlock_milestones = milestones.to_vec();
         self.validate_unlock_milestones(&unlock_milestones);
         self.default_unlock_period()
@@ -371,7 +371,7 @@ pub trait LockedAssetFactory:
     fn set_local_roles_locked_asset_token(
         &self,
         address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: MultiValueEncoded<EsdtLocalRole>,
     ) {
         require!(
             !self.locked_asset_token_id().is_empty(),
@@ -437,8 +437,8 @@ pub trait LockedAssetFactory:
     fn whitelisted_contracts(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getWhitelistedContracts)]
-    fn get_whitelisted_contracts(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_whitelisted_contracts(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.whitelisted_contracts().iter() {
             result.push(pair);
         }

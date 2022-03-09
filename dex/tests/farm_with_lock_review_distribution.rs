@@ -5,7 +5,7 @@ use common_structs::{
 };
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
-    types::{Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedMultiResultVec, ManagedVec},
+    types::{Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -65,7 +65,7 @@ where
     blockchain_wrapper
         .execute_tx(&owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
             let asset_token_id = managed_token_id!(LKMEX_TOKEN_ID);
-            let default_unlock_period = ManagedMultiResultVec::from(ManagedVec::from(vec![
+            let default_unlock_period = MultiValueEncoded::from(ManagedVec::from(vec![
                 UnlockMilestone {
                     unlock_epoch: 20,
                     unlock_percent: 50,
