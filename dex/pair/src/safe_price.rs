@@ -156,6 +156,7 @@ pub trait SafePriceModule:
 
     #[endpoint(setMaxObservationsPerRecord)]
     fn set_max_observations_per_record(&self, max_observations_per_record: u64) {
+        self.require_permissions();
         self.max_observations_per_record().set(max_observations_per_record);
     }
 
