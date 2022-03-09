@@ -58,13 +58,13 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
             token_type: EsdtTokenType::Fungible,
             token_identifier: launched_token_id,
             token_nonce: 0,
-            amount: launched_token_balance.clone(),
+            amount: launched_token_balance,
         });
         payments.push(EsdtTokenPayment {
             token_type: EsdtTokenType::Fungible,
             token_identifier: accepted_token_id,
             token_nonce: 0,
-            amount: accepted_token_balance.clone(),
+            amount: accepted_token_balance,
         });
 
         let dex_sc_address = self.dex_sc_address().get();
