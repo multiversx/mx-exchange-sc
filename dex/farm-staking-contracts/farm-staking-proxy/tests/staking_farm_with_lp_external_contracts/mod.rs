@@ -53,6 +53,7 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(&pair_config::State::Active);
+            sc.set_max_observations_per_record(10);
         })
         .assert_ok();
 
