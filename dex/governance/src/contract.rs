@@ -9,6 +9,7 @@ elrond_wasm::derive_imports!();
 
 pub mod config;
 pub mod errors;
+mod events;
 mod lib;
 pub mod proposal;
 mod validation;
@@ -20,7 +21,12 @@ use crate::vote::*;
 
 #[elrond_wasm::contract]
 pub trait Governance:
-    config::Config + validation::Validation + proposal::ProposalHelper + lib::Lib + vote::VoteHelper
+    config::Config
+    + validation::Validation
+    + proposal::ProposalHelper
+    + lib::Lib
+    + vote::VoteHelper
+    + events::Events
 {
     #[init]
     fn init(
@@ -62,10 +68,18 @@ pub trait Governance:
         proposal.num_upvotes = vote_weight.clone();
         self.proposal(proposal.id).set(&proposal);
 
-        let vote_nft = self.create_vote_nft(proposal.id, VoteType::Upvote, vote_weight, payment);
+        let vote_nft = self.create_vote_nft(
+            proposal.id,
+            VoteType::Upvote,
+            vote_weight.clone(),
+            payment.clone(),
+        );
         self.send_back(vote_nft);
 
-        proposal.id
+        let proposal_id = proposal.id;
+        self.emit_propose_event(proposal, payment, vote_weight);
+
+        proposal_id
     }
 
     #[payable("*")]
@@ -91,6 +105,8 @@ pub trait Governance:
         self.execute_proposal(&proposal);
         proposal.was_executed = true;
         self.proposal(proposal_id).set(&proposal);
+
+        self.emit_execute_event(proposal);
     }
 
     fn vote(&self, proposal_id: u64, vote_type: VoteType) {
@@ -104,17 +120,23 @@ pub trait Governance:
         self.require_is_accepted_payment(&payment);
 
         let vote_weight = self.get_vote_weight(&payment);
-        require!(vote_weight != 0, ERROR_ZERO_VALUE);
+        require!(vote_weight != 0u64, ERROR_ZERO_VALUE);
 
         match vote_type {
             VoteType::Upvote => proposal.num_upvotes += &vote_weight,
             VoteType::DownVote => proposal.num_downvotes += &vote_weight,
         }
 
-        let vote_nft = self.create_vote_nft(proposal.id, vote_type, vote_weight, payment);
+        let vote_nft = self.create_vote_nft(
+            proposal_id,
+            vote_type.clone(),
+            vote_weight.clone(),
+            payment.clone(),
+        );
         self.send_back(vote_nft);
 
         self.proposal(proposal_id).set(&proposal);
+        self.emit_vote_event(proposal, vote_type, payment, vote_weight);
     }
 
     #[payable("*")]
@@ -131,12 +153,14 @@ pub trait Governance:
 
         match pstat {
             ProposalStatus::Succeeded | ProposalStatus::Defeated | ProposalStatus::Executed => {
-                self.send_back(attr.payment);
-                self.burn_vote_nft(payment);
+                self.send_back(attr.payment.clone());
+                self.burn_vote_nft(payment.clone());
             }
             ProposalStatus::Active | ProposalStatus::Pending => {
-                sc_panic!(VOTING_PERIOD_NOT_ENDED)
+                sc_panic!(VOTING_PERIOD_NOT_ENDED);
             }
         }
+
+        self.emit_redeem_event(proposal, payment, attr);
     }
 }
