@@ -262,10 +262,9 @@ pub trait PriceDiscovery:
         }
 
         require!(launched_token_balance > 0, "No launched tokens available");
-        require!(
-            accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance >= min_price,
-            "Launched token below min price"
-        );
+
+        let current_price = accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance;
+        require!(current_price >= min_price, "Launched token below min price");
     }
 
     #[view(getMinLaunchedTokenPrice)]
