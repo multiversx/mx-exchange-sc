@@ -8,7 +8,7 @@ use crate::{
     errors::{ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT},
 };
 
-const MAX_OBSERVATIONS_PER_RECORD: u64 = 10;
+const MAX_OBSERVATIONS_PER_RECORD: u64 = 100;
 
 type Block = u64;
 
@@ -56,14 +56,6 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
 
     fn is_default(&self) -> bool {
         self.first_obs_block == 0
-    }
-
-    fn has_max_observations(&self) -> bool {
-        self.num_observations == MAX_OBSERVATIONS_PER_RECORD
-    }
-
-    fn has_half_max_observations(&self) -> bool {
-        self.num_observations == MAX_OBSERVATIONS_PER_RECORD / 2
     }
 
     fn update(
@@ -162,6 +154,11 @@ pub trait SafePriceModule:
         EsdtTokenPayment::new(t_out, 0, self.quote(&input.amount, &r_in, &r_out))
     }
 
+    #[endpoint(setMaxObservationsPerRecord)]
+    fn set_max_observations_per_record(&self, max_observations_per_record: u64) {
+        self.max_observations_per_record().set(max_observations_per_record);
+    }
+
     fn update_safe_state_from_context(&self, ctx: &dyn Context<Self::Api>) {
         self.update_safe_state(
             ctx.get_first_token_reserve(),
@@ -198,14 +195,14 @@ pub trait SafePriceModule:
         }
 
         //Will be executed just once to initialize the future state.
-        if current_state.has_half_max_observations() && future_state.is_default() {
+        if self.has_half_max_observations(&current_state) && future_state.is_default() {
             future_state =
                 CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
         }
 
         //At this point, future state is already initialized and contains half
         //of the observations that the current state contains.
-        if current_state.has_max_observations() {
+        if self.has_max_observations(&current_state) {
             current_state = future_state.clone();
             future_state =
                 CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
@@ -238,6 +235,16 @@ pub trait SafePriceModule:
         }
     }
 
+    fn has_max_observations(&self, current_state: &CumulativeState<Self::Api>) -> bool {
+        let max_observations_per_record = self.get_max_observations_per_record();
+        current_state.num_observations == max_observations_per_record
+    }
+
+    fn has_half_max_observations(&self, current_state: &CumulativeState<Self::Api>) -> bool {
+        let max_observations_per_record = self.get_max_observations_per_record();
+        current_state.num_observations == max_observations_per_record / 2
+    }
+
     #[inline]
     fn get_current_state_or_default(&self) -> CumulativeState<Self::Api> {
         if self.current_state().is_empty() {
@@ -256,9 +263,21 @@ pub trait SafePriceModule:
         }
     }
 
+    #[inline]
+    fn get_max_observations_per_record(&self) -> u64 {
+        if self.max_observations_per_record().is_empty() {
+            MAX_OBSERVATIONS_PER_RECORD
+        } else {
+            self.max_observations_per_record().get()
+        }
+    }
+
     #[storage_mapper("current_state")]
     fn current_state(&self) -> SingleValueMapper<CumulativeState<Self::Api>>;
 
     #[storage_mapper("future_state")]
     fn future_state(&self) -> SingleValueMapper<CumulativeState<Self::Api>>;
+
+    #[storage_mapper("max_observations_per_record")]
+    fn max_observations_per_record(&self) -> SingleValueMapper<u64>;
 }

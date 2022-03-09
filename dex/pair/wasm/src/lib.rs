@@ -50,6 +50,7 @@ elrond_wasm_node::wasm_endpoints! {
         setFeeOn
         setFeePercents
         setLpTokenIdentifier
+        setMaxObservationsPerRecord
         setStateActiveNoSwaps
         set_extern_swap_gas_limit
         set_transfer_exec_gas_limit
