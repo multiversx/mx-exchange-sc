@@ -6,11 +6,11 @@ use crate::errors::*;
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub enum ProposalStatus {
-    Pending = 1,
-    Active = 2,
-    Defeated = 3,
-    Succeeded = 4,
-    Executed = 5,
+    Pending, //Starts from 0
+    Active,
+    Defeated,
+    Succeeded,
+    Executed,
 }
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, TypeAbi)]
