@@ -350,15 +350,7 @@ fn create_pool_ok() {
         .execute_query(&pd_setup.pd_wrapper, |sc| {
             assert_eq!(sc.lp_token_id().get(), managed_token_id!(LP_TOKEN_ID));
             assert_eq!(
-                sc.launched_token_final_amount().get(),
-                managed_biguint!(5_000_000_000)
-            );
-            assert_eq!(
-                sc.accepted_token_final_amount().get(),
-                managed_biguint!(1_100_000_000)
-            );
-            assert_eq!(
-                sc.total_claimable_lp_tokens().get(),
+                sc.total_lp_tokens_received().get(),
                 managed_biguint!(expected_lp_token_balance)
             );
         })
@@ -550,21 +542,6 @@ pub fn redeem_with_extra_tokens_from_penalties_steps<PriceDiscObjBuilder, DexObj
 
     pd_setup.blockchain_wrapper.set_block_epoch(12);
 
-    let accumulated_penalty_amount = 100_000_000u64;
-    pd_setup
-        .blockchain_wrapper
-        .execute_query(&pd_setup.pd_wrapper, |sc| {
-            let accepted_token_penalty = sc.accumulated_penalty(ACCEPTED_TOKEN_REDEEM_NONCE).get();
-            let launched_token_penalty = sc.accumulated_penalty(LAUNCHED_TOKEN_REDEEM_NONCE).get();
-
-            assert_eq!(
-                accepted_token_penalty,
-                managed_biguint!(accumulated_penalty_amount)
-            );
-            assert_eq!(launched_token_penalty, managed_biguint!(0));
-        })
-        .assert_ok();
-
     let first_user_address = pd_setup.first_user_address.clone();
     let first_user_redeem_token_amount = rust_biguint!(600_000_000);
     call_redeem(
@@ -611,7 +588,7 @@ pub fn redeem_with_extra_tokens_from_penalties_steps<PriceDiscObjBuilder, DexObj
         first_user_expected_lp_tokens_balance
     );
 
-    let second_user_expected_lp_tokens_balance = rust_biguint!(272_727_044);
+    let second_user_expected_lp_tokens_balance = rust_biguint!(272_727_045);
     pd_setup.blockchain_wrapper.check_esdt_balance(
         &second_user_address,
         LP_TOKEN_ID,
@@ -640,13 +617,6 @@ pub fn redeem_with_extra_tokens_from_penalties_steps<PriceDiscObjBuilder, DexObj
         &dust,
     );
     println!("Dust LP tokens: {}", dust);
-
-    /*
-        First user LP tokens: 327272454
-        Second user LP tokens: 272727044
-        Owner LP tokens: 599999500
-        Dust LP tokens: 2
-    */
 }
 
 #[test]

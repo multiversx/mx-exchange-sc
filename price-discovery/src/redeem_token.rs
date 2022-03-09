@@ -112,11 +112,15 @@ pub trait RedeemTokenModule {
     }
 
     fn burn_redeem_token(&self, nonce: u64, amount: &BigUint) {
-        let redeem_token_id = self.redeem_token_id().get();
-        self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
+        self.burn_redeem_token_without_supply_decrease(nonce, amount);
 
         self.redeem_token_total_circulating_supply(nonce)
             .update(|supply| *supply -= amount);
+    }
+
+    fn burn_redeem_token_without_supply_decrease(&self, nonce: u64, amount: &BigUint) {
+        let redeem_token_id = self.redeem_token_id().get();
+        self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
     }
 
     #[proxy]

@@ -170,10 +170,6 @@ pub trait PriceDiscovery:
 
         let penalty_percentage = phase.to_penalty_percentage();
         let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
-        if penalty_amount > 0 {
-            self.accumulated_penalty(payment_nonce)
-                .update(|p| *p += &penalty_amount);
-        }
 
         let caller = self.blockchain().get_caller();
         let withdraw_amount = payment_amount - penalty_amount;
@@ -197,7 +193,7 @@ pub trait PriceDiscovery:
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
         let rewards = self.compute_rewards(payment_nonce, &payment_amount);
-        self.burn_redeem_token(payment_nonce, &payment_amount);
+        self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
 
         let caller = self.blockchain().get_caller();
         if rewards.lp_tokens_amount > 0 {
@@ -224,28 +220,19 @@ pub trait PriceDiscovery:
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
     ) -> RewardsPair<Self::Api> {
-        let total_lp_tokens = self.total_claimable_lp_tokens().get();
-        let base_lp_amount = match redeem_token_nonce {
-            LAUNCHED_TOKEN_REDEEM_NONCE => {
-                let launched_token_final_amount = self.launched_token_final_amount().get();
-                redeem_token_amount * &total_lp_tokens / launched_token_final_amount / 2u32
-            }
-            ACCEPTED_TOKEN_REDEEM_NONCE => {
-                let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                redeem_token_amount * &total_lp_tokens / accepted_token_final_amount / 2u32
-            }
-            _ => BigUint::zero(),
-        };
+        let total_lp_tokens = self.total_lp_tokens_received().get();
+        let redeem_token_supply = self
+            .redeem_token_total_circulating_supply(redeem_token_nonce)
+            .get();
 
-        let total_extra_lp_tokens = self.extra_lp_tokens().get();
-        let user_bonus_lp_tokens = (&total_extra_lp_tokens * &base_lp_amount) / &total_lp_tokens;
+        let lp_tokens_amount = &total_lp_tokens * redeem_token_amount / redeem_token_supply / 2u32;
 
-        let total_extra_rewards = self.extra_rewards_final_amount().get();
-        let user_extra_rewards = &total_extra_rewards * &base_lp_amount / total_lp_tokens;
+        let total_extra_rewards = self.extra_rewards().get();
+        let extra_rewards_amount = &total_extra_rewards * &lp_tokens_amount / total_lp_tokens;
 
         RewardsPair {
-            lp_tokens_amount: base_lp_amount + user_bonus_lp_tokens,
-            extra_rewards_amount: user_extra_rewards,
+            lp_tokens_amount,
+            extra_rewards_amount,
         }
     }
 
