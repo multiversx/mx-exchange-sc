@@ -11,7 +11,7 @@ authors = [ "you",]
 path = ".."
 
 [dependencies.elrond-wasm]
-version = "0.28"
+version = "0.29"
 
 [dependencies.elrond-wasm-debug]
-version = "0.28"
+version = "0.29"

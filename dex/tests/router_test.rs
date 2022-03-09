@@ -1,5 +1,5 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue4, OptionalValue};
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedMultiResultVec};
+use elrond_wasm::types::{Address, EsdtLocalRole, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
@@ -272,7 +272,7 @@ fn multi_pair_swap<RoouterObjBuilder, PairObjBuilder>(
             0,
             &payment_amount_big,
             |sc| {
-                let mut swap_operations = ManagedMultiResultVec::new();
+                let mut swap_operations = MultiValueEncoded::new();
                 for x in args.iter() {
                     swap_operations.push(MultiValue4::from((
                         managed_address!(&x.0),

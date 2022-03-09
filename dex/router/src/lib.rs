@@ -20,7 +20,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: u64,
-        swap_operations: ManagedMultiResultVec<SwapOperationType<Self::Api>>,
+        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) {
         require!(nonce == 0, "Invalid nonce. Should be zero");

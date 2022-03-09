@@ -8,8 +8,8 @@ pub mod lp_farm_token;
 pub mod result_types;
 
 pub type StakeResult<Api> = EsdtTokenPayment<Api>;
-pub type ClaimDualYieldResult<Api> = ManagedMultiResultVec<Api, EsdtTokenPayment<Api>>;
-pub type UnstakeResult<Api> = ManagedMultiResultVec<Api, EsdtTokenPayment<Api>>;
+pub type ClaimDualYieldResult<Api> = MultiValueEncoded<Api, EsdtTokenPayment<Api>>;
+pub type UnstakeResult<Api> = MultiValueEncoded<Api, EsdtTokenPayment<Api>>;
 
 #[elrond_wasm::contract]
 pub trait FarmStakingProxy:

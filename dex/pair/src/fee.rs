@@ -315,8 +315,8 @@ pub trait FeeModule:
     }
 
     #[view(getFeeDestinations)]
-    fn get_fee_destinations(&self) -> ManagedMultiResultVec<(ManagedAddress, TokenIdentifier)> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_fee_destinations(&self) -> MultiValueEncoded<(ManagedAddress, TokenIdentifier)> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.destination_map().iter() {
             result.push((pair.0, pair.1))
         }
@@ -324,10 +324,8 @@ pub trait FeeModule:
     }
 
     #[view(getTrustedSwapPairs)]
-    fn get_trusted_swap_pairs(
-        &self,
-    ) -> ManagedMultiResultVec<(TokenPair<Self::Api>, ManagedAddress)> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_trusted_swap_pairs(&self) -> MultiValueEncoded<(TokenPair<Self::Api>, ManagedAddress)> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.trusted_swap_pair().iter() {
             result.push((pair.0, pair.1))
         }
@@ -335,8 +333,8 @@ pub trait FeeModule:
     }
 
     #[view(getWhitelistedManagedAddresses)]
-    fn get_whitelisted_managed_addresses(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_whitelisted_managed_addresses(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.whitelist().iter() {
             result.push(pair);
         }

@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::type_complexity)]
 #![feature(generic_associated_types)]
 
 use proposal::ProposalCreationArgs;
@@ -31,6 +32,9 @@ pub trait Governance:
         mex_token_id: TokenIdentifier,
         min_weight_for_proposal: BigUint,
         governance_token_ids: ManagedVec<TokenIdentifier>,
+        #[var_args] price_providers: MultiValueEncoded<
+            MultiValue2<TokenIdentifier, ManagedAddress>,
+        >,
     ) {
         self.try_change_quorum(quorum);
         self.try_change_vote_nft_id(vote_nft_id);
@@ -39,13 +43,14 @@ pub trait Governance:
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
         self.try_change_min_weight_for_proposal(min_weight_for_proposal);
+        self.try_change_price_providers(price_providers);
     }
 
     #[payable("*")]
     #[endpoint]
     fn propose(&self, args: ProposalCreationArgs<Self::Api>) -> u64 {
         let payment = self.call_value().payment();
-        self.require_is_accepted_payment_for_proposal(&payment);
+        self.require_is_accepted_payment(&payment);
 
         let vote_weight = self.get_vote_weight(&payment);
         let min_weight = self.min_weight_for_proposal().get();
@@ -96,9 +101,11 @@ pub trait Governance:
         require!(pstat == ProposalStatus::Active, PROPOSAL_NOT_ACTIVE);
 
         let payment = self.call_value().payment();
-        self.require_is_accepted_payment_for_voting(&payment);
+        self.require_is_accepted_payment(&payment);
 
         let vote_weight = self.get_vote_weight(&payment);
+        require!(vote_weight != 0, ERROR_ZERO_VALUE);
+
         match vote_type {
             VoteType::Upvote => proposal.num_upvotes += &vote_weight,
             VoteType::DownVote => proposal.num_downvotes += &vote_weight,
@@ -116,19 +123,16 @@ pub trait Governance:
         let payment = self.call_value().payment();
 
         let vote_nft_id = self.vote_nft_id().get();
-        require!(payment.token_identifier == vote_nft_id, BAD_TOKEN_ID);
+        require!(payment.token_identifier == vote_nft_id, BAD_PAYMENT_TOKEN);
 
         let attr = self.get_vote_attr(&payment);
         let proposal = self.proposal(attr.proposal_id).get();
-
         let pstat = self.get_proposal_status(&proposal);
+
         match pstat {
-            ProposalStatus::Defeated | ProposalStatus::Executed => {
+            ProposalStatus::Succeeded | ProposalStatus::Defeated | ProposalStatus::Executed => {
                 self.send_back(attr.payment);
                 self.burn_vote_nft(payment);
-            }
-            ProposalStatus::Succeeded => {
-                sc_panic!(PROPOSAL_NEEDS_TO_BE_EXECUTED)
             }
             ProposalStatus::Active | ProposalStatus::Pending => {
                 sc_panic!(VOTING_PERIOD_NOT_ENDED)

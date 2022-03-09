@@ -73,8 +73,8 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn intermediated_farms(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getIntermediatedFarms)]
-    fn get_intermediated_farms(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_intermediated_farms(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.intermediated_farms().iter() {
             result.push(pair);
         }
@@ -85,8 +85,8 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn intermediated_pairs(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getIntermediatedPairs)]
-    fn get_intermediated_pairs(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_intermediated_pairs(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.intermediated_pairs().iter() {
             result.push(pair);
         }

@@ -12,10 +12,10 @@ path = "src/pair.rs"
 path = "../common/common_errors"
 
 [dependencies.elrond-wasm]
-version = "0.28.0"
+version = "0.29"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.28.0"
+version = "0.29"
 
 [dependencies.itertools]
 version = "0.10.1"

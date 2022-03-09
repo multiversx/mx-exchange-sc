@@ -253,7 +253,7 @@ pub trait Router:
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
+        #[var_args] roles: MultiValueEncoded<EsdtLocalRole>,
     ) {
         require!(self.is_active(), "Not active");
 
