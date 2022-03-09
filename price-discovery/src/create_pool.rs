@@ -99,7 +99,7 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
         self.lp_token_id().set(&lp_token.token_identifier);
         self.extra_lp_tokens().set(&extra_lp_tokens);
-        self.total_lp_tokens_received()
+        self.total_claimable_lp_tokens()
             .set(&(lp_token.amount - extra_lp_tokens));
 
         let current_epoch = self.blockchain().get_block_epoch();

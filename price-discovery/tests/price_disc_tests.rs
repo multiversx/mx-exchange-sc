@@ -1,8 +1,9 @@
 use elrond_wasm_debug::managed_biguint;
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 use pair_mock::*;
-use price_discovery::common_storage::*;
 use price_discovery::redeem_token::*;
+use price_discovery::PriceDiscovery;
+use price_discovery::{common_storage::*, MIN_PRICE_PRECISION};
 
 mod tests_common;
 use tests_common::*;
@@ -93,6 +94,80 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 fn user_deposit_ok() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
+}
+
+#[test]
+fn try_deposit_below_min_price() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
+
+    let owner_addr = pd_setup.owner_address.clone();
+    pd_setup
+        .blockchain_wrapper
+        .execute_tx(&owner_addr, &pd_setup.pd_wrapper, &rust_biguint!(0), |sc| {
+            // each launched token = 0.5 accepted token
+            sc.min_launched_token_price()
+                .set(&managed_biguint!(MIN_PRICE_PRECISION / 2));
+        })
+        .assert_ok();
+
+    call_deposit_initial_tokens(&mut pd_setup, &rust_biguint!(5_000_000_000));
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let first_deposit_amt = rust_biguint!(1_000_000_000);
+    call_deposit(&mut pd_setup, &first_user_address, &first_deposit_amt)
+        .assert_user_error("Launched token below min price");
+}
+
+#[test]
+fn deposit_above_min_price() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
+
+    let owner_addr = pd_setup.owner_address.clone();
+    pd_setup
+        .blockchain_wrapper
+        .execute_tx(&owner_addr, &pd_setup.pd_wrapper, &rust_biguint!(0), |sc| {
+            // each launched token = 0.2 accepted token
+            sc.min_launched_token_price()
+                .set(&managed_biguint!(MIN_PRICE_PRECISION / 5));
+        })
+        .assert_ok();
+
+    call_deposit_initial_tokens(&mut pd_setup, &rust_biguint!(5_000_000_000));
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let first_deposit_amt = rust_biguint!(1_000_000_000);
+    call_deposit(&mut pd_setup, &first_user_address, &first_deposit_amt).assert_ok();
+}
+
+#[test]
+fn withdraw_below_min_price() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
+
+    let owner_addr = pd_setup.owner_address.clone();
+    pd_setup
+        .blockchain_wrapper
+        .execute_tx(&owner_addr, &pd_setup.pd_wrapper, &rust_biguint!(0), |sc| {
+            // each launched token = 0.1 accepted token
+            sc.min_launched_token_price()
+                .set(&managed_biguint!(MIN_PRICE_PRECISION / 10));
+        })
+        .assert_ok();
+
+    call_deposit_initial_tokens(&mut pd_setup, &rust_biguint!(5_000_000_000));
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let first_deposit_amt = rust_biguint!(1_000_000_000);
+    call_deposit(&mut pd_setup, &first_user_address, &first_deposit_amt).assert_ok();
+
+    call_withdraw(
+        &mut pd_setup,
+        &first_user_address,
+        &rust_biguint!(600_000_000),
+    )
+    .assert_user_error("Launched token below min price");
 }
 
 pub fn withdraw_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
@@ -283,7 +358,7 @@ fn create_pool_ok() {
                 managed_biguint!(1_100_000_000)
             );
             assert_eq!(
-                sc.total_lp_tokens_received().get(),
+                sc.total_claimable_lp_tokens().get(),
                 managed_biguint!(expected_lp_token_balance)
             );
         })
@@ -418,12 +493,42 @@ fn redeem_ok() {
         &dust,
     );
     println!("Dust LP tokens: {}", dust);
+
+    /*
+        First user LP tokens: 299999727
+        Second user LP tokens: 249999772
+        Owner LP tokens: 549999500
+        Dust LP tokens: 1
+    */
 }
 
 #[test]
-fn redeem_with_extra_tokens_from_penalties() {
+fn redeem_too_early() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
+    withdraw_ok_steps(&mut pd_setup, 0);
+
+    pd_setup.blockchain_wrapper.set_block_epoch(5);
+    create_pool_ok_steps(&mut pd_setup);
+
+    let first_user_address = pd_setup.first_user_address.clone();
+    let first_user_redeem_token_amount = rust_biguint!(600_000_000);
+    call_redeem(
+        &mut pd_setup,
+        &first_user_address,
+        ACCEPTED_TOKEN_REDEEM_NONCE,
+        &first_user_redeem_token_amount,
+    )
+    .assert_user_error("Unbond period not finished yet");
+}
+
+pub fn redeem_with_extra_tokens_from_penalties_steps<PriceDiscObjBuilder, DexObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+) where
+    PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
+    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+{
+    user_deposit_ok_steps(pd_setup);
 
     let fixed_penalty_start_block =
         START_BLOCK + NO_LIMIT_PHASE_DURATION_BLOCKS + LINEAR_PENALTY_PHASE_DURATION_BLOCKS;
@@ -431,10 +536,10 @@ fn redeem_with_extra_tokens_from_penalties() {
         .blockchain_wrapper
         .set_block_nonce(fixed_penalty_start_block);
 
-    withdraw_ok_steps(&mut pd_setup, FIXED_PENALTY_PERCENTAGE);
+    withdraw_ok_steps(pd_setup, FIXED_PENALTY_PERCENTAGE);
 
     pd_setup.blockchain_wrapper.set_block_epoch(5);
-    create_pool_ok_steps(&mut pd_setup);
+    create_pool_ok_steps(pd_setup);
 
     let total_lp_tokens = 1_199_999_000u64;
     pd_setup.blockchain_wrapper.check_esdt_balance(
@@ -463,7 +568,7 @@ fn redeem_with_extra_tokens_from_penalties() {
     let first_user_address = pd_setup.first_user_address.clone();
     let first_user_redeem_token_amount = rust_biguint!(600_000_000);
     call_redeem(
-        &mut pd_setup,
+        pd_setup,
         &first_user_address,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &first_user_redeem_token_amount,
@@ -473,7 +578,7 @@ fn redeem_with_extra_tokens_from_penalties() {
     let second_user_address = pd_setup.second_user_address.clone();
     let second_user_redeem_token_amount = rust_biguint!(500_000_000);
     call_redeem(
-        &mut pd_setup,
+        pd_setup,
         &second_user_address,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &second_user_redeem_token_amount,
@@ -483,7 +588,7 @@ fn redeem_with_extra_tokens_from_penalties() {
     let owner_address = pd_setup.owner_address.clone();
     let owner_redeem_amount = rust_biguint!(5_000_000_000);
     call_redeem(
-        &mut pd_setup,
+        pd_setup,
         &owner_address,
         LAUNCHED_TOKEN_REDEEM_NONCE,
         &owner_redeem_amount,
@@ -506,7 +611,7 @@ fn redeem_with_extra_tokens_from_penalties() {
         first_user_expected_lp_tokens_balance
     );
 
-    let second_user_expected_lp_tokens_balance = rust_biguint!(279_545_221);
+    let second_user_expected_lp_tokens_balance = rust_biguint!(272_727_044);
     pd_setup.blockchain_wrapper.check_esdt_balance(
         &second_user_address,
         LP_TOKEN_ID,
@@ -517,7 +622,7 @@ fn redeem_with_extra_tokens_from_penalties() {
         second_user_expected_lp_tokens_balance
     );
 
-    let owner_expected_lp_tokens_balance = rust_biguint!(584_090_422);
+    let owner_expected_lp_tokens_balance = rust_biguint!(599_999_500);
     pd_setup.blockchain_wrapper.check_esdt_balance(
         &owner_address,
         LP_TOKEN_ID,
@@ -535,24 +640,36 @@ fn redeem_with_extra_tokens_from_penalties() {
         &dust,
     );
     println!("Dust LP tokens: {}", dust);
+
+    /*
+        First user LP tokens: 327272454
+        Second user LP tokens: 272727044
+        Owner LP tokens: 599999500
+        Dust LP tokens: 2
+    */
 }
 
 #[test]
-fn redeem_too_early() {
+fn redeem_with_extra_tokens_from_penalties() {
     let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
-    user_deposit_ok_steps(&mut pd_setup);
-    withdraw_ok_steps(&mut pd_setup, 0);
+    redeem_with_extra_tokens_from_penalties_steps(&mut pd_setup);
+}
 
-    pd_setup.blockchain_wrapper.set_block_epoch(5);
-    create_pool_ok_steps(&mut pd_setup);
+#[test]
+fn redeem_with_extra_rewards() {
+    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    call_deposit_extra_rewards(&mut pd_setup);
+    redeem_with_extra_tokens_from_penalties_steps(&mut pd_setup);
 
-    let first_user_address = pd_setup.first_user_address.clone();
-    let first_user_redeem_token_amount = rust_biguint!(600_000_000);
-    call_redeem(
-        &mut pd_setup,
-        &first_user_address,
-        ACCEPTED_TOKEN_REDEEM_NONCE,
-        &first_user_redeem_token_amount,
-    )
-    .assert_user_error("Unbond period not finished yet");
+    pd_setup
+        .blockchain_wrapper
+        .check_egld_balance(&pd_setup.first_user_address, &rust_biguint!(27_272_727));
+
+    pd_setup
+        .blockchain_wrapper
+        .check_egld_balance(&pd_setup.second_user_address, &rust_biguint!(22_727_272));
+
+    pd_setup
+        .blockchain_wrapper
+        .check_egld_balance(&pd_setup.owner_address, &rust_biguint!(50_000_000));
 }

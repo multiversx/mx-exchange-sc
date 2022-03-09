@@ -13,7 +13,7 @@ pub mod phase;
 pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
-const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000;
+pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
 
 pub struct RewardsPair<M: ManagedTypeApi> {
     pub lp_tokens_amount: BigUint<M>,
@@ -225,91 +225,57 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let rewards = self.compute_lp_amount_to_send(payment_nonce, &payment_amount);
-        let mut user_payments = ManagedVec::new();
+        let rewards = self.compute_rewards(payment_nonce, &payment_amount);
+        self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
+
+        let caller = self.blockchain().get_caller();
         if rewards.lp_tokens_amount > 0 {
             let lp_token_id = self.lp_token_id().get();
-            user_payments.push(EsdtTokenPayment::new(
-                lp_token_id,
-                0,
-                rewards.lp_tokens_amount,
-            ));
+            self.send()
+                .direct(&caller, &lp_token_id, 0, &rewards.lp_tokens_amount, &[]);
         }
         if rewards.extra_rewards_amount > 0 {
             let extra_rewards_token_id = self.extra_rewards_token_id().get();
-            user_payments.push(EsdtTokenPayment::new(
-                extra_rewards_token_id,
+            self.send().direct(
+                &caller,
+                &extra_rewards_token_id,
                 0,
-                rewards.extra_rewards_amount,
-            ));
+                &rewards.extra_rewards_amount,
+                &[],
+            );
         }
-
-        require!(!user_payments.is_empty(), "Nothing to redeem");
-
-        self.burn_redeem_token(payment_nonce, &payment_amount);
-
-        let caller = self.blockchain().get_caller();
-        self.send().direct_multi(&caller, &user_payments, &[]);
     }
 
     // private
 
-    fn compute_lp_amount_to_send(
+    fn compute_rewards(
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
     ) -> RewardsPair<Self::Api> {
-        let total_lp_tokens = self.total_lp_tokens_received().get();
-        let percentage_of_redeeem_token_supply =
-            self.get_percentage_of_total_supply(redeem_token_nonce, redeem_token_amount);
-
-        let extra_lp_tokens = self.extra_lp_tokens().get();
-        let bonus = self.get_rewards_share(&percentage_of_redeeem_token_supply, &extra_lp_tokens);
-        self.extra_lp_tokens()
-            .update(|extra_amt| *extra_amt -= &bonus);
-
-        let extra_rewards_total_amount = self.extra_rewards_final_amount().get();
-        let extra_rewards_for_user = self.get_rewards_share(
-            &percentage_of_redeeem_token_supply,
-            &extra_rewards_total_amount,
-        );
-        self.extra_rewards_final_amount()
-            .update(|extra_rew| *extra_rew -= &extra_rewards_for_user);
-
-        match redeem_token_nonce {
+        let total_lp_tokens = self.total_claimable_lp_tokens().get();
+        let base_lp_amount = match redeem_token_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => {
                 let launched_token_final_amount = self.launched_token_final_amount().get();
-                let base_lp_amount =
-                    redeem_token_amount * &total_lp_tokens / launched_token_final_amount / 2u32;
-
-                RewardsPair {
-                    lp_tokens_amount: base_lp_amount + bonus,
-                    extra_rewards_amount: extra_rewards_for_user,
-                }
+                redeem_token_amount * &total_lp_tokens / launched_token_final_amount / 2u32
             }
             ACCEPTED_TOKEN_REDEEM_NONCE => {
                 let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                let base_lp_amount =
-                    redeem_token_amount * &total_lp_tokens / accepted_token_final_amount / 2u32;
-
-                RewardsPair {
-                    lp_tokens_amount: base_lp_amount + bonus,
-                    extra_rewards_amount: extra_rewards_for_user,
-                }
+                redeem_token_amount * &total_lp_tokens / accepted_token_final_amount / 2u32
             }
-            _ => RewardsPair {
-                lp_tokens_amount: BigUint::zero(),
-                extra_rewards_amount: BigUint::zero(),
-            },
-        }
-    }
+            _ => BigUint::zero(),
+        };
 
-    fn get_rewards_share(
-        &self,
-        percentage_of_redeeem_token_supply: &BigUint,
-        total_rewards_amount: &BigUint,
-    ) -> BigUint {
-        percentage_of_redeeem_token_supply * total_rewards_amount / MAX_PERCENTAGE / 2u32
+        let total_extra_lp_tokens = self.extra_lp_tokens().get();
+        let user_bonus_lp_tokens = (&total_extra_lp_tokens * &base_lp_amount) / &total_lp_tokens;
+
+        let total_extra_rewards = self.extra_rewards_final_amount().get();
+        let user_extra_rewards = &total_extra_rewards * &base_lp_amount / total_lp_tokens;
+
+        RewardsPair {
+            lp_tokens_amount: base_lp_amount + user_bonus_lp_tokens,
+            extra_rewards_amount: user_extra_rewards,
+        }
     }
 
     fn require_redeem_allowed(&self) {
@@ -333,10 +299,13 @@ pub trait PriceDiscovery:
         let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
         let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
 
+        if accepted_token_balance == 0 {
+            return;
+        }
+
         require!(launched_token_balance > 0, "No launched tokens available");
         require!(
-            accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance
-                >= min_price * MIN_PRICE_PRECISION,
+            accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance >= min_price,
             "Launched token below min price"
         );
     }

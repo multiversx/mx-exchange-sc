@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 use hex_literal::hex;
 
-use crate::common_storage::MAX_PERCENTAGE;
-
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
@@ -114,16 +112,15 @@ pub trait RedeemTokenModule {
     }
 
     fn burn_redeem_token(&self, nonce: u64, amount: &BigUint) {
-        let redeem_token_id = self.redeem_token_id().get();
-        self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
+        self.burn_redeem_token_without_supply_decrease(nonce, amount);
 
         self.redeem_token_total_circulating_supply(nonce)
             .update(|supply| *supply -= amount);
     }
 
-    fn get_percentage_of_total_supply(&self, nonce: u64, amount: &BigUint) -> BigUint {
-        let total_supply = self.redeem_token_total_circulating_supply(nonce).get();
-        amount * MAX_PERCENTAGE / total_supply
+    fn burn_redeem_token_without_supply_decrease(&self, nonce: u64, amount: &BigUint) {
+        let redeem_token_id = self.redeem_token_id().get();
+        self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
     }
 
     #[proxy]

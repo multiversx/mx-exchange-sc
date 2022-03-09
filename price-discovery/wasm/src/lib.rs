@@ -23,10 +23,10 @@ elrond_wasm_node::wasm_endpoints! {
         getMinLaunchedTokenPrice
         getRedeemTokenId
         getStartBlock
+        getTotalClaimableLpTokens
         issueRedeemToken
         redeem
         setPairAddress
-        totalLpTokensReceived
         withdraw
     )
 }
