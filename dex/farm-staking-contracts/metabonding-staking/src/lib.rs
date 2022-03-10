@@ -101,13 +101,16 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
     }
 
     #[view(getUserStakedPosition)]
-    fn get_user_staked_position(&self, user_address: ManagedAddress) -> StakingEntry<Self::Api> {
+    fn get_user_staked_position(
+        &self,
+        user_address: ManagedAddress,
+    ) -> OptionalValue<StakingEntry<Self::Api>> {
         let entry_mapper = self.staking_entry_for_user(&user_address);
 
-        if entry_mapper.is_empty() {
-            StakingEntry::new(0u64, BigUint::zero())
+        if !entry_mapper.is_empty() {
+            OptionalValue::Some(entry_mapper.get())
         } else {
-            entry_mapper.get()
+            OptionalValue::None
         }
     }
 
