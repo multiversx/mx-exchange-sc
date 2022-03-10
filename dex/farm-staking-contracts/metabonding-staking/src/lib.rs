@@ -1,6 +1,6 @@
 #![no_std]
 
-use locked_asset_token::StakingEntry;
+use locked_asset_token::UserEntry;
 
 elrond_wasm::imports!();
 
@@ -29,83 +29,89 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         self.require_all_locked_asset_payments(&payments);
 
         let caller = self.blockchain().get_caller();
-        let new_locked_asset_token = self.merge_locked_asset_tokens_if_needed(&caller, payments);
+        let entry_mapper = self.entry_for_user(&caller);
+        let new_entry = self.create_new_entry_by_merging_tokens(&entry_mapper, payments);
 
         self.total_locked_asset_supply()
-            .update(|total_supply| *total_supply += &new_locked_asset_token.amount);
+            .update(|total_supply| *total_supply += new_entry.get_total_amount());
 
-        self.staking_entry_for_user(&caller).set(&StakingEntry::new(
-            new_locked_asset_token.token_nonce,
-            new_locked_asset_token.amount,
-        ));
-        self.user_list().insert(caller);
+        entry_mapper.set(&new_entry);
+        let _ = self.user_list().insert(caller);
     }
 
     #[endpoint]
-    fn unstake(&self) {
+    fn unstake(&self, amount: BigUint) {
         let caller = self.blockchain().get_caller();
-        let entry_mapper = self.staking_entry_for_user(&caller);
+        let entry_mapper = self.entry_for_user(&caller);
         require!(!entry_mapper.is_empty(), "Must stake first");
 
-        let mut staking_entry: StakingEntry<Self::Api> = entry_mapper.get();
-        require!(!staking_entry.is_unstaked(), "Already unstaked");
+        let mut user_entry: UserEntry<Self::Api> = entry_mapper.get();
+        require!(
+            amount <= user_entry.stake_amount,
+            "Trying to unstake too much"
+        );
 
         let current_epoch = self.blockchain().get_block_epoch();
-        staking_entry.opt_unbond_epoch = Some(current_epoch + UNBOND_EPOCHS);
+        user_entry.unbond_epoch = current_epoch + UNBOND_EPOCHS;
+        user_entry.stake_amount -= &amount;
+        user_entry.unstake_amount += amount;
 
-        entry_mapper.set(&staking_entry);
+        entry_mapper.set(&user_entry);
     }
 
     #[endpoint]
     fn unbond(&self) {
         let caller = self.blockchain().get_caller();
-        let entry_mapper = self.staking_entry_for_user(&caller);
+        let entry_mapper = self.entry_for_user(&caller);
         require!(!entry_mapper.is_empty(), "Must stake first");
 
-        let staking_entry: StakingEntry<Self::Api> = entry_mapper.get();
-        require!(staking_entry.is_unstaked(), "Must unstake first");
+        let mut user_entry: UserEntry<Self::Api> = entry_mapper.get();
+        let unstake_amount = user_entry.unstake_amount.clone();
+        require!(unstake_amount > 0, "Must unstake first");
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epoch = staking_entry.opt_unbond_epoch.unwrap();
-        require!(current_epoch >= unbond_epoch, "Unbond period in progress");
+        require!(
+            current_epoch >= user_entry.unbond_epoch,
+            "Unbond period in progress"
+        );
 
         self.total_locked_asset_supply()
-            .update(|total_supply| *total_supply -= &staking_entry.amount);
+            .update(|total_supply| *total_supply -= &unstake_amount);
 
-        entry_mapper.clear();
-        self.user_list().swap_remove(&caller);
+        if user_entry.stake_amount == 0 {
+            entry_mapper.clear();
+            self.user_list().swap_remove(&caller);
+        } else {
+            user_entry.unstake_amount = BigUint::zero();
+            user_entry.unbond_epoch = u64::MAX;
+            entry_mapper.set(&user_entry);
+        }
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
         self.send().direct(
             &caller,
             &locked_asset_token_id,
-            staking_entry.nonce,
-            &staking_entry.amount,
+            user_entry.token_nonce,
+            &unstake_amount,
             &[],
         );
     }
 
     #[view(getStakedAmountForUser)]
     fn get_staked_amount_for_user(&self, user_address: ManagedAddress) -> BigUint {
-        let entry_mapper = self.staking_entry_for_user(&user_address);
+        let entry_mapper = self.entry_for_user(&user_address);
         if entry_mapper.is_empty() {
             BigUint::zero()
         } else {
-            let entry: StakingEntry<Self::Api> = entry_mapper.get();
-            if entry.is_unstaked() {
-                BigUint::zero()
-            } else {
-                entry.amount
-            }
+            let entry: UserEntry<Self::Api> = entry_mapper.get();
+
+            entry.stake_amount
         }
     }
 
-    #[view(getUserStakedPosition)]
-    fn get_user_staked_position(
-        &self,
-        user_address: ManagedAddress,
-    ) -> OptionalValue<StakingEntry<Self::Api>> {
-        let entry_mapper = self.staking_entry_for_user(&user_address);
+    #[view(getUserEntry)]
+    fn get_user_entry(&self, user_address: ManagedAddress) -> OptionalValue<UserEntry<Self::Api>> {
+        let entry_mapper = self.entry_for_user(&user_address);
 
         if !entry_mapper.is_empty() {
             OptionalValue::Some(entry_mapper.get())
@@ -119,9 +125,9 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         let mut result = MultiValueEncoded::new();
 
         for user_address in self.user_list().iter() {
-            let entry: StakingEntry<Self::Api> = self.staking_entry_for_user(&user_address).get();
-            if !entry.is_unstaked() {
-                result.push((user_address, entry.amount).into());
+            let entry: UserEntry<Self::Api> = self.entry_for_user(&user_address).get();
+            if entry.stake_amount > 0 {
+                result.push((user_address, entry.stake_amount).into());
             }
         }
 

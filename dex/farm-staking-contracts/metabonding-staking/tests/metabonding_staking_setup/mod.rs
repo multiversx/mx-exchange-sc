@@ -4,7 +4,8 @@ use common_structs::{
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
 use elrond_wasm_debug::tx_mock::{TxInputESDT, TxResult};
 use elrond_wasm_debug::{
-    managed_address, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+    DebugApi,
 };
 use factory::locked_asset::LockedAssetModule;
 use factory::*;
@@ -221,13 +222,13 @@ where
         )
     }
 
-    pub fn call_unstake(&mut self) -> TxResult {
+    pub fn call_unstake(&mut self, amount: u64) -> TxResult {
         self.b_mock.execute_tx(
             &self.user_address,
             &self.mbs_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.unstake();
+                sc.unstake(managed_biguint!(amount));
             },
         )
     }
