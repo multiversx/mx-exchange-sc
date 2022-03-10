@@ -83,6 +83,7 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
             self.user_list().swap_remove(&caller);
         } else {
             user_entry.unstake_amount = BigUint::zero();
+            user_entry.unbond_epoch = 0;
             entry_mapper.set(&user_entry);
         }
 

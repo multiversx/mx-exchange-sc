@@ -223,7 +223,7 @@ fn test_partial_unstake() {
                 token_nonce: 2,
                 stake_amount: managed_biguint!(20_000_000),
                 unstake_amount: managed_biguint!(0),
-                unbond_epoch: 15,
+                unbond_epoch: 0,
             };
             let actual_entry = sc.entry_for_user(&managed_address!(&user_addr)).get();
             assert_eq!(actual_entry, expected_entry);
