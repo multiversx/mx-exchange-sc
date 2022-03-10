@@ -1,16 +1,19 @@
 #![no_std]
 
-use locked_asset_token::UserEntry;
-
 elrond_wasm::imports!();
 
+pub mod events;
 pub mod locked_asset_token;
+
+use locked_asset_token::UserEntry;
 
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
 pub const UNBOND_EPOCHS: u64 = 10;
 
 #[elrond_wasm::contract]
-pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
+pub trait MetabondingStaking:
+    locked_asset_token::LockedAssetTokenModule + events::EventsModule
+{
     #[init]
     fn init(
         &self,
@@ -35,6 +38,8 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         self.total_locked_asset_supply()
             .update(|total_supply| *total_supply += new_entry.get_total_amount());
 
+        self.stake_event(&caller, &new_entry);
+
         entry_mapper.set(&new_entry);
         let _ = self.user_list().insert(caller);
     }
@@ -55,6 +60,8 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         user_entry.unbond_epoch = current_epoch + UNBOND_EPOCHS;
         user_entry.stake_amount -= &amount;
         user_entry.unstake_amount += amount;
+
+        self.unstake_event(&caller, &user_entry);
 
         entry_mapper.set(&user_entry);
     }
@@ -78,14 +85,18 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         self.total_locked_asset_supply()
             .update(|total_supply| *total_supply -= &unstake_amount);
 
-        if user_entry.stake_amount == 0 {
+        let opt_entry_after_action = if user_entry.stake_amount == 0 {
             entry_mapper.clear();
             self.user_list().swap_remove(&caller);
+
+            None
         } else {
             user_entry.unstake_amount = BigUint::zero();
             user_entry.unbond_epoch = u64::MAX;
             entry_mapper.set(&user_entry);
-        }
+
+            Some(&user_entry)
+        };
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
         self.send().direct(
@@ -95,6 +106,8 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
             &unstake_amount,
             &[],
         );
+
+        self.unbond_event(&caller, opt_entry_after_action);
     }
 
     #[view(getStakedAmountForUser)]
