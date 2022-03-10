@@ -6,24 +6,25 @@ use factory::locked_asset_token_merge::ProxyTrait as _;
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode, Debug, PartialEq)]
-pub struct StakingEntry<M: ManagedTypeApi> {
-    pub nonce: u64,
-    pub amount: BigUint<M>,
-    pub opt_unbond_epoch: Option<u64>,
+pub struct UserEntry<M: ManagedTypeApi> {
+    pub token_nonce: u64,
+    pub stake_amount: BigUint<M>,
+    pub unstake_amount: BigUint<M>,
+    pub unbond_epoch: u64,
 }
 
-impl<M: ManagedTypeApi> StakingEntry<M> {
-    pub fn new(nonce: u64, amount: BigUint<M>) -> Self {
+impl<M: ManagedTypeApi> UserEntry<M> {
+    pub fn new(token_nonce: u64, stake_amount: BigUint<M>) -> Self {
         Self {
-            nonce,
-            amount,
-            opt_unbond_epoch: None,
+            token_nonce,
+            stake_amount,
+            unstake_amount: BigUint::zero(),
+            unbond_epoch: u64::MAX,
         }
     }
 
-    #[inline]
-    pub fn is_unstaked(&self) -> bool {
-        self.opt_unbond_epoch.is_some()
+    pub fn get_total_amount(&self) -> BigUint<M> {
+        &self.stake_amount + &self.unstake_amount
     }
 }
 
@@ -41,40 +42,48 @@ pub trait LockedAssetTokenModule {
         }
     }
 
-    fn merge_locked_asset_tokens_if_needed(
+    fn create_new_entry_by_merging_tokens(
         &self,
-        user_address: &ManagedAddress,
+        entry_mapper: &SingleValueMapper<UserEntry<Self::Api>>,
         mut new_tokens: PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        let entry_mapper = self.staking_entry_for_user(user_address);
-        let prev_entry_is_empty = entry_mapper.is_empty();
-        if prev_entry_is_empty && new_tokens.len() == 1 {
-            return new_tokens.get(0);
+    ) -> UserEntry<Self::Api> {
+        if entry_mapper.is_empty() {
+            let merged_tokens = self.merge_locked_asset_tokens(new_tokens);
+
+            return UserEntry::new(merged_tokens.token_nonce, merged_tokens.amount);
         }
 
-        if !prev_entry_is_empty {
-            let prev_entry = entry_mapper.get();
-            require!(
-                !prev_entry.is_unstaked(),
-                "Cannot stake during unbond period"
-            );
+        let mut prev_entry: UserEntry<Self::Api> = entry_mapper.get();
+        let prev_entry_total_tokens = prev_entry.get_total_amount();
+        self.total_locked_asset_supply()
+            .update(|total_supply| *total_supply -= &prev_entry_total_tokens);
 
-            self.total_locked_asset_supply()
-                .update(|total_supply| *total_supply -= &prev_entry.amount);
+        let prev_entry_as_payment = EsdtTokenPayment::new(
+            self.locked_asset_token_id().get(),
+            prev_entry.token_nonce,
+            prev_entry_total_tokens,
+        );
+        new_tokens.push(prev_entry_as_payment);
 
-            let prev_entry_as_payment = EsdtTokenPayment::new(
-                self.locked_asset_token_id().get(),
-                prev_entry.nonce,
-                prev_entry.amount,
-            );
+        let merged_tokens = self.merge_locked_asset_tokens(new_tokens);
+        prev_entry.token_nonce = merged_tokens.token_nonce;
+        prev_entry.stake_amount = &merged_tokens.amount - &prev_entry.unstake_amount;
 
-            new_tokens.push(prev_entry_as_payment);
+        prev_entry
+    }
+
+    fn merge_locked_asset_tokens(
+        &self,
+        tokens: PaymentsVec<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        if tokens.len() == 1 {
+            return tokens.get(0);
         }
 
         let locked_asset_factory_address = self.locked_asset_factory_address().get();
         self.locked_asset_factory_proxy(locked_asset_factory_address)
             .merge_locked_asset_tokens(OptionalValue::None)
-            .with_multi_token_transfer(new_tokens)
+            .with_multi_token_transfer(tokens)
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
@@ -97,11 +106,11 @@ pub trait LockedAssetTokenModule {
     #[storage_mapper("totalLockedAssetSupply")]
     fn total_locked_asset_supply(&self) -> SingleValueMapper<BigUint>;
 
-    #[storage_mapper("stakingEntryForUser")]
-    fn staking_entry_for_user(
+    #[storage_mapper("entryForUser")]
+    fn entry_for_user(
         &self,
         user_address: &ManagedAddress,
-    ) -> SingleValueMapper<StakingEntry<Self::Api>>;
+    ) -> SingleValueMapper<UserEntry<Self::Api>>;
 
     #[view(getUserList)]
     #[storage_mapper("userList")]
