@@ -19,7 +19,7 @@ impl<M: ManagedTypeApi> UserEntry<M> {
             token_nonce,
             stake_amount,
             unstake_amount: BigUint::zero(),
-            unbond_epoch: 0,
+            unbond_epoch: u64::MAX,
         }
     }
 
