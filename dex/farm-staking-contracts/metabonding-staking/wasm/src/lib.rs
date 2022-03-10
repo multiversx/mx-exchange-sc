@@ -13,6 +13,7 @@ elrond_wasm_node::wasm_endpoints! {
         getStakedAmountForUser
         getTotalLockedAssetSupply
         getUserList
+        getUserStakedPosition
         stakeLockedAsset
         unbond
         unstake
