@@ -45,3 +45,5 @@ pub const ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS: &[u8] =
 pub const ERROR_SWAP_NOT_ENABLED: &[u8] = b"Swap is not enabled";
 pub const ERROR_SLIPPAGE_EXCEEDED: &[u8] = b"Slippage exceeded";
 pub const ERROR_NOTHING_TO_DO_WITH_FEE_SLICE: &[u8] = b"Nothing to do with fee slice";
+
+pub const ERROR_UNLOCK_CALLED_TOO_EARLY: &[u8] = b"Unlock called too early";

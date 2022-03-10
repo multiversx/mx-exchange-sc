@@ -8,17 +8,22 @@ use crate::RemoveLiquidityResultType;
 use crate::SwapTokensFixedInputResultType;
 use crate::SwapTokensFixedOutputResultType;
 
-use super::add_liquidity::*;
-use super::base::*;
-use super::remove_liquidity::*;
-use super::swap::SwapArgs;
-use super::swap::SwapContext;
-use super::swap::SwapPayments;
-use super::swap::SwapTxInput;
+use crate::contexts::add_liquidity::*;
+use crate::contexts::base::*;
+use crate::contexts::remove_liquidity::*;
+use crate::contexts::swap::SwapArgs;
+use crate::contexts::swap::SwapContext;
+use crate::contexts::swap::SwapPayments;
+use crate::contexts::swap::SwapTxInput;
+
+use crate::locked_asset;
 
 #[elrond_wasm::module]
 pub trait CtxHelper:
-    crate::config::ConfigModule + token_send::TokenSendModule + crate::amm::AmmModule
+    crate::config::ConfigModule
+    + token_send::TokenSendModule
+    + crate::amm::AmmModule
+    + locked_asset::LockedAsset
 {
     fn new_add_liquidity_context(
         &self,
@@ -171,11 +176,20 @@ pub trait CtxHelper:
     fn construct_swap_output_payments(&self, context: &mut SwapContext<Self::Api>) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
-        payments.push(self.create_payment(
-            context.get_token_out(),
-            0,
-            context.get_final_output_amount(),
-        ));
+        let output_is_first = context.get_token_out() == context.get_first_token_id();
+        if self.should_generate_locked_asset(output_is_first) {
+            let locked_asset = self
+                .generate_locked_asset(context.get_token_out(), context.get_final_output_amount());
+
+            context.set_locked_asset_output(locked_asset.clone());
+            payments.push(locked_asset);
+        } else {
+            payments.push(self.create_payment(
+                context.get_token_out(),
+                0,
+                context.get_final_output_amount(),
+            ));
+        }
 
         if context.get_final_input_amount() != context.get_amount_in() {
             payments.push(self.create_payment(
@@ -248,11 +262,14 @@ pub trait CtxHelper:
         &self,
         context: &SwapContext<Self::Api>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        self.create_payment(
-            context.get_token_out(),
-            0,
-            context.get_final_output_amount(),
-        )
+        match context.get_locked_asset_output() {
+            Some(payment) => payment.clone(),
+            None => self.create_payment(
+                context.get_token_out(),
+                0,
+                context.get_final_output_amount(),
+            ),
+        }
     }
 
     fn construct_and_get_swap_output_results(
@@ -260,12 +277,18 @@ pub trait CtxHelper:
         context: &SwapContext<Self::Api>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
         let residuum = context.get_amount_in_max() - context.get_final_input_amount();
-        MultiValue2::from((
-            self.create_payment(
+
+        let first_result = match context.get_locked_asset_output() {
+            Some(payment) => payment.clone(),
+            None => self.create_payment(
                 context.get_token_out(),
                 0,
                 context.get_final_output_amount(),
             ),
+        };
+
+        MultiValue2::from((
+            first_result,
             self.create_payment(context.get_token_in(), 0, &residuum),
         ))
     }
