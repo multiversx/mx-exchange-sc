@@ -100,6 +100,20 @@ pub trait MetabondingStaking: locked_asset_token::LockedAssetTokenModule {
         }
     }
 
+    #[view(getUserStakedPosition)]
+    fn get_user_staked_position(
+        &self,
+        user_address: ManagedAddress,
+    ) -> OptionalValue<StakingEntry<Self::Api>> {
+        let entry_mapper = self.staking_entry_for_user(&user_address);
+
+        if !entry_mapper.is_empty() {
+            OptionalValue::Some(entry_mapper.get())
+        } else {
+            OptionalValue::None
+        }
+    }
+
     #[view(getSnapshot)]
     fn get_snapshot(&self) -> MultiValueEncoded<SnapshotEntry<Self::Api>> {
         let mut result = MultiValueEncoded::new();
