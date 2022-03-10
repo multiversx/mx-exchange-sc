@@ -33,12 +33,12 @@ pub trait MetabondingStaking:
 
         let caller = self.blockchain().get_caller();
         let entry_mapper = self.entry_for_user(&caller);
-        let new_entry = self.create_new_entry_by_merging_tokens(&entry_mapper, payments.clone());
+        let new_entry = self.create_new_entry_by_merging_tokens(&entry_mapper, payments);
 
         self.total_locked_asset_supply()
             .update(|total_supply| *total_supply += new_entry.get_total_amount());
 
-        self.stake_event(&caller, &payments, &new_entry);
+        self.stake_event(&caller, &new_entry);
 
         entry_mapper.set(&new_entry);
         let _ = self.user_list().insert(caller);
@@ -59,9 +59,9 @@ pub trait MetabondingStaking:
         let current_epoch = self.blockchain().get_block_epoch();
         user_entry.unbond_epoch = current_epoch + UNBOND_EPOCHS;
         user_entry.stake_amount -= &amount;
-        user_entry.unstake_amount += &amount;
+        user_entry.unstake_amount += amount;
 
-        self.unstake_event(&caller, &amount, user_entry.unbond_epoch, &user_entry);
+        self.unstake_event(&caller, &user_entry);
 
         entry_mapper.set(&user_entry);
     }
@@ -107,7 +107,7 @@ pub trait MetabondingStaking:
             &[],
         );
 
-        self.unbond_event(&caller, &unstake_amount, opt_entry_after_action);
+        self.unbond_event(&caller, opt_entry_after_action);
     }
 
     #[view(getStakedAmountForUser)]
