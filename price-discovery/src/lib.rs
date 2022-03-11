@@ -13,6 +13,12 @@ pub mod phase;
 pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
+pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
+
+pub struct RewardsPair<M: ManagedTypeApi> {
+    pub lp_tokens_amount: BigUint<M>,
+    pub extra_rewards_amount: BigUint<M>,
+}
 
 #[elrond_wasm::contract]
 pub trait PriceDiscovery:
@@ -26,8 +32,9 @@ pub trait PriceDiscovery:
         &self,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
+        extra_rewards_token_id: TokenIdentifier,
+        min_launched_token_price: BigUint,
         start_block: u64,
-        end_block: u64,
         no_limit_phase_duration_blocks: u64,
         linear_penalty_phase_duration_blocks: u64,
         fixed_penalty_phase_duration_blocks: u64,
@@ -36,6 +43,8 @@ pub trait PriceDiscovery:
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
     ) {
+        /* Disabled until the validate token ID function is activated
+
         require!(
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
@@ -44,14 +53,22 @@ pub trait PriceDiscovery:
             accepted_token_id.is_egld() || accepted_token_id.is_valid_esdt_identifier(),
             "Invalid payment token ID"
         );
-
-        self.check_valid_init_periods(
-            start_block,
-            end_block,
-            no_limit_phase_duration_blocks,
-            linear_penalty_phase_duration_blocks,
-            fixed_penalty_phase_duration_blocks,
+        require!(
+            extra_rewards_token_id.is_egld() || extra_rewards_token_id.is_valid_esdt_identifier(),
+            "Invalid extra rewards token ID"
         );
+
+        */
+        let current_block = self.blockchain().get_block_nonce();
+        require!(
+            current_block < start_block,
+            "Start block cannot be in the past"
+        );
+
+        let end_block = start_block
+            + no_limit_phase_duration_blocks
+            + linear_penalty_phase_duration_blocks
+            + fixed_penalty_phase_duration_blocks;
 
         require!(
             penalty_min_percentage <= penalty_max_percentage,
@@ -68,6 +85,9 @@ pub trait PriceDiscovery:
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
+        self.extra_rewards_token_id().set(&extra_rewards_token_id);
+        self.min_launched_token_price()
+            .set(&min_launched_token_price);
         self.start_block().set(&start_block);
         self.end_block().set(&end_block);
 
@@ -84,33 +104,19 @@ pub trait PriceDiscovery:
             .set(&fixed_penalty_percentage);
     }
 
-    #[inline]
-    fn check_valid_init_periods(
-        &self,
-        start_block: u64,
-        end_block: u64,
-        no_limit_phase_duration_blocks: u64,
-        linear_penalty_phase_duration_blocks: u64,
-        fixed_penalty_phase_duration_blocks: u64,
-    ) {
-        let current_block = self.blockchain().get_block_nonce();
-        require!(
-            current_block < start_block,
-            "Start block cannot be in the past"
-        );
-        require!(current_block < end_block, "End epoch cannot be in the past");
-        require!(
-            start_block < end_block,
-            "Start epoch must be before end epoch"
-        );
+    #[payable("*")]
+    #[endpoint(depositExtraRewards)]
+    fn deposit_extra_rewards(&self) {
+        self.require_dex_address_set();
 
-        let block_diff = end_block - start_block;
-        let phases_total_duration = no_limit_phase_duration_blocks
-            + linear_penalty_phase_duration_blocks
-            + fixed_penalty_phase_duration_blocks;
+        let phase = self.get_current_phase();
+        self.require_deposit_extra_rewards_allowed(&phase);
+
+        let payment_token = self.call_value().token();
+        let extra_rewards_token_id = self.extra_rewards_token_id().get();
         require!(
-            phases_total_duration <= block_diff,
-            "Phase durations last more than the whole start to end period"
+            payment_token == extra_rewards_token_id,
+            INVALID_PAYMENT_ERR_MSG
         );
     }
 
@@ -135,6 +141,8 @@ pub trait PriceDiscovery:
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
+
+        self.require_launched_token_over_min_price();
     }
 
     #[payable("*")]
@@ -161,10 +169,6 @@ pub trait PriceDiscovery:
 
         let penalty_percentage = phase.to_penalty_percentage();
         let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
-        if penalty_amount > 0 {
-            self.accumulated_penalty(payment_nonce)
-                .update(|p| *p += &penalty_amount);
-        }
 
         let caller = self.blockchain().get_caller();
         let withdraw_amount = payment_amount - penalty_amount;
@@ -172,6 +176,8 @@ pub trait PriceDiscovery:
             self.send()
                 .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
         }
+
+        self.require_launched_token_over_min_price();
     }
 
     #[payable("*")]
@@ -185,49 +191,47 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let lp_token_amount = self.compute_lp_amount_to_send(payment_nonce, &payment_amount);
-        require!(lp_token_amount > 0u32, "Nothing to redeem");
-
-        self.burn_redeem_token(payment_nonce, &payment_amount);
+        let rewards = self.compute_rewards(payment_nonce, &payment_amount);
+        self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
 
         let caller = self.blockchain().get_caller();
-        let lp_token_id = self.lp_token_id().get();
-        self.send()
-            .direct(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
+        if rewards.lp_tokens_amount > 0 {
+            let lp_token_id = self.lp_token_id().get();
+            self.send()
+                .direct(&caller, &lp_token_id, 0, &rewards.lp_tokens_amount, &[]);
+        }
+        if rewards.extra_rewards_amount > 0 {
+            let extra_rewards_token_id = self.extra_rewards_token_id().get();
+            self.send().direct(
+                &caller,
+                &extra_rewards_token_id,
+                0,
+                &rewards.extra_rewards_amount,
+                &[],
+            );
+        }
     }
 
     // private
 
-    fn compute_lp_amount_to_send(
+    fn compute_rewards(
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
-    ) -> BigUint {
+    ) -> RewardsPair<Self::Api> {
         let total_lp_tokens = self.total_lp_tokens_received().get();
-        let percentage_of_redeeem_token_supply =
-            self.get_percentage_of_total_supply(redeem_token_nonce, redeem_token_amount);
+        let redeem_token_supply = self
+            .redeem_token_total_circulating_supply(redeem_token_nonce)
+            .get();
 
-        let extra_lp_tokens = self.extra_lp_tokens().get();
-        let bonus = percentage_of_redeeem_token_supply * extra_lp_tokens / MAX_PERCENTAGE / 2u32;
-        self.extra_lp_tokens()
-            .update(|extra_amt| *extra_amt -= &bonus);
+        let lp_tokens_amount = &total_lp_tokens * redeem_token_amount / redeem_token_supply / 2u32;
 
-        match redeem_token_nonce {
-            LAUNCHED_TOKEN_REDEEM_NONCE => {
-                let launched_token_final_amount = self.launched_token_final_amount().get();
-                let base_lp_amount =
-                    redeem_token_amount * &total_lp_tokens / launched_token_final_amount / 2u32;
+        let total_extra_rewards = self.extra_rewards().get();
+        let extra_rewards_amount = &total_extra_rewards * &lp_tokens_amount / total_lp_tokens;
 
-                base_lp_amount + bonus
-            }
-            ACCEPTED_TOKEN_REDEEM_NONCE => {
-                let accepted_token_final_amount = self.accepted_token_final_amount().get();
-                let base_lp_amount =
-                    redeem_token_amount * &total_lp_tokens / accepted_token_final_amount / 2u32;
-
-                base_lp_amount + bonus
-            }
-            _ => BigUint::zero(),
+        RewardsPair {
+            lp_tokens_amount,
+            extra_rewards_amount,
         }
     }
 
@@ -243,4 +247,26 @@ pub trait PriceDiscovery:
             "Unbond period not finished yet"
         );
     }
+
+    fn require_launched_token_over_min_price(&self) {
+        let launched_token_id = self.launched_token_id().get();
+        let accepted_token_id = self.accepted_token_id().get();
+
+        let min_price = self.min_launched_token_price().get();
+        let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
+        let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
+
+        if accepted_token_balance == 0 {
+            return;
+        }
+
+        require!(launched_token_balance > 0, "No launched tokens available");
+
+        let current_price = accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance;
+        require!(current_price >= min_price, "Launched token below min price");
+    }
+
+    #[view(getMinLaunchedTokenPrice)]
+    #[storage_mapper("minLaunchedTokenPrice")]
+    fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
 }
