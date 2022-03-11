@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
     container: 
-      image: elrondnetwork/elrond-sdk-erdpy-rust:frozen-002
+      image: elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
     steps:
       # We don't use actions/checkout, since we want to control the location of the repository,
       # in order to achieve deterministic builds.
