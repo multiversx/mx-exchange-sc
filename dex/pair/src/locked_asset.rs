@@ -42,7 +42,6 @@ pub trait LockedAsset: config::ConfigModule + token_send::TokenSendModule {
         &self,
         #[payment_token] payment_token: TokenIdentifier,
         #[payment_nonce] payment_nonce: u64,
-        #[payment_amount] payment_amount: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
         let token_to_send_back = if payment_token == self.locked_asset_token_id_first().get() {
             self.first_token_id().get()
@@ -74,7 +73,7 @@ pub trait LockedAsset: config::ConfigModule + token_send::TokenSendModule {
         );
 
         self.send()
-            .esdt_local_burn(&payment_token, payment_nonce, &payment_amount);
+            .esdt_local_burn(&payment_token, payment_nonce, &BigUint::from(1u64));
 
         EsdtTokenPayment::new(token_to_send_back, 0, attr.amount)
     }
