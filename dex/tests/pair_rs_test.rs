@@ -814,8 +814,7 @@ fn test_locked_asset() {
             1,
             &rust_biguint!(1),
             |sc| {
-                let _ =
-                    sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1, managed_biguint!(1));
+                let _ = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
             },
         )
         .assert_user_error(&String::from_utf8(ERROR_UNLOCK_CALLED_TOO_EARLY.to_vec()).unwrap());
@@ -831,8 +830,7 @@ fn test_locked_asset() {
             1,
             &rust_biguint!(1),
             |sc| {
-                let ret =
-                    sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1, managed_biguint!(1));
+                let ret = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
 
                 assert_eq!(ret.token_identifier, managed_token_id!(WEGLD_TOKEN_ID));
                 assert_eq!(ret.token_nonce, 0);
