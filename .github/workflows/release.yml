@@ -55,6 +55,7 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRAFT_NAME: draftOn-${{ github.sha }}
         run: |
           echo "## Checksums (SHA 256):" >> notes.txt
           echo "" >> notes.txt
@@ -65,5 +66,6 @@ jobs:
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
 
-          gh release create vNext --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
-          gh release upload vNext $(find ./assets -type f)
+          gh release create ${DRAFT_NAME} --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
+          sleep 10
+          gh release upload ${DRAFT_NAME} $(find ./assets -type f)
