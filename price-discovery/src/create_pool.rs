@@ -72,7 +72,9 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
             .dex_proxy(dex_sc_address)
             .add_initial_liquidity(payments, OptionalValue::None);
 
-        let (lp_token, _, _) = contract_call.execute_on_dest_context().into_tuple();
+        let (lp_token, _, _) = contract_call
+            .execute_on_dest_context_custom_range(|_, after| (after - 3, after))
+            .into_tuple();
 
         self.lp_token_id().set(&lp_token.token_identifier);
         self.total_lp_tokens_received().set(&lp_token.amount);
