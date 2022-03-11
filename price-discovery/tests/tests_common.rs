@@ -17,12 +17,17 @@ pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub const REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
+pub const EXTRA_REWARDS_TOKEN_ID: &[u8] = b"EGLD";
+pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
 
 pub const START_BLOCK: u64 = 10;
-pub const END_BLOCK: u64 = 50;
 pub const NO_LIMIT_PHASE_DURATION_BLOCKS: u64 = 5;
 pub const LINEAR_PENALTY_PHASE_DURATION_BLOCKS: u64 = 5;
 pub const FIXED_PENALTY_PHASE_DURATION_BLOCKS: u64 = 5;
+pub const END_BLOCK: u64 = START_BLOCK
+    + NO_LIMIT_PHASE_DURATION_BLOCKS
+    + LINEAR_PENALTY_PHASE_DURATION_BLOCKS
+    + FIXED_PENALTY_PHASE_DURATION_BLOCKS;
 pub const UNBOND_EPOCHS: u64 = 7;
 
 pub const MIN_PENALTY_PERCENTAGE: u64 = 1_000_000_000_000; // 10%
@@ -53,7 +58,7 @@ where
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
-    let owner_address = blockchain_wrapper.create_user_account(&rust_zero);
+    let owner_address = blockchain_wrapper.create_user_account(&rust_biguint!(OWNER_EGLD_BALANCE));
     let first_user_address = blockchain_wrapper.create_user_account(&rust_zero);
     let second_user_address = blockchain_wrapper.create_user_account(&rust_zero);
 
@@ -142,8 +147,9 @@ where
             sc.init(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
+                managed_token_id!(EXTRA_REWARDS_TOKEN_ID),
+                managed_biguint!(0),
                 START_BLOCK,
-                END_BLOCK,
                 NO_LIMIT_PHASE_DURATION_BLOCKS,
                 LINEAR_PENALTY_PHASE_DURATION_BLOCKS,
                 FIXED_PENALTY_PHASE_DURATION_BLOCKS,
@@ -175,6 +181,25 @@ where
         pd_wrapper,
         dex_wrapper,
     }
+}
+
+pub fn call_deposit_extra_rewards<PriceDiscObjBuilder, DexObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+) where
+    PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
+    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+{
+    let b_wrapper = &mut pd_setup.blockchain_wrapper;
+    b_wrapper
+        .execute_tx(
+            &pd_setup.owner_address,
+            &pd_setup.pd_wrapper,
+            &rust_biguint!(OWNER_EGLD_BALANCE),
+            |sc| {
+                sc.deposit_extra_rewards();
+            },
+        )
+        .assert_ok();
 }
 
 pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
