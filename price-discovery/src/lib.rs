@@ -104,7 +104,6 @@ pub trait PriceDiscovery:
             .set(&fixed_penalty_percentage);
     }
 
-    #[only_owner]
     #[payable("*")]
     #[endpoint(depositExtraRewards)]
     fn deposit_extra_rewards(&self) {
