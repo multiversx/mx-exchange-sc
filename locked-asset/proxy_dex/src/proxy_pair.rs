@@ -306,7 +306,7 @@ pub trait ProxyPairModule:
                 OptionalValue::None,
             )
             .with_multi_token_transfer(all_token_payments)
-            .execute_on_dest_context()
+            .execute_on_dest_context_custom_range(|_, after| (after - 3, after))
     }
 
     fn actual_remove_liquidity(
@@ -326,13 +326,13 @@ pub trait ProxyPairModule:
                 second_token_amount_min.clone(),
                 OptionalValue::None,
             )
-            .execute_on_dest_context()
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
 
     fn ask_for_lp_token_id(&self, pair_address: &ManagedAddress) -> TokenIdentifier {
         self.pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context()
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn create_by_merging_and_send(

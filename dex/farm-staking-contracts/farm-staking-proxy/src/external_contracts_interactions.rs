@@ -46,7 +46,7 @@ pub trait ExternalContractsInteractionsModule:
             .lp_farm_proxy_obj(lp_farm_address)
             .exit_farm(OptionalValue::None)
             .add_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
         let received_lp_token_identifier = lp_tokens.token_identifier.clone();
         let lp_token_identifier = self.lp_token_id().get();
@@ -164,7 +164,7 @@ pub trait ExternalContractsInteractionsModule:
                 pair_second_token_min_amount,
                 OptionalValue::None,
             )
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (pair_first_token_payment, pair_second_token_payment) =
             pair_withdraw_result.into_tuple();
 
@@ -189,7 +189,7 @@ pub trait ExternalContractsInteractionsModule:
         let result: SafePriceResult<Self::Api> = self
             .pair_proxy_obj(pair_address)
             .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();
 
