@@ -10,20 +10,23 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         createDexLiquidityPool
         deposit
+        depositExtraRewards
         getAcceptedTokenFinalAmount
         getAcceptedTokenId
         getCurrentPhase
         getDexScAddress
         getEndBlock
+        getExtraRewardsTokenId
         getLaunchedTokenFinalAmount
         getLaunchedTokenId
         getLpTokenId
+        getMinLaunchedTokenPrice
         getRedeemTokenId
         getStartBlock
+        getTotalClaimableLpTokens
         issueRedeemToken
         redeem
         setPairAddress
-        totalLpTokensReceived
         withdraw
     )
 }
