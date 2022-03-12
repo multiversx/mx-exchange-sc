@@ -147,26 +147,13 @@ pub trait LockedAssetFactory:
         );
         require!(amount > 0, "Zero input amount");
 
-        let month_start_epoch = self.get_month_start_epoch(start_epoch);
-        let unlock_period = self.default_unlock_period().get();
-        let attr = LockedAssetTokenAttributesEx {
-            unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
-            is_merged: false,
-        };
-
-        let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func);
-
-        self.emit_create_and_forward_event(
-            &caller,
+        self.common_create_and_forward(
+            &amount,
             &address,
-            &new_token.token_identifier,
-            new_token.token_nonce,
-            &new_token.amount,
-            &attr,
+            &caller,
             start_epoch,
-        );
-        new_token
+            opt_accept_funds_func,
+        )
     }
 
     #[payable("*")]
@@ -246,6 +233,38 @@ pub trait LockedAssetFactory:
         );
     }
 
+    #[payable("*")]
+    #[endpoint(lockAssets)]
+    fn lock_assets(&self) -> EsdtTokenPayment<Self::Api> {
+        let caller = self.blockchain().get_caller();
+
+        let payments = self.call_value().all_esdt_transfers();
+        let mut payments_iter = payments.iter();
+
+        let assets_payment: EsdtTokenPayment<Self::Api> = payments_iter.next().unwrap();
+
+        let asset_token_id = self.asset_token_id().get();
+        require!(
+            assets_payment.token_identifier == asset_token_id,
+            "INVALID TOKEN PAYMENT"
+        );
+        let block_epoch = self.blockchain().get_block_epoch();
+
+        self.send().esdt_local_burn(
+            &assets_payment.token_identifier,
+            assets_payment.token_nonce,
+            &assets_payment.amount,
+        );
+
+        self.common_create_and_forward(
+            &assets_payment.amount,
+            &caller.clone(),
+            &caller,
+            block_epoch,
+            OptionalValue::None,
+        )
+    }
+
     #[only_owner]
     #[endpoint(setUnlockPeriod)]
     fn set_unlock_period(&self, #[var_args] milestones: MultiValueEncoded<UnlockMilestone>) {
@@ -257,6 +276,36 @@ pub trait LockedAssetFactory:
 
     fn get_month_start_epoch(&self, epoch: Epoch) -> Epoch {
         epoch - (epoch - self.init_epoch().get()) % EPOCHS_IN_MONTH
+    }
+
+    fn common_create_and_forward(
+        &self,
+        amount: &BigUint,
+        address: &ManagedAddress,
+        caller: &ManagedAddress,
+        start_epoch: Epoch,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        let month_start_epoch = self.get_month_start_epoch(start_epoch);
+        let unlock_period = self.default_unlock_period().get();
+        let attr = LockedAssetTokenAttributesEx {
+            unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
+            is_merged: false,
+        };
+
+        let new_token =
+            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func);
+
+        self.emit_create_and_forward_event(
+            &caller,
+            &address,
+            &new_token.token_identifier,
+            new_token.token_nonce,
+            &new_token.amount,
+            &attr,
+            start_epoch,
+        );
+        new_token
     }
 
     fn produce_tokens_and_send(

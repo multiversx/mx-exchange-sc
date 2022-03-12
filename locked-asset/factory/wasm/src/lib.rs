@@ -20,6 +20,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTransferExecGasLimit
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
+        lockAssets
         mergeLockedAssetTokens
         registerLockedAssetToken
         removeWhitelist
