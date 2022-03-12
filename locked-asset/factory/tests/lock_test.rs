@@ -69,7 +69,8 @@ fn test_lock_assets() {
             0,
             &rust_biguint!(1000),
             |sc| {
-                let locked_assets = sc.lock_assets();
+                let locked_assets =
+                    sc.lock_assets(managed_token_id!(ASSET_TOKEN_ID), managed_biguint!(1000));
                 locked_assets_nonce = locked_assets.token_nonce;
                 assert_eq!(locked_assets.amount, managed_biguint!(1000));
             },

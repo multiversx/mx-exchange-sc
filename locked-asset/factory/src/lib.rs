@@ -147,13 +147,7 @@ pub trait LockedAssetFactory:
         );
         require!(amount > 0, "Zero input amount");
 
-        self.common_create_and_forward(
-            &amount,
-            &address,
-            &caller,
-            start_epoch,
-            opt_accept_funds_func,
-        )
+        self.common_create_and_forward(amount, address, caller, start_epoch, opt_accept_funds_func)
     }
 
     #[payable("*")]
@@ -235,31 +229,24 @@ pub trait LockedAssetFactory:
 
     #[payable("*")]
     #[endpoint(lockAssets)]
-    fn lock_assets(&self) -> EsdtTokenPayment<Self::Api> {
+    fn lock_assets(
+        &self,
+        #[payment_token] payment_token: TokenIdentifier,
+        #[payment_amount] payment_amount: BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
 
-        let payments = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments.iter();
-
-        let assets_payment: EsdtTokenPayment<Self::Api> = payments_iter.next().unwrap();
-
         let asset_token_id = self.asset_token_id().get();
-        require!(
-            assets_payment.token_identifier == asset_token_id,
-            "INVALID TOKEN PAYMENT"
-        );
+        require!(payment_token == asset_token_id, "INVALID TOKEN PAYMENT");
         let block_epoch = self.blockchain().get_block_epoch();
 
-        self.send().esdt_local_burn(
-            &assets_payment.token_identifier,
-            assets_payment.token_nonce,
-            &assets_payment.amount,
-        );
+        self.send()
+            .esdt_local_burn(&payment_token, 0, &payment_amount);
 
         self.common_create_and_forward(
-            &assets_payment.amount,
-            &caller.clone(),
-            &caller,
+            payment_amount,
+            caller.clone(),
+            caller,
             block_epoch,
             OptionalValue::None,
         )
@@ -280,9 +267,9 @@ pub trait LockedAssetFactory:
 
     fn common_create_and_forward(
         &self,
-        amount: &BigUint,
-        address: &ManagedAddress,
-        caller: &ManagedAddress,
+        amount: BigUint,
+        address: ManagedAddress,
+        caller: ManagedAddress,
         start_epoch: Epoch,
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
