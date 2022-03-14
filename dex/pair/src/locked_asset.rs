@@ -2,6 +2,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::config;
+use crate::contexts::base::Context;
+use crate::contexts::swap::SwapContext;
 use crate::errors::*;
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Debug)]
@@ -78,7 +80,9 @@ pub trait LockedAsset: config::ConfigModule + token_send::TokenSendModule {
         EsdtTokenPayment::new(token_to_send_back, 0, attr.amount)
     }
 
-    fn should_generate_locked_asset(&self, is_first_token: bool) -> bool {
+    fn should_generate_locked_asset(&self, ctx: &SwapContext<Self::Api>) -> bool {
+        let is_first_token = ctx.get_token_out() == ctx.get_first_token_id();
+
         let is_locked_asset_empty = if is_first_token {
             self.locked_asset_token_id_first().is_empty()
         } else {
@@ -96,12 +100,10 @@ pub trait LockedAsset: config::ConfigModule + token_send::TokenSendModule {
         current_epoch <= epoch_limit && locking_period != 0
     }
 
-    fn generate_locked_asset(
-        &self,
-        token_id: &TokenIdentifier,
-        amount: &BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
-        let locked_asset_id = if token_id == &self.first_token_id().get() {
+    fn generate_locked_asset(&self, ctx: &SwapContext<Self::Api>) -> EsdtTokenPayment<Self::Api> {
+        let is_first_token = ctx.get_token_out() == ctx.get_first_token_id();
+
+        let locked_asset_id = if is_first_token {
             self.locked_asset_token_id_first().get()
         } else {
             self.locked_asset_token_id_second().get()
@@ -110,7 +112,7 @@ pub trait LockedAsset: config::ConfigModule + token_send::TokenSendModule {
         let current_epoch = self.blockchain().get_block_epoch();
         let locking_period = self.locking_period_in_epochs().get();
         let attr = LockedAssetAttributes {
-            amount: amount.clone(),
+            amount: ctx.get_final_output_amount().clone(),
             unlock_epoch: current_epoch + locking_period,
         };
 

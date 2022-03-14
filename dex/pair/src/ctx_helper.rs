@@ -176,12 +176,11 @@ pub trait CtxHelper:
     fn construct_swap_output_payments(&self, context: &mut SwapContext<Self::Api>) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
-        let output_is_first = context.get_token_out() == context.get_first_token_id();
-        if self.should_generate_locked_asset(output_is_first) {
-            let locked_asset = self
-                .generate_locked_asset(context.get_token_out(), context.get_final_output_amount());
+        if self.should_generate_locked_asset(context) {
+            let locked_asset = self.generate_locked_asset(context);
 
             context.set_locked_asset_output(locked_asset.clone());
+
             payments.push(locked_asset);
         } else {
             payments.push(self.create_payment(
