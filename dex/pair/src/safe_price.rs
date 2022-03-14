@@ -1,9 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use super::config;
 use crate::{
-    amm,
+    amm, config,
     contexts::base::Context,
     errors::{ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT},
 };
@@ -64,24 +63,24 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
         first_reserve: BigUint<M>,
         second_reserve: BigUint<M>,
     ) {
-        if !self.is_default() {
-            let current_weight = self.last_obs_block - self.first_obs_block + 1;
-            let new_weight = current_block - self.last_obs_block;
-
-            self.last_obs_block = current_block;
-            self.num_observations += 1;
-            self.first_token_reserve_weighted = (&self.first_token_reserve_weighted
-                * current_weight
-                + &self.first_token_reserve_last_obs * new_weight)
-                / (current_weight + new_weight);
-            self.second_token_reserve_weighted = (&self.second_token_reserve_weighted
-                * current_weight
-                + &self.second_token_reserve_last_obs * new_weight)
-                / (current_weight + new_weight);
-
-            self.first_token_reserve_last_obs = first_reserve;
-            self.second_token_reserve_last_obs = second_reserve;
+        if self.is_default() {
+            return;
         }
+
+        let current_weight = self.last_obs_block - self.first_obs_block + 1;
+        let new_weight = current_block - self.last_obs_block;
+
+        self.last_obs_block = current_block;
+        self.num_observations += 1;
+        self.first_token_reserve_weighted = (&self.first_token_reserve_weighted * current_weight
+            + &self.first_token_reserve_last_obs * new_weight)
+            / (current_weight + new_weight);
+        self.second_token_reserve_weighted = (&self.second_token_reserve_weighted * current_weight
+            + &self.second_token_reserve_last_obs * new_weight)
+            / (current_weight + new_weight);
+
+        self.first_token_reserve_last_obs = first_reserve;
+        self.second_token_reserve_last_obs = second_reserve;
     }
 }
 
@@ -102,16 +101,17 @@ pub trait SafePriceModule:
         let second_token_id = self.second_token_id().get();
         let big_zero = BigUint::zero();
 
-        let (first_token_worth, second_token_worth) = if total_supply == big_zero
-            || c_state.first_token_reserve_weighted == big_zero
-            || c_state.second_token_reserve_weighted == big_zero
-        {
-            (big_zero.clone(), big_zero)
-        } else {
+        let pool_initialized = total_supply != big_zero
+            && c_state.first_token_reserve_weighted != big_zero
+            && c_state.second_token_reserve_weighted != big_zero;
+
+        let (first_token_worth, second_token_worth) = if pool_initialized {
             let first_worth = &liquidity * &c_state.first_token_reserve_weighted / &total_supply;
             let second_worth = &liquidity * &c_state.second_token_reserve_weighted / &total_supply;
 
             (first_worth, second_worth)
+        } else {
+            (big_zero.clone(), big_zero)
         };
 
         MultiValue2::from((
@@ -157,7 +157,8 @@ pub trait SafePriceModule:
     #[endpoint(setMaxObservationsPerRecord)]
     fn set_max_observations_per_record(&self, max_observations_per_record: u64) {
         self.require_permissions();
-        self.max_observations_per_record().set(max_observations_per_record);
+        self.max_observations_per_record()
+            .set(max_observations_per_record);
     }
 
     fn update_safe_state_from_context(&self, ctx: &dyn Context<Self::Api>) {
@@ -248,28 +249,28 @@ pub trait SafePriceModule:
 
     #[inline]
     fn get_current_state_or_default(&self) -> CumulativeState<Self::Api> {
-        if self.current_state().is_empty() {
-            Default::default()
-        } else {
+        if !self.current_state().is_empty() {
             self.current_state().get()
+        } else {
+            Default::default()
         }
     }
 
     #[inline]
     fn get_future_state_or_default(&self) -> CumulativeState<Self::Api> {
-        if self.future_state().is_empty() {
-            Default::default()
-        } else {
+        if !self.future_state().is_empty() {
             self.future_state().get()
+        } else {
+            Default::default()
         }
     }
 
     #[inline]
     fn get_max_observations_per_record(&self) -> u64 {
-        if self.max_observations_per_record().is_empty() {
-            MAX_OBSERVATIONS_PER_RECORD
-        } else {
+        if !self.max_observations_per_record().is_empty() {
             self.max_observations_per_record().get()
+        } else {
+            MAX_OBSERVATIONS_PER_RECORD
         }
     }
 
