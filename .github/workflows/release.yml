@@ -2,6 +2,13 @@ name: Create release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        description: Release tag
+      title:
+        required: true
+        description: Release title
 
 env:
   # https://github.com/actions/runner/issues/863 ($HOME is overridden for containers)
@@ -55,7 +62,6 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DRAFT_NAME: draftOn-${{ github.sha }}
         run: |
           echo "## Checksums (SHA 256):" >> notes.txt
           echo "" >> notes.txt
@@ -66,6 +72,6 @@ jobs:
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
 
-          gh release create ${DRAFT_NAME} --draft --title="Release draft from Github Actions" --generate-notes --notes-file=notes.txt
+          gh release create ${{ github.event.inputs.tag }} --prerelease --title="${{ github.event.inputs.title }}" --generate-notes --notes-file=notes.txt
           sleep 10
-          gh release upload ${DRAFT_NAME} $(find ./assets -type f)
+          gh release upload ${{ github.event.inputs.tag }} $(find ./assets -type f)
