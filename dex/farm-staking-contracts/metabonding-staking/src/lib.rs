@@ -8,7 +8,7 @@ pub mod locked_asset_token;
 use locked_asset_token::UserEntry;
 
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
-pub const UNBOND_EPOCHS: u64 = 10;
+pub const UNBOND_EPOCHS: u64 = 3;
 
 #[elrond_wasm::contract]
 pub trait MetabondingStaking:
