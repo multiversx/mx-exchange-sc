@@ -125,7 +125,7 @@ fn test_unstake() {
                 token_nonce: 1,
                 stake_amount: managed_biguint!(0),
                 unstake_amount: managed_biguint!(101_000_000),
-                unbond_epoch: 10,
+                unbond_epoch: 3,
             };
             let actual_entry = sc.entry_for_user(&managed_address!(&user_addr)).get();
             assert_eq!(actual_entry, expected_entry);
@@ -164,7 +164,7 @@ fn test_partial_unstake() {
                 token_nonce: 1,
                 stake_amount: managed_biguint!(40_000_000),
                 unstake_amount: managed_biguint!(51_000_000),
-                unbond_epoch: 10,
+                unbond_epoch: 3,
             };
             let actual_entry = sc.entry_for_user(&managed_address!(&user_addr)).get();
             assert_eq!(actual_entry, expected_entry);
@@ -187,7 +187,7 @@ fn test_partial_unstake() {
                 token_nonce: 1,
                 stake_amount: managed_biguint!(10_000_000),
                 unstake_amount: managed_biguint!(81_000_000),
-                unbond_epoch: 15,
+                unbond_epoch: 8,
             };
             let actual_entry = sc.entry_for_user(&managed_address!(&user_addr)).get();
             assert_eq!(actual_entry, expected_entry);
@@ -204,7 +204,7 @@ fn test_partial_unstake() {
                 token_nonce: 2,
                 stake_amount: managed_biguint!(20_000_000),
                 unstake_amount: managed_biguint!(81_000_000),
-                unbond_epoch: 15,
+                unbond_epoch: 8,
             };
             let actual_entry = sc.entry_for_user(&managed_address!(&user_addr)).get();
             assert_eq!(actual_entry, expected_entry);
@@ -278,7 +278,7 @@ fn test_unbond() {
                 token_nonce: 1,
                 stake_amount: managed_biguint!(0),
                 unstake_amount: managed_biguint!(101_000_000),
-                unbond_epoch: 10,
+                unbond_epoch: 3,
             };
             let actual_entry = sc.entry_for_user(&managed_address!(&user_addr)).get();
             assert_eq!(actual_entry, expected_entry);
