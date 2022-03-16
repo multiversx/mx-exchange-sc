@@ -29,10 +29,10 @@ path = "../common/common_structs"
 path = "farm"
 
 [dev-dependencies.farm-staking]
-path = "farm-staking-contracts/farm-staking"
+path = "../farm-staking/farm-staking"
 
 [dev-dependencies.farm-staking-proxy]
-path = "farm-staking-contracts/farm-staking-proxy"
+path = "../farm-staking/farm-staking-proxy"
 
 [dev-dependencies.farm_with_lock]
 path = "farm_with_lock"
