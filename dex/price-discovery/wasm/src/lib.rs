@@ -15,13 +15,21 @@ elrond_wasm_node::wasm_endpoints! {
         getCurrentPhase
         getDexScAddress
         getEndBlock
+        getExtraRewards
         getExtraRewardsTokenId
+        getFixedPenaltyPercentage
+        getFixedPenaltyPhaseDurationBlocks
         getLaunchedTokenId
+        getLinearPenaltyPhaseDurationBlocks
         getLpTokenId
         getMinLaunchedTokenPrice
+        getNoLimitPhaseDurationBlocks
+        getPenaltyMaxPercentage
+        getPenaltyMinPercentage
         getRedeemTokenId
         getStartBlock
         getTotalLpTokensReceived
+        getUnbondPeriodEpochs
         issueRedeemToken
         redeem
         setPairAddress

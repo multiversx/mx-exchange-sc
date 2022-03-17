@@ -24,6 +24,7 @@ pub trait CommonStorageModule {
     #[storage_mapper("totalLpTokensReceived")]
     fn total_lp_tokens_received(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getExtraRewards)]
     #[storage_mapper("extraRewards")]
     fn extra_rewards(&self) -> SingleValueMapper<BigUint>;
 

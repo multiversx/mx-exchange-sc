@@ -99,24 +99,31 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
         );
     }
 
-    #[storage_mapper("noLimitPhaseDurationBocks")]
+    #[view(getNoLimitPhaseDurationBlocks)]
+    #[storage_mapper("noLimitPhaseDurationBlocks")]
     fn no_limit_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 
+    #[view(getLinearPenaltyPhaseDurationBlocks)]
     #[storage_mapper("linearPenaltyPhaseDurationBlocks")]
     fn linear_penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 
+    #[view(getFixedPenaltyPhaseDurationBlocks)]
     #[storage_mapper("fixedPenaltyPhaseDurationBlocks")]
     fn fixed_penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 
+    #[view(getUnbondPeriodEpochs)]
     #[storage_mapper("unbondPeriodEpochs")]
     fn unbond_period_epochs(&self) -> SingleValueMapper<u64>;
 
+    #[view(getPenaltyMinPercentage)]
     #[storage_mapper("penaltyMinPercentage")]
     fn penalty_min_percentage(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getPenaltyMaxPercentage)]
     #[storage_mapper("penaltyMaxPercentage")]
     fn penalty_max_percentage(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getFixedPenaltyPercentage)]
     #[storage_mapper("fixedPenaltyPercentage")]
     fn fixed_penalty_percentage(&self) -> SingleValueMapper<BigUint>;
 }
