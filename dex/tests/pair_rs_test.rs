@@ -223,6 +223,40 @@ fn swap_fixed_input_expect_error<PairObjBuilder>(
         .assert_user_error(expected_message);
 }
 
+fn swap_fixed_output<PairObjBuilder>(
+    pair_setup: &mut PairSetup<PairObjBuilder>,
+    payment_token_id: &[u8],
+    payment_amount_max: u64,
+    desired_token_id: &[u8],
+    desired_amount: u64,
+    payment_expected_back_amount: u64,
+) where
+    PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
+{
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &payment_token_id,
+            0,
+            &rust_biguint!(payment_amount_max),
+            |sc| {
+                let ret = sc.swap_tokens_fixed_output(
+                    managed_token_id!(payment_token_id),
+                    0,
+                    managed_biguint!(payment_amount_max),
+                    managed_token_id!(desired_token_id),
+                    managed_biguint!(desired_amount),
+                    OptionalValue::None,
+                );
+
+                assert_eq!(ret.into_tuple().1.amount, managed_biguint!(payment_expected_back_amount));
+            },
+        )
+        .assert_ok();
+}
+
 fn set_swap_protect<PairObjBuilder>(
     pair_setup: &mut PairSetup<PairObjBuilder>,
     protect_stop_block: u64,
@@ -371,6 +405,31 @@ fn test_swap_fixed_input() {
         MEX_TOKEN_ID,
         900,
         996,
+    );
+}
+
+#[test]
+fn test_swap_fixed_output() {
+    let mut pair_setup = setup_pair(pair::contract_obj);
+
+    add_liquidity(
+        &mut pair_setup,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        1_000_000,
+        1_001_000,
+        1_001_000,
+    );
+
+    swap_fixed_output(
+        &mut pair_setup,
+        WEGLD_TOKEN_ID,
+        1_000,
+        MEX_TOKEN_ID,
+        900,
+        96,
     );
 }
 
