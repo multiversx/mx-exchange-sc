@@ -3,12 +3,6 @@ members = [
   "dex",
   "dex/farm",
   "dex/farm/meta",
-  "dex/farm-staking-contracts/farm-staking",
-  "dex/farm-staking-contracts/farm-staking/meta",
-  "dex/farm-staking-contracts/farm-staking-proxy",
-  "dex/farm-staking-contracts/farm-staking-proxy/meta",
-  "dex/farm-staking-contracts/metabonding-staking",
-  "dex/farm-staking-contracts/metabonding-staking/meta",
   "dex/farm_with_lock",
   "dex/farm_with_lock/meta",
   "dex/pair",
@@ -20,6 +14,17 @@ members = [
   "dex/fuzz",
   "dex/governance",
   "dex/governance/meta",
+  "dex/price-discovery",
+  "dex/price-discovery/meta",
+  "dex/pair-mock",
+  "dex/pair-mock/meta",
+
+  "farm-staking/farm-staking",
+  "farm-staking/farm-staking/meta",
+  "farm-staking/farm-staking-proxy",
+  "farm-staking/farm-staking-proxy/meta",
+  "farm-staking/metabonding-staking",
+  "farm-staking/metabonding-staking/meta",
 
   "locked-asset/",
   "locked-asset/distribution",
@@ -28,11 +33,6 @@ members = [
   "locked-asset/proxy_dex/meta",
   "locked-asset/factory",
   "locked-asset/factory/meta",
-
-  "price-discovery",
-  "price-discovery/meta",
-  "pair-mock",
-  "pair-mock/meta",
 
   "integration-test-lib",
 ]

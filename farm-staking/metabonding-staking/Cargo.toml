@@ -15,7 +15,7 @@ version = "0.29.0"
 version = "0.29.0"
 
 [dependencies.factory]
-path = "../../../locked-asset/factory"
+path = "../../locked-asset/factory"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.29.0"
@@ -24,4 +24,4 @@ version = "0.29.0"
 num-bigint = "0.4.2"
 
 [dev-dependencies.common_structs]
-path = "../../../common/common_structs"
+path = "../../common/common_structs"

@@ -31,6 +31,10 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
         self.dex_sc_address().set(&dex_sc_address);
     }
 
+    /// Can only be called during unbond period, i.e. last phase.
+    /// Sends all accepted and launched tokens to the liquidity pool,
+    /// receiving LP tokens, which are locked for a number of epochs
+    /// before redeeming is allowed
     #[endpoint(createDexLiquidityPool)]
     fn create_dex_liquidity_pool(&self) {
         require!(!self.dex_sc_address().is_empty(), "Pair address not set");
