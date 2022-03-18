@@ -20,7 +20,9 @@ mod liquidity_pool_proxy {
 }
 
 #[elrond_wasm::module]
-pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
+pub trait CreatePoolModule:
+    crate::common_storage::CommonStorageModule + crate::events::EventsModule
+{
     #[only_owner]
     #[endpoint(setPairAddress)]
     fn set_pair_address(&self, dex_sc_address: ManagedAddress) {
@@ -62,13 +64,13 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
             token_type: EsdtTokenType::Fungible,
             token_identifier: launched_token_id,
             token_nonce: 0,
-            amount: launched_token_balance,
+            amount: launched_token_balance.clone(),
         });
         payments.push(EsdtTokenPayment {
             token_type: EsdtTokenType::Fungible,
             token_identifier: accepted_token_id,
             token_nonce: 0,
-            amount: accepted_token_balance,
+            amount: accepted_token_balance.clone(),
         });
 
         let dex_sc_address = self.dex_sc_address().get();
@@ -85,6 +87,17 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.pool_creation_epoch().set(&current_epoch);
+
+        let unbond_epochs = self.unbond_period_epochs().get();
+        self.liquidity_pool_created_event(
+            current_epoch,
+            current_epoch + unbond_epochs,
+            &launched_token_balance,
+            &accepted_token_balance,
+            &extra_rewards_balance,
+            &lp_token.token_identifier,
+            &lp_token.amount,
+        );
     }
 
     // private
@@ -108,4 +121,8 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
     #[storage_mapper("poolCreationEpoch")]
     fn pool_creation_epoch(&self) -> SingleValueMapper<u64>;
+
+    #[view(getUnbondPeriodEpochs)]
+    #[storage_mapper("unbondPeriodEpochs")]
+    fn unbond_period_epochs(&self) -> SingleValueMapper<u64>;
 }

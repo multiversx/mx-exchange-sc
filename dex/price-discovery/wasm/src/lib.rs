@@ -22,6 +22,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLaunchedTokenId
         getLinearPenaltyPhaseDurationBlocks
         getLpTokenId
+        getLpTokensClaimed
         getMinLaunchedTokenPrice
         getNoLimitPhaseDurationBlocks
         getPenaltyMaxPercentage

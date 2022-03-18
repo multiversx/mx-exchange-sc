@@ -9,6 +9,7 @@ elrond_wasm::imports!();
 
 pub mod common_storage;
 pub mod create_pool;
+pub mod events;
 pub mod phase;
 pub mod redeem_token;
 
@@ -24,6 +25,7 @@ pub struct RewardsPair<M: ManagedTypeApi> {
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + create_pool::CreatePoolModule
+    + events::EventsModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
 {
@@ -115,12 +117,16 @@ pub trait PriceDiscovery:
         let phase = self.get_current_phase();
         self.require_deposit_extra_rewards_allowed(&phase);
 
-        let payment_token = self.call_value().token();
+        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let extra_rewards_token_id = self.extra_rewards_token_id().get();
         require!(
             payment_token == extra_rewards_token_id,
             INVALID_PAYMENT_ERR_MSG
         );
+
+        let caller = self.blockchain().get_caller();
+        let current_block = self.blockchain().get_block_nonce();
+        self.deposit_extra_rewards_event(current_block, &caller, &payment_amount);
     }
 
     /// Users can deposit either launched_token or accepted_token.
@@ -147,11 +153,21 @@ pub trait PriceDiscovery:
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
 
-        self.require_launched_token_over_min_price();
+        let current_block = self.blockchain().get_block_nonce();
+        let current_price = self.get_launched_token_price_over_min_price();
+        self.deposit_event(
+            current_block,
+            &caller,
+            &payment_token,
+            &payment_amount,
+            redeem_token_nonce,
+            &payment_amount,
+            &current_price,
+        );
     }
 
     /// Deposit SFTs received after deposit to withdraw the initially deposited tokens.
-    /// Depending on the current Phase, a penalty may be applied and only a part 
+    /// Depending on the current Phase, a penalty may be applied and only a part
     /// of the initial tokens will be received.
     #[payable("*")]
     #[endpoint]
@@ -161,9 +177,7 @@ pub trait PriceDiscovery:
         let phase = self.get_current_phase();
         self.require_withdraw_allowed(&phase);
 
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
-        let payment_nonce = self.call_value().esdt_token_nonce();
-
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
@@ -179,13 +193,23 @@ pub trait PriceDiscovery:
         let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
 
         let caller = self.blockchain().get_caller();
-        let withdraw_amount = payment_amount - penalty_amount;
+        let withdraw_amount = &payment_amount - &penalty_amount;
         if withdraw_amount > 0 {
             self.send()
                 .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
         }
 
-        self.require_launched_token_over_min_price();
+        let current_block = self.blockchain().get_block_nonce();
+        let current_price = self.get_launched_token_price_over_min_price();
+        self.withdraw_event(
+            current_block,
+            &caller,
+            payment_nonce,
+            &payment_amount,
+            &refund_token_id,
+            &withdraw_amount,
+            &current_price,
+        );
     }
 
     /// After the liquidity pool has been created and the LP tokens received,
@@ -196,9 +220,7 @@ pub trait PriceDiscovery:
     fn redeem(&self) {
         self.require_redeem_allowed();
 
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
-        let payment_nonce = self.call_value().esdt_token_nonce();
-
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
@@ -221,6 +243,23 @@ pub trait PriceDiscovery:
                 &[],
             );
         }
+
+        let total_lp_tokens = self.total_lp_tokens_received().get();
+        let remaining_lp_tokens = self.lp_tokens_claimed().update(|total_claimed| {
+            *total_claimed += &rewards.lp_tokens_amount;
+            &total_lp_tokens - &*total_claimed
+        });
+
+        let current_block = self.blockchain().get_block_nonce();
+        self.redeem_event(
+            current_block,
+            &caller,
+            payment_nonce,
+            &payment_amount,
+            &rewards.extra_rewards_amount,
+            &rewards.lp_tokens_amount,
+            &remaining_lp_tokens,
+        )
     }
 
     // private
@@ -259,7 +298,7 @@ pub trait PriceDiscovery:
         );
     }
 
-    fn require_launched_token_over_min_price(&self) {
+    fn get_launched_token_price_over_min_price(&self) -> BigUint {
         let launched_token_id = self.launched_token_id().get();
         let accepted_token_id = self.accepted_token_id().get();
 
@@ -268,16 +307,22 @@ pub trait PriceDiscovery:
         let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
 
         if accepted_token_balance == 0 {
-            return;
+            return accepted_token_balance;
         }
 
         require!(launched_token_balance > 0, "No launched tokens available");
 
         let current_price = accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance;
         require!(current_price >= min_price, "Launched token below min price");
+
+        current_price
     }
 
     #[view(getMinLaunchedTokenPrice)]
     #[storage_mapper("minLaunchedTokenPrice")]
     fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getLpTokensClaimed)]
+    #[storage_mapper("lpTokensClaimed")]
+    fn lp_tokens_claimed(&self) -> SingleValueMapper<BigUint>;
 }

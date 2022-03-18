@@ -111,10 +111,6 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
     #[storage_mapper("fixedPenaltyPhaseDurationBlocks")]
     fn fixed_penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
 
-    #[view(getUnbondPeriodEpochs)]
-    #[storage_mapper("unbondPeriodEpochs")]
-    fn unbond_period_epochs(&self) -> SingleValueMapper<u64>;
-
     #[view(getPenaltyMinPercentage)]
     #[storage_mapper("penaltyMinPercentage")]
     fn penalty_min_percentage(&self) -> SingleValueMapper<BigUint>;
