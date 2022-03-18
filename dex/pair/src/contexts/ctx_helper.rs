@@ -179,7 +179,7 @@ pub trait CtxHelper:
 
         if context.get_final_input_amount() != context.get_amount_in() {
             payments.push(self.create_payment(
-                context.get_second_token_id(),
+                context.get_token_in(),
                 0,
                 &(context.get_amount_in() - context.get_final_input_amount()),
             ));
