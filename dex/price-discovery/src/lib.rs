@@ -27,6 +27,7 @@ pub trait PriceDiscovery:
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
 {
+    /// For explanations regarding what each parameter means, please refer to docs/setup.md
     #[init]
     fn init(
         &self,
@@ -104,6 +105,8 @@ pub trait PriceDiscovery:
             .set(&fixed_penalty_percentage);
     }
 
+    /// Extra rewards that will be given to users that contributed to the pool, defined by
+    /// extra_rewards_token_id. Can be deposited by anyone.
     #[payable("*")]
     #[endpoint(depositExtraRewards)]
     fn deposit_extra_rewards(&self) {
@@ -120,6 +123,8 @@ pub trait PriceDiscovery:
         );
     }
 
+    /// Users can deposit either launched_token or accepted_token.
+    /// They will receive an SFT that can be used to withdraw said tokens
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) {
@@ -145,6 +150,9 @@ pub trait PriceDiscovery:
         self.require_launched_token_over_min_price();
     }
 
+    /// Deposit SFTs received after deposit to withdraw the initially deposited tokens.
+    /// Depending on the current Phase, a penalty may be applied and only a part 
+    /// of the initial tokens will be received.
     #[payable("*")]
     #[endpoint]
     fn withdraw(&self) {
@@ -180,6 +188,9 @@ pub trait PriceDiscovery:
         self.require_launched_token_over_min_price();
     }
 
+    /// After the liquidity pool has been created and the LP tokens received,
+    /// users can withdraw their fair share of the LP tokens by depositing their SFTs
+    /// and a share of the extra rewards
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) {
