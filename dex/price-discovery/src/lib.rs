@@ -62,6 +62,11 @@ pub trait PriceDiscovery:
         );
 
         */
+        require!(
+            launched_token_id != accepted_token_id,
+            "Launched and accepted token must be different"
+        );
+
         let current_block = self.blockchain().get_block_nonce();
         require!(
             current_block < start_block,
@@ -124,6 +129,8 @@ pub trait PriceDiscovery:
             INVALID_PAYMENT_ERR_MSG
         );
 
+        self.increase_balance(self.extra_rewards_balance(), &payment_amount);
+
         let caller = self.blockchain().get_caller();
         let current_block = self.blockchain().get_block_nonce();
         self.deposit_extra_rewards_event(current_block, &caller, &payment_amount);
@@ -142,13 +149,15 @@ pub trait PriceDiscovery:
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let accepted_token_id = self.accepted_token_id().get();
         let launched_token_id = self.launched_token_id().get();
-        let redeem_token_nonce = if payment_token == accepted_token_id {
-            ACCEPTED_TOKEN_REDEEM_NONCE
+        let (redeem_token_nonce, balance_mapper) = if payment_token == accepted_token_id {
+            (ACCEPTED_TOKEN_REDEEM_NONCE, self.accepted_token_balance())
         } else if payment_token == launched_token_id {
-            LAUNCHED_TOKEN_REDEEM_NONCE
+            (LAUNCHED_TOKEN_REDEEM_NONCE, self.launched_token_balance())
         } else {
             sc_panic!(INVALID_PAYMENT_ERR_MSG);
         };
+
+        self.increase_balance(balance_mapper, &payment_amount);
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
@@ -181,9 +190,15 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let refund_token_id = match payment_nonce {
-            LAUNCHED_TOKEN_REDEEM_NONCE => self.launched_token_id().get(),
-            ACCEPTED_TOKEN_REDEEM_NONCE => self.accepted_token_id().get(),
+        let (refund_token_id, balance_mapper) = match payment_nonce {
+            LAUNCHED_TOKEN_REDEEM_NONCE => (
+                self.launched_token_id().get(),
+                self.launched_token_balance(),
+            ),
+            ACCEPTED_TOKEN_REDEEM_NONCE => (
+                self.accepted_token_id().get(),
+                self.accepted_token_balance(),
+            ),
             _ => sc_panic!(INVALID_PAYMENT_ERR_MSG),
         };
 
@@ -195,6 +210,8 @@ pub trait PriceDiscovery:
         let caller = self.blockchain().get_caller();
         let withdraw_amount = &payment_amount - &penalty_amount;
         if withdraw_amount > 0 {
+            self.decrease_balance(balance_mapper, &withdraw_amount);
+
             self.send()
                 .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
         }
@@ -234,6 +251,8 @@ pub trait PriceDiscovery:
                 .direct(&caller, &lp_token_id, 0, &rewards.lp_tokens_amount, &[]);
         }
         if rewards.extra_rewards_amount > 0 {
+            self.decrease_balance(self.extra_rewards_balance(), &rewards.extra_rewards_amount);
+
             let extra_rewards_token_id = self.extra_rewards_token_id().get();
             self.send().direct(
                 &caller,
@@ -276,7 +295,7 @@ pub trait PriceDiscovery:
 
         let lp_tokens_amount = &total_lp_tokens * redeem_token_amount / redeem_token_supply / 2u32;
 
-        let total_extra_rewards = self.extra_rewards().get();
+        let total_extra_rewards = self.total_extra_rewards_tokens().get();
         let extra_rewards_amount = &total_extra_rewards * &lp_tokens_amount / total_lp_tokens;
 
         RewardsPair {
@@ -316,6 +335,14 @@ pub trait PriceDiscovery:
         require!(current_price >= min_price, "Launched token below min price");
 
         current_price
+    }
+
+    fn increase_balance(&self, mapper: SingleValueMapper<BigUint>, amount: &BigUint) {
+        mapper.update(|b| *b += amount);
+    }
+
+    fn decrease_balance(&self, mapper: SingleValueMapper<BigUint>, amount: &BigUint) {
+        mapper.update(|b| *b -= amount);
     }
 
     #[view(getMinLaunchedTokenPrice)]
