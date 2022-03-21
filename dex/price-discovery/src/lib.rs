@@ -133,7 +133,12 @@ pub trait PriceDiscovery:
 
         let caller = self.blockchain().get_caller();
         let current_block = self.blockchain().get_block_nonce();
-        self.deposit_extra_rewards_event(current_block, &caller, &payment_amount);
+        self.deposit_extra_rewards_event(
+            current_block,
+            &caller,
+            &extra_rewards_token_id,
+            &payment_amount,
+        );
     }
 
     /// Users can deposit either launched_token or accepted_token.

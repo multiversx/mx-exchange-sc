@@ -7,6 +7,7 @@ pub trait EventsModule {
         &self,
         #[indexed] block: u64,
         #[indexed] caller: &ManagedAddress,
+        #[indexed] token_id: &TokenIdentifier,
         amount: &BigUint,
     );
 
