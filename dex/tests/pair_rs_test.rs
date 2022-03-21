@@ -233,6 +233,20 @@ fn swap_fixed_output<PairObjBuilder>(
 ) where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
+    let initial_payment_token_balance = pair_setup.blockchain_wrapper.get_esdt_balance(
+        &pair_setup.user_address,
+        payment_token_id,
+        0,
+    );
+    let initial_desired_token_balance = pair_setup.blockchain_wrapper.get_esdt_balance(
+        &pair_setup.user_address,
+        desired_token_id,
+        0,
+    );
+
+    let mut payment_token_swap_amount = rust_biguint!(0);
+    let mut desired_token_swap_amount = rust_biguint!(0);
+
     pair_setup
         .blockchain_wrapper
         .execute_esdt_transfer(
@@ -251,10 +265,47 @@ fn swap_fixed_output<PairObjBuilder>(
                     OptionalValue::None,
                 );
 
-                assert_eq!(ret.into_tuple().1.amount, managed_biguint!(payment_expected_back_amount));
+                let (desired_token_output, payment_token_residuum) = ret.into_tuple();
+                payment_token_swap_amount = num_bigint::BigUint::from_bytes_be(
+                    &payment_token_residuum
+                        .amount
+                        .to_bytes_be()
+                        .as_slice()
+                        .clone(),
+                );
+                desired_token_swap_amount = num_bigint::BigUint::from_bytes_be(
+                    &desired_token_output.amount.to_bytes_be().as_slice().clone(),
+                );
+
+                assert_eq!(
+                    payment_token_residuum.amount,
+                    managed_biguint!(payment_expected_back_amount)
+                );
             },
         )
         .assert_ok();
+
+    let final_payment_token_balance = pair_setup.blockchain_wrapper.get_esdt_balance(
+        &pair_setup.user_address,
+        payment_token_id,
+        0,
+    );
+    let final_desired_token_balance = pair_setup.blockchain_wrapper.get_esdt_balance(
+        &pair_setup.user_address,
+        desired_token_id,
+        0,
+    );
+
+    assert_eq!(
+        final_payment_token_balance,
+        initial_payment_token_balance - &rust_biguint!(payment_amount_max)
+            + payment_token_swap_amount
+    );
+
+    assert_eq!(
+        final_desired_token_balance,
+        initial_desired_token_balance + desired_token_swap_amount
+    );
 }
 
 fn set_swap_protect<PairObjBuilder>(
