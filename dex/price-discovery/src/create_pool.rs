@@ -66,13 +66,13 @@ pub trait CreatePoolModule:
             token_type: EsdtTokenType::Fungible,
             token_identifier: launched_token_id,
             token_nonce: 0,
-            amount: launched_token_balance.clone(),
+            amount: launched_token_balance,
         });
         payments.push(EsdtTokenPayment {
             token_type: EsdtTokenType::Fungible,
             token_identifier: accepted_token_id,
             token_nonce: 0,
-            amount: accepted_token_balance.clone(),
+            amount: accepted_token_balance,
         });
 
         let dex_sc_address = self.dex_sc_address().get();
@@ -90,16 +90,7 @@ pub trait CreatePoolModule:
         let current_epoch = self.blockchain().get_block_epoch();
         self.pool_creation_epoch().set(&current_epoch);
 
-        let unbond_epochs = self.unbond_period_epochs().get();
-        self.liquidity_pool_created_event(
-            current_epoch,
-            current_epoch + unbond_epochs,
-            &launched_token_balance,
-            &accepted_token_balance,
-            &extra_rewards_balance,
-            &lp_token.token_identifier,
-            &lp_token.amount,
-        );
+        self.emit_initial_liquidity_event(lp_token.token_identifier, lp_token.amount);
     }
 
     // private

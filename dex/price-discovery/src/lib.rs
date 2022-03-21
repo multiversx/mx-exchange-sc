@@ -131,7 +131,7 @@ pub trait PriceDiscovery:
 
         self.increase_balance(self.extra_rewards_balance(), &payment_amount);
 
-        self.emit_deposit_extra_rewards_event(&extra_rewards_token_id, &payment_amount);
+        self.emit_deposit_extra_rewards_event(extra_rewards_token_id, payment_amount);
     }
 
     /// Users can deposit either launched_token or accepted_token.
@@ -147,6 +147,7 @@ pub trait PriceDiscovery:
         let (payment_amount, payment_token) = self.call_value().payment_token_pair();
         let accepted_token_id = self.accepted_token_id().get();
         let launched_token_id = self.launched_token_id().get();
+        let redeem_token_id = self.redeem_token_id().get();
         let (redeem_token_nonce, balance_mapper) = if payment_token == accepted_token_id {
             (ACCEPTED_TOKEN_REDEEM_NONCE, self.accepted_token_balance())
         } else if payment_token == launched_token_id {
@@ -161,12 +162,15 @@ pub trait PriceDiscovery:
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
 
         let current_price = self.get_launched_token_price_over_min_price();
+
         self.emit_deposit_event(
-            &payment_token,
-            &payment_amount,
+            payment_token,
+            payment_amount.clone(),
+            redeem_token_id,
             redeem_token_nonce,
-            &payment_amount,
-            &current_price,
+            payment_amount,
+            current_price,
+            self.get_current_phase(),
         );
     }
 
@@ -212,12 +216,15 @@ pub trait PriceDiscovery:
         }
 
         let current_price = self.get_launched_token_price_over_min_price();
+
         self.emit_withdraw_event(
+            refund_token_id,
+            withdraw_amount,
+            payment_token,
             payment_nonce,
-            &payment_amount,
-            &refund_token_id,
-            &withdraw_amount,
-            &current_price,
+            payment_amount,
+            current_price,
+            self.get_current_phase(),
         );
     }
 
@@ -261,15 +268,16 @@ pub trait PriceDiscovery:
             &total_lp_tokens - &*total_claimed
         });
 
-        let current_block = self.blockchain().get_block_nonce();
-        self.redeem_event(
-            current_block,
-            &caller,
+        self.emit_redeem_event(
+            payment_token,
             payment_nonce,
-            &payment_amount,
-            &rewards.extra_rewards_amount,
-            &rewards.lp_tokens_amount,
-            &remaining_lp_tokens,
+            payment_amount,
+            self.lp_token_id().get(),
+            rewards.lp_tokens_amount,
+            remaining_lp_tokens,
+            total_lp_tokens,
+            self.extra_rewards_token_id().get(),
+            rewards.extra_rewards_amount,
         )
     }
 
