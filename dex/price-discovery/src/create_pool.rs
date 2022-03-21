@@ -45,13 +45,15 @@ pub trait CreatePoolModule:
 
         let launched_token_id = self.launched_token_id().get();
         let accepted_token_id = self.accepted_token_id().get();
-        let extra_rewards_token_id = self.extra_rewards_token_id().get();
 
-        let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
-        let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
-        let extra_rewards_balance = self.blockchain().get_sc_balance(&extra_rewards_token_id, 0);
+        let launched_token_balance = self.launched_token_balance().get();
+        let accepted_token_balance = self.accepted_token_balance().get();
+        let extra_rewards_balance = self.extra_rewards_balance().get();
 
-        self.extra_rewards().set(&extra_rewards_balance);
+        self.launched_token_balance().clear();
+        self.accepted_token_balance().clear();
+        self.total_extra_rewards_tokens()
+            .set(&extra_rewards_balance);
 
         require!(
             launched_token_balance > 0,

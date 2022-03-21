@@ -20,13 +20,25 @@ pub trait CommonStorageModule {
     #[storage_mapper("lpTokenId")]
     fn lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
+    #[view(getLaunchedTokenBalance)]
+    #[storage_mapper("launchedTokenBalance")]
+    fn launched_token_balance(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getAcceptedTokenBalance)]
+    #[storage_mapper("acceptedTokenBalance")]
+    fn accepted_token_balance(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getExtraRewardsBalance)]
+    #[storage_mapper("extraRewardsBalance")]
+    fn extra_rewards_balance(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getTotalLpTokensReceived)]
     #[storage_mapper("totalLpTokensReceived")]
     fn total_lp_tokens_received(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getExtraRewards)]
-    #[storage_mapper("extraRewards")]
-    fn extra_rewards(&self) -> SingleValueMapper<BigUint>;
+    #[view(getTotalExtraRewardsTokens)]
+    #[storage_mapper("totalExtraRewardsTokens")]
+    fn total_extra_rewards_tokens(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getStartBlock)]
     #[storage_mapper("startBlock")]
