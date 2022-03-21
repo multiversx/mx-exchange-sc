@@ -62,6 +62,14 @@ pub trait PriceDiscovery:
         );
 
         */
+
+        require!(
+            launched_token_id != accepted_token_id
+                && accepted_token_id != extra_rewards_token_id
+                && launched_token_id != extra_rewards_token_id,
+            "Tokens IDs must all be different"
+        );
+
         let current_block = self.blockchain().get_block_nonce();
         require!(
             current_block < start_block,
