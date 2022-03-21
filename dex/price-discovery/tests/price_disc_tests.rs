@@ -10,12 +10,22 @@ use tests_common::*;
 
 #[test]
 fn test_init() {
-    let _ = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let _ = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
 }
 
 #[test]
 fn test_deposit_launched_tokens_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
 
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
@@ -32,7 +42,12 @@ fn test_deposit_launched_tokens_ok() {
 
 #[test]
 fn deposit_too_early() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
 
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK - 1);
 
@@ -92,13 +107,23 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 
 #[test]
 fn user_deposit_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 }
 
 #[test]
 fn try_deposit_below_min_price() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
     let owner_addr = pd_setup.owner_address.clone();
@@ -121,7 +146,12 @@ fn try_deposit_below_min_price() {
 
 #[test]
 fn deposit_above_min_price() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
     let owner_addr = pd_setup.owner_address.clone();
@@ -143,7 +173,12 @@ fn deposit_above_min_price() {
 
 #[test]
 fn withdraw_below_min_price() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
     let owner_addr = pd_setup.owner_address.clone();
@@ -220,14 +255,24 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 
 #[test]
 fn withdraw_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 }
 
 #[test]
 fn withdraw_linear_penalty_start() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 
     let linear_penalty_start_block = START_BLOCK + NO_LIMIT_PHASE_DURATION_BLOCKS;
@@ -239,7 +284,12 @@ fn withdraw_linear_penalty_start() {
 
 #[test]
 fn withdraw_linear_penalty_end() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 
     let linear_penalty_end_block =
@@ -252,7 +302,12 @@ fn withdraw_linear_penalty_end() {
 
 #[test]
 fn withdraw_linear_penalty_middle() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 
     let linear_penalty_start_block = START_BLOCK + NO_LIMIT_PHASE_DURATION_BLOCKS;
@@ -269,7 +324,12 @@ fn withdraw_linear_penalty_middle() {
 
 #[test]
 fn withdraw_fixed_penalty() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 
     let fixed_penalty_start_block =
@@ -282,7 +342,12 @@ fn withdraw_fixed_penalty() {
 
 #[test]
 fn try_deposit_in_withdraw_only_phase() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 
     let fixed_penalty_start_block =
@@ -298,7 +363,12 @@ fn try_deposit_in_withdraw_only_phase() {
 
 #[test]
 fn withdraw_too_late() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
 
     pd_setup.blockchain_wrapper.set_block_nonce(END_BLOCK + 1);
@@ -310,7 +380,12 @@ fn withdraw_too_late() {
 
 #[test]
 fn create_pool_too_early() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
@@ -333,7 +408,12 @@ fn create_pool_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 
 #[test]
 fn create_pool_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
     create_pool_ok_steps(&mut pd_setup);
@@ -359,7 +439,12 @@ fn create_pool_ok() {
 
 #[test]
 fn try_create_pool_twice() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
     create_pool_ok_steps(&mut pd_setup);
@@ -371,7 +456,12 @@ fn try_create_pool_twice() {
 
 #[test]
 fn redeem_before_pool_created() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
@@ -389,7 +479,12 @@ fn redeem_before_pool_created() {
 
 #[test]
 fn redeem_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
@@ -496,7 +591,12 @@ fn redeem_ok() {
 
 #[test]
 fn redeem_too_early() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
@@ -621,13 +721,23 @@ pub fn redeem_with_extra_tokens_from_penalties_steps<PriceDiscObjBuilder, DexObj
 
 #[test]
 fn redeem_with_extra_tokens_from_penalties() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     redeem_with_extra_tokens_from_penalties_steps(&mut pd_setup);
 }
 
 #[test]
 fn redeem_with_extra_rewards() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        EXTRA_REWARDS_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
     call_deposit_extra_rewards(&mut pd_setup);
     redeem_with_extra_tokens_from_penalties_steps(&mut pd_setup);
 
@@ -642,4 +752,111 @@ fn redeem_with_extra_rewards() {
     pd_setup
         .blockchain_wrapper
         .check_egld_balance(&pd_setup.owner_address, &rust_biguint!(50_000_000));
+}
+
+#[test]
+fn extra_rewards_token_same_as_launched_token() {
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        LAUNCHED_TOKEN_ID,
+        OWNER_EGLD_BALANCE,
+    );
+
+    let b_wrapper = &mut pd_setup.blockchain_wrapper;
+    b_wrapper
+        .execute_esdt_transfer(
+            &pd_setup.owner_address,
+            &pd_setup.pd_wrapper,
+            LAUNCHED_TOKEN_ID,
+            0,
+            &rust_biguint!(OWNER_EGLD_BALANCE),
+            |sc| {
+                sc.deposit_extra_rewards();
+            },
+        )
+        .assert_ok();
+
+    pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
+
+    call_deposit_initial_tokens(&mut pd_setup, &rust_biguint!(5_000_000_000));
+
+    // must clone, as we can't borrow pd_setup as mutable and as immutable at the same time
+    let first_user_address = pd_setup.first_user_address.clone();
+    let first_deposit_amt = rust_biguint!(1_000_000_000);
+    call_deposit(&mut pd_setup, &first_user_address, &first_deposit_amt).assert_ok();
+
+    // second user deposit
+    let second_user_address = pd_setup.second_user_address.clone();
+    let second_deposit_amt = rust_biguint!(500_000_000);
+    call_deposit(&mut pd_setup, &second_user_address, &second_deposit_amt).assert_ok();
+
+    // create pool
+    pd_setup.blockchain_wrapper.set_block_epoch(5);
+    create_pool_ok_steps(&mut pd_setup);
+
+    let total_lp_tokens = 1_500_000_000 - MINIMUM_LIQUIDITY;
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        pd_setup.pd_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &rust_biguint!(total_lp_tokens),
+    );
+
+    pd_setup.blockchain_wrapper.set_block_epoch(12);
+
+    // redeem
+    let first_user_redeem_token_amount = rust_biguint!(1_000_000_000);
+    call_redeem(
+        &mut pd_setup,
+        &first_user_address,
+        ACCEPTED_TOKEN_REDEEM_NONCE,
+        &first_user_redeem_token_amount,
+    )
+    .assert_ok();
+
+    let second_user_redeem_token_amount = rust_biguint!(500_000_000);
+    call_redeem(
+        &mut pd_setup,
+        &second_user_address,
+        ACCEPTED_TOKEN_REDEEM_NONCE,
+        &second_user_redeem_token_amount,
+    )
+    .assert_ok();
+
+    // check first user balance
+
+    // total_lp_tokens * redeem_token_amount / redeem_token_supply / 2;
+    // 1_500_000_000 * 1_000_000_000 / 1_500_000_000 / 2 = 500_000_000 ~= 499_999_666 due to approximations
+    let first_user_expected_lp_tokens_balance = rust_biguint!(499_999_666);
+    // total_extra_rewards * lp_tokens_amount / total_lp_tokens
+    // 100_000_000 * 500_000_000 / 1_500_000_000 = 100_000_000 / 3 ~= 33_333_333
+    let first_user_expected_extra_rewards_balance = rust_biguint!(33_333_333);
+
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &first_user_address,
+        LP_TOKEN_ID,
+        &first_user_expected_lp_tokens_balance,
+    );
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &first_user_address,
+        LAUNCHED_TOKEN_ID,
+        &first_user_expected_extra_rewards_balance,
+    );
+
+    // check second user balance
+
+    // ~ half of what first user gained
+    let second_user_expected_lp_tokens_balance = rust_biguint!(249_999_833);
+    let second_user_expected_extra_rewards_balance = rust_biguint!(16_666_666);
+
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &second_user_address,
+        LP_TOKEN_ID,
+        &second_user_expected_lp_tokens_balance,
+    );
+    pd_setup.blockchain_wrapper.check_esdt_balance(
+        &second_user_address,
+        LAUNCHED_TOKEN_ID,
+        &second_user_expected_extra_rewards_balance,
+    );
 }
