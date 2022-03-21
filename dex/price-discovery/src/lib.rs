@@ -131,14 +131,7 @@ pub trait PriceDiscovery:
 
         self.increase_balance(self.extra_rewards_balance(), &payment_amount);
 
-        let caller = self.blockchain().get_caller();
-        let current_block = self.blockchain().get_block_nonce();
-        self.deposit_extra_rewards_event(
-            current_block,
-            &caller,
-            &extra_rewards_token_id,
-            &payment_amount,
-        );
+        self.emit_deposit_extra_rewards_event(&extra_rewards_token_id, &payment_amount);
     }
 
     /// Users can deposit either launched_token or accepted_token.
@@ -167,11 +160,8 @@ pub trait PriceDiscovery:
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
 
-        let current_block = self.blockchain().get_block_nonce();
         let current_price = self.get_launched_token_price_over_min_price();
-        self.deposit_event(
-            current_block,
-            &caller,
+        self.emit_deposit_event(
             &payment_token,
             &payment_amount,
             redeem_token_nonce,
@@ -221,11 +211,8 @@ pub trait PriceDiscovery:
                 .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
         }
 
-        let current_block = self.blockchain().get_block_nonce();
         let current_price = self.get_launched_token_price_over_min_price();
-        self.withdraw_event(
-            current_block,
-            &caller,
+        self.emit_withdraw_event(
             payment_nonce,
             &payment_amount,
             &refund_token_id,
@@ -323,12 +310,9 @@ pub trait PriceDiscovery:
     }
 
     fn get_launched_token_price_over_min_price(&self) -> BigUint {
-        let launched_token_id = self.launched_token_id().get();
-        let accepted_token_id = self.accepted_token_id().get();
-
         let min_price = self.min_launched_token_price().get();
-        let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
-        let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
+        let launched_token_balance = self.launched_token_balance().get();
+        let accepted_token_balance = self.accepted_token_balance().get();
 
         if accepted_token_balance == 0 {
             return accepted_token_balance;
