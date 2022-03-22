@@ -384,11 +384,12 @@ pub trait PriceDiscovery:
         // it means there is a surplus of Launched tokens
         // so only Accepted token deposits are allowed
         if price_before <= min_price && price_after <= min_price {
-            if &accepted_token_balance_after > accepted_token_balance_before {
-                return price_after;
-            } else {
-                sc_panic!(BELOW_MIN_PRICE_ERR_MSG);
-            }
+            require!(
+                &accepted_token_balance_after > accepted_token_balance_before,
+                BELOW_MIN_PRICE_ERR_MSG
+            );
+
+            return price_after;
         }
 
         require!(price_after >= min_price, BELOW_MIN_PRICE_ERR_MSG);
