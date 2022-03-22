@@ -1,5 +1,5 @@
 use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::types::{Address, BoxedBytes, EsdtLocalRole, ManagedAddress};
+use elrond_wasm::types::{Address, BoxedBytes, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
@@ -183,7 +183,7 @@ where
                 managed_biguint!(MIN_PENALTY_PERCENTAGE),
                 managed_biguint!(MAX_PENALTY_PERCENTAGE),
                 managed_biguint!(FIXED_PENALTY_PERCENTAGE),
-                OptionalValue::Some(extra_rewards_nonce),
+                MultiValueEncoded::new(),
             );
 
             sc.redeem_token_id()

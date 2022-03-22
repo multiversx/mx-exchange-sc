@@ -1,5 +1,5 @@
 use elrond_wasm::types::BoxedBytes;
-use elrond_wasm_debug::managed_biguint;
+use elrond_wasm_debug::{managed_address, managed_biguint};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 use pair_mock::*;
 use price_discovery::redeem_token::*;
@@ -1019,4 +1019,66 @@ fn extra_rewards_sft() {
         &second_user_expected_extra_rewards_balance,
         &BoxedBytes::empty(),
     );
+}
+
+#[test]
+fn extra_rewards_whitelist() {
+    let rust_zero = rust_biguint!(0);
+    let sft_token_id = &b"SOMESFT-123456"[..];
+    let sft_nonce = 5;
+    let mut pd_setup = init(
+        price_discovery::contract_obj,
+        pair_mock::contract_obj,
+        sft_token_id,
+        sft_nonce,
+        OWNER_EGLD_BALANCE,
+    );
+
+    let b_wrapper = &mut pd_setup.blockchain_wrapper;
+
+    // add owner to whitelist
+    let owner_addr = pd_setup.owner_address.clone();
+    b_wrapper
+        .execute_tx(&owner_addr, &pd_setup.pd_wrapper, &rust_zero, |sc| {
+            sc.deposit_extra_rewards_whitelist()
+                .insert(managed_address!(&owner_addr));
+        })
+        .assert_ok();
+
+    // user try add, not in whitelist
+    let rand_user = b_wrapper.create_user_account(&rust_biguint!(0));
+    b_wrapper.set_nft_balance(
+        &rand_user,
+        sft_token_id,
+        sft_nonce + 1,
+        &rust_biguint!(500),
+        &BoxedBytes::empty(),
+    );
+    b_wrapper
+        .execute_esdt_transfer(
+            &rand_user,
+            &pd_setup.pd_wrapper,
+            sft_token_id,
+            sft_nonce + 1,
+            &rust_biguint!(500),
+            |sc| {
+                sc.deposit_extra_rewards();
+            },
+        )
+        .assert_user_error("Not whitelisted");
+
+    // owner deposit ok
+    let b_wrapper = &mut pd_setup.blockchain_wrapper;
+    b_wrapper
+        .execute_esdt_transfer(
+            &pd_setup.owner_address,
+            &pd_setup.pd_wrapper,
+            sft_token_id,
+            sft_nonce,
+            &rust_biguint!(OWNER_EGLD_BALANCE),
+            |sc| {
+                sc.deposit_extra_rewards();
+            },
+        )
+        .assert_ok();
 }

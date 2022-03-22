@@ -45,7 +45,7 @@ pub trait PriceDiscovery:
         penalty_min_percentage: BigUint,
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
-        #[var_args] opt_extra_rewards_token_nonce: OptionalValue<u64>,
+        #[var_args] deposit_extra_rewards_whitelist: MultiValueEncoded<ManagedAddress>,
     ) {
         /* Disabled until the validate token ID function is activated
 
@@ -92,8 +92,8 @@ pub trait PriceDiscovery:
             "Fixed percentage higher than 100%"
         );
 
-        if let OptionalValue::Some(nonce) = opt_extra_rewards_token_nonce {
-            self.extra_rewards_token_nonce().set(&nonce);
+        for addr in deposit_extra_rewards_whitelist {
+            self.deposit_extra_rewards_whitelist().insert(addr);
         }
 
         self.launched_token_id().set(&launched_token_id);
@@ -124,20 +124,38 @@ pub trait PriceDiscovery:
     fn deposit_extra_rewards(&self) {
         self.require_dex_address_set();
 
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller);
+
         let phase = self.get_current_phase();
         self.require_deposit_extra_rewards_allowed(&phase);
 
         let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
         let extra_rewards_token_id = self.extra_rewards_token_id().get();
-        let extra_rewards_token_nonce = self.extra_rewards_token_nonce().get();
         require!(
-            payment_token == extra_rewards_token_id && payment_nonce == extra_rewards_token_nonce,
+            payment_token == extra_rewards_token_id,
             INVALID_PAYMENT_ERR_MSG
         );
 
+        let nonce_mapper = self.extra_rewards_token_nonce();
+        let mut extra_rewards_token_nonce = nonce_mapper.get();
+        if extra_rewards_token_nonce == 0 && payment_nonce != 0 {
+            extra_rewards_token_nonce = payment_nonce;
+            nonce_mapper.set(&extra_rewards_token_nonce);
+        } else {
+            require!(
+                extra_rewards_token_nonce == payment_nonce,
+                INVALID_PAYMENT_ERR_MSG
+            );
+        }
+
         self.increase_balance(self.extra_rewards_balance(), &payment_amount);
 
-        self.emit_deposit_extra_rewards_event(extra_rewards_token_id, payment_amount);
+        self.emit_deposit_extra_rewards_event(
+            extra_rewards_token_id,
+            extra_rewards_token_nonce,
+            payment_amount,
+        );
     }
 
     /// Users can deposit either launched_token or accepted_token.
@@ -349,6 +367,13 @@ pub trait PriceDiscovery:
         mapper.update(|b| *b -= amount);
     }
 
+    fn require_whitelisted(&self, addr: &ManagedAddress) {
+        let whitelist = self.deposit_extra_rewards_whitelist();
+        if !whitelist.is_empty() {
+            require!(whitelist.contains(addr), "Not whitelisted");
+        }
+    }
+
     #[view(getMinLaunchedTokenPrice)]
     #[storage_mapper("minLaunchedTokenPrice")]
     fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
@@ -356,4 +381,8 @@ pub trait PriceDiscovery:
     #[view(getLpTokensClaimed)]
     #[storage_mapper("lpTokensClaimed")]
     fn lp_tokens_claimed(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getDepositExtraRewardsWhitelist)]
+    #[storage_mapper("depositExtraRewardsWhitelist")]
+    fn deposit_extra_rewards_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 }
