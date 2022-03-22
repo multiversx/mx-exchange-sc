@@ -64,6 +64,7 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
+        initial_liquidity_adder: ManagedAddress,
         #[var_args] opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
@@ -114,6 +115,7 @@ pub trait Router:
             &owner,
             total_fee_percent_requested,
             special_fee_percent_requested,
+            &initial_liquidity_adder,
         );
 
         self.emit_create_pair_event(

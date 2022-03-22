@@ -34,6 +34,7 @@ pub trait FactoryModule {
         owner: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
+        initial_liquidity_adder: &ManagedAddress,
     ) -> ManagedAddress {
         require!(
             !self.pair_template_address().is_empty(),
@@ -47,6 +48,10 @@ pub trait FactoryModule {
         arg_buffer.push_arg(owner);
         arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
         arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
+
+        if !initial_liquidity_adder.is_zero() {
+            arg_buffer.push_arg(initial_liquidity_adder)
+        }
 
         let (new_address, _) = Self::Api::send_api_impl().deploy_from_source_contract(
             self.blockchain().get_gas_left(),
