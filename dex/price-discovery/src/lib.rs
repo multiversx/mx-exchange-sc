@@ -45,6 +45,7 @@ pub trait PriceDiscovery:
         penalty_min_percentage: BigUint,
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
+        #[var_args] opt_extra_rewards_token_nonce: OptionalValue<u64>,
     ) {
         /* Disabled until the validate token ID function is activated
 
@@ -91,6 +92,10 @@ pub trait PriceDiscovery:
             "Fixed percentage higher than 100%"
         );
 
+        if let OptionalValue::Some(nonce) = opt_extra_rewards_token_nonce {
+            self.extra_rewards_token_nonce().set(&nonce);
+        }
+
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
         self.extra_rewards_token_id().set(&extra_rewards_token_id);
@@ -122,10 +127,11 @@ pub trait PriceDiscovery:
         let phase = self.get_current_phase();
         self.require_deposit_extra_rewards_allowed(&phase);
 
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
         let extra_rewards_token_id = self.extra_rewards_token_id().get();
+        let extra_rewards_token_nonce = self.extra_rewards_token_nonce().get();
         require!(
-            payment_token == extra_rewards_token_id,
+            payment_token == extra_rewards_token_id && payment_nonce == extra_rewards_token_nonce,
             INVALID_PAYMENT_ERR_MSG
         );
 
@@ -253,10 +259,11 @@ pub trait PriceDiscovery:
             self.decrease_balance(self.extra_rewards_balance(), &rewards.extra_rewards_amount);
 
             let extra_rewards_token_id = self.extra_rewards_token_id().get();
+            let extra_rewards_token_nonce = self.extra_rewards_token_nonce().get();
             self.send().direct(
                 &caller,
                 &extra_rewards_token_id,
-                0,
+                extra_rewards_token_nonce,
                 &rewards.extra_rewards_amount,
                 &[],
             );
