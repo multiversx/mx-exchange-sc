@@ -144,9 +144,27 @@ fn try_deposit_below_min_price() {
 
     call_deposit_initial_tokens(&mut pd_setup, &rust_biguint!(5_000_000_000));
 
+    // deposit accepted tokens, even if below min price
     let first_user_address = pd_setup.first_user_address.clone();
     let first_deposit_amt = rust_biguint!(1_000_000_000);
-    call_deposit(&mut pd_setup, &first_user_address, &first_deposit_amt)
+    call_deposit(&mut pd_setup, &first_user_address, &first_deposit_amt).assert_ok();
+
+    // try deposit more launched tokens
+    let b_mock = &mut pd_setup.blockchain_wrapper;
+    let rand_user = b_mock.create_user_account(&rust_biguint!(0));
+    b_mock.set_esdt_balance(&rand_user, LAUNCHED_TOKEN_ID, &rust_biguint!(500));
+
+    b_mock
+        .execute_esdt_transfer(
+            &rand_user,
+            &pd_setup.pd_wrapper,
+            LAUNCHED_TOKEN_ID,
+            0,
+            &rust_biguint!(500),
+            |sc| {
+                sc.deposit();
+            },
+        )
         .assert_user_error("Launched token below min price");
 }
 
