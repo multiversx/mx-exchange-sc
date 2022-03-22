@@ -51,6 +51,8 @@ where
 pub fn init<PriceDiscObjBuilder, DexObjBuilder>(
     pd_builder: PriceDiscObjBuilder,
     dex_builder: DexObjBuilder,
+    extra_rewards_token_id: &[u8],
+    extra_rewards_balance: u64,
 ) -> PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
@@ -58,9 +60,22 @@ where
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
-    let owner_address = blockchain_wrapper.create_user_account(&rust_biguint!(OWNER_EGLD_BALANCE));
     let first_user_address = blockchain_wrapper.create_user_account(&rust_zero);
     let second_user_address = blockchain_wrapper.create_user_account(&rust_zero);
+    let owner_address = if extra_rewards_token_id == EXTRA_REWARDS_TOKEN_ID {
+        blockchain_wrapper.create_user_account(&rust_biguint!(extra_rewards_balance))
+    } else {
+        let addr = blockchain_wrapper.create_user_account(&rust_zero);
+        blockchain_wrapper.set_esdt_balance(
+            &addr,
+            extra_rewards_token_id,
+            &rust_biguint!(extra_rewards_balance),
+        );
+
+        addr
+    };
+
+    blockchain_wrapper.create_user_account(&rust_biguint!(OWNER_EGLD_BALANCE));
 
     let dex_wrapper = blockchain_wrapper.create_sc_account(
         &rust_zero,
@@ -98,10 +113,12 @@ where
     );
 
     // set user balances
+    let prev_owner_balance =
+        blockchain_wrapper.get_esdt_balance(&owner_address, LAUNCHED_TOKEN_ID, 0);
     blockchain_wrapper.set_esdt_balance(
         &owner_address,
         LAUNCHED_TOKEN_ID,
-        &rust_biguint!(5_000_000_000),
+        &(prev_owner_balance + rust_biguint!(5_000_000_000)),
     );
     blockchain_wrapper.set_esdt_balance(
         &first_user_address,
@@ -147,7 +164,7 @@ where
             sc.init(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
-                managed_token_id!(EXTRA_REWARDS_TOKEN_ID),
+                managed_token_id!(extra_rewards_token_id),
                 managed_biguint!(0),
                 START_BLOCK,
                 NO_LIMIT_PHASE_DURATION_BLOCKS,
