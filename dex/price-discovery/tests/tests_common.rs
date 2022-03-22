@@ -1,5 +1,5 @@
 use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress};
+use elrond_wasm::types::{Address, BoxedBytes, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
@@ -52,6 +52,7 @@ pub fn init<PriceDiscObjBuilder, DexObjBuilder>(
     pd_builder: PriceDiscObjBuilder,
     dex_builder: DexObjBuilder,
     extra_rewards_token_id: &[u8],
+    extra_rewards_nonce: u64,
     extra_rewards_balance: u64,
 ) -> PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
 where
@@ -66,16 +67,24 @@ where
         blockchain_wrapper.create_user_account(&rust_biguint!(extra_rewards_balance))
     } else {
         let addr = blockchain_wrapper.create_user_account(&rust_zero);
-        blockchain_wrapper.set_esdt_balance(
-            &addr,
-            extra_rewards_token_id,
-            &rust_biguint!(extra_rewards_balance),
-        );
+        if extra_rewards_nonce == 0 {
+            blockchain_wrapper.set_esdt_balance(
+                &addr,
+                extra_rewards_token_id,
+                &rust_biguint!(extra_rewards_balance),
+            );
+        } else {
+            blockchain_wrapper.set_nft_balance(
+                &addr,
+                extra_rewards_token_id,
+                extra_rewards_nonce,
+                &rust_biguint!(extra_rewards_balance),
+                &BoxedBytes::empty(),
+            )
+        }
 
         addr
     };
-
-    blockchain_wrapper.create_user_account(&rust_biguint!(OWNER_EGLD_BALANCE));
 
     let dex_wrapper = blockchain_wrapper.create_sc_account(
         &rust_zero,
@@ -174,6 +183,7 @@ where
                 managed_biguint!(MIN_PENALTY_PERCENTAGE),
                 managed_biguint!(MAX_PENALTY_PERCENTAGE),
                 managed_biguint!(FIXED_PENALTY_PERCENTAGE),
+                MultiValueEncoded::new(),
             );
 
             sc.redeem_token_id()

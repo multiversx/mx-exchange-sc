@@ -6,6 +6,7 @@ elrond_wasm::derive_imports!();
 #[derive(TypeAbi, TopEncode)]
 pub struct ExtraRewardsEvent<M: ManagedTypeApi> {
     rewards_token_id: TokenIdentifier<M>,
+    rewards_token_nonce: u64,
     rewards_amount: BigUint<M>,
 }
 
@@ -59,6 +60,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
     fn emit_deposit_extra_rewards_event(
         &self,
         rewards_token_id: TokenIdentifier,
+        rewards_token_nonce: u64,
         rewards_amount: BigUint,
     ) {
         let caller = self.blockchain().get_caller();
@@ -73,6 +75,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
             timestamp,
             &ExtraRewardsEvent {
                 rewards_token_id,
+                rewards_token_nonce,
                 rewards_amount,
             },
         );

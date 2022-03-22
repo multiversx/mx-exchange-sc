@@ -23,6 +23,8 @@ in which interactions with the Price Discovery SC will impose some restrictions:
     The percentage increases linearly between phase 2's start and end
 - fixed_penalty_percentage - The penalty percentage for phase 3.
 
+- deposit_extra_rewards_whitelist: Optional list of addresses that can deposit extra rewards. Unspecified means anyone can deposit.
+
 ```rust
 #[init]
 fn init(
@@ -39,6 +41,7 @@ fn init(
     penalty_min_percentage: BigUint,
     penalty_max_percentage: BigUint,
     fixed_penalty_percentage: BigUint,
+    #[var_args] deposit_extra_rewards_whitelist: MultiValueEncoded<ManagedAddress>,
 )
 ```
 

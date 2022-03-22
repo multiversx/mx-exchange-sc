@@ -16,6 +16,10 @@ pub trait CommonStorageModule {
     #[storage_mapper("extraRewardsTokenId")]
     fn extra_rewards_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
+    #[view(getExtraRewardsTokenNonce)]
+    #[storage_mapper("extraRewardsTokenNonce")]
+    fn extra_rewards_token_nonce(&self) -> SingleValueMapper<u64>;
+
     #[view(getLpTokenId)]
     #[storage_mapper("lpTokenId")]
     fn lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
