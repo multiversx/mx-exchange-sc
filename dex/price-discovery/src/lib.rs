@@ -383,7 +383,7 @@ pub trait PriceDiscovery:
         // If price is below min price before and after
         // it means there is a surplus of Launched tokens
         // so only Accepted token deposits are allowed
-        if price_before <= min_price && price_after <= min_price {
+        if price_before < min_price && price_after < min_price {
             require!(
                 &accepted_token_balance_after > accepted_token_balance_before,
                 BELOW_MIN_PRICE_ERR_MSG
