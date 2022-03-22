@@ -373,10 +373,8 @@ pub trait PriceDiscovery:
             "No launched tokens available"
         );
 
-        let price_before = self.calculate_price(
-            &accepted_token_balance_before,
-            &launched_token_balance_before,
-        );
+        let price_before =
+            self.calculate_price(accepted_token_balance_before, launched_token_balance_before);
         let price_after =
             self.calculate_price(&accepted_token_balance_after, &launched_token_balance_after);
 
