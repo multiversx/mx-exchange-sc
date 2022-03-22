@@ -20,7 +20,9 @@ mod liquidity_pool_proxy {
 }
 
 #[elrond_wasm::module]
-pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
+pub trait CreatePoolModule:
+    crate::common_storage::CommonStorageModule + crate::events::EventsModule
+{
     #[only_owner]
     #[endpoint(setPairAddress)]
     fn set_pair_address(&self, dex_sc_address: ManagedAddress) {
@@ -43,13 +45,15 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
         let launched_token_id = self.launched_token_id().get();
         let accepted_token_id = self.accepted_token_id().get();
-        let extra_rewards_token_id = self.extra_rewards_token_id().get();
 
-        let launched_token_balance = self.blockchain().get_sc_balance(&launched_token_id, 0);
-        let accepted_token_balance = self.blockchain().get_sc_balance(&accepted_token_id, 0);
-        let extra_rewards_balance = self.blockchain().get_sc_balance(&extra_rewards_token_id, 0);
+        let launched_token_balance = self.launched_token_balance().get();
+        let accepted_token_balance = self.accepted_token_balance().get();
+        let extra_rewards_balance = self.extra_rewards_balance().get();
 
-        self.extra_rewards().set(&extra_rewards_balance);
+        self.launched_token_balance().clear();
+        self.accepted_token_balance().clear();
+        self.total_extra_rewards_tokens()
+            .set(&extra_rewards_balance);
 
         require!(
             launched_token_balance > 0,
@@ -85,6 +89,8 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.pool_creation_epoch().set(&current_epoch);
+
+        self.emit_initial_liquidity_event(lp_token.token_identifier, lp_token.amount);
     }
 
     // private
@@ -108,4 +114,8 @@ pub trait CreatePoolModule: crate::common_storage::CommonStorageModule {
 
     #[storage_mapper("poolCreationEpoch")]
     fn pool_creation_epoch(&self) -> SingleValueMapper<u64>;
+
+    #[view(getUnbondPeriodEpochs)]
+    #[storage_mapper("unbondPeriodEpochs")]
+    fn unbond_period_epochs(&self) -> SingleValueMapper<u64>;
 }

@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
     Idle,
     NoPenalty,
@@ -11,10 +11,10 @@ pub enum Phase<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> Phase<M> {
-    pub fn to_penalty_percentage(self) -> BigUint<M> {
+    pub fn get_penalty_percentage(&self) -> BigUint<M> {
         match self {
-            Self::LinearIncreasingPenalty { penalty_percentage } => penalty_percentage,
-            Self::OnlyWithdrawFixedPenalty { penalty_percentage } => penalty_percentage,
+            Self::LinearIncreasingPenalty { penalty_percentage } => penalty_percentage.clone(),
+            Self::OnlyWithdrawFixedPenalty { penalty_percentage } => penalty_percentage.clone(),
             _ => BigUint::zero(),
         }
     }
@@ -110,10 +110,6 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
     #[view(getFixedPenaltyPhaseDurationBlocks)]
     #[storage_mapper("fixedPenaltyPhaseDurationBlocks")]
     fn fixed_penalty_phase_duration_blocks(&self) -> SingleValueMapper<u64>;
-
-    #[view(getUnbondPeriodEpochs)]
-    #[storage_mapper("unbondPeriodEpochs")]
-    fn unbond_period_epochs(&self) -> SingleValueMapper<u64>;
 
     #[view(getPenaltyMinPercentage)]
     #[storage_mapper("penaltyMinPercentage")]
