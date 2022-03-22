@@ -11,14 +11,16 @@ elrond_wasm_node::wasm_endpoints! {
         createDexLiquidityPool
         deposit
         depositExtraRewards
+        getAcceptedTokenBalance
         getAcceptedTokenId
         getCurrentPhase
         getDexScAddress
         getEndBlock
-        getExtraRewards
+        getExtraRewardsBalance
         getExtraRewardsTokenId
         getFixedPenaltyPercentage
         getFixedPenaltyPhaseDurationBlocks
+        getLaunchedTokenBalance
         getLaunchedTokenId
         getLinearPenaltyPhaseDurationBlocks
         getLpTokenId
@@ -29,6 +31,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPenaltyMinPercentage
         getRedeemTokenId
         getStartBlock
+        getTotalExtraRewardsTokens
         getTotalLpTokensReceived
         getUnbondPeriodEpochs
         issueRedeemToken

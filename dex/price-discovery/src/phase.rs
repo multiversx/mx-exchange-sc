@@ -11,10 +11,10 @@ pub enum Phase<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> Phase<M> {
-    pub fn to_penalty_percentage(self) -> BigUint<M> {
+    pub fn get_penalty_percentage(&self) -> BigUint<M> {
         match self {
-            Self::LinearIncreasingPenalty { penalty_percentage } => penalty_percentage,
-            Self::OnlyWithdrawFixedPenalty { penalty_percentage } => penalty_percentage,
+            Self::LinearIncreasingPenalty { penalty_percentage } => penalty_percentage.clone(),
+            Self::OnlyWithdrawFixedPenalty { penalty_percentage } => penalty_percentage.clone(),
             _ => BigUint::zero(),
         }
     }

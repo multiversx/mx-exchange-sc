@@ -170,7 +170,7 @@ pub trait PriceDiscovery:
             redeem_token_nonce,
             payment_amount,
             current_price,
-            self.get_current_phase(),
+            phase,
         );
     }
 
@@ -203,7 +203,7 @@ pub trait PriceDiscovery:
 
         self.burn_redeem_token(payment_nonce, &payment_amount);
 
-        let penalty_percentage = phase.to_penalty_percentage();
+        let penalty_percentage = phase.get_penalty_percentage();
         let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
 
         let caller = self.blockchain().get_caller();
@@ -224,7 +224,7 @@ pub trait PriceDiscovery:
             payment_nonce,
             payment_amount,
             current_price,
-            self.get_current_phase(),
+            phase,
         );
     }
 

@@ -3,13 +3,13 @@ use crate::phase::Phase;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct ExtraRewardsEvent<M: ManagedTypeApi> {
     rewards_token_id: TokenIdentifier<M>,
     rewards_amount: BigUint<M>,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct DepositEvent<M: ManagedTypeApi> {
     token_id_in: TokenIdentifier<M>,
     token_amount_in: BigUint<M>,
@@ -22,7 +22,7 @@ pub struct DepositEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct WithdrawEvent<M: ManagedTypeApi> {
     token_id_out: TokenIdentifier<M>,
     token_amount_out: BigUint<M>,
@@ -35,7 +35,7 @@ pub struct WithdrawEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct RedeemEvent<M: ManagedTypeApi> {
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,
@@ -48,7 +48,7 @@ pub struct RedeemEvent<M: ManagedTypeApi> {
     rewards_token_amount: BigUint<M>,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct InitialLiquidityEvent<M: ManagedTypeApi> {
     lp_token_id: TokenIdentifier<M>,
     lp_tokens_received: BigUint<M>,
