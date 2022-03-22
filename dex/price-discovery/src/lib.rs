@@ -400,6 +400,10 @@ pub trait PriceDiscovery:
         accepted_token_balance: &BigUint,
         launched_token_balance: &BigUint,
     ) -> BigUint {
+        if launched_token_balance == &0 {
+            return BigUint::zero();
+        }
+
         accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance
     }
 
