@@ -388,11 +388,9 @@ pub trait PriceDiscovery:
                 &accepted_token_balance_after > accepted_token_balance_before,
                 BELOW_MIN_PRICE_ERR_MSG
             );
-
-            return price_after;
+        } else {
+            require!(price_after >= min_price, BELOW_MIN_PRICE_ERR_MSG);
         }
-
-        require!(price_after >= min_price, BELOW_MIN_PRICE_ERR_MSG);
 
         price_after
     }
