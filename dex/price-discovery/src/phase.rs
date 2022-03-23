@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::{create_pool, events};
+
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
     Idle,
@@ -8,6 +10,7 @@ pub enum Phase<M: ManagedTypeApi> {
     LinearIncreasingPenalty { penalty_percentage: BigUint<M> },
     OnlyWithdrawFixedPenalty { penalty_percentage: BigUint<M> },
     Unbond,
+    Redeem,
 }
 
 impl<M: ManagedTypeApi> Phase<M> {
@@ -21,7 +24,9 @@ impl<M: ManagedTypeApi> Phase<M> {
 }
 
 #[elrond_wasm::module]
-pub trait PhaseModule: crate::common_storage::CommonStorageModule {
+pub trait PhaseModule:
+    crate::common_storage::CommonStorageModule + create_pool::CreatePoolModule + events::EventsModule
+{
     #[view(getCurrentPhase)]
     fn get_current_phase(&self) -> Phase<Self::Api> {
         let current_block = self.blockchain().get_block_nonce();
@@ -69,7 +74,16 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
             };
         }
 
-        Phase::Unbond
+        let current_epoch = self.blockchain().get_block_epoch();
+        let pool_creation_epoch = self.pool_creation_epoch().get();
+        let unbond_period_epochs = self.unbond_period_epochs().get();
+        let redeem_epoch = pool_creation_epoch + unbond_period_epochs;
+
+        if current_epoch < redeem_epoch {
+            return Phase::Unbond;
+        }
+
+        Phase::Redeem
     }
 
     fn require_deposit_allowed(&self, phase: &Phase<Self::Api>) {
@@ -78,7 +92,8 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
             | Phase::OnlyWithdrawFixedPenalty {
                 penalty_percentage: _,
             }
-            | Phase::Unbond => {
+            | Phase::Unbond
+            | Phase::Redeem => {
                 sc_panic!("Deposit not allowed in this phase")
             }
             _ => {}
@@ -87,16 +102,27 @@ pub trait PhaseModule: crate::common_storage::CommonStorageModule {
 
     fn require_withdraw_allowed(&self, phase: &Phase<Self::Api>) {
         match phase {
-            Phase::Idle | Phase::Unbond => sc_panic!("Withdraw not allowed in this phase"),
+            Phase::Idle | Phase::Unbond | Phase::Redeem => {
+                sc_panic!("Withdraw not allowed in this phase")
+            }
             _ => {}
         };
     }
 
     fn require_deposit_extra_rewards_allowed(&self, phase: &Phase<Self::Api>) {
-        require!(
-            phase != &Phase::Unbond,
-            "Deposit extra rewards not allowed in this phase"
-        );
+        match phase {
+            Phase::Unbond | Phase::Redeem => {
+                sc_panic!("Deposit extra rewards not allowed in this phase")
+            }
+            _ => {}
+        };
+    }
+
+    fn require_redeem_allowed(&self, phase: &Phase<Self::Api>) {
+        let pool_creation_epoch = self.pool_creation_epoch().get();
+        require!(pool_creation_epoch > 0, "Liquidity Pool not created yet");
+
+        require!(phase == &Phase::Redeem, "Unbond period not finished yet");
     }
 
     #[view(getNoLimitPhaseDurationBlocks)]

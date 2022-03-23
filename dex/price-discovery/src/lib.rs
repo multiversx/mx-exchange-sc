@@ -271,7 +271,8 @@ pub trait PriceDiscovery:
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) {
-        self.require_redeem_allowed();
+        let phase = self.get_current_phase();
+        self.require_redeem_allowed(&phase);
 
         let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
         let redeem_token_id = self.redeem_token_id().get();
@@ -340,19 +341,6 @@ pub trait PriceDiscovery:
             lp_tokens_amount,
             extra_rewards_amount,
         }
-    }
-
-    fn require_redeem_allowed(&self) {
-        let pool_creation_epoch = self.pool_creation_epoch().get();
-        require!(pool_creation_epoch > 0, "Liquidity Pool not created yet");
-
-        let unbond_epochs = self.unbond_period_epochs().get();
-        let redeem_activation_epoch = pool_creation_epoch + unbond_epochs;
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            current_epoch >= redeem_activation_epoch,
-            "Unbond period not finished yet"
-        );
     }
 
     fn get_launched_token_price_over_min_price(
