@@ -19,13 +19,15 @@ pub trait ExternalContractsInteractionsModule:
 
     fn lp_farm_claim_rewards(
         &self,
-        lp_farm_tokens: PaymentsVec<Self::Api>,
+        lp_farm_token_id: TokenIdentifier,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_amount: BigUint,
     ) -> LpFarmClaimRewardsResult<Self::Api> {
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
             .claim_rewards(OptionalValue::None)
-            .with_multi_token_transfer(lp_farm_tokens)
+            .add_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
 
@@ -100,14 +102,20 @@ pub trait ExternalContractsInteractionsModule:
 
     fn staking_farm_claim_rewards(
         &self,
-        new_staking_farm_values: ManagedVec<BigUint>,
-        staking_farm_tokens: PaymentsVec<Self::Api>,
+        staking_farm_token_id: TokenIdentifier,
+        staking_farm_token_nonce: u64,
+        staking_farm_token_amount: BigUint,
+        new_staking_farm_value: BigUint,
     ) -> StakingFarmClaimRewardsResult<Self::Api> {
         let staking_farm_address = self.staking_farm_address().get();
         let staking_farm_result: ClaimRewardsResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .claim_rewards_with_new_value(new_staking_farm_values)
-            .with_multi_token_transfer(staking_farm_tokens)
+            .claim_rewards_with_new_value(new_staking_farm_value)
+            .add_token_transfer(
+                staking_farm_token_id,
+                staking_farm_token_nonce,
+                staking_farm_token_amount,
+            )
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
         let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
 

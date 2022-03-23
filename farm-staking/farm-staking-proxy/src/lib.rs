@@ -121,48 +121,35 @@ pub trait FarmStakingProxy:
     #[payable("*")]
     #[endpoint(claimDualYield)]
     fn claim_dual_yield(&self) -> ClaimDualYieldResult<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        self.require_all_payments_dual_yield_tokens(&payments);
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
+        self.require_dual_yield_token(&payment_token);
 
-        let mut lp_farm_tokens = ManagedVec::new();
-        let mut staking_farm_tokens = ManagedVec::new();
-        let mut new_staking_farm_values = ManagedVec::new();
+        let attributes = self.get_dual_yield_token_attributes(payment_nonce);
+
+        let staking_farm_token_id = self.staking_farm_token_id().get();
+        let staking_farm_token_nonce = attributes.staking_farm_token_nonce;
+        let staking_farm_token_amount =
+            self.get_staking_farm_token_amount_equivalent(&payment_amount);
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
-        let staking_farm_token_id = self.staking_farm_token_id().get();
+        let lp_farm_token_nonce = attributes.lp_farm_token_nonce;
+        let lp_farm_token_amount =
+            self.get_lp_farm_token_amount_equivalent(&attributes, &payment_amount);
 
-        for p in &payments {
-            let attributes = self.get_dual_yield_token_attributes(p.token_nonce);
-            let staking_farm_token_amount =
-                self.get_staking_farm_token_amount_equivalent(&p.amount);
+        let lp_tokens_in_position =
+            self.get_lp_tokens_in_farm_position(lp_farm_token_nonce, &lp_farm_token_amount);
+        let new_staking_farm_value = self.get_lp_tokens_safe_price(lp_tokens_in_position);
 
-            staking_farm_tokens.push(EsdtTokenPayment::new(
-                staking_farm_token_id.clone(),
-                attributes.staking_farm_token_nonce,
-                staking_farm_token_amount,
-            ));
+        self.burn_dual_yield_tokens(payment_nonce, &payment_amount);
 
-            let lp_farm_token_amount =
-                self.get_lp_farm_token_amount_equivalent(&attributes, &p.amount);
-            let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
-                attributes.lp_farm_token_nonce,
-                &lp_farm_token_amount,
-            );
-            let new_staking_farm_value = self.get_lp_tokens_safe_price(lp_tokens_in_position);
-
-            lp_farm_tokens.push(EsdtTokenPayment::new(
-                lp_farm_token_id.clone(),
-                attributes.lp_farm_token_nonce,
-                lp_farm_token_amount,
-            ));
-            new_staking_farm_values.push(new_staking_farm_value);
-
-            self.burn_dual_yield_tokens(p.token_nonce, &p.amount);
-        }
-
-        let lp_farm_claim_rewards_result = self.lp_farm_claim_rewards(lp_farm_tokens);
-        let staking_farm_claim_rewards_result =
-            self.staking_farm_claim_rewards(new_staking_farm_values, staking_farm_tokens);
+        let lp_farm_claim_rewards_result =
+            self.lp_farm_claim_rewards(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount);
+        let staking_farm_claim_rewards_result = self.staking_farm_claim_rewards(
+            staking_farm_token_id,
+            staking_farm_token_nonce,
+            staking_farm_token_amount,
+            new_staking_farm_value,
+        );
 
         let new_lp_farm_tokens = lp_farm_claim_rewards_result.new_lp_farm_tokens;
         let new_staking_farm_tokens = staking_farm_claim_rewards_result.new_staking_farm_tokens;
@@ -196,13 +183,8 @@ pub trait FarmStakingProxy:
         user_output_payments.push(new_dual_yield_tokens);
 
         let caller = self.blockchain().get_caller();
-        let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
-            &caller,
-            &user_output_payments,
-            0,
-            &ManagedBuffer::new(),
-            &ManagedArgBuffer::new_empty(),
-        );
+        self.send()
+            .direct_multi(&caller, &user_output_payments, &[]);
 
         user_output_payments.into()
     }
