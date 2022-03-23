@@ -304,71 +304,24 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-
         require!(self.is_active(), "Not active");
         require!(!self.farm_token_id().is_empty(), "No farm token");
 
-        let first_payment = payments
-            .try_get(0)
-            .unwrap_or_else(|| sc_panic!("empty payments"));
-        let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
+        let (payment_token_id, token_nonce, old_farming_amount) =
+            self.call_value().payment_as_tuple();
+        require!(old_farming_amount > 0u32, "Zero amount");
 
-        let payment_token_id = &first_payment.token_identifier;
-        let old_farming_amount = &first_payment.amount;
-        let token_nonce = first_payment.token_nonce;
-
-        require!(old_farming_amount > &0u32, "Zero amount");
         let farm_token_id = self.farm_token_id().get();
-        require!(payment_token_id == &farm_token_id, "Unknown farm token");
-        let farm_attributes = self
-            .get_attributes::<StakingFarmTokenAttributes<Self::Api>>(payment_token_id, token_nonce);
-
-        let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards();
-
-        let current_reward_per_share = self.reward_per_share().get();
-        let reward = self.calculate_reward(
-            old_farming_amount,
-            &current_reward_per_share,
-            &farm_attributes.reward_per_share,
-        );
-        let new_compound_reward_amount = self.rule_of_three(
-            old_farming_amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.compounded_reward,
-        );
-        let new_farming_amount = old_farming_amount;
-
-        let new_attributes = StakingFarmTokenAttributes {
-            reward_per_share: current_reward_per_share,
-            compounded_reward: new_compound_reward_amount,
-            current_farm_amount: new_farming_amount.clone(),
-        };
-
-        self.burn_farm_tokens(payment_token_id, token_nonce, old_farming_amount);
-        let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
-            new_farming_amount,
-            &farm_token_id,
-            &new_attributes,
-            &additional_payments,
-        );
+        require!(payment_token_id == farm_token_id, "Unknown farm token");
 
         let caller = self.blockchain().get_caller();
-        self.send().direct(
-            &caller,
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &[],
-        );
-        self.send_rewards(&reward_token_id, &reward, &caller);
-
-        (
-            new_farm_token.token_amount,
-            EsdtTokenPayment::new(reward_token_id, 0, reward),
+        self.claim_rewards_common(
+            caller,
+            farm_token_id,
+            token_nonce,
+            old_farming_amount.clone(),
+            old_farming_amount,
         )
-            .into()
     }
 
     #[payable("*")]
@@ -390,12 +343,28 @@ pub trait Farm:
         let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
 
-        let farm_attributes = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
-            &payment_token_id,
+        self.claim_rewards_common(
+            caller,
+            farm_token_id,
             token_nonce,
+            old_farming_amount,
+            new_farming_amount,
+        )
+    }
+
+    fn claim_rewards_common(
+        &self,
+        caller: ManagedAddress,
+        farm_token_id: TokenIdentifier,
+        farm_token_nonce: u64,
+        old_farming_amount: BigUint,
+        new_farming_amount: BigUint,
+    ) -> ClaimRewardsResultType<Self::Api> {
+        let farm_attributes = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
+            &farm_token_id,
+            farm_token_nonce,
         );
 
-        let reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards();
 
         let current_reward_per_share = self.reward_per_share().get();
@@ -404,20 +373,20 @@ pub trait Farm:
             &current_reward_per_share,
             &farm_attributes.reward_per_share,
         );
-
-        // no compounding when staking from proxy
+        let new_compound_reward_amount = self.rule_of_three(
+            &old_farming_amount,
+            &farm_attributes.current_farm_amount,
+            &farm_attributes.compounded_reward,
+        );
         let new_attributes = StakingFarmTokenAttributes {
             reward_per_share: current_reward_per_share,
-            compounded_reward: BigUint::zero(),
+            compounded_reward: new_compound_reward_amount,
             current_farm_amount: new_farming_amount.clone(),
         };
 
-        let caller = self.blockchain().get_caller();
-        self.burn_farm_tokens(&payment_token_id, token_nonce, &old_farming_amount);
+        self.burn_farm_tokens(&farm_token_id, farm_token_nonce, &old_farming_amount);
 
-        let farm_token_id = self.farm_token_id().get();
         let new_nonce = self.mint_farm_tokens(&farm_token_id, &new_farming_amount, &new_attributes);
-
         let new_farm_token = StakingFarmToken {
             token_amount: EsdtTokenPayment {
                 token_type: EsdtTokenType::SemiFungible,
@@ -435,6 +404,8 @@ pub trait Farm:
             &new_farm_token.token_amount.amount,
             &[],
         );
+
+        let reward_token_id = self.reward_token_id().get();
         self.send_rewards(&reward_token_id, &reward, &caller);
 
         (
