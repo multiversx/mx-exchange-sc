@@ -14,10 +14,12 @@ elrond_wasm_node::wasm_endpoints! {
         getAcceptedTokenBalance
         getAcceptedTokenId
         getCurrentPhase
+        getDepositExtraRewardsWhitelist
         getDexScAddress
         getEndBlock
         getExtraRewardsBalance
         getExtraRewardsTokenId
+        getExtraRewardsTokenNonce
         getFixedPenaltyPercentage
         getFixedPenaltyPhaseDurationBlocks
         getLaunchedTokenBalance
