@@ -1,12 +1,31 @@
-import { Balance, IProvider, ReturnCode, Token, TokenType } from "@elrondnetwork/erdjs";
+import { Balance, IProvider, NetworkConfig, ReturnCode, Token, TokenType } from "@elrondnetwork/erdjs";
 import { AirdropService, createTokenAmount, ESDTInteractor, ITestSession, ITestUser, TestSession } from "@elrondnetwork/erdjs-snippets";
+import BigNumber from "bignumber.js";
 import { assert } from "chai";
-import { createInteractor } from "./price-discovery";
+import { Console } from "console";
+import { createInteractor, PriceDiscoveryInitArguments } from "./price-discovery";
 
-describe("lottery snippet", async function () {
+namespace StorageKeys {
+    export const LaunchedTokenId = "lanchedToken";
+    export const ContractAddress = "contractAddress";
+}
+
+describe("price discovery snippet", async function () {
     this.bail(true);
 
     const LotteryName = "fooLottery";
+
+    const LaunchedTokenName = "SoCoolWow";
+    const LaunchedTokenTicker = "SOCOOLWOW";
+    const LaunchedTokenSupply = "100000000";
+
+    const AcceptedTokenId = "EGLD";
+    const ExtraRewardsTokenId = "EGLD";
+    const NrBlocksPerPhase = 100; // ~10 minutes
+    const UnbondPeriodEpochs = 1;
+    const MinPenaltyPercentage = 1_000_000_000_000; // 10%
+    const MaxPenaltyPercentage = 5_000_000_000_000; // 50%
+    const FixedPenaltyPercentage = 2_500_000_000_000; // 25%
 
     let suite = this;
     let session: ITestSession;
@@ -15,11 +34,63 @@ describe("lottery snippet", async function () {
     let owner: ITestUser;
 
     this.beforeAll(async function () {
-        session = await TestSession.loadOnSuite("default", suite);
+        session = await TestSession.loadOnSuite("devnet", suite);
         provider = session.provider;
         whale = session.users.whale;
-        owner = session.users.alice;
+        owner = session.users.whale;
         await session.syncNetworkConfig();
+
+        console.log("beforeAll called", NetworkConfig.getDefault());
+    });
+
+    it("issue lanched token", async function () {
+        session.expectLongInteraction(this);
+
+        let interactor = await ESDTInteractor.create(session);
+        let token = new Token({
+            name: LaunchedTokenName,
+            ticker: LaunchedTokenTicker,
+            decimals: 0,
+            supply: LaunchedTokenSupply,
+            type: TokenType.Fungible
+        });
+        await session.syncUsers([owner]);
+        await interactor.issueToken(owner, token);
+        await session.saveToken(StorageKeys.LaunchedTokenId, token);
+    });
+
+    it("deployPriceDiscovery", async function () {
+        await session.syncNetworkConfig();
+        console.log("beforeAll called", NetworkConfig.getDefault());
+
+        session.expectLongInteraction(this);
+
+        await session.syncUsers([owner]);
+
+        let interactor = await createInteractor(provider);
+
+        let launchedTokenId = await session.loadToken(StorageKeys.LaunchedTokenId);
+        let startBlock = (await provider.getNetworkStatus()).Nonce + 10;
+        let deployArgs = new PriceDiscoveryInitArguments(
+            launchedTokenId.getTokenIdentifier(),
+            AcceptedTokenId,
+            ExtraRewardsTokenId,
+            new BigNumber("10e+18"), // 1:1 ratio for min price
+            startBlock,
+            NrBlocksPerPhase,
+            NrBlocksPerPhase,
+            NrBlocksPerPhase,
+            UnbondPeriodEpochs,
+            new BigNumber(MinPenaltyPercentage),
+            new BigNumber(MaxPenaltyPercentage),
+            new BigNumber(FixedPenaltyPercentage)
+        );
+
+        let { address, returnCode } = await interactor.deploy(owner, deployArgs);
+
+        assert.isTrue(returnCode.isSuccess());
+
+        await session.saveAddress(StorageKeys.ContractAddress, address);
     });
 
     it("airdrop EGLD", async function () {
@@ -47,19 +118,6 @@ describe("lottery snippet", async function () {
         let amount = createTokenAmount(lotteryToken, "10");
         await session.syncUsers([owner]);
         await AirdropService.createOnSession(session).sendToEachUser(owner, amount);
-    });
-
-    it("setup", async function () {
-        session.expectLongInteraction(this);
-
-        await session.syncUsers([owner]);
-
-        let interactor = await createInteractor(provider);
-        let { address, returnCode } = await interactor.deploy(owner);
-
-        assert.isTrue(returnCode.isSuccess());
-
-        await session.saveAddress("contractAddress", address);
     });
 
     it("start lottery", async function () {

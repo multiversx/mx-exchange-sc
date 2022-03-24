@@ -1,4 +1,5 @@
 {
     "proxyUrl": "https://devnet-gateway.elrond.com",
-    "whalePem": "~/elrondsdk/testwallets/alice.pem"
+    "providerUrl": "https://devnet-gateway.elrond.com",
+    "whalePem": "devnetWalletKey.pem"
 }

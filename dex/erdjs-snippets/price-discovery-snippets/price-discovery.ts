@@ -6,12 +6,13 @@
  * Note: in dApps, make sure you use a proper wallet provider to sign the transaction.
  * @module
  */
-import { AbiRegistry, Address, Balance, BigUIntValue, BytesValue, Code, CodeMetadata, createListOfAddresses, DefaultSmartContractController, EnumValue, GasLimit, Interaction, IProvider, ISmartContractController, OptionalValue, OptionValue, ReturnCode, SmartContract, SmartContractAbi, Struct, Token, TokenIdentifierValue, U32Value, VariadicValue } from "@elrondnetwork/erdjs";
+import { AbiRegistry, Address, Balance, BigUIntValue, BytesValue, ChainID, Code, CodeMetadata, createListOfAddresses, DefaultSmartContractController, EnumValue, GasLimit, Interaction, IProvider, ISmartContractController, OptionalValue, OptionValue, ReturnCode, SmartContract, SmartContractAbi, Struct, Token, TokenIdentifierValue, Transaction, U32Value, U64Value, VariadicValue } from "@elrondnetwork/erdjs";
 import path from "path";
 import { ITestUser } from "@elrondnetwork/erdjs-snippets";
+import BigNumber from "bignumber.js";
 
-const PathToWasm = path.resolve(__dirname, "price-discovery.wasm");
-const PathToAbi = path.resolve(__dirname, "price-discovery.abi.json");
+const PathToWasm = path.resolve(__dirname, "../../price-discovery/output/price-discovery.wasm");
+const PathToAbi = path.resolve(__dirname, "../../price-discovery/output/price-discovery.abi.json");
 
 export async function createInteractor(provider: IProvider, address?: Address): Promise<PriceDiscoveryInteractor> {
     let registry = await AbiRegistry.load({ files: [PathToAbi] });
@@ -20,6 +21,49 @@ export async function createInteractor(provider: IProvider, address?: Address): 
     let controller = new DefaultSmartContractController(abi, provider);
     let interactor = new PriceDiscoveryInteractor(contract, controller);
     return interactor;
+}
+
+export class PriceDiscoveryInitArguments {
+    public readonly launchedTokenId: TokenIdentifierValue;
+    public readonly acceptedTokenId: TokenIdentifierValue;
+    public readonly extraRewardsTokenId: TokenIdentifierValue;
+    public readonly minLaunchedTokenPrice: BigUIntValue;
+    public readonly startBlock: U64Value;
+    public readonly noLimitPhaseDurationBlocks: U64Value;
+    public readonly linearPenaltyPhaseDurationBlocks: U64Value;
+    public readonly fixedPenaltyPhaseDurationBlocks: U64Value;
+    public readonly unbondPeriodEpochs: U64Value;
+    public readonly penaltyMinPercentage: BigUIntValue;
+    public readonly penaltyMaxPercentage: BigUIntValue;
+    public readonly fixedPenaltyPercentage: BigUIntValue;
+
+    constructor(
+        launchedTokenId: string,
+        acceptedTokenId: string,
+        extraRewardsTokenId: string,
+        minLaunchedTokenPrice: BigNumber,
+        startBlock: number,
+        noLimitPhaseDurationBlocks: number,
+        linearPenaltyPhaseDurationBlocks: number,
+        fixedPenaltyPhaseDurationBlocks: number,
+        unbondPeriodEpochs: number,
+        penaltyMinPercentage: BigNumber,
+        penaltyMaxPercentage: BigNumber,
+        fixedPenaltyPercentage: BigNumber,
+    ) {
+        this.launchedTokenId = new TokenIdentifierValue(launchedTokenId);
+        this.acceptedTokenId = new TokenIdentifierValue(acceptedTokenId);
+        this.extraRewardsTokenId = new TokenIdentifierValue(extraRewardsTokenId);
+        this.minLaunchedTokenPrice = new BigUIntValue(minLaunchedTokenPrice);
+        this.startBlock = new U64Value(startBlock);
+        this.noLimitPhaseDurationBlocks = new U64Value(noLimitPhaseDurationBlocks);
+        this.linearPenaltyPhaseDurationBlocks = new U64Value(linearPenaltyPhaseDurationBlocks);
+        this.fixedPenaltyPhaseDurationBlocks = new U64Value(fixedPenaltyPhaseDurationBlocks);
+        this.unbondPeriodEpochs = new U64Value(unbondPeriodEpochs);
+        this.penaltyMinPercentage = new BigUIntValue(penaltyMinPercentage);
+        this.penaltyMaxPercentage = new BigUIntValue(penaltyMaxPercentage);
+        this.fixedPenaltyPercentage = new BigUIntValue(fixedPenaltyPercentage);
+    }
 }
 
 export class PriceDiscoveryInteractor {
@@ -31,7 +75,9 @@ export class PriceDiscoveryInteractor {
         this.controller = controller;
     }
 
-    async deploy(deployer: ITestUser): Promise<{ address: Address, returnCode: ReturnCode }> {
+    async deploy(deployer: ITestUser, args: PriceDiscoveryInitArguments)
+        : Promise<{ address: Address, returnCode: ReturnCode }> {
+
         // Load the bytecode from a file.
         let code = await Code.fromFile(PathToWasm);
 
@@ -39,9 +85,27 @@ export class PriceDiscoveryInteractor {
         let transaction = this.contract.deploy({
             code: code,
             codeMetadata: new CodeMetadata(),
-            initArguments: [],
+            initArguments: [
+                args.launchedTokenId,
+                args.acceptedTokenId,
+                args.extraRewardsTokenId,
+                args.minLaunchedTokenPrice,
+                args.startBlock,
+                args.noLimitPhaseDurationBlocks,
+                args.linearPenaltyPhaseDurationBlocks,
+                args.fixedPenaltyPercentage,
+                args.unbondPeriodEpochs,
+                args.penaltyMinPercentage,
+                args.penaltyMaxPercentage,
+                args.fixedPenaltyPercentage
+            ],
             gasLimit: new GasLimit(60000000)
         });
+
+        (<any>transaction).chainId = new ChainID("D");
+        
+        // console.log(transaction);
+        console.log("Chain ID: ", transaction.getChainID());
 
         // Set the transaction nonce. The account nonce must be synchronized beforehand.
         // Also, locally increment the nonce of the deployer (optional).
@@ -56,7 +120,7 @@ export class PriceDiscoveryInteractor {
         // Let's broadcast the transaction (and await for its execution), via the controller.
         let { bundle: { returnCode } } = await this.controller.deploy(transaction);
 
-        console.log(`LotteryInteractor.deploy(): contract = ${address}`);
+        console.log(`PriceDiscoveryInteractor.deploy(): contract = ${address}`);
         return { address, returnCode };
     }
 
