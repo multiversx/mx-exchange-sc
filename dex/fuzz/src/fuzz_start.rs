@@ -7,8 +7,10 @@ mod test {
     use std::time::SystemTime;
 
     use crate::fuzz_data::fuzz_data_tests::*;
+    use crate::fuzz_factory::fuzz_factory_test::*;
     use crate::fuzz_farm::fuzz_farm_test::*;
     use crate::fuzz_pair::fuzz_pair_test::*;
+    use crate::fuzz_price_discovery::fuzz_price_discovery_test::*;
 
     use elrond_wasm_debug::DebugApi;
 
@@ -24,7 +26,14 @@ mod test {
             .expect("Incorrect output");
         let seed = seed_base.as_secs() * 1000 + seed_base.subsec_nanos() as u64 / 1_000_000; //in ms
 
-        let mut fuzzer_data = FuzzerData::new(seed, pair::contract_obj, farm::contract_obj);
+        let mut fuzzer_data = FuzzerData::new(
+            seed,
+            pair::contract_obj,
+            farm::contract_obj,
+            factory::contract_obj,
+            pair_mock::contract_obj,
+            price_discovery::contract_obj,
+        );
 
         println!("Started fuzz testing with seed: {}", (seed));
 
@@ -36,11 +45,27 @@ mod test {
             (5, fuzzer_data.fuzz_args.exit_farm_prob),
             (6, fuzzer_data.fuzz_args.claim_rewards_prob),
             (7, fuzzer_data.fuzz_args.compound_rewards_prob),
+            (8, fuzzer_data.fuzz_args.factory_lock_asset_prob),
+            (9, fuzzer_data.fuzz_args.factory_unlock_asset_prob),
+            (10, fuzzer_data.fuzz_args.price_discovery_deposit_prob),
+            (11, fuzzer_data.fuzz_args.price_discovery_withdraw_prob),
+            (12, fuzzer_data.fuzz_args.price_discovery_redeem_prob),
         ];
+
+        let mut block_epoch = 1;
+        fuzzer_data.blockchain_wrapper.set_block_nonce(block_epoch);
 
         for block_nonce in 1..=fuzzer_data.fuzz_args.num_events {
             let choice_index = WeightedIndex::new(choices.iter().map(|choice| choice.1)).unwrap();
             let random_choice = choices[choice_index.sample(&mut fuzzer_data.rng)].0;
+
+            // custom logic to enforce blockchain time passing (+1 epoch for each 2 blocks)
+            // does not reflect an accurate time passing in a real blockchain
+            fuzzer_data.blockchain_wrapper.set_block_nonce(block_nonce);
+            if block_nonce % 2 == 0 {
+                block_epoch += fuzzer_data.fuzz_args.block_nonce_increase;
+                fuzzer_data.blockchain_wrapper.set_block_epoch(block_epoch);
+            }
 
             match random_choice {
                 1 => {
@@ -71,21 +96,54 @@ mod test {
                     println!("Event no. {}: Compound reward", (block_nonce));
                     compound_rewards(&mut fuzzer_data);
                 }
+                8 => {
+                    println!("Event no. {}: Factory lock tokens", (block_nonce));
+                    lock_assets(&mut fuzzer_data);
+                }
+                9 => {
+                    println!("Event no. {}: Factory unlock tokens", (block_nonce));
+                    unlock_assets(&mut fuzzer_data);
+                }
+                10 => {
+                    println!("Event no. {}: Price discovery deposit", (block_nonce));
+                    price_discovery_deposit(&mut fuzzer_data);
+                }
+                11 => {
+                    println!("Event no. {}: Price discovery withdraw", (block_nonce));
+                    price_discovery_withdraw(&mut fuzzer_data);
+                }
+                12 => {
+                    println!("Event no. {}: Price discovery redeem", (block_nonce));
+                    price_discovery_redeem(&mut fuzzer_data, block_nonce);
+                }
                 _ => println!("No event triggered"),
             }
-
-            fuzzer_data.blockchain_wrapper.set_block_nonce(block_nonce);
         }
 
         print_statistics(&mut fuzzer_data, seed);
     }
 
-    fn print_statistics<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    fn print_statistics<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
         seed: u64,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         println!();
         println!("Statistics:");
@@ -167,6 +225,51 @@ mod test {
         println!(
             "compoundRewardsMisses: {}",
             fuzzer_data.statistics.compound_rewards_misses
+        );
+        println!();
+        println!(
+            "factoryLockHits: {}",
+            fuzzer_data.statistics.factory_lock_hits
+        );
+        println!(
+            "factoryLockMisses: {}",
+            fuzzer_data.statistics.factory_lock_misses
+        );
+        println!();
+        println!(
+            "factoryUnlockHits: {}",
+            fuzzer_data.statistics.factory_unlock_hits
+        );
+        println!(
+            "factoryUnlockMisses: {}",
+            fuzzer_data.statistics.factory_unlock_misses
+        );
+        println!();
+        println!(
+            "priceDiscoveryDepositHits: {}",
+            fuzzer_data.statistics.price_discovery_deposit_hits
+        );
+        println!(
+            "priceDiscoveryDepositMisses: {}",
+            fuzzer_data.statistics.price_discovery_deposit_misses
+        );
+        println!();
+        println!(
+            "priceDiscoveryWithdrawHits: {}",
+            fuzzer_data.statistics.price_discovery_withdraw_hits
+        );
+        println!(
+            "priceDiscoveryWithdrawMisses: {}",
+            fuzzer_data.statistics.price_discovery_withdraw_misses
+        );
+        println!();
+        println!(
+            "priceDiscoveryRedeemHits: {}",
+            fuzzer_data.statistics.price_discovery_redeem_hits
+        );
+        println!(
+            "priceDiscoveryRedeemMisses: {}",
+            fuzzer_data.statistics.price_discovery_redeem_misses
         );
         println!();
     }

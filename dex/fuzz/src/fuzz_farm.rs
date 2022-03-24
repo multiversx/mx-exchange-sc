@@ -12,11 +12,26 @@ pub mod fuzz_farm_test {
 
     use rand::prelude::*;
 
-    pub fn enter_farm<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn enter_farm<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
@@ -40,7 +55,7 @@ pub mod fuzz_farm_test {
         let lp_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, lp_token_id, 0);
+                .get_esdt_balance(&caller.address, lp_token_id, 0);
 
         if lp_token_before < farm_in_amount {
             println!("Enter farm error: Not enough LP token user balance");
@@ -58,10 +73,10 @@ pub mod fuzz_farm_test {
 
         //randomly add all existing farm positions for merge
         let merge_farm_positions: bool = fuzzer_data.rng.gen();
-        if merge_farm_positions && farm_setup.farmer_info.get(&caller).is_some() {
-            for farm_token_nonce in farm_setup.farmer_info.get(&caller).unwrap().iter() {
+        if merge_farm_positions && farm_setup.farmer_info.get(&caller.address).is_some() {
+            for farm_token_nonce in farm_setup.farmer_info.get(&caller.address).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-                    &caller,
+                    &caller.address,
                     farm_token_id,
                     *farm_token_nonce,
                 );
@@ -77,7 +92,7 @@ pub mod fuzz_farm_test {
         }
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-            &caller,
+            &caller.address,
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
@@ -92,13 +107,13 @@ pub mod fuzz_farm_test {
 
             // Clear previous farm positions
             if merge_farm_positions {
-                farm_setup.farmer_info.remove(&caller);
+                farm_setup.farmer_info.remove(&caller.address);
             }
 
             // Update farm nonce
             farm_setup
                 .farmer_info
-                .entry(caller.clone())
+                .entry(caller.address.clone())
                 .or_default()
                 .push(farm_nonce);
             farm_setup.farm_nonce.set(farm_nonce + 1);
@@ -108,11 +123,26 @@ pub mod fuzz_farm_test {
         }
     }
 
-    pub fn exit_farm<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn exit_farm<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
@@ -131,13 +161,13 @@ pub mod fuzz_farm_test {
             + 1;
         let mut farm_out_amount = rust_biguint!(seed);
 
-        let farm_token_nonce = match farm_setup.farmer_info.get(caller) {
+        let farm_token_nonce = match farm_setup.farmer_info.get(&caller.address) {
             Some(s) => *s.choose(&mut fuzzer_data.rng).unwrap(),
             None => 0,
         };
 
         let farm_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &caller,
+            &caller.address,
             farm_token_id,
             farm_token_nonce,
         );
@@ -145,7 +175,7 @@ pub mod fuzz_farm_test {
         let reward_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, reward_token_id, 0);
+                .get_esdt_balance(&caller.address, reward_token_id, 0);
 
         if farm_token_before == rust_zero {
             println!("Exit farm error: Not enough farm token user balance");
@@ -156,7 +186,7 @@ pub mod fuzz_farm_test {
         }
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
-            &caller,
+            &caller.address,
             &farm_setup.farm_wrapper,
             farm_token_id,
             farm_token_nonce,
@@ -172,10 +202,11 @@ pub mod fuzz_farm_test {
             fuzzer_data.statistics.exit_farm_hits += 1;
 
             // Check rewards
-            let reward_token_after =
-                fuzzer_data
-                    .blockchain_wrapper
-                    .get_esdt_balance(&caller, reward_token_id, 0);
+            let reward_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
+                &caller.address,
+                reward_token_id,
+                0,
+            );
             if reward_token_after > reward_token_before {
                 fuzzer_data.statistics.exit_farm_with_rewards += 1;
             } else if reward_token_after < reward_token_before {
@@ -187,11 +218,26 @@ pub mod fuzz_farm_test {
         }
     }
 
-    pub fn claim_rewards<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn claim_rewards<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
@@ -208,15 +254,15 @@ pub mod fuzz_farm_test {
         let reward_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, reward_token_id, 0);
+                .get_esdt_balance(&caller.address, reward_token_id, 0);
 
         // When claiming rewards, the caller uses all his farming positions
         let mut farm_token_amount_check = rust_biguint!(0u64);
         let mut payments = Vec::new();
-        if farm_setup.farmer_info.get(caller).is_some() {
-            for farm_token_nonce in farm_setup.farmer_info.get(caller).unwrap().iter() {
+        if farm_setup.farmer_info.get(&caller.address).is_some() {
+            for farm_token_nonce in farm_setup.farmer_info.get(&caller.address).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-                    &caller,
+                    &caller.address,
                     farm_token_id,
                     *farm_token_nonce,
                 );
@@ -240,7 +286,7 @@ pub mod fuzz_farm_test {
         }
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-            &caller,
+            &caller.address,
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
@@ -254,10 +300,11 @@ pub mod fuzz_farm_test {
             fuzzer_data.statistics.claim_rewards_hits += 1;
 
             // Check rewards
-            let reward_token_after =
-                fuzzer_data
-                    .blockchain_wrapper
-                    .get_esdt_balance(&caller, reward_token_id, 0);
+            let reward_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
+                &caller.address,
+                reward_token_id,
+                0,
+            );
             if reward_token_after > reward_token_before {
                 fuzzer_data.statistics.claim_rewards_with_rewards += 1;
             } else if reward_token_after < reward_token_before {
@@ -265,12 +312,12 @@ pub mod fuzz_farm_test {
             }
 
             // Clear previous farm positions
-            farm_setup.farmer_info.remove(&caller);
+            farm_setup.farmer_info.remove(&caller.address);
 
             // Update farm nonce
             farm_setup
                 .farmer_info
-                .entry(caller.clone())
+                .entry(caller.address.clone())
                 .or_default()
                 .push(farm_nonce);
             farm_setup.farm_nonce.set(farm_nonce + 1);
@@ -280,11 +327,26 @@ pub mod fuzz_farm_test {
         }
     }
 
-    pub fn compound_rewards<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn compound_rewards<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
 
@@ -308,10 +370,10 @@ pub mod fuzz_farm_test {
         // When compounding rewards, the caller uses all his farming positions
         let mut farm_token_amount_check = rust_biguint!(0u64);
         let mut payments = Vec::new();
-        if farm_setup.farmer_info.get(caller).is_some() {
-            for farm_token_nonce in farm_setup.farmer_info.get(caller).unwrap().iter() {
+        if farm_setup.farmer_info.get(&caller.address).is_some() {
+            for farm_token_nonce in farm_setup.farmer_info.get(&caller.address).unwrap().iter() {
                 let farm_token_amount = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-                    &caller,
+                    &caller.address,
                     farm_token_id,
                     *farm_token_nonce,
                 );
@@ -336,7 +398,7 @@ pub mod fuzz_farm_test {
         }
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-            &caller,
+            &caller.address,
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
@@ -350,12 +412,12 @@ pub mod fuzz_farm_test {
             fuzzer_data.statistics.compound_rewards_hits += 1;
 
             // Clear previous farm positions
-            farm_setup.farmer_info.remove(&caller);
+            farm_setup.farmer_info.remove(&caller.address);
 
             // Update farm nonce
             farm_setup
                 .farmer_info
-                .entry(caller.clone())
+                .entry(caller.address.clone())
                 .or_default()
                 .push(farm_nonce);
 
