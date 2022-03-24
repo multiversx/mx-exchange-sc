@@ -1,12 +1,15 @@
 [package]
-name = "governance"
+name = "pair-mock"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
 publish = false
 
 [lib]
-path = "src/contract.rs"
+path = "src/pair.rs"
+
+[dependencies.common_errors]
+path = "../../common/common_errors"
 
 [dependencies.elrond-wasm]
 version = "0.29"
@@ -14,8 +17,6 @@ version = "0.29"
 [dev-dependencies.elrond-wasm-debug]
 version = "0.29"
 
-[dev-dependencies]
-num-bigint = "0.4.2"
-
-[dev-dependencies.pair-mock]
-path = "../pair-mock"
+[dependencies.itertools]
+version = "0.10.1"
+default-features = false

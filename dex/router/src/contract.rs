@@ -42,7 +42,7 @@ pub trait Router:
             self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
                 .pause()
-                .execute_on_dest_context();
+                .execute_on_dest_context_ignore_result();
         }
     }
 
@@ -55,7 +55,7 @@ pub trait Router:
             self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
                 .resume()
-                .execute_on_dest_context();
+                .execute_on_dest_context_ignore_result();
         }
     }
 
@@ -64,6 +64,7 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
+        initial_liquidity_adder: ManagedAddress,
         #[var_args] opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
@@ -114,6 +115,7 @@ pub trait Router:
             &owner,
             total_fee_percent_requested,
             special_fee_percent_requested,
+            &initial_liquidity_adder,
         );
 
         self.emit_create_pair_event(
@@ -196,7 +198,7 @@ pub trait Router:
         let result = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
         require!(result.is_egld(), "LP Token already issued");
 
         self.send()
@@ -234,7 +236,7 @@ pub trait Router:
         let pair_token = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context();
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
         require!(pair_token.is_esdt(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
@@ -320,7 +322,7 @@ pub trait Router:
 
         self.pair_contract_proxy(pair_address)
             .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context();
+            .execute_on_dest_context_ignore_result();
     }
 
     #[only_owner]
@@ -336,7 +338,7 @@ pub trait Router:
 
         self.pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context();
+            .execute_on_dest_context_ignore_result();
     }
 
     #[view(getPair)]
@@ -381,7 +383,7 @@ pub trait Router:
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id)
-                    .execute_on_dest_context();
+                    .execute_on_dest_context_ignore_result();
             }
             ManagedAsyncCallResult::Err(message) => {
                 self.last_error_message().set(&message.err_msg);

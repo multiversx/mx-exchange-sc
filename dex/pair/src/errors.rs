@@ -1,3 +1,4 @@
+pub const ERROR_ACTIVE: &[u8] = b"Active state";
 pub const ERROR_NOT_ACTIVE: &[u8] = b"Not active";
 pub const ERROR_LP_TOKEN_NOT_ISSUED: &[u8] = b"LP token not issued";
 

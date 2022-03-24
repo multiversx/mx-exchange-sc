@@ -115,8 +115,8 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.is_state_active(context.get_contract_state()),
-            ERROR_NOT_ACTIVE
+            !self.is_state_active(context.get_contract_state()),
+            ERROR_ACTIVE
         );
 
         self.load_lp_token_id(&mut context);
@@ -144,6 +144,8 @@ pub trait Pair<ContractReader>:
         let lpt = context.get_lp_token_id();
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
+
+        self.state().set(&State::ActiveNoSwaps);
 
         self.commit_changes(&context);
         self.construct_add_liquidity_output_payments(&mut context);
