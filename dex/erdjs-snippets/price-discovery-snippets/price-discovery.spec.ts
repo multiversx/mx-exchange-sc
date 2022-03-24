@@ -94,7 +94,7 @@ describe("lottery snippet", async function () {
         let interactor = await createInteractor(provider, contractAddress);
         let whitelist = await interactor.getWhitelist(LotteryName);
         console.log("Whitelist:", whitelist);
-        
+
         assert.deepEqual(whitelist, session.users.getAddressesOfFriends());
     });
 
@@ -110,7 +110,7 @@ describe("lottery snippet", async function () {
         let buyAmount = createTokenAmount(lotteryToken, "1");
         let buyPromises = session.users.getFriends().map(friend => interactor.buyTicket(friend, LotteryName, buyAmount));
         let returnCodes: ReturnCode[] = await Promise.all(buyPromises);
-        
+
         for (const returnCode of returnCodes) {
             assert.isTrue(returnCode.isSuccess());
         }
