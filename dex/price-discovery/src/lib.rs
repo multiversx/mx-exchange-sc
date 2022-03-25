@@ -206,9 +206,10 @@ pub trait PriceDiscovery:
         );
     }
 
-    /// After the liquidity pool has been created and the LP tokens received,
-    /// users can withdraw their fair share of the LP tokens by depositing their SFTs
-    /// and a share of the extra rewards
+    /// After the unbond period has ended,
+    /// users can withdraw their fair share of either accepted or launched tokens,
+    /// depending on which token they deposited initially.
+    /// Users that deposited accepted tokens receives launched tokens and vice-versa.
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) {
@@ -219,38 +220,32 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let rewards = self.compute_rewards(payment_nonce, &payment_amount);
+        let bought_tokens = self.compute_bought_tokens(payment_nonce, &payment_amount);
         self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
 
-        if rewards.amount > 0 {
+        if bought_tokens.amount > 0 {
             let caller = self.blockchain().get_caller();
             self.send().direct(
                 &caller,
-                &rewards.token_identifier,
-                rewards.token_nonce,
-                &rewards.amount,
+                &bought_tokens.token_identifier,
+                0,
+                &bought_tokens.amount,
                 &[],
             );
         }
 
-        /*
         self.emit_redeem_event(
             payment_token,
             payment_nonce,
             payment_amount,
-            self.lp_token_id().get(),
-            rewards.lp_tokens_amount,
-            remaining_lp_tokens,
-            total_lp_tokens,
-            self.extra_rewards_token_id().get(),
-            rewards.extra_rewards_amount,
+            bought_tokens.token_identifier,
+            bought_tokens.amount,
         );
-        */
     }
 
     // private
 
-    fn compute_rewards(
+    fn compute_bought_tokens(
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,

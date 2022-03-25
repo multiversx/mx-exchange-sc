@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_biguint, testing_framework::*};
@@ -8,10 +6,7 @@ use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 use price_discovery::redeem_token::*;
 use price_discovery::*;
 
-// use pair_mock::*;
-
 const PD_WASM_PATH: &'static str = "../output/price-discovery.wasm";
-// const DEX_MOCK_WASM_PATH: &'static str = "../../pait-mock/output/pair_mock.wasm";
 
 pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
@@ -32,67 +27,28 @@ pub const MIN_PENALTY_PERCENTAGE: u64 = 1_000_000_000_000; // 10%
 pub const MAX_PENALTY_PERCENTAGE: u64 = 5_000_000_000_000; // 50%
 pub const FIXED_PENALTY_PERCENTAGE: u64 = 2_500_000_000_000; // 25%
 
-pub struct PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
+pub struct PriceDiscSetup<PriceDiscObjBuilder>
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
-    _phantom: PhantomData<DexObjBuilder>,
-
     pub blockchain_wrapper: BlockchainStateWrapper,
     pub owner_address: Address,
     pub first_user_address: Address,
     pub second_user_address: Address,
-    // pub sc_dex_address: Address,
     pub pd_wrapper: ContractObjWrapper<price_discovery::ContractObj<DebugApi>, PriceDiscObjBuilder>,
-    // pub dex_wrapper: ContractObjWrapper<pair_mock::ContractObj<DebugApi>, DexObjBuilder>,
 }
 
-pub fn init<PriceDiscObjBuilder, DexObjBuilder>(
+pub fn init<PriceDiscObjBuilder>(
     pd_builder: PriceDiscObjBuilder,
-    _dex_builder: DexObjBuilder,
-) -> PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
+) -> PriceDiscSetup<PriceDiscObjBuilder>
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let mut blockchain_wrapper = BlockchainStateWrapper::new();
     let first_user_address = blockchain_wrapper.create_user_account(&rust_zero);
     let second_user_address = blockchain_wrapper.create_user_account(&rust_zero);
     let owner_address = blockchain_wrapper.create_user_account(&rust_biguint!(OWNER_EGLD_BALANCE));
-
-    /* Not removed yet, as it will be needed in the next PR
-
-    let dex_wrapper = blockchain_wrapper.create_sc_account(
-        &rust_zero,
-        Some(&owner_address),
-        dex_builder,
-        DEX_MOCK_WASM_PATH,
-    );
-
-    // init DEX mock
-    blockchain_wrapper
-        .execute_tx(&owner_address, &dex_wrapper, &rust_zero, |sc| {
-            sc.init(
-                OptionalValue::Some(managed_token_id!(LAUNCHED_TOKEN_ID)),
-                OptionalValue::Some(managed_token_id!(ACCEPTED_TOKEN_ID)),
-                OptionalValue::None,
-                OptionalValue::None,
-                OptionalValue::None,
-                OptionalValue::None,
-                OptionalValue::None,
-            );
-        })
-        .assert_ok();
-
-
-    blockchain_wrapper.set_esdt_balance(
-        &dex_wrapper.address_ref(),
-        LP_TOKEN_ID,
-        &rust_biguint!(500_000_000_000),
-    );
-    */
 
     let pd_wrapper = blockchain_wrapper.create_sc_account(
         &rust_zero,
@@ -170,23 +126,19 @@ where
         .assert_ok();
 
     PriceDiscSetup {
-        _phantom: PhantomData,
         blockchain_wrapper,
         owner_address,
         first_user_address,
         second_user_address,
-        // sc_dex_address,
         pd_wrapper,
-        // dex_wrapper,
     }
 }
 
-pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
-    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+pub fn call_deposit_initial_tokens<PriceDiscObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder>,
     amount: &num_bigint::BigUint,
 ) where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
     b_wrapper
@@ -203,14 +155,13 @@ pub fn call_deposit_initial_tokens<PriceDiscObjBuilder, DexObjBuilder>(
         .assert_ok();
 }
 
-pub fn call_deposit<PriceDiscObjBuilder, DexObjBuilder>(
-    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+pub fn call_deposit<PriceDiscObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder>,
     caller: &Address,
     amount: &num_bigint::BigUint,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
     b_wrapper.execute_esdt_transfer(
@@ -225,14 +176,13 @@ where
     )
 }
 
-pub fn call_withdraw<PriceDiscObjBuilder, DexObjBuilder>(
-    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+pub fn call_withdraw<PriceDiscObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder>,
     caller: &Address,
     amount: &num_bigint::BigUint,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
     b_wrapper.execute_esdt_transfer(
@@ -247,15 +197,14 @@ where
     )
 }
 
-pub fn call_redeem<PriceDiscObjBuilder, DexObjBuilder>(
-    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+pub fn call_redeem<PriceDiscObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder>,
     caller: &Address,
     sft_nonce: u64,
     amount: &num_bigint::BigUint,
 ) -> TxResult
 where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let b_wrapper = &mut pd_setup.blockchain_wrapper;
     b_wrapper.execute_esdt_transfer(
