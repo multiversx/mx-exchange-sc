@@ -16,11 +16,6 @@ const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 const BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
 pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
 
-pub struct Rewards<M: ManagedTypeApi> {
-    pub token_id: TokenIdentifier<M>,
-    pub amount: BigUint<M>,
-}
-
 #[elrond_wasm::contract]
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
@@ -229,8 +224,13 @@ pub trait PriceDiscovery:
 
         if rewards.amount > 0 {
             let caller = self.blockchain().get_caller();
-            self.send()
-                .direct(&caller, &rewards.token_id, 0, &rewards.amount, &[]);
+            self.send().direct(
+                &caller,
+                &rewards.token_identifier,
+                rewards.token_nonce,
+                &rewards.amount,
+                &[],
+            );
         }
 
         /*
@@ -254,7 +254,7 @@ pub trait PriceDiscovery:
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
-    ) -> Rewards<Self::Api> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let redeem_token_supply = self
             .redeem_token_total_circulating_supply(redeem_token_nonce)
             .get();
@@ -273,8 +273,10 @@ pub trait PriceDiscovery:
         };
         let reward_amount = total_token_supply * redeem_token_amount / redeem_token_supply;
 
-        Rewards {
-            token_id,
+        EsdtTokenPayment {
+            token_type: EsdtTokenType::Fungible,
+            token_identifier: token_id,
+            token_nonce: 0,
             amount: reward_amount,
         }
     }
