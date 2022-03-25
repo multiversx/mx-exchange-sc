@@ -1,6 +1,5 @@
 use elrond_wasm_debug::managed_biguint;
 use elrond_wasm_debug::{rust_biguint, DebugApi};
-// use pair_mock::*;
 use price_discovery::redeem_token::*;
 use price_discovery::PriceDiscovery;
 use price_discovery::{common_storage::*, MIN_PRICE_PRECISION};
@@ -10,12 +9,12 @@ use tests_common::*;
 
 #[test]
 fn test_init() {
-    let _ = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let _ = init(price_discovery::contract_obj);
 }
 
 #[test]
 fn test_deposit_launched_tokens_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
 
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
@@ -32,7 +31,7 @@ fn test_deposit_launched_tokens_ok() {
 
 #[test]
 fn deposit_too_early() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
 
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK - 1);
 
@@ -46,11 +45,10 @@ fn deposit_too_early() {
     .assert_user_error("Deposit not allowed in this phase");
 }
 
-pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
-    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+pub fn user_deposit_ok_steps<PriceDiscObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder>,
 ) where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
@@ -92,13 +90,13 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 
 #[test]
 fn user_deposit_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 }
 
 #[test]
 fn try_deposit_below_min_price() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
     let owner_addr = pd_setup.owner_address.clone();
@@ -139,7 +137,7 @@ fn try_deposit_below_min_price() {
 
 #[test]
 fn deposit_above_min_price() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
     let owner_addr = pd_setup.owner_address.clone();
@@ -161,7 +159,7 @@ fn deposit_above_min_price() {
 
 #[test]
 fn withdraw_below_min_price() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     pd_setup.blockchain_wrapper.set_block_nonce(START_BLOCK);
 
     let owner_addr = pd_setup.owner_address.clone();
@@ -188,12 +186,11 @@ fn withdraw_below_min_price() {
     .assert_user_error("Launched token below min price");
 }
 
-pub fn withdraw_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
-    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
+pub fn withdraw_ok_steps<PriceDiscObjBuilder>(
+    pd_setup: &mut PriceDiscSetup<PriceDiscObjBuilder>,
     penalty_percentage: u64,
 ) where
     PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
-    DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
 {
     let first_user_address = pd_setup.first_user_address.clone();
     let balance_before = rust_biguint!(0);
@@ -238,14 +235,14 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder, DexObjBuilder>(
 
 #[test]
 fn withdraw_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 }
 
 #[test]
 fn withdraw_linear_penalty_start() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
     let linear_penalty_start_block = START_BLOCK + NO_LIMIT_PHASE_DURATION_BLOCKS;
@@ -257,7 +254,7 @@ fn withdraw_linear_penalty_start() {
 
 #[test]
 fn withdraw_linear_penalty_end() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
     let linear_penalty_end_block =
@@ -270,7 +267,7 @@ fn withdraw_linear_penalty_end() {
 
 #[test]
 fn withdraw_linear_penalty_middle() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
     let linear_penalty_start_block = START_BLOCK + NO_LIMIT_PHASE_DURATION_BLOCKS;
@@ -287,7 +284,7 @@ fn withdraw_linear_penalty_middle() {
 
 #[test]
 fn withdraw_fixed_penalty() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
     let fixed_penalty_start_block =
@@ -300,7 +297,7 @@ fn withdraw_fixed_penalty() {
 
 #[test]
 fn try_deposit_in_withdraw_only_phase() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
     let fixed_penalty_start_block =
@@ -316,7 +313,7 @@ fn try_deposit_in_withdraw_only_phase() {
 
 #[test]
 fn withdraw_too_late() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
 
     pd_setup.blockchain_wrapper.set_block_nonce(END_BLOCK + 1);
@@ -328,7 +325,7 @@ fn withdraw_too_late() {
 
 #[test]
 fn redeem_ok() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
@@ -393,7 +390,7 @@ fn redeem_ok() {
 
 #[test]
 fn redeem_too_early() {
-    let mut pd_setup = init(price_discovery::contract_obj, pair_mock::contract_obj);
+    let mut pd_setup = init(price_discovery::contract_obj);
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
