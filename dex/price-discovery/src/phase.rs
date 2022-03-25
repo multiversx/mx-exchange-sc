@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::{create_pool, events};
-
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
     Idle,
@@ -25,7 +23,7 @@ impl<M: ManagedTypeApi> Phase<M> {
 
 #[elrond_wasm::module]
 pub trait PhaseModule:
-    crate::common_storage::CommonStorageModule + create_pool::CreatePoolModule + events::EventsModule
+    crate::common_storage::CommonStorageModule + crate::events::EventsModule
 {
     #[view(getCurrentPhase)]
     fn get_current_phase(&self) -> Phase<Self::Api> {
@@ -74,12 +72,11 @@ pub trait PhaseModule:
             };
         }
 
-        let current_epoch = self.blockchain().get_block_epoch();
-        let pool_creation_epoch = self.pool_creation_epoch().get();
-        let unbond_period_epochs = self.unbond_period_epochs().get();
-        let redeem_epoch = pool_creation_epoch + unbond_period_epochs;
+        let end_block = self.end_block().get();
+        let unbond_period_blocks = self.unbond_period_blocks().get();
+        let redeem_block = end_block + unbond_period_blocks;
 
-        if current_epoch < redeem_epoch {
+        if current_block < redeem_block {
             return Phase::Unbond;
         }
 
@@ -119,9 +116,6 @@ pub trait PhaseModule:
     }
 
     fn require_redeem_allowed(&self, phase: &Phase<Self::Api>) {
-        let pool_creation_epoch = self.pool_creation_epoch().get();
-        require!(pool_creation_epoch > 0, "Liquidity Pool not created yet");
-
         require!(phase == &Phase::Redeem, "Unbond period not finished yet");
     }
 
@@ -148,4 +142,8 @@ pub trait PhaseModule:
     #[view(getFixedPenaltyPercentage)]
     #[storage_mapper("fixedPenaltyPercentage")]
     fn fixed_penalty_percentage(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getUnbondPeriodBlocks)]
+    #[storage_mapper("unbondPeriodBlocks")]
+    fn unbond_period_blocks(&self) -> SingleValueMapper<u64>;
 }

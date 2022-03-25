@@ -12,3 +12,6 @@ Cargo.lock
 # VSCode specific files
 .vscode/*
 elrond.workspace.json
+
+# ignore snippets folder from another branch
+dex/erdjs-snippets/

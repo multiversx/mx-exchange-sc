@@ -12,18 +12,6 @@ pub trait CommonStorageModule {
     #[storage_mapper("acceptedTokenId")]
     fn accepted_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[view(getExtraRewardsTokenId)]
-    #[storage_mapper("extraRewardsTokenId")]
-    fn extra_rewards_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[view(getExtraRewardsTokenNonce)]
-    #[storage_mapper("extraRewardsTokenNonce")]
-    fn extra_rewards_token_nonce(&self) -> SingleValueMapper<u64>;
-
-    #[view(getLpTokenId)]
-    #[storage_mapper("lpTokenId")]
-    fn lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
     #[view(getLaunchedTokenBalance)]
     #[storage_mapper("launchedTokenBalance")]
     fn launched_token_balance(&self) -> SingleValueMapper<BigUint>;
@@ -31,18 +19,6 @@ pub trait CommonStorageModule {
     #[view(getAcceptedTokenBalance)]
     #[storage_mapper("acceptedTokenBalance")]
     fn accepted_token_balance(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getExtraRewardsBalance)]
-    #[storage_mapper("extraRewardsBalance")]
-    fn extra_rewards_balance(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getTotalLpTokensReceived)]
-    #[storage_mapper("totalLpTokensReceived")]
-    fn total_lp_tokens_received(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getTotalExtraRewardsTokens)]
-    #[storage_mapper("totalExtraRewardsTokens")]
-    fn total_extra_rewards_tokens(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getStartBlock)]
     #[storage_mapper("startBlock")]
