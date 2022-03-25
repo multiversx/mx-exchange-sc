@@ -1,4 +1,4 @@
-import { Balance, IProvider, NetworkConfig, ReturnCode, Token, TokenType } from "@elrondnetwork/erdjs";
+import { Balance, ChainID, IProvider, NetworkConfig, ReturnCode, Token, TokenType } from "@elrondnetwork/erdjs";
 import { AirdropService, createTokenAmount, ESDTInteractor, ITestSession, ITestUser, TestSession } from "@elrondnetwork/erdjs-snippets";
 import BigNumber from "bignumber.js";
 import { assert } from "chai";
@@ -39,8 +39,6 @@ describe("price discovery snippet", async function () {
         whale = session.users.whale;
         owner = session.users.whale;
         await session.syncNetworkConfig();
-
-        console.log("beforeAll called", NetworkConfig.getDefault());
     });
 
     it("issue lanched token", async function () {
@@ -60,9 +58,7 @@ describe("price discovery snippet", async function () {
     });
 
     it("deployPriceDiscovery", async function () {
-        await session.syncNetworkConfig();
-        console.log("beforeAll called", NetworkConfig.getDefault());
-
+        NetworkConfig.getDefault().ChainID = new ChainID("D");
         session.expectLongInteraction(this);
 
         await session.syncUsers([owner]);
@@ -91,6 +87,21 @@ describe("price discovery snippet", async function () {
         assert.isTrue(returnCode.isSuccess());
 
         await session.saveAddress(StorageKeys.ContractAddress, address);
+    });
+
+    it("test abi", async function () {
+        NetworkConfig.getDefault().ChainID = new ChainID("D");
+        session.expectLongInteraction(this);
+
+        await session.syncUsers([owner]);
+
+        let contractAddress = await session.loadAddress(StorageKeys.ContractAddress);
+        // let lotteryToken = await session.loadToken("lotteryToken");
+        let interactor = await createInteractor(provider, contractAddress);
+        // let whitelist = session.users.getAddressesOfFriends();
+        // let returnCode = await interactor.start(owner, LotteryName, lotteryToken, 1, whitelist);
+        let returnCode = await interactor.doStuff(owner);
+        assert.isTrue(returnCode.isSuccess());
     });
 
     it("airdrop EGLD", async function () {

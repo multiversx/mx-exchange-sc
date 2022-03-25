@@ -103,7 +103,7 @@ export class PriceDiscoveryInteractor {
         });
 
         (<any>transaction).chainId = new ChainID("D");
-        
+
         // console.log(transaction);
         console.log("Chain ID: ", transaction.getChainID());
 
@@ -122,6 +122,25 @@ export class PriceDiscoveryInteractor {
 
         console.log(`PriceDiscoveryInteractor.deploy(): contract = ${address}`);
         return { address, returnCode };
+    }
+
+    async doStuff(owner: ITestUser): Promise<ReturnCode> {
+        // Prepare the interaction
+        let interaction = <Interaction>this.contract.methods
+            .setPairAddress([
+                new BigUIntValue(5),
+            ])
+            .withGasLimit(new GasLimit(20000000))
+
+        // Let's build the transaction object.
+        let transaction = interaction.buildTransaction();
+
+        // Let's sign the transaction. For dApps, use a wallet provider instead.
+        await owner.signer.sign(transaction);
+
+        // Let's perform the interaction via the controller
+        let { bundle: { returnCode } } = await this.controller.execute(interaction, transaction);
+        return returnCode;
     }
 
     async start(owner: ITestUser, lotteryName: string, token: Token, price: number, whitelist: Address[]): Promise<ReturnCode> {
