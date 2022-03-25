@@ -8,7 +8,6 @@ use crate::{
 elrond_wasm::imports!();
 
 pub mod common_storage;
-pub mod create_pool;
 pub mod events;
 pub mod phase;
 pub mod redeem_token;
@@ -17,15 +16,9 @@ const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 const BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
 pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
 
-pub struct RewardsPair<M: ManagedTypeApi> {
-    pub lp_tokens_amount: BigUint<M>,
-    pub extra_rewards_amount: BigUint<M>,
-}
-
 #[elrond_wasm::contract]
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
-    + create_pool::CreatePoolModule
     + events::EventsModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
@@ -36,17 +29,15 @@ pub trait PriceDiscovery:
         &self,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
-        extra_rewards_token_id: TokenIdentifier,
         min_launched_token_price: BigUint,
         start_block: u64,
         no_limit_phase_duration_blocks: u64,
         linear_penalty_phase_duration_blocks: u64,
         fixed_penalty_phase_duration_blocks: u64,
-        unbond_period_epochs: u64,
+        unbond_period_blocks: u64,
         penalty_min_percentage: BigUint,
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
-        #[var_args] deposit_extra_rewards_whitelist: MultiValueEncoded<ManagedAddress>,
     ) {
         /* Disabled until the validate token ID function is activated
 
@@ -93,13 +84,8 @@ pub trait PriceDiscovery:
             "Fixed percentage higher than 100%"
         );
 
-        for addr in deposit_extra_rewards_whitelist {
-            self.deposit_extra_rewards_whitelist().insert(addr);
-        }
-
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
-        self.extra_rewards_token_id().set(&extra_rewards_token_id);
         self.min_launched_token_price()
             .set(&min_launched_token_price);
         self.start_block().set(&start_block);
@@ -111,52 +97,11 @@ pub trait PriceDiscovery:
             .set(&linear_penalty_phase_duration_blocks);
         self.fixed_penalty_phase_duration_blocks()
             .set(&fixed_penalty_phase_duration_blocks);
-        self.unbond_period_epochs().set(&unbond_period_epochs);
+        self.unbond_period_blocks().set(&unbond_period_blocks);
         self.penalty_min_percentage().set(&penalty_min_percentage);
         self.penalty_max_percentage().set(&penalty_max_percentage);
         self.fixed_penalty_percentage()
             .set(&fixed_penalty_percentage);
-    }
-
-    /// Extra rewards that will be given to users that contributed to the pool, defined by
-    /// extra_rewards_token_id. Can be deposited by anyone.
-    #[payable("*")]
-    #[endpoint(depositExtraRewards)]
-    fn deposit_extra_rewards(&self) {
-        self.require_dex_address_set();
-
-        let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
-
-        let phase = self.get_current_phase();
-        self.require_deposit_extra_rewards_allowed(&phase);
-
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
-        let extra_rewards_token_id = self.extra_rewards_token_id().get();
-        require!(
-            payment_token == extra_rewards_token_id,
-            INVALID_PAYMENT_ERR_MSG
-        );
-
-        let nonce_mapper = self.extra_rewards_token_nonce();
-        let mut extra_rewards_token_nonce = nonce_mapper.get();
-        if extra_rewards_token_nonce == 0 && payment_nonce != 0 {
-            extra_rewards_token_nonce = payment_nonce;
-            nonce_mapper.set(&extra_rewards_token_nonce);
-        } else {
-            require!(
-                extra_rewards_token_nonce == payment_nonce,
-                INVALID_PAYMENT_ERR_MSG
-            );
-        }
-
-        self.increase_balance(self.extra_rewards_balance(), &payment_amount);
-
-        self.emit_deposit_extra_rewards_event(
-            extra_rewards_token_id,
-            extra_rewards_token_nonce,
-            payment_amount,
-        );
     }
 
     /// Users can deposit either launched_token or accepted_token.
@@ -164,8 +109,6 @@ pub trait PriceDiscovery:
     #[payable("*")]
     #[endpoint]
     fn deposit(&self) {
-        self.require_dex_address_set();
-
         let phase = self.get_current_phase();
         self.require_deposit_allowed(&phase);
 
@@ -211,8 +154,6 @@ pub trait PriceDiscovery:
     #[payable("*")]
     #[endpoint]
     fn withdraw(&self) {
-        self.require_dex_address_set();
-
         let phase = self.get_current_phase();
         self.require_withdraw_allowed(&phase);
 
@@ -281,32 +222,18 @@ pub trait PriceDiscovery:
         let rewards = self.compute_rewards(payment_nonce, &payment_amount);
         self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
 
-        let caller = self.blockchain().get_caller();
-        if rewards.lp_tokens_amount > 0 {
-            let lp_token_id = self.lp_token_id().get();
-            self.send()
-                .direct(&caller, &lp_token_id, 0, &rewards.lp_tokens_amount, &[]);
-        }
-        if rewards.extra_rewards_amount > 0 {
-            self.decrease_balance(self.extra_rewards_balance(), &rewards.extra_rewards_amount);
-
-            let extra_rewards_token_id = self.extra_rewards_token_id().get();
-            let extra_rewards_token_nonce = self.extra_rewards_token_nonce().get();
+        if rewards.amount > 0 {
+            let caller = self.blockchain().get_caller();
             self.send().direct(
                 &caller,
-                &extra_rewards_token_id,
-                extra_rewards_token_nonce,
-                &rewards.extra_rewards_amount,
+                &rewards.token_identifier,
+                rewards.token_nonce,
+                &rewards.amount,
                 &[],
             );
         }
 
-        let total_lp_tokens = self.total_lp_tokens_received().get();
-        let remaining_lp_tokens = self.lp_tokens_claimed().update(|total_claimed| {
-            *total_claimed += &rewards.lp_tokens_amount;
-            &total_lp_tokens - &*total_claimed
-        });
-
+        /*
         self.emit_redeem_event(
             payment_token,
             payment_nonce,
@@ -317,7 +244,8 @@ pub trait PriceDiscovery:
             total_lp_tokens,
             self.extra_rewards_token_id().get(),
             rewards.extra_rewards_amount,
-        )
+        );
+        */
     }
 
     // private
@@ -326,20 +254,30 @@ pub trait PriceDiscovery:
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
-    ) -> RewardsPair<Self::Api> {
-        let total_lp_tokens = self.total_lp_tokens_received().get();
+    ) -> EsdtTokenPayment<Self::Api> {
         let redeem_token_supply = self
             .redeem_token_total_circulating_supply(redeem_token_nonce)
             .get();
 
-        let lp_tokens_amount = &total_lp_tokens * redeem_token_amount / redeem_token_supply / 2u32;
+        // users that deposited accepted tokens get launched tokens, and vice-versa
+        let (token_id, total_token_supply) = match redeem_token_nonce {
+            ACCEPTED_TOKEN_REDEEM_NONCE => (
+                self.launched_token_id().get(),
+                self.launched_token_balance().get(),
+            ),
+            LAUNCHED_TOKEN_REDEEM_NONCE => (
+                self.accepted_token_id().get(),
+                self.accepted_token_balance().get(),
+            ),
+            _ => sc_panic!(INVALID_PAYMENT_ERR_MSG),
+        };
+        let reward_amount = total_token_supply * redeem_token_amount / redeem_token_supply;
 
-        let total_extra_rewards = self.total_extra_rewards_tokens().get();
-        let extra_rewards_amount = &total_extra_rewards * &lp_tokens_amount / total_lp_tokens;
-
-        RewardsPair {
-            lp_tokens_amount,
-            extra_rewards_amount,
+        EsdtTokenPayment {
+            token_type: EsdtTokenType::Fungible,
+            token_identifier: token_id,
+            token_nonce: 0,
+            amount: reward_amount,
         }
     }
 
@@ -401,22 +339,7 @@ pub trait PriceDiscovery:
         mapper.update(|b| *b -= amount);
     }
 
-    fn require_whitelisted(&self, addr: &ManagedAddress) {
-        let whitelist = self.deposit_extra_rewards_whitelist();
-        if !whitelist.is_empty() {
-            require!(whitelist.contains(addr), "Not whitelisted");
-        }
-    }
-
     #[view(getMinLaunchedTokenPrice)]
     #[storage_mapper("minLaunchedTokenPrice")]
     fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getLpTokensClaimed)]
-    #[storage_mapper("lpTokensClaimed")]
-    fn lp_tokens_claimed(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getDepositExtraRewardsWhitelist)]
-    #[storage_mapper("depositExtraRewardsWhitelist")]
-    fn deposit_extra_rewards_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 }
