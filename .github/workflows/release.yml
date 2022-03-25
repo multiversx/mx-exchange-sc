@@ -72,6 +72,6 @@ jobs:
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
 
-          gh release create ${{ github.event.inputs.tag }} --prerelease --title="${{ github.event.inputs.title }}" --generate-notes --notes-file=notes.txt
+          gh release create ${{ github.event.inputs.tag }} --target=$GITHUB_SHA --prerelease --title="${{ github.event.inputs.title }}" --generate-notes --notes-file=notes.txt
           sleep 10
           gh release upload ${{ github.event.inputs.tag }} $(find ./assets -type f)
