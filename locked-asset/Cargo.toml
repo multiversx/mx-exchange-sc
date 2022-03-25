@@ -30,3 +30,6 @@ path = "factory"
 
 [dependencies.proxy_dex]
 path = "proxy_dex"
+
+[dependencies-simple-lock]
+path = "simple-lock"

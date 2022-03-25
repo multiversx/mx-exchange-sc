@@ -1,10 +1,11 @@
-use elrond_wasm_debug::managed_biguint;
+use elrond_wasm_debug::{managed_biguint, managed_token_id};
 use elrond_wasm_debug::{rust_biguint, DebugApi};
 use price_discovery::redeem_token::*;
 use price_discovery::PriceDiscovery;
 use price_discovery::{common_storage::*, MIN_PRICE_PRECISION};
 
 mod tests_common;
+use simple_lock::locked_token::LockedTokenAttributes;
 use tests_common::*;
 
 #[test]
@@ -329,9 +330,7 @@ fn redeem_ok() {
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
-    pd_setup
-        .blockchain_wrapper
-        .set_block_nonce(END_BLOCK + UNBOND_BLOCKS);
+    pd_setup.blockchain_wrapper.set_block_nonce(END_BLOCK + 1);
 
     let first_user_address = pd_setup.first_user_address.clone();
     let first_user_redeem_token_amount = rust_biguint!(600_000_000);
@@ -363,28 +362,47 @@ fn redeem_ok() {
     )
     .assert_ok();
 
+    let _ = DebugApi::dummy();
     let first_user_expected_launched_tokens_balance =
         rust_biguint!(5_000_000_000u64 * 600_000_000 / 1_100_000_000);
-    pd_setup.blockchain_wrapper.check_esdt_balance(
+    pd_setup.blockchain_wrapper.check_nft_balance(
         &first_user_address,
-        LAUNCHED_TOKEN_ID,
+        LOCKED_TOKEN_ID,
+        1,
         &first_user_expected_launched_tokens_balance,
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: UNLOCK_EPOCH,
+        },
     );
 
     let second_user_expected_launched_tokens_balance =
         rust_biguint!(5_000_000_000u64 * 500_000_000 / 1_100_000_000);
-    pd_setup.blockchain_wrapper.check_esdt_balance(
+    pd_setup.blockchain_wrapper.check_nft_balance(
         &second_user_address,
-        LAUNCHED_TOKEN_ID,
+        LOCKED_TOKEN_ID,
+        2,
         &second_user_expected_launched_tokens_balance,
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: UNLOCK_EPOCH,
+        },
     );
 
     let owner_expected_accepted_tokens_balance =
         rust_biguint!(1_100_000_000u64 * 5_000_000_000 / 5_000_000_000);
-    pd_setup.blockchain_wrapper.check_esdt_balance(
+    pd_setup.blockchain_wrapper.check_nft_balance(
         &owner_address,
-        ACCEPTED_TOKEN_ID,
+        LOCKED_TOKEN_ID,
+        3,
         &owner_expected_accepted_tokens_balance,
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(ACCEPTED_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: UNLOCK_EPOCH,
+        },
     );
 }
 
@@ -394,9 +412,7 @@ fn redeem_too_early() {
     user_deposit_ok_steps(&mut pd_setup);
     withdraw_ok_steps(&mut pd_setup, 0);
 
-    pd_setup
-        .blockchain_wrapper
-        .set_block_nonce(END_BLOCK + UNBOND_BLOCKS - 1);
+    pd_setup.blockchain_wrapper.set_block_nonce(END_BLOCK - 1);
 
     let first_user_address = pd_setup.first_user_address.clone();
     let first_user_redeem_token_amount = rust_biguint!(600_000_000);
@@ -406,5 +422,5 @@ fn redeem_too_early() {
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &first_user_redeem_token_amount,
     )
-    .assert_user_error("Unbond period not finished yet");
+    .assert_user_error("Redeem not allowed in this phase");
 }

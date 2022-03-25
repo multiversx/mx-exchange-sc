@@ -9,6 +9,7 @@ elrond_wasm::imports!();
 
 pub mod common_storage;
 pub mod events;
+pub mod locking_module;
 pub mod phase;
 pub mod redeem_token;
 
@@ -20,6 +21,7 @@ pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + events::EventsModule
+    + locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
 {
@@ -34,10 +36,11 @@ pub trait PriceDiscovery:
         no_limit_phase_duration_blocks: u64,
         linear_penalty_phase_duration_blocks: u64,
         fixed_penalty_phase_duration_blocks: u64,
-        unbond_period_blocks: u64,
+        unlock_epoch: u64,
         penalty_min_percentage: BigUint,
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
+        locking_sc_address: ManagedAddress,
     ) {
         /* Disabled until the validate token ID function is activated
 
@@ -84,12 +87,19 @@ pub trait PriceDiscovery:
             "Fixed percentage higher than 100%"
         );
 
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            unlock_epoch > current_epoch,
+            "Unlock epoch cannot be in the past"
+        );
+
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
         self.min_launched_token_price()
             .set(&min_launched_token_price);
         self.start_block().set(&start_block);
         self.end_block().set(&end_block);
+        self.unlock_epoch().set(&unlock_epoch);
 
         self.no_limit_phase_duration_blocks()
             .set(&no_limit_phase_duration_blocks);
@@ -97,11 +107,12 @@ pub trait PriceDiscovery:
             .set(&linear_penalty_phase_duration_blocks);
         self.fixed_penalty_phase_duration_blocks()
             .set(&fixed_penalty_phase_duration_blocks);
-        self.unbond_period_blocks().set(&unbond_period_blocks);
         self.penalty_min_percentage().set(&penalty_min_percentage);
         self.penalty_max_percentage().set(&penalty_max_percentage);
         self.fixed_penalty_percentage()
             .set(&fixed_penalty_percentage);
+
+        self.set_locking_sc_address(locking_sc_address);
     }
 
     /// Users can deposit either launched_token or accepted_token.
@@ -206,10 +217,13 @@ pub trait PriceDiscovery:
         );
     }
 
-    /// After the unbond period has ended,
+    /// After all phases have ended,
     /// users can withdraw their fair share of either accepted or launched tokens,
     /// depending on which token they deposited initially.
-    /// Users that deposited accepted tokens receives launched tokens and vice-versa.
+    /// Users that deposited accepted tokens will receive Locked launched tokens.
+    /// Users that deposited launched tokens will receive Locked accepted tokens.
+    /// The users can unlock said tokens at the configured unlock_epoch,
+    /// through the SC at locking_sc_address
     #[payable("*")]
     #[endpoint]
     fn redeem(&self) {
@@ -225,12 +239,10 @@ pub trait PriceDiscovery:
 
         if bought_tokens.amount > 0 {
             let caller = self.blockchain().get_caller();
-            self.send().direct(
-                &caller,
-                &bought_tokens.token_identifier,
-                0,
-                &bought_tokens.amount,
-                &[],
+            self.lock_tokens_and_forward(
+                caller,
+                bought_tokens.token_identifier.clone(),
+                bought_tokens.amount.clone(),
             );
         }
 
