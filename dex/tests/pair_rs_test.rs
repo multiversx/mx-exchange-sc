@@ -11,11 +11,15 @@ const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
 const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
 
+const LKWEGLD_TOKEN_ID: &[u8] = b"LKWEGLD-abcdef";
+
 const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 use pair::bot_protection::*;
 use pair::config::*;
+use pair::errors::*;
+use pair::locked_asset::*;
 use pair::safe_price::*;
 use pair::*;
 
@@ -848,4 +852,100 @@ fn test_swap_protect() {
         1,
         331_672,
     );
+}
+
+#[test]
+fn test_locked_asset() {
+    let mut pair_setup = setup_pair(pair::contract_obj);
+
+    add_liquidity(
+        &mut pair_setup,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        1_000_000,
+        1_001_000,
+        1_001_000,
+    );
+
+    let roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
+    pair_setup.blockchain_wrapper.set_esdt_local_roles(
+        pair_setup.pair_wrapper.address_ref(),
+        LKWEGLD_TOKEN_ID,
+        &roles[..],
+    );
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(
+            &pair_setup.owner_address,
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.set_locked_asset_token_id_first(managed_token_id!(LKWEGLD_TOKEN_ID));
+                sc.set_locked_asset_generate_epoch_limit(10);
+                sc.set_locking_period_in_epochs(10);
+            },
+        )
+        .assert_ok();
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(1_000),
+            |sc| {
+                let ret = sc.swap_tokens_fixed_input(
+                    managed_token_id!(MEX_TOKEN_ID),
+                    0,
+                    managed_biguint!(1_000),
+                    managed_token_id!(WEGLD_TOKEN_ID),
+                    managed_biguint!(10),
+                    OptionalValue::None,
+                );
+
+                assert_eq!(ret.token_identifier, managed_token_id!(LKWEGLD_TOKEN_ID));
+                assert_eq!(ret.token_nonce, 1);
+                assert_eq!(ret.amount, managed_biguint!(1));
+            },
+        )
+        .assert_ok();
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &LKWEGLD_TOKEN_ID,
+            1,
+            &rust_biguint!(1),
+            |sc| {
+                let _ = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
+            },
+        )
+        .assert_user_error(&String::from_utf8(ERROR_UNLOCK_CALLED_TOO_EARLY.to_vec()).unwrap());
+
+    pair_setup.blockchain_wrapper.set_block_epoch(20);
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &pair_setup.pair_wrapper,
+            &LKWEGLD_TOKEN_ID,
+            1,
+            &rust_biguint!(1),
+            |sc| {
+                let ret = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
+
+                assert_eq!(ret.token_identifier, managed_token_id!(WEGLD_TOKEN_ID));
+                assert_eq!(ret.token_nonce, 0);
+                assert_eq!(ret.amount, managed_biguint!(996));
+            },
+        )
+        .assert_ok();
 }
