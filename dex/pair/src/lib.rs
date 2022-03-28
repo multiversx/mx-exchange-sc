@@ -11,17 +11,18 @@ mod amm;
 pub mod bot_protection;
 pub mod config;
 mod contexts;
-mod errors;
+pub mod ctx_helper;
+pub mod errors;
 mod events;
 pub mod fee;
 mod liquidity_pool;
+pub mod locked_asset;
 pub mod safe_price;
 
 use crate::errors::*;
 
 use config::State;
 use contexts::base::*;
-use contexts::ctx_helper;
 use contexts::swap::SwapContext;
 
 pub type AddLiquidityResultType<BigUint> =
@@ -46,6 +47,7 @@ pub trait Pair<ContractReader>:
     + ctx_helper::CtxHelper
     + safe_price::SafePriceModule
     + bot_protection::BPModule
+    + locked_asset::LockedAsset
 {
     #[init]
     fn init(
