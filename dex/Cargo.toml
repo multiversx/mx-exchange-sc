@@ -22,6 +22,9 @@ path = "../common/modules/farm/rewards"
 [dev-dependencies.migration_from_v1_2]
 path = "../common/modules/farm/migration_from_v1_2"
 
+[dev-dependencies.locking_module]
+path = "../common/modules/locking_module"
+
 [dev-dependencies.common_structs]
 path = "../common/common_structs"
 
@@ -39,6 +42,9 @@ path = "farm_with_lock"
 
 [dev-dependencies.factory]
 path = "../locked-asset/factory"
+
+[dev-dependencies.simple-lock]
+path = "../locked-asset/simple-lock"
 
 [dev-dependencies.pair]
 path = "pair"
