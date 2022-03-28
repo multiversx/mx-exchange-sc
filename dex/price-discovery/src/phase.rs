@@ -7,7 +7,6 @@ pub enum Phase<M: ManagedTypeApi> {
     NoPenalty,
     LinearIncreasingPenalty { penalty_percentage: BigUint<M> },
     OnlyWithdrawFixedPenalty { penalty_percentage: BigUint<M> },
-    Unbond,
     Redeem,
 }
 
@@ -72,14 +71,6 @@ pub trait PhaseModule:
             };
         }
 
-        let end_block = self.end_block().get();
-        let unbond_period_blocks = self.unbond_period_blocks().get();
-        let redeem_block = end_block + unbond_period_blocks;
-
-        if current_block < redeem_block {
-            return Phase::Unbond;
-        }
-
         Phase::Redeem
     }
 
@@ -89,7 +80,6 @@ pub trait PhaseModule:
             | Phase::OnlyWithdrawFixedPenalty {
                 penalty_percentage: _,
             }
-            | Phase::Unbond
             | Phase::Redeem => {
                 sc_panic!("Deposit not allowed in this phase")
             }
@@ -99,24 +89,15 @@ pub trait PhaseModule:
 
     fn require_withdraw_allowed(&self, phase: &Phase<Self::Api>) {
         match phase {
-            Phase::Idle | Phase::Unbond | Phase::Redeem => {
+            Phase::Idle | Phase::Redeem => {
                 sc_panic!("Withdraw not allowed in this phase")
             }
             _ => {}
         };
     }
 
-    fn require_deposit_extra_rewards_allowed(&self, phase: &Phase<Self::Api>) {
-        match phase {
-            Phase::Unbond | Phase::Redeem => {
-                sc_panic!("Deposit extra rewards not allowed in this phase")
-            }
-            _ => {}
-        };
-    }
-
     fn require_redeem_allowed(&self, phase: &Phase<Self::Api>) {
-        require!(phase == &Phase::Redeem, "Unbond period not finished yet");
+        require!(phase == &Phase::Redeem, "Redeem not allowed in this phase");
     }
 
     #[view(getNoLimitPhaseDurationBlocks)]
@@ -142,8 +123,4 @@ pub trait PhaseModule:
     #[view(getFixedPenaltyPercentage)]
     #[storage_mapper("fixedPenaltyPercentage")]
     fn fixed_penalty_percentage(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getUnbondPeriodBlocks)]
-    #[storage_mapper("unbondPeriodBlocks")]
-    fn unbond_period_blocks(&self) -> SingleValueMapper<u64>;
 }

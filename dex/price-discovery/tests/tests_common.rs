@@ -1,16 +1,21 @@
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxResult;
-use elrond_wasm_debug::{managed_biguint, testing_framework::*};
+use elrond_wasm_debug::{managed_address, managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 
 use price_discovery::redeem_token::*;
 use price_discovery::*;
+
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
+use simple_lock::locked_token::LockedTokenModule;
+use simple_lock::SimpleLock;
 
 const PD_WASM_PATH: &'static str = "../output/price-discovery.wasm";
 
 pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
 pub const REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
+pub const LOCKED_TOKEN_ID: &[u8] = b"NOOO0-123456";
 pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
 
 pub const START_BLOCK: u64 = 10;
@@ -21,7 +26,7 @@ pub const END_BLOCK: u64 = START_BLOCK
     + NO_LIMIT_PHASE_DURATION_BLOCKS
     + LINEAR_PENALTY_PHASE_DURATION_BLOCKS
     + FIXED_PENALTY_PHASE_DURATION_BLOCKS;
-pub const UNBOND_BLOCKS: u64 = 20;
+pub const UNLOCK_EPOCH: u64 = 20;
 
 pub const MIN_PENALTY_PERCENTAGE: u64 = 1_000_000_000_000; // 10%
 pub const MAX_PENALTY_PERCENTAGE: u64 = 5_000_000_000_000; // 50%
@@ -36,6 +41,7 @@ where
     pub first_user_address: Address,
     pub second_user_address: Address,
     pub pd_wrapper: ContractObjWrapper<price_discovery::ContractObj<DebugApi>, PriceDiscObjBuilder>,
+    pub locking_sc_address: Address,
 }
 
 pub fn init<PriceDiscObjBuilder>(
@@ -103,6 +109,32 @@ where
 
     blockchain_wrapper.set_block_nonce(START_BLOCK - 1);
 
+    // init locking SC
+    let locking_sc_wrapper = blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(&owner_address),
+        simple_lock::contract_obj,
+        "Some path",
+    );
+
+    blockchain_wrapper
+        .execute_tx(&owner_address, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+        })
+        .assert_ok();
+
+    blockchain_wrapper.set_esdt_local_roles(
+        locking_sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
     // init Price Discovery SC
     blockchain_wrapper
         .execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
@@ -114,10 +146,11 @@ where
                 NO_LIMIT_PHASE_DURATION_BLOCKS,
                 LINEAR_PENALTY_PHASE_DURATION_BLOCKS,
                 FIXED_PENALTY_PHASE_DURATION_BLOCKS,
-                UNBOND_BLOCKS,
+                UNLOCK_EPOCH,
                 managed_biguint!(MIN_PENALTY_PERCENTAGE),
                 managed_biguint!(MAX_PENALTY_PERCENTAGE),
                 managed_biguint!(FIXED_PENALTY_PERCENTAGE),
+                managed_address!(locking_sc_wrapper.address_ref()),
             );
 
             sc.redeem_token_id()
@@ -131,6 +164,7 @@ where
         first_user_address,
         second_user_address,
         pd_wrapper,
+        locking_sc_address: locking_sc_wrapper.address_ref().clone(),
     }
 }
 
