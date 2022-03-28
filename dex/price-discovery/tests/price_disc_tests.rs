@@ -1,12 +1,14 @@
 use elrond_wasm_debug::{managed_biguint, managed_token_id};
 use elrond_wasm_debug::{rust_biguint, DebugApi};
+use price_discovery::common_storage::*;
 use price_discovery::redeem_token::*;
 use price_discovery::PriceDiscovery;
-use price_discovery::{common_storage::*, MIN_PRICE_PRECISION};
 
 mod tests_common;
 use simple_lock::locked_token::LockedTokenAttributes;
 use tests_common::*;
+
+const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
 
 #[test]
 fn test_init() {
