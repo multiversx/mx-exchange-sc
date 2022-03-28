@@ -20,6 +20,7 @@ use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use locking_module::*;
 use pair::bot_protection::*;
 use pair::config::*;
+use pair::locking_wrapper::LockingWrapperModule;
 use pair::safe_price::*;
 use pair::*;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
@@ -902,6 +903,8 @@ fn test_locked_asset() {
         ],
     );
 
+    pair_setup.blockchain_wrapper.set_block_epoch(4);
+
     pair_setup
         .blockchain_wrapper
         .execute_tx(
@@ -910,6 +913,7 @@ fn test_locked_asset() {
             &rust_biguint!(0),
             |sc| {
                 sc.set_locking_sc_address(managed_address!(locking_sc_wrapper.address_ref()));
+                sc.set_locking_deadline_epoch(5);
                 sc.set_unlock_epoch(10);
             },
         )
