@@ -16,14 +16,12 @@ use crate::contexts::swap::SwapContext;
 use crate::contexts::swap::SwapPayments;
 use crate::contexts::swap::SwapTxInput;
 
-use crate::locked_asset;
-
 #[elrond_wasm::module]
 pub trait CtxHelper:
     crate::config::ConfigModule
     + token_send::TokenSendModule
     + crate::amm::AmmModule
-    + locked_asset::LockedAsset
+    + locking_module::LockingModule
 {
     fn new_add_liquidity_context(
         &self,
@@ -176,8 +174,10 @@ pub trait CtxHelper:
     fn construct_swap_output_payments(&self, context: &mut SwapContext<Self::Api>) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
-        if self.should_generate_locked_asset(context) {
-            let locked_asset = self.generate_locked_asset(context);
+        if self.should_generate_locked_asset() {
+            let token_out = context.get_token_out().clone();
+            let amount_out = context.get_final_output_amount().clone();
+            let locked_asset = self.lock_tokens(token_out, amount_out);
 
             context.set_locked_asset_output(locked_asset.clone());
 
@@ -199,6 +199,13 @@ pub trait CtxHelper:
         }
 
         context.set_output_payments(payments);
+    }
+
+    fn should_generate_locked_asset(&self) -> bool {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let unlock_epoch = self.unlock_epoch().get();
+
+        current_epoch < unlock_epoch
     }
 
     fn execute_output_payments(&self, context: &dyn Context<Self::Api>) {

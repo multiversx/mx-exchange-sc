@@ -21,10 +21,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFeeState
         getFirstTokenId
         getInitialLiquidtyAdder
-        getLockedAssetGenerateEpochLimit
-        getLockedAssetTokenIdFirst
-        getLockedAssetTokenIdSecond
-        getLockingPeriodInEpochs
+        getLockingScAddress
         getLpTokenIdentifier
         getNumAddsByAddress
         getNumRemovesByAddress
@@ -41,6 +38,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalSupply
         getTransferExecGasLimit
         getTrustedSwapPairs
+        getUnlockEpoch
         getWhitelistedManagedAddresses
         pause
         removeLiquidity
@@ -53,19 +51,16 @@ elrond_wasm_node::wasm_endpoints! {
         setBPSwapConfig
         setFeeOn
         setFeePercents
-        setLockedAssetGenerateEpochLimit
-        setLockedAssetTokenIdFirst
-        setLockedAssetTokenIdSecond
-        setLockingPeriodInEpochs
+        setLockingScAddress
         setLpTokenIdentifier
         setMaxObservationsPerRecord
         setStateActiveNoSwaps
+        setUnlockEpoch
         set_extern_swap_gas_limit
         set_transfer_exec_gas_limit
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput
-        unlockAssets
         updateAndGetSafePrice
         updateAndGetTokensForGivenPositionWithSafePrice
         whitelist

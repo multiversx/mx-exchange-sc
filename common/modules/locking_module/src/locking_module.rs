@@ -1,7 +1,9 @@
+#![no_std]
+
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
-pub trait LockingModule: crate::common_storage::CommonStorageModule {
+pub trait LockingModule {
     #[only_owner]
     #[endpoint(setLockingScAddress)]
     fn set_locking_sc_address(&self, new_address: ManagedAddress) {
@@ -13,19 +15,44 @@ pub trait LockingModule: crate::common_storage::CommonStorageModule {
         self.locking_sc_address().set(&new_address);
     }
 
+    #[only_owner]
+    #[endpoint(setUnlockEpoch)]
+    fn set_unlock_epoch(&self, new_epoch: u64) {
+        self.unlock_epoch().set(&new_epoch);
+    }
+
+    #[inline]
+    fn lock_tokens(
+        &self,
+        token_id: TokenIdentifier,
+        amount: BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
+        self.lock_common(OptionalValue::None, token_id, amount)
+    }
+
+    #[inline]
     fn lock_tokens_and_forward(
         &self,
         to: ManagedAddress,
         token_id: TokenIdentifier,
         amount: BigUint,
-    ) {
+    ) -> EsdtTokenPayment<Self::Api> {
+        self.lock_common(OptionalValue::Some(to), token_id, amount)
+    }
+
+    fn lock_common(
+        &self,
+        opt_dest: OptionalValue<ManagedAddress>,
+        token_id: TokenIdentifier,
+        amount: BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
         let unlock_epoch = self.unlock_epoch().get();
         let proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
-            .lock_tokens(unlock_epoch, OptionalValue::Some(to))
+            .lock_tokens(unlock_epoch, opt_dest)
             .add_token_transfer(token_id, 0, amount)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn get_locking_sc_proxy_instance(&self) -> simple_lock::Proxy<Self::Api> {

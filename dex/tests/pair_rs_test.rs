@@ -16,12 +16,14 @@ const LKWEGLD_TOKEN_ID: &[u8] = b"LKWEGLD-abcdef";
 const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
+use locking_module::*;
 use pair::bot_protection::*;
 use pair::config::*;
-use pair::errors::*;
-use pair::locked_asset::*;
 use pair::safe_price::*;
 use pair::*;
+use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
+use simple_lock::SimpleLock;
 
 #[allow(dead_code)]
 struct PairSetup<PairObjBuilder>
@@ -869,11 +871,35 @@ fn test_locked_asset() {
         1_001_000,
     );
 
-    let roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
+    // init locking SC
+    let rust_zero = rust_biguint!(0);
+    let locking_owner = pair_setup
+        .blockchain_wrapper
+        .create_user_account(&rust_zero);
+    let locking_sc_wrapper = pair_setup.blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(&locking_owner),
+        simple_lock::contract_obj,
+        "Some path",
+    );
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(&managed_token_id!(LKWEGLD_TOKEN_ID));
+        })
+        .assert_ok();
+
     pair_setup.blockchain_wrapper.set_esdt_local_roles(
-        pair_setup.pair_wrapper.address_ref(),
+        locking_sc_wrapper.address_ref(),
         LKWEGLD_TOKEN_ID,
-        &roles[..],
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
     );
 
     pair_setup
@@ -883,9 +909,8 @@ fn test_locked_asset() {
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_locked_asset_token_id_first(managed_token_id!(LKWEGLD_TOKEN_ID));
-                sc.set_locked_asset_generate_epoch_limit(10);
-                sc.set_locking_period_in_epochs(10);
+                sc.set_locking_sc_address(managed_address!(locking_sc_wrapper.address_ref()));
+                sc.set_unlock_epoch(10);
             },
         )
         .assert_ok();
@@ -910,42 +935,63 @@ fn test_locked_asset() {
 
                 assert_eq!(ret.token_identifier, managed_token_id!(LKWEGLD_TOKEN_ID));
                 assert_eq!(ret.token_nonce, 1);
-                assert_eq!(ret.amount, managed_biguint!(1));
+                assert_eq!(ret.amount, managed_biguint!(996));
             },
         )
         .assert_ok();
 
+    let _ = DebugApi::dummy();
+    pair_setup.blockchain_wrapper.check_nft_balance(
+        &pair_setup.user_address,
+        LKWEGLD_TOKEN_ID,
+        1,
+        &rust_biguint!(996),
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 10,
+        },
+    );
+
+    let user_wegld_balance_before =
+        pair_setup
+            .blockchain_wrapper
+            .get_esdt_balance(&pair_setup.user_address, WEGLD_TOKEN_ID, 0);
+
+    // try unlock too early
     pair_setup
         .blockchain_wrapper
         .execute_esdt_transfer(
             &pair_setup.user_address,
-            &pair_setup.pair_wrapper,
-            &LKWEGLD_TOKEN_ID,
+            &locking_sc_wrapper,
+            LKWEGLD_TOKEN_ID,
             1,
-            &rust_biguint!(1),
+            &rust_biguint!(996),
             |sc| {
-                let _ = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
+                sc.unlock_tokens(OptionalValue::None);
             },
         )
-        .assert_user_error(&String::from_utf8(ERROR_UNLOCK_CALLED_TOO_EARLY.to_vec()).unwrap());
+        .assert_user_error("Cannot unlock yet");
 
+    // unlock ok
     pair_setup.blockchain_wrapper.set_block_epoch(20);
 
     pair_setup
         .blockchain_wrapper
         .execute_esdt_transfer(
             &pair_setup.user_address,
-            &pair_setup.pair_wrapper,
-            &LKWEGLD_TOKEN_ID,
+            &locking_sc_wrapper,
+            LKWEGLD_TOKEN_ID,
             1,
-            &rust_biguint!(1),
+            &rust_biguint!(996),
             |sc| {
-                let ret = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
-
-                assert_eq!(ret.token_identifier, managed_token_id!(WEGLD_TOKEN_ID));
-                assert_eq!(ret.token_nonce, 0);
-                assert_eq!(ret.amount, managed_biguint!(996));
+                sc.unlock_tokens(OptionalValue::None);
             },
         )
         .assert_ok();
+    pair_setup.blockchain_wrapper.check_esdt_balance(
+        &pair_setup.user_address,
+        WEGLD_TOKEN_ID,
+        &(user_wegld_balance_before + rust_biguint!(996)),
+    );
 }

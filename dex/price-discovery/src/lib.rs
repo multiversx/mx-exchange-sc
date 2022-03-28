@@ -9,7 +9,6 @@ elrond_wasm::imports!();
 
 pub mod common_storage;
 pub mod events;
-pub mod locking_module;
 pub mod phase;
 pub mod redeem_token;
 
@@ -247,7 +246,7 @@ pub trait PriceDiscovery:
 
         if bought_tokens.amount > 0 {
             let caller = self.blockchain().get_caller();
-            self.lock_tokens_and_forward(
+            let _ = self.lock_tokens_and_forward(
                 caller,
                 bought_tokens.token_identifier.clone(),
                 bought_tokens.amount.clone(),

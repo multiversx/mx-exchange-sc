@@ -16,7 +16,6 @@ pub mod errors;
 mod events;
 pub mod fee;
 mod liquidity_pool;
-pub mod locked_asset;
 pub mod safe_price;
 
 use crate::errors::*;
@@ -47,7 +46,7 @@ pub trait Pair<ContractReader>:
     + ctx_helper::CtxHelper
     + safe_price::SafePriceModule
     + bot_protection::BPModule
-    + locked_asset::LockedAsset
+    + locking_module::LockingModule
 {
     #[init]
     fn init(

@@ -8,8 +8,14 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dependencies.token_send]
 path = "../../common/modules/token_send"
+
+[dependencies.locking_module]
+path = "../../common/modules/locking_module"
 
 [dependencies.itertools]
 version = "0.10.1"
@@ -18,8 +24,8 @@ default-features = false
 [dependencies.elrond-wasm]
 version = "0.29"
 
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "0.29"
-
-[dependencies.common_structs]
-path = "../../common/common_structs"
