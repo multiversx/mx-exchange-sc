@@ -15,7 +15,7 @@ pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 const BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
-pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
+const MAX_TOKEN_DECIMALS: u32 = 18;
 
 #[elrond_wasm::contract]
 pub trait PriceDiscovery:
@@ -31,6 +31,7 @@ pub trait PriceDiscovery:
         &self,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
+        launched_token_decimals: u32,
         min_launched_token_price: BigUint,
         start_block: u64,
         no_limit_phase_duration_blocks: u64,
@@ -61,6 +62,10 @@ pub trait PriceDiscovery:
         require!(
             launched_token_id != accepted_token_id,
             "Launched and accepted token must be different"
+        );
+        require!(
+            launched_token_decimals <= MAX_TOKEN_DECIMALS,
+            "Launched token has too many decimals"
         );
 
         let current_block = self.blockchain().get_block_nonce();
@@ -95,11 +100,14 @@ pub trait PriceDiscovery:
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
-        self.min_launched_token_price()
-            .set(&min_launched_token_price);
         self.start_block().set(&start_block);
         self.end_block().set(&end_block);
         self.unlock_epoch().set(&unlock_epoch);
+
+        let price_precision = 10u64.pow(launched_token_decimals);
+        self.price_precision().set(&price_precision);
+        self.min_launched_token_price()
+            .set(&min_launched_token_price);
 
         self.no_limit_phase_duration_blocks()
             .set(&no_limit_phase_duration_blocks);
@@ -335,7 +343,8 @@ pub trait PriceDiscovery:
             return BigUint::zero();
         }
 
-        accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance
+        let price_precision = self.price_precision().get();
+        accepted_token_balance * price_precision / launched_token_balance
     }
 
     fn increase_balance(&self, mapper: SingleValueMapper<BigUint>, amount: &BigUint) {
@@ -349,4 +358,8 @@ pub trait PriceDiscovery:
     #[view(getMinLaunchedTokenPrice)]
     #[storage_mapper("minLaunchedTokenPrice")]
     fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getPricePrecision)]
+    #[storage_mapper("pricePrecision")]
+    fn price_precision(&self) -> SingleValueMapper<u64>;
 }

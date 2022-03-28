@@ -141,6 +141,7 @@ where
             sc.init(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
                 managed_token_id!(ACCEPTED_TOKEN_ID),
+                18,
                 managed_biguint!(0),
                 START_BLOCK,
                 NO_LIMIT_PHASE_DURATION_BLOCKS,
