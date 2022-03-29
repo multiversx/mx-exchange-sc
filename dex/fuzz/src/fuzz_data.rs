@@ -6,6 +6,7 @@ pub mod fuzz_data_tests {
     use std::cell::Cell;
 
     use ::config::ConfigModule;
+    use common_structs::UnlockMilestone;
     use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
 
     use elrond_wasm_debug::{
@@ -15,14 +16,25 @@ pub mod fuzz_data_tests {
 
     type RustBigUint = num_bigint::BigUint;
 
+    use factory::locked_asset::LockedAssetModule;
+    use factory::*;
     use farm::*;
     use pair::*;
+    use pair_mock::*;
+    use price_discovery::create_pool::*;
+    use price_discovery::redeem_token::*;
+    use price_discovery::*;
+
     use rand::prelude::StdRng;
     use rand::SeedableRng;
 
     pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
     pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
+    pub const FACTORY_WASM_PATH: &'static str = "factory/output/factory.wasm";
+    pub const PD_WASM_PATH: &'static str = "../output/price-discovery.wasm";
+    pub const DEX_MOCK_WASM_PATH: &'static str = "../../pair-mock/output/pair_mock.wasm";
 
+    pub const EGLD_TOKEN_ID: &[u8] = b"EGLD";
     pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
     pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
     pub const BUSD_TOKEN_ID: &[u8] = b"BUSD-abcdef";
@@ -31,15 +43,41 @@ pub mod fuzz_data_tests {
     pub const WEME_FARM_TOKEN_ID: &[u8] = b"WEMEFARM-abcdef";
     pub const WEBU_FARM_TOKEN_ID: &[u8] = b"WEBUFARM-abcdef";
     pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEXFARM-abcdef";
-    pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
+    pub const LOCKED_MEX_TOKEN_ID: &[u8] = b"LKMEX-abcdef";
+    pub const FACTORY_LOCK_NONCE: u64 = 1;
     pub const MIN_FARMING_EPOCHS: u8 = 2;
-    pub const PENALTY_PERCENT: u64 = 10;
-    pub const USER_TOTAL_EGLD_TOKENS: u64 = 1_000_000;
+    pub const FARM_PENALTY_PERCENT: u64 = 10;
+    pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
     pub const USER_TOTAL_MEX_TOKENS: u64 = 100_000_000_000;
     pub const USER_TOTAL_WEGLD_TOKENS: u64 = 100_000_000_000;
     pub const USER_TOTAL_BUSD_TOKENS: u64 = 100_000_000_000;
+    pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
+
+    // Price discovery constants
+    pub const DISC_LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
+    pub const DISC_ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
+    pub const DISC_REDEEM_TOKEN_ID: &[u8] = b"GIBREWARDS-123456";
+    pub const DISC_LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
+    pub const DISC_LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
+    pub const DISC_ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
+    pub const USER_TOTAL_DISC_TOKENS: u64 = 1_000_000_000;
+    pub const DISC_LAUNCHED_TOKENS: u64 = 5_000_000_000;
+    pub const DISC_USER_LAUNCH_TOKENS: u64 = 100_000_000;
+    pub const DISC_LP_TOKENS: u64 = 500_000_000_000;
     pub const TOTAL_FEE_PERCENT: u64 = 300;
     pub const SPECIAL_FEE_PERCENT: u64 = 50;
+    pub const MIN_PENALTY_PERCENTAGE: u64 = 1_000_000_000_000; // 10%
+    pub const MAX_PENALTY_PERCENTAGE: u64 = 5_000_000_000_000; // 50%
+    pub const FIXED_PENALTY_PERCENTAGE: u64 = 2_500_000_000_000; // 25%
+    pub const START_BLOCK: u64 = 1;
+    pub const NO_LIMIT_PHASE_DURATION_BLOCKS: u64 = 150;
+    pub const LINEAR_PENALTY_PHASE_DURATION_BLOCKS: u64 = 50;
+    pub const FIXED_PENALTY_PHASE_DURATION_BLOCKS: u64 = 25;
+    pub const END_BLOCK: u64 = START_BLOCK
+        + NO_LIMIT_PHASE_DURATION_BLOCKS
+        + LINEAR_PENALTY_PHASE_DURATION_BLOCKS
+        + FIXED_PENALTY_PHASE_DURATION_BLOCKS;
+    pub const UNBOND_EPOCHS: u64 = 3;
 
     #[derive(Clone, TopEncode)]
     pub struct FuzzDexExecutorInitArgs {
@@ -48,12 +86,15 @@ pub mod fuzz_data_tests {
         pub remove_liquidity_prob: u64,
         pub add_liquidity_prob: u64,
         pub swap_prob: u64,
-        pub query_pairs_prob: u64,
         pub enter_farm_prob: u64,
         pub exit_farm_prob: u64,
         pub claim_rewards_prob: u64,
         pub compound_rewards_prob: u64,
-        pub increase_block_nonce_prob: u64,
+        pub factory_lock_asset_prob: u64,
+        pub factory_unlock_asset_prob: u64,
+        pub price_discovery_deposit_prob: u64,
+        pub price_discovery_withdraw_prob: u64,
+        pub price_discovery_redeem_prob: u64,
         pub block_nonce_increase: u64,
         pub compound_rewards_max_value: u64,
         pub token_deposit_max_value: u64,
@@ -63,6 +104,11 @@ pub mod fuzz_data_tests {
         pub enter_farm_max_value: u64,
         pub exit_farm_max_value: u64,
         pub claim_rewards_max_value: u64,
+        pub factory_lock_asset_max_value: u64,
+        pub factory_unlock_asset_max_value: u64,
+        pub price_discovery_deposit_max_value: u64,
+        pub price_discovery_withdraw_max_value: u64,
+        pub price_discovery_redeem_max_value: u64,
     }
 
     impl FuzzDexExecutorInitArgs {
@@ -70,15 +116,18 @@ pub mod fuzz_data_tests {
             FuzzDexExecutorInitArgs {
                 num_users: 5,
                 num_events: 500,
-                remove_liquidity_prob: 5,
+                remove_liquidity_prob: 10,
                 add_liquidity_prob: 20,
                 swap_prob: 25,
-                query_pairs_prob: 5,
-                enter_farm_prob: 18,
-                exit_farm_prob: 6,
-                claim_rewards_prob: 20,
+                enter_farm_prob: 20,
+                exit_farm_prob: 10,
+                claim_rewards_prob: 15,
                 compound_rewards_prob: 10,
-                increase_block_nonce_prob: 100,
+                factory_lock_asset_prob: 10,
+                factory_unlock_asset_prob: 10,
+                price_discovery_deposit_prob: 30,
+                price_discovery_withdraw_prob: 15,
+                price_discovery_redeem_prob: 30,
                 block_nonce_increase: 1,
                 compound_rewards_max_value: 1000000u64,
                 token_deposit_max_value: 50000000u64,
@@ -88,32 +137,65 @@ pub mod fuzz_data_tests {
                 enter_farm_max_value: 100000000u64,
                 exit_farm_max_value: 1000000u64,
                 claim_rewards_max_value: 1000000u64,
+                factory_lock_asset_max_value: 1000000u64,
+                factory_unlock_asset_max_value: 100000u64,
+                price_discovery_deposit_max_value: 1000000u64,
+                price_discovery_withdraw_max_value: 1000000u64,
+                price_discovery_redeem_max_value: 1000000u64,
             }
         }
     }
 
-    pub struct FuzzerData<PairObjBuilder, FarmObjBuilder>
+    pub struct FuzzerData<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >
     where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         pub rng: StdRng,
         pub owner_address: Address,
         pub fuzz_args: FuzzDexExecutorInitArgs,
         pub statistics: EventsStatistics,
         pub blockchain_wrapper: BlockchainStateWrapper,
-        pub users: Vec<Address>,
+        pub users: Vec<User>,
         pub swap_pairs: Vec<PairSetup<PairObjBuilder>>,
         pub farms: Vec<FarmSetup<FarmObjBuilder>>,
+        pub factory: FactorySetup<FactoryObjBuilder>,
+        pub price_disc: PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>,
     }
 
-    impl<PairObjBuilder, FarmObjBuilder> FuzzerData<PairObjBuilder, FarmObjBuilder>
+    impl<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, DexObjBuilder, PriceDiscObjBuilder>
+        FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >
     where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
-        pub fn new(seed: u64, pair_builder: PairObjBuilder, farm_builder: FarmObjBuilder) -> Self {
-            let egld_amount = rust_biguint!(USER_TOTAL_EGLD_TOKENS);
+        pub fn new(
+            seed: u64,
+            pair_builder: PairObjBuilder,
+            farm_builder: FarmObjBuilder,
+            factory_builder: FactoryObjBuilder,
+            pair_mock: DexObjBuilder,
+            price_discovery: PriceDiscObjBuilder,
+        ) -> Self {
+            let egld_amount = rust_biguint!(OWNER_EGLD_BALANCE);
 
             let rng = StdRng::seed_from_u64(seed);
             let fuzz_args = FuzzDexExecutorInitArgs::new();
@@ -123,23 +205,47 @@ pub mod fuzz_data_tests {
 
             let mut users = vec![];
 
-            for _i in 1..=fuzz_args.num_users {
-                let user = blockchain_wrapper.create_user_account(&egld_amount);
+            for i in 1..=fuzz_args.num_users {
+                let user_address = blockchain_wrapper.create_user_account(&egld_amount);
                 blockchain_wrapper.set_esdt_balance(
-                    &user,
+                    &user_address,
                     WEGLD_TOKEN_ID,
                     &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
                 );
                 blockchain_wrapper.set_esdt_balance(
-                    &user,
+                    &user_address,
                     MEX_TOKEN_ID,
                     &rust_biguint!(USER_TOTAL_MEX_TOKENS),
                 );
                 blockchain_wrapper.set_esdt_balance(
-                    &user,
+                    &user_address,
                     BUSD_TOKEN_ID,
                     &rust_biguint!(USER_TOTAL_BUSD_TOKENS),
                 );
+
+                // 2/3 chance for price discovery buy intention
+                // else sale intention
+                let mut price_discovery_buy = false;
+                if i % 3 == 0 {
+                    blockchain_wrapper.set_esdt_balance(
+                        &user_address,
+                        DISC_LAUNCHED_TOKEN_ID,
+                        &rust_biguint!(DISC_USER_LAUNCH_TOKENS),
+                    );
+                } else {
+                    blockchain_wrapper.set_esdt_balance(
+                        &user_address,
+                        DISC_ACCEPTED_TOKEN_ID,
+                        &rust_biguint!(USER_TOTAL_DISC_TOKENS),
+                    );
+                    price_discovery_buy = true;
+                }
+
+                let user = User {
+                    address: user_address,
+                    price_discovery_buy,
+                    locked_asset_nonces: Vec::new(),
+                };
 
                 users.push(user);
             }
@@ -196,6 +302,21 @@ pub mod fuzz_data_tests {
 
             let farms = vec![first_farm, second_farm, third_farm];
 
+            let factory = setup_factory(
+                MEX_TOKEN_ID,
+                LOCKED_MEX_TOKEN_ID,
+                &mut blockchain_wrapper,
+                &owner_addr,
+                factory_builder,
+            );
+
+            let price_disc = setup_price_disc(
+                &owner_addr,
+                &mut blockchain_wrapper,
+                price_discovery,
+                pair_mock,
+            );
+
             FuzzerData {
                 rng,
                 owner_address: owner_addr,
@@ -205,8 +326,17 @@ pub mod fuzz_data_tests {
                 users,
                 swap_pairs,
                 farms,
+                factory,
+                price_disc,
             }
         }
+    }
+
+    #[derive()]
+    pub struct User {
+        pub address: Address,
+        pub price_discovery_buy: bool,
+        pub locked_asset_nonces: Vec<u64>,
     }
 
     #[derive()]
@@ -340,7 +470,7 @@ pub mod fuzz_data_tests {
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
                 sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(&PENALTY_PERCENT);
+                sc.penalty_percent().set(&FARM_PENALTY_PERCENT);
 
                 sc.state().set(&::config::State::Active);
                 sc.produce_rewards_enabled().set(&true);
@@ -386,6 +516,239 @@ pub mod fuzz_data_tests {
         }
     }
 
+    #[allow(dead_code)]
+    pub struct FactorySetup<FactoryObjBuilder>
+    where
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+    {
+        pub token: String,
+        pub locked_token: String,
+        pub factory_wrapper: ContractObjWrapper<factory::ContractObj<DebugApi>, FactoryObjBuilder>,
+    }
+
+    pub fn setup_factory<FactoryObjBuilder>(
+        token: &[u8],
+        locked_token: &[u8],
+        blockchain_wrapper: &mut BlockchainStateWrapper,
+        owner_addr: &Address,
+        factory_builder: FactoryObjBuilder,
+    ) -> FactorySetup<FactoryObjBuilder>
+    where
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+    {
+        let rust_zero = rust_biguint!(0u64);
+
+        let factory_wrapper = blockchain_wrapper.create_sc_account(
+            &rust_zero,
+            Some(&owner_addr),
+            factory_builder,
+            FACTORY_WASM_PATH,
+        );
+
+        blockchain_wrapper
+            .execute_tx(&owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
+                let asset_token_id = managed_token_id!(MEX_TOKEN_ID);
+                let locked_asset_token_id = managed_token_id!(LOCKED_MEX_TOKEN_ID);
+                let default_unlock_period = MultiValueEncoded::from(ManagedVec::from(vec![
+                    UnlockMilestone {
+                        unlock_epoch: 0,
+                        unlock_percent: 25,
+                    },
+                    UnlockMilestone {
+                        unlock_epoch: 10,
+                        unlock_percent: 25,
+                    },
+                    UnlockMilestone {
+                        unlock_epoch: 20,
+                        unlock_percent: 25,
+                    },
+                    UnlockMilestone {
+                        unlock_epoch: 30,
+                        unlock_percent: 25,
+                    },
+                ]));
+                sc.init(asset_token_id, default_unlock_period);
+                sc.set_init_epoch(FACTORY_LOCK_NONCE);
+                sc.locked_asset_token_id().set(&locked_asset_token_id);
+            })
+            .assert_ok();
+
+        let token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
+
+        blockchain_wrapper.set_esdt_local_roles(
+            factory_wrapper.address_ref(),
+            MEX_TOKEN_ID,
+            &token_roles[..],
+        );
+
+        let locked_token_roles = [
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ];
+
+        blockchain_wrapper.set_esdt_local_roles(
+            factory_wrapper.address_ref(),
+            LOCKED_MEX_TOKEN_ID,
+            &locked_token_roles[..],
+        );
+
+        let token_string = String::from_utf8(token.to_vec()).unwrap();
+        let locked_token_string = String::from_utf8(locked_token.to_vec()).unwrap();
+
+        FactorySetup {
+            token: token_string,
+            locked_token: locked_token_string,
+            factory_wrapper,
+        }
+    }
+
+    pub struct PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
+    where
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+    {
+        pub sc_dex_address: Address,
+        pub liquidity_pool_created: bool,
+        pub pd_wrapper:
+            ContractObjWrapper<price_discovery::ContractObj<DebugApi>, PriceDiscObjBuilder>,
+        pub dex_wrapper: ContractObjWrapper<pair_mock::ContractObj<DebugApi>, DexObjBuilder>,
+    }
+
+    pub fn setup_price_disc<PriceDiscObjBuilder, DexObjBuilder>(
+        owner_addr: &Address,
+        blockchain_wrapper: &mut BlockchainStateWrapper,
+        pd_builder: PriceDiscObjBuilder,
+        dex_builder: DexObjBuilder,
+    ) -> PriceDiscSetup<PriceDiscObjBuilder, DexObjBuilder>
+    where
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+    {
+        let rust_zero = rust_biguint!(0u64);
+
+        let dex_wrapper = blockchain_wrapper.create_sc_account(
+            &rust_zero,
+            Some(&owner_addr),
+            dex_builder,
+            DEX_MOCK_WASM_PATH,
+        );
+
+        // init DEX mock
+        blockchain_wrapper
+            .execute_tx(&owner_addr, &dex_wrapper, &rust_zero, |sc| {
+                sc.init(
+                    OptionalValue::Some(managed_token_id!(DISC_LAUNCHED_TOKEN_ID)),
+                    OptionalValue::Some(managed_token_id!(DISC_ACCEPTED_TOKEN_ID)),
+                    OptionalValue::None,
+                    OptionalValue::None,
+                    OptionalValue::None,
+                    OptionalValue::None,
+                    OptionalValue::None,
+                );
+            })
+            .assert_ok();
+
+        blockchain_wrapper.set_esdt_balance(
+            &dex_wrapper.address_ref(),
+            DISC_LP_TOKEN_ID,
+            &rust_biguint!(DISC_LP_TOKENS),
+        );
+
+        let pd_wrapper = blockchain_wrapper.create_sc_account(
+            &rust_zero,
+            Some(&owner_addr),
+            pd_builder,
+            PD_WASM_PATH,
+        );
+
+        // set user balances
+        blockchain_wrapper.set_esdt_balance(
+            &owner_addr,
+            DISC_LAUNCHED_TOKEN_ID,
+            &rust_biguint!(DISC_LAUNCHED_TOKENS),
+        );
+
+        // set sc roles and initial minted SFTs (only needed for the purpose of SFT add quantity)
+        blockchain_wrapper.set_esdt_local_roles(
+            pd_wrapper.address_ref(),
+            DISC_REDEEM_TOKEN_ID,
+            &[
+                EsdtLocalRole::NftCreate,
+                EsdtLocalRole::NftBurn,
+                EsdtLocalRole::NftAddQuantity,
+            ],
+        );
+        blockchain_wrapper.set_nft_balance(
+            pd_wrapper.address_ref(),
+            DISC_REDEEM_TOKEN_ID,
+            LAUNCHED_TOKEN_REDEEM_NONCE,
+            &rust_biguint!(1),
+            &(),
+        );
+        blockchain_wrapper.set_nft_balance(
+            pd_wrapper.address_ref(),
+            DISC_REDEEM_TOKEN_ID,
+            ACCEPTED_TOKEN_REDEEM_NONCE,
+            &rust_biguint!(1),
+            &(),
+        );
+
+        // init Price Discovery SC
+        blockchain_wrapper
+            .execute_tx(&owner_addr, &pd_wrapper, &rust_zero, |sc| {
+                sc.init(
+                    managed_token_id!(DISC_LAUNCHED_TOKEN_ID),
+                    managed_token_id!(DISC_ACCEPTED_TOKEN_ID),
+                    managed_token_id!(EGLD_TOKEN_ID),
+                    managed_biguint!(0),
+                    START_BLOCK,
+                    NO_LIMIT_PHASE_DURATION_BLOCKS,
+                    LINEAR_PENALTY_PHASE_DURATION_BLOCKS,
+                    FIXED_PENALTY_PHASE_DURATION_BLOCKS,
+                    UNBOND_EPOCHS,
+                    managed_biguint!(MIN_PENALTY_PERCENTAGE),
+                    managed_biguint!(MAX_PENALTY_PERCENTAGE),
+                    managed_biguint!(FIXED_PENALTY_PERCENTAGE),
+                    MultiValueEncoded::new(),
+                );
+
+                sc.redeem_token_id()
+                    .set(&managed_token_id!(DISC_REDEEM_TOKEN_ID));
+            })
+            .assert_ok();
+
+        let sc_dex_address = dex_wrapper.address_ref().clone();
+
+        blockchain_wrapper
+            .execute_tx(&owner_addr, &pd_wrapper, &rust_zero, |sc| {
+                sc.set_pair_address(ManagedAddress::from_address(&sc_dex_address));
+            })
+            .assert_ok();
+
+        blockchain_wrapper.set_block_nonce(START_BLOCK);
+
+        blockchain_wrapper
+            .execute_esdt_transfer(
+                &owner_addr,
+                &pd_wrapper,
+                DISC_LAUNCHED_TOKEN_ID,
+                0,
+                &rust_biguint!(DISC_LAUNCHED_TOKENS),
+                |sc| {
+                    sc.deposit();
+                },
+            )
+            .assert_ok();
+
+        PriceDiscSetup {
+            sc_dex_address,
+            liquidity_pool_created: false,
+            pd_wrapper,
+            dex_wrapper,
+        }
+    }
+
     #[derive(Clone, PartialEq)]
     pub struct EventsStatistics {
         pub swap_fixed_input_hits: u64,
@@ -413,6 +776,21 @@ pub mod fuzz_data_tests {
 
         pub compound_rewards_hits: u64,
         pub compound_rewards_misses: u64,
+
+        pub factory_lock_hits: u64,
+        pub factory_lock_misses: u64,
+
+        pub factory_unlock_hits: u64,
+        pub factory_unlock_misses: u64,
+
+        pub price_discovery_deposit_hits: u64,
+        pub price_discovery_deposit_misses: u64,
+
+        pub price_discovery_withdraw_hits: u64,
+        pub price_discovery_withdraw_misses: u64,
+
+        pub price_discovery_redeem_hits: u64,
+        pub price_discovery_redeem_misses: u64,
     }
 
     impl EventsStatistics {
@@ -436,11 +814,21 @@ pub mod fuzz_data_tests {
                 claim_rewards_with_rewards: 0,
                 compound_rewards_hits: 0,
                 compound_rewards_misses: 0,
+                factory_lock_hits: 0,
+                factory_lock_misses: 0,
+                factory_unlock_hits: 0,
+                factory_unlock_misses: 0,
+                price_discovery_deposit_hits: 0,
+                price_discovery_deposit_misses: 0,
+                price_discovery_withdraw_hits: 0,
+                price_discovery_withdraw_misses: 0,
+                price_discovery_redeem_hits: 0,
+                price_discovery_redeem_misses: 0,
             }
         }
     }
 
-    fn to_managed_biguint(value: RustBigUint) -> BigUint<DebugApi> {
+    pub fn to_managed_biguint(value: RustBigUint) -> BigUint<DebugApi> {
         BigUint::from_bytes_be(&value.to_bytes_be())
     }
 }
