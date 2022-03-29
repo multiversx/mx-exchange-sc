@@ -196,46 +196,11 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm_with_rewards(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: Nonce,
-        #[payment_amount] amount: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<ExitFarmResultType<Self::Api>> {
-        self.exit_farm(
-            payment_token_id,
-            token_nonce,
-            amount,
-            true,
-            opt_accept_funds_func,
-        )
-    }
-
-    #[payable("*")]
-    #[endpoint(exitFarmWithNoRewards)]
-    fn exit_farm_with_no_rewards(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: Nonce,
-        #[payment_amount] amount: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
-    ) -> SCResult<ExitFarmResultType<Self::Api>> {
-        self.exit_farm(
-            payment_token_id,
-            token_nonce,
-            amount,
-            false,
-            opt_accept_funds_func,
-        )
-    }
-
     fn exit_farm(
         &self,
-        payment_token_id: TokenIdentifier,
-        token_nonce: Nonce,
-        amount: BigUint,
-        should_give_rewards: bool,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<ExitFarmResultType<Self::Api>> {
         require!(self.is_active(), "Not active");
@@ -249,16 +214,11 @@ pub trait Farm:
         let mut reward_token_id = self.reward_token_id().get();
         self.generate_aggregated_rewards(&reward_token_id);
 
-        let mut reward = if should_give_rewards {
-            self.calculate_reward(
-                &amount,
-                &self.reward_per_share().get(),
-                &farm_attributes.reward_per_share,
-            )
-        } else {
-            BigUint::zero()
-        };
-
+        let mut reward = self.calculate_reward(
+            &amount,
+            &self.reward_per_share().get(),
+            &farm_attributes.reward_per_share,
+        );
         if reward > 0 {
             self.decrease_reward_reserve(&reward)?;
         }
