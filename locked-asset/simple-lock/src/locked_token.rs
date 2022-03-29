@@ -15,6 +15,14 @@ pub enum PreviousStatusFlag {
 }
 
 impl PreviousStatusFlag {
+    pub fn new(locked_token_nonce: u64) -> Self {
+        if locked_token_nonce == 0 {
+            PreviousStatusFlag::NotLocked
+        } else {
+            PreviousStatusFlag::Locked { locked_token_nonce }
+        }
+    }
+
     #[inline]
     pub fn was_locked(&self) -> bool {
         matches!(

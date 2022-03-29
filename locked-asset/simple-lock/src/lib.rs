@@ -5,6 +5,7 @@ use crate::locked_token::LockedTokenAttributes;
 elrond_wasm::imports!();
 
 pub mod locked_token;
+pub mod lp_interactions;
 pub mod proxy_lp;
 
 const SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES: u32 = 1;
@@ -14,6 +15,7 @@ pub trait SimpleLock:
     locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + proxy_lp::ProxyLpModule
+    + lp_interactions::LpInteractionsModule
 {
     #[init]
     fn init(&self) {}
