@@ -449,7 +449,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm_with_rewards(
+            .exit_farm(
                 farm_token_id.clone(),
                 farm_token_nonce,
                 amount.clone(),
