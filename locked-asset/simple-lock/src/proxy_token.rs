@@ -4,10 +4,18 @@ elrond_wasm::derive_imports!();
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub enum ProxyTokenAttributes<M: ManagedTypeApi> {
     LpProxyToken {
-        lp_address: ManagedAddress<M>,
-        lp_token_id: TokenIdentifier<M>,
-        unlock_epoch: u64,
+        attributes: LpProxyTokenAttributes<M>,
     },
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
+    pub lp_address: ManagedAddress<M>,
+    pub lp_token_id: TokenIdentifier<M>,
+    pub first_token_id: TokenIdentifier<M>,
+    pub first_token_locked_nonce: u64,
+    pub second_token_id: TokenIdentifier<M>,
+    pub second_token_locked_nonce: u64,
 }
 
 #[elrond_wasm::module]
@@ -48,7 +56,7 @@ pub trait ProxyTokenModule:
         );
     }
 
-    #[view(getLockedTokenId)]
+    #[view(getProxyTokenId)]
     #[storage_mapper("proxyTokenId")]
     fn proxy_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 }

@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use crate::{
     locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper},
-    proxy_token::ProxyTokenAttributes,
+    proxy_token::{LpProxyTokenAttributes, ProxyTokenAttributes},
 };
 
 pub type AddLiquidityResultType<M> =
@@ -71,7 +71,7 @@ pub trait ProxyLpModule:
 
         let payments = self.call_value().all_esdt_transfers();
         let (first_payment_unlocked_wrapper, second_payment_unlocked_wrapper) =
-            self.unlock_payments(payments);
+            self.unlock_lp_payments(payments);
 
         require!(
             first_payment_unlocked_wrapper.status_before.was_locked()
@@ -79,21 +79,23 @@ pub trait ProxyLpModule:
             "At least one of the payments must be a locked token"
         );
 
-        let first_payment_unlocked = &first_payment_unlocked_wrapper.payment;
-        let second_payment_unlocked = &second_payment_unlocked_wrapper.payment;
+        let ref_first_payment_unlocked = &first_payment_unlocked_wrapper.payment;
+        let ref_second_payment_unlocked = &second_payment_unlocked_wrapper.payment;
 
         require!(
-            first_payment_unlocked.token_nonce == 0 && second_payment_unlocked.token_nonce == 0,
+            ref_first_payment_unlocked.token_nonce == 0
+                && ref_second_payment_unlocked.token_nonce == 0,
             "Only locked tokens with fungible original tokens can be used as liquidity"
         );
         require!(
-            first_payment_unlocked.token_identifier != second_payment_unlocked.token_identifier,
+            ref_first_payment_unlocked.token_identifier
+                != ref_second_payment_unlocked.token_identifier,
             "Must use two different original tokens for add liquidity"
         );
 
         let mut lp_payments_in = ManagedVec::new();
-        lp_payments_in.push(first_payment_unlocked.clone());
-        lp_payments_in.push(second_payment_unlocked.clone());
+        lp_payments_in.push(ref_first_payment_unlocked.clone());
+        lp_payments_in.push(ref_second_payment_unlocked.clone());
 
         let lp_payments_out: AddLiquidityResultType<Self::Api> = self
             .lp_proxy(lp_address.clone())
@@ -103,44 +105,42 @@ pub trait ProxyLpModule:
         let (lp_tokens, mut first_token_refund, mut second_token_refund) =
             lp_payments_out.into_tuple();
 
-        if first_token_refund.token_identifier == second_payment_unlocked.token_identifier {
+        if first_token_refund.token_identifier == ref_second_payment_unlocked.token_identifier {
             core::mem::swap(&mut first_token_refund, &mut second_token_refund);
         }
 
-        let first_payment_unlock_epoch = first_payment_unlocked_wrapper
-            .status_before
-            .get_unlock_epoch();
-        let second_payment_unlock_epoch = second_payment_unlocked_wrapper
-            .status_before
-            .get_unlock_epoch();
-
         let caller = self.blockchain().get_caller();
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.lock_and_refund(
+        self.lock_if_needed_and_send(
             &caller,
             first_token_refund,
-            current_epoch,
-            first_payment_unlock_epoch,
+            first_payment_unlocked_wrapper.status_before,
         );
-        self.lock_and_refund(
+        self.lock_if_needed_and_send(
             &caller,
             second_token_refund,
-            current_epoch,
-            second_payment_unlock_epoch,
+            second_payment_unlocked_wrapper.status_before,
         );
 
-        let max_unlock_epoch =
-            core::cmp::max(first_payment_unlock_epoch, second_payment_unlock_epoch);
+        let first_token_locked_nonce = first_payment_unlocked_wrapper.get_locked_token_nonce();
+        let first_token_id = first_payment_unlocked_wrapper.payment.token_identifier;
+        let second_token_locked_nonce = second_payment_unlocked_wrapper.get_locked_token_nonce();
+        let second_token_id = second_payment_unlocked_wrapper.payment.token_identifier;
         let proxy_token_attributes = ProxyTokenAttributes::LpProxyToken {
-            lp_address,
-            lp_token_id: lp_tokens.token_identifier,
-            unlock_epoch: max_unlock_epoch,
+            attributes: LpProxyTokenAttributes {
+                lp_address,
+                lp_token_id: lp_tokens.token_identifier,
+                first_token_id,
+                first_token_locked_nonce,
+                second_token_id,
+                second_token_locked_nonce,
+            },
         };
+
         self.proxy_token()
             .nft_create_and_send(&caller, lp_tokens.amount, &proxy_token_attributes)
     }
 
-    fn unlock_payments(
+    fn unlock_lp_payments(
         &self,
         payments: ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>>,
     ) -> (
@@ -183,7 +183,7 @@ pub trait ProxyLpModule:
             UnlockedPaymentWrapper {
                 payment: unlocked_payment,
                 status_before: PreviousStatusFlag::Locked {
-                    unlock_epoch: attributes.unlock_epoch,
+                    locked_token_nonce: payment.token_nonce,
                 },
             }
         } else {
@@ -194,34 +194,33 @@ pub trait ProxyLpModule:
         }
     }
 
-    fn lock_and_refund(
+    fn lock_if_needed_and_send(
         &self,
         to: &ManagedAddress,
         payment: EsdtTokenPayment<Self::Api>,
-        current_epoch: u64,
-        unlock_epoch: u64,
+        prev_status: PreviousStatusFlag,
     ) {
         if payment.amount == 0 {
             return;
         }
 
-        if unlock_epoch > current_epoch {
-            let attributes = LockedTokenAttributes {
-                original_token_id: payment.token_identifier,
-                original_token_nonce: payment.token_nonce,
-                unlock_epoch,
-            };
-
-            self.locked_token()
-                .nft_create_and_send(to, payment.amount, &attributes);
-        } else {
-            self.send().direct(
-                to,
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-                &[],
-            );
+        match prev_status {
+            PreviousStatusFlag::NotLocked => {
+                self.send().direct(
+                    to,
+                    &payment.token_identifier,
+                    payment.token_nonce,
+                    &payment.amount,
+                    &[],
+                );
+            }
+            PreviousStatusFlag::Locked { locked_token_nonce } => {
+                self.locked_token().nft_add_quantity_and_send(
+                    to,
+                    locked_token_nonce,
+                    payment.amount,
+                );
+            }
         }
     }
 

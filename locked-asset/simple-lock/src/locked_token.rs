@@ -8,29 +8,36 @@ pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub unlock_epoch: u64,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum PreviousStatusFlag {
     NotLocked,
-    Locked { unlock_epoch: u64 },
+    Locked { locked_token_nonce: u64 },
 }
 
 impl PreviousStatusFlag {
     #[inline]
     pub fn was_locked(&self) -> bool {
-        matches!(*self, PreviousStatusFlag::Locked { unlock_epoch: _ })
-    }
-
-    pub fn get_unlock_epoch(&self) -> u64 {
-        match *self {
-            PreviousStatusFlag::NotLocked => 0,
-            PreviousStatusFlag::Locked { unlock_epoch } => unlock_epoch,
-        }
+        matches!(
+            *self,
+            PreviousStatusFlag::Locked {
+                locked_token_nonce: _
+            }
+        )
     }
 }
 
 pub struct UnlockedPaymentWrapper<M: ManagedTypeApi> {
     pub payment: EsdtTokenPayment<M>,
     pub status_before: PreviousStatusFlag,
+}
+
+impl<M: ManagedTypeApi> UnlockedPaymentWrapper<M> {
+    pub fn get_locked_token_nonce(&self) -> u64 {
+        match self.status_before {
+            PreviousStatusFlag::NotLocked => 0,
+            PreviousStatusFlag::Locked { locked_token_nonce } => locked_token_nonce,
+        }
+    }
 }
 
 #[elrond_wasm::module]

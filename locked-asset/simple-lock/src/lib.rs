@@ -9,6 +9,8 @@ pub mod proxy_token;
 
 pub mod proxy_lp;
 
+const SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES: u32 = 1;
+
 #[elrond_wasm::contract]
 pub trait SimpleLock:
     locked_token::LockedTokenModule
@@ -36,8 +38,21 @@ pub trait SimpleLock:
             unlock_epoch,
         };
 
-        self.locked_token()
-            .nft_create_and_send(&dest_address, payment_amount, &attributes)
+        let mut locked_tokens_payment = self.locked_token().nft_create(
+            payment_amount + SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES,
+            &attributes,
+        );
+        locked_tokens_payment.amount -= SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES;
+
+        self.send().direct(
+            &dest_address,
+            &locked_tokens_payment.token_identifier,
+            locked_tokens_payment.token_nonce,
+            &locked_tokens_payment.amount,
+            &[],
+        );
+
+        locked_tokens_payment
     }
 
     #[payable("*")]
