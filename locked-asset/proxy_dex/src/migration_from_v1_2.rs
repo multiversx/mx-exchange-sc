@@ -107,7 +107,7 @@ pub trait MigrationModule:
         // Get the new farm position from the new contract.
         let (new_pos, reward) = if with_rewards {
             self.farm_v1_2_contract_proxy(farm_address)
-                .migrate_to_new_farm(self.blockchain().get_sc_address())
+                .migrate_to_new_farm_with_rewards(self.blockchain().get_sc_address())
                 .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
                 .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
                 .into_tuple()
