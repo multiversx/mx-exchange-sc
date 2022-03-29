@@ -8,13 +8,14 @@ elrond_wasm_node::wasm_endpoints! {
     simple_lock
     (
         callBack
+        addLiquidityLockedToken
         addLpToWhitelist
-        add_liquidity_locked_token
         getLockedTokenId
         getLpProxyTokenId
         issueLockedToken
         issueLpProxyToken
         lockTokens
+        removeLiquidityLockedToken
         removeLpFromWhitelist
         setLocalRolesLockedToken
         setLocalRolesLpProxyToken
