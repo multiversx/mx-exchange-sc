@@ -57,8 +57,8 @@ pub trait ProxyLpModule:
 {
     #[only_owner]
     #[payable("EGLD")]
-    #[endpoint(issueProxyToken)]
-    fn issue_proxy_token(
+    #[endpoint(issueLpProxyToken)]
+    fn issue_lp_proxy_token(
         &self,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
@@ -77,8 +77,8 @@ pub trait ProxyLpModule:
     }
 
     #[only_owner]
-    #[endpoint(setLocalRolesProxyToken)]
-    fn set_local_roles_proxy_token(&self) {
+    #[endpoint(setLocalRolesLpProxyToken)]
+    fn set_local_roles_lp_proxy_token(&self) {
         self.lp_proxy_token().set_local_roles(
             &[
                 EsdtLocalRole::NftCreate,

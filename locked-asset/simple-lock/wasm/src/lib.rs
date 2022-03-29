@@ -11,13 +11,13 @@ elrond_wasm_node::wasm_endpoints! {
         addLpToWhitelist
         add_liquidity_locked_token
         getLockedTokenId
-        getProxyTokenId
+        getLpProxyTokenId
         issueLockedToken
-        issueProxyToken
+        issueLpProxyToken
         lockTokens
         removeLpFromWhitelist
         setLocalRolesLockedToken
-        setLocalRolesProxyToken
+        setLocalRolesLpProxyToken
         unlockTokens
     )
 }
