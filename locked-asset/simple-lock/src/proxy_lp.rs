@@ -1,14 +1,28 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
-use crate::{
-    locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper},
-    proxy_token::{LpProxyTokenAttributes, ProxyTokenAttributes},
-};
+use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
 
 pub type AddLiquidityResultType<M> =
     MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type RemoveLiquidityResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+
+pub struct AddLiquidityResultWrapper<M: ManagedTypeApi> {
+    pub lp_tokens: EsdtTokenPayment<M>,
+    pub first_token_refund: EsdtTokenPayment<M>,
+    pub second_token_refund: EsdtTokenPayment<M>,
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
+pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
+    pub lp_address: ManagedAddress<M>,
+    pub lp_token_id: TokenIdentifier<M>,
+    pub first_token_id: TokenIdentifier<M>,
+    pub first_token_locked_nonce: u64,
+    pub second_token_id: TokenIdentifier<M>,
+    pub second_token_locked_nonce: u64,
+}
 
 // Must manually declare, as Pair SC already depends on simple-lock
 // This avoids circular dependency
@@ -39,9 +53,42 @@ pub mod lp_proxy {
 #[elrond_wasm::module]
 pub trait ProxyLpModule:
     crate::locked_token::LockedTokenModule
-    + crate::proxy_token::ProxyTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    #[only_owner]
+    #[payable("EGLD")]
+    #[endpoint(issueProxyToken)]
+    fn issue_proxy_token(
+        &self,
+        token_display_name: ManagedBuffer,
+        token_ticker: ManagedBuffer,
+        num_decimals: usize,
+    ) {
+        let payment_amount = self.call_value().egld_value();
+
+        self.lp_proxy_token().issue(
+            EsdtTokenType::Meta,
+            payment_amount,
+            token_display_name,
+            token_ticker,
+            num_decimals,
+            None,
+        );
+    }
+
+    #[only_owner]
+    #[endpoint(setLocalRolesProxyToken)]
+    fn set_local_roles_proxy_token(&self) {
+        self.lp_proxy_token().set_local_roles(
+            &[
+                EsdtLocalRole::NftCreate,
+                EsdtLocalRole::NftAddQuantity,
+                EsdtLocalRole::NftBurn,
+            ],
+            None,
+        );
+    }
+
     #[only_owner]
     #[endpoint(addLpToWhitelist)]
     fn add_lp_to_whitelist(&self, lp_address: ManagedAddress) {
@@ -93,51 +140,37 @@ pub trait ProxyLpModule:
             "Must use two different original tokens for add liquidity"
         );
 
-        let mut lp_payments_in = ManagedVec::new();
-        lp_payments_in.push(ref_first_payment_unlocked.clone());
-        lp_payments_in.push(ref_second_payment_unlocked.clone());
-
-        let lp_payments_out: AddLiquidityResultType<Self::Api> = self
-            .lp_proxy(lp_address.clone())
-            .add_liquidity(first_token_amount_min, second_token_amount_min)
-            .with_multi_token_transfer(lp_payments_in)
-            .execute_on_dest_context_custom_range(|_, after| (after - 3, after));
-        let (lp_tokens, mut first_token_refund, mut second_token_refund) =
-            lp_payments_out.into_tuple();
-
-        if first_token_refund.token_identifier == ref_second_payment_unlocked.token_identifier {
-            core::mem::swap(&mut first_token_refund, &mut second_token_refund);
-        }
+        let add_liq_result = self.call_pair_add_liquidity(
+            lp_address.clone(),
+            ref_first_payment_unlocked.clone(),
+            ref_second_payment_unlocked.clone(),
+            first_token_amount_min,
+            second_token_amount_min,
+        );
 
         let caller = self.blockchain().get_caller();
         self.lock_if_needed_and_send(
             &caller,
-            first_token_refund,
+            add_liq_result.first_token_refund,
             first_payment_unlocked_wrapper.status_before,
         );
         self.lock_if_needed_and_send(
             &caller,
-            second_token_refund,
+            add_liq_result.second_token_refund,
             second_payment_unlocked_wrapper.status_before,
         );
 
-        let first_token_locked_nonce = first_payment_unlocked_wrapper.get_locked_token_nonce();
-        let first_token_id = first_payment_unlocked_wrapper.payment.token_identifier;
-        let second_token_locked_nonce = second_payment_unlocked_wrapper.get_locked_token_nonce();
-        let second_token_id = second_payment_unlocked_wrapper.payment.token_identifier;
-        let proxy_token_attributes = ProxyTokenAttributes::LpProxyToken {
-            attributes: LpProxyTokenAttributes {
-                lp_address,
-                lp_token_id: lp_tokens.token_identifier,
-                first_token_id,
-                first_token_locked_nonce,
-                second_token_id,
-                second_token_locked_nonce,
-            },
-        };
-
-        self.proxy_token()
-            .nft_create_and_send(&caller, lp_tokens.amount, &proxy_token_attributes)
+        let proxy_token_attributes = self.create_lp_proxy_token_attributes(
+            lp_address,
+            add_liq_result.lp_tokens.token_identifier,
+            first_payment_unlocked_wrapper,
+            second_payment_unlocked_wrapper,
+        );
+        self.lp_proxy_token().nft_create_and_send(
+            &caller,
+            add_liq_result.lp_tokens.amount,
+            &proxy_token_attributes,
+        )
     }
 
     fn unlock_lp_payments(
@@ -194,6 +227,61 @@ pub trait ProxyLpModule:
         }
     }
 
+    fn call_pair_add_liquidity(
+        &self,
+        lp_address: ManagedAddress,
+        first_payment: EsdtTokenPayment<Self::Api>,
+        second_payment: EsdtTokenPayment<Self::Api>,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    ) -> AddLiquidityResultWrapper<Self::Api> {
+        let second_token_id_copy = second_payment.token_identifier.clone();
+
+        let mut lp_payments_in = ManagedVec::new();
+        lp_payments_in.push(first_payment);
+        lp_payments_in.push(second_payment);
+
+        let lp_payments_out: AddLiquidityResultType<Self::Api> = self
+            .lp_proxy(lp_address.clone())
+            .add_liquidity(first_token_amount_min, second_token_amount_min)
+            .with_multi_token_transfer(lp_payments_in)
+            .execute_on_dest_context_custom_range(|_, after| (after - 3, after));
+        let (lp_tokens, mut first_token_refund, mut second_token_refund) =
+            lp_payments_out.into_tuple();
+
+        if first_token_refund.token_identifier == second_token_id_copy {
+            core::mem::swap(&mut first_token_refund, &mut second_token_refund);
+        }
+
+        AddLiquidityResultWrapper {
+            lp_tokens,
+            first_token_refund,
+            second_token_refund,
+        }
+    }
+
+    fn create_lp_proxy_token_attributes(
+        &self,
+        lp_address: ManagedAddress,
+        lp_token_id: TokenIdentifier,
+        first_payment_unlocked_wrapper: UnlockedPaymentWrapper<Self::Api>,
+        second_payment_unlocked_wrapper: UnlockedPaymentWrapper<Self::Api>,
+    ) -> LpProxyTokenAttributes<Self::Api> {
+        let first_token_locked_nonce = first_payment_unlocked_wrapper.get_locked_token_nonce();
+        let first_token_id = first_payment_unlocked_wrapper.payment.token_identifier;
+        let second_token_locked_nonce = second_payment_unlocked_wrapper.get_locked_token_nonce();
+        let second_token_id = second_payment_unlocked_wrapper.payment.token_identifier;
+
+        LpProxyTokenAttributes {
+            lp_address,
+            lp_token_id,
+            first_token_id,
+            first_token_locked_nonce,
+            second_token_id,
+            second_token_locked_nonce,
+        }
+    }
+
     fn lock_if_needed_and_send(
         &self,
         to: &ManagedAddress,
@@ -229,4 +317,8 @@ pub trait ProxyLpModule:
 
     #[storage_mapper("lpAddressWhitelist")]
     fn lp_address_whitelist(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+
+    #[view(getLpProxyTokenId)]
+    #[storage_mapper("lpProxyTokenId")]
+    fn lp_proxy_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 }
