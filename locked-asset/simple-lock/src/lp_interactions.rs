@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::error_messages::*;
+
 pub type AddLiquidityResultType<M> =
     MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type RemoveLiquidityResultType<BigUint> =
@@ -68,7 +70,7 @@ pub trait LpInteractionsModule {
         require!(
             first_payment.token_identifier == first_token_optimal_payment.token_identifier
                 && second_payment.token_identifier == second_token_optimal_payment.token_identifier,
-            "Invalid payments received from LP"
+            INVALID_PAYMENTS_RECEIVED_FROM_LP_ERR_MSG
         );
 
         let first_refund_amount = &first_payment.amount - &first_token_optimal_payment.amount;
@@ -112,7 +114,7 @@ pub trait LpInteractionsModule {
         require!(
             &first_token_payment_out.token_identifier == expected_first_token_id_out
                 && &second_token_payment_out.token_identifier == expected_second_token_id_out,
-            "Invalid tokens received from LP"
+            INVALID_PAYMENTS_RECEIVED_FROM_LP_ERR_MSG
         );
 
         RemoveLiquidityResultWrapper {

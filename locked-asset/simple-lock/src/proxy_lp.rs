@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::error_messages::*;
 use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
@@ -71,7 +72,7 @@ pub trait ProxyLpModule:
         );
         require!(
             first_token_id != second_token_id,
-            "Token IDs must be different"
+            MUST_USE_DIFFERENT_TOKENS_ERR_MSG
         );
         require!(
             first_token_id.is_esdt() && second_token_id.is_esdt(),
@@ -125,7 +126,7 @@ pub trait ProxyLpModule:
         require!(
             ref_first_payment_unlocked.token_identifier
                 != ref_second_payment_unlocked.token_identifier,
-            "Must use two different original tokens for add liquidity"
+            MUST_USE_DIFFERENT_TOKENS_ERR_MSG
         );
 
         let add_liq_result = self.call_pair_add_liquidity(
@@ -221,10 +222,7 @@ pub trait ProxyLpModule:
         UnlockedPaymentWrapper<Self::Api>,
         UnlockedPaymentWrapper<Self::Api>,
     ) {
-        require!(
-            payments.len() == 2,
-            "Invalid number of payments for add liquidity"
-        );
+        require!(payments.len() == 2, INVALID_PAYMENTS_ERR_MSG);
 
         let first_payment = payments.get(0);
         let second_payment = payments.get(1);
