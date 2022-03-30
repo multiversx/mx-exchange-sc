@@ -384,7 +384,7 @@ fn redeem_ok() {
     pd_setup.blockchain_wrapper.check_nft_balance(
         &second_user_address,
         LOCKED_TOKEN_ID,
-        2,
+        1,
         &second_user_expected_launched_tokens_balance,
         &LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
@@ -398,7 +398,7 @@ fn redeem_ok() {
     pd_setup.blockchain_wrapper.check_nft_balance(
         &owner_address,
         LOCKED_TOKEN_ID,
-        3,
+        2,
         &owner_expected_accepted_tokens_balance,
         &LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(ACCEPTED_TOKEN_ID),
