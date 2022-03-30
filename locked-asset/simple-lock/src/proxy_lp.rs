@@ -160,7 +160,7 @@ pub trait ProxyLpModule:
         let lp_proxy_nonce = self
             .get_or_create_nonce_for_attributes(&lp_proxy_token_mapper, &proxy_token_attributes);
 
-        let lp_proxy_payment = self.lp_proxy_token().nft_add_quantity_and_send(
+        let lp_proxy_payment = lp_proxy_token_mapper.nft_add_quantity_and_send(
             &caller,
             lp_proxy_nonce,
             add_liq_result.lp_tokens.amount,
