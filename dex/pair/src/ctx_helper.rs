@@ -178,7 +178,7 @@ pub trait CtxHelper:
         if self.should_generate_locked_asset() {
             let locked_asset = self.call_lock_tokens(context);
             context.set_locked_asset_output(locked_asset.clone());
-            
+
             payments.push(locked_asset);
         } else {
             payments.push(self.create_payment(

@@ -8,6 +8,46 @@ pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub unlock_epoch: u64,
 }
 
+#[derive(PartialEq, Clone, Copy)]
+pub enum PreviousStatusFlag {
+    NotLocked,
+    Locked { locked_token_nonce: u64 },
+}
+
+impl PreviousStatusFlag {
+    pub fn new(locked_token_nonce: u64) -> Self {
+        if locked_token_nonce == 0 {
+            PreviousStatusFlag::NotLocked
+        } else {
+            PreviousStatusFlag::Locked { locked_token_nonce }
+        }
+    }
+
+    #[inline]
+    pub fn was_locked(&self) -> bool {
+        matches!(
+            *self,
+            PreviousStatusFlag::Locked {
+                locked_token_nonce: _
+            }
+        )
+    }
+}
+
+pub struct UnlockedPaymentWrapper<M: ManagedTypeApi> {
+    pub payment: EsdtTokenPayment<M>,
+    pub status_before: PreviousStatusFlag,
+}
+
+impl<M: ManagedTypeApi> UnlockedPaymentWrapper<M> {
+    pub fn get_locked_token_nonce(&self) -> u64 {
+        match self.status_before {
+            PreviousStatusFlag::NotLocked => 0,
+            PreviousStatusFlag::Locked { locked_token_nonce } => locked_token_nonce,
+        }
+    }
+}
+
 #[elrond_wasm::module]
 pub trait LockedTokenModule:
     elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -22,7 +62,6 @@ pub trait LockedTokenModule:
         num_decimals: usize,
     ) {
         let payment_amount = self.call_value().egld_value();
-        require!(self.locked_token().is_empty(), "Token already issued");
 
         self.locked_token().issue(
             EsdtTokenType::Meta,
