@@ -13,6 +13,7 @@ pub struct SwapContext<M: ManagedTypeApi> {
     final_output_amount: BigUint<M>,
     fee_amount: BigUint<M>,
     output_payments: ManagedVec<M, EsdtTokenPayment<M>>,
+    locked_asset_output: Option<EsdtTokenPayment<M>>,
 }
 
 pub struct SwapTxInput<M: ManagedTypeApi> {
@@ -67,6 +68,7 @@ impl<M: ManagedTypeApi> SwapContext<M> {
             final_output_amount: BigUint::zero(),
             fee_amount: BigUint::zero(),
             output_payments: ManagedVec::new(),
+            locked_asset_output: None,
         }
     }
 }
@@ -331,5 +333,15 @@ impl<M: ManagedTypeApi> SwapContext<M> {
     #[inline]
     pub fn get_fee_amount(&self) -> &BigUint<M> {
         &self.fee_amount
+    }
+
+    #[inline]
+    pub fn set_locked_asset_output(&mut self, locked_asset: EsdtTokenPayment<M>) {
+        self.locked_asset_output = Some(locked_asset);
+    }
+
+    #[inline]
+    pub fn get_locked_asset_output(&self) -> Option<&EsdtTokenPayment<M>> {
+        self.locked_asset_output.as_ref()
     }
 }
