@@ -33,27 +33,6 @@ pub trait TokenAttributesModule {
         new_nonce
     }
 
-    fn get_attributes_for_nonce<T: TopDecode>(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> T {
-        let raw_attributes = self
-            .nonce_to_attributes_mapping(token_id, token_nonce)
-            .get();
-
-        T::top_decode(raw_attributes).unwrap_or_else(|err| sc_panic!(err.message_str()))
-    }
-
-    // TODO: Swap to TokenAttributes mapper from Rust framework on upgrade
-    // Current version is bugged, so we use a custom implementation for now
-    #[storage_mapper("nonceToAttributesMapping")]
-    fn nonce_to_attributes_mapping(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> SingleValueMapper<ManagedBuffer>;
-
     #[storage_mapper("attributesToNonceMapping")]
     fn attributes_to_nonce_mapping(
         &self,
