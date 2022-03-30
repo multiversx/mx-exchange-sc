@@ -41,11 +41,8 @@ pub trait SimpleLock:
         let sft_nonce = self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
 
         let dest_address = self.dest_from_optional(opt_destination);
-        let locked_tokens_payment =
-            self.locked_token()
-                .nft_add_quantity_and_send(&dest_address, sft_nonce, payment_amount);
-
-        locked_tokens_payment
+        self.locked_token()
+            .nft_add_quantity_and_send(&dest_address, sft_nonce, payment_amount)
     }
 
     #[payable("*")]
