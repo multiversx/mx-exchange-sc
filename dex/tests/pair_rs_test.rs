@@ -1037,7 +1037,11 @@ fn add_liquidity_through_simple_lock_proxy() {
             sc.init();
             sc.locked_token()
                 .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
-            sc.add_lp_to_whitelist(managed_address!(&lp_address));
+            sc.add_lp_to_whitelist(
+                managed_address!(&lp_address),
+                managed_token_id!(WEGLD_TOKEN_ID),
+                managed_token_id!(MEX_TOKEN_ID),
+            );
         })
         .assert_ok();
 
@@ -1149,11 +1153,7 @@ fn add_liquidity_through_simple_lock_proxy() {
             &transfers[..],
             |sc| {
                 let (dust_first_token, dust_second_token, lp_proxy_payment) = sc
-                    .add_liquidity_locked_token(
-                        managed_address!(&lp_address),
-                        managed_biguint!(1),
-                        managed_biguint!(1),
-                    )
+                    .add_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
                     .into_tuple();
 
                 assert_eq!(
@@ -1185,7 +1185,6 @@ fn add_liquidity_through_simple_lock_proxy() {
         1,
         &rust_biguint!(500_000),
         &LpProxyTokenAttributes::<DebugApi> {
-            lp_address: managed_address!(&lp_address),
             lp_token_id: managed_token_id!(LP_TOKEN_ID),
             first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
             first_token_locked_nonce: 1,

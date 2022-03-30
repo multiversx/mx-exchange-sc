@@ -48,46 +48,42 @@ pub trait LpInteractionsModule {
     fn call_pair_add_liquidity(
         &self,
         lp_address: ManagedAddress,
-        first_payment: EsdtTokenPayment<Self::Api>,
-        second_payment: EsdtTokenPayment<Self::Api>,
+        first_payment: &EsdtTokenPayment<Self::Api>,
+        second_payment: &EsdtTokenPayment<Self::Api>,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> AddLiquidityResultWrapper<Self::Api> {
-        let second_token_id_copy = second_payment.token_identifier.clone();
-        let first_payment_in_amount = first_payment.amount.clone();
-        let second_payment_in_amount = second_payment.amount.clone();
-
         let mut lp_payments_in = ManagedVec::new();
-        lp_payments_in.push(first_payment);
-        lp_payments_in.push(second_payment);
+        lp_payments_in.push(first_payment.clone());
+        lp_payments_in.push(second_payment.clone());
 
         let lp_payments_out: AddLiquidityResultType<Self::Api> = self
             .lp_proxy(lp_address)
             .add_liquidity(first_token_amount_min, second_token_amount_min)
             .with_multi_token_transfer(lp_payments_in)
             .execute_on_dest_context_custom_range(|_, after| (after - 3, after));
-        let (lp_tokens, mut first_token_optimal_payment, mut second_token_optimal_payment) =
+        let (lp_tokens, first_token_optimal_payment, second_token_optimal_payment) =
             lp_payments_out.into_tuple();
 
-        if first_token_optimal_payment.token_identifier == second_token_id_copy {
-            core::mem::swap(
-                &mut first_token_optimal_payment,
-                &mut second_token_optimal_payment,
-            );
-        }
+        require!(
+            first_payment.token_identifier == first_token_optimal_payment.token_identifier
+                && second_payment.token_identifier == second_token_optimal_payment.token_identifier,
+            "Invalid payments received from LP"
+        );
 
-        let first_token_refund = EsdtTokenPayment {
-            token_type: EsdtTokenType::Fungible,
-            token_identifier: first_token_optimal_payment.token_identifier,
-            token_nonce: 0,
-            amount: first_payment_in_amount - first_token_optimal_payment.amount,
-        };
-        let second_token_refund = EsdtTokenPayment {
-            token_type: EsdtTokenType::Fungible,
-            token_identifier: second_token_optimal_payment.token_identifier,
-            token_nonce: 0,
-            amount: second_payment_in_amount - second_token_optimal_payment.amount,
-        };
+        let first_refund_amount = &first_payment.amount - &first_token_optimal_payment.amount;
+        let first_token_refund = EsdtTokenPayment::new(
+            first_token_optimal_payment.token_identifier,
+            0,
+            first_refund_amount,
+        );
+
+        let second_refund_amount = &second_payment.amount - &second_token_optimal_payment.amount;
+        let second_token_refund = EsdtTokenPayment::new(
+            second_token_optimal_payment.token_identifier,
+            0,
+            second_refund_amount,
+        );
 
         AddLiquidityResultWrapper {
             lp_tokens,
@@ -103,7 +99,8 @@ pub trait LpInteractionsModule {
         lp_token_amount: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        expected_first_token_id_out: TokenIdentifier,
+        expected_first_token_id_out: &TokenIdentifier,
+        expected_second_token_id_out: &TokenIdentifier,
     ) -> RemoveLiquidityResultWrapper<Self::Api> {
         let lp_payments_out: RemoveLiquidityResultType<Self::Api> = self
             .lp_proxy(lp_address)
@@ -111,12 +108,12 @@ pub trait LpInteractionsModule {
             .add_token_transfer(lp_token_id, 0, lp_token_amount)
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
 
-        let (mut first_token_payment_out, mut second_token_payment_out) =
-            lp_payments_out.into_tuple();
-
-        if second_token_payment_out.token_identifier == expected_first_token_id_out {
-            core::mem::swap(&mut first_token_payment_out, &mut second_token_payment_out);
-        }
+        let (first_token_payment_out, second_token_payment_out) = lp_payments_out.into_tuple();
+        require!(
+            &first_token_payment_out.token_identifier == expected_first_token_id_out
+                && &second_token_payment_out.token_identifier == expected_second_token_id_out,
+            "Invalid tokens received from LP"
+        );
 
         RemoveLiquidityResultWrapper {
             first_token_payment_out,
