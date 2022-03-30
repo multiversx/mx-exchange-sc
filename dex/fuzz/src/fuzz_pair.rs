@@ -13,11 +13,26 @@ pub mod fuzz_pair_test {
     use crate::fuzz_data::fuzz_data_tests::*;
     use pair::*;
 
-    pub fn add_liquidity<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn add_liquidity<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -42,14 +57,15 @@ pub mod fuzz_pair_test {
         let first_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, first_token, 0);
+                .get_esdt_balance(&caller.address, first_token, 0);
         let second_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, second_token, 0);
-        let lp_token_before = fuzzer_data
-            .blockchain_wrapper
-            .get_esdt_balance(&caller, lp_token, 0);
+                .get_esdt_balance(&caller.address, second_token, 0);
+        let lp_token_before =
+            fuzzer_data
+                .blockchain_wrapper
+                .get_esdt_balance(&caller.address, lp_token, 0);
 
         if first_token_before < rust_biguint!(first_token_amount)
             || second_token_before < rust_biguint!(second_token_amount)
@@ -74,7 +90,7 @@ pub mod fuzz_pair_test {
         ];
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-            &caller,
+            &caller.address,
             &swap_pair.pair_wrapper,
             &payments,
             |sc| {
@@ -94,14 +110,15 @@ pub mod fuzz_pair_test {
             let first_token_after =
                 fuzzer_data
                     .blockchain_wrapper
-                    .get_esdt_balance(&caller, first_token, 0);
+                    .get_esdt_balance(&caller.address, first_token, 0);
             let second_token_after =
                 fuzzer_data
                     .blockchain_wrapper
-                    .get_esdt_balance(&caller, second_token, 0);
-            let lp_token_after = fuzzer_data
-                .blockchain_wrapper
-                .get_esdt_balance(&caller, lp_token, 0);
+                    .get_esdt_balance(&caller.address, second_token, 0);
+            let lp_token_after =
+                fuzzer_data
+                    .blockchain_wrapper
+                    .get_esdt_balance(&caller.address, lp_token, 0);
 
             if first_token_after > first_token_before || second_token_after > second_token_before {
                 println!("Add liquidity warning: Wrong final tokens balances");
@@ -114,11 +131,26 @@ pub mod fuzz_pair_test {
         }
     }
 
-    pub fn remove_liquidity<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn remove_liquidity<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -142,14 +174,15 @@ pub mod fuzz_pair_test {
         let first_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, first_token, 0);
+                .get_esdt_balance(&caller.address, first_token, 0);
         let second_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, second_token, 0);
-        let lp_token_before = fuzzer_data
-            .blockchain_wrapper
-            .get_esdt_balance(&caller, lp_token, 0);
+                .get_esdt_balance(&caller.address, second_token, 0);
+        let lp_token_before =
+            fuzzer_data
+                .blockchain_wrapper
+                .get_esdt_balance(&caller.address, lp_token, 0);
 
         if lp_token_before < rust_biguint!(lp_token_amount) {
             println!("Remove liquidity error: Not enough LP token user balance");
@@ -165,7 +198,7 @@ pub mod fuzz_pair_test {
         }];
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-            &caller,
+            &caller.address,
             &swap_pair.pair_wrapper,
             &payments,
             |sc| {
@@ -188,14 +221,15 @@ pub mod fuzz_pair_test {
             let first_token_after =
                 fuzzer_data
                     .blockchain_wrapper
-                    .get_esdt_balance(&caller, first_token, 0);
+                    .get_esdt_balance(&caller.address, first_token, 0);
             let second_token_after =
                 fuzzer_data
                     .blockchain_wrapper
-                    .get_esdt_balance(&caller, second_token, 0);
-            let lp_token_after = fuzzer_data
-                .blockchain_wrapper
-                .get_esdt_balance(&caller, lp_token, 0);
+                    .get_esdt_balance(&caller.address, second_token, 0);
+            let lp_token_after =
+                fuzzer_data
+                    .blockchain_wrapper
+                    .get_esdt_balance(&caller.address, lp_token, 0);
 
             if first_token_after < first_token_before || second_token_after < second_token_before {
                 println!("Remove liquidity warning: Wrong final tokens balances");
@@ -208,11 +242,26 @@ pub mod fuzz_pair_test {
         }
     }
 
-    pub fn swap_pair<PairObjBuilder, FarmObjBuilder>(
-        fuzzer_data: &mut FuzzerData<PairObjBuilder, FarmObjBuilder>,
+    pub fn swap_pair<
+        PairObjBuilder,
+        FarmObjBuilder,
+        FactoryObjBuilder,
+        DexObjBuilder,
+        PriceDiscObjBuilder,
+    >(
+        fuzzer_data: &mut FuzzerData<
+            PairObjBuilder,
+            FarmObjBuilder,
+            FactoryObjBuilder,
+            DexObjBuilder,
+            PriceDiscObjBuilder,
+        >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+        FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
+        PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let pair_index = fuzzer_data.rng.gen_range(0..fuzzer_data.swap_pairs.len());
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -226,12 +275,12 @@ pub mod fuzz_pair_test {
         let payment_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, payment_token_id, 0);
+                .get_esdt_balance(&caller.address, payment_token_id, 0);
 
         let desired_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller, desired_token_id, 0);
+                .get_esdt_balance(&caller.address, desired_token_id, 0);
 
         let seed = fuzzer_data
             .rng
@@ -239,7 +288,6 @@ pub mod fuzz_pair_test {
             + 1;
 
         let payment_amount = seed;
-        let desired_amount = seed;
         let payment_amount_max = seed * 10;
         let desired_amount_min = seed / 100;
 
@@ -253,10 +301,12 @@ pub mod fuzz_pair_test {
                 return;
             }
 
-            let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-                &caller,
+            let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
+                &caller.address,
                 &swap_pair.pair_wrapper,
-                &vec![],
+                &payment_token_id,
+                0,
+                &rust_biguint!(payment_amount),
                 |sc| {
                     sc.swap_tokens_fixed_input(
                         managed_token_id!(payment_token_id),
@@ -271,15 +321,17 @@ pub mod fuzz_pair_test {
 
             let tx_result_string = tx_result.result_message;
 
-            let payment_token_after =
-                fuzzer_data
-                    .blockchain_wrapper
-                    .get_esdt_balance(&caller, payment_token_id, 0);
+            let payment_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
+                &caller.address,
+                payment_token_id,
+                0,
+            );
 
-            let desired_token_after =
-                fuzzer_data
-                    .blockchain_wrapper
-                    .get_esdt_balance(&caller, desired_token_id, 0);
+            let desired_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
+                &caller.address,
+                desired_token_id,
+                0,
+            );
 
             if payment_token_after > payment_token_before {
                 println!("Swap fixed input error: final payment token balance is higher than the initial balance");
@@ -297,21 +349,23 @@ pub mod fuzz_pair_test {
             //swap fixed output
             if payment_token_before < rust_biguint!(payment_amount_max) {
                 println!("Swap fixed output error: Not enough token user balance");
-                fuzzer_data.statistics.add_liquidity_misses += 1;
+                fuzzer_data.statistics.swap_fixed_output_misses += 1;
                 return;
             }
 
-            let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
-                &caller,
+            let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
+                &caller.address,
                 &swap_pair.pair_wrapper,
-                &vec![],
+                &payment_token_id,
+                0,
+                &rust_biguint!(payment_amount),
                 |sc| {
                     sc.swap_tokens_fixed_output(
                         managed_token_id!(payment_token_id),
                         0,
-                        managed_biguint!(payment_amount_max),
+                        managed_biguint!(payment_amount),
                         managed_token_id!(desired_token_id),
-                        managed_biguint!(desired_amount),
+                        managed_biguint!(desired_amount_min),
                         OptionalValue::None,
                     );
                 },
@@ -319,22 +373,24 @@ pub mod fuzz_pair_test {
 
             let tx_result_string = tx_result.result_message;
 
-            let payment_token_after =
-                fuzzer_data
-                    .blockchain_wrapper
-                    .get_esdt_balance(&caller, payment_token_id, 0);
+            let payment_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
+                &caller.address,
+                payment_token_id,
+                0,
+            );
 
-            let desired_token_after =
-                fuzzer_data
-                    .blockchain_wrapper
-                    .get_esdt_balance(&caller, desired_token_id, 0);
+            let desired_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
+                &caller.address,
+                desired_token_id,
+                0,
+            );
 
             if payment_token_after > payment_token_before {
                 println!("Swap fixed output error: final payment token balance is higher than the initial balance");
-                fuzzer_data.statistics.swap_fixed_input_misses += 1;
+                fuzzer_data.statistics.swap_fixed_output_misses += 1;
             } else if desired_token_after < desired_token_before {
                 println!("Swap fixed output error: wrong desired token amount");
-                fuzzer_data.statistics.swap_fixed_input_misses += 1;
+                fuzzer_data.statistics.swap_fixed_output_misses += 1;
             } else if tx_result_string.trim().is_empty() {
                 fuzzer_data.statistics.swap_fixed_output_hits += 1;
             } else {
