@@ -36,13 +36,36 @@ pub trait MigrationModule:
     + rewards::RewardsModule
 {
     #[payable("*")]
-    #[endpoint(migrateToNewFarm)]
-    fn migrate_to_new_farm(
+    #[endpoint(migrateToNewFarmWithNoRewards)]
+    fn migrate_to_new_farm_with_no_rewards(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] token_nonce: u64,
         #[payment_amount] amount: BigUint,
         orig_caller: ManagedAddress,
+    ) -> SCResult<MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>> {
+        self.migrate_to_new_farm(payment_token_id, token_nonce, amount, orig_caller, false)
+    }
+
+    #[payable("*")]
+    #[endpoint(migrateToNewFarm)]
+    fn migrate_to_new_farm_with_rewards(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: u64,
+        #[payment_amount] amount: BigUint,
+        orig_caller: ManagedAddress,
+    ) -> SCResult<MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>> {
+        self.migrate_to_new_farm(payment_token_id, token_nonce, amount, orig_caller, true)
+    }
+
+    fn migrate_to_new_farm(
+        &self,
+        payment_token_id: TokenIdentifier,
+        token_nonce: u64,
+        amount: BigUint,
+        orig_caller: ManagedAddress,
+        with_rewards: bool,
     ) -> SCResult<MultiResult2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>> {
         require!(self.state().get() == State::Migrate, "bad state");
         require!(!self.farm_token_id().is_empty(), "No farm token");
@@ -58,11 +81,16 @@ pub trait MigrationModule:
         let mut farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
         let mut reward_token_id = self.reward_token_id().get();
 
-        let mut reward = self.calculate_reward(
-            &amount,
-            &self.reward_per_share().get(),
-            &farm_attributes.reward_per_share,
-        );
+        let mut reward = if with_rewards {
+            self.calculate_reward(
+                &amount,
+                &self.reward_per_share().get(),
+                &farm_attributes.reward_per_share,
+            )
+        } else {
+            BigUint::zero()
+        };
+
         if reward > 0u64 {
             self.decrease_reward_reserve(&reward)?;
         }
