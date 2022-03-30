@@ -1,12 +1,14 @@
 #![no_std]
 
-use crate::locked_token::LockedTokenAttributes;
-
 elrond_wasm::imports!();
 
+pub mod error_messages;
 pub mod locked_token;
 pub mod lp_interactions;
 pub mod proxy_lp;
+
+use error_messages::*;
+use crate::locked_token::LockedTokenAttributes;
 
 const SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES: u32 = 1;
 
@@ -28,7 +30,7 @@ pub trait SimpleLock:
         #[var_args] opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
-        require!(payment_amount > 0, "No payment");
+        require!(payment_amount > 0, NO_PAYMENT_ERR_MSG);
 
         let dest_address = self.dest_from_optional(opt_destination);
         let attributes = LockedTokenAttributes {
@@ -61,7 +63,7 @@ pub trait SimpleLock:
         #[var_args] opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
-        require!(payment.amount > 0, "No payment");
+        require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_same_token(&payment.token_identifier);
