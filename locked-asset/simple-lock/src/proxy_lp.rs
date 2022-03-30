@@ -22,6 +22,7 @@ pub type RemoveLiquidityThroughProxyResultType<M> =
 pub trait ProxyLpModule:
     crate::locked_token::LockedTokenModule
     + crate::lp_interactions::LpInteractionsModule
+    + crate::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
@@ -154,10 +155,15 @@ pub trait ProxyLpModule:
             first_payment_unlocked_wrapper,
             second_payment_unlocked_wrapper,
         );
-        let lp_proxy_payment = self.lp_proxy_token().nft_create_and_send(
+
+        let lp_proxy_token_mapper = self.lp_proxy_token();
+        let lp_proxy_nonce = self
+            .get_or_create_nonce_for_attributes(&lp_proxy_token_mapper, &proxy_token_attributes);
+
+        let lp_proxy_payment = self.lp_proxy_token().nft_add_quantity_and_send(
             &caller,
+            lp_proxy_nonce,
             add_liq_result.lp_tokens.amount,
-            &proxy_token_attributes,
         );
 
         (

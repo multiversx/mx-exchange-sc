@@ -1255,4 +1255,26 @@ fn add_liquidity_through_simple_lock_proxy() {
         MEX_TOKEN_ID,
         &(user_mex_balance_before + 500_000u32),
     );
+
+    // Add liquidity - same token pair as before -> same nonce (1)
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_multi_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            &transfers[..],
+            |sc| {
+                let (_, _, lp_proxy_payment) = sc
+                    .add_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+
+                assert_eq!(
+                    lp_proxy_payment.token_identifier,
+                    managed_token_id!(LP_PROXY_TOKEN_ID)
+                );
+                assert_eq!(lp_proxy_payment.token_nonce, 1);
+                assert_eq!(lp_proxy_payment.amount, managed_biguint!(500_000));
+            },
+        )
+        .assert_ok();
 }

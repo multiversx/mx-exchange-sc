@@ -107,4 +107,34 @@ fn lock_unlock_test() {
         )
         .assert_ok();
     b_mock.check_esdt_balance(&user_addr, FREE_TOKEN_ID, &lock_amount);
+
+    // lock with same token, same unlock epoch -> same token nonce
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &rust_biguint!(100),
+            |sc| {
+                let payment_result = sc.lock_tokens(10, OptionalValue::None);
+                assert_eq!(payment_result.token_nonce, lock_token_nonce);
+            },
+        )
+        .assert_ok();
+
+    // lock with same token, different unlock epoch -> different attributes -> different nonce
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &rust_biguint!(100),
+            |sc| {
+                let payment_result = sc.lock_tokens(15, OptionalValue::None);
+                assert_eq!(payment_result.token_nonce, lock_token_nonce + 1);
+            },
+        )
+        .assert_ok();
 }

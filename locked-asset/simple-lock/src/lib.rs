@@ -6,11 +6,10 @@ pub mod error_messages;
 pub mod locked_token;
 pub mod lp_interactions;
 pub mod proxy_lp;
+pub mod token_attributes;
 
-use error_messages::*;
 use crate::locked_token::LockedTokenAttributes;
-
-const SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES: u32 = 1;
+use error_messages::*;
 
 #[elrond_wasm::contract]
 pub trait SimpleLock:
@@ -18,6 +17,7 @@ pub trait SimpleLock:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + proxy_lp::ProxyLpModule
     + lp_interactions::LpInteractionsModule
+    + token_attributes::TokenAttributesModule
 {
     #[init]
     fn init(&self) {}
@@ -32,26 +32,18 @@ pub trait SimpleLock:
         let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
         require!(payment_amount > 0, NO_PAYMENT_ERR_MSG);
 
-        let dest_address = self.dest_from_optional(opt_destination);
         let attributes = LockedTokenAttributes {
             original_token_id: payment_token,
             original_token_nonce: payment_nonce,
             unlock_epoch,
         };
+        let locked_token_mapper = self.locked_token();
+        let sft_nonce = self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
 
-        let mut locked_tokens_payment = self.locked_token().nft_create(
-            payment_amount + SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES,
-            &attributes,
-        );
-        locked_tokens_payment.amount -= SFT_EXTRA_AMOUNT_TO_SAVE_ATTRIBUTES;
-
-        self.send().direct(
-            &dest_address,
-            &locked_tokens_payment.token_identifier,
-            locked_tokens_payment.token_nonce,
-            &locked_tokens_payment.amount,
-            &[],
-        );
+        let dest_address = self.dest_from_optional(opt_destination);
+        let locked_tokens_payment =
+            self.locked_token()
+                .nft_add_quantity_and_send(&dest_address, sft_nonce, payment_amount);
 
         locked_tokens_payment
     }
