@@ -13,6 +13,11 @@ pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
     pub second_token_locked_nonce: u64,
 }
 
+pub type AddLiquidityThroughProxyResultType<M> =
+    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type RemoveLiquidityThroughProxyResultType<M> =
+    MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+
 #[elrond_wasm::module]
 pub trait ProxyLpModule:
     crate::locked_token::LockedTokenModule
@@ -77,7 +82,7 @@ pub trait ProxyLpModule:
         lp_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> AddLiquidityThroughProxyResultType<Self::Api> {
         self.lp_address_whitelist().require_whitelisted(&lp_address);
 
         let payments = self.call_value().all_esdt_transfers();
@@ -113,12 +118,12 @@ pub trait ProxyLpModule:
         );
 
         let caller = self.blockchain().get_caller();
-        self.lock_if_needed_and_send(
+        let first_token_refund_payment = self.lock_if_needed_and_send(
             &caller,
             add_liq_result.first_token_refund,
             first_payment_unlocked_wrapper.status_before,
         );
-        self.lock_if_needed_and_send(
+        let second_token_refund_payment = self.lock_if_needed_and_send(
             &caller,
             add_liq_result.second_token_refund,
             second_payment_unlocked_wrapper.status_before,
@@ -130,11 +135,18 @@ pub trait ProxyLpModule:
             first_payment_unlocked_wrapper,
             second_payment_unlocked_wrapper,
         );
-        self.lp_proxy_token().nft_create_and_send(
+        let lp_proxy_payment = self.lp_proxy_token().nft_create_and_send(
             &caller,
             add_liq_result.lp_tokens.amount,
             &proxy_token_attributes,
+        );
+
+        (
+            first_token_refund_payment,
+            second_token_refund_payment,
+            lp_proxy_payment,
         )
+            .into()
     }
 
     #[payable("*")]
@@ -143,7 +155,7 @@ pub trait ProxyLpModule:
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) {
+    ) -> RemoveLiquidityThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
         let lp_proxy_token_mapper = self.lp_proxy_token();
         lp_proxy_token_mapper.require_same_token(&payment.token_identifier);
@@ -163,16 +175,18 @@ pub trait ProxyLpModule:
         );
 
         let caller = self.blockchain().get_caller();
-        self.lock_if_needed_and_send(
+        let first_token_result_payment = self.lock_if_needed_and_send(
             &caller,
             remove_liq_result.first_token_payment_out,
             PreviousStatusFlag::new(lp_proxy_token_attributes.first_token_locked_nonce),
         );
-        self.lock_if_needed_and_send(
+        let second_token_result_payment = self.lock_if_needed_and_send(
             &caller,
             remove_liq_result.second_token_payment_out,
             PreviousStatusFlag::new(lp_proxy_token_attributes.second_token_locked_nonce),
         );
+
+        (first_token_result_payment, second_token_result_payment).into()
     }
 
     fn unlock_lp_payments(
@@ -256,9 +270,9 @@ pub trait ProxyLpModule:
         to: &ManagedAddress,
         payment: EsdtTokenPayment<Self::Api>,
         prev_status: PreviousStatusFlag,
-    ) {
+    ) -> EsdtTokenPayment<Self::Api> {
         if payment.amount == 0 {
-            return;
+            return payment;
         }
 
         match prev_status {
@@ -270,14 +284,12 @@ pub trait ProxyLpModule:
                     &payment.amount,
                     &[],
                 );
+
+                payment
             }
-            PreviousStatusFlag::Locked { locked_token_nonce } => {
-                self.locked_token().nft_add_quantity_and_send(
-                    to,
-                    locked_token_nonce,
-                    payment.amount,
-                );
-            }
+            PreviousStatusFlag::Locked { locked_token_nonce } => self
+                .locked_token()
+                .nft_add_quantity_and_send(to, locked_token_nonce, payment.amount),
         }
     }
 
