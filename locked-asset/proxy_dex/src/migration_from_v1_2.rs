@@ -17,7 +17,14 @@ mod farm_v1_2_contract_proxy {
     pub trait Farm {
         #[payable("*")]
         #[endpoint(migrateToNewFarm)]
-        fn migrate_to_new_farm(
+        fn migrate_to_new_farm_with_rewards(
+            &self,
+            orig_caller: ManagedAddress,
+        ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
+
+        #[payable("*")]
+        #[endpoint(migrateToNewFarmWithNoRewards)]
+        fn migrate_to_new_farm_with_no_rewards(
             &self,
             orig_caller: ManagedAddress,
         ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>;
@@ -36,13 +43,48 @@ pub trait MigrationModule:
     + events::EventsModule
 {
     #[payable("*")]
-    #[endpoint(migrateV1_2Position)]
-    fn migrate_v1_2_position(
+    #[endpoint(migrateV1_2PositionWithNoRewards)]
+    fn migrate_v1_2_position_with_no_rewards(
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] payment_token_nonce: u64,
         #[payment_amount] payment_amount: BigUint,
         farm_address: ManagedAddress,
+    ) {
+        self.migrate_v1_2_position(
+            payment_token_id,
+            payment_token_nonce,
+            payment_amount,
+            farm_address,
+            false,
+        )
+    }
+
+    #[payable("*")]
+    #[endpoint(migrateV1_2Position)]
+    fn migrate_v1_2_position_with_rewards(
+        &self,
+        #[payment_token] payment_token_id: TokenIdentifier,
+        #[payment_nonce] payment_token_nonce: u64,
+        #[payment_amount] payment_amount: BigUint,
+        farm_address: ManagedAddress,
+    ) {
+        self.migrate_v1_2_position(
+            payment_token_id,
+            payment_token_nonce,
+            payment_amount,
+            farm_address,
+            true,
+        )
+    }
+
+    fn migrate_v1_2_position(
+        &self,
+        payment_token_id: TokenIdentifier,
+        payment_token_nonce: u64,
+        payment_amount: BigUint,
+        farm_address: ManagedAddress,
+        with_rewards: bool,
     ) {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
@@ -63,12 +105,19 @@ pub trait MigrationModule:
         let farm_amount = payment_amount.clone();
 
         // Get the new farm position from the new contract.
-        let (new_pos, reward) = self
-            .farm_v1_2_contract_proxy(farm_address)
-            .migrate_to_new_farm(self.blockchain().get_sc_address())
-            .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
-            .into_tuple();
+        let (new_pos, reward) = if with_rewards {
+            self.farm_v1_2_contract_proxy(farm_address)
+                .migrate_to_new_farm_with_rewards(self.blockchain().get_sc_address())
+                .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
+                .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+                .into_tuple()
+        } else {
+            self.farm_v1_2_contract_proxy(farm_address)
+                .migrate_to_new_farm_with_no_rewards(self.blockchain().get_sc_address())
+                .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
+                .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+                .into_tuple()
+        };
 
         // Burn the old proxy farm position
         self.send()

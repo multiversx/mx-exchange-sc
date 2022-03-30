@@ -196,7 +196,7 @@ pub mod migration_tests {
                 2,
                 &rust_biguint!(50_000),
                 |sc| {
-                    sc.migrate_v1_2_position(
+                    sc.migrate_v1_2_position_with_rewards(
                         managed_token_id!(WRAPPED_FARM_TOKEN_ID),
                         2,
                         managed_biguint!(50_000),
