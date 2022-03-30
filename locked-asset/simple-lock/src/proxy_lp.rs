@@ -5,7 +5,6 @@ use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPay
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
-    pub lp_address: ManagedAddress<M>,
     pub lp_token_id: TokenIdentifier<M>,
     pub first_token_id: TokenIdentifier<M>,
     pub first_token_locked_nonce: u64,
@@ -60,34 +59,54 @@ pub trait ProxyLpModule:
 
     #[only_owner]
     #[endpoint(addLpToWhitelist)]
-    fn add_lp_to_whitelist(&self, lp_address: ManagedAddress) {
+    fn add_lp_to_whitelist(
+        &self,
+        lp_address: ManagedAddress,
+        first_token_id: TokenIdentifier,
+        second_token_id: TokenIdentifier,
+    ) {
         require!(
             self.blockchain().is_smart_contract(&lp_address),
             "Invalid LP address"
         );
+        require!(
+            first_token_id != second_token_id,
+            "Token IDs must be different"
+        );
+        require!(
+            first_token_id.is_esdt() && second_token_id.is_esdt(),
+            "Only ESDT tokens accepted"
+        );
 
-        self.lp_address_whitelist().add(&lp_address);
+        self.lp_address_for_token_pair(&first_token_id, &second_token_id)
+            .set(&lp_address);
     }
 
     #[only_owner]
     #[endpoint(removeLpFromWhitelist)]
-    fn remove_lp_from_whitelist(&self, lp_address: ManagedAddress) {
-        self.lp_address_whitelist().remove(&lp_address);
+    fn remove_lp_from_whitelist(
+        &self,
+        first_token_id: TokenIdentifier,
+        second_token_id: TokenIdentifier,
+    ) {
+        self.lp_address_for_token_pair(&first_token_id, &second_token_id)
+            .clear();
     }
 
     #[payable("*")]
     #[endpoint(addLiquidityLockedToken)]
     fn add_liquidity_locked_token(
         &self,
-        lp_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> AddLiquidityThroughProxyResultType<Self::Api> {
-        self.lp_address_whitelist().require_whitelisted(&lp_address);
-
         let payments = self.call_value().all_esdt_transfers();
-        let (first_payment_unlocked_wrapper, second_payment_unlocked_wrapper) =
+        let (mut first_payment_unlocked_wrapper, mut second_payment_unlocked_wrapper) =
             self.unlock_lp_payments(payments);
+        let lp_address = self.try_get_lp_address_and_fix_token_order(
+            &mut first_payment_unlocked_wrapper,
+            &mut second_payment_unlocked_wrapper,
+        );
 
         require!(
             first_payment_unlocked_wrapper.status_before.was_locked()
@@ -110,9 +129,9 @@ pub trait ProxyLpModule:
         );
 
         let add_liq_result = self.call_pair_add_liquidity(
-            lp_address.clone(),
-            ref_first_payment_unlocked.clone(),
-            ref_second_payment_unlocked.clone(),
+            lp_address,
+            ref_first_payment_unlocked,
+            ref_second_payment_unlocked,
             first_token_amount_min,
             second_token_amount_min,
         );
@@ -130,7 +149,6 @@ pub trait ProxyLpModule:
         );
 
         let proxy_token_attributes = self.create_lp_proxy_token_attributes(
-            lp_address,
             add_liq_result.lp_tokens.token_identifier,
             first_payment_unlocked_wrapper,
             second_payment_unlocked_wrapper,
@@ -164,14 +182,21 @@ pub trait ProxyLpModule:
             lp_proxy_token_mapper.get_token_attributes(payment.token_nonce);
         lp_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
+        let lp_address = self
+            .lp_address_for_token_pair(
+                &lp_proxy_token_attributes.first_token_id,
+                &lp_proxy_token_attributes.second_token_id,
+            )
+            .get();
         let lp_token_amount = payment.amount;
         let remove_liq_result = self.call_pair_remove_liquidity(
-            lp_proxy_token_attributes.lp_address,
+            lp_address,
             lp_proxy_token_attributes.lp_token_id,
             lp_token_amount,
             first_token_amount_min,
             second_token_amount_min,
-            lp_proxy_token_attributes.first_token_id.clone(),
+            &lp_proxy_token_attributes.first_token_id,
+            &lp_proxy_token_attributes.second_token_id,
         );
 
         let caller = self.blockchain().get_caller();
@@ -245,7 +270,6 @@ pub trait ProxyLpModule:
 
     fn create_lp_proxy_token_attributes(
         &self,
-        lp_address: ManagedAddress,
         lp_token_id: TokenIdentifier,
         first_payment_unlocked_wrapper: UnlockedPaymentWrapper<Self::Api>,
         second_payment_unlocked_wrapper: UnlockedPaymentWrapper<Self::Api>,
@@ -256,7 +280,6 @@ pub trait ProxyLpModule:
         let second_token_id = second_payment_unlocked_wrapper.payment.token_identifier;
 
         LpProxyTokenAttributes {
-            lp_address,
             lp_token_id,
             first_token_id,
             first_token_locked_nonce,
@@ -293,8 +316,38 @@ pub trait ProxyLpModule:
         }
     }
 
-    #[storage_mapper("lpAddressWhitelist")]
-    fn lp_address_whitelist(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn try_get_lp_address_and_fix_token_order(
+        &self,
+        first_unlocked_payment: &mut UnlockedPaymentWrapper<Self::Api>,
+        second_unlocked_payment: &mut UnlockedPaymentWrapper<Self::Api>,
+    ) -> ManagedAddress {
+        let correct_order_mapper = self.lp_address_for_token_pair(
+            &first_unlocked_payment.payment.token_identifier,
+            &second_unlocked_payment.payment.token_identifier,
+        );
+        if !correct_order_mapper.is_empty() {
+            return correct_order_mapper.get();
+        }
+
+        let reverse_order_mapper = self.lp_address_for_token_pair(
+            &second_unlocked_payment.payment.token_identifier,
+            &first_unlocked_payment.payment.token_identifier,
+        );
+        require!(
+            !reverse_order_mapper.is_empty(),
+            "No LP address for token pair"
+        );
+
+        core::mem::swap(first_unlocked_payment, second_unlocked_payment);
+        reverse_order_mapper.get()
+    }
+
+    #[storage_mapper("lpAddressForTokenPair")]
+    fn lp_address_for_token_pair(
+        &self,
+        first_token_id: &TokenIdentifier,
+        second_token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getLpProxyTokenId)]
     #[storage_mapper("lpProxyTokenId")]
