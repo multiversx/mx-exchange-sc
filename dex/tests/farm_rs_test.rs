@@ -672,3 +672,250 @@ fn test_migration() {
 
     do_basic_migration(&mut farm_setup);
 }
+
+#[test]
+fn test_farm_through_simple_lock() {
+    use elrond_wasm::storage::mappers::StorageTokenWrapper;
+    use simple_lock::locked_token::LockedTokenModule;
+    use simple_lock::proxy_farm::ProxyFarmModule;
+    use simple_lock::proxy_farm::*;
+    use simple_lock::SimpleLock;
+
+    const FREE_TOKEN_ID: &[u8] = b"FREEEEE-123456";
+    const LOCKED_TOKEN_ID: &[u8] = b"NOOOO-123456";
+    const FARM_PROXY_TOKEN_ID: &[u8] = b"PROXY-123456";
+
+    let _ = DebugApi::dummy();
+    let rust_zero = rust_biguint!(0);
+    let mut farm_setup = setup_farm(farm::contract_obj);
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+
+    // change farming token for farm
+    b_mock
+        .execute_tx(
+            &farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.farming_token_id().set(&managed_token_id!(FREE_TOKEN_ID));
+            },
+        )
+        .assert_ok();
+
+    // setup simple lock SC
+    let lock_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&farm_setup.owner_address),
+        simple_lock::contract_obj,
+        "Simple Lock Path",
+    );
+
+    let farm_addr = farm_setup.farm_wrapper.address_ref().clone();
+    b_mock
+        .execute_tx(&farm_setup.owner_address, &lock_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+            sc.farm_proxy_token()
+                .set_token_id(&managed_token_id!(FARM_PROXY_TOKEN_ID));
+            sc.add_farm_to_whitelist(
+                managed_address!(&farm_addr),
+                managed_token_id!(FREE_TOKEN_ID),
+                FarmType::SimpleFarm,
+            );
+        })
+        .assert_ok();
+
+    b_mock.set_esdt_local_roles(
+        lock_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+    b_mock.set_esdt_local_roles(
+        lock_wrapper.address_ref(),
+        FARM_PROXY_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    // user lock tokens
+    let user_addr = farm_setup.user_address.clone();
+    b_mock.set_esdt_balance(&user_addr, FREE_TOKEN_ID, &rust_biguint!(1_000_000_000));
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &rust_biguint!(1_000_000_000),
+            |sc| {
+                let payment_result = sc.lock_tokens(10, OptionalValue::None);
+                assert_eq!(
+                    payment_result.token_identifier,
+                    managed_token_id!(LOCKED_TOKEN_ID)
+                );
+                assert_eq!(payment_result.token_nonce, 1);
+                assert_eq!(payment_result.amount, managed_biguint!(1_000_000_000));
+            },
+        )
+        .assert_ok();
+
+    // user enter farm
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            LOCKED_TOKEN_ID,
+            1,
+            &rust_biguint!(1_000_000_000),
+            |sc| {
+                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
+                assert_eq!(
+                    enter_farm_result.token_identifier,
+                    managed_token_id!(FARM_PROXY_TOKEN_ID)
+                );
+                assert_eq!(enter_farm_result.token_nonce, 1);
+                assert_eq!(enter_farm_result.amount, managed_biguint!(1_000_000_000));
+            },
+        )
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        FARM_PROXY_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000_000_000),
+        &FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
+            farm_token_id: managed_token_id!(FARM_TOKEN_ID),
+            farm_token_nonce: 1,
+            farming_token_id: managed_token_id!(FREE_TOKEN_ID),
+            farming_token_locked_nonce: 1,
+        },
+    );
+
+    // user claim farm rewards
+    b_mock.set_block_nonce(10);
+    b_mock.set_block_epoch(5);
+
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            FARM_PROXY_TOKEN_ID,
+            1,
+            &rust_biguint!(1_000_000_000),
+            |sc| {
+                let claim_result = sc.farm_claim_rewards_locked_token();
+                let (new_proxy_token, reward_tokens) = claim_result.into_tuple();
+                assert_eq!(
+                    new_proxy_token.token_identifier,
+                    managed_token_id!(FARM_PROXY_TOKEN_ID)
+                );
+                assert_eq!(new_proxy_token.token_nonce, 2);
+                assert_eq!(new_proxy_token.amount, managed_biguint!(1_000_000_000));
+
+                assert_eq!(
+                    reward_tokens.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(reward_tokens.token_nonce, 0);
+                assert_eq!(
+                    reward_tokens.amount,
+                    managed_biguint!(10 * PER_BLOCK_REWARD_AMOUNT)
+                );
+            },
+        )
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        FARM_PROXY_TOKEN_ID,
+        2,
+        &rust_biguint!(1_000_000_000),
+        &FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
+            farm_token_id: managed_token_id!(FARM_TOKEN_ID),
+            farm_token_nonce: 2,
+            farming_token_id: managed_token_id!(FREE_TOKEN_ID),
+            farming_token_locked_nonce: 1,
+        },
+    );
+    b_mock.check_esdt_balance(
+        &user_addr,
+        MEX_TOKEN_ID,
+        &rust_biguint!(10 * PER_BLOCK_REWARD_AMOUNT),
+    );
+
+    // user compound farm rewards - can only compound if farming token == reward token
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            FARM_PROXY_TOKEN_ID,
+            2,
+            &rust_biguint!(1_000_000_000),
+            |sc| {
+                let _ = sc.farm_compound_rewards_locked_token();
+            },
+        )
+        .assert_user_error("Different token ids");
+
+    // user exit farm
+    b_mock.set_block_nonce(25);
+
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            FARM_PROXY_TOKEN_ID,
+            2,
+            &rust_biguint!(1_000_000_000),
+            |sc| {
+                let exit_farm_result = sc.exit_farm_locked_token();
+                let (locked_tokens, reward_tokens) = exit_farm_result.into_tuple();
+
+                assert_eq!(
+                    locked_tokens.token_identifier,
+                    managed_token_id!(LOCKED_TOKEN_ID)
+                );
+                assert_eq!(locked_tokens.token_nonce, 1);
+                assert_eq!(locked_tokens.amount, managed_biguint!(1_000_000_000));
+
+                assert_eq!(
+                    reward_tokens.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(reward_tokens.token_nonce, 0);
+                assert_eq!(
+                    reward_tokens.amount,
+                    managed_biguint!(15 * PER_BLOCK_REWARD_AMOUNT)
+                );
+            },
+        )
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000_000_000),
+        &simple_lock::locked_token::LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(FREE_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 10,
+        },
+    );
+    b_mock.check_esdt_balance(
+        &user_addr,
+        MEX_TOKEN_ID,
+        &rust_biguint!(25 * PER_BLOCK_REWARD_AMOUNT),
+    );
+}

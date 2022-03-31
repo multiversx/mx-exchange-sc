@@ -3,8 +3,10 @@
 elrond_wasm::imports!();
 
 pub mod error_messages;
+pub mod farm_interactions;
 pub mod locked_token;
 pub mod lp_interactions;
+pub mod proxy_farm;
 pub mod proxy_lp;
 pub mod token_attributes;
 
@@ -16,7 +18,9 @@ pub trait SimpleLock:
     locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + proxy_lp::ProxyLpModule
+    + proxy_farm::ProxyFarmModule
     + lp_interactions::LpInteractionsModule
+    + farm_interactions::FarmInteractionsModule
     + token_attributes::TokenAttributesModule
 {
     #[init]
