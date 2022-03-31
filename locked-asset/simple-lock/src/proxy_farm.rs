@@ -264,7 +264,7 @@ pub trait ProxyFarmModule:
         farming_token_id: &TokenIdentifier,
         farm_type: FarmType,
     ) -> ManagedAddress {
-        let mapper = self.farm_address_for_token(&farming_token_id, farm_type);
+        let mapper = self.farm_address_for_token(farming_token_id, farm_type);
         require!(
             !mapper.is_empty(),
             "No farm address for the specified token and type pair",
