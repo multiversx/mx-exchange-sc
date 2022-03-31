@@ -142,18 +142,17 @@ pub trait PriceDiscovery:
             sc_panic!(INVALID_PAYMENT_ERR_MSG);
         };
 
-        let launched_token_balance_before = self.launched_token_balance().get();
-        let accepted_token_balance_before = self.accepted_token_balance().get();
-
         self.increase_balance(balance_mapper, &payment_amount);
+
+        let current_price = self.calculate_price();
+        let min_price = self.min_launched_token_price().get();
+        require!(
+            current_price == 0 || current_price >= min_price || payment_token == accepted_token_id,
+            BELOW_MIN_PRICE_ERR_MSG
+        );
 
         let caller = self.blockchain().get_caller();
         self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
-
-        let current_price = self.get_launched_token_price_over_min_price(
-            &launched_token_balance_before,
-            &accepted_token_balance_before,
-        );
 
         self.emit_deposit_event(
             payment_token,
@@ -195,23 +194,22 @@ pub trait PriceDiscovery:
 
         let penalty_percentage = phase.get_penalty_percentage();
         let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
-
-        let launched_token_balance_before = self.launched_token_balance().get();
-        let accepted_token_balance_before = self.accepted_token_balance().get();
-
-        let caller = self.blockchain().get_caller();
         let withdraw_amount = &payment_amount - &penalty_amount;
-        if withdraw_amount > 0 {
-            self.decrease_balance(balance_mapper, &withdraw_amount);
 
+        self.decrease_balance(balance_mapper, &withdraw_amount);
+
+        let current_price = self.calculate_price();
+        let min_price = self.min_launched_token_price().get();
+        require!(
+            current_price == 0 || current_price >= min_price,
+            BELOW_MIN_PRICE_ERR_MSG
+        );
+
+        if withdraw_amount > 0 {
+            let caller = self.blockchain().get_caller();
             self.send()
                 .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
         }
-
-        let current_price = self.get_launched_token_price_over_min_price(
-            &launched_token_balance_before,
-            &accepted_token_balance_before,
-        );
 
         self.emit_withdraw_event(
             refund_token_id,
@@ -295,52 +293,12 @@ pub trait PriceDiscovery:
         }
     }
 
-    fn get_launched_token_price_over_min_price(
-        &self,
-        launched_token_balance_before: &BigUint,
-        accepted_token_balance_before: &BigUint,
-    ) -> BigUint {
-        let min_price = self.min_launched_token_price().get();
-        let launched_token_balance_after = self.launched_token_balance().get();
-        let accepted_token_balance_after = self.accepted_token_balance().get();
+    #[view(getCurrentPrice)]
+    fn calculate_price(&self) -> BigUint {
+        let launched_token_balance = self.launched_token_balance().get();
+        let accepted_token_balance = self.accepted_token_balance().get();
 
-        if accepted_token_balance_after == 0 {
-            return accepted_token_balance_after;
-        }
-
-        require!(
-            launched_token_balance_after > 0,
-            "No launched tokens available"
-        );
-
-        let price_before =
-            self.calculate_price(accepted_token_balance_before, launched_token_balance_before);
-        let price_after =
-            self.calculate_price(&accepted_token_balance_after, &launched_token_balance_after);
-
-        // If price is below min price before and after
-        // it means there is a surplus of Launched tokens
-        // so only Accepted token deposits are allowed
-        if price_before < min_price && price_after < min_price {
-            require!(
-                &accepted_token_balance_after > accepted_token_balance_before,
-                BELOW_MIN_PRICE_ERR_MSG
-            );
-        } else {
-            require!(price_after >= min_price, BELOW_MIN_PRICE_ERR_MSG);
-        }
-
-        price_after
-    }
-
-    fn calculate_price(
-        &self,
-        accepted_token_balance: &BigUint,
-        launched_token_balance: &BigUint,
-    ) -> BigUint {
-        if launched_token_balance == &0 {
-            return BigUint::zero();
-        }
+        require!(launched_token_balance > 0, "No launched tokens available");
 
         let price_precision = self.price_precision().get();
         accepted_token_balance * price_precision / launched_token_balance
