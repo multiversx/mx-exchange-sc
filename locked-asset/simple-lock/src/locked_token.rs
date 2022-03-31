@@ -50,7 +50,8 @@ impl<M: ManagedTypeApi> UnlockedPaymentWrapper<M> {
 
 #[elrond_wasm::module]
 pub trait LockedTokenModule:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    crate::token_attributes::TokenAttributesModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]
@@ -84,6 +85,46 @@ pub trait LockedTokenModule:
             ],
             None,
         );
+    }
+
+    fn send_tokens_optimal_status(
+        &self,
+        to: &ManagedAddress,
+        payment: EsdtTokenPayment<Self::Api>,
+        prev_status: PreviousStatusFlag,
+    ) -> EsdtTokenPayment<Self::Api> {
+        if payment.amount == 0 {
+            return payment;
+        }
+
+        if let PreviousStatusFlag::Locked { locked_token_nonce } = prev_status {
+            let locked_token_mapper = self.locked_token();
+            let attributes: LockedTokenAttributes<Self::Api> =
+                locked_token_mapper.get_token_attributes(locked_token_nonce);
+
+            let current_epoch = self.blockchain().get_block_epoch();
+            if current_epoch < attributes.unlock_epoch {
+                let locked_token_mapper = self.locked_token();
+                let locked_token_nonce =
+                    self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
+
+                return self.locked_token().nft_add_quantity_and_send(
+                    to,
+                    locked_token_nonce,
+                    payment.amount,
+                );
+            }
+        }
+
+        self.send().direct(
+            to,
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+            &[],
+        );
+
+        payment
     }
 
     #[view(getLockedTokenId)]

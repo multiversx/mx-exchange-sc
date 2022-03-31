@@ -1277,4 +1277,37 @@ fn add_liquidity_through_simple_lock_proxy() {
             },
         )
         .assert_ok();
+
+    // test auto-unlock for tokens on remove liquidity
+    pair_setup.blockchain_wrapper.set_block_epoch(30);
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            LP_PROXY_TOKEN_ID,
+            1,
+            &rust_biguint!(500_000),
+            |sc| {
+                let (first_payment_result, second_payment_result) = sc
+                    .remove_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+
+                assert_eq!(
+                    first_payment_result.token_identifier,
+                    managed_token_id!(WEGLD_TOKEN_ID)
+                );
+                assert_eq!(first_payment_result.token_nonce, 0);
+                assert_eq!(first_payment_result.amount, managed_biguint!(500_000));
+
+                assert_eq!(
+                    second_payment_result.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(second_payment_result.token_nonce, 0);
+                assert_eq!(second_payment_result.amount, managed_biguint!(500_000));
+            },
+        )
+        .assert_ok();
 }
