@@ -69,7 +69,7 @@ pub trait ProxyLpModule:
     ) {
         require!(
             self.blockchain().is_smart_contract(&lp_address),
-            "Invalid LP address"
+            INVALID_SC_ADDRESS_ERR_MSG
         );
         require!(
             first_token_id != second_token_id,
@@ -78,6 +78,11 @@ pub trait ProxyLpModule:
         require!(
             first_token_id.is_esdt() && second_token_id.is_esdt(),
             "Only ESDT tokens accepted"
+        );
+        require!(
+            self.lp_address_for_token_pair(&second_token_id, &first_token_id)
+                .is_empty(),
+            "Address already set for the reverse token pair"
         );
 
         self.lp_address_for_token_pair(&first_token_id, &second_token_id)
@@ -122,7 +127,7 @@ pub trait ProxyLpModule:
         require!(
             ref_first_payment_unlocked.token_nonce == 0
                 && ref_second_payment_unlocked.token_nonce == 0,
-            "Only locked tokens with fungible original tokens can be used as liquidity"
+            ONLY_FUNGIBLE_TOKENS_ALLOWED_ERR_MSG
         );
         require!(
             ref_first_payment_unlocked.token_identifier

@@ -3,9 +3,9 @@ elrond_wasm::derive_imports!();
 
 use crate::error_messages::*;
 
-pub type AddLiquidityResultType<M> =
+type AddLiquidityResultType<M> =
     MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
-pub type RemoveLiquidityResultType<BigUint> =
+type RemoveLiquidityResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 pub struct AddLiquidityResultWrapper<M: ManagedTypeApi> {
@@ -21,7 +21,7 @@ pub struct RemoveLiquidityResultWrapper<M: ManagedTypeApi> {
 
 // Must manually declare, as Pair SC already depends on simple-lock
 // This avoids circular dependency
-pub mod lp_proxy {
+mod lp_proxy {
     elrond_wasm::imports!();
     use super::{AddLiquidityResultType, RemoveLiquidityResultType};
 
