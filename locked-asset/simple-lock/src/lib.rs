@@ -33,20 +33,32 @@ pub trait SimpleLock:
         unlock_epoch: u64,
         #[var_args] opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
-        require!(payment_amount > 0, NO_PAYMENT_ERR_MSG);
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+        require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
+
+        let dest_address = self.dest_from_optional(opt_destination);
+        let current_epoch = self.blockchain().get_block_epoch();
+        if current_epoch >= unlock_epoch {
+            self.send().direct(
+                &dest_address,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+                &[],
+            );
+
+            return payment;
+        }
 
         let attributes = LockedTokenAttributes {
-            original_token_id: payment_token,
-            original_token_nonce: payment_nonce,
+            original_token_id: payment.token_identifier,
+            original_token_nonce: payment.token_nonce,
             unlock_epoch,
         };
         let locked_token_mapper = self.locked_token();
         let sft_nonce = self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
-
-        let dest_address = self.dest_from_optional(opt_destination);
         self.locked_token()
-            .nft_add_quantity_and_send(&dest_address, sft_nonce, payment_amount)
+            .nft_add_quantity_and_send(&dest_address, sft_nonce, payment.amount)
     }
 
     #[payable("*")]
