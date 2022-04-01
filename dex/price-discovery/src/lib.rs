@@ -200,10 +200,7 @@ pub trait PriceDiscovery:
 
         let current_price = self.calculate_price();
         let min_price = self.min_launched_token_price().get();
-        require!(
-            current_price == 0 || current_price >= min_price,
-            BELOW_MIN_PRICE_ERR_MSG
-        );
+        require!(current_price >= min_price, BELOW_MIN_PRICE_ERR_MSG);
 
         let caller = self.blockchain().get_caller();
         self.send()
