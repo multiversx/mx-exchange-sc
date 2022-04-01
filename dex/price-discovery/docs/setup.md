@@ -45,3 +45,22 @@ fn init(
     locking_sc_address: ManagedAddress,
 )
 ```
+
+After deployment, the SC requires the `redeem_token` to be issued and have its roles set. This is done through the `issue_redeem_token` endpoint:
+```
+#[only_owner]
+#[payable("EGLD")]
+#[endpoint(issueRedeemToken)]
+fn issue_redeem_token(
+    &self,
+    token_name: ManagedBuffer,
+    token_ticker: ManagedBuffer,
+    nr_decimals: usize,
+)
+```
+
+The redeem token is a meta ESDT token that the users receive on deposits. Those can then be used to withdraw the initial tokens (or part of them, as per phase restrictions). We only use two nonces:
+- nonce 1 for launched tokens
+- nonce 2 for accepted tokens
+
+In the issue callback, one of each of those tokens is created, so that the SC can afterwards use NFTAddQuantity. These tokens have no additional attributes.
