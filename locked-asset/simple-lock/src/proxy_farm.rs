@@ -1,7 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::{error_messages::*, locked_token::LockedTokenAttributes};
+use crate::{
+    error_messages::*,
+    locked_token::{LockedTokenAttributes, PreviousStatusFlag},
+};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
@@ -30,6 +33,7 @@ pub type FarmCompoundRewardsThroughProxyResultType<M> = EsdtTokenPayment<M>;
 pub trait ProxyFarmModule:
     crate::farm_interactions::FarmInteractionsModule
     + crate::locked_token::LockedTokenModule
+    + crate::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
@@ -159,10 +163,12 @@ pub trait ProxyFarmModule:
         );
 
         let caller = self.blockchain().get_caller();
-        let locked_tokens_payment = self.locked_token().nft_add_quantity_and_send(
+        let locked_tokens_payment = self.send_tokens_optimal_status(
             &caller,
-            farm_proxy_token_attributes.farming_token_locked_nonce,
-            exit_farm_result.initial_farming_tokens.amount,
+            exit_farm_result.initial_farming_tokens,
+            PreviousStatusFlag::Locked {
+                locked_token_nonce: farm_proxy_token_attributes.farming_token_locked_nonce,
+            },
         );
 
         if exit_farm_result.reward_tokens.amount > 0 {

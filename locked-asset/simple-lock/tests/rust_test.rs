@@ -1,6 +1,6 @@
 use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::types::EsdtLocalRole;
-use elrond_wasm_debug::testing_framework::*;
+use elrond_wasm_debug::{managed_biguint, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
@@ -109,6 +109,8 @@ fn lock_unlock_test() {
     b_mock.check_esdt_balance(&user_addr, FREE_TOKEN_ID, &lock_amount);
 
     // lock with same token, same unlock epoch -> same token nonce
+    b_mock.set_block_epoch(9);
+
     b_mock
         .execute_esdt_transfer(
             &user_addr,
@@ -134,6 +136,26 @@ fn lock_unlock_test() {
             |sc| {
                 let payment_result = sc.lock_tokens(15, OptionalValue::None);
                 assert_eq!(payment_result.token_nonce, lock_token_nonce + 1);
+            },
+        )
+        .assert_ok();
+
+    // test auto-unlock
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &sc_wrapper,
+            FREE_TOKEN_ID,
+            0,
+            &rust_biguint!(100),
+            |sc| {
+                let payment_result = sc.lock_tokens(5, OptionalValue::None);
+                assert_eq!(
+                    payment_result.token_identifier,
+                    managed_token_id!(FREE_TOKEN_ID)
+                );
+                assert_eq!(payment_result.token_nonce, 0);
+                assert_eq!(payment_result.amount, managed_biguint!(100));
             },
         )
         .assert_ok();

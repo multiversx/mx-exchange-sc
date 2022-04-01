@@ -144,12 +144,12 @@ pub trait ProxyLpModule:
         );
 
         let caller = self.blockchain().get_caller();
-        let first_token_refund_payment = self.lock_if_needed_and_send(
+        let first_token_refund_payment = self.send_tokens_optimal_status(
             &caller,
             add_liq_result.first_token_refund,
             first_payment_unlocked_wrapper.status_before,
         );
-        let second_token_refund_payment = self.lock_if_needed_and_send(
+        let second_token_refund_payment = self.send_tokens_optimal_status(
             &caller,
             add_liq_result.second_token_refund,
             second_payment_unlocked_wrapper.status_before,
@@ -212,12 +212,12 @@ pub trait ProxyLpModule:
         );
 
         let caller = self.blockchain().get_caller();
-        let first_token_result_payment = self.lock_if_needed_and_send(
+        let first_token_result_payment = self.send_tokens_optimal_status(
             &caller,
             remove_liq_result.first_token_payment_out,
             PreviousStatusFlag::new(lp_proxy_token_attributes.first_token_locked_nonce),
         );
-        let second_token_result_payment = self.lock_if_needed_and_send(
+        let second_token_result_payment = self.send_tokens_optimal_status(
             &caller,
             remove_liq_result.second_token_payment_out,
             PreviousStatusFlag::new(lp_proxy_token_attributes.second_token_locked_nonce),
@@ -294,34 +294,6 @@ pub trait ProxyLpModule:
             first_token_locked_nonce,
             second_token_id,
             second_token_locked_nonce,
-        }
-    }
-
-    fn lock_if_needed_and_send(
-        &self,
-        to: &ManagedAddress,
-        payment: EsdtTokenPayment<Self::Api>,
-        prev_status: PreviousStatusFlag,
-    ) -> EsdtTokenPayment<Self::Api> {
-        if payment.amount == 0 {
-            return payment;
-        }
-
-        match prev_status {
-            PreviousStatusFlag::NotLocked => {
-                self.send().direct(
-                    to,
-                    &payment.token_identifier,
-                    payment.token_nonce,
-                    &payment.amount,
-                    &[],
-                );
-
-                payment
-            }
-            PreviousStatusFlag::Locked { locked_token_nonce } => self
-                .locked_token()
-                .nft_add_quantity_and_send(to, locked_token_nonce, payment.amount),
         }
     }
 
