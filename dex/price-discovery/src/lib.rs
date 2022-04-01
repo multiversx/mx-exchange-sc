@@ -205,11 +205,9 @@ pub trait PriceDiscovery:
             BELOW_MIN_PRICE_ERR_MSG
         );
 
-        if withdraw_amount > 0 {
-            let caller = self.blockchain().get_caller();
-            self.send()
-                .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
-        }
+        let caller = self.blockchain().get_caller();
+        self.send()
+            .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
 
         self.emit_withdraw_event(
             refund_token_id,
