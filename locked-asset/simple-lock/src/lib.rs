@@ -26,6 +26,16 @@ pub trait SimpleLock:
     #[init]
     fn init(&self) {}
 
+    /// Locks any token (including EGLD) until `unlock_epoch` and receive meta ESDT LOCKED tokens.
+    /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
+    ///
+    /// Expected payment: Any token
+    ///
+    /// Arguments:
+    /// - unlock epoch - the epoch from which the LOCKED token holder may call the unlock endpoint
+    /// - opt_destination - OPTIONAL: destination address for the LOCKED tokens
+    ///
+    /// Output payments: LOCKED tokens (or original payment if current_epoch >= unlock_epoch)
     #[payable("*")]
     #[endpoint(lockTokens)]
     fn lock_tokens(
@@ -61,6 +71,14 @@ pub trait SimpleLock:
             .nft_add_quantity_and_send(&dest_address, sft_nonce, payment.amount)
     }
 
+    /// Unlock tokens, previously locked with the `lockTokens` endpoint
+    ///
+    /// Expected payment: LOCKED tokens
+    ///
+    /// Arguments:
+    /// - opt_destination - OPTIONAL: destination address for the unlocked tokens
+    ///
+    /// Output payments: the originally locked tokens
     #[payable("*")]
     #[endpoint(unlockTokens)]
     fn unlock_tokens(

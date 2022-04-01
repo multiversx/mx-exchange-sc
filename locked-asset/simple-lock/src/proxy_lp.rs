@@ -59,6 +59,13 @@ pub trait ProxyLpModule:
         );
     }
 
+    /// Add a liquidity pool to the whitelist.
+    /// If the token pair does not have an associated pool, users may not add liquidity.
+    ///
+    /// `first_token_id` and `second_token_id` MUST match the LP's order,
+    /// otherwise all attempts at adding liquidity will fail
+    ///
+    /// May not add pools for both pairs, i.e. (first, second) and (second, first)
     #[only_owner]
     #[endpoint(addLpToWhitelist)]
     fn add_lp_to_whitelist(
@@ -89,6 +96,7 @@ pub trait ProxyLpModule:
             .set(&lp_address);
     }
 
+    /// Removes a liquidity pool from the whitelist, for the selected token pair.
     #[only_owner]
     #[endpoint(removeLpFromWhitelist)]
     fn remove_lp_from_whitelist(
@@ -98,8 +106,25 @@ pub trait ProxyLpModule:
     ) {
         self.lp_address_for_token_pair(&first_token_id, &second_token_id)
             .clear();
+        self.lp_address_for_token_pair(&second_token_id, &first_token_id)
+            .clear();
     }
 
+    /// Add liquidity through a LOCKED token.
+    /// Will fail if a liquidity pool is not configured for the token pair.
+    ///
+    /// Expected payments: Any one of the following pairs:
+    /// - (LOCKED token, LOCKED token)
+    /// - (LOCKED token, any token)
+    /// - (any token, LOCKED token)
+    ///
+    /// Arguments: first_token_amount_min, second_token_amount_min - Arguments forwarded to the LP pool.
+    /// May not be zero.
+    ///
+    /// Output payments:
+    /// - refunded tokens from the first payment
+    /// - refunded tokens from the second payment
+    /// - LP_PROXY tokens, which can later be used to further interact with the LP pool through this SC
     #[payable("*")]
     #[endpoint(addLiquidityLockedToken)]
     fn add_liquidity_locked_token(
@@ -179,6 +204,18 @@ pub trait ProxyLpModule:
             .into()
     }
 
+    /// Remove liquidity previously added through `addLiquidityLockedToken`.
+    /// If the unlock_epoch has not passed for the original LOCKED tokens,
+    /// the caller will receive locked tokens. Otherwise, they will receive the unlocked version.
+    ///
+    /// Expected payments: LP_PROXY tokens
+    ///
+    /// Arguments: first_token_amount_min, second_token_amount_min - Arguments forwarded to the LP pool.
+    /// May not be zero.
+    ///
+    /// Output payments:
+    /// first_token original liquidity + rewards
+    /// second_token original liquidity + rewards
     #[payable("*")]
     #[endpoint(removeLiquidityLockedToken)]
     fn remove_liquidity_locked_token(

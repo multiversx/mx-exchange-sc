@@ -70,6 +70,10 @@ pub trait ProxyFarmModule:
         );
     }
 
+    /// Add a farm to the whitelist.
+    /// Currently, two types of farms are supported, denoted by the `farm_type` argument:
+    /// `0` - SimpleFarm - rewards are fungible tokens
+    /// `1` - FarmWithLockedRewards - rewards are META ESDT locked tokens
     #[only_owner]
     #[endpoint(addFarmToWhitelist)]
     fn add_farm_to_whitelist(
@@ -94,6 +98,16 @@ pub trait ProxyFarmModule:
             .clear();
     }
 
+    /// Enter farm with LOCKED tokens.
+    /// User will choose if they want to enter a farm with normal rewards, or locked rewards.
+    ///
+    /// Expected payment: LOCKED tokens
+    ///
+    /// Arguments:
+    /// - farm_type - The farm type the user wishes to enter (unlocked or locked rewards)
+    ///
+    /// Output payments:
+    /// - FARM_PROXY token, which can later be used to further interact with the specific farm
     #[payable("*")]
     #[endpoint(enterFarmLockedToken)]
     fn enter_farm_locked_token(
@@ -139,6 +153,14 @@ pub trait ProxyFarmModule:
         )
     }
 
+    /// Exit a farm previously entered through `enterFarmLockedToken`.
+    /// The original farming tokens will be unlocked automatically if unlock_epoch has passed.
+    ///
+    /// Expected payment: FARM_PROXY tokens
+    ///
+    /// Output Payments:
+    /// - original farming tokens
+    /// - farm reward tokens
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
     fn exit_farm_locked_token(&self) -> ExitFarmThroughProxyResultType<Self::Api> {
@@ -184,6 +206,15 @@ pub trait ProxyFarmModule:
         (locked_tokens_payment, exit_farm_result.reward_tokens).into()
     }
 
+    /// Claim rewards from a previously entered farm.
+    /// The FARM_PROXY tokens are burned, and new ones are created.
+    /// This is needed because every farm action changes the farm token nonce
+    ///
+    /// Expected payment: FARM_PROXY tokens
+    ///
+    /// Output payments:
+    /// - a new FARM_PROXY token
+    /// - farm reward tokens
     #[payable("*")]
     #[endpoint(farmClaimRewardsLockedToken)]
     fn farm_claim_rewards_locked_token(&self) -> FarmClaimRewardsThroughProxyResultType<Self::Api> {
@@ -230,6 +261,14 @@ pub trait ProxyFarmModule:
         (new_proxy_token_payment, claim_rewards_result.reward_tokens).into()
     }
 
+    /// Compound rewards for a farm position from a previously entered farm.
+    /// The FARM_PROXY tokens are burned, and new ones are created.
+    /// This is needed because every farm action changes the farm token nonce
+    ///
+    /// Expected payment: FARM_PROXY tokens
+    ///
+    /// Output payments:
+    /// - a new FARM_PROXY token
     #[payable("*")]
     #[endpoint(farmCompoundRewardsLockedToken)]
     fn farm_compound_rewards_locked_token(
