@@ -38,7 +38,7 @@ The owner of all the Pair SCs is the Router SC. It is used for deploying, upgrad
 
 ### Farm Contract
 
-DEX Stability comes with liquidity stability. In order to achieve that, Farm contracts come in place to incentivise liquidity providers to lock their LP tokens in exchange for MEX rewards. Rewards are generated per block and their rate is configurable in sync with the MEX tokenomics.
+In order to gain users trust, the liquidity inside the DEX must be somewhat stable. To achieve that, Farm contracts come in place to incentivise liquidity providers to lock their LP tokens in exchange for MEX rewards. Rewards are generated per block and their rate is configurable in sync with the MEX tokenomics.
 
 ### Farm with Lock Contract
 
@@ -68,6 +68,12 @@ TODO
 
 ### Distribution Contract
 
+This smart contract is used for ditributing Locked MEX to the community. It receives information from the owner and offers the users posibility to claim the configured amount of tokens. It was used only once and might not be used in the future since we think there are better ways to achieve same functionality and results.
+
 ### DEX Proxy Contract
 
+This smart contract allows users to interact with the DEX using Locked MEX as fungible MEX for certain operations, such as adding liquidity and entering Farm contracts.
+
 ### Locked MEX Factory Contract
+
+Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create Locked MEX can just request them from only one place.
