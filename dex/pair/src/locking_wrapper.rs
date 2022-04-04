@@ -5,7 +5,7 @@ use crate::contexts::swap::SwapContext;
 #[elrond_wasm::module]
 pub trait LockingWrapperModule: locking_module::LockingModule {
     #[only_owner]
-    #[endpoint]
+    #[endpoint(setLockingDeadlineEpoch)]
     fn set_locking_deadline_epoch(&self, new_deadline: u64) {
         self.locking_deadline_epoch().set(&new_deadline);
     }
