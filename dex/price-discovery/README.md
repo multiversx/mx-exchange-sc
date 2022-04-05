@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Price Discovery smart contract used to determine the price of a certain token at its launch. Since it’s a new token, the demand for it is not yet known, so we let the community decide.
+The Price Discovery smart contract is used to determine the price of a certain token at its launch. Since it’s a new token, the demand for it is not yet known, so we let the community decide.
 
 ## Basic concepts
 
@@ -13,6 +13,7 @@ Once that period has ended, it will deposit those tokens inside a Liquidity Pool
 ## Phases
 
 Over the start-end period, we define multiple phases, in which interactions with the Price Discovery SC will impose some restrictions:
+
 1) No restrictions. Anyone can deposit/withdraw any amount
 2) Deposits are unrestricted, withdrawals come with a linear increasing penalty
 3) Deposits are not allowed, withdrawals come with a fixed penalty
