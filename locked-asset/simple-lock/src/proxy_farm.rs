@@ -89,13 +89,29 @@ pub trait ProxyFarmModule:
 
         self.farm_address_for_token(&farming_token_id, farm_type)
             .set(&farm_address);
+
+        let is_new_farm = self.known_farms().insert(farm_address);
+        require!(is_new_farm, "Farm address already known");
     }
 
     #[only_owner]
     #[endpoint(removeFarmFromWhitelist)]
-    fn remove_farm_from_whitelist(&self, farming_token_id: TokenIdentifier, farm_type: FarmType) {
-        self.farm_address_for_token(&farming_token_id, farm_type)
-            .clear();
+    fn remove_farm_from_whitelist(
+        &self,
+        farm_address: ManagedAddress,
+        farming_token_id: TokenIdentifier,
+        farm_type: FarmType,
+    ) {
+        let was_removed = self.known_farms().swap_remove(&farm_address);
+        require!(was_removed, "Farm address now known");
+
+        let mapper_by_token = self.farm_address_for_token(&farming_token_id, farm_type);
+        require!(
+            mapper_by_token.get() == farm_address,
+            "Farm address does not match the given token and farm type"
+        );
+
+        mapper_by_token.clear();
     }
 
     /// Enter farm with LOCKED tokens.
@@ -334,6 +350,10 @@ pub trait ProxyFarmModule:
 
         farm_proxy_token_attributes
     }
+
+    #[view(getKnownFarms)]
+    #[storage_mapper("knownFarms")]
+    fn known_farms(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[storage_mapper("farmAddressForToken")]
     fn farm_address_for_token(
