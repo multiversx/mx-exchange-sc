@@ -1310,4 +1310,16 @@ fn add_liquidity_through_simple_lock_proxy() {
             },
         )
         .assert_ok();
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_query(&locking_sc_wrapper, |sc| {
+            assert_eq!(sc.known_liquidity_pools().len(), 1);
+            assert_eq!(
+                sc.known_liquidity_pools()
+                    .contains(&managed_address!(&lp_address)),
+                true
+            );
+        })
+        .assert_ok();
 }

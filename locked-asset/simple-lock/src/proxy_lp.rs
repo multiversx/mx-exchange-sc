@@ -94,6 +94,9 @@ pub trait ProxyLpModule:
 
         self.lp_address_for_token_pair(&first_token_id, &second_token_id)
             .set(&lp_address);
+
+        let is_new_lp = self.known_liquidity_pools().insert(lp_address);
+        require!(is_new_lp, "Liquidty Pool address already known");
     }
 
     /// Removes a liquidity pool from the whitelist, for the selected token pair.
@@ -101,13 +104,35 @@ pub trait ProxyLpModule:
     #[endpoint(removeLpFromWhitelist)]
     fn remove_lp_from_whitelist(
         &self,
+        lp_address: ManagedAddress,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
     ) {
-        self.lp_address_for_token_pair(&first_token_id, &second_token_id)
-            .clear();
-        self.lp_address_for_token_pair(&second_token_id, &first_token_id)
-            .clear();
+        let was_removed = self.known_liquidity_pools().swap_remove(&lp_address);
+        require!(was_removed, "Liquidty Pool address now known");
+
+        let correct_order_mapper =
+            self.lp_address_for_token_pair(&first_token_id, &second_token_id);
+        let reverse_order_mapper =
+            self.lp_address_for_token_pair(&second_token_id, &first_token_id);
+
+        if !correct_order_mapper.is_empty() {
+            require!(
+                correct_order_mapper.get() == lp_address,
+                LP_REMOVAL_WRONG_PAIR
+            );
+
+            correct_order_mapper.clear();
+        } else if !reverse_order_mapper.is_empty() {
+            require!(
+                reverse_order_mapper.get() == lp_address,
+                LP_REMOVAL_WRONG_PAIR
+            );
+
+            reverse_order_mapper.clear();
+        } else {
+            sc_panic!(LP_REMOVAL_WRONG_PAIR);
+        }
     }
 
     /// Add liquidity through a LOCKED token.
@@ -359,6 +384,10 @@ pub trait ProxyLpModule:
         core::mem::swap(first_unlocked_payment, second_unlocked_payment);
         reverse_order_mapper.get()
     }
+
+    #[view(getKnownLiquidityPools)]
+    #[storage_mapper("knownLiquidityPools")]
+    fn known_liquidity_pools(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[storage_mapper("lpAddressForTokenPair")]
     fn lp_address_for_token_pair(
