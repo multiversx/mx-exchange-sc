@@ -22,7 +22,6 @@ pub trait CtxHelper:
     + token_send::TokenSendModule
     + crate::amm::AmmModule
     + crate::locking_wrapper::LockingWrapperModule
-    + locking_module::LockingModule
 {
     fn new_add_liquidity_context(
         &self,

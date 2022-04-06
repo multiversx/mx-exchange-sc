@@ -48,7 +48,6 @@ pub trait Pair<ContractReader>:
     + safe_price::SafePriceModule
     + bot_protection::BPModule
     + locking_wrapper::LockingWrapperModule
-    + locking_module::LockingModule
 {
     #[init]
     fn init(

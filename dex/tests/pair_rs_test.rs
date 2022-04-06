@@ -18,7 +18,6 @@ const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use locking_module::*;
 use pair::bot_protection::*;
 use pair::config::*;
 use pair::locking_wrapper::LockingWrapperModule;
