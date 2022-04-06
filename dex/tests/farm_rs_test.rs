@@ -17,6 +17,7 @@ const GENERATED_FILE_PREFIX: &'static str = "_generated_";
 const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";
 const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
 
+const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
@@ -679,10 +680,11 @@ fn test_farm_through_simple_lock() {
     use simple_lock::locked_token::LockedTokenModule;
     use simple_lock::proxy_farm::ProxyFarmModule;
     use simple_lock::proxy_farm::*;
+    use simple_lock::proxy_lp::{LpProxyTokenAttributes, ProxyLpModule};
     use simple_lock::SimpleLock;
 
-    const FREE_TOKEN_ID: &[u8] = b"FREEEEE-123456";
     const LOCKED_TOKEN_ID: &[u8] = b"NOOOO-123456";
+    const LOCKED_LP_TOKEN_ID: &[u8] = b"LKLP-123456";
     const FARM_PROXY_TOKEN_ID: &[u8] = b"PROXY-123456";
 
     let _ = DebugApi::dummy();
@@ -697,7 +699,7 @@ fn test_farm_through_simple_lock() {
             &farm_setup.farm_wrapper,
             &rust_zero,
             |sc| {
-                sc.farming_token_id().set(&managed_token_id!(FREE_TOKEN_ID));
+                sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
             },
         )
         .assert_ok();
@@ -716,11 +718,13 @@ fn test_farm_through_simple_lock() {
             sc.init();
             sc.locked_token()
                 .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+            sc.lp_proxy_token()
+                .set_token_id(&managed_token_id!(LOCKED_LP_TOKEN_ID));
             sc.farm_proxy_token()
                 .set_token_id(&managed_token_id!(FARM_PROXY_TOKEN_ID));
             sc.add_farm_to_whitelist(
                 managed_address!(&farm_addr),
-                managed_token_id!(FREE_TOKEN_ID),
+                managed_token_id!(LP_TOKEN_ID),
                 FarmType::SimpleFarm,
             );
         })
@@ -728,7 +732,7 @@ fn test_farm_through_simple_lock() {
 
     b_mock.set_esdt_local_roles(
         lock_wrapper.address_ref(),
-        LOCKED_TOKEN_ID,
+        LOCKED_LP_TOKEN_ID,
         &[
             EsdtLocalRole::NftCreate,
             EsdtLocalRole::NftAddQuantity,
@@ -747,32 +751,35 @@ fn test_farm_through_simple_lock() {
 
     // user lock tokens
     let user_addr = farm_setup.user_address.clone();
-    b_mock.set_esdt_balance(&user_addr, FREE_TOKEN_ID, &rust_biguint!(1_000_000_000));
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &lock_wrapper,
-            FREE_TOKEN_ID,
-            0,
-            &rust_biguint!(1_000_000_000),
-            |sc| {
-                let payment_result = sc.lock_tokens(10, OptionalValue::None);
-                assert_eq!(
-                    payment_result.token_identifier,
-                    managed_token_id!(LOCKED_TOKEN_ID)
-                );
-                assert_eq!(payment_result.token_nonce, 1);
-                assert_eq!(payment_result.amount, managed_biguint!(1_000_000_000));
-            },
-        )
-        .assert_ok();
+
+    let lp_proxy_token_attributes: LpProxyTokenAttributes<DebugApi> = LpProxyTokenAttributes {
+        lp_token_id: managed_token_id!(LP_TOKEN_ID),
+        first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+        first_token_locked_nonce: 1,
+        second_token_id: managed_token_id!(MEX_TOKEN_ID),
+        second_token_locked_nonce: 2,
+    };
+
+    b_mock.set_nft_balance(
+        &user_addr,
+        LOCKED_LP_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000_000_000),
+        &lp_proxy_token_attributes,
+    );
+
+    b_mock.set_esdt_balance(
+        &lock_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &rust_biguint!(1_000_000_000),
+    );
 
     // user enter farm
     b_mock
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
-            LOCKED_TOKEN_ID,
+            LOCKED_LP_TOKEN_ID,
             1,
             &rust_biguint!(1_000_000_000),
             |sc| {
@@ -796,7 +803,7 @@ fn test_farm_through_simple_lock() {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 1,
-            farming_token_id: managed_token_id!(FREE_TOKEN_ID),
+            farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
         },
     );
@@ -844,7 +851,7 @@ fn test_farm_through_simple_lock() {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 2,
-            farming_token_id: managed_token_id!(FREE_TOKEN_ID),
+            farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
         },
     );
@@ -884,7 +891,7 @@ fn test_farm_through_simple_lock() {
 
                 assert_eq!(
                     locked_tokens.token_identifier,
-                    managed_token_id!(LOCKED_TOKEN_ID)
+                    managed_token_id!(LOCKED_LP_TOKEN_ID)
                 );
                 assert_eq!(locked_tokens.token_nonce, 1);
                 assert_eq!(locked_tokens.amount, managed_biguint!(1_000_000_000));
@@ -904,14 +911,10 @@ fn test_farm_through_simple_lock() {
 
     b_mock.check_nft_balance(
         &user_addr,
-        LOCKED_TOKEN_ID,
+        LOCKED_LP_TOKEN_ID,
         1,
         &rust_biguint!(1_000_000_000),
-        &simple_lock::locked_token::LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(FREE_TOKEN_ID),
-            original_token_nonce: 0,
-            unlock_epoch: 10,
-        },
+        &lp_proxy_token_attributes,
     );
     b_mock.check_esdt_balance(
         &user_addr,
