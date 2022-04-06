@@ -134,19 +134,17 @@ pub trait ProxyFarmModule:
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
-        let locked_token_mapper = self.lp_proxy_token();
-        locked_token_mapper.require_same_token(&payment.token_identifier);
+        let lp_proxy_token_mapper = self.lp_proxy_token();
+        lp_proxy_token_mapper.require_same_token(&payment.token_identifier);
 
-        let locked_token_attributes: LpProxyTokenAttributes<Self::Api> =
-            locked_token_mapper.get_token_attributes(payment.token_nonce);
-
-        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+        let lp_proxy_token_attributes: LpProxyTokenAttributes<Self::Api> =
+            lp_proxy_token_mapper.get_token_attributes(payment.token_nonce);
 
         let farm_address =
-            self.try_get_farm_address(&locked_token_attributes.lp_token_id, farm_type);
+            self.try_get_farm_address(&lp_proxy_token_attributes.lp_token_id, farm_type);
         let enter_farm_result = self.call_farm_enter(
             farm_address,
-            locked_token_attributes.lp_token_id.clone(),
+            lp_proxy_token_attributes.lp_token_id.clone(),
             payment.amount,
         );
         let farm_tokens = enter_farm_result.farm_tokens;
@@ -154,7 +152,7 @@ pub trait ProxyFarmModule:
             farm_type,
             farm_token_id: farm_tokens.token_identifier,
             farm_token_nonce: farm_tokens.token_nonce,
-            farming_token_id: locked_token_attributes.lp_token_id,
+            farming_token_id: lp_proxy_token_attributes.lp_token_id,
             farming_token_locked_nonce: payment.token_nonce,
         };
 
