@@ -23,6 +23,9 @@ elrond_wasm_node::wasm_endpoints! {
         getTransferExecGasLimit
         issueLpToken
         multiPairSwap
+        pairSetLockingDeadlineEpoch
+        pairSetLockingScAddress
+        pairSetUnlockEpoch
         pause
         removePair
         resume

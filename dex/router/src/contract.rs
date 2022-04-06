@@ -9,8 +9,10 @@ pub mod factory;
 pub mod lib;
 
 use factory::PairTokens;
+use locking_module::ProxyTrait as _;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
+use pair::locking_wrapper::ProxyTrait as _;
 use pair::ProxyTrait as _;
 
 const LP_TOKEN_DECIMALS: usize = 18;
@@ -338,6 +340,38 @@ pub trait Router:
 
         self.pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
+            .execute_on_dest_context_ignore_result();
+    }
+
+    #[only_owner]
+    #[endpoint(pairSetLockingDeadlineEpoch)]
+    fn pair_set_locking_deadline_epoch(
+        &self,
+        pair_address: ManagedAddress,
+        locking_deadline_epoch: u64,
+    ) {
+        self.pair_contract_proxy(pair_address)
+            .set_locking_deadline_epoch(locking_deadline_epoch)
+            .execute_on_dest_context_ignore_result();
+    }
+
+    #[only_owner]
+    #[endpoint(pairSetLockingScAddress)]
+    fn pair_set_locking_sc_address(
+        &self,
+        pair_address: ManagedAddress,
+        locking_sc_address: ManagedAddress,
+    ) {
+        self.pair_contract_proxy(pair_address)
+            .set_locking_sc_address(locking_sc_address)
+            .execute_on_dest_context_ignore_result();
+    }
+
+    #[only_owner]
+    #[endpoint(pairSetUnlockEpoch)]
+    fn pair_set_unlock_epoch(&self, pair_address: ManagedAddress, unlock_epoch: u64) {
+        self.pair_contract_proxy(pair_address)
+            .set_unlock_epoch(unlock_epoch)
             .execute_on_dest_context_ignore_result();
     }
 
