@@ -2,8 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::{
-    error_messages::*,
-    locked_token::{LockedTokenAttributes, PreviousStatusFlag},
+    error_messages::*, locked_token::PreviousStatusFlag, proxy_lp::LpProxyTokenAttributes,
 };
 
 #[derive(
@@ -32,7 +31,9 @@ pub type FarmCompoundRewardsThroughProxyResultType<M> = EsdtTokenPayment<M>;
 #[elrond_wasm::module]
 pub trait ProxyFarmModule:
     crate::farm_interactions::FarmInteractionsModule
+    + crate::lp_interactions::LpInteractionsModule
     + crate::locked_token::LockedTokenModule
+    + crate::proxy_lp::ProxyLpModule
     + crate::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
@@ -133,23 +134,19 @@ pub trait ProxyFarmModule:
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
-        let locked_token_mapper = self.locked_token();
+        let locked_token_mapper = self.lp_proxy_token();
         locked_token_mapper.require_same_token(&payment.token_identifier);
 
-        let locked_token_attributes: LockedTokenAttributes<Self::Api> =
+        let locked_token_attributes: LpProxyTokenAttributes<Self::Api> =
             locked_token_mapper.get_token_attributes(payment.token_nonce);
-        require!(
-            locked_token_attributes.original_token_nonce == 0,
-            ONLY_FUNGIBLE_TOKENS_ALLOWED_ERR_MSG
-        );
 
         locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let farm_address =
-            self.try_get_farm_address(&locked_token_attributes.original_token_id, farm_type);
+            self.try_get_farm_address(&locked_token_attributes.lp_token_id, farm_type);
         let enter_farm_result = self.call_farm_enter(
             farm_address,
-            locked_token_attributes.original_token_id.clone(),
+            locked_token_attributes.lp_token_id.clone(),
             payment.amount,
         );
         let farm_tokens = enter_farm_result.farm_tokens;
@@ -157,7 +154,7 @@ pub trait ProxyFarmModule:
             farm_type,
             farm_token_id: farm_tokens.token_identifier,
             farm_token_nonce: farm_tokens.token_nonce,
-            farming_token_id: locked_token_attributes.original_token_id,
+            farming_token_id: locked_token_attributes.lp_token_id,
             farming_token_locked_nonce: payment.token_nonce,
         };
 
