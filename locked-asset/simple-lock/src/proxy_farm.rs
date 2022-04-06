@@ -1,9 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::{
-    error_messages::*, locked_token::PreviousStatusFlag, proxy_lp::LpProxyTokenAttributes,
-};
+use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
@@ -196,12 +194,20 @@ pub trait ProxyFarmModule:
         );
 
         let caller = self.blockchain().get_caller();
-        let locked_tokens_payment = self.send_tokens_optimal_status(
+
+        let lp_proxy_token = self.lp_proxy_token();
+        let lp_proxy_token_payment = EsdtTokenPayment {
+            token_identifier: lp_proxy_token.get_token_id(),
+            token_nonce: farm_proxy_token_attributes.farming_token_locked_nonce,
+            amount: exit_farm_result.initial_farming_tokens.amount,
+            token_type: EsdtTokenType::Meta,
+        };
+        self.send().direct(
             &caller,
-            exit_farm_result.initial_farming_tokens,
-            PreviousStatusFlag::Locked {
-                locked_token_nonce: farm_proxy_token_attributes.farming_token_locked_nonce,
-            },
+            &lp_proxy_token_payment.token_identifier,
+            lp_proxy_token_payment.token_nonce,
+            &lp_proxy_token_payment.amount,
+            &[],
         );
 
         if exit_farm_result.reward_tokens.amount > 0 {
@@ -214,7 +220,7 @@ pub trait ProxyFarmModule:
             );
         }
 
-        (locked_tokens_payment, exit_farm_result.reward_tokens).into()
+        (lp_proxy_token_payment, exit_farm_result.reward_tokens).into()
     }
 
     /// Claim rewards from a previously entered farm.
