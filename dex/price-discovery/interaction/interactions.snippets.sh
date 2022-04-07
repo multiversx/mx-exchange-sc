@@ -121,3 +121,13 @@ issueRedeemToken() {
         --arguments $token_name $token_ticker $3 \
         --send || return
 }
+
+createInitialRedeemTokens() {
+    erdpy --verbose contract call $PRICE_DISCOVERY_ADDRESS --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=60000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --value=50000000000000000 \
+        --function="createInitialRedeemTokens" \
+        --send || return
+}
