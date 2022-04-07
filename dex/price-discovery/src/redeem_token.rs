@@ -3,12 +3,6 @@ elrond_wasm::imports!();
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
-const REQUIRED_ROLES: EsdtLocalRoleFlags = EsdtLocalRoleFlags::from_bits_truncate(
-    EsdtLocalRoleFlags::NFT_CREATE.bits()
-        | EsdtLocalRoleFlags::NFT_ADD_QUANTITY.bits()
-        | EsdtLocalRoleFlags::NFT_BURN.bits(),
-);
-
 #[elrond_wasm::module]
 pub trait RedeemTokenModule {
     #[only_owner]
@@ -27,19 +21,12 @@ pub trait RedeemTokenModule {
         );
 
         ESDTSystemSmartContractProxy::new_proxy_obj()
-            .register_meta_esdt(
+            .issue_and_set_all_roles(
                 payment_amount,
-                &token_name,
-                &token_ticker,
-                MetaTokenProperties {
-                    num_decimals: nr_decimals,
-                    can_freeze: true,
-                    can_wipe: true,
-                    can_pause: true,
-                    can_change_owner: false,
-                    can_upgrade: false,
-                    can_add_special_roles: true,
-                },
+                token_name,
+                token_ticker,
+                EsdtTokenType::Meta,
+                nr_decimals,
             )
             .async_call()
             .with_callback(self.callbacks().issue_callback())
@@ -64,54 +51,35 @@ pub trait RedeemTokenModule {
     }
 
     #[only_owner]
-    #[endpoint(setLocalRoles)]
-    fn set_local_roles(&self, token_id: TokenIdentifier) {
-        require!(!self.redeem_token_id().is_empty(), "Token not issed");
+    #[endpoint(createInitialRedeemTokens)]
+    fn create_initial_redeem_tokens(&self) {
+        require!(!self.redeem_token_id().is_empty(), "Token not issued");
 
-        ESDTSystemSmartContractProxy::new_proxy_obj()
-            .set_special_roles(
-                &self.blockchain().get_sc_address(),
-                &token_id,
-                REQUIRED_ROLES.iter_roles().cloned(),
-            )
-            .async_call()
-            .with_callback(self.callbacks().set_roles_callback())
-            .call_and_exit();
-    }
+        // create SFT for both types so NFTAddQuantity works
+        let redeem_token_id = self.redeem_token_id().get();
+        let zero = BigUint::zero();
+        let one = BigUint::from(1u32);
+        let empty_buffer = ManagedBuffer::new();
+        let empty_vec = ManagedVec::new();
 
-    #[callback]
-    fn set_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                // create SFT for both types so NFTAddQuantity works
-
-                let redeem_token_id = self.redeem_token_id().get();
-                let zero = BigUint::zero();
-                let one = BigUint::from(1u32);
-                let empty_buffer = ManagedBuffer::new();
-                let empty_vec = ManagedVec::new();
-
-                let _ = self.send().esdt_nft_create(
-                    &redeem_token_id,
-                    &one,
-                    &empty_buffer,
-                    &zero,
-                    &empty_buffer,
-                    &(),
-                    &empty_vec,
-                );
-                let _ = self.send().esdt_nft_create(
-                    &redeem_token_id,
-                    &one,
-                    &empty_buffer,
-                    &zero,
-                    &empty_buffer,
-                    &(),
-                    &empty_vec,
-                );
-            }
-            ManagedAsyncCallResult::Err(_) => {}
-        }
+        let _ = self.send().esdt_nft_create(
+            &redeem_token_id,
+            &one,
+            &empty_buffer,
+            &zero,
+            &empty_buffer,
+            &(),
+            &empty_vec,
+        );
+        let _ = self.send().esdt_nft_create(
+            &redeem_token_id,
+            &one,
+            &empty_buffer,
+            &zero,
+            &empty_buffer,
+            &(),
+            &empty_vec,
+        );
     }
 
     fn mint_and_send_redeem_token(&self, to: &ManagedAddress, nonce: u64, amount: &BigUint) {

@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     price_discovery
     (
         callBack
+        createInitialRedeemTokens
         deposit
         getAcceptedTokenBalance
         getAcceptedTokenId
@@ -30,7 +31,6 @@ elrond_wasm_node::wasm_endpoints! {
         getUnlockEpoch
         issueRedeemToken
         redeem
-        setLocalRoles
         setLockingScAddress
         setUnlockEpoch
         withdraw
