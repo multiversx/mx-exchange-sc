@@ -5,7 +5,7 @@ The bigger picture about what a Distribution Contract can do can be found in the
 
 ## Deployment
 
-The Distribution contract can be deployed using `erdpy` and using the interraction snippets.
+The Distribution contract can be deployed using `erdpy` and using the interaction snippets.
 
 The init parameters are:
 

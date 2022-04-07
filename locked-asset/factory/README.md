@@ -5,7 +5,7 @@ The bigger picture about what a Locked Asset Factory Contract can do can be foun
 
 ## Deployment
 
-The Locked Asset Factory contract can be deployed using `erdpy` and using the interraction snippets.
+The Locked Asset Factory contract can be deployed using `erdpy` and using the interaction snippets.
 
 The init parameters are:
 

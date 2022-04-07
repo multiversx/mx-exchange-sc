@@ -2,7 +2,7 @@
 
 This repository contains the principal Smart Contract components of Maiar Exchange.
 
-This document is a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
+This document is a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate README in its own root directory.
 
 - [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
   - [DEX Contracts](#dex-contracts)
@@ -26,11 +26,11 @@ Other Smart Contracts that are part of Maiar exchange, but are not part of this 
 
 ## DEX Contracts
 
-Core SCs of Maiar Exchange. They usually handle few tokens and are used as primitives by the other contract as they are built on top of them.
+Core SCs of Maiar Exchange. They usually handle a few tokens and are used as primitives by the other contracts as they are built on top of them.
 
 ### Pair Contract
 
-The core of any DEX is the swap feature. This contract acts as a constant product AMM and offers swap functionality aswell as adding & removing liquidity. The fees for swapping are configurable by the Router SC and its owner, although most of the contracts use a total fee percent of 0.3%, from which 0.25% goes to liquidity providers and the rest of 0.05% is used to help the ecosistem buy Buying & Burning MEX tokens.
+The core of any DEX is the swap feature. This contract acts as a constant product AMM and offers swap functionality as well as adding & removing liquidity. The fees for swapping are configurable by the Router SC and its owner, although most of the contracts use a total fee percent of 0.3%, from which 0.25% goes to liquidity providers and the rest of 0.05% is used to help the ecosystem by Buying & Burning MEX tokens.
 
 ### Router Contract
 
@@ -42,11 +42,11 @@ In order to gain users trust, the liquidity inside the DEX must be somewhat stab
 
 ### Farm with Lock Contract
 
-Works the same as the regular Farm with the exception that it does not generate MEX as rewards. Instead, it generates Locked MEX, with the help of the Factory SC. The reason one would go for the locked rewards (LKMEX) instead of the regular rewards (MEX) is that the reward emission rate (reward per block rate) is bigger, meaning the APR is higher.
+Works the same as the regular Farm with the exception that it does not generate MEX as rewards. Instead, it generates Locked MEX, with the help of the Factory SC. The reason one would choose to go with the locked rewards (LKMEX) instead of the regular rewards (MEX) is that the reward emission rate (reward per block rate) is bigger, meaning the APR is higher.
 
 ### Price discovery
 
-In order to improve the expecience of the user, and detrement the use of bots at new launches of new tokens on the DEX, the Price discovery was created. As its name states, this contract aim to find the Market Price of a token even before allowing swaps. This contract is supposed to be used before the creation of a Pair SC that needs this protection. This SC gathers both tokens and add them to a Liquidity Pool as initial liquidity, and the returning LP tokens will be claimable by each user that contributed to the initial step.
+In order to improve the experience of the user, and decrement the use of bots at new launches of new tokens on the DEX, the Price discovery mechanism was created. As its name states, this contract aims to find the Market Price of a token even before allowing swaps. This contract is supposed to be used before the creation of a Pair SC that needs this protection. The SC gathers both types of tokens and gives each user the corresponding tokens, assets that are locked for a small period of time, in order to further alleviate any unnatural price fluctuations that may appear at launch time.
 
 ## Farm Staking Contracts
 
@@ -58,7 +58,7 @@ Uses the same base implementation and concepts as the Farm contracts, but is des
 
 ### Farm Staking Proxy
 
-Uses in conjunction with the Farm Staking contract, is lets users stake their LP FARM tokens, i.e. the farm tokens they received when they put their LP tokens in the normal farm. The user then recevies a so-called dual yield token, which can be used to claim rewards from both the normal farm and the staking farm.
+Used in conjunction with the Farm Staking contract, it lets users stake their LP FARM tokens, i.e. the farm tokens they received when they put their LP tokens in the normal farm. The user then receives a so-called dual yield token, which can be used to claim rewards from both the normal farm and the staking farm.
 
 ### Metabonding Staking
 
@@ -68,7 +68,7 @@ A simple staking contract where users lock their tokens in order to receive rewa
 
 ### Distribution Contract
 
-This smart contract is used for ditributing Locked MEX to the community. It receives information from the owner and offers the users posibility to claim the configured amount of tokens. It was used only once and might not be used in the future since we think there are better ways to achieve same functionality and results.
+This smart contract is used for distributing Locked MEX to the community. It receives information from the owner and offers the users the possibility to claim the configured amount of tokens. It was used only once and might not be used in the future since we think there are better ways to achieve same functionality and results.
 
 ### DEX Proxy Contract
 
