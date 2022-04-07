@@ -53,7 +53,7 @@ pub trait RedeemTokenModule {
     #[only_owner]
     #[endpoint(createInitialRedeemTokens)]
     fn create_initial_redeem_tokens(&self) {
-        require!(!self.redeem_token_id().is_empty(), "Token not issed");
+        require!(!self.redeem_token_id().is_empty(), "Token not issued");
 
         // create SFT for both types so NFTAddQuantity works
         let redeem_token_id = self.redeem_token_id().get();
