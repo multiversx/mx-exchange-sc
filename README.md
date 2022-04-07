@@ -50,19 +50,19 @@ In order to improve the expecience of the user, and detrement the use of bots at
 
 ## Farm Staking Contracts
 
-TODO
+Staking contracts that are heavily inspired by the farm contracts.
 
 ### Farm Staking
 
-TODO
+Uses the same base implementation and concepts as the Farm contracts, but is designed to work with any fungible tokens instead of very specific ones, like LP tokens. Also, rewards are not minted, but are instead deposited from time to time by the owner.
 
 ### Farm Staking Proxy
 
-TODO
+Uses in conjunction with the Farm Staking contract, is lets users stake their LP FARM tokens, i.e. the farm tokens they received when they put their LP tokens in the normal farm. The user then recevies a so-called dual yield token, which can be used to claim rewards from both the normal farm and the staking farm.
 
 ### Metabonding Staking
 
-TODO
+A simple staking contract where users lock their tokens in order to receive rewards from other contracts.
 
 ## Locked Asset Contracts
 
