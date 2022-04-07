@@ -2,7 +2,7 @@
 
 This repository contains the principal Smart Contract components of Maiar Exchange.
 
-This document a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
+This document is a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
 
 - [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
   - [DEX Contracts](#dex-contracts)

@@ -81,6 +81,10 @@ As stated above, this function receives two payments, the first token payment an
     );
 ```
 
+Removing liquidity is also a one TX flow. Removing liquidity happens as a liquidity provider sends his LP tokens back to the Pair smart contract and provides the parameters that were discussed at add liquidity flow above - and receives tokens of both types. Generally, for a somewhat stable pool, the amounts will be greater than those provided initially (while adding) because of the swap fees.
+
+One might wonder when to use ```#[payment_*]``` macros and when not to use them. In this particular case, the only reason is that when using macros, the endpoint requires that only one payment is provided, and will not accept multiple payments by design, so no additional checks have to be done in the contract. This is the way it is done throught all the endpoints of this contract.
+
 ### swapTokensFixedInput
 
 ```rust
@@ -96,6 +100,39 @@ As stated above, this function receives two payments, the first token payment an
         #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
+
+This smart contract acts as an AMM based on the constant product formula ```x * y = k```.
+This means that swapping, when ignoring fees, would happen based on the following logic:
+
+Let:
+
+- __rI__ be the reserve of the input token (the one that the user paid)
+- __rO__ be the reserve of the output token (the one that the user desires in exchange of the paid one)
+- __aI__ be the amount of the input token
+- __aO__ be the amount of the output token
+
+```math
+rI * rO = k
+(rI + aI) * (rO - aO) = k
+```
+
+From the two equations, we can safely state that
+
+```math
+rI * rO = (rI + aI) * (rO - aO)
+```
+
+Where __aI__ would be known, and __aO__ would need to be calculated.
+
+Considering __f__ being the percent of total fee, the formuta including fees is the following:
+
+```math
+rI * rO = (rI + (1 - f) * aI) * (rO - aO)
+```
+
+Stating that __aO__ will be calculated only taken into account ```(1 - f) * aI```. iIn Maiar Exchange's current configuration, that would be 0.97% or the input.
+
+The remaining fee, which is ```f * aI``` would be split afterwards into regular fee - reinvested in the pool and special fee - used for buyback and burn mex. For more in depth dive into how special fee is handled, see ```send_fee``` private function.
 
 ### swapTokensFixedOutput
 
@@ -113,14 +150,25 @@ As stated above, this function receives two payments, the first token payment an
     );
 ```
 
+Happens exactly the same as SwapFixedInput function with the only difference that __aO__ is fixated and __aI__ is calculated with the same formulas.
+
+Maybe another difference is that the contract actually returns the desired tokens to the users, and also the __leftover__, in case there is any.
+
+The __leftover__ in this case is the difference between the __amount_in_max__ and the actual amount that was used to swap in order to get to the desired __amount_out__.
+
 ## Testing
 
-TODO
+There are four test suites around this contract:
+
+- __mandos__ tests are located in the _dex/mandos_ directory. The tests can be ran using __mandos-test__
+- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust test using __cargo-test__. This test suite is to be preffered and will be extended and maintained over the mandos tests because the testing framework offers programatic testing.
+- __fuzzing__ tests are located in the _dex/fuzz_ directory. The tests can also be ran using __cargo-test__
+- __legolas__ tests are python scripts that use actual live transactions on testing setups
 
 ## Interraction
 
-TODO
+The interaction scripts are located in the _dex/interaction_ directory. The scipts are written in python and erdpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping erdpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use the scripts.
 
 ## Deployment
 
-TODO
+The deployment of this contract is done by the Router smart contract but it can be done also in a standalone manner using the interaction erdpy scripts for deploy/upgade.
