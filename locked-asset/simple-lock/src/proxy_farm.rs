@@ -116,7 +116,7 @@ pub trait ProxyFarmModule:
     /// Enter farm with LOCKED tokens.
     /// User will choose if they want to enter a farm with normal rewards, or locked rewards.
     ///
-    /// Expected payment: LOCKED tokens
+    /// Expected payment: LOCKED LP tokens (gained from add_liquidity_locked_token)
     ///
     /// Arguments:
     /// - farm_type - The farm type the user wishes to enter (unlocked or locked rewards)

@@ -10,7 +10,7 @@ pub mod proxy_farm;
 pub mod proxy_lp;
 pub mod token_attributes;
 
-use crate::locked_token::LockedTokenAttributes;
+use crate::locked_token::{LockedTokenAttributes, LOCKED_TOKEN_PREFIX};
 use error_messages::*;
 
 #[elrond_wasm::contract]
@@ -61,12 +61,17 @@ pub trait SimpleLock:
         }
 
         let attributes = LockedTokenAttributes {
-            original_token_id: payment.token_identifier,
+            original_token_id: payment.token_identifier.clone(),
             original_token_nonce: payment.token_nonce,
             unlock_epoch,
         };
         let locked_token_mapper = self.locked_token();
-        let sft_nonce = self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
+        let sft_nonce = self.get_or_create_nonce_for_attributes(
+            &locked_token_mapper,
+            LOCKED_TOKEN_PREFIX,
+            &payment.token_identifier,
+            &attributes,
+        );
         self.locked_token()
             .nft_add_quantity_and_send(&dest_address, sft_nonce, payment.amount)
     }

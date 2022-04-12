@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub static LOCKED_TOKEN_PREFIX: &[u8] = b"Locked";
+
 #[derive(TypeAbi, TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug)]
 pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub original_token_id: TokenIdentifier<M>,
@@ -104,8 +106,12 @@ pub trait LockedTokenModule:
 
             let current_epoch = self.blockchain().get_block_epoch();
             if current_epoch < attributes.unlock_epoch {
-                let locked_token_nonce =
-                    self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
+                let locked_token_nonce = self.get_or_create_nonce_for_attributes(
+                    &locked_token_mapper,
+                    LOCKED_TOKEN_PREFIX,
+                    &payment.token_identifier,
+                    &attributes,
+                );
 
                 return locked_token_mapper.nft_add_quantity_and_send(
                     to,
