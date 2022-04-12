@@ -106,6 +106,12 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
         self.send().esdt_local_burn(&redeem_token_id, nonce, amount);
     }
 
+    #[view(getRedeemTokenTotalCirculatingSupply)]
+    fn get_redeem_token_total_circulating_supply(&self, token_nonce: u64) -> BigUint {
+        self.redeem_token_total_circulating_supply(token_nonce)
+            .get()
+    }
+
     #[view(getRedeemTokenId)]
     #[storage_mapper("redeemTokenId")]
     fn redeem_token_id(&self) -> SingleValueMapper<TokenIdentifier>;

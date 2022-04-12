@@ -290,7 +290,7 @@ pub trait PriceDiscovery:
 
     #[view(getCurrentPrice)]
     fn calculate_price(&self) -> BigUint {
-        let launched_token_balance = self.launched_token_balance().get();
+        let launched_token_balance = self.redeem_token_total_circulating_supply(1).get();
         let accepted_token_balance = self.accepted_token_balance().get();
 
         require!(launched_token_balance > 0, "No launched tokens available");
