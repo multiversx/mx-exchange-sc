@@ -104,8 +104,11 @@ pub trait LockedTokenModule:
 
             let current_epoch = self.blockchain().get_block_epoch();
             if current_epoch < attributes.unlock_epoch {
-                let locked_token_nonce =
-                    self.get_or_create_nonce_for_attributes(&locked_token_mapper, &attributes);
+                let locked_token_nonce = self.get_or_create_nonce_for_attributes(
+                    &locked_token_mapper,
+                    payment.token_identifier.as_managed_buffer(),
+                    &attributes,
+                );
 
                 return locked_token_mapper.nft_add_quantity_and_send(
                     to,

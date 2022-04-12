@@ -205,6 +205,11 @@ pub trait ProxyLpModule:
             second_payment_unlocked_wrapper.status_before,
         );
 
+        let lp_token_name = add_liq_result
+            .lp_tokens
+            .token_identifier
+            .as_managed_buffer()
+            .clone();
         let proxy_token_attributes = self.create_lp_proxy_token_attributes(
             add_liq_result.lp_tokens.token_identifier,
             first_payment_unlocked_wrapper,
@@ -212,8 +217,11 @@ pub trait ProxyLpModule:
         );
 
         let lp_proxy_token_mapper = self.lp_proxy_token();
-        let lp_proxy_nonce = self
-            .get_or_create_nonce_for_attributes(&lp_proxy_token_mapper, &proxy_token_attributes);
+        let lp_proxy_nonce = self.get_or_create_nonce_for_attributes(
+            &lp_proxy_token_mapper,
+            &lp_token_name,
+            &proxy_token_attributes,
+        );
 
         let lp_proxy_payment = lp_proxy_token_mapper.nft_add_quantity_and_send(
             &caller,
