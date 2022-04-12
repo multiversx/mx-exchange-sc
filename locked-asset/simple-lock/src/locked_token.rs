@@ -1,8 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub static LOCKED_TOKEN_PREFIX: &[u8] = b"Locked";
-
 #[derive(TypeAbi, TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug)]
 pub struct LockedTokenAttributes<M: ManagedTypeApi> {
     pub original_token_id: TokenIdentifier<M>,
@@ -108,8 +106,7 @@ pub trait LockedTokenModule:
             if current_epoch < attributes.unlock_epoch {
                 let locked_token_nonce = self.get_or_create_nonce_for_attributes(
                     &locked_token_mapper,
-                    LOCKED_TOKEN_PREFIX,
-                    &payment.token_identifier,
+                    payment.token_identifier.as_managed_buffer(),
                     &attributes,
                 );
 

@@ -10,8 +10,7 @@ pub trait TokenAttributesModule {
     fn get_or_create_nonce_for_attributes<T: TopEncode + NestedEncode>(
         &self,
         nft_mapper: &NonFungibleTokenMapper<Self::Api>,
-        token_name_prefix: &[u8],
-        original_token_id: &TokenIdentifier,
+        token_name: &ManagedBuffer,
         attributes: &T,
     ) -> u64 {
         let nft_token_id = nft_mapper.get_token_id();
@@ -27,13 +26,10 @@ pub trait TokenAttributesModule {
             return existing_nonce;
         }
 
-        let mut token_name = ManagedBuffer::new_from_bytes(token_name_prefix);
-        token_name.append(original_token_id.as_managed_buffer());
-
         let new_nonce = self.send().esdt_nft_create(
             &nft_token_id,
             &INITIAL_SFT_AMOUNT.into(),
-            &token_name,
+            token_name,
             &BigUint::zero(),
             &ManagedBuffer::new(),
             attributes,

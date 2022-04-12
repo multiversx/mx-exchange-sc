@@ -4,8 +4,6 @@ elrond_wasm::derive_imports!();
 use crate::error_messages::*;
 use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
 
-pub static PROXY_LP_TOKEN_PREFIX: &[u8] = b"ProxyLp";
-
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct LpProxyTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
@@ -207,16 +205,11 @@ pub trait ProxyLpModule:
             second_payment_unlocked_wrapper.status_before,
         );
 
-        let mut token_ids_combined = ref_first_payment_unlocked
+        let lp_token_name = add_liq_result
+            .lp_tokens
             .token_identifier
             .as_managed_buffer()
             .clone();
-        token_ids_combined.append(
-            ref_second_payment_unlocked
-                .token_identifier
-                .as_managed_buffer(),
-        );
-
         let proxy_token_attributes = self.create_lp_proxy_token_attributes(
             add_liq_result.lp_tokens.token_identifier,
             first_payment_unlocked_wrapper,
@@ -226,8 +219,7 @@ pub trait ProxyLpModule:
         let lp_proxy_token_mapper = self.lp_proxy_token();
         let lp_proxy_nonce = self.get_or_create_nonce_for_attributes(
             &lp_proxy_token_mapper,
-            PROXY_LP_TOKEN_PREFIX,
-            &token_ids_combined.into(),
+            &lp_token_name,
             &proxy_token_attributes,
         );
 
