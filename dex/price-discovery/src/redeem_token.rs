@@ -4,7 +4,7 @@ pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
 #[elrond_wasm::module]
-pub trait RedeemTokenModule {
+pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
     #[only_owner]
     #[payable("EGLD")]
     #[endpoint(issueRedeemToken)]
@@ -56,6 +56,8 @@ pub trait RedeemTokenModule {
         require!(!self.redeem_token_id().is_empty(), "Token not issued");
 
         // create SFT for both types so NFTAddQuantity works
+        let launched_token_id = self.launched_token_id().get();
+        let accepted_token_id = self.accepted_token_id().get();
         let redeem_token_id = self.redeem_token_id().get();
         let zero = BigUint::zero();
         let one = BigUint::from(1u32);
@@ -65,7 +67,7 @@ pub trait RedeemTokenModule {
         let _ = self.send().esdt_nft_create(
             &redeem_token_id,
             &one,
-            &empty_buffer,
+            launched_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
             &(),
@@ -74,7 +76,7 @@ pub trait RedeemTokenModule {
         let _ = self.send().esdt_nft_create(
             &redeem_token_id,
             &one,
-            &empty_buffer,
+            accepted_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
             &(),
