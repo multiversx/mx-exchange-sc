@@ -57,7 +57,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
 
         // create SFT for both types so NFTAddQuantity works
         let launched_token_id = self.launched_token_id().get();
-        let accpeted_token_id = self.accepted_token_id().get();
+        let accepted_token_id = self.accepted_token_id().get();
         let redeem_token_id = self.redeem_token_id().get();
         let zero = BigUint::zero();
         let one = BigUint::from(1u32);
@@ -76,7 +76,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
         let _ = self.send().esdt_nft_create(
             &redeem_token_id,
             &one,
-            accpeted_token_id.as_managed_buffer(),
+            accepted_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
             &(),
