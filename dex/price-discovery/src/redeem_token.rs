@@ -110,6 +110,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
     #[storage_mapper("redeemTokenId")]
     fn redeem_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
+    #[view(getRedeemTokenTotalCirculatingSupply)]
     #[storage_mapper("totalCirculatingSupply")]
     fn redeem_token_total_circulating_supply(&self, token_nonce: u64)
         -> SingleValueMapper<BigUint>;
