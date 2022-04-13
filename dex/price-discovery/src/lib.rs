@@ -42,8 +42,6 @@ pub trait PriceDiscovery:
         fixed_penalty_percentage: BigUint,
         locking_sc_address: ManagedAddress,
     ) {
-        /* Disabled until the validate token ID function is activated
-
         require!(
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
@@ -52,12 +50,6 @@ pub trait PriceDiscovery:
             accepted_token_id.is_egld() || accepted_token_id.is_valid_esdt_identifier(),
             "Invalid payment token ID"
         );
-        require!(
-            extra_rewards_token_id.is_egld() || extra_rewards_token_id.is_valid_esdt_identifier(),
-            "Invalid extra rewards token ID"
-        );
-
-        */
         require!(
             launched_token_id != accepted_token_id,
             "Launched and accepted token must be different"
