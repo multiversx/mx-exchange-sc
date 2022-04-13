@@ -907,4 +907,184 @@ fn test_farm_through_simple_lock() {
         MEX_TOKEN_ID,
         &rust_biguint!(25 * PER_BLOCK_REWARD_AMOUNT),
     );
+
+    // user enter farm again
+    b_mock.set_block_epoch(0);
+
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            LOCKED_LP_TOKEN_ID,
+            1,
+            &rust_biguint!(500_000_000),
+            |sc| {
+                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
+                assert_eq!(
+                    enter_farm_result.token_identifier,
+                    managed_token_id!(FARM_PROXY_TOKEN_ID)
+                );
+                assert_eq!(enter_farm_result.token_nonce, 3);
+                assert_eq!(enter_farm_result.amount, managed_biguint!(500_000_000));
+            },
+        )
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        FARM_PROXY_TOKEN_ID,
+        3,
+        &rust_biguint!(500_000_000),
+        &FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
+            farm_token_id: managed_token_id!(FARM_TOKEN_ID),
+            farm_token_nonce: 3,
+            farming_token_id: managed_token_id!(LP_TOKEN_ID),
+            farming_token_locked_nonce: 1,
+        },
+    );
+
+    // user enter farm along with previous position
+    let payments = [
+        TxInputESDT {
+            token_identifier: LOCKED_LP_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(300_000_000),
+        },
+        TxInputESDT {
+            token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
+            nonce: 3,
+            value: rust_biguint!(500_000_000),
+        },
+    ];
+    b_mock
+        .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
+            let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
+            assert_eq!(
+                enter_farm_result.token_identifier,
+                managed_token_id!(FARM_PROXY_TOKEN_ID)
+            );
+            assert_eq!(enter_farm_result.token_nonce, 4);
+            assert_eq!(enter_farm_result.amount, managed_biguint!(800_000_000));
+        })
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        FARM_PROXY_TOKEN_ID,
+        4,
+        &rust_biguint!(800_000_000),
+        &FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
+            farm_token_id: managed_token_id!(FARM_TOKEN_ID),
+            farm_token_nonce: 4,
+            farming_token_id: managed_token_id!(LP_TOKEN_ID),
+            farming_token_locked_nonce: 1,
+        },
+    );
+
+    // test enter with three additional farm tokens
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            LOCKED_LP_TOKEN_ID,
+            1,
+            &rust_biguint!(50_000_000),
+            |sc| {
+                sc.enter_farm_locked_token(FarmType::SimpleFarm);
+            },
+        )
+        .assert_ok();
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            LOCKED_LP_TOKEN_ID,
+            1,
+            &rust_biguint!(50_000_000),
+            |sc| {
+                sc.enter_farm_locked_token(FarmType::SimpleFarm);
+            },
+        )
+        .assert_ok();
+
+    let payments = [
+        TxInputESDT {
+            token_identifier: LOCKED_LP_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(100_000_000),
+        },
+        TxInputESDT {
+            token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
+            nonce: 4,
+            value: rust_biguint!(800_000_000),
+        },
+        TxInputESDT {
+            token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
+            nonce: 5,
+            value: rust_biguint!(50_000_000),
+        },
+        TxInputESDT {
+            token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
+            nonce: 6,
+            value: rust_biguint!(50_000_000),
+        },
+    ];
+    b_mock
+        .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
+            let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
+            assert_eq!(
+                enter_farm_result.token_identifier,
+                managed_token_id!(FARM_PROXY_TOKEN_ID)
+            );
+            assert_eq!(enter_farm_result.token_nonce, 7);
+            assert_eq!(enter_farm_result.amount, managed_biguint!(1_000_000_000));
+        })
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        FARM_PROXY_TOKEN_ID,
+        7,
+        &rust_biguint!(1_000_000_000),
+        &FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
+            farm_token_id: managed_token_id!(FARM_TOKEN_ID),
+            farm_token_nonce: 7,
+            farming_token_id: managed_token_id!(LP_TOKEN_ID),
+            farming_token_locked_nonce: 1,
+        },
+    );
+
+    // exit farm
+    b_mock.set_block_epoch(25);
+    b_mock
+        .execute_esdt_transfer(
+            &user_addr,
+            &lock_wrapper,
+            FARM_PROXY_TOKEN_ID,
+            7,
+            &rust_biguint!(1_000_000_000),
+            |sc| {
+                let exit_farm_result = sc.exit_farm_locked_token();
+                let (locked_tokens, _reward_tokens) = exit_farm_result.into_tuple();
+
+                assert_eq!(
+                    locked_tokens.token_identifier,
+                    managed_token_id!(LOCKED_LP_TOKEN_ID)
+                );
+                assert_eq!(locked_tokens.token_nonce, 1);
+                assert_eq!(locked_tokens.amount, managed_biguint!(1_000_000_000));
+            },
+        )
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user_addr,
+        LOCKED_LP_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000_000_000),
+        &lp_proxy_token_attributes,
+    );
 }
