@@ -6,7 +6,6 @@ type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_tokens: EsdtTokenPayment<M>,
@@ -28,9 +27,7 @@ pub struct FarmCompoundRewardsResultWrapper<M: ManagedTypeApi> {
 
 mod farm_proxy {
     elrond_wasm::imports!();
-    use super::{
-        ClaimRewardsResultType, CompoundRewardsResultType, EnterFarmResultType, ExitFarmResultType,
-    };
+    use super::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 
     #[elrond_wasm::proxy]
     pub trait FarmProxy {
@@ -45,10 +42,6 @@ mod farm_proxy {
         #[payable("*")]
         #[endpoint(claimRewards)]
         fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api>;
-
-        #[payable("*")]
-        #[endpoint(compoundRewards)]
-        fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api>;
     }
 }
 
@@ -59,14 +52,26 @@ pub trait FarmInteractionsModule {
         farm_address: ManagedAddress,
         farming_token: TokenIdentifier,
         farming_token_amount: BigUint,
+        additional_farm_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> EnterFarmResultWrapper<Self::Api> {
-        let farm_tokens: EnterFarmResultType<Self::Api> = self
+        let mut contract_call = self
             .farm_proxy(farm_address)
             .enter_farm()
-            .add_token_transfer(farming_token, 0, farming_token_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .add_token_transfer(farming_token, 0, farming_token_amount);
+        for farm_token in &additional_farm_tokens {
+            contract_call = contract_call.add_token_transfer(
+                farm_token.token_identifier,
+                farm_token.token_nonce,
+                farm_token.amount,
+            );
+        }
 
-        EnterFarmResultWrapper { farm_tokens }
+        let new_farm_tokens: EnterFarmResultType<Self::Api> =
+            contract_call.execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+
+        EnterFarmResultWrapper {
+            farm_tokens: new_farm_tokens,
+        }
     }
 
     fn call_farm_exit(
@@ -107,22 +112,6 @@ pub trait FarmInteractionsModule {
             new_farm_tokens,
             reward_tokens,
         }
-    }
-
-    fn call_farm_compound_rewards(
-        &self,
-        farm_address: ManagedAddress,
-        farm_token: TokenIdentifier,
-        farm_token_nonce: u64,
-        farm_token_amount: BigUint,
-    ) -> FarmCompoundRewardsResultWrapper<Self::Api> {
-        let new_farm_tokens: CompoundRewardsResultType<Self::Api> = self
-            .farm_proxy(farm_address)
-            .compound_rewards()
-            .add_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
-
-        FarmCompoundRewardsResultWrapper { new_farm_tokens }
     }
 
     #[proxy]

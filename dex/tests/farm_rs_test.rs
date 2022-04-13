@@ -861,20 +861,6 @@ fn test_farm_through_simple_lock() {
         &rust_biguint!(10 * PER_BLOCK_REWARD_AMOUNT),
     );
 
-    // user compound farm rewards - can only compound if farming token == reward token
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &lock_wrapper,
-            FARM_PROXY_TOKEN_ID,
-            2,
-            &rust_biguint!(1_000_000_000),
-            |sc| {
-                let _ = sc.farm_compound_rewards_locked_token();
-            },
-        )
-        .assert_user_error("Different token ids");
-
     // user exit farm
     b_mock.set_block_nonce(25);
 

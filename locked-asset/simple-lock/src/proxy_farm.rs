@@ -129,21 +129,46 @@ pub trait ProxyFarmModule:
         &self,
         farm_type: FarmType,
     ) -> EnterFarmThroughProxyResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
-        require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
+        let payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
+            self.call_value().all_esdt_transfers();
+        require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
 
+        let proxy_lp_payment: EsdtTokenPayment<Self::Api> = payments.get(0);
         let lp_proxy_token_mapper = self.lp_proxy_token();
-        lp_proxy_token_mapper.require_same_token(&payment.token_identifier);
+        lp_proxy_token_mapper.require_same_token(&proxy_lp_payment.token_identifier);
 
         let lp_proxy_token_attributes: LpProxyTokenAttributes<Self::Api> =
-            lp_proxy_token_mapper.get_token_attributes(payment.token_nonce);
+            lp_proxy_token_mapper.get_token_attributes(proxy_lp_payment.token_nonce);
+
+        let farm_proxy_token_mapper = self.farm_proxy_token();
+        let additional_proxy_farm_tokens = payments.slice(1, payments.len()).unwrap_or_default();
+        let mut additional_farm_payments = ManagedVec::new();
+        for p in &additional_proxy_farm_tokens {
+            let proxy_farm_attributes: FarmProxyTokenAttributes<Self::Api> =
+                farm_proxy_token_mapper.get_token_attributes(p.token_nonce);
+            require!(
+                proxy_farm_attributes.farming_token_id == lp_proxy_token_attributes.lp_token_id
+                    && proxy_farm_attributes.farming_token_locked_nonce
+                        == proxy_lp_payment.token_nonce,
+                INVALID_PAYMENTS_ERR_MSG
+            );
+
+            farm_proxy_token_mapper.nft_burn(p.token_nonce, &p.amount);
+
+            additional_farm_payments.push(EsdtTokenPayment::new(
+                proxy_farm_attributes.farm_token_id,
+                proxy_farm_attributes.farm_token_nonce,
+                p.amount,
+            ));
+        }
 
         let farm_address =
             self.try_get_farm_address(&lp_proxy_token_attributes.lp_token_id, farm_type);
         let enter_farm_result = self.call_farm_enter(
             farm_address,
             lp_proxy_token_attributes.lp_token_id.clone(),
-            payment.amount,
+            proxy_lp_payment.amount,
+            additional_farm_payments,
         );
         let farm_tokens = enter_farm_result.farm_tokens;
         let proxy_farm_token_attributes = FarmProxyTokenAttributes {
@@ -151,11 +176,11 @@ pub trait ProxyFarmModule:
             farm_token_id: farm_tokens.token_identifier,
             farm_token_nonce: farm_tokens.token_nonce,
             farming_token_id: lp_proxy_token_attributes.lp_token_id,
-            farming_token_locked_nonce: payment.token_nonce,
+            farming_token_locked_nonce: proxy_lp_payment.token_nonce,
         };
 
         let caller = self.blockchain().get_caller();
-        self.farm_proxy_token().nft_create_and_send(
+        farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
             &proxy_farm_token_attributes,
@@ -276,49 +301,6 @@ pub trait ProxyFarmModule:
         }
 
         (new_proxy_token_payment, claim_rewards_result.reward_tokens).into()
-    }
-
-    /// Compound rewards for a farm position from a previously entered farm.
-    /// The FARM_PROXY tokens are burned, and new ones are created.
-    /// This is needed because every farm action changes the farm token nonce
-    ///
-    /// Expected payment: FARM_PROXY tokens
-    ///
-    /// Output payments:
-    /// - a new FARM_PROXY token
-    #[payable("*")]
-    #[endpoint(farmCompoundRewardsLockedToken)]
-    fn farm_compound_rewards_locked_token(
-        &self,
-    ) -> FarmCompoundRewardsThroughProxyResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
-        let mut farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
-            self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
-
-        let farm_address = self.try_get_farm_address(
-            &farm_proxy_token_attributes.farming_token_id,
-            farm_proxy_token_attributes.farm_type,
-        );
-        let compound_rewards_result = self.call_farm_compound_rewards(
-            farm_address,
-            farm_proxy_token_attributes.farm_token_id.clone(),
-            farm_proxy_token_attributes.farm_token_nonce,
-            payment.amount,
-        );
-        let new_farm_tokens = compound_rewards_result.new_farm_tokens;
-        require!(
-            new_farm_tokens.token_identifier == farm_proxy_token_attributes.farm_token_id,
-            INVALID_PAYMENTS_RECEIVED_FROM_FARM_ERR_MSG
-        );
-
-        farm_proxy_token_attributes.farm_token_nonce = new_farm_tokens.token_nonce;
-
-        let caller = self.blockchain().get_caller();
-        self.farm_proxy_token().nft_create_and_send(
-            &caller,
-            new_farm_tokens.amount,
-            &farm_proxy_token_attributes,
-        )
     }
 
     fn try_get_farm_address(
