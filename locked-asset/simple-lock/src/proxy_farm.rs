@@ -146,10 +146,14 @@ pub trait ProxyFarmModule:
         for p in &additional_proxy_farm_tokens {
             let proxy_farm_attributes: FarmProxyTokenAttributes<Self::Api> =
                 farm_proxy_token_mapper.get_token_attributes(p.token_nonce);
+
+            let same_farming_token =
+                proxy_farm_attributes.farming_token_id == lp_proxy_token_attributes.lp_token_id;
+            let same_farming_nonce =
+                proxy_farm_attributes.farming_token_locked_nonce == proxy_lp_payment.token_nonce;
+            let same_farm_type = proxy_farm_attributes.farm_type == farm_type;
             require!(
-                proxy_farm_attributes.farming_token_id == lp_proxy_token_attributes.lp_token_id
-                    && proxy_farm_attributes.farming_token_locked_nonce
-                        == proxy_lp_payment.token_nonce,
+                same_farming_token && same_farming_nonce && same_farm_type,
                 INVALID_PAYMENTS_ERR_MSG
             );
 
