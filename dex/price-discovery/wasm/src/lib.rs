@@ -27,6 +27,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPenaltyMinPercentage
         getPricePrecision
         getRedeemTokenId
+        getRedeemTokenTotalCirculatingSupply
         getStartBlock
         getUnlockEpoch
         issueRedeemToken
