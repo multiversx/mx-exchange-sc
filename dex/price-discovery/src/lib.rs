@@ -278,7 +278,7 @@ pub trait PriceDiscovery:
             token_nonce: 0,
             amount: reward_amount,
         }
-    }
+    } 
 
     #[view(getCurrentPrice)]
     fn calculate_price(&self) -> BigUint {
