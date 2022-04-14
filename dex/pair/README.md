@@ -65,6 +65,22 @@ As stated above, this function receives two payments, the first token payment an
 - __second_token_amount_min__
 - __opt_accept_funds_func__ - Throughout all the endpoints of the contract, this parameter means the following: if you want to receive any form of payment from this execution via another execution, you can specify the endpoint name using this parameter. This is the case of non payable contracts that use this smart contract. By being non payable, the Pair smart contract cannot just send the tokens to the caller. Instead, it has to send the tokens by also triggering the execution of some function.
 
+### addInitialLiquidity
+
+```rust
+    #[payable("*")]
+    #[endpoint(addInitialLiquidity)]
+    fn add_initial_liquidity(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+    );
+```
+
+This endpoint is ment to be called by Price Discovery smart contract. The contract works in the following way:
+
+1. If __initial_liquidity_adder__ is configured to be ```Some(Address)```, then this address is ment to be the Price Discovery smart contract, and the pair will expect it to call this endpoint. The endpoint is just callable by the configured address and the __add_liquidity__ endpoint is only callabe by anyone after the initial liquidity was added. This mechansim was introduced for reducing Pump & Dump activity at new listings.
+2. If __initial_liquidity_adder__ is configured to be ```None```, then this endpoint is not callable, and the public __add_liquidity__ endpoint should be used instead.
+
 ### removeLiquidity
 
 ```rust
@@ -155,6 +171,39 @@ Happens exactly the same as SwapFixedInput function with the only difference tha
 One other difference is that the contract actually returns the desired tokens to the users, and also the __leftover__, in case there is any.
 
 The __leftover__ in this case is the difference between the __amount_in_max__ and the actual amount that was used to swap in order to get to the desired __amount_out__.
+
+### swapNoFeeAndForward
+
+```rust
+    #[payable("*")]
+    #[endpoint(swapNoFeeAndForward)]
+    fn swap_no_fee(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
+        #[payment_amount] amount_in: BigUint,
+        token_out: TokenIdentifier,
+        destination_address: ManagedAddress,
+    );
+```
+
+This endpoint performs a swap of tokens with no fee. It is a public endpoint but it requires whitelisting. This endpoint is meant to be used by other pair contracts that need to Swap tokens to MEX so that they can Burn it everytime a swap has happened.
+
+### removeLiquidityAndBuyBackAndBurnToken
+
+```rust
+    #[payable("*")]
+    #[endpoint(removeLiquidityAndBuyBackAndBurnToken)]
+    fn remove_liquidity_and_burn_token(
+        &self,
+        #[payment_token] token_in: TokenIdentifier,
+        #[payment_nonce] nonce: u64,
+        #[payment_amount] amount_in: BigUint,
+        token_to_buyback_and_burn: TokenIdentifier,
+    );
+```
+
+This endpoint is used to convert LP tokens into MEX and then burn it. The way it works is: it performs a remove liquidity action, then swaps (if needed) each of the two tokens into mex (swapping is done also at zero fee). This endpoint is meant to be used by the farm contracts for burning penalties. When penalties need to be applied, the farm doesn't just burn the LP tokens, instead it uses this endpoint to buyback and burn mex, thus helping the product and the ecosystem.
 
 ## Testing
 
