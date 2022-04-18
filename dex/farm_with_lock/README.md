@@ -1,25 +1,25 @@
-# Farm Smart Contract
+# Farm With Lock Smart Contract
 
 ## Abstract
 
-TODO
+This contract is very similar with the regular Farm contract. It is recommended that you go though its README first, as this doc will cover only the differences.
 
 ## Introduction
 
-TODO
+This contract will rewards its participants with Locked MEX instead of MEX. Locked MEX is a META-ESDT with certain metadata stored as attributes. Because the META-ESDT create role can be held by only one address per shard, instead of creating the Locked MEX itself, the contract will do a request to Locked MEX Factory to create and forward the tokens to the user, on its behalf.
 
 ## Endpoints
 
-TODO
+The same as Farm contract.
 
 ## Testing
 
-TODO
+The same as Farm contract.
 
 ## Interaction
 
-TODO
+The same as Farm contract.
 
 ## Deployment
 
-TODO
+The same as Farm contract.
