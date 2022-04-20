@@ -83,6 +83,7 @@ pub trait CustomRewardsModule:
     fn set_max_apr(&self, max_apr: BigUint) {
         require!(max_apr != 0, "Max APR cannot be zero");
 
+        self.generate_aggregated_rewards();
         self.max_annual_percentage_rewards().set(&max_apr);
     }
 
