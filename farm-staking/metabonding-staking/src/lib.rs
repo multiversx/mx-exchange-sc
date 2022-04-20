@@ -9,6 +9,7 @@ use locked_asset_token::UserEntry;
 
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
 pub const UNBOND_EPOCHS: u64 = 3;
+pub const MAX_SNAPSHOT_RESULTS: usize = 5_000;
 
 #[elrond_wasm::contract]
 pub trait MetabondingStaking:
@@ -133,17 +134,34 @@ pub trait MetabondingStaking:
         }
     }
 
+    // start with snapshot_batch at 0 and keep incrementing
+    // first returned value is the number of results left
+    // next results are MAX_SNAPSHOT_RESULTS pairs of (address, amount staked)
+    //
+    // Note: This does NOT guarantee non-duplicate results,
+    // as the internal storage may change between query calls
+    //
+    // It is recommended to do a post-query filter, and only keep the last result for each address
     #[view(getSnapshot)]
-    fn get_snapshot(&self) -> MultiValueEncoded<SnapshotEntry<Self::Api>> {
-        let mut result = MultiValueEncoded::new();
+    fn get_snapshot(
+        &self,
+        snapshot_batch: usize,
+    ) -> MultiValue2<usize, MultiValueEncoded<SnapshotEntry<Self::Api>>> {
+        let mapper = self.get_user_entries_vec_mapper();
+        let mapper_len = mapper.len();
+        let start_index = snapshot_batch * MAX_SNAPSHOT_RESULTS + 1;
+        let end_index = core::cmp::min(start_index + MAX_SNAPSHOT_RESULTS, mapper_len + 1);
+        let results_left = mapper_len - (end_index - 1);
 
-        for user_address in self.user_list().iter() {
+        let mut result = MultiValueEncoded::new();
+        for i in start_index..end_index {
+            let user_address = mapper.get(i);
             let entry: UserEntry<Self::Api> = self.entry_for_user(&user_address).get();
             if entry.stake_amount > 0 {
                 result.push((user_address, entry.stake_amount).into());
             }
         }
 
-        result
+        (results_left, result).into()
     }
 }

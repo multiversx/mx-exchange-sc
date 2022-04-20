@@ -198,6 +198,24 @@ where
         }
     }
 
+    pub fn call_stake_locked_asset_custom_caller(
+        &mut self,
+        caller: &Address,
+        token_nonce: u64,
+        amount: u64,
+    ) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            caller,
+            &self.mbs_wrapper,
+            LOCKED_ASSET_TOKEN_ID,
+            token_nonce,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.stake_locked_asset();
+            },
+        )
+    }
+
     pub fn call_stake_locked_asset(&mut self, token_nonce: u64, amount: u64) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             &self.user_address,

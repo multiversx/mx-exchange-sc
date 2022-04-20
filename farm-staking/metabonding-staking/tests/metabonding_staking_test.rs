@@ -1,10 +1,12 @@
-pub mod metabonding_staking_setup;
 use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, tx_mock::TxInputESDT};
+use metabonding_staking::MetabondingStaking;
 use metabonding_staking::{
     locked_asset_token::{LockedAssetTokenModule, UserEntry},
-    UNBOND_EPOCHS,
+    MAX_SNAPSHOT_RESULTS, UNBOND_EPOCHS,
 };
 use metabonding_staking_setup::*;
+
+pub mod metabonding_staking_setup;
 
 #[test]
 fn test_init() {
@@ -333,6 +335,59 @@ fn test_unbond() {
         .execute_query(&setup.mbs_wrapper, |sc| {
             let entry_is_empty = sc.entry_for_user(&managed_address!(&user_addr)).is_empty();
             assert_eq!(entry_is_empty, true);
+        })
+        .assert_ok();
+}
+
+// long test, not run by default
+#[ignore]
+#[test]
+fn test_snapshots() {
+    let mut setup =
+        MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
+
+    let rust_zero = rust_biguint!(0);
+    let token_attributes = Vec::<u8>::new();
+    let nr_users = MAX_SNAPSHOT_RESULTS + 2;
+    let mut users = Vec::new();
+
+    for i in 1..=nr_users {
+        let addr = setup.b_mock.create_user_account(&rust_zero);
+        let token_nonce = i as u64;
+        let token_balance = 1_000 + i as u64;
+
+        setup.b_mock.set_nft_balance(
+            &addr,
+            LOCKED_ASSET_TOKEN_ID,
+            token_nonce,
+            &rust_biguint!(token_balance),
+            &token_attributes,
+        );
+
+        setup
+            .call_stake_locked_asset_custom_caller(&addr, token_nonce, token_balance)
+            .assert_ok();
+
+        users.push(addr);
+    }
+
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let (nr_results_left, results) = sc.get_snapshot(0).into_tuple();
+
+            assert_eq!(nr_results_left, 2);
+            assert_eq!(results.raw_len() / 2, MAX_SNAPSHOT_RESULTS);
+        })
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.mbs_wrapper, |sc| {
+            let (nr_results_left, results) = sc.get_snapshot(1).into_tuple();
+
+            assert_eq!(nr_results_left, 0);
+            assert_eq!(results.raw_len() / 2, 2);
         })
         .assert_ok();
 }

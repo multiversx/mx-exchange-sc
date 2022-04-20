@@ -87,6 +87,11 @@ pub trait LockedAssetTokenModule {
             .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
+    #[inline]
+    fn get_user_entries_vec_mapper(&self) -> VecMapper<ManagedAddress> {
+        VecMapper::new(elrond_wasm::storage::StorageKey::new(b"userList"))
+    }
+
     // proxies
 
     #[proxy]
