@@ -1,24 +1,144 @@
-# DEX Proxy Smart Contract
+# Proxy DEX Smart Contract
 
-This document presents how one can deploy and configure a DEX Proxy Contract.
-The bigger picture about what a DEX Proxy Contract can do can be found in the Repository's Root Readme.
+## Abstract
+
+Locked MEX tokens can be used as MEX token in Maiar Exchange, with the help of this proxy contract.
+
+## Introduction
+
+This smart contract offers users with Locked MEX the possibility of interacting with the DEX contracts, for operations like Adding Liquidity and Entering Farms, as if they had MEX.
+
+## Endpoints
+
+### init
+
+```rust
+    #[init]
+    fn init(
+        &self,
+        asset_token_id: TokenIdentifier,
+        locked_asset_token_id: TokenIdentifier,
+        locked_asset_factory_address: ManagedAddress,
+    );
+```
+
+### addLiquidityProxy
+
+```rust
+    #[payable("*")]
+    #[endpoint(addLiquidityProxy)]
+    fn add_liquidity_proxy(
+        &self,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    );
+```
+
+Add Liquidity Proxy intermediates adding of liquidity in a Pair contract as following:
+- The user must send the tokens in the order as they are in the Pair contract
+- The user must configure the slippage as he would in the Pair contract
+- The rule is that MEX - and Locked MEX implicitly - is always the second token
+
+The output payment of this contract is not the original LP token and instead is a Wrapped LP token. The reson is that if the user receives directly the LP tokens, he would have had the posibility of removing the liquidity and thus unlocking his Locked MEX.
+
+### removeLiquidityProxy
+
+```rust
+    #[payable("*")]
+    #[endpoint(removeLiquidityProxy)]
+    fn remove_liquidity_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_amount] amount: BigUint,
+        #[payment_nonce] token_nonce: Nonce,
+        pair_address: ManagedAddress,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
+    );
+```
+
+Remove Liquidity Proxy intermediates removing liquidity from a Pair contract as following: the user sends Wrapped LP tokens and receives the First token and the Locked MEX tokens. The address and slippage is configurable as they would be for the Pair contract.
+
+### enterFarmProxy
+
+```rust
+    #[payable("*")]
+    #[endpoint(enterFarmProxy)]
+    fn enter_farm_proxy_endpoint(&self, farm_address: ManagedAddress);
+```
+
+Enter Farm Proxy intermediates entering a Farm contract as following: the user sends Wrapped LP tokens and receives Wrapped Farm tokens. The reasoning for Wrapped Farm tokens is the same as for Wrapped LP tokens.
+
+The following next functions work exactly the same as they analogue functions in the Farm contract, except they take as an input Wrapped Farm tokens, instead of regular Farm tokens.
+
+The original LP tokens and Farm tokens, for which the contract mints Wrapped Tokens, remain in the smart contract. It will use the original tokens for performing the actions on behalf of the user.
+
+### exitFarmProxy
+
+```rust
+    #[payable("*")]
+    #[endpoint(exitFarmProxy)]
+    fn exit_farm_proxy(
+        &self,
+        #[payment_token] token_id: TokenIdentifier,
+        #[payment_nonce] token_nonce: Nonce,
+        #[payment_amount] amount: BigUint,
+        farm_address: &ManagedAddress,
+    );
+```
+
+### claimRewardsProxy
+
+```rust
+    #[payable("*")]
+    #[endpoint(claimRewardsProxy)]
+    fn claim_rewards_proxy(&self, farm_address: ManagedAddress);
+```
+
+### compoundRewardsProxy
+
+```rust
+    #[payable("*")]
+    #[endpoint(compoundRewardsProxy)]
+    fn compound_rewards_proxy(&self, farm_address: ManagedAddress);
+```
+
+### mergeWrappedFarmTokens
+
+```rust
+    #[payable("*")]
+    #[endpoint(mergeWrappedFarmTokens)]
+    fn merge_wrapped_farm_tokens(
+        &self,
+        farm_contract: ManagedAddress,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+    );
+```
+
+This function merges two or more positions of Wrapped Farm (farm positions obtained using Locked MEX instead of MEX and this intermediary contract). In order to merge two positions of this type, the contract uses merge endpoints for the underlying tokens, Farm tokens, Locked MEX tokens, Wrapped LP tokens and so on, and after that, the newly created Wrapped Farm token will just reference the newly created and merged underlying tokens.
+
+### mergeWrappedLpTokens
+
+```rust
+    #[payable("*")]
+    #[endpoint(mergeWrappedLpTokens)]
+    fn merge_wrapped_lp_tokens(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+    );
+```
+
+This function merges two or more positions of Wrapped LP tokens (LP positions obtained using Locked MEX instead of MEX and this intermediary contract). The same logic as for __mergeWrappedFarmTokens__ is applied.
+
+## Testing
+
+This contract has its own test suite in its subdirectory and it is included in most scenarios that include Locked MEX (Proxy SC, Farm SC with Lock and so on).
+
+## Interaction
+
+The interaction scripts for this contract are located in the dex subdirectory of the root project directory.
 
 ## Deployment
 
-The DEX Proxy contract can be deployed using `erdpy` and using the interaction snippets.
-
-The init parameters are:
-
-- asset_token_id. The TokenId of the asset that a locked asset represents. In case of Maiar Exchange it will be MEX.
-
-- locked_asset_token_id. The TokenId of the locked asset represents. In case of Maiar Exchange it will be Locked MEX.
-
-## Configuration workflow
-
-1. In order to complete the setup of the dex proxy contracts, Wrapped LP Token and Wrapped Farm token must be issued via `issueSftProxyPair` and `issueSftProxyFarm`. After this, setLocalRoles has to be called once for each of the two tokens, using for address the Proxy Address itself.
-
-2. In order to add a pair to intermediate, meaning a pair that is eligible to function with MEX, the admin should use `addPairToIntermediate` and `removeIntermediatedPair`.
-
-3. In order to add a farm to intermediate, meaning a farm that is eligible to function with MEX or with Wrapped LP Tokens, the admin should use `addFarmToIntermediate` and `removeIntermediatedFarm`.
-
-4. In order for the Setup to be complete, LocalMint + LocalBurn roles for MEX and NftBurn role for Locked MEX should be granted to the Proxy Contract.
+The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment yet soon to be governance smart contract).
