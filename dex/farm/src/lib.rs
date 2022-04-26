@@ -43,6 +43,7 @@ pub trait Farm:
     #[init]
     fn init(&self, reward_reserve: BigUint) {
         self.reward_reserve().update(|x| *x += &reward_reserve);
+        self.state().set(&State::Inactive);
     }
 
     #[payable("*")]

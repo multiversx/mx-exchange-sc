@@ -15,10 +15,7 @@ use farm_token::FarmToken;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
-};
+use config::MAX_PERCENT;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -47,37 +44,9 @@ pub trait Farm:
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[init]
-    fn init(
-        &self,
-        reward_token_id: TokenIdentifier,
-        farming_token_id: TokenIdentifier,
-        locked_asset_factory_address: ManagedAddress,
-        division_safety_constant: BigUint,
-        pair_contract_address: ManagedAddress,
-    ) {
-        require!(reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
-        let farm_token = self.farm_token_id().get();
-        require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
-        require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
-
+    fn init(&self, reward_reserve: BigUint) {
+        self.reward_reserve().update(|x| *x += &reward_reserve);
         self.state().set(&State::Inactive);
-        self.penalty_percent()
-            .set_if_empty(&DEFAULT_PENALTY_PERCENT);
-        self.minimum_farming_epochs()
-            .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
-        self.division_safety_constant()
-            .set_if_empty(&division_safety_constant);
-
-        self.reward_token_id().set(&reward_token_id);
-        self.farming_token_id().set(&farming_token_id);
-        self.locked_asset_factory_address()
-            .set(&locked_asset_factory_address);
-        self.pair_contract_address().set(&pair_contract_address);
     }
 
     #[payable("*")]
