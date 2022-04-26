@@ -14,6 +14,7 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
+        exitFarmPosition
         getBurnGasLimit
         getDivisionSafetyConstant
         getFarmMigrationConfiguration

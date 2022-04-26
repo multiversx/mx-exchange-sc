@@ -192,6 +192,88 @@ pub trait ProxyFarmModule:
     }
 
     #[payable("*")]
+    #[endpoint(exitFarmPositionProxy)]
+    fn exit_farm_position_proxy(&self, farm_address: &ManagedAddress) {
+        self.require_is_intermediated_farm(farm_address);
+        self.require_wrapped_farm_token_id_not_empty();
+        self.require_wrapped_lp_token_id_not_empty();
+        let payments_vec = self.call_value().all_esdt_transfers();
+        let mut payments_iter = payments_vec.iter();
+
+        let wrapped_farm_token = payments_iter
+            .next()
+            .unwrap_or_else(|| sc_panic!("bad payment len"));
+
+        require!(
+            wrapped_farm_token.amount != 0u32,
+            "Payment amount cannot be zero"
+        );
+        require!(
+            wrapped_farm_token.token_identifier == self.wrapped_farm_token_id().get(),
+            "Should only be used with wrapped farm tokens"
+        );
+
+        let wrapped_farm_token_attrs = self.get_wrapped_farm_token_attributes(
+            &wrapped_farm_token.token_identifier,
+            wrapped_farm_token.token_nonce,
+        );
+        let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
+        let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
+
+        let mut payments = ManagedVec::new();
+        payments.push(EsdtTokenPayment::new(
+            farm_token_id,
+            farm_token_nonce,
+            wrapped_farm_token.amount.clone(),
+        ));
+
+        if payments_iter.len() > 1 {
+            require!(payments_iter.len() == 1, "bad additional payments len");
+            let additional_payment = payments_iter
+                .next()
+                .unwrap_or_else(|| sc_panic!("bad payment len"));
+            let accepted_additional_payment = additional_payment.token_identifier
+                == self.asset_token_id().get()
+                && additional_payment.token_nonce == 0
+                && additional_payment.amount > 0u32;
+            require!(accepted_additional_payment, "bad additional payment");
+            payments.push(EsdtTokenPayment::new(
+                additional_payment.token_identifier,
+                additional_payment.token_nonce,
+                additional_payment.amount,
+            ))
+        }
+
+        let farm_result = self
+            .actual_exit_farm_position(farm_address, payments)
+            .into_tuple();
+        let farming_token_returned = farm_result.0;
+
+        let caller = self.blockchain().get_caller();
+        self.transfer_execute_custom(
+            &caller,
+            &wrapped_farm_token_attrs.farming_token_id,
+            wrapped_farm_token_attrs.farming_token_nonce,
+            &farming_token_returned.amount,
+            &OptionalValue::None,
+        );
+
+        self.send().esdt_local_burn(
+            &wrapped_farm_token.token_identifier,
+            wrapped_farm_token.token_nonce,
+            &wrapped_farm_token.amount,
+        );
+
+        if farming_token_returned.token_identifier == self.asset_token_id().get() {
+            self.send().esdt_local_burn(
+                &farming_token_returned.token_identifier,
+                0,
+                &farming_token_returned.amount,
+            );
+        }
+    }
+
+    #[payable("*")]
     #[endpoint(claimRewardsProxy)]
     fn claim_rewards_proxy(&self, farm_address: ManagedAddress) {
         self.require_is_intermediated_farm(&farm_address);
@@ -425,6 +507,17 @@ pub trait ProxyFarmModule:
             .exit_farm(OptionalValue::None)
             .add_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
             .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+    }
+
+    fn actual_exit_farm_position(
+        &self,
+        farm_address: &ManagedAddress,
+        payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
+    ) -> ExitFarmResultType<Self::Api> {
+        self.farm_contract_proxy(farm_address.clone())
+            .exit_farm_position(OptionalValue::None)
+            .with_multi_token_transfer(payments)
+            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
     }
 
     fn actual_claim_rewards(

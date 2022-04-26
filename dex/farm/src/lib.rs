@@ -15,10 +15,7 @@ use farm_token::FarmToken;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
-};
+use config::MAX_PERCENT;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -44,34 +41,8 @@ pub trait Farm:
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
     #[init]
-    fn init(
-        &self,
-        reward_token_id: TokenIdentifier,
-        farming_token_id: TokenIdentifier,
-        division_safety_constant: BigUint,
-        pair_contract_address: ManagedAddress,
-    ) {
-        require!(reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
-        let farm_token = self.farm_token_id().get();
-        require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
-        require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
-
-        self.state().set(&State::Inactive);
-        self.penalty_percent()
-            .set_if_empty(&DEFAULT_PENALTY_PERCENT);
-        self.minimum_farming_epochs()
-            .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
-        self.division_safety_constant()
-            .set_if_empty(&division_safety_constant);
-
-        self.reward_token_id().set(&reward_token_id);
-        self.farming_token_id().set(&farming_token_id);
-        self.pair_contract_address().set(&pair_contract_address);
+    fn init(&self, reward_reserve: BigUint) {
+        self.reward_reserve().update(|x| *x += &reward_reserve);
     }
 
     #[payable("*")]
@@ -195,6 +166,83 @@ pub trait Farm:
         self.construct_output_payments_exit(&mut context);
         self.execute_output_payments(&context);
         self.emit_exit_farm_event(&context);
+
+        self.construct_and_get_result(&context)
+    }
+
+    #[payable("*")]
+    #[endpoint(exitFarmPosition)]
+    fn exit_farm_position(
+        &self,
+        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+    ) -> ExitFarmResultType<Self::Api> {
+        let mut context = self.new_farm_context(opt_accept_funds_func);
+
+        self.load_state(&mut context);
+        require!(
+            context.get_contract_state().unwrap() == &State::Active,
+            ERROR_NOT_ACTIVE
+        );
+
+        self.load_farm_token_id(&mut context);
+        require!(
+            !context.get_farm_token_id().unwrap().is_empty(),
+            ERROR_NO_FARM_TOKEN
+        );
+
+        self.load_farming_token_id(&mut context);
+        self.load_reward_token_id(&mut context);
+        self.load_reward_reserve(&mut context);
+        self.load_block_nonce(&mut context);
+        self.load_block_epoch(&mut context);
+        self.load_reward_per_share(&mut context);
+        self.load_farm_token_supply(&mut context);
+        self.load_division_safety_constant(&mut context);
+        self.load_farm_attributes(&mut context);
+
+        let payments = context.get_tx_input().get_payments();
+
+        let farm_token_payment = payments.get_first();
+        let accepted_farm_token = &farm_token_payment.token_identifier
+            == context.get_farm_token_id().unwrap()
+            && farm_token_payment.token_nonce > 0
+            && farm_token_payment.amount > 0;
+        require!(accepted_farm_token, ERROR_BAD_PAYMENTS);
+
+        if payments.get_additional().is_some() {
+            require!(
+                payments.get_additional().unwrap().len() == 1,
+                ERROR_BAD_PAYMENTS_LEN
+            );
+            let additional_payment = payments.get_additional().unwrap().get(0);
+            let accepted_additional_payment = &additional_payment.token_identifier
+                == context.get_reward_token_id().unwrap()
+                && additional_payment.token_nonce == 0
+                && additional_payment.amount > 0;
+            require!(accepted_additional_payment, ERROR_BAD_INPUT_TOKEN);
+        }
+
+        self.calculate_initial_farming_amount(&mut context);
+        context.set_final_reward(EsdtTokenPayment::new(
+            context.get_reward_token_id().unwrap().clone(),
+            0,
+            BigUint::zero(),
+        ));
+        self.commit_changes(&context);
+        self.burn_penalty(&mut context);
+
+        self.send().esdt_local_burn(
+            context.get_farm_token_id().unwrap(),
+            context
+                .get_tx_input()
+                .get_payments()
+                .get_first()
+                .token_nonce,
+            &context.get_tx_input().get_payments().get_first().amount,
+        );
+
+        self.construct_output_payments_exit(&mut context);
+        self.execute_output_payments(&context);
 
         self.construct_and_get_result(&context)
     }
