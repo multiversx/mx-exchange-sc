@@ -517,7 +517,7 @@ pub trait ProxyFarmModule:
         self.farm_contract_proxy(farm_address.clone())
             .exit_farm_position(OptionalValue::None)
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
     }
 
     fn actual_claim_rewards(
