@@ -213,7 +213,9 @@ pub trait Farm:
             && farm_token_payment.amount > 0;
         require!(accepted_farm_token, ERROR_BAD_PAYMENTS);
 
-        if let Some(additional_payments) = payments.get_additional() {
+        let additional_payments = payments.get_additional().unwrap();
+
+        if additional_payments.len() > 0 {
             require!(additional_payments.len() == 1, ERROR_BAD_PAYMENTS_LEN);
             let additional_payment = additional_payments.get(0);
             let accepted_additional_payment = &additional_payment.token_identifier
