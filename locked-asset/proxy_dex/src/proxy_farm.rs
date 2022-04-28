@@ -227,7 +227,7 @@ pub trait ProxyFarmModule:
             wrapped_farm_token.amount.clone(),
         ));
 
-        if payments_iter.len() > 1 {
+        if payments_iter.len() > 0 {
             require!(payments_iter.len() == 1, "bad additional payments len");
             let additional_payment = payments_iter
                 .next()
