@@ -48,7 +48,7 @@ Its arguments are:
 
 - __first_token_id__  - The first token identifier that will represent the liquidity pool.
 - __second_token_id__
-- __initial_liquidity_adder__ - The address of Price Discovery, in case no price discovery is used, must be ```Address::zero()```. Alternatively this could be configured as ```OptionalValue<ManagedAddress>```, but for simplicity of formatting transactions, the zero address was used.
+- __initial_liquidity_adder__ - The address of Price Discovery. In case it isn't used a price discovery mechanism, the argument must be ```Address::zero()```. Alternatively this could be configured as ```OptionalValue<ManagedAddress>```, but for the simplicity of formatting transactions, the zero address was used.
 - __opt_fee_percents__ - The fees percents that will be used to configure the newly created pair contract. These are taken into account only in case of the router owner being the caller. Other callers are not allowed to configure these perameters and the default ones will be used.
 
 The way the Router deploys a new Pair smart contract is via ```deploy_from_source_contract``` from the address specified by __pair_template_address__. The way this endpoint works is that it just copies the smart contract bytecode from the source to another instance and it returns the address of the newly created smart contract. The init function is also invoked after the bytecode is copied and before returning.
@@ -67,7 +67,7 @@ The way the Router deploys a new Pair smart contract is via ```deploy_from_sourc
     );
 ```
 
-UpgradePair works in a similar way as deploy pair works. It uses ```upgrade_from_source_contract``` and it works exactly the same as ```deploy_from_source_contract``` with the distinction that the destination contract has to be already deployed in order to be upgraded from source contract.
+UpgradePair works in a similar way as deploy pair. It uses ```upgrade_from_source_contract``` and it works exactly the same as ```deploy_from_source_contract```, with the distinction that the destination contract has to already be deployed in order to be upgraded from source contract.
 
 ### issueLpToken
 
@@ -83,20 +83,20 @@ UpgradePair works in a similar way as deploy pair works. It uses ```upgrade_from
     );
 ```
 
-In order to simplify the issuing of LP tokens and their management, the Router smart contract is the owner and manager of the LP tokens. The way it works is that the router issues them and then it set the roles of mint and burn to the pair contracts.
+In order to simplify the issuing of LP tokens and their management, the Router smart contract is the owner and manager of the LP tokens. The way it works is that the router issues the tokens and then it sets the roles of mint and burn to the pair contracts.
 
 ## Testing
 
 There are four test suites around this contract:
 
 - __mandos__ tests are located in the _dex/mandos_ directory. The tests can be ran using __mandos-test__
-- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust test using __cargo-test__. This test suite is to be preffered and will be extended and maintained over the mandos tests because the testing framework offers programatic testing.
+- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust test using __cargo-test__. This test suite is to be preferred and will be extended and maintained over the mandos tests because the testing framework offers programmatic testing.
 - __legolas__ tests are python scripts that use actual live transactions on testing setups
 
 ## Interaction
 
-The interaction scripts are located in the _dex/interaction_ directory. The scipts are written in python and erdpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping erdpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use the scripts.
+The interaction scripts are located in the _dex/interaction_ directory. They are written in python and erdpy is required in order to be used. Interaction scripts are scripts that ease the interaction with the deployed contract by wrapping erdpy sdk functionality in bash scripts. Make sure to update the PEM path and the PROXY and CHAINID values in order to correctly use them.
 
 ## Deployment
 
-The deployment of this contract is done using erdpy, using interaction scripts, or any other tool, in a standalone manner or by previuously deploying the template pair smart contract.
+The deployment of this contract is done using erdpy, interaction scripts, or any other tool, in a standalone manner or by previously deploying the template pair smart contract.

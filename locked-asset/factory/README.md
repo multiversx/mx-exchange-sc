@@ -2,7 +2,7 @@
 
 ## Abstract
 
-This smart contract is the 'father' of all Locked MEX tokens as any contract that needs those tokens come must request them here.
+This smart contract is the 'father' of all Locked MEX tokens as any contract that needs those tokens, must request them here.
 
 ## Introduction
 
@@ -39,7 +39,7 @@ The arguments are:
     )
 ```
 
-This is the endpoint called by other smart contracts when in need of creating Locked MEX. The contract will use the arguments and will create and send __amount__ Locked MEX to __address__ having the unlock schedule starting at __start_epoch__ with the __default_unlock_period__.
+This is the endpoint called by other smart contracts when in need of creating Locked MEX. The contract will use the arguments and will create and send the __amount__ of Locked MEX to __address__ having the unlock schedule starting at __start_epoch__ with the __default_unlock_period__.
 
 ### unlockAssets
 
@@ -54,7 +54,7 @@ This is the endpoint called by other smart contracts when in need of creating Lo
     );
 ```
 
-This endpoint receives Locked MEX as payment and returns, if possible - that is if at least one Unlock Milestone was reached, regular Fungible MEX and the leftover  Locked MEX, with updated Unlock Milestones.
+This endpoint receives Locked MEX as payment and returns, if possible (if at least one Unlock Milestone was reached), regular Fungible MEX and the leftover Locked MEX, with updated Unlock Milestones.
 
 ### lockAssets
 
@@ -68,7 +68,7 @@ This endpoint receives Locked MEX as payment and returns, if possible - that is 
     )
 ```
 
-This endpoint receives as payment MEX tokens and returns Locked MEX tokens. The reason why someone would do this is because Locked MEX is used in some places where MEX cannot and Locking is usually beneficial to the Ecosystem.
+This endpoint receives MEX tokens as payment and returns Locked MEX tokens. The reason why someone would do this is because Locked MEX is used in different mechanisms where MEX cannot be used. Furthermore, Locking is beneficial to the Ecosystem.
 
 ### mergeLockedAssetTokens
 
@@ -81,7 +81,7 @@ This endpoint receives as payment MEX tokens and returns Locked MEX tokens. The 
     )
 ```
 
-The endpoint merges two or more Locked MEX tokens with different nonces together. It handles reconstucting the Unlock Schedule in a fair manner and with high precision.
+The endpoint merges two or more Locked MEX tokens with different nonces together. It handles reconstructing the Unlock Schedule in a fair manner and with high precision.
 
 ## Testing
 
@@ -93,4 +93,4 @@ The interaction scripts for this contract are located in the dex subdirectory of
 
 ## Deployment
 
-The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment yet soon to be governance smart contract).
+The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment, yet soon to be governance smart contract).

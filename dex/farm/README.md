@@ -59,11 +59,11 @@ This endpoint will give back to the caller a Farm position as a result. The Farm
     );
 ```
 
-This endpoint received one payment, and that is the Farm Position. Based on an internal counter that the contract keeps track of, that is __rps__ - meaning reward per share, the contract can calculate the reward that it needs to return to the caller for those specific tokens that he have sent. The output will consist of two payments: the LP tokens initially added and the accumulated reward.
+This endpoint receives one payment, and that is the Farm Position. Based on an internal counter that the contract keeps track of, which is the __rps__ - meaning reward per share, the contract can calculate the reward that it needs to return to the caller for those specific tokens that he has sent. The output will consist of two payments: the LP tokens initially added and the accumulated rewards.
 
-This contract simulates per-block-reward-generation by keeping track of the last block it generated mex and keep updating is on every endpoint execution. Everytime an execution happens the contract will generate the rewards for previous blocks. This is the case for the first successful TX inside a block, so only once per block does this check has to be made and the action has to be taken.
+This contract simulates per-block-reward-generation by keeping track of the last block that generated mex and keeps updating on every endpoint execution. Everytime an execution happens, the contract will generate the rewards for previous blocks. This is the case for the first successful TX inside a block, so only once per block this check has to be made and the action to be taken.
 
-If a user decides to early exit and take the penalty, this contract will take a part of its input LP tokens and will used them to buyback-and-burn MEX. This is done via a smart contract call to the configured pair contract address, via __removeLiquidityAndBuybackAndBurnToken__ endpoint.
+If a user decides to exit too early and to support the penalty, this contract will take a part of its input LP tokens and will used them to buyback-and-burn MEX. This is done via a smart contract call to the configured pair contract address, via __removeLiquidityAndBuybackAndBurnToken__ endpoint.
 
 ### claimRewards
 
@@ -117,4 +117,4 @@ The interaction scripts for this contract are located in the dex subdirectory of
 
 ## Deployment
 
-The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment yet soon to be governance smart contract).
+The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment, yet soon to be governance smart contract).

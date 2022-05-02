@@ -35,12 +35,12 @@ This smart contract offers users with Locked MEX the possibility of interacting 
     );
 ```
 
-Add Liquidity Proxy intermediates adding of liquidity in a Pair contract as following:
-- The user must send the tokens in the order as they are in the Pair contract
+Add Liquidity Proxy intermediates liquidity adding in a Pair contract as follows:
+- The user must send the tokens in the same order as they are in the Pair contract
 - The user must configure the slippage as he would in the Pair contract
 - The rule is that MEX - and Locked MEX implicitly - is always the second token
 
-The output payment of this contract is not the original LP token and instead is a Wrapped LP token. The reson is that if the user receives directly the LP tokens, he would have had the posibility of removing the liquidity and thus unlocking his Locked MEX.
+The output payment of this contract is not the original LP token and is instead a Wrapped LP token. The reason is that if the user receives directly the LP tokens, he would have had the possibility of removing the liquidity and thus unlocking his Locked MEX.
 
 ### removeLiquidityProxy
 
@@ -58,7 +58,7 @@ The output payment of this contract is not the original LP token and instead is 
     );
 ```
 
-Remove Liquidity Proxy intermediates removing liquidity from a Pair contract as following: the user sends Wrapped LP tokens and receives the First token and the Locked MEX tokens. The address and slippage is configurable as they would be for the Pair contract.
+Remove Liquidity Proxy intermediates removing liquidity from a Pair contract as follows: the user sends Wrapped LP tokens and receives the First token and the Locked MEX tokens. The address and slippage is configurable as they would be for the Pair contract.
 
 ### enterFarmProxy
 
@@ -68,9 +68,9 @@ Remove Liquidity Proxy intermediates removing liquidity from a Pair contract as 
     fn enter_farm_proxy_endpoint(&self, farm_address: ManagedAddress);
 ```
 
-Enter Farm Proxy intermediates entering a Farm contract as following: the user sends Wrapped LP tokens and receives Wrapped Farm tokens. The reasoning for Wrapped Farm tokens is the same as for Wrapped LP tokens.
+Enter Farm Proxy intermediates entering a Farm contract as follows: the user sends Wrapped LP tokens and receives Wrapped Farm tokens. The reasoning for Wrapped Farm tokens is the same as for Wrapped LP tokens.
 
-The following next functions work exactly the same as they analogue functions in the Farm contract, except they take as an input Wrapped Farm tokens, instead of regular Farm tokens.
+The following next functions work exactly the same as their analogue functions in the Farm contract, except they take as an input Wrapped Farm tokens, instead of regular Farm tokens.
 
 The original LP tokens and Farm tokens, for which the contract mints Wrapped Tokens, remain in the smart contract. It will use the original tokens for performing the actions on behalf of the user.
 
@@ -116,7 +116,7 @@ The original LP tokens and Farm tokens, for which the contract mints Wrapped Tok
     );
 ```
 
-This function merges two or more positions of Wrapped Farm (farm positions obtained using Locked MEX instead of MEX and this intermediary contract). In order to merge two positions of this type, the contract uses merge endpoints for the underlying tokens, Farm tokens, Locked MEX tokens, Wrapped LP tokens and so on, and after that, the newly created Wrapped Farm token will just reference the newly created and merged underlying tokens.
+This function merges two or more positions of Wrapped Farm (farm positions obtained using Locked MEX instead of MEX and this intermediary contract). In order to merge two positions of this type, the contract uses merge endpoints for the underlying tokens like Farm tokens, Locked MEX tokens, Wrapped LP tokens and so on, and after that, the newly created Wrapped Farm token will just reference the newly created and merged underlying tokens.
 
 ### mergeWrappedLpTokens
 
@@ -141,4 +141,4 @@ The interaction scripts for this contract are located in the dex subdirectory of
 
 ## Deployment
 
-The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment yet soon to be governance smart contract).
+The deployment of this contract is done using interaction scripts and it is managed by its admin (regular wallet at the moment, yet soon to be governance smart contract).
