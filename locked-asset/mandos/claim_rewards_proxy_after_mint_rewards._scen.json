@@ -92,7 +92,13 @@
                         "3-token_nonce": "u64:2",
                         "4-amount": "biguint:43,750"
                     },
-                    "0x02"
+                    "0x02",
+                    {
+                        "1-token_type": "u8:2",
+                        "2-token_id": "nested:str:LKMEX-abcdef",
+                        "3-token_nonce": "u64:2",
+                        "4-amount": "biguint:43,750"
+                    }
                 ],
                 "status": "0",
                 "gas": "*",

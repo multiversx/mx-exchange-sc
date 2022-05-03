@@ -90,6 +90,18 @@
                         "2-token_id": "nested:str:LKMEX-abcdef",
                         "3-token_nonce": "u64:2",
                         "4-amount": "biguint:218,750"
+                    },
+                    {
+                        "1-token_type": "u8:0",
+                        "2-token_id": "nested:str:LPTOK-abcdef",
+                        "3-token_nonce": "u64:0",
+                        "4-amount": "biguint:7,000"
+                    },
+                    {
+                        "1-token_type": "u8:2",
+                        "2-token_id": "nested:str:LKMEX-abcdef",
+                        "3-token_nonce": "u64:2",
+                        "4-amount": "biguint:218,750"
                     }
                 ],
                 "status": "0",

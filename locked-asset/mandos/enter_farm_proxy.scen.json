@@ -58,7 +58,21 @@
                         "3-token_nonce": "u64:1",
                         "4-amount": "biguint:8,000"
                     },
-                    "0x01"
+                    "0x01",
+                    {
+                        "1-farm_result": {
+                            "1-token_type": "u8:2",
+                            "2-token_id": "nested:str:FARM-abcdef",
+                            "3-token_nonce": "u64:1",
+                            "4-amount": "biguint:8,000"
+                        },
+                        "2-wrapped_farm_token": {
+                            "1-token_type": "u8:2",
+                            "2-token_id": "nested:str:WFARM-abcdef",
+                            "3-token_nonce": "u64:1",
+                            "4-amount": "biguint:8,000"
+                        }
+                    }
                 ],
                 "status": "0",
                 "gas": "*",

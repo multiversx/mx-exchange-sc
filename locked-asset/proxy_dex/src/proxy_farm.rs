@@ -19,10 +19,22 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[derive(ManagedVecItem, Clone)]
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedFarmToken<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: WrappedFarmTokenAttributes<M>,
+}
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct EnterProxyFarmResult<M: ManagedTypeApi> {
+    pub farm_result: EnterFarmResultType<M>,
+    pub wrapped_farm_result: EsdtTokenPayment<M>
+}
+
+#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+pub struct CompoundRewardsProxyFarmResult<M: ManagedTypeApi> {
+    pub result: EnterFarmResultType<M>,
+    pub wrapped_farm_result: EsdtTokenPayment<M>
 }
 
 #[elrond_wasm::module]
@@ -50,7 +62,7 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
-    fn enter_farm_proxy_endpoint(&self, farm_address: ManagedAddress) {
+    fn enter_farm_proxy_endpoint(&self, farm_address: ManagedAddress) -> EnterProxyFarmResult<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -79,9 +91,9 @@ pub trait ProxyFarmModule:
         }
 
         let farm_result = self.actual_enter_farm(&farm_address, &farming_token_id, &amount);
-        let farm_token_id = farm_result.token_identifier;
+        let farm_token_id = farm_result.token_identifier.clone();
         let farm_token_nonce = farm_result.token_nonce;
-        let farm_token_total_amount = farm_result.amount;
+        let farm_token_total_amount = farm_result.amount.clone();
         require!(
             farm_token_total_amount > 0u32,
             "Farm token amount received should be greater than 0"
@@ -96,7 +108,7 @@ pub trait ProxyFarmModule:
             farming_token_amount: amount.clone(),
         };
         let caller = self.blockchain().get_caller();
-        let (new_wrapped_farm_token, created_with_merge) = self
+        let (new_wrapped_token_nonce, new_wrapped_farm_token, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
                 &attributes,
                 &farm_token_total_amount,
@@ -117,6 +129,16 @@ pub trait ProxyFarmModule:
             &new_wrapped_farm_token.attributes,
             created_with_merge,
         );
+
+        EnterProxyFarmResult {
+            farm_result,
+            wrapped_farm_result: EsdtTokenPayment {
+                token_type: EsdtTokenType::SemiFungible,
+                token_identifier: self.wrapped_farm_token_id().get(),
+                token_nonce: new_wrapped_token_nonce,
+                amount: new_wrapped_farm_token.token_amount.amount,
+            }
+        }
     }
 
     #[payable("*")]
@@ -127,7 +149,7 @@ pub trait ProxyFarmModule:
         #[payment_nonce] token_nonce: Nonce,
         #[payment_amount] amount: BigUint,
         farm_address: &ManagedAddress,
-    ) {
+    ) -> ExitFarmResultType<Self::Api> {
         self.require_is_intermediated_farm(farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -143,8 +165,11 @@ pub trait ProxyFarmModule:
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
-        let farm_result = self
-            .actual_exit_farm(farm_address, &farm_token_id, farm_token_nonce, &amount)
+        let farm_result_call = self
+            .actual_exit_farm(farm_address, &farm_token_id, farm_token_nonce, &amount);
+
+        let farm_result = farm_result_call
+            .clone()
             .into_tuple();
         let farming_token_returned = farm_result.0;
         let reward_token_returned = farm_result.1;
@@ -189,11 +214,13 @@ pub trait ProxyFarmModule:
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
         );
+
+        farm_result_call
     }
 
     #[payable("*")]
     #[endpoint(claimRewardsProxy)]
-    fn claim_rewards_proxy(&self, farm_address: ManagedAddress) {
+    fn claim_rewards_proxy(&self, farm_address: ManagedAddress) -> ClaimRewardsResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -220,8 +247,10 @@ pub trait ProxyFarmModule:
         let farm_token_id = wrapped_farm_token_attrs.farm_token_id.clone();
         let farm_token_nonce = wrapped_farm_token_attrs.farm_token_nonce;
 
-        let result = self
-            .actual_claim_rewards(&farm_address, &farm_token_id, farm_token_nonce, &amount)
+        let result_call = self
+            .actual_claim_rewards(&farm_address, &farm_token_id, farm_token_nonce, &amount);
+        let result = result_call
+            .clone()
             .into_tuple();
         let new_farm_token = result.0;
         let reward_token_returned = result.1;
@@ -256,7 +285,7 @@ pub trait ProxyFarmModule:
                 &wrapped_farm_token_attrs.farming_token_amount,
             ),
         };
-        let (new_wrapped_farm, created_with_merge) = self
+        let (_, new_wrapped_farm, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
                 &new_wrapped_farm_token_attributes,
                 &new_farm_token_total_amount,
@@ -282,11 +311,13 @@ pub trait ProxyFarmModule:
             &new_wrapped_farm.attributes,
             created_with_merge,
         );
+
+        result_call
     }
 
     #[payable("*")]
     #[endpoint(compoundRewardsProxy)]
-    fn compound_rewards_proxy(&self, farm_address: ManagedAddress) {
+    fn compound_rewards_proxy(&self, farm_address: ManagedAddress) -> CompoundRewardsProxyFarmResult<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -321,7 +352,7 @@ pub trait ProxyFarmModule:
             &farm_amount,
         );
 
-        let new_farm_token = result;
+        let new_farm_token = result.clone();
         let new_farm_token_id = new_farm_token.token_identifier;
         let new_farm_token_nonce = new_farm_token.token_nonce;
         let new_farm_token_amount = new_farm_token.amount;
@@ -343,7 +374,7 @@ pub trait ProxyFarmModule:
             ),
         };
         let caller = self.blockchain().get_caller();
-        let (new_wrapped_farm, created_with_merge) = self
+        let (new_wrapped_token_nonce, new_wrapped_farm, created_with_merge) = self
             .create_wrapped_farm_tokens_by_merging_and_send(
                 &new_wrapped_farm_token_attributes,
                 &new_farm_token_amount,
@@ -367,6 +398,16 @@ pub trait ProxyFarmModule:
             &new_wrapped_farm.attributes,
             created_with_merge,
         );
+
+        CompoundRewardsProxyFarmResult {
+            result,
+            wrapped_farm_result: EsdtTokenPayment {
+                token_type: EsdtTokenType::SemiFungible,
+                token_identifier: self.wrapped_farm_token_id().get(),
+                token_nonce: new_wrapped_token_nonce,
+                amount: new_wrapped_farm.token_amount.amount,
+            }
+        }
     }
 
     fn create_wrapped_farm_tokens_by_merging_and_send(
@@ -376,7 +417,7 @@ pub trait ProxyFarmModule:
         farm_address: &ManagedAddress,
         caller: &ManagedAddress,
         additional_payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
-    ) -> (WrappedFarmToken<Self::Api>, bool) {
+    ) -> (u64, WrappedFarmToken<Self::Api>, bool) {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
             caller,
@@ -388,6 +429,8 @@ pub trait ProxyFarmModule:
             }),
             OptionalValue::None,
         )
+
+
     }
 
     fn actual_enter_farm(

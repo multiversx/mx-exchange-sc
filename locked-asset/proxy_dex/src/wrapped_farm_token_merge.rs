@@ -54,7 +54,7 @@ pub trait WrappedFarmTokenMerge:
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedFarmToken<Self::Api>>,
         opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> (WrappedFarmToken<Self::Api>, bool) {
+    ) -> (u64, WrappedFarmToken<Self::Api>, bool) {
         require!(!payments.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = payments.len();
 
@@ -100,7 +100,7 @@ pub trait WrappedFarmTokenMerge:
         };
         let is_merged = deposit_len != 0;
 
-        (new_token, is_merged)
+        (new_nonce, new_token, is_merged)
     }
 
     fn get_wrapped_farm_tokens_from_deposit(
