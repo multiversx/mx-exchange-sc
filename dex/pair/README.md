@@ -6,7 +6,7 @@ The Pair smart contract is used to allow the users to exchange tokens in a decen
 
 ## Introduction
 
-This contract allows users to provide liquidity and to swap tokens. Users are incentivized to add liquidity by earning fees and by being able to enter farms, thus earning even more rewards. This contract is usually deployed by the router smart contract and it (usually) has no dependency, as it is used as a DeFi primitive.
+This contract allows users to provide liquidity and to swap tokens. Users are incentivized to add liquidity by earning rewards from fees and by being able to enter farms, thus earning even more rewards. This contract is usually deployed by the router smart contract and it (usually) has no dependency, as it is used as a DeFi primitive.
 
 ## Endpoints
 
