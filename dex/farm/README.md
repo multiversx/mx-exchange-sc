@@ -78,7 +78,7 @@ If a user decides to exit too early, they will receive a penalty. This contract 
 
 This endpoint receives at least one payment:
 
-- The first payment is a Farm position that is 'harvested'. So for this position, the contract will calculate the reward and will return it to its caller. The contract will create a new position that has the ```RPS`` (Reward per share) resetted.
+- The first payment is a Farm position that is 'harvested'. So for this position, the contract will calculate the reward and will return it to its caller. The contract will create a new position that has the ```RPS`` (Reward per share) reset.
 - The additional payments, if any, will be other Farm positions and will be used to be merged with the newly created one.
 
 ### compoundRewards
