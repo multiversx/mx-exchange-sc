@@ -92,7 +92,7 @@ This endpoint receives at least one payment:
     );
 ```
 
-This endpoint is similar with claimRewards, the differences being that instead of giving back the rewards to the caller, they are compounded into the newly created position (with the resetted RPS). For this to be possible, reward token and farming token have to be the same and hence is applicable only in case of MEX Farm.
+This endpoint is similar with claimRewards, the differences being that instead of giving back the rewards to the caller, they are compounded into the newly created position (with the reset RPS). For this to be possible, reward token and farming token have to be the same, hence it is applicable only in case of MEX Farm.
 
 ### mergePositions
 
