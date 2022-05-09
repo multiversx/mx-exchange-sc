@@ -46,7 +46,7 @@ Works the same as the regular Farm with the exception that it does not generate 
 
 ### Price discovery
 
-In order to improve the experience of the user, and decrement the use of bots at new launches of new tokens on the DEX, the Price discovery mechanism was created. As its name states, this contract aims to find the Market Price of a token even before allowing swaps. This contract is supposed to be used before the creation of a Pair SC that needs this protection. The SC gathers both types of tokens and gives each user the corresponding tokens, assets that are locked for a small period of time, in order to further alleviate any unnatural price fluctuations that may appear at launch time.
+In order to improve the experience of the user, and decrease the impact of trade bots at launches of new tokens on the DEX, the Price discovery mechanism was created. As its name states, this contract aims to find the Market Price of a token even before allowing swaps. This contract is supposed to be used before the creation of a Pair SC that needs this protection. The SC gathers both types of tokens and gives each user the corresponding tokens, assets that are locked for a small period of time, in order to further alleviate any unnatural price fluctuations that may appear at launch time.
 
 ## Farm Staking Contracts
 
