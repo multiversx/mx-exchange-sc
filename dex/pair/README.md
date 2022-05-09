@@ -166,7 +166,7 @@ The remaining fee, which is ```f * aI``` would be split afterwards into regular 
     );
 ```
 
-Happens exactly the same as SwapFixedInput function with the only difference that __aO__ is fixated and __aI__ is calculated using the same formulas.
+Happens exactly the same as SwapFixedInput function with the only difference that __aO__ is fixed and __aI__ is calculated using the same formulas.
 
 One other difference is that the contract actually returns the desired tokens to the users, and also the __leftover__, in case there is any.
 
