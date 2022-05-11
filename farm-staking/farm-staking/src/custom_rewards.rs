@@ -35,6 +35,7 @@ pub trait CustomRewardsModule:
 
     fn generate_aggregated_rewards(&self) {
         let mut extra_rewards = self.calculate_extra_rewards_since_last_allocation();
+
         if extra_rewards > 0 {
             let mut accumulated_rewards = self.accumulated_rewards().get();
             let total_rewards = &accumulated_rewards + &extra_rewards;
@@ -83,6 +84,7 @@ pub trait CustomRewardsModule:
     fn set_max_apr(&self, max_apr: BigUint) {
         require!(max_apr != 0, "Max APR cannot be zero");
 
+        self.generate_aggregated_rewards();
         self.max_annual_percentage_rewards().set(&max_apr);
     }
 

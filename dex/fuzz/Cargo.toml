@@ -31,6 +31,12 @@ path = "../farm_with_lock"
 [dependencies.factory]
 path = "../../locked-asset/factory"
 
+[dependencies.pair-mock]
+path = "../pair-mock"
+
+[dependencies.price-discovery]
+path = "../price-discovery"
+
 [dependencies.farm]
 path = "../farm"
 

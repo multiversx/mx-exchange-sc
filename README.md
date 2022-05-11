@@ -2,144 +2,78 @@
 
 This repository contains the principal Smart Contract components of Maiar Exchange.
 
-This document will contain an overview of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate  README in its own root directory.
+This document is a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate README in its own root directory.
 
 - [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
   - [DEX Contracts](#dex-contracts)
     - [Pair Contract](#pair-contract)
-      - [Adding liquidty](#adding-liquidty)
-      - [Removing liquidity](#removing-liquidity)
-      - [Swapping](#swapping)
     - [Router Contract](#router-contract)
     - [Farm Contract](#farm-contract)
-      - [Entering Farm](#entering-farm)
-      - [Exiting Farm](#exiting-farm)
-      - [Claiming rewards](#claiming-rewards)
-  - [MEX Distribution Contracts](#mex-distribution-contracts)
+    - [Farm with Lock Contract](#farm-with-lock-contract)
+    - [Price discovery](#price-discovery)
+  - [Farm Staking Contracts](#farm-staking-contracts)
+    - [Farm Staking](#farm-staking)
+    - [Farm Staking Proxy](#farm-staking-proxy)
+    - [Metabonding Staking](#metabonding-staking)
+  - [Locked Asset Contracts](#locked-asset-contracts)
     - [Distribution Contract](#distribution-contract)
     - [DEX Proxy Contract](#dex-proxy-contract)
-      - [Proxy Pair Module](#proxy-pair-module)
-      - [Proxy Farm Module](#proxy-farm-module)
-  - [Locked MEX Factory Contract](#locked-mex-factory-contract)
+    - [Locked MEX Factory Contract](#locked-mex-factory-contract)
 
-Other Smart Contracts that are part of Maiar exchange, but are not part of this repository, are:
+Other Smart Contracts that are part of Maiar exchange, but are not part of this repository:
 
 - [Egld wrapping](https://github.com/ElrondNetwork/sc-bridge-elrond/tree/main/egld-esdt-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
-- [Multisig](https://github.com/ElrondNetwork/sc-bridge-elrond/tree/main/multisig)
-used for deploying and setting up all the Smart Contracts.
 
 ## DEX Contracts
 
-These are the core Smart Contracts and the foundation of Maiar Exchange. They consist of three contracts, all of which will be explained below.
-
-Some important general properties:
-
-- Every DEX contract is marked as `non payable` in order to minimize the risk of a user sending his tokens to the contract by accident and hence locking them indefinitely.
-
-- Every DEX contract is `stateless`, meaning that no contract will keep track of any user data.
-  
-- Every interaction with the contracts can be done using `erdpy`. A set of snippets is provided as a starting point for anyone interested.
+Core SCs of Maiar Exchange. They usually handle a few tokens and are used as primitives by the other contracts as they are built on top of them.
 
 ### Pair Contract
 
-The Pair Contract acts as an AMM for trading two different tokens. The AMM is based on liquidity pools and on the already popular `x*y=k` approach. The total fee percent for each swap can be configured at the init phrase (at deploy time), although the default value (and the value that will be used) will be `0.3%`, from which `0.25%` will stay in the liquidity pool, `0.05%` will be used to buyback and burn MEX tokens.
-
-One tehnical subtlety of this contracts is that it only functions with `Fungible Tokens`. It does not handle neither EGLD nor Semi-Fungible tokens (SFTs) nor Non-Fungible Tokens (NFTs).
-
-#### Adding liquidty
-
-A user can become a Liquidity Provider by adding liquidity to the pool. For doing that, a user has to transfer tokens for both types to the contract. By doing this, the user will receive an `LP token`, which will represent his position in the liquidity pool. From now on, the user will gain a part of the fees accumulated by swap transactions, until of course, he decides to exit the liquidity pool.
-
-A user can sell his position or part of his position in the pool at his own willing. This can be done by simply transferring LP tokens to another account. The LP token is a fungible token and as any other ESDT tokens, it can be transferred directly anywhere whithout the need to interact with any contract.
-
-#### Removing liquidity
-
-A Liquidity Provider may decide to exit a liquidity pool. In order to do this, the user has to give back his LP tokens and in exchange, he will get his tokens + his rewards (share of swap fees).
-
-The amount of each type of token that will receive depends on the current state of the liquidity pool, and specifically on the swap ratio. Hence, if the ratio in the pool changes by the time a user added liquidity, when deciding to remove liquidity, a user will receive tokens only based on the current ratio of the pool and not based on the ratio from when he added liquidity.
-
-#### Swapping
-
-The primary functionality that the Pair Contracts offers is allowing users to swap tokens. The user can configure a minimum amount of tokens that he wants to get back in exchange for his fixed amount of input tokens and also he can configure the maximum amount of tokens that he wants to spend in order to get a fixed amount in exchange. This is particulary useful because a FrontEnd may use this parameters to expose a slippage percent to the user, much like we already saw in a lot of exchanges.
-
-A fee of 0.3% will be deduced from each swap. Part the each swap (0.25%) fee will go to the Liquidity Providers and the other part (0.05%) will be used to buyback and burn MEX tokens.
+The core of any DEX is the swap feature. This contract acts as a constant product AMM and offers swap functionality as well as adding & removing liquidity. The fees for swapping are configurable by the Router SC and its owner, although most of the contracts use a total fee percent of 0.3%, from which 0.25% goes to liquidity providers and the rest of 0.05% is used to help the ecosystem by Buying & Burning MEX tokens.
 
 ### Router Contract
 
-The Router Contract is a manager for the pair contracts. All the Pair Contracts in this DEX will be deploied through the router.
-
-It was the permission to configure pair contracts and to set their state. It also contains the Table where a user can query the contract address for a specific swap pair.
-
-It's also ment to be used by any user to create and deploy a Pair Contract, although there is a setting to turn this option On and Off.
+The owner of all the Pair SCs is the Router SC. It is used for deploying, upgrading and configuring the Pair SCs. It also holds the mapping between (the pair of the two tokens) and the Contract Address, so when a user wants to swap two assets, he needs to know the Pair SC address for the particular contract. This is the place where this info can be queried.
 
 ### Farm Contract
 
-The Farm Contract is a contract where a user can block his tokens in order to receive rewards. It is similar with the staking mechanism, where you lock your EGLD to receive more EGLD, but still, there are a lot of differences between the two and should not be confused which each other.
+In order to gain users trust, the liquidity inside the DEX must be somewhat stable. To achieve that, Farm contracts come in place to incentivise liquidity providers to lock their LP tokens in exchange for MEX rewards. Rewards are generated per block and their rate is configurable in sync with the MEX tokenomics.
 
-The differences include:
+### Farm with Lock Contract
 
-- The token that you use in order to be able to enter a Farm is not necesarry the same as the reward token. Hence, in the contract we named the first one `Farming token` and the second one `Reward token`.
+Works the same as the regular Farm with the exception that it does not generate MEX as rewards. Instead, it generates Locked MEX, with the help of the Factory SC. The reason one would choose to go with the locked rewards (LKMEX) instead of the regular rewards (MEX) is that the reward emission rate (reward per block rate) is bigger, meaning the APR is higher.
 
-- The farm position is always tokenized. This allows the farm contract to be stateless in the sense that no user information will be held in the contract. When entering a farm, a `Farm Token` will be granted to the user, and it will represent his position in the Farm. This farm token can be used to claim rewards and to get back the Farming Tokens. The amount of farming tokens that he will get back are the same as the amount that he entered.
+### Price discovery
 
-- There are two possible sources of rewards. First is from the swap fees. The pair will automatically send the fees in the requested token type (MEX tokens) to the farm and Farm's reposnsability is to distribute them fairly between the farmers. The other source of rewards is by minting. The contract can also mint per block rewards, this value being configurable.
+In order to improve the experience of the user, and decrease the impact of trade bots at launches of new tokens on the DEX, the Price discovery mechanism was created. As its name states, this contract aims to find the Market Price of a token even before allowing swaps. This contract is supposed to be used before the creation of a Pair SC that needs this protection. The SC gathers both types of tokens and gives each user the corresponding tokens, assets that are locked for a small period of time, in order to further alleviate any unnatural price fluctuations that may appear at launch time.
 
-- The Farm position, represented by the Farm Token, will be a Semi-Fungible Token. The reasoning behind this is that in order to correctly calculate the reward each farmer should get, some metadata needs to stored in the SFT's attributes.
+## Farm Staking Contracts
 
-- The Farm position, similar with the liquidity pool position, can be sold by just transferring the SFTs to another account without any need to intrract with any contract.
+Staking contracts that are heavily inspired by the farm contracts.
 
-#### Entering Farm
+### Farm Staking
 
-Entering a Farm is done by a user transferring his Farming tokens to the farm. By doing this, the user will receive Farm Tokens, which he can use to both claim rewards and to get back his tokens, by exiting farm.
+Uses the same base implementation and concepts as the Farm contracts, but is designed to work with any fungible tokens instead of very specific ones, like LP tokens. Also, rewards are not minted, but are instead deposited from time to time by the owner.
 
-One thing to mention here is that a user can opt for receiving his MEX Reward as Locked MEX instead of regular MEX. By doing so, a user will benefit from `Double APR` when it comes to rewards.
+### Farm Staking Proxy
 
-#### Exiting Farm
+Used in conjunction with the Farm Staking contract, it lets users stake their LP FARM tokens, i.e. the farm tokens they received when they put their LP tokens in the normal farm. The user then receives a so-called dual yield token, which can be used to claim rewards from both the normal farm and the staking farm.
 
-Existing a Farm is done by a user transferring his Farm Tokens to the farm. By doing this, a user will automatically get his reward and his farming tokens back.
+### Metabonding Staking
 
-On constraint here is that:
+A simple staking contract where users lock their tokens in order to receive rewards from other contracts.
 
-- A user cannot exit farm earlier than `3 epochs` after he entered if the user went for the Double APR option. This is because these rewards are designed to be long term rewards hence entering and exiting with this option too frequently should be discouraged.
-
-- A user that did not went for the long term reward can exit farm at any time, but exiting before 3 epochs were reached after entering will be penalised with 10% of both rewards and farming tokens.
-
-Entering a farm should be a proof that a user wants to get more tokens by locking his own for at least a minimum amount of epochs.
-
-#### Claiming rewards
-
-Claiming rewards will be done by a user transferring his Farm Tokens to the farm. By doing this, a user will get his Reward Tokens for the period starting with either EnterFarm or last ClaimRewards operation, plus another Farm Token. The reason behind sending a Farm Token and receiving another one is in order to place a new reward counter in the newly created SFT and burn the old SFT, for which the rewards have been claimed.
-
-## MEX Distribution Contracts
+## Locked Asset Contracts
 
 ### Distribution Contract
 
-The Distribution Contract will be used in order to distribute the first `MEX tokens` to the community. The particular thing about this is that the first tokens will be in the form of `LOCKED MEX`.
-
-This contract can receive information from the snapshots of eGLD holder and will keep track of how many Locked MEX should each user get. The only functionality of this contract is allowing the user to come and claim his distribution share of Locked Mex through the Locked MEX Factory Contract.
+This smart contract is used for distributing Locked MEX to the community. It receives information from the owner and offers the users the possibility to claim the configured amount of tokens. It was used only once and might not be used in the future since we think there are better ways to achieve same functionality and results.
 
 ### DEX Proxy Contract
 
-The DEX Proxy Contract can be used by the user to interract with the DEX contracts with Locked MEX. The principal idea is that a user can use his Locked MEX as if it was MEX for adding liquidity.
+This smart contract allows users to interact with the DEX using Locked MEX as fungible MEX for certain operations, such as adding liquidity and entering Farm contracts.
 
-There are two major components in this contract and we'll explain them separately.
+### Locked MEX Factory Contract
 
-#### Proxy Pair Module
-
-Proxy Pair Module allows a user to add and remove liqudity using Locked MEX in the pair contracts that have MEX as one of the pair tokens.
-
-This contract is also stateless, will not keep track of any -per-user-data- and the position in the pools will be also tokenized. By entering a liquidty pool with a regular token and a Locked MEX, a user will receive `Wrapped LP Tokens`. The Wrapped LP Token, as the name suggest, is just a Wrapper over the regular LP Token, and it exists because a user cannot receive the LP Tokens directly, otherwise he could remove liquidity and get back MEX tokens, instead of his Locked MEX provided.
-
-Trading Wrapped LP Tokens can be done by transferring directly. The Wrapped LP Token can be used for either removing liquidity or for entering a Farm.
-
-#### Proxy Farm Module
-
-Proxy Farm Module allows a user to enter a Farm with Wrapped LP Tokens. A user can also enter a Farm that accepts MEX as Farming token using Locked MEX. By entering a Farm with either Wrapped LP Token or Locked Mex, a user will receive `Wrapped Farm Tokens`. The user can use those tokens to claim rewards or to exit the Farm, which will result in him getting back the tokens used to enter farm via the proxy (so either Wrapped LP Token or Locked MEX) and his rewards (either MEX or Locked MEX).
-
-## Locked MEX Factory Contract
-
-This contract is the only contract that has the ability to create `LOCKED MEX` tokens. Other contract (that are whitelisted) can request creating and forwarding of these tokens.
-
-Locked MEX is an SFT Token. The reasoning behind this is because each Locked Mex, depending on the creating parameters, can have different `Unlock Schedule`.
-
-Each `Locked MEX` has an unlock schedule because its goal is to represent a MEX that can only be unlocked in the future. This unlock will not happen once, it will be in different phases, configurable. For example, it can be configured to be unlocked with for example 10% every month.
+Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create Locked MEX can just request them from only one place.
