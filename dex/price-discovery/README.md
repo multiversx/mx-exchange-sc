@@ -19,7 +19,7 @@ Over the start-end period, we define multiple phases, in which interactions with
 3) Deposits are not allowed, withdrawals come with a fixed penalty
 4) Neither deposits nor withdrawals are allowed.
 
-During phase 4, also known as the _redeem_ phase, the users will be able to redeem tokens based on the current ratio of tokens in the contract. Essentially, users are "buying" the opposite token.
+During phase 4, also known as the _redeem_ phase, the users will be able to redeem tokens based on the current ratio of tokens in the contract. Essentially, users are "buying" the opposite token. Note that during the first few epochs the price discovery ends, the users will receive a locked token instead of the actual token.
 
 Accumulated penalties during phase 2 and 3 will be automatically redeemed by users when claiming. So users will actually buy at a better price than the current ratio if there are a lot of tokens accumulated from penalties.
 
