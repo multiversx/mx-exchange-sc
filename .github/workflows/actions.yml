@@ -5,7 +5,14 @@ on:
   pull_request:
 
 permissions:
+  actions: write
+  checks: write
+  contents: write
+  id-token: write
+  issues: write
+  discussions: write
   pull-requests: write
+  statuses: write
 
 jobs:
   contracts:
