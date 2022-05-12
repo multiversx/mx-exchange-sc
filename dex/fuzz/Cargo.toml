@@ -37,6 +37,9 @@ path = "../pair-mock"
 [dependencies.price-discovery]
 path = "../price-discovery"
 
+[dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
 [dependencies.farm]
 path = "../farm"
 

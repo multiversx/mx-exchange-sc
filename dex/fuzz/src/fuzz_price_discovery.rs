@@ -9,40 +9,29 @@ pub mod fuzz_price_discovery_test {
     use rand::prelude::*;
 
     use crate::fuzz_data::fuzz_data_tests::*;
-    use price_discovery::create_pool::CreatePoolModule;
     use price_discovery::PriceDiscovery;
 
     pub fn price_discovery_deposit<
         PairObjBuilder,
         FarmObjBuilder,
         FactoryObjBuilder,
-        DexObjBuilder,
         PriceDiscObjBuilder,
     >(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
         let caller = &mut fuzzer_data.users[caller_index];
         let price_disc = &mut fuzzer_data.price_disc;
-
-        if price_disc.liquidity_pool_created {
-            println!("Price discovery deposit error: Liquidity pool has already been created");
-            fuzzer_data.statistics.price_discovery_deposit_misses += 1;
-
-            return;
-        }
 
         let redeem_token_id = DISC_REDEEM_TOKEN_ID;
         let mut token_id = DISC_ACCEPTED_TOKEN_ID;
@@ -165,33 +154,23 @@ pub mod fuzz_price_discovery_test {
         PairObjBuilder,
         FarmObjBuilder,
         FactoryObjBuilder,
-        DexObjBuilder,
         PriceDiscObjBuilder,
     >(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
         let caller = &mut fuzzer_data.users[caller_index];
         let price_disc = &mut fuzzer_data.price_disc;
-
-        if price_disc.liquidity_pool_created {
-            println!("Price discovery withdraw error: Liquidity pool has already been created");
-            fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
-
-            return;
-        }
 
         let redeem_token_id = DISC_REDEEM_TOKEN_ID;
         let mut redeem_token_nonce = DISC_ACCEPTED_TOKEN_REDEEM_NONCE;
@@ -299,14 +278,12 @@ pub mod fuzz_price_discovery_test {
         PairObjBuilder,
         FarmObjBuilder,
         FactoryObjBuilder,
-        DexObjBuilder,
         PriceDiscObjBuilder,
     >(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
         current_block: u64,
@@ -314,7 +291,6 @@ pub mod fuzz_price_discovery_test {
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
@@ -322,31 +298,6 @@ pub mod fuzz_price_discovery_test {
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
         let caller = &mut fuzzer_data.users[caller_index];
         let price_disc = &mut fuzzer_data.price_disc;
-
-        if !price_disc.liquidity_pool_created {
-            let end_block = END_BLOCK;
-            if current_block >= end_block {
-                let tx_result = fuzzer_data.blockchain_wrapper.execute_tx(
-                    &caller.address,
-                    &price_disc.pd_wrapper,
-                    &rust_zero,
-                    |sc| {
-                        sc.create_dex_liquidity_pool();
-                    },
-                );
-
-                if tx_result.result_message.is_empty() {
-                    price_disc.liquidity_pool_created = true;
-                }
-            }
-        }
-
-        if !price_disc.liquidity_pool_created {
-            println!("Price discovery redeem error: Liquidity pool has not been created yet");
-            fuzzer_data.statistics.price_discovery_redeem_misses += 1;
-
-            return;
-        }
 
         let redeem_token_id = DISC_REDEEM_TOKEN_ID;
         let mut redeem_token_nonce = DISC_ACCEPTED_TOKEN_REDEEM_NONCE;
