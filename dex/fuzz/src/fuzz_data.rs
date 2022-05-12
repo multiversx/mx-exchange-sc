@@ -68,10 +68,6 @@ pub mod fuzz_data_tests {
     pub const NO_LIMIT_PHASE_DURATION_BLOCKS: u64 = 150;
     pub const LINEAR_PENALTY_PHASE_DURATION_BLOCKS: u64 = 50;
     pub const FIXED_PENALTY_PHASE_DURATION_BLOCKS: u64 = 25;
-    pub const END_BLOCK: u64 = START_BLOCK
-        + NO_LIMIT_PHASE_DURATION_BLOCKS
-        + LINEAR_PENALTY_PHASE_DURATION_BLOCKS
-        + FIXED_PENALTY_PHASE_DURATION_BLOCKS;
     pub const UNLOCK_EPOCH: u64 = 20;
 
     #[derive(Clone, TopEncode)]

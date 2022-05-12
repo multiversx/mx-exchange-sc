@@ -118,7 +118,7 @@ pub trait PriceDiscovery:
     /// They will receive an SFT that can be used to withdraw said tokens
     #[payable("*")]
     #[endpoint]
-    fn deposit(&self) {
+    fn deposit(&self) -> EsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_deposit_allowed(&phase);
 
@@ -144,7 +144,8 @@ pub trait PriceDiscovery:
         );
 
         let caller = self.blockchain().get_caller();
-        self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
+        let payment_result =
+            self.mint_and_send_redeem_token(&caller, redeem_token_nonce, payment_amount.clone());
 
         self.emit_deposit_event(
             payment_token,
@@ -155,6 +156,8 @@ pub trait PriceDiscovery:
             current_price,
             phase,
         );
+
+        payment_result
     }
 
     /// Deposit SFTs received after deposit to withdraw the initially deposited tokens.
@@ -162,7 +165,7 @@ pub trait PriceDiscovery:
     /// of the initial tokens will be received.
     #[payable("*")]
     #[endpoint]
-    fn withdraw(&self) {
+    fn withdraw(&self) -> EsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_withdraw_allowed(&phase);
 
@@ -199,14 +202,16 @@ pub trait PriceDiscovery:
             .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
 
         self.emit_withdraw_event(
-            refund_token_id,
-            withdraw_amount,
+            refund_token_id.clone(),
+            withdraw_amount.clone(),
             payment_token,
             payment_nonce,
             payment_amount,
             current_price,
             phase,
         );
+
+        EsdtTokenPayment::new(refund_token_id, 0, withdraw_amount)
     }
 
     /// After all phases have ended,
@@ -218,7 +223,7 @@ pub trait PriceDiscovery:
     /// through the SC at locking_sc_address
     #[payable("*")]
     #[endpoint]
-    fn redeem(&self) {
+    fn redeem(&self) -> EsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_redeem_allowed(&phase);
 
@@ -242,9 +247,11 @@ pub trait PriceDiscovery:
             payment_token,
             payment_nonce,
             payment_amount,
-            bought_tokens.token_identifier,
-            bought_tokens.amount,
+            bought_tokens.token_identifier.clone(),
+            bought_tokens.amount.clone(),
         );
+
+        bought_tokens
     }
 
     // private

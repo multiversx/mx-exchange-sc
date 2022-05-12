@@ -113,7 +113,7 @@ mod test {
                 }
                 12 => {
                     println!("Event no. {}: Price discovery redeem", (block_nonce));
-                    price_discovery_redeem(&mut fuzzer_data, block_nonce);
+                    price_discovery_redeem(&mut fuzzer_data);
                 }
                 _ => println!("No event triggered"),
             }

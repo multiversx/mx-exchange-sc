@@ -34,13 +34,11 @@ pub mod fuzz_price_discovery_test {
         let price_disc = &mut fuzzer_data.price_disc;
 
         let redeem_token_id = DISC_REDEEM_TOKEN_ID;
-        let mut token_id = DISC_ACCEPTED_TOKEN_ID;
-        let mut redeem_token_nonce = DISC_ACCEPTED_TOKEN_REDEEM_NONCE;
-
-        if !caller.price_discovery_buy {
-            token_id = DISC_LAUNCHED_TOKEN_ID;
-            redeem_token_nonce = DISC_LAUNCHED_TOKEN_REDEEM_NONCE;
-        }
+        let (payment_token_id, redeem_token_nonce) = if caller.price_discovery_buy {
+            (DISC_ACCEPTED_TOKEN_ID, DISC_ACCEPTED_TOKEN_REDEEM_NONCE)
+        } else {
+            (DISC_LAUNCHED_TOKEN_ID, DISC_LAUNCHED_TOKEN_REDEEM_NONCE)
+        };
 
         let seed = fuzzer_data
             .rng
@@ -52,7 +50,7 @@ pub mod fuzz_price_discovery_test {
         let caller_token_before =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller.address, token_id, 0);
+                .get_esdt_balance(&caller.address, payment_token_id, 0);
 
         let redeem_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
             &caller.address,
@@ -82,18 +80,18 @@ pub mod fuzz_price_discovery_test {
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
             &caller.address,
             &price_disc.pd_wrapper,
-            token_id,
+            payment_token_id,
             0,
             &deposit_amount,
             |sc| {
-                sc.deposit();
+                let _ = sc.deposit();
             },
         );
 
         let caller_token_after =
             fuzzer_data
                 .blockchain_wrapper
-                .get_esdt_balance(&caller.address, token_id, 0);
+                .get_esdt_balance(&caller.address, payment_token_id, 0);
 
         let redeem_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
             &caller.address,
@@ -114,8 +112,9 @@ pub mod fuzz_price_discovery_test {
         );
 
         let tx_result_string = tx_result.result_message;
+        let tx_result_msg_is_empty = tx_result_string.trim().is_empty();
 
-        if caller.price_discovery_buy && tx_result_string.trim().is_empty() {
+        if caller.price_discovery_buy && tx_result_msg_is_empty {
             if sc_accepted_token_after != sc_accepted_token_before + &deposit_amount {
                 println!(
                     "Price discovery deposit error: sc accepted token final balance is incorrect"
@@ -123,7 +122,7 @@ pub mod fuzz_price_discovery_test {
                 fuzzer_data.statistics.price_discovery_deposit_misses += 1;
                 return;
             }
-        } else if tx_result_string.trim().is_empty() {
+        } else if tx_result_msg_is_empty {
             if sc_launched_token_after != sc_launched_token_before + &deposit_amount {
                 println!(
                     "Price discovery deposit error: sc launched token final balance is incorrect"
@@ -133,7 +132,7 @@ pub mod fuzz_price_discovery_test {
             }
         }
 
-        if !tx_result_string.trim().is_empty() {
+        if !tx_result_msg_is_empty {
             println!("Price discovery deposit error: {}", tx_result_string);
             fuzzer_data.statistics.price_discovery_deposit_misses += 1;
         } else if caller_token_after != caller_token_before - &deposit_amount {
@@ -142,7 +141,7 @@ pub mod fuzz_price_discovery_test {
         } else if redeem_token_after != redeem_token_before + &deposit_amount {
             println!("Price discovery deposit error: redeem token final balance is incorrect");
             fuzzer_data.statistics.price_discovery_deposit_misses += 1;
-        } else if tx_result_string.trim().is_empty() {
+        } else if tx_result_msg_is_empty {
             fuzzer_data.statistics.price_discovery_deposit_hits += 1;
         } else {
             println!("!!! Price discovery withdraw error: undefined case");
@@ -173,18 +172,18 @@ pub mod fuzz_price_discovery_test {
         let price_disc = &mut fuzzer_data.price_disc;
 
         let redeem_token_id = DISC_REDEEM_TOKEN_ID;
-        let mut redeem_token_nonce = DISC_ACCEPTED_TOKEN_REDEEM_NONCE;
-
-        if !caller.price_discovery_buy {
-            redeem_token_nonce = DISC_LAUNCHED_TOKEN_REDEEM_NONCE;
-        }
+        let redeem_token_nonce = if caller.price_discovery_buy {
+            DISC_ACCEPTED_TOKEN_REDEEM_NONCE
+        } else {
+            DISC_LAUNCHED_TOKEN_REDEEM_NONCE
+        };
 
         let seed = fuzzer_data
             .rng
             .gen_range(0..fuzzer_data.fuzz_args.price_discovery_withdraw_max_value)
             + 1;
 
-        let withdraw_amount = rust_biguint!(seed);
+        let redeem_token_in_amount = rust_biguint!(seed);
 
         let sc_launched_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
             &price_disc.pd_wrapper.address_ref(),
@@ -204,21 +203,25 @@ pub mod fuzz_price_discovery_test {
             redeem_token_nonce,
         );
 
-        if redeem_token_before < withdraw_amount {
+        if redeem_token_before < redeem_token_in_amount {
             println!("Price discovery withdraw error: Not enough redeem tokens");
             fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
 
             return;
         }
 
+        let mut withdrawn_amount = rust_biguint!(0);
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
             &caller.address,
             &price_disc.pd_wrapper,
             redeem_token_id,
             redeem_token_nonce,
-            &withdraw_amount,
+            &redeem_token_in_amount,
             |sc| {
-                sc.withdraw();
+                let output_payment = sc.withdraw();
+                withdrawn_amount = num_bigint::BigUint::from_bytes_be(
+                    output_payment.amount.to_bytes_be().as_slice(),
+                );
             },
         );
 
@@ -241,17 +244,18 @@ pub mod fuzz_price_discovery_test {
         );
 
         let tx_result_string = tx_result.result_message;
+        let tx_result_msg_is_empty = tx_result_string.trim().is_empty();
 
-        if caller.price_discovery_buy && tx_result_string.trim().is_empty() {
-            if sc_accepted_token_after != sc_accepted_token_before - &withdraw_amount {
+        if caller.price_discovery_buy && tx_result_msg_is_empty {
+            if sc_accepted_token_after != sc_accepted_token_before - &withdrawn_amount {
                 println!(
                     "Price discovery withdraw error: sc accepted token final balance is incorrect"
                 );
                 fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
                 return;
             }
-        } else if tx_result_string.trim().is_empty() {
-            if sc_launched_token_after != sc_launched_token_before - &withdraw_amount {
+        } else if tx_result_msg_is_empty {
+            if sc_launched_token_after != sc_launched_token_before - &withdrawn_amount {
                 println!(
                     "Price discovery withdraw error: sc launched token final balance is incorrect"
                 );
@@ -260,13 +264,13 @@ pub mod fuzz_price_discovery_test {
             }
         }
 
-        if !tx_result_string.trim().is_empty() {
+        if !tx_result_msg_is_empty {
             println!("Price discovery withdraw error: {}", tx_result_string);
             fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
-        } else if redeem_token_after != redeem_token_before - &withdraw_amount {
+        } else if redeem_token_after != redeem_token_before - &redeem_token_in_amount {
             println!("Price discovery withdraw error: redeem token final balance is incorrect");
             fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
-        } else if tx_result_string.trim().is_empty() {
+        } else if tx_result_msg_is_empty {
             fuzzer_data.statistics.price_discovery_withdraw_hits += 1;
         } else {
             println!("!!! Price discovery withdraw error: undefined case");
@@ -286,7 +290,6 @@ pub mod fuzz_price_discovery_test {
             FactoryObjBuilder,
             PriceDiscObjBuilder,
         >,
-        current_block: u64,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
@@ -300,18 +303,18 @@ pub mod fuzz_price_discovery_test {
         let price_disc = &mut fuzzer_data.price_disc;
 
         let redeem_token_id = DISC_REDEEM_TOKEN_ID;
-        let mut redeem_token_nonce = DISC_ACCEPTED_TOKEN_REDEEM_NONCE;
-
-        if !caller.price_discovery_buy {
-            redeem_token_nonce = DISC_LAUNCHED_TOKEN_REDEEM_NONCE;
-        }
+        let redeem_token_nonce = if caller.price_discovery_buy {
+            DISC_ACCEPTED_TOKEN_REDEEM_NONCE
+        } else {
+            DISC_LAUNCHED_TOKEN_REDEEM_NONCE
+        };
 
         let seed = fuzzer_data
             .rng
             .gen_range(0..fuzzer_data.fuzz_args.price_discovery_redeem_max_value)
             + 1;
 
-        let mut redeem_amount = rust_biguint!(seed);
+        let mut redeem_token_amount_in = rust_biguint!(seed);
 
         let redeem_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
             &caller.address,
@@ -319,9 +322,9 @@ pub mod fuzz_price_discovery_test {
             redeem_token_nonce,
         );
 
-        if redeem_token_before < redeem_amount {
-            if redeem_amount > rust_zero {
-                redeem_amount = redeem_token_before.clone();
+        if redeem_token_before < redeem_token_amount_in {
+            if redeem_token_amount_in > rust_zero {
+                redeem_token_amount_in = redeem_token_before.clone();
             } else {
                 println!("Price discovery redeem error: Not enough tokens");
                 fuzzer_data.statistics.price_discovery_redeem_misses += 1;
@@ -335,9 +338,9 @@ pub mod fuzz_price_discovery_test {
             &price_disc.pd_wrapper,
             redeem_token_id,
             redeem_token_nonce,
-            &redeem_amount,
+            &redeem_token_amount_in,
             |sc| {
-                sc.redeem();
+                let _ = sc.redeem();
             },
         );
 
@@ -348,15 +351,19 @@ pub mod fuzz_price_discovery_test {
         );
 
         let tx_result_string = tx_result.result_message;
+        let tx_result_msg_is_empty = tx_result_string.trim().is_empty();
 
-        if redeem_token_after != redeem_token_before - &redeem_amount {
-            println!("Price discovery redeem error: redeem token final balance is incorrect");
-            fuzzer_data.statistics.price_discovery_redeem_misses += 1;
-        } else if tx_result_string.trim().is_empty() {
-            fuzzer_data.statistics.price_discovery_redeem_hits += 1;
-        } else {
+        if !tx_result_msg_is_empty {
             println!("Price discovery redeem error: {}", tx_result_string);
             fuzzer_data.statistics.price_discovery_redeem_misses += 1;
+            return;
+        }
+
+        if redeem_token_after != redeem_token_before - &redeem_token_amount_in {
+            println!("Price discovery redeem error: redeem token final balance is incorrect");
+            fuzzer_data.statistics.price_discovery_redeem_misses += 1;
+        } else {
+            fuzzer_data.statistics.price_discovery_redeem_hits += 1;
         }
     }
 }

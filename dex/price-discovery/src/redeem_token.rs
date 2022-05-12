@@ -84,14 +84,23 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
         );
     }
 
-    fn mint_and_send_redeem_token(&self, to: &ManagedAddress, nonce: u64, amount: &BigUint) {
+    fn mint_and_send_redeem_token(
+        &self,
+        to: &ManagedAddress,
+        nonce: u64,
+        amount: BigUint,
+    ) -> EsdtTokenPayment<Self::Api> {
         let redeem_token_id = self.redeem_token_id().get();
-        self.send().esdt_local_mint(&redeem_token_id, nonce, amount);
+        self.send()
+            .esdt_local_mint(&redeem_token_id, nonce, &amount);
 
         self.redeem_token_total_circulating_supply(nonce)
-            .update(|supply| *supply += amount);
+            .update(|supply| *supply += &amount);
 
-        self.send().direct(to, &redeem_token_id, nonce, amount, &[]);
+        self.send()
+            .direct(to, &redeem_token_id, nonce, &amount, &[]);
+
+        EsdtTokenPayment::new(redeem_token_id, nonce, amount)
     }
 
     fn burn_redeem_token(&self, nonce: u64, amount: &BigUint) {
