@@ -57,7 +57,7 @@ pub trait FactoryModule {
             self.blockchain().get_gas_left(),
             &BigUint::zero(),
             &self.pair_template_address().get(),
-            CodeMetadata::UPGRADEABLE,
+            CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC,
             &arg_buffer,
         );
 
@@ -100,7 +100,7 @@ pub trait FactoryModule {
             self.blockchain().get_gas_left(),
             &BigUint::zero(),
             &self.pair_template_address().get(),
-            CodeMetadata::UPGRADEABLE,
+            CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC,
             &arg_buffer,
         );
     }

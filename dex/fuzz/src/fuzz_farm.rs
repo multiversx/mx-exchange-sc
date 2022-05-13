@@ -12,25 +12,17 @@ pub mod fuzz_farm_test {
 
     use rand::prelude::*;
 
-    pub fn enter_farm<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        DexObjBuilder,
-        PriceDiscObjBuilder,
-    >(
+    pub fn enter_farm<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
@@ -123,25 +115,17 @@ pub mod fuzz_farm_test {
         }
     }
 
-    pub fn exit_farm<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        DexObjBuilder,
-        PriceDiscObjBuilder,
-    >(
+    pub fn exit_farm<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
@@ -218,25 +202,17 @@ pub mod fuzz_farm_test {
         }
     }
 
-    pub fn claim_rewards<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        DexObjBuilder,
-        PriceDiscObjBuilder,
-    >(
+    pub fn claim_rewards<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);
@@ -331,21 +307,18 @@ pub mod fuzz_farm_test {
         PairObjBuilder,
         FarmObjBuilder,
         FactoryObjBuilder,
-        DexObjBuilder,
         PriceDiscObjBuilder,
     >(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);

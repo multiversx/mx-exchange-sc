@@ -8,37 +8,32 @@ elrond_wasm_node::wasm_endpoints! {
     price_discovery
     (
         callBack
-        createDexLiquidityPool
+        createInitialRedeemTokens
         deposit
-        depositExtraRewards
         getAcceptedTokenBalance
         getAcceptedTokenId
         getCurrentPhase
-        getDepositExtraRewardsWhitelist
-        getDexScAddress
+        getCurrentPrice
         getEndBlock
-        getExtraRewardsBalance
-        getExtraRewardsTokenId
-        getExtraRewardsTokenNonce
         getFixedPenaltyPercentage
         getFixedPenaltyPhaseDurationBlocks
         getLaunchedTokenBalance
         getLaunchedTokenId
         getLinearPenaltyPhaseDurationBlocks
-        getLpTokenId
-        getLpTokensClaimed
+        getLockingScAddress
         getMinLaunchedTokenPrice
         getNoLimitPhaseDurationBlocks
         getPenaltyMaxPercentage
         getPenaltyMinPercentage
+        getPricePrecision
         getRedeemTokenId
+        getRedeemTokenTotalCirculatingSupply
         getStartBlock
-        getTotalExtraRewardsTokens
-        getTotalLpTokensReceived
-        getUnbondPeriodEpochs
+        getUnlockEpoch
         issueRedeemToken
         redeem
-        setPairAddress
+        setLockingScAddress
+        setUnlockEpoch
         withdraw
     )
 }

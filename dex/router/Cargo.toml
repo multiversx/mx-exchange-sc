@@ -20,3 +20,5 @@ version = "0.29"
 [dependencies.pair]
 path = "../pair"
 
+[dependencies.locking_module]
+path = "../../common/modules/locking_module"

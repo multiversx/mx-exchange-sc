@@ -11,17 +11,21 @@ const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
 const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
 
-const LKWEGLD_TOKEN_ID: &[u8] = b"LKWEGLD-abcdef";
+const LOCKED_TOKEN_ID: &[u8] = b"LOCKED-abcdef";
+const LP_PROXY_TOKEN_ID: &[u8] = b"LPPROXY-abcdef";
 
 const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use pair::bot_protection::*;
 use pair::config::*;
-use pair::errors::*;
-use pair::locked_asset::*;
+use pair::locking_wrapper::LockingWrapperModule;
 use pair::safe_price::*;
 use pair::*;
+use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
+use simple_lock::proxy_lp::{LpProxyTokenAttributes, ProxyLpModule};
+use simple_lock::SimpleLock;
 
 #[allow(dead_code)]
 struct PairSetup<PairObjBuilder>
@@ -869,12 +873,38 @@ fn test_locked_asset() {
         1_001_000,
     );
 
-    let roles = [EsdtLocalRole::NftCreate, EsdtLocalRole::NftBurn];
-    pair_setup.blockchain_wrapper.set_esdt_local_roles(
-        pair_setup.pair_wrapper.address_ref(),
-        LKWEGLD_TOKEN_ID,
-        &roles[..],
+    // init locking SC
+    let rust_zero = rust_biguint!(0);
+    let locking_owner = pair_setup
+        .blockchain_wrapper
+        .create_user_account(&rust_zero);
+    let locking_sc_wrapper = pair_setup.blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(&locking_owner),
+        simple_lock::contract_obj,
+        "Some path",
     );
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+        })
+        .assert_ok();
+
+    pair_setup.blockchain_wrapper.set_esdt_local_roles(
+        locking_sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    pair_setup.blockchain_wrapper.set_block_epoch(4);
 
     pair_setup
         .blockchain_wrapper
@@ -883,9 +913,9 @@ fn test_locked_asset() {
             &pair_setup.pair_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_locked_asset_token_id_first(managed_token_id!(LKWEGLD_TOKEN_ID));
-                sc.set_locked_asset_generate_epoch_limit(10);
-                sc.set_locking_period_in_epochs(10);
+                sc.set_locking_sc_address(managed_address!(locking_sc_wrapper.address_ref()));
+                sc.set_locking_deadline_epoch(5);
+                sc.set_unlock_epoch(10);
             },
         )
         .assert_ok();
@@ -908,44 +938,387 @@ fn test_locked_asset() {
                     OptionalValue::None,
                 );
 
-                assert_eq!(ret.token_identifier, managed_token_id!(LKWEGLD_TOKEN_ID));
+                assert_eq!(ret.token_identifier, managed_token_id!(LOCKED_TOKEN_ID));
                 assert_eq!(ret.token_nonce, 1);
-                assert_eq!(ret.amount, managed_biguint!(1));
+                assert_eq!(ret.amount, managed_biguint!(996));
             },
         )
         .assert_ok();
 
+    let _ = DebugApi::dummy();
+    pair_setup.blockchain_wrapper.check_nft_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(996),
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 10,
+        },
+    );
+
+    let user_wegld_balance_before =
+        pair_setup
+            .blockchain_wrapper
+            .get_esdt_balance(&pair_setup.user_address, WEGLD_TOKEN_ID, 0);
+
+    // try unlock too early
     pair_setup
         .blockchain_wrapper
         .execute_esdt_transfer(
             &pair_setup.user_address,
-            &pair_setup.pair_wrapper,
-            &LKWEGLD_TOKEN_ID,
+            &locking_sc_wrapper,
+            LOCKED_TOKEN_ID,
             1,
-            &rust_biguint!(1),
+            &rust_biguint!(996),
             |sc| {
-                let _ = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
+                sc.unlock_tokens(OptionalValue::None);
             },
         )
-        .assert_user_error(&String::from_utf8(ERROR_UNLOCK_CALLED_TOO_EARLY.to_vec()).unwrap());
+        .assert_user_error("Cannot unlock yet");
 
+    // unlock ok
     pair_setup.blockchain_wrapper.set_block_epoch(20);
 
     pair_setup
         .blockchain_wrapper
         .execute_esdt_transfer(
             &pair_setup.user_address,
-            &pair_setup.pair_wrapper,
-            &LKWEGLD_TOKEN_ID,
+            &locking_sc_wrapper,
+            LOCKED_TOKEN_ID,
             1,
-            &rust_biguint!(1),
+            &rust_biguint!(996),
             |sc| {
-                let ret = sc.unlock_assets(managed_token_id!(LKWEGLD_TOKEN_ID), 1);
-
-                assert_eq!(ret.token_identifier, managed_token_id!(WEGLD_TOKEN_ID));
-                assert_eq!(ret.token_nonce, 0);
-                assert_eq!(ret.amount, managed_biguint!(996));
+                sc.unlock_tokens(OptionalValue::None);
             },
         )
+        .assert_ok();
+    pair_setup.blockchain_wrapper.check_esdt_balance(
+        &pair_setup.user_address,
+        WEGLD_TOKEN_ID,
+        &(user_wegld_balance_before + rust_biguint!(996)),
+    );
+}
+
+#[test]
+fn add_liquidity_through_simple_lock_proxy() {
+    let mut pair_setup = setup_pair(pair::contract_obj);
+
+    add_liquidity(
+        &mut pair_setup,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        1_000_000,
+        1_001_000,
+        1_001_000,
+    );
+
+    // init locking SC
+    let lp_address = pair_setup.pair_wrapper.address_ref().clone();
+    let rust_zero = rust_biguint!(0);
+    let locking_owner = pair_setup
+        .blockchain_wrapper
+        .create_user_account(&rust_zero);
+    let locking_sc_wrapper = pair_setup.blockchain_wrapper.create_sc_account(
+        &rust_zero,
+        Some(&locking_owner),
+        simple_lock::contract_obj,
+        "Some path",
+    );
+
+    // setup locked token
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.locked_token()
+                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+            sc.add_lp_to_whitelist(
+                managed_address!(&lp_address),
+                managed_token_id!(WEGLD_TOKEN_ID),
+                managed_token_id!(MEX_TOKEN_ID),
+            );
+        })
+        .assert_ok();
+
+    pair_setup.blockchain_wrapper.set_esdt_local_roles(
+        locking_sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    // setup lp proxy token
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
+            sc.init();
+            sc.lp_proxy_token()
+                .set_token_id(&managed_token_id!(LP_PROXY_TOKEN_ID));
+        })
+        .assert_ok();
+
+    pair_setup.blockchain_wrapper.set_esdt_local_roles(
+        locking_sc_wrapper.address_ref(),
+        LP_PROXY_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+        ],
+    );
+
+    pair_setup.blockchain_wrapper.set_block_epoch(5);
+    let _ = DebugApi::dummy();
+
+    // lock some tokens first
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            WEGLD_TOKEN_ID,
+            0,
+            &rust_biguint!(1_000_000),
+            |sc| {
+                sc.lock_tokens(10, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+    pair_setup.blockchain_wrapper.check_nft_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000_000),
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 10,
+        },
+    );
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(2_000_000),
+            |sc| {
+                sc.lock_tokens(15, OptionalValue::None);
+            },
+        )
+        .assert_ok();
+    pair_setup.blockchain_wrapper.check_nft_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        2,
+        &rust_biguint!(2_000_000),
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(MEX_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 15,
+        },
+    );
+
+    pair_setup.blockchain_wrapper.set_block_epoch(5);
+
+    // add liquidity through simple-lock SC - one locked (WEGLD) token, one unlocked (MEX)
+    let transfers = vec![
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(500_000),
+        },
+        TxInputESDT {
+            token_identifier: MEX_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: rust_biguint!(500_000),
+        },
+    ];
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_multi_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            &transfers[..],
+            |sc| {
+                let (dust_first_token, dust_second_token, lp_proxy_payment) = sc
+                    .add_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+
+                assert_eq!(
+                    dust_first_token.token_identifier,
+                    managed_token_id!(WEGLD_TOKEN_ID)
+                );
+                assert_eq!(dust_first_token.token_nonce, 0);
+                assert_eq!(dust_first_token.amount, managed_biguint!(0));
+
+                assert_eq!(
+                    dust_second_token.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(dust_second_token.token_nonce, 0);
+                assert_eq!(dust_second_token.amount, managed_biguint!(0));
+
+                assert_eq!(
+                    lp_proxy_payment.token_identifier,
+                    managed_token_id!(LP_PROXY_TOKEN_ID)
+                );
+                assert_eq!(lp_proxy_payment.token_nonce, 1);
+                assert_eq!(lp_proxy_payment.amount, managed_biguint!(500_000));
+            },
+        )
+        .assert_ok();
+    pair_setup.blockchain_wrapper.check_nft_balance(
+        &pair_setup.user_address,
+        LP_PROXY_TOKEN_ID,
+        1,
+        &rust_biguint!(500_000),
+        &LpProxyTokenAttributes::<DebugApi> {
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            first_token_locked_nonce: 1,
+            second_token_id: managed_token_id!(MEX_TOKEN_ID),
+            second_token_locked_nonce: 0,
+        },
+    );
+    pair_setup.blockchain_wrapper.check_esdt_balance(
+        locking_sc_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &rust_biguint!(500_000),
+    );
+
+    let user_locked_token_balance_before = pair_setup.blockchain_wrapper.get_esdt_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        1,
+    );
+    let user_mex_balance_before =
+        pair_setup
+            .blockchain_wrapper
+            .get_esdt_balance(&pair_setup.user_address, MEX_TOKEN_ID, 0);
+
+    // remove liquidity
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            LP_PROXY_TOKEN_ID,
+            1,
+            &rust_biguint!(500_000),
+            |sc| {
+                let (first_payment_result, second_payment_result) = sc
+                    .remove_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+
+                assert_eq!(
+                    first_payment_result.token_identifier,
+                    managed_token_id!(LOCKED_TOKEN_ID)
+                );
+                assert_eq!(first_payment_result.token_nonce, 1);
+                assert_eq!(first_payment_result.amount, managed_biguint!(500_000));
+
+                assert_eq!(
+                    second_payment_result.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(second_payment_result.token_nonce, 0);
+                assert_eq!(second_payment_result.amount, managed_biguint!(500_000));
+            },
+        )
+        .assert_ok();
+
+    pair_setup.blockchain_wrapper.check_nft_balance(
+        &pair_setup.user_address,
+        LOCKED_TOKEN_ID,
+        1,
+        &(user_locked_token_balance_before + 500_000u32),
+        &LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 10,
+        },
+    );
+    pair_setup.blockchain_wrapper.check_esdt_balance(
+        &pair_setup.user_address,
+        MEX_TOKEN_ID,
+        &(user_mex_balance_before + 500_000u32),
+    );
+
+    // Add liquidity - same token pair as before -> same nonce (1)
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_multi_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            &transfers[..],
+            |sc| {
+                let (_, _, lp_proxy_payment) = sc
+                    .add_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+
+                assert_eq!(
+                    lp_proxy_payment.token_identifier,
+                    managed_token_id!(LP_PROXY_TOKEN_ID)
+                );
+                assert_eq!(lp_proxy_payment.token_nonce, 1);
+                assert_eq!(lp_proxy_payment.amount, managed_biguint!(500_000));
+            },
+        )
+        .assert_ok();
+
+    // test auto-unlock for tokens on remove liquidity
+    pair_setup.blockchain_wrapper.set_block_epoch(30);
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_esdt_transfer(
+            &pair_setup.user_address,
+            &locking_sc_wrapper,
+            LP_PROXY_TOKEN_ID,
+            1,
+            &rust_biguint!(500_000),
+            |sc| {
+                let (first_payment_result, second_payment_result) = sc
+                    .remove_liquidity_locked_token(managed_biguint!(1), managed_biguint!(1))
+                    .into_tuple();
+
+                assert_eq!(
+                    first_payment_result.token_identifier,
+                    managed_token_id!(WEGLD_TOKEN_ID)
+                );
+                assert_eq!(first_payment_result.token_nonce, 0);
+                assert_eq!(first_payment_result.amount, managed_biguint!(500_000));
+
+                assert_eq!(
+                    second_payment_result.token_identifier,
+                    managed_token_id!(MEX_TOKEN_ID)
+                );
+                assert_eq!(second_payment_result.token_nonce, 0);
+                assert_eq!(second_payment_result.amount, managed_biguint!(500_000));
+            },
+        )
+        .assert_ok();
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_query(&locking_sc_wrapper, |sc| {
+            assert_eq!(sc.known_liquidity_pools().len(), 1);
+            assert_eq!(
+                sc.known_liquidity_pools()
+                    .contains(&managed_address!(&lp_address)),
+                true
+            );
+        })
         .assert_ok();
 }

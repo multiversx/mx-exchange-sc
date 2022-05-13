@@ -33,6 +33,8 @@ members = [
   "locked-asset/proxy_dex/meta",
   "locked-asset/factory",
   "locked-asset/factory/meta",
+  "locked-asset/simple-lock",
+  "locked-asset/simple-lock/meta",
 
   "integration-test-lib",
 ]

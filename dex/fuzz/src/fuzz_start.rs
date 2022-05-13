@@ -31,7 +31,6 @@ mod test {
             pair::contract_obj,
             farm::contract_obj,
             factory::contract_obj,
-            pair_mock::contract_obj,
             price_discovery::contract_obj,
         );
 
@@ -114,7 +113,7 @@ mod test {
                 }
                 12 => {
                     println!("Event no. {}: Price discovery redeem", (block_nonce));
-                    price_discovery_redeem(&mut fuzzer_data, block_nonce);
+                    price_discovery_redeem(&mut fuzzer_data);
                 }
                 _ => println!("No event triggered"),
             }
@@ -123,18 +122,11 @@ mod test {
         print_statistics(&mut fuzzer_data, seed);
     }
 
-    fn print_statistics<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        DexObjBuilder,
-        PriceDiscObjBuilder,
-    >(
+    fn print_statistics<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
         seed: u64,
@@ -142,7 +134,6 @@ mod test {
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         println!();

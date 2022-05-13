@@ -16,14 +16,12 @@ use crate::contexts::swap::SwapContext;
 use crate::contexts::swap::SwapPayments;
 use crate::contexts::swap::SwapTxInput;
 
-use crate::locked_asset;
-
 #[elrond_wasm::module]
 pub trait CtxHelper:
     crate::config::ConfigModule
     + token_send::TokenSendModule
     + crate::amm::AmmModule
-    + locked_asset::LockedAsset
+    + crate::locking_wrapper::LockingWrapperModule
 {
     fn new_add_liquidity_context(
         &self,
@@ -176,9 +174,8 @@ pub trait CtxHelper:
     fn construct_swap_output_payments(&self, context: &mut SwapContext<Self::Api>) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
-        if self.should_generate_locked_asset(context) {
-            let locked_asset = self.generate_locked_asset(context);
-
+        if self.should_generate_locked_asset() {
+            let locked_asset = self.call_lock_tokens(context);
             context.set_locked_asset_output(locked_asset.clone());
 
             payments.push(locked_asset);

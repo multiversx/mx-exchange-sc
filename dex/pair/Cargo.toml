@@ -8,8 +8,14 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dependencies.token_send]
 path = "../../common/modules/token_send"
+
+[dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
 
 [dependencies.itertools]
 version = "0.10.1"
@@ -20,6 +26,3 @@ version = "0.29"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.29"
-
-[dependencies.common_structs]
-path = "../../common/common_structs"

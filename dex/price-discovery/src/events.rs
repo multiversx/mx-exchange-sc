@@ -3,14 +3,7 @@ use crate::phase::Phase;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TypeAbi, TopEncode)]
-pub struct ExtraRewardsEvent<M: ManagedTypeApi> {
-    rewards_token_id: TokenIdentifier<M>,
-    rewards_token_nonce: u64,
-    rewards_amount: BigUint<M>,
-}
-
-#[derive(TypeAbi, TopEncode)]
+#[derive(TopEncode)]
 pub struct DepositEvent<M: ManagedTypeApi> {
     token_id_in: TokenIdentifier<M>,
     token_amount_in: BigUint<M>,
@@ -23,7 +16,7 @@ pub struct DepositEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[derive(TopEncode)]
 pub struct WithdrawEvent<M: ManagedTypeApi> {
     token_id_out: TokenIdentifier<M>,
     token_amount_out: BigUint<M>,
@@ -36,51 +29,17 @@ pub struct WithdrawEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TypeAbi, TopEncode)]
+#[derive(TopEncode)]
 pub struct RedeemEvent<M: ManagedTypeApi> {
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,
     redeem_token_amount: BigUint<M>,
-    lp_token_id: TokenIdentifier<M>,
-    lp_token_amount: BigUint<M>,
-    lp_tokens_remaining: BigUint<M>,
-    total_lp_tokens_received: BigUint<M>,
-    rewards_token_id: TokenIdentifier<M>,
-    rewards_token_amount: BigUint<M>,
-}
-
-#[derive(TypeAbi, TopEncode)]
-pub struct InitialLiquidityEvent<M: ManagedTypeApi> {
-    lp_token_id: TokenIdentifier<M>,
-    lp_tokens_received: BigUint<M>,
+    bought_token_id: TokenIdentifier<M>,
+    bought_token_amount: BigUint<M>,
 }
 
 #[elrond_wasm::module]
 pub trait EventsModule: crate::common_storage::CommonStorageModule {
-    fn emit_deposit_extra_rewards_event(
-        &self,
-        rewards_token_id: TokenIdentifier,
-        rewards_token_nonce: u64,
-        rewards_amount: BigUint,
-    ) {
-        let caller = self.blockchain().get_caller();
-        let block = self.blockchain().get_block_nonce();
-        let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
-
-        self.deposit_extra_rewards_event(
-            &caller,
-            block,
-            epoch,
-            timestamp,
-            &ExtraRewardsEvent {
-                rewards_token_id,
-                rewards_token_nonce,
-                rewards_amount,
-            },
-        );
-    }
-
     fn emit_deposit_event(
         &self,
         token_id_in: TokenIdentifier,
@@ -160,12 +119,8 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         redeem_token_id: TokenIdentifier,
         redeem_token_nonce: u64,
         redeem_token_amount: BigUint,
-        lp_token_id: TokenIdentifier,
-        lp_token_amount: BigUint,
-        lp_tokens_remaining: BigUint,
-        total_lp_tokens_received: BigUint,
-        rewards_token_id: TokenIdentifier,
-        rewards_token_amount: BigUint,
+        bought_token_id: TokenIdentifier,
+        bought_token_amount: BigUint,
     ) {
         let caller = self.blockchain().get_caller();
         let block = self.blockchain().get_block_nonce();
@@ -181,47 +136,11 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
                 redeem_token_id,
                 redeem_token_nonce,
                 redeem_token_amount,
-                lp_token_id,
-                lp_token_amount,
-                lp_tokens_remaining,
-                total_lp_tokens_received,
-                rewards_token_id,
-                rewards_token_amount,
+                bought_token_id,
+                bought_token_amount,
             },
         )
     }
-
-    fn emit_initial_liquidity_event(
-        &self,
-        lp_token_id: TokenIdentifier,
-        lp_tokens_received: BigUint,
-    ) {
-        let caller = self.blockchain().get_caller();
-        let block = self.blockchain().get_block_nonce();
-        let epoch = self.blockchain().get_block_epoch();
-        let timestamp = self.blockchain().get_block_timestamp();
-
-        self.liquidity_pool_created_event(
-            &caller,
-            block,
-            epoch,
-            timestamp,
-            &InitialLiquidityEvent {
-                lp_token_id,
-                lp_tokens_received,
-            },
-        )
-    }
-
-    #[event("depositExtraRewardsEvent")]
-    fn deposit_extra_rewards_event(
-        &self,
-        #[indexed] caller: &ManagedAddress,
-        #[indexed] block: u64,
-        #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
-        extra_rewards_event: &ExtraRewardsEvent<Self::Api>,
-    );
 
     #[event("depositEvent")]
     fn deposit_event(
@@ -241,16 +160,6 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         #[indexed] epoch: u64,
         #[indexed] timestamp: u64,
         withdraw_event: &WithdrawEvent<Self::Api>,
-    );
-
-    #[event("liquidityPoolCreatedEvent")]
-    fn liquidity_pool_created_event(
-        &self,
-        #[indexed] caller: &ManagedAddress,
-        #[indexed] block: u64,
-        #[indexed] epoch: u64,
-        #[indexed] timestamp: u64,
-        initial_liquidity_event: &InitialLiquidityEvent<Self::Api>,
     );
 
     #[event("redeemEvent")]

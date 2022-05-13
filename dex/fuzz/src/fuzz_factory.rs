@@ -13,25 +13,17 @@ pub mod fuzz_factory_test {
 
     use rand::prelude::*;
 
-    pub fn lock_assets<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        DexObjBuilder,
-        PriceDiscObjBuilder,
-    >(
+    pub fn lock_assets<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let caller_index = fuzzer_data.rng.gen_range(0..fuzzer_data.users.len());
@@ -105,25 +97,17 @@ pub mod fuzz_factory_test {
         }
     }
 
-    pub fn unlock_assets<
-        PairObjBuilder,
-        FarmObjBuilder,
-        FactoryObjBuilder,
-        DexObjBuilder,
-        PriceDiscObjBuilder,
-    >(
+    pub fn unlock_assets<PairObjBuilder, FarmObjBuilder, FactoryObjBuilder, PriceDiscObjBuilder>(
         fuzzer_data: &mut FuzzerData<
             PairObjBuilder,
             FarmObjBuilder,
             FactoryObjBuilder,
-            DexObjBuilder,
             PriceDiscObjBuilder,
         >,
     ) where
         PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
         FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
         FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
-        DexObjBuilder: 'static + Copy + Fn() -> pair_mock::ContractObj<DebugApi>,
         PriceDiscObjBuilder: 'static + Copy + Fn() -> price_discovery::ContractObj<DebugApi>,
     {
         let rust_zero = rust_biguint!(0u64);

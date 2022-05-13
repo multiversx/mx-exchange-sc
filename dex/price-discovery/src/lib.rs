@@ -8,25 +8,19 @@ use crate::{
 elrond_wasm::imports!();
 
 pub mod common_storage;
-pub mod create_pool;
 pub mod events;
 pub mod phase;
 pub mod redeem_token;
 
 const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 const BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
-pub const MIN_PRICE_PRECISION: u64 = 1_000_000_000_000_000_000;
-
-pub struct RewardsPair<M: ManagedTypeApi> {
-    pub lp_tokens_amount: BigUint<M>,
-    pub extra_rewards_amount: BigUint<M>,
-}
+const MAX_TOKEN_DECIMALS: u32 = 18;
 
 #[elrond_wasm::contract]
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
-    + create_pool::CreatePoolModule
     + events::EventsModule
+    + locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
 {
@@ -36,20 +30,18 @@ pub trait PriceDiscovery:
         &self,
         launched_token_id: TokenIdentifier,
         accepted_token_id: TokenIdentifier,
-        extra_rewards_token_id: TokenIdentifier,
+        launched_token_decimals: u32,
         min_launched_token_price: BigUint,
         start_block: u64,
         no_limit_phase_duration_blocks: u64,
         linear_penalty_phase_duration_blocks: u64,
         fixed_penalty_phase_duration_blocks: u64,
-        unbond_period_epochs: u64,
+        unlock_epoch: u64,
         penalty_min_percentage: BigUint,
         penalty_max_percentage: BigUint,
         fixed_penalty_percentage: BigUint,
-        #[var_args] deposit_extra_rewards_whitelist: MultiValueEncoded<ManagedAddress>,
+        locking_sc_address: ManagedAddress,
     ) {
-        /* Disabled until the validate token ID function is activated
-
         require!(
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
@@ -59,14 +51,12 @@ pub trait PriceDiscovery:
             "Invalid payment token ID"
         );
         require!(
-            extra_rewards_token_id.is_egld() || extra_rewards_token_id.is_valid_esdt_identifier(),
-            "Invalid extra rewards token ID"
-        );
-
-        */
-        require!(
             launched_token_id != accepted_token_id,
             "Launched and accepted token must be different"
+        );
+        require!(
+            launched_token_decimals <= MAX_TOKEN_DECIMALS,
+            "Launched token has too many decimals"
         );
 
         let current_block = self.blockchain().get_block_nonce();
@@ -93,17 +83,22 @@ pub trait PriceDiscovery:
             "Fixed percentage higher than 100%"
         );
 
-        for addr in deposit_extra_rewards_whitelist {
-            self.deposit_extra_rewards_whitelist().insert(addr);
-        }
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            unlock_epoch > current_epoch,
+            "Unlock epoch cannot be in the past"
+        );
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
-        self.extra_rewards_token_id().set(&extra_rewards_token_id);
-        self.min_launched_token_price()
-            .set(&min_launched_token_price);
         self.start_block().set(&start_block);
         self.end_block().set(&end_block);
+        self.unlock_epoch().set(&unlock_epoch);
+
+        let price_precision = 10u64.pow(launched_token_decimals);
+        self.price_precision().set(&price_precision);
+        self.min_launched_token_price()
+            .set(&min_launched_token_price);
 
         self.no_limit_phase_duration_blocks()
             .set(&no_limit_phase_duration_blocks);
@@ -111,61 +106,19 @@ pub trait PriceDiscovery:
             .set(&linear_penalty_phase_duration_blocks);
         self.fixed_penalty_phase_duration_blocks()
             .set(&fixed_penalty_phase_duration_blocks);
-        self.unbond_period_epochs().set(&unbond_period_epochs);
         self.penalty_min_percentage().set(&penalty_min_percentage);
         self.penalty_max_percentage().set(&penalty_max_percentage);
         self.fixed_penalty_percentage()
             .set(&fixed_penalty_percentage);
-    }
 
-    /// Extra rewards that will be given to users that contributed to the pool, defined by
-    /// extra_rewards_token_id. Can be deposited by anyone.
-    #[payable("*")]
-    #[endpoint(depositExtraRewards)]
-    fn deposit_extra_rewards(&self) {
-        self.require_dex_address_set();
-
-        let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
-
-        let phase = self.get_current_phase();
-        self.require_deposit_extra_rewards_allowed(&phase);
-
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
-        let extra_rewards_token_id = self.extra_rewards_token_id().get();
-        require!(
-            payment_token == extra_rewards_token_id,
-            INVALID_PAYMENT_ERR_MSG
-        );
-
-        let nonce_mapper = self.extra_rewards_token_nonce();
-        let mut extra_rewards_token_nonce = nonce_mapper.get();
-        if extra_rewards_token_nonce == 0 && payment_nonce != 0 {
-            extra_rewards_token_nonce = payment_nonce;
-            nonce_mapper.set(&extra_rewards_token_nonce);
-        } else {
-            require!(
-                extra_rewards_token_nonce == payment_nonce,
-                INVALID_PAYMENT_ERR_MSG
-            );
-        }
-
-        self.increase_balance(self.extra_rewards_balance(), &payment_amount);
-
-        self.emit_deposit_extra_rewards_event(
-            extra_rewards_token_id,
-            extra_rewards_token_nonce,
-            payment_amount,
-        );
+        self.set_locking_sc_address(locking_sc_address);
     }
 
     /// Users can deposit either launched_token or accepted_token.
     /// They will receive an SFT that can be used to withdraw said tokens
     #[payable("*")]
     #[endpoint]
-    fn deposit(&self) {
-        self.require_dex_address_set();
-
+    fn deposit(&self) -> EsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_deposit_allowed(&phase);
 
@@ -181,18 +134,18 @@ pub trait PriceDiscovery:
             sc_panic!(INVALID_PAYMENT_ERR_MSG);
         };
 
-        let launched_token_balance_before = self.launched_token_balance().get();
-        let accepted_token_balance_before = self.accepted_token_balance().get();
-
         self.increase_balance(balance_mapper, &payment_amount);
 
-        let caller = self.blockchain().get_caller();
-        self.mint_and_send_redeem_token(&caller, redeem_token_nonce, &payment_amount);
-
-        let current_price = self.get_launched_token_price_over_min_price(
-            &launched_token_balance_before,
-            &accepted_token_balance_before,
+        let current_price = self.calculate_price();
+        let min_price = self.min_launched_token_price().get();
+        require!(
+            current_price == 0 || current_price >= min_price || payment_token == accepted_token_id,
+            BELOW_MIN_PRICE_ERR_MSG
         );
+
+        let caller = self.blockchain().get_caller();
+        let payment_result =
+            self.mint_and_send_redeem_token(&caller, redeem_token_nonce, payment_amount.clone());
 
         self.emit_deposit_event(
             payment_token,
@@ -203,6 +156,8 @@ pub trait PriceDiscovery:
             current_price,
             phase,
         );
+
+        payment_result
     }
 
     /// Deposit SFTs received after deposit to withdraw the initially deposited tokens.
@@ -210,9 +165,7 @@ pub trait PriceDiscovery:
     /// of the initial tokens will be received.
     #[payable("*")]
     #[endpoint]
-    fn withdraw(&self) {
-        self.require_dex_address_set();
-
+    fn withdraw(&self) -> EsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_withdraw_allowed(&phase);
 
@@ -236,41 +189,41 @@ pub trait PriceDiscovery:
 
         let penalty_percentage = phase.get_penalty_percentage();
         let penalty_amount = &payment_amount * &penalty_percentage / MAX_PERCENTAGE;
+        let withdraw_amount = &payment_amount - &penalty_amount;
 
-        let launched_token_balance_before = self.launched_token_balance().get();
-        let accepted_token_balance_before = self.accepted_token_balance().get();
+        self.decrease_balance(balance_mapper, &withdraw_amount);
+
+        let current_price = self.calculate_price();
+        let min_price = self.min_launched_token_price().get();
+        require!(current_price >= min_price, BELOW_MIN_PRICE_ERR_MSG);
 
         let caller = self.blockchain().get_caller();
-        let withdraw_amount = &payment_amount - &penalty_amount;
-        if withdraw_amount > 0 {
-            self.decrease_balance(balance_mapper, &withdraw_amount);
-
-            self.send()
-                .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
-        }
-
-        let current_price = self.get_launched_token_price_over_min_price(
-            &launched_token_balance_before,
-            &accepted_token_balance_before,
-        );
+        self.send()
+            .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
 
         self.emit_withdraw_event(
-            refund_token_id,
-            withdraw_amount,
+            refund_token_id.clone(),
+            withdraw_amount.clone(),
             payment_token,
             payment_nonce,
             payment_amount,
             current_price,
             phase,
         );
+
+        EsdtTokenPayment::new(refund_token_id, 0, withdraw_amount)
     }
 
-    /// After the liquidity pool has been created and the LP tokens received,
-    /// users can withdraw their fair share of the LP tokens by depositing their SFTs
-    /// and a share of the extra rewards
+    /// After all phases have ended,
+    /// users can withdraw their fair share of either accepted or launched tokens,
+    /// depending on which token they deposited initially.
+    /// Users that deposited accepted tokens will receive Locked launched tokens.
+    /// Users that deposited launched tokens will receive Locked accepted tokens.
+    /// The users can unlock said tokens at the configured unlock_epoch,
+    /// through the SC at locking_sc_address
     #[payable("*")]
     #[endpoint]
-    fn redeem(&self) {
+    fn redeem(&self) -> EsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_redeem_allowed(&phase);
 
@@ -278,119 +231,71 @@ pub trait PriceDiscovery:
         let redeem_token_id = self.redeem_token_id().get();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
-        let rewards = self.compute_rewards(payment_nonce, &payment_amount);
+        let bought_tokens = self.compute_bought_tokens(payment_nonce, &payment_amount);
         self.burn_redeem_token_without_supply_decrease(payment_nonce, &payment_amount);
 
-        let caller = self.blockchain().get_caller();
-        if rewards.lp_tokens_amount > 0 {
-            let lp_token_id = self.lp_token_id().get();
-            self.send()
-                .direct(&caller, &lp_token_id, 0, &rewards.lp_tokens_amount, &[]);
-        }
-        if rewards.extra_rewards_amount > 0 {
-            self.decrease_balance(self.extra_rewards_balance(), &rewards.extra_rewards_amount);
-
-            let extra_rewards_token_id = self.extra_rewards_token_id().get();
-            let extra_rewards_token_nonce = self.extra_rewards_token_nonce().get();
-            self.send().direct(
-                &caller,
-                &extra_rewards_token_id,
-                extra_rewards_token_nonce,
-                &rewards.extra_rewards_amount,
-                &[],
+        if bought_tokens.amount > 0 {
+            let caller = self.blockchain().get_caller();
+            let _ = self.lock_tokens_and_forward(
+                caller,
+                bought_tokens.token_identifier.clone(),
+                bought_tokens.amount.clone(),
             );
         }
-
-        let total_lp_tokens = self.total_lp_tokens_received().get();
-        let remaining_lp_tokens = self.lp_tokens_claimed().update(|total_claimed| {
-            *total_claimed += &rewards.lp_tokens_amount;
-            &total_lp_tokens - &*total_claimed
-        });
 
         self.emit_redeem_event(
             payment_token,
             payment_nonce,
             payment_amount,
-            self.lp_token_id().get(),
-            rewards.lp_tokens_amount,
-            remaining_lp_tokens,
-            total_lp_tokens,
-            self.extra_rewards_token_id().get(),
-            rewards.extra_rewards_amount,
-        )
+            bought_tokens.token_identifier.clone(),
+            bought_tokens.amount.clone(),
+        );
+
+        bought_tokens
     }
 
     // private
 
-    fn compute_rewards(
+    fn compute_bought_tokens(
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
-    ) -> RewardsPair<Self::Api> {
-        let total_lp_tokens = self.total_lp_tokens_received().get();
+    ) -> EsdtTokenPayment<Self::Api> {
         let redeem_token_supply = self
             .redeem_token_total_circulating_supply(redeem_token_nonce)
             .get();
 
-        let lp_tokens_amount = &total_lp_tokens * redeem_token_amount / redeem_token_supply / 2u32;
+        // users that deposited accepted tokens get launched tokens, and vice-versa
+        let (token_id, total_token_supply) = match redeem_token_nonce {
+            ACCEPTED_TOKEN_REDEEM_NONCE => (
+                self.launched_token_id().get(),
+                self.launched_token_balance().get(),
+            ),
+            LAUNCHED_TOKEN_REDEEM_NONCE => (
+                self.accepted_token_id().get(),
+                self.accepted_token_balance().get(),
+            ),
+            _ => sc_panic!(INVALID_PAYMENT_ERR_MSG),
+        };
+        let reward_amount = total_token_supply * redeem_token_amount / redeem_token_supply;
 
-        let total_extra_rewards = self.total_extra_rewards_tokens().get();
-        let extra_rewards_amount = &total_extra_rewards * &lp_tokens_amount / total_lp_tokens;
-
-        RewardsPair {
-            lp_tokens_amount,
-            extra_rewards_amount,
+        EsdtTokenPayment {
+            token_type: EsdtTokenType::Fungible,
+            token_identifier: token_id,
+            token_nonce: 0,
+            amount: reward_amount,
         }
     }
 
-    fn get_launched_token_price_over_min_price(
-        &self,
-        launched_token_balance_before: &BigUint,
-        accepted_token_balance_before: &BigUint,
-    ) -> BigUint {
-        let min_price = self.min_launched_token_price().get();
-        let launched_token_balance_after = self.launched_token_balance().get();
-        let accepted_token_balance_after = self.accepted_token_balance().get();
+    #[view(getCurrentPrice)]
+    fn calculate_price(&self) -> BigUint {
+        let launched_token_balance = self.launched_token_balance().get();
+        let accepted_token_balance = self.accepted_token_balance().get();
 
-        if accepted_token_balance_after == 0 {
-            return accepted_token_balance_after;
-        }
+        require!(launched_token_balance > 0, "No launched tokens available");
 
-        require!(
-            launched_token_balance_after > 0,
-            "No launched tokens available"
-        );
-
-        let price_before =
-            self.calculate_price(accepted_token_balance_before, launched_token_balance_before);
-        let price_after =
-            self.calculate_price(&accepted_token_balance_after, &launched_token_balance_after);
-
-        // If price is below min price before and after
-        // it means there is a surplus of Launched tokens
-        // so only Accepted token deposits are allowed
-        if price_before < min_price && price_after < min_price {
-            require!(
-                &accepted_token_balance_after > accepted_token_balance_before,
-                BELOW_MIN_PRICE_ERR_MSG
-            );
-        } else {
-            require!(price_after >= min_price, BELOW_MIN_PRICE_ERR_MSG);
-        }
-
-        price_after
-    }
-
-    fn calculate_price(
-        &self,
-        accepted_token_balance: &BigUint,
-        launched_token_balance: &BigUint,
-    ) -> BigUint {
-        if launched_token_balance == &0 {
-            return BigUint::zero();
-        }
-
-        accepted_token_balance * MIN_PRICE_PRECISION / launched_token_balance
+        let price_precision = self.price_precision().get();
+        accepted_token_balance * price_precision / launched_token_balance
     }
 
     fn increase_balance(&self, mapper: SingleValueMapper<BigUint>, amount: &BigUint) {
@@ -401,22 +306,11 @@ pub trait PriceDiscovery:
         mapper.update(|b| *b -= amount);
     }
 
-    fn require_whitelisted(&self, addr: &ManagedAddress) {
-        let whitelist = self.deposit_extra_rewards_whitelist();
-        if !whitelist.is_empty() {
-            require!(whitelist.contains(addr), "Not whitelisted");
-        }
-    }
-
     #[view(getMinLaunchedTokenPrice)]
     #[storage_mapper("minLaunchedTokenPrice")]
     fn min_launched_token_price(&self) -> SingleValueMapper<BigUint>;
 
-    #[view(getLpTokensClaimed)]
-    #[storage_mapper("lpTokensClaimed")]
-    fn lp_tokens_claimed(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getDepositExtraRewardsWhitelist)]
-    #[storage_mapper("depositExtraRewardsWhitelist")]
-    fn deposit_extra_rewards_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
+    #[view(getPricePrecision)]
+    #[storage_mapper("pricePrecision")]
+    fn price_precision(&self) -> SingleValueMapper<u64>;
 }
