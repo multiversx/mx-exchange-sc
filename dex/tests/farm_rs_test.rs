@@ -642,7 +642,18 @@ where
 
     b_mock
         .execute_esdt_multi_transfer(&owner, &farm_setup.farm_wrapper, &payments, |sc| {
-            sc.migrate_from_v1_2_farm(nft_attributes, managed_address!(&owner));
+            let nft_attributes_copy: FarmTokenAttributesV1_2<DebugApi> = FarmTokenAttributesV1_2 {
+                reward_per_share: managed_biguint!(1_000),
+                original_entering_epoch: 10,
+                entering_epoch: 10,
+                apr_multiplier: 0,
+                with_locked_rewards: false,
+                initial_farming_amount: managed_biguint!(1_000),
+                compounded_reward: managed_biguint!(0),
+                current_farm_amount: managed_biguint!(1_000),
+            };
+
+            sc.migrate_from_v1_2_farm(nft_attributes_copy, managed_address!(&owner));
         })
         .assert_ok();
 

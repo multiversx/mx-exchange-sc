@@ -15,9 +15,7 @@ elrond_wasm_node::wasm_endpoints! {
         getDefaultUnlockPeriod
         getExtendedAttributesActivationNonce
         getInitEpoch
-        getLastErrorMessage
         getLockedAssetTokenId
-        getTransferExecGasLimit
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
         lockAssets
@@ -27,7 +25,6 @@ elrond_wasm_node::wasm_endpoints! {
         setInitEpoch
         setLocalRolesLockedAssetToken
         setUnlockPeriod
-        set_transfer_exec_gas_limit
         unlockAssets
         whitelist
     )
