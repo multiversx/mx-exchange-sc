@@ -5,6 +5,7 @@ pub mod fuzz_data_tests {
 
     use ::config::ConfigModule;
     use common_structs::UnlockMilestone;
+    use elrond_wasm::elrond_codec::Empty;
     use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
     use elrond_wasm_debug::{
         managed_address, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
@@ -622,14 +623,14 @@ pub mod fuzz_data_tests {
             DISC_REDEEM_TOKEN_ID,
             LAUNCHED_TOKEN_REDEEM_NONCE,
             &rust_biguint!(1),
-            &(),
+            &Empty,
         );
         blockchain_wrapper.set_nft_balance(
             pd_wrapper.address_ref(),
             DISC_REDEEM_TOKEN_ID,
             ACCEPTED_TOKEN_REDEEM_NONCE,
             &rust_biguint!(1),
-            &(),
+            &Empty,
         );
 
         // init locking SC

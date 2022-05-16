@@ -25,11 +25,7 @@ pub trait WrappedFarmTokenMerge:
 {
     #[payable("*")]
     #[endpoint(mergeWrappedFarmTokens)]
-    fn merge_wrapped_farm_tokens(
-        &self,
-        farm_contract: ManagedAddress,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) {
+    fn merge_wrapped_farm_tokens(&self, farm_contract: ManagedAddress) {
         let caller = self.blockchain().get_caller();
         require!(
             self.intermediated_farms().contains(&farm_contract),
@@ -43,7 +39,6 @@ pub trait WrappedFarmTokenMerge:
             &farm_contract,
             payments_iter,
             Option::None,
-            opt_accept_funds_func,
         );
     }
 
@@ -53,7 +48,6 @@ pub trait WrappedFarmTokenMerge:
         farm_contract: &ManagedAddress,
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedFarmToken<Self::Api>>,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> (WrappedFarmToken<Self::Api>, bool) {
         require!(!payments.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = payments.len();
@@ -81,17 +75,17 @@ pub trait WrappedFarmTokenMerge:
             farming_token_amount: farming_token_amount.amount,
         };
 
-        let new_nonce = self.nft_create_tokens(
+        let new_nonce = self.send().esdt_nft_create_compact(
             &wrapped_farm_token_id,
             &merged_farm_token_amount.amount,
             &new_attrs,
         );
-        self.transfer_execute_custom(
+        self.send().direct(
             caller,
             &wrapped_farm_token_id,
             new_nonce,
             &merged_farm_token_amount.amount,
-            &opt_accept_funds_func,
+            &[],
         );
 
         let new_token = WrappedFarmToken {
@@ -170,10 +164,10 @@ pub trait WrappedFarmTokenMerge:
                 &token.attributes.farming_token_amount,
             );
 
-            return self.create_payment(
-                &locked_asset_token,
+            return EsdtTokenPayment::new(
+                locked_asset_token,
                 token.attributes.farming_token_nonce,
-                &locked_token_amount,
+                locked_token_amount,
             );
         }
 
@@ -193,9 +187,9 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalValue::None)
+            .merge_locked_asset_tokens()
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     fn merge_farm_tokens(
@@ -206,10 +200,10 @@ pub trait WrappedFarmTokenMerge:
         if tokens.len() == 1 {
             let token = tokens.get(0);
 
-            return self.create_payment(
-                &token.attributes.farm_token_id,
+            return EsdtTokenPayment::new(
+                token.attributes.farm_token_id,
                 token.attributes.farm_token_nonce,
-                &token.token_amount.amount,
+                token.token_amount.amount,
             );
         }
 
@@ -223,9 +217,9 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_proxy(farm_contract.clone())
-            .merge_farm_tokens(OptionalValue::None)
+            .merge_farm_tokens()
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     fn merge_farming_tokens(
@@ -240,10 +234,10 @@ pub trait WrappedFarmTokenMerge:
                 &first_token.attributes.farming_token_amount,
             );
 
-            return self.create_payment(
-                &first_token.attributes.farming_token_id,
+            return EsdtTokenPayment::new(
+                first_token.attributes.farming_token_id,
                 first_token.attributes.farming_token_nonce,
-                &farming_amount,
+                farming_amount,
             );
         }
 
@@ -276,10 +270,10 @@ pub trait WrappedFarmTokenMerge:
             let attributes =
                 self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce);
             let wrapped_lp_token = WrappedLpToken {
-                token_amount: self.create_payment(
-                    &wrapped_lp_token_id,
+                token_amount: EsdtTokenPayment::new(
+                    wrapped_lp_token_id,
                     wrapped_lp_token_nonce,
-                    &wrapped_lp_token_amount,
+                    wrapped_lp_token_amount,
                 ),
                 attributes,
             };
@@ -291,17 +285,17 @@ pub trait WrappedFarmTokenMerge:
             self.merge_locked_asset_tokens_from_wrapped_lp(&wrapped_lp_tokens);
         let merged_wrapped_lp_token_amount =
             self.get_merged_wrapped_lp_tokens_amount(&wrapped_lp_tokens);
-        let lp_token_amount = self.create_payment(
-            &wrapped_lp_tokens.get(0).attributes.lp_token_id,
+        let lp_token_amount = EsdtTokenPayment::new(
+            wrapped_lp_tokens.get(0).attributes.lp_token_id,
             0,
-            &merged_wrapped_lp_token_amount,
+            merged_wrapped_lp_token_amount.clone(),
         );
 
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
 
         let wrapped_lp_token_id = tokens.get(0).attributes.farming_token_id;
-        let new_nonce = self.nft_create_tokens(
+        let new_nonce = self.send().esdt_nft_create_compact(
             &wrapped_lp_token_id,
             &merged_wrapped_lp_token_amount,
             &attrs,
@@ -315,10 +309,10 @@ pub trait WrappedFarmTokenMerge:
             );
         }
 
-        self.create_payment(
-            &wrapped_lp_token_id,
+        EsdtTokenPayment::new(
+            wrapped_lp_token_id,
             new_nonce,
-            &merged_wrapped_lp_token_amount,
+            merged_wrapped_lp_token_amount,
         )
     }
 }

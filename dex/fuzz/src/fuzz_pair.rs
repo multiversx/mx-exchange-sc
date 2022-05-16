@@ -89,7 +89,6 @@ pub mod fuzz_pair_test {
                 sc.add_liquidity(
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalValue::None,
                 );
             },
         );
@@ -192,12 +191,8 @@ pub mod fuzz_pair_test {
             &payments,
             |sc| {
                 sc.remove_liquidity(
-                    managed_token_id!(lp_token),
-                    0,
-                    managed_biguint!(lp_token_amount),
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalValue::None,
                 );
             },
         );
@@ -290,12 +285,8 @@ pub mod fuzz_pair_test {
                 &rust_biguint!(payment_amount),
                 |sc| {
                     sc.swap_tokens_fixed_input(
-                        managed_token_id!(payment_token_id),
-                        0,
-                        managed_biguint!(payment_amount),
                         managed_token_id!(desired_token_id),
                         managed_biguint!(desired_amount_min),
-                        OptionalValue::None,
                     );
                 },
             );
@@ -342,12 +333,8 @@ pub mod fuzz_pair_test {
                 &rust_biguint!(payment_amount),
                 |sc| {
                     sc.swap_tokens_fixed_output(
-                        managed_token_id!(payment_token_id),
-                        0,
-                        managed_biguint!(payment_amount),
                         managed_token_id!(desired_token_id),
                         managed_biguint!(desired_amount_min),
-                        OptionalValue::None,
                     );
                 },
             );

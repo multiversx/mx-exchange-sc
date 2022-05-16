@@ -64,10 +64,7 @@ pub mod fuzz_factory_test {
             &factory_setup.factory_wrapper,
             &payments,
             |sc| {
-                let locked_assets = sc.lock_assets(
-                    TokenIdentifier::from(token_id),
-                    to_managed_biguint(amount_to_lock),
-                );
+                let locked_assets = sc.lock_assets();
 
                 locked_asset_nonce = locked_assets.token_nonce;
             },
@@ -175,11 +172,7 @@ pub mod fuzz_factory_test {
             &factory_setup.factory_wrapper,
             &payments,
             |sc| {
-                sc.unlock_assets(
-                    TokenIdentifier::from(locked_token_id),
-                    to_managed_biguint(amount_to_unlock),
-                    *locked_token_nonce,
-                );
+                sc.unlock_assets();
             },
         );
 

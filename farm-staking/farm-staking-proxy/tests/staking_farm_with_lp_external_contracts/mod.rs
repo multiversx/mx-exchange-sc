@@ -166,7 +166,6 @@ fn add_liquidity<PairObjBuilder>(
             let MultiValue3 { 0: payments } = sc.add_liquidity(
                 managed_biguint!(first_token_min),
                 managed_biguint!(second_token_min),
-                OptionalValue::None,
             );
 
             assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
@@ -289,7 +288,7 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm(OptionalValue::None);
+            let payment = sc.enter_farm();
             assert_eq!(
                 payment.token_identifier,
                 managed_token_id!(LP_FARM_TOKEN_ID)

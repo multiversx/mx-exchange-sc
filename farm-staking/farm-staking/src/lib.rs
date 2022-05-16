@@ -14,9 +14,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::farm_token_merge::StakingFarmTokenAttributes;
-use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_TRANSFER_EXEC_GAS_LIMIT,
-};
+use config::{DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS};
 use farm_token_merge::StakingFarmToken;
 
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -71,8 +69,6 @@ pub trait Farm:
         self.state().set(&State::Inactive);
         self.minimum_farming_epochs()
             .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
@@ -253,7 +249,7 @@ pub trait Farm:
     ) -> EsdtTokenPayment<Self::Api> {
         let min_unbond_epochs = self.min_unbond_epochs().get();
         let current_epoch = self.blockchain().get_block_epoch();
-        let nft_nonce = self.nft_create_tokens(
+        let nft_nonce = self.send().esdt_nft_create_compact(
             &farm_token_id,
             &amount,
             &UnbondSftAttributes {
@@ -496,7 +492,7 @@ pub trait Farm:
         additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> (StakingFarmToken<Self::Api>, bool) {
         let current_position_replic = StakingFarmToken {
-            token_amount: self.create_payment(token_id, 0, amount),
+            token_amount: EsdtTokenPayment::new(token_id.clone(), 0, amount.clone()),
             attributes: attributes.clone(),
         };
 
@@ -512,7 +508,7 @@ pub trait Farm:
         let new_nonce = self.mint_farm_tokens(token_id, new_amount, &merged_attributes);
 
         let new_farm_token = StakingFarmToken {
-            token_amount: self.create_payment(token_id, new_nonce, new_amount),
+            token_amount: EsdtTokenPayment::new(token_id.clone(), new_nonce, new_amount.clone()),
             attributes: merged_attributes,
         };
         let is_merged = additional_payments_len != 0;

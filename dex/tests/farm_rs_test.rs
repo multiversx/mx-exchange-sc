@@ -1,5 +1,4 @@
 use common_structs::FarmTokenAttributes;
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -156,7 +155,7 @@ fn enter_farm<FarmObjBuilder>(
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                let payment = sc.enter_farm(OptionalValue::None);
+                let payment = sc.enter_farm();
                 assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
                 assert_eq!(payment.token_nonce, expected_farm_token_nonce);
                 assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
@@ -197,7 +196,7 @@ fn enter_farm<FarmObjBuilder>(
         FARM_TOKEN_ID,
         expected_farm_token_nonce,
         &rust_biguint!(expected_total_out_amount),
-        &expected_attributes,
+        Some(&expected_attributes),
     );
 
     let _ = TxContextStack::static_pop();
@@ -222,7 +221,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.exit_farm(OptionalValue::None);
+                let multi_result = sc.exit_farm();
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -276,7 +275,7 @@ fn claim_rewards<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.claim_rewards(OptionalValue::None);
+                let multi_result = sc.claim_rewards();
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -312,7 +311,7 @@ fn claim_rewards<FarmObjBuilder>(
         FARM_TOKEN_ID,
         expected_farm_token_nonce_out,
         &rust_biguint!(farm_token_amount),
-        &expected_attributes,
+        Some(&expected_attributes),
     );
     b_mock.check_esdt_balance(
         &farm_setup.user_address,
@@ -652,14 +651,14 @@ where
         FARM_TOKEN_ID,
         1,
         &nft_balance,
-        &FarmTokenAttributes::<DebugApi> {
+        Some(&FarmTokenAttributes::<DebugApi> {
             reward_per_share: managed_biguint!(1_000),
             original_entering_epoch: 10,
             entering_epoch: 10,
             initial_farming_amount: managed_biguint!(1_000),
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(1_000),
-        },
+        }),
     );
 
     let _ = TxContextStack::static_pop();
@@ -799,13 +798,13 @@ fn test_farm_through_simple_lock() {
         FARM_PROXY_TOKEN_ID,
         1,
         &rust_biguint!(1_000_000_000),
-        &FarmProxyTokenAttributes::<DebugApi> {
+        Some(&FarmProxyTokenAttributes::<DebugApi> {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 1,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
-        },
+        }),
     );
 
     // user claim farm rewards
@@ -847,13 +846,13 @@ fn test_farm_through_simple_lock() {
         FARM_PROXY_TOKEN_ID,
         2,
         &rust_biguint!(1_000_000_000),
-        &FarmProxyTokenAttributes::<DebugApi> {
+        Some(&FarmProxyTokenAttributes::<DebugApi> {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 2,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
-        },
+        }),
     );
     b_mock.check_esdt_balance(
         &user_addr,
@@ -900,7 +899,7 @@ fn test_farm_through_simple_lock() {
         LOCKED_LP_TOKEN_ID,
         1,
         &rust_biguint!(1_000_000_000),
-        &lp_proxy_token_attributes,
+        Some(&lp_proxy_token_attributes),
     );
     b_mock.check_esdt_balance(
         &user_addr,
@@ -935,13 +934,13 @@ fn test_farm_through_simple_lock() {
         FARM_PROXY_TOKEN_ID,
         3,
         &rust_biguint!(500_000_000),
-        &FarmProxyTokenAttributes::<DebugApi> {
+        Some(&FarmProxyTokenAttributes::<DebugApi> {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 3,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
-        },
+        }),
     );
 
     // user enter farm along with previous position
@@ -974,13 +973,13 @@ fn test_farm_through_simple_lock() {
         FARM_PROXY_TOKEN_ID,
         4,
         &rust_biguint!(800_000_000),
-        &FarmProxyTokenAttributes::<DebugApi> {
+        Some(&FarmProxyTokenAttributes::<DebugApi> {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 4,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
-        },
+        }),
     );
 
     // test enter with three additional farm tokens
@@ -1048,13 +1047,13 @@ fn test_farm_through_simple_lock() {
         FARM_PROXY_TOKEN_ID,
         7,
         &rust_biguint!(1_000_000_000),
-        &FarmProxyTokenAttributes::<DebugApi> {
+        Some(&FarmProxyTokenAttributes::<DebugApi> {
             farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 7,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
             farming_token_locked_nonce: 1,
-        },
+        }),
     );
 
     // exit farm
@@ -1085,6 +1084,6 @@ fn test_farm_through_simple_lock() {
         LOCKED_LP_TOKEN_ID,
         1,
         &rust_biguint!(1_000_000_000),
-        &lp_proxy_token_attributes,
+        Some(&lp_proxy_token_attributes),
     );
 }

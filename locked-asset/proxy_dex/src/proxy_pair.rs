@@ -146,7 +146,7 @@ pub trait ProxyPairModule:
             second_token_nonce,
             &second_token_amount_desired - &second_token_used.amount,
         ));
-        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments, &OptionalValue::None);
+        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments);
 
         if second_token_amount_desired > second_token_used.amount {
             let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
@@ -230,12 +230,12 @@ pub trait ProxyPairModule:
             .direct(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.transfer_execute_custom(
+        self.send().direct(
             &caller,
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
-            &OptionalValue::None,
+            &[],
         );
 
         //Do cleanup
@@ -303,10 +303,9 @@ pub trait ProxyPairModule:
             .add_liquidity(
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalValue::None,
             )
             .with_multi_token_transfer(all_token_payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 3, after))
+            .execute_on_dest_context()
     }
 
     fn actual_remove_liquidity(
@@ -319,20 +318,17 @@ pub trait ProxyPairModule:
     ) -> RemoveLiquidityResultType<Self::Api> {
         self.pair_contract_proxy(pair_address.clone())
             .remove_liquidity(
-                lp_token_id.clone(),
-                0,
-                liquidity.clone(),
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
-                OptionalValue::None,
             )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
+            .add_token_transfer(lp_token_id.clone(), 0, liquidity.clone())
+            .execute_on_dest_context()
     }
 
     fn ask_for_lp_token_id(&self, pair_address: &ManagedAddress) -> TokenIdentifier {
         self.pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     fn create_by_merging_and_send(
@@ -348,10 +344,10 @@ pub trait ProxyPairModule:
             caller,
             additional_payments,
             Option::Some(WrappedLpToken {
-                token_amount: self.create_payment(
-                    &self.wrapped_lp_token_id().get(),
+                token_amount: EsdtTokenPayment::new(
+                    self.wrapped_lp_token_id().get(),
                     0,
-                    lp_token_amount,
+                    lp_token_amount.clone(),
                 ),
                 attributes: WrappedLpTokenAttributes {
                     lp_token_id: lp_token_id.clone(),
@@ -360,7 +356,6 @@ pub trait ProxyPairModule:
                     locked_assets_nonce: locked_tokens_nonce,
                 },
             }),
-            OptionalValue::None,
         )
     }
 

@@ -174,7 +174,7 @@ fn stake_farm<FarmObjBuilder>(
         FARM_TOKEN_ID,
         expected_farm_token_nonce,
         &rust_biguint!(expected_total_out_amount),
-        &expected_attributes,
+        Some(&expected_attributes),
     );
 
     let _ = TxContextStack::static_pop();
@@ -267,7 +267,7 @@ fn unstake_farm<FarmObjBuilder>(
         FARM_TOKEN_ID,
         expected_new_farm_token_nonce,
         &rust_biguint!(expected_new_farm_token_amount),
-        expected_new_farm_token_attributes,
+        Some(expected_new_farm_token_attributes),
     );
 
     b_mock.check_esdt_balance(
@@ -338,7 +338,7 @@ fn claim_rewards<FarmObjBuilder>(
         FARM_TOKEN_ID,
         expected_farm_token_nonce_out,
         &rust_biguint!(farm_token_amount),
-        &expected_attributes,
+        Some(&expected_attributes),
     );
     b_mock.check_esdt_balance(
         &farm_setup.user_address,
