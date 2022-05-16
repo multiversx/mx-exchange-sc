@@ -1,3 +1,4 @@
+use elrond_wasm::elrond_codec::Empty;
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxResult;
 use elrond_wasm_debug::{managed_address, managed_biguint, testing_framework::*};
@@ -97,14 +98,14 @@ where
         REDEEM_TOKEN_ID,
         LAUNCHED_TOKEN_REDEEM_NONCE,
         &rust_biguint!(1),
-        &(),
+        &Empty,
     );
     blockchain_wrapper.set_nft_balance(
         pd_wrapper.address_ref(),
         REDEEM_TOKEN_ID,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &rust_biguint!(1),
-        &(),
+        &Empty,
     );
 
     blockchain_wrapper.set_block_nonce(START_BLOCK - 1);

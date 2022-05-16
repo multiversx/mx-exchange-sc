@@ -53,12 +53,12 @@ pub trait LockingWrapperModule: crate::config::ConfigModule + token_send::TokenS
         amount: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
         let unlock_epoch = self.unlock_epoch().get();
-        let proxy_instance = self.get_locking_sc_proxy_instance();
+        let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
             .lock_tokens(unlock_epoch, opt_dest)
             .add_token_transfer(token_id, 0, amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     fn should_generate_locked_asset(&self) -> bool {

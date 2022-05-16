@@ -10,7 +10,6 @@ use common_structs::Nonce;
 pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
 pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
-pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35_000_000;
 pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
@@ -43,12 +42,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
 
     #[only_owner]
     #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
-        self.transfer_exec_gas_limit().set(&gas_limit);
-    }
-
-    #[only_owner]
-    #[endpoint]
     fn set_burn_gas_limit(&self, gas_limit: u64) {
         self.burn_gas_limit().set(&gas_limit);
     }
@@ -68,10 +61,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getFarmTokenSupply)]
     #[storage_mapper("farm_token_supply")]
     fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getLastErrorMessage)]
-    #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 
     #[view(getState)]
     #[storage_mapper("state")]

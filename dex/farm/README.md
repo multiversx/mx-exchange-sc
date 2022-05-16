@@ -37,7 +37,7 @@ The arguments are:
     #[endpoint(enterFarm)]
     fn enter_farm(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -55,7 +55,7 @@ This endpoint will give back to the caller a Farm position as a result. The Farm
     #[endpoint(exitFarm)]
     fn exit_farm(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -72,7 +72,7 @@ If a user decides to exit too early, they will receive a penalty. This contract 
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -88,7 +88,7 @@ This endpoint receives at least one payment:
     #[endpoint(compoundRewards)]
     fn compound_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -101,7 +101,7 @@ This endpoint is similar with claimRewards, the differences being that instead o
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 

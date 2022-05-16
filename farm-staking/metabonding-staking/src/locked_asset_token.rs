@@ -82,9 +82,9 @@ pub trait LockedAssetTokenModule {
 
         let locked_asset_factory_address = self.locked_asset_factory_address().get();
         self.locked_asset_factory_proxy(locked_asset_factory_address)
-            .merge_locked_asset_tokens(OptionalValue::None)
+            .merge_locked_asset_tokens()
             .with_multi_token_transfer(tokens)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     // proxies

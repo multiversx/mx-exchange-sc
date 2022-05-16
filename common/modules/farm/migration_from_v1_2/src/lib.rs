@@ -63,7 +63,7 @@ pub trait MigrationModule:
         let new_pos_amount = farming_tokens.amount.clone();
 
         //Note that this function does not modify the farm supply
-        let new_pos_nonce = self.nft_create_tokens(
+        let new_pos_nonce = self.send().esdt_nft_create_compact(
             &new_pos_token_id,
             &new_pos_amount,
             &FarmTokenAttributes {
@@ -77,12 +77,12 @@ pub trait MigrationModule:
         );
 
         // Use this function since it works regardless of wasm ocasional unalignment.
-        self.transfer_execute_custom(
+        self.send().direct(
             &orig_caller,
             &new_pos_token_id,
             new_pos_nonce,
             &new_pos_amount,
-            &OptionalValue::None,
+            &[],
         );
 
         EsdtTokenPayment::new(new_pos_token_id, new_pos_nonce, new_pos_amount)

@@ -184,9 +184,9 @@ pub trait LiquidityPoolModule:
         let total_supply = self.get_total_lp_token_supply();
         if total_supply != 0 {
             let amount = liquidity * reserve / total_supply;
-            self.create_payment(&token_id, 0, &amount)
+            EsdtTokenPayment::new(token_id, 0, amount)
         } else {
-            self.create_payment(&token_id, 0, &BigUint::zero())
+            EsdtTokenPayment::new(token_id, 0, total_supply)
         }
     }
 

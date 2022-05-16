@@ -236,7 +236,7 @@ fn test_basic_propose() {
                 VOTE_NFT_ID,
                 1,
                 &rust_biguint!(1),
-                &VoteNFTAttributes::<DebugApi> {
+                Some(&VoteNFTAttributes::<DebugApi> {
                     proposal_id: 0,
                     vote_type: VoteType::Upvote,
                     vote_weight: managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
@@ -246,7 +246,7 @@ fn test_basic_propose() {
                         0,
                         managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
                     ),
-                },
+                }),
             );
         });
 
@@ -641,7 +641,7 @@ fn test_basic_propose_with_lpmex() {
                 VOTE_NFT_ID,
                 1,
                 &rust_biguint!(1),
-                &VoteNFTAttributes::<DebugApi> {
+                Some(&VoteNFTAttributes::<DebugApi> {
                     proposal_id: 0,
                     vote_type: VoteType::Upvote,
                     vote_weight: managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
@@ -651,7 +651,7 @@ fn test_basic_propose_with_lpmex() {
                         0,
                         managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL * 2),
                     ),
-                },
+                }),
             );
         });
 

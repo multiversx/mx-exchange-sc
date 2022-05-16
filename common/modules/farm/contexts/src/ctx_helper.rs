@@ -11,10 +11,7 @@ pub trait CtxHelper:
     + farm_token::FarmTokenModule
     + token_merge::TokenMergeModule
 {
-    fn new_farm_context(
-        &self,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> GenericContext<Self::Api> {
+    fn new_farm_context(&self) -> GenericContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
         let payments = self.call_value().all_esdt_transfers();
@@ -27,9 +24,8 @@ pub trait CtxHelper:
             additional_payments.push(payment);
         }
 
-        let args = GenericArgs::new(opt_accept_funds_func);
         let payments = GenericPayments::new(first_payment, additional_payments);
-        let tx = GenericTxInput::new(args, payments);
+        let tx = GenericTxInput::new(payments);
 
         GenericContext::new(tx, caller)
     }
@@ -96,11 +92,7 @@ pub trait CtxHelper:
 
     #[inline]
     fn execute_output_payments(&self, context: &GenericContext<Self::Api>) {
-        self.send_multiple_tokens_if_not_zero(
-            context.get_caller(),
-            context.get_output_payments(),
-            context.get_opt_accept_funds_func(),
-        );
+        self.send_multiple_tokens_if_not_zero(context.get_caller(), context.get_output_payments());
     }
 
     #[inline]
@@ -161,10 +153,10 @@ pub trait CtxHelper:
     fn construct_output_payments_exit(&self, context: &mut GenericContext<Self::Api>) {
         let mut result = ManagedVec::new();
 
-        result.push(self.create_payment(
-            context.get_farming_token_id().unwrap(),
+        result.push(EsdtTokenPayment::new(
+            context.get_farming_token_id().unwrap().clone(),
             0,
-            context.get_initial_farming_amount().unwrap(),
+            context.get_initial_farming_amount().unwrap().clone(),
         ));
 
         context.set_output_payments(result);

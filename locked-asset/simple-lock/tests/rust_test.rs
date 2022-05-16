@@ -70,11 +70,11 @@ fn lock_unlock_test() {
         LOCKED_TOKEN_ID,
         lock_token_nonce,
         &lock_amount,
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(FREE_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
-        },
+        }),
     );
 
     // try unlock too early

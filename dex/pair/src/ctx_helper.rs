@@ -27,7 +27,6 @@ pub trait CtxHelper:
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> AddLiquidityContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
@@ -41,11 +40,7 @@ pub trait CtxHelper:
             None => (None, None),
         };
 
-        let args = AddLiquidityArgs::new(
-            first_token_amount_min,
-            second_token_amount_min,
-            opt_accept_funds_func,
-        );
+        let args = AddLiquidityArgs::new(first_token_amount_min, second_token_amount_min);
         let payments = AddLiquidityPayments::new(first_payment, second_payment);
         let tx_input = AddLiquidityTxInput::new(args, payments);
 
@@ -59,16 +54,12 @@ pub trait CtxHelper:
         payment_amount: &BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> RemoveLiquidityContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
-        let payment = self.create_payment(payment_token, payment_nonce, payment_amount);
-        let args = RemoveLiquidityArgs::new(
-            first_token_amount_min,
-            second_token_amount_min,
-            opt_accept_funds_func,
-        );
+        let payment =
+            EsdtTokenPayment::new(payment_token.clone(), payment_nonce, payment_amount.clone());
+        let args = RemoveLiquidityArgs::new(first_token_amount_min, second_token_amount_min);
         let payments = RemoveLiquidityPayments::new(payment);
         let tx_input = RemoveLiquidityTxInput::new(args, payments);
 
@@ -82,12 +73,12 @@ pub trait CtxHelper:
         payment_amount: &BigUint,
         out_token_id: TokenIdentifier,
         out_amount: BigUint,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> SwapContext<Self::Api> {
         let caller = self.blockchain().get_caller();
 
-        let payment = self.create_payment(payment_token, payment_nonce, payment_amount);
-        let args = SwapArgs::new(out_token_id, out_amount, opt_accept_funds_func);
+        let payment =
+            EsdtTokenPayment::new(payment_token.clone(), payment_nonce, payment_amount.clone());
+        let args = SwapArgs::new(out_token_id, out_amount);
         let payments = SwapPayments::new(payment);
         let tx_input = SwapTxInput::new(args, payments);
 
@@ -132,20 +123,20 @@ pub trait CtxHelper:
     ) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
-        payments.push(self.create_payment(
-            context.get_lp_token_id(),
+        payments.push(EsdtTokenPayment::new(
+            context.get_lp_token_id().clone(),
             0,
-            context.get_liquidity_added(),
+            context.get_liquidity_added().clone(),
         ));
-        payments.push(self.create_payment(
-            context.get_first_token_id(),
+        payments.push(EsdtTokenPayment::new(
+            context.get_first_token_id().clone(),
             0,
-            &(&context.get_first_payment().amount - context.get_first_amount_optimal()),
+            &context.get_first_payment().amount - context.get_first_amount_optimal(),
         ));
-        payments.push(self.create_payment(
-            context.get_second_token_id(),
+        payments.push(EsdtTokenPayment::new(
+            context.get_second_token_id().clone(),
             0,
-            &(&context.get_second_payment().amount - context.get_second_amount_optimal()),
+            &context.get_second_payment().amount - context.get_second_amount_optimal(),
         ));
 
         context.set_output_payments(payments);
@@ -157,15 +148,15 @@ pub trait CtxHelper:
     ) {
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
-        payments.push(self.create_payment(
-            context.get_first_token_id(),
+        payments.push(EsdtTokenPayment::new(
+            context.get_first_token_id().clone(),
             0,
-            context.get_first_token_amount_removed(),
+            context.get_first_token_amount_removed().clone(),
         ));
-        payments.push(self.create_payment(
-            context.get_second_token_id(),
+        payments.push(EsdtTokenPayment::new(
+            context.get_second_token_id().clone(),
             0,
-            context.get_second_token_amount_removed(),
+            context.get_second_token_amount_removed().clone(),
         ));
 
         context.set_output_payments(payments);
@@ -180,18 +171,18 @@ pub trait CtxHelper:
 
             payments.push(locked_asset);
         } else {
-            payments.push(self.create_payment(
-                context.get_token_out(),
+            payments.push(EsdtTokenPayment::new(
+                context.get_token_out().clone(),
                 0,
-                context.get_final_output_amount(),
+                context.get_final_output_amount().clone(),
             ));
         }
 
         if context.get_final_input_amount() != context.get_amount_in() {
-            payments.push(self.create_payment(
-                context.get_token_in(),
+            payments.push(EsdtTokenPayment::new(
+                context.get_token_in().clone(),
                 0,
-                &(context.get_amount_in() - context.get_final_input_amount()),
+                context.get_amount_in() - context.get_final_input_amount(),
             ));
         }
 
@@ -199,11 +190,7 @@ pub trait CtxHelper:
     }
 
     fn execute_output_payments(&self, context: &dyn Context<Self::Api>) {
-        self.send_multiple_tokens_if_not_zero(
-            context.get_caller(),
-            context.get_output_payments(),
-            context.get_opt_accept_funds_func(),
-        );
+        self.send_multiple_tokens_if_not_zero(context.get_caller(), context.get_output_payments());
     }
 
     fn commit_changes(&self, context: &dyn Context<Self::Api>) {
@@ -222,16 +209,20 @@ pub trait CtxHelper:
         context: &AddLiquidityContext<Self::Api>,
     ) -> AddLiquidityResultType<Self::Api> {
         MultiValue3::from((
-            self.create_payment(context.get_lp_token_id(), 0, context.get_liquidity_added()),
-            self.create_payment(
-                context.get_first_token_id(),
+            EsdtTokenPayment::new(
+                context.get_lp_token_id().clone(),
                 0,
-                context.get_first_amount_optimal(),
+                context.get_liquidity_added().clone(),
             ),
-            self.create_payment(
-                context.get_second_token_id(),
+            EsdtTokenPayment::new(
+                context.get_first_token_id().clone(),
                 0,
-                context.get_second_amount_optimal(),
+                context.get_first_amount_optimal().clone(),
+            ),
+            EsdtTokenPayment::new(
+                context.get_second_token_id().clone(),
+                0,
+                context.get_second_amount_optimal().clone(),
             ),
         ))
     }
@@ -241,15 +232,15 @@ pub trait CtxHelper:
         context: &RemoveLiquidityContext<Self::Api>,
     ) -> RemoveLiquidityResultType<Self::Api> {
         MultiValue2::from((
-            self.create_payment(
-                context.get_first_token_id(),
+            EsdtTokenPayment::new(
+                context.get_first_token_id().clone(),
                 0,
-                context.get_first_token_amount_removed(),
+                context.get_first_token_amount_removed().clone(),
             ),
-            self.create_payment(
-                context.get_second_token_id(),
+            EsdtTokenPayment::new(
+                context.get_second_token_id().clone(),
                 0,
-                context.get_second_token_amount_removed(),
+                context.get_second_token_amount_removed().clone(),
             ),
         ))
     }
@@ -260,10 +251,10 @@ pub trait CtxHelper:
     ) -> SwapTokensFixedInputResultType<Self::Api> {
         match context.get_locked_asset_output() {
             Some(payment) => payment.clone(),
-            None => self.create_payment(
-                context.get_token_out(),
+            None => EsdtTokenPayment::new(
+                context.get_token_out().clone(),
                 0,
-                context.get_final_output_amount(),
+                context.get_final_output_amount().clone(),
             ),
         }
     }
@@ -276,16 +267,17 @@ pub trait CtxHelper:
 
         let first_result = match context.get_locked_asset_output() {
             Some(payment) => payment.clone(),
-            None => self.create_payment(
-                context.get_token_out(),
+            None => EsdtTokenPayment::new(
+                context.get_token_out().clone(),
                 0,
-                context.get_final_output_amount(),
+                context.get_final_output_amount().clone(),
             ),
         };
 
-        MultiValue2::from((
+        (
             first_result,
-            self.create_payment(context.get_token_in(), 0, &residuum),
-        ))
+            EsdtTokenPayment::new(context.get_token_in().clone(), 0, residuum),
+        )
+            .into()
     }
 }

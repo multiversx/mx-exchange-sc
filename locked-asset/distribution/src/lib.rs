@@ -79,7 +79,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn set_per_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-        #[var_args] user_locked_assets: MultiValueEncoded<MultiValue2<ManagedAddress, BigUint>>,
+        user_locked_assets: MultiValueEncoded<MultiValue2<ManagedAddress, BigUint>>,
     ) {
         self.require_global_op_ongoing();
         self.require_community_distribution_list_not_empty();
@@ -150,7 +150,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
 
     #[only_owner]
     #[endpoint(setUnlockPeriod)]
-    fn set_unlock_period(&self, #[var_args] milestones: MultiValueEncoded<UnlockMilestone>) {
+    fn set_unlock_period(&self, milestones: MultiValueEncoded<UnlockMilestone>) {
         let unlock_milestones = milestones.to_vec();
         self.validate_unlock_milestones(&unlock_milestones);
         self.unlock_period()

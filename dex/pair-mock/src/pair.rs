@@ -21,13 +21,13 @@ pub trait PairMock {
     #[init]
     fn init(
         &self,
-        #[var_args] first_token_id: OptionalValue<TokenIdentifier>,
-        #[var_args] second_token_id: OptionalValue<TokenIdentifier>,
-        #[var_args] lp_token_id: OptionalValue<TokenIdentifier>,
-        #[var_args] transfer_exec_gas_limit: OptionalValue<u64>,
-        #[var_args] initial_liquidity_adder: OptionalValue<ManagedAddress>,
-        #[var_args] state: OptionalValue<bool>,
-        #[var_args] skip_minting_lp_tokens: OptionalValue<bool>,
+        first_token_id: OptionalValue<TokenIdentifier>,
+        second_token_id: OptionalValue<TokenIdentifier>,
+        lp_token_id: OptionalValue<TokenIdentifier>,
+        transfer_exec_gas_limit: OptionalValue<u64>,
+        initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        state: OptionalValue<bool>,
+        skip_minting_lp_tokens: OptionalValue<bool>,
     ) {
         self.first_token_id().set(
             first_token_id
@@ -74,7 +74,7 @@ pub trait PairMock {
     fn add_initial_liquidity(
         &self,
         #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> AddLiquidityResultType<Self::Api> {
         // let payments = self.call_value().all_esdt_transfers();
         require!(self.state().get(), "Inactive");

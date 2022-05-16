@@ -13,12 +13,6 @@ pub enum State {
 #[elrond_wasm::module]
 pub trait ConfigModule: token_send::TokenSendModule {
     #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
-        self.require_permissions();
-        self.transfer_exec_gas_limit().set(&gas_limit);
-    }
-
-    #[endpoint]
     fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
         self.require_permissions();
         self.extern_swap_gas_limit().set(&gas_limit);

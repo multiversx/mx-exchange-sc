@@ -17,7 +17,7 @@ This smart contract has the role of creating Locked MEX tokens. The rule is that
     fn init(
         &self,
         asset_token_id: TokenIdentifier,
-        #[var_args] default_unlock_period: MultiValueEncoded<UnlockMilestone>,
+        default_unlock_period: MultiValueEncoded<UnlockMilestone>,
     );
 ```
 
@@ -35,7 +35,7 @@ The arguments are:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     )
 ```
 
@@ -77,7 +77,7 @@ This endpoint receives MEX tokens as payment and returns Locked MEX tokens. The 
     #[endpoint(mergeLockedAssetTokens)]
     fn merge_locked_asset_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     )
 ```
 

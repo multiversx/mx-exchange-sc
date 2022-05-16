@@ -16,8 +16,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
+    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -51,21 +50,24 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) {
-        require!(reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(
+            reward_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
+        require!(
+            farming_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
         let farm_token = self.farm_token_id().get();
         require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
         require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(&State::Inactive);
-        self.penalty_percent()
-            .set_if_empty(&DEFAULT_PENALTY_PERCENT);
+        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
-            .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
+            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -76,11 +78,8 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EnterFarmResultType<Self::Api> {
-        let mut context = self.new_farm_context(opt_accept_funds_func);
+    fn enter_farm(&self) -> EnterFarmResultType<Self::Api> {
+        let mut context = self.new_farm_context();
 
         self.load_state(&mut context);
         require!(
@@ -153,7 +152,7 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ExitFarmResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
@@ -203,7 +202,7 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> ClaimRewardsResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
@@ -294,7 +293,7 @@ pub trait Farm:
     #[endpoint(compoundRewards)]
     fn compound_rewards(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> CompoundRewardsResultType<Self::Api> {
         let mut context = self.new_farm_context(opt_accept_funds_func);
 

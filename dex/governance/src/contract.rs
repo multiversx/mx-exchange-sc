@@ -38,7 +38,7 @@ pub trait Governance:
         mex_token_id: TokenIdentifier,
         min_weight_for_proposal: BigUint,
         governance_token_ids: ManagedVec<TokenIdentifier>,
-        #[var_args] price_providers: MultiValueEncoded<
+        price_providers: MultiValueEncoded<
             MultiValue2<TokenIdentifier, ManagedAddress>,
         >,
     ) {

@@ -112,7 +112,7 @@ The original LP tokens and Farm tokens, for which the contract mints Wrapped Tok
     fn merge_wrapped_farm_tokens(
         &self,
         farm_contract: ManagedAddress,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -125,7 +125,7 @@ This function merges two or more positions of Wrapped Farm (farm positions obtai
     #[endpoint(mergeWrappedLpTokens)]
     fn merge_wrapped_lp_tokens(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 

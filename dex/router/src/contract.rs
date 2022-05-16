@@ -25,7 +25,7 @@ pub trait Router:
     factory::FactoryModule + events::EventsModule + lib::Lib + token_send::TokenSendModule
 {
     #[init]
-    fn init(&self, #[var_args] pair_template_address_opt: OptionalValue<ManagedAddress>) {
+    fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
         self.state().set_if_empty(&true);
         self.pair_creation_enabled().set_if_empty(&false);
 
@@ -65,7 +65,7 @@ pub trait Router:
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         initial_liquidity_adder: ManagedAddress,
-        #[var_args] opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
+        opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -195,10 +195,10 @@ pub trait Router:
             }
         };
 
-        let result = self
+        let result: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
         self.send()
@@ -233,10 +233,10 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        let pair_token = self
+        let pair_token: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
@@ -255,7 +255,7 @@ pub trait Router:
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: MultiValueEncoded<EsdtLocalRole>,
+        roles: MultiValueEncoded<EsdtLocalRole>,
     ) {
         require!(self.is_active(), "Not active");
 

@@ -244,7 +244,7 @@ fn test_partial_unstake() {
         LOCKED_ASSET_TOKEN_ID,
         2,
         &rust_biguint!(81_000_000),
-        &attributes,
+        Some(&attributes),
     );
 }
 
@@ -325,7 +325,7 @@ fn test_unbond() {
         LOCKED_ASSET_TOKEN_ID,
         1,
         &rust_biguint!(101_000_000),
-        &attributes,
+        Some(&attributes),
     );
 
     setup

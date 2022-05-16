@@ -22,7 +22,7 @@ This contract allows users to provide liquidity and to swap tokens. Users are in
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        #[var_args] initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        initial_liquidity_adder: OptionalValue<ManagedAddress>,
     );
 ```
 
@@ -45,7 +45,7 @@ The init function is called when deploying/upgrading a smart contract. It receiv
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -72,7 +72,7 @@ As stated above, this function receives two payments, the first token payment an
     #[endpoint(addInitialLiquidity)]
     fn add_initial_liquidity(
         &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -93,7 +93,7 @@ This endpoint is ment to be called by Price Discovery smart contract. The contra
         #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -113,7 +113,7 @@ One might wonder when to use ```#[payment_*]``` macros and when not to use them.
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -162,7 +162,7 @@ The remaining fee, which is ```f * aI``` would be split afterwards into regular 
         #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
         amount_out: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 

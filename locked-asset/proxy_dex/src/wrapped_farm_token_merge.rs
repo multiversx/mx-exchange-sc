@@ -28,7 +28,7 @@ pub trait WrappedFarmTokenMerge:
     fn merge_wrapped_farm_tokens(
         &self,
         farm_contract: ManagedAddress,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) {
         let caller = self.blockchain().get_caller();
         require!(

@@ -43,7 +43,7 @@ pub trait Config {
     #[endpoint(changePriceProviders)]
     fn change_price_providers(
         &self,
-        #[var_args] price_providers: MultiValueEncoded<
+        price_providers: MultiValueEncoded<
             MultiValue2<TokenIdentifier, ManagedAddress>,
         >,
     ) {
@@ -83,7 +83,7 @@ pub trait Config {
 
     fn try_change_price_providers(
         &self,
-        #[var_args] price_providers: MultiValueEncoded<
+        price_providers: MultiValueEncoded<
             MultiValue2<TokenIdentifier, ManagedAddress>,
         >,
     ) {

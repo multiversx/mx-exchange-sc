@@ -67,7 +67,7 @@ pub trait FarmInteractionsModule {
         }
 
         let new_farm_tokens: EnterFarmResultType<Self::Api> =
-            contract_call.execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            contract_call.execute_on_dest_context();
 
         EnterFarmResultWrapper {
             farm_tokens: new_farm_tokens,
@@ -85,7 +85,7 @@ pub trait FarmInteractionsModule {
             .farm_proxy(farm_address)
             .exit_farm()
             .add_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
 
         let (initial_farming_tokens, reward_tokens) = exit_farm_result.into_tuple();
         ExitFarmResultWrapper {
@@ -105,7 +105,7 @@ pub trait FarmInteractionsModule {
             .farm_proxy(farm_address)
             .claim_rewards()
             .add_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
 
         let (new_farm_tokens, reward_tokens) = farm_claim_rewards_result.into_tuple();
         FarmClaimRewardsResultWrapper {

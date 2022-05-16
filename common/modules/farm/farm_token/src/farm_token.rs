@@ -20,15 +20,15 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     #[endpoint(registerFarmToken)]
     fn register_farm_token(
         &self,
-        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
+        let payment_amount = self.call_value().egld_value();
         require!(self.farm_token_id().is_empty(), "Token exists already");
 
         self.register_token(
-            register_cost,
+            payment_amount,
             token_display_name,
             token_ticker,
             num_decimals,
@@ -61,7 +61,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             .async_call()
             .with_callback(
                 self.callbacks()
-                    .register_callback(&self.blockchain().get_caller()),
+                    .register_callback(self.blockchain().get_caller()),
             )
             .call_and_exit()
     }
@@ -69,23 +69,19 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
     #[callback]
     fn register_callback(
         &self,
-        caller: &ManagedAddress,
+        caller: ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
     ) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
-                self.last_error_message().clear();
-
                 if self.farm_token_id().is_empty() {
                     self.farm_token_id().set(&token_id);
                 }
             }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
+            ManagedAsyncCallResult::Err(_) => {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
-                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
+                    let _ = self.send().direct_egld(&caller, &returned_tokens, &[]);
                 }
             }
         }
@@ -115,20 +111,7 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
                 roles.iter().cloned(),
             )
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
-    }
-
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-            }
-        }
     }
 
     fn get_farm_attributes(
@@ -161,7 +144,9 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         amount: &BigUint,
         attributes: &T,
     ) -> u64 {
-        let new_nonce = self.nft_create_tokens(token_id, amount, attributes);
+        let new_nonce = self
+            .send()
+            .esdt_nft_create_compact(token_id, amount, attributes);
         self.farm_token_supply().update(|x| *x += amount);
         new_nonce
     }

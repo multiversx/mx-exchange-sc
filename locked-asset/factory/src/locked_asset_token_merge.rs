@@ -20,10 +20,7 @@ pub trait LockedAssetTokenMergeModule:
 {
     #[payable("*")]
     #[endpoint(mergeLockedAssetTokens)]
-    fn merge_locked_asset_tokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    fn merge_locked_asset_tokens(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payments_vec = self.call_value().all_esdt_transfers();
         require!(!payments_vec.is_empty(), "Empty payment vec");
@@ -35,16 +32,13 @@ pub trait LockedAssetTokenMergeModule:
 
         self.burn_tokens_from_payments(payments_iter);
 
-        let new_nonce = self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
-        self.transfer_execute_custom(
-            &caller,
-            &locked_asset_token,
-            new_nonce,
-            &amount,
-            &opt_accept_funds_func,
-        );
+        let new_nonce = self
+            .send()
+            .esdt_nft_create_compact(&locked_asset_token, &amount, &attrs);
+        self.send()
+            .direct(&caller, &locked_asset_token, new_nonce, &amount, &[]);
 
-        self.create_payment(&locked_asset_token, new_nonce, &amount)
+        EsdtTokenPayment::new(locked_asset_token, new_nonce, amount)
     }
 
     fn burn_tokens_from_payments(
@@ -73,20 +67,20 @@ pub trait LockedAssetTokenMergeModule:
                 "Bad token id"
             );
 
-            tokens.push(LockedTokenEx {
-                token_amount: self.create_payment(
-                    &entry.token_identifier,
-                    entry.token_nonce,
-                    &entry.amount,
-                ),
-                attributes: self.get_attributes_ex(&entry.token_identifier, entry.token_nonce),
-            });
             sum_amount += &entry.amount;
+
+            let attributes = self.get_attributes_ex(&entry.token_identifier, entry.token_nonce);
+            let payment =
+                EsdtTokenPayment::new(entry.token_identifier, entry.token_nonce, entry.amount);
+            tokens.push(LockedTokenEx {
+                token_amount: payment,
+                attributes,
+            });
         }
 
         if tokens.len() == 1 {
             let token_0 = tokens.get(0);
-            return (token_0.token_amount.amount.clone(), token_0.attributes);
+            return (token_0.token_amount.amount, token_0.attributes);
         }
 
         let attrs = LockedAssetTokenAttributesEx {
@@ -111,7 +105,7 @@ pub trait LockedAssetTokenMergeModule:
         for el in unlock_epoch_amount_merged.iter() {
             let unlock_percent = &(&el.amount * PRECISION_EX_INCREASE * ONE_MILLION) / amount_total;
 
-            //Accumulate even the percents of 0
+            // Accumulate even the percents of 0
             unlock_milestones_merged.push(UnlockMilestoneEx {
                 unlock_epoch: el.epoch,
                 unlock_percent: unlock_percent.to_u64().unwrap(),

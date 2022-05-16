@@ -1,3 +1,5 @@
+use elrond_wasm::elrond_codec::Empty;
+
 elrond_wasm::imports!();
 
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
@@ -70,7 +72,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
             launched_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
-            &(),
+            &Empty,
             &empty_vec,
         );
         let _ = self.send().esdt_nft_create(
@@ -79,7 +81,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
             accepted_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
-            &(),
+            &Empty,
             &empty_vec,
         );
     }

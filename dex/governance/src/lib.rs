@@ -25,11 +25,13 @@ pub trait Lib: config::Config {
         }
 
         if let Some(provider) = self.price_providers().get(&payment.token_identifier) {
-            let (token1, token2) = self
-                .price_provider_proxy(provider)
-                .update_and_get_tokens_for_given_position_with_safe_price(payment.amount.clone())
-                .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
-                .into_tuple();
+            let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
+                self.price_provider_proxy(provider)
+                    .update_and_get_tokens_for_given_position_with_safe_price(
+                        payment.amount.clone(),
+                    )
+                    .execute_on_dest_context();
+            let (token1, token2) = call_result.into_tuple();
 
             if token1.token_identifier == mex_token_id {
                 return token1.amount;

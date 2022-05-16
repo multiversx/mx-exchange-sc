@@ -24,7 +24,7 @@ of Pair smart contracts deployed as part of Maiar Exchange.
 
 ```rust
     #[init]
-    fn init(&self, #[var_args] pair_template_address_opt: OptionalValue<ManagedAddress>);
+    fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>);
 ```
 
 The only parameter __pair_template_address_opt__ and it is not mandatory. More about this parameter and how it is used can be found below.
@@ -38,7 +38,7 @@ The only parameter __pair_template_address_opt__ and it is not mandatory. More a
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         initial_liquidity_adder: ManagedAddress,
-        #[var_args] opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
+        opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
     );
 ```
 

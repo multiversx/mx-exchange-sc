@@ -1,3 +1,4 @@
+use elrond_wasm::elrond_codec::Empty;
 use elrond_wasm_debug::{managed_biguint, managed_token_id};
 use elrond_wasm_debug::{rust_biguint, DebugApi};
 use price_discovery::common_storage::*;
@@ -67,7 +68,7 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder>(
         REDEEM_TOKEN_ID,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &first_deposit_amt,
-        &(),
+        Some(&Empty),
     );
 
     // second user deposit
@@ -80,7 +81,7 @@ pub fn user_deposit_ok_steps<PriceDiscObjBuilder>(
         REDEEM_TOKEN_ID,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &second_deposit_amt,
-        &(),
+        Some(&Empty),
     );
 
     // check SC balance
@@ -209,7 +210,7 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder>(
         REDEEM_TOKEN_ID,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &(&deposit_amt - &withdraw_amt),
-        &(),
+        Some(&Empty),
     );
 
     // check that the SC burned the tokens
@@ -219,7 +220,7 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder>(
         REDEEM_TOKEN_ID,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &rust_biguint!(1),
-        &(),
+        Some(&Empty),
     );
 
     pd_setup.blockchain_wrapper.check_esdt_balance(
@@ -372,11 +373,11 @@ fn redeem_ok() {
         LOCKED_TOKEN_ID,
         1,
         &first_user_expected_launched_tokens_balance,
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: UNLOCK_EPOCH,
-        },
+        }),
     );
 
     let second_user_expected_launched_tokens_balance =
@@ -386,11 +387,11 @@ fn redeem_ok() {
         LOCKED_TOKEN_ID,
         1,
         &second_user_expected_launched_tokens_balance,
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: UNLOCK_EPOCH,
-        },
+        }),
     );
 
     let owner_expected_accepted_tokens_balance =
@@ -400,11 +401,11 @@ fn redeem_ok() {
         LOCKED_TOKEN_ID,
         2,
         &owner_expected_accepted_tokens_balance,
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(ACCEPTED_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: UNLOCK_EPOCH,
-        },
+        }),
     );
 }
 
