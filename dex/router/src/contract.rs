@@ -172,11 +172,12 @@ pub trait Router:
     #[endpoint(issueLpToken)]
     fn issue_lp_token(
         &self,
-        #[payment_amount] issue_cost: BigUint,
         pair_address: ManagedAddress,
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
+        let issue_cost = self.call_value().egld_value();
+
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
@@ -245,7 +246,6 @@ pub trait Router:
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
     }
 
@@ -263,7 +263,6 @@ pub trait Router:
             .esdt_system_sc_proxy()
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
     }
 
@@ -378,31 +377,15 @@ pub trait Router:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id)
                     .execute_on_dest_context_ignore_result();
             }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
+            ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
-            }
-        }
-    }
-
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
             }
         }
     }
@@ -421,10 +404,6 @@ pub trait Router:
     #[view(getPairCreationEnabled)]
     #[storage_mapper("pair_creation_enabled")]
     fn pair_creation_enabled(&self) -> SingleValueMapper<bool>;
-
-    #[view(getLastErrorMessage)]
-    #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 
     #[view(getState)]
     #[storage_mapper("state")]

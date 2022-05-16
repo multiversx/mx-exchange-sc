@@ -436,12 +436,11 @@ pub trait Farm:
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
         if context.get_position_reward().unwrap() > &0u64 {
-            self.send().direct(
+            self.send_tokens_non_zero(
                 context.get_caller(),
                 context.get_reward_token_id().unwrap(),
                 0,
                 context.get_position_reward().unwrap(),
-                &[],
             );
         }
 

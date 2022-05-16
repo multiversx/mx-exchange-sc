@@ -197,12 +197,7 @@ pub mod migration_tests {
                 2,
                 &rust_biguint!(50_000),
                 |sc| {
-                    sc.migrate_v1_2_position(
-                        managed_token_id!(WRAPPED_FARM_TOKEN_ID),
-                        2,
-                        managed_biguint!(50_000),
-                        managed_address!(farm_address),
-                    );
+                    sc.migrate_v1_2_position(managed_address!(farm_address));
                 },
             )
             .assert_ok();

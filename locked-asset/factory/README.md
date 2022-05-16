@@ -35,7 +35,6 @@ The arguments are:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     )
 ```
 
@@ -75,10 +74,7 @@ This endpoint receives MEX tokens as payment and returns Locked MEX tokens. The 
 ```rust
     #[payable("*")]
     #[endpoint(mergeLockedAssetTokens)]
-    fn merge_locked_asset_tokens(
-        &self,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    )
+    fn merge_locked_asset_tokens(&self)
 ```
 
 The endpoint merges two or more Locked MEX tokens with different nonces together. It handles reconstructing the Unlock Schedule in a fair manner and with high precision.

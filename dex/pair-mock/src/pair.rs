@@ -2,7 +2,6 @@
 
 elrond_wasm::imports!();
 
-use common_errors::*;
 use itertools::Itertools;
 
 type AddLiquidityResultType<BigUint> =
@@ -12,7 +11,6 @@ pub const MINIMUM_LIQUIDITY: u64 = 1_000;
 pub const DEFAULT_FIRST_TOKEN_ID: &[u8] = b"FIRST-abcdef";
 pub const DEFAULT_SECOND_TOKEN_ID: &[u8] = b"SECOND-abcdef";
 pub const DEFAULT_LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
-pub const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 30_000_000;
 pub const DEFAULT_STATE: bool = true;
 pub const DEFAULT_SKIP_MINTING_LP_TOKENS: bool = true;
 
@@ -24,7 +22,6 @@ pub trait PairMock {
         first_token_id: OptionalValue<TokenIdentifier>,
         second_token_id: OptionalValue<TokenIdentifier>,
         lp_token_id: OptionalValue<TokenIdentifier>,
-        transfer_exec_gas_limit: OptionalValue<u64>,
         initial_liquidity_adder: OptionalValue<ManagedAddress>,
         state: OptionalValue<bool>,
         skip_minting_lp_tokens: OptionalValue<bool>,
@@ -47,12 +44,6 @@ pub trait PairMock {
                 .as_ref()
                 .unwrap_or(&TokenIdentifier::from_esdt_bytes(DEFAULT_LP_TOKEN_ID)),
         );
-        self.transfer_exec_gas_limit().set(
-            transfer_exec_gas_limit
-                .into_option()
-                .as_ref()
-                .unwrap_or(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT),
-        );
         self.initial_liquidity_adder().set(
             initial_liquidity_adder
                 .into_option()
@@ -71,12 +62,8 @@ pub trait PairMock {
 
     #[payable("*")]
     #[endpoint(addInitialLiquidity)]
-    fn add_initial_liquidity(
-        &self,
-        #[payment_multi] payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> AddLiquidityResultType<Self::Api> {
-        // let payments = self.call_value().all_esdt_transfers();
+    fn add_initial_liquidity(&self) -> AddLiquidityResultType<Self::Api> {
+        let payments = self.call_value().all_esdt_transfers();
         require!(self.state().get(), "Inactive");
 
         let lp_token_id = self.lp_token_id().get();
@@ -117,25 +104,17 @@ pub trait PairMock {
         self.lp_token_supply().set(&liquidity);
 
         let caller = self.blockchain().get_caller();
-        let func_name = opt_accept_funds_func.into_option().unwrap_or_default();
 
         let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
-        Self::Api::send_api_impl()
-            .direct_esdt_execute(
-                &caller,
-                &lp_token_id,
-                &lp_token_amount,
-                self.transfer_exec_gas_limit().get(),
-                &func_name,
-                &ManagedArgBuffer::new_empty(),
-            )
-            .unwrap_or_else(|_| sc_panic!(ERROR_PAYMENT_FAILED));
+        self.send()
+            .direct(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
 
-        MultiValue3::from((
+        (
             EsdtTokenPayment::new(lp_token_id, 0, lp_token_amount),
             EsdtTokenPayment::new(expected_first_token_id, 0, BigUint::zero()),
             EsdtTokenPayment::new(expected_second_token_id, 0, BigUint::zero()),
-        ))
+        )
+            .into()
     }
 
     #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
@@ -143,10 +122,11 @@ pub trait PairMock {
         &self,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
-        MultiValue2::from((
+        (
             EsdtTokenPayment::new(self.first_token_id().get(), 0, liquidity.clone() / 2u64),
             EsdtTokenPayment::new(self.second_token_id().get(), 0, liquidity / 2u64),
-        ))
+        )
+            .into()
     }
 
     #[storage_mapper("first_token_id")]
@@ -160,9 +140,6 @@ pub trait PairMock {
 
     #[storage_mapper("lp_token_supply")]
     fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
-
-    #[storage_mapper("transfer_exec_gas_limit")]
-    fn transfer_exec_gas_limit(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("initial_liquidity_adder")]
     fn initial_liquidity_adder(&self) -> SingleValueMapper<ManagedAddress>;

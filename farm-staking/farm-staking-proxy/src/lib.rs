@@ -252,13 +252,7 @@ pub trait FarmStakingProxy:
         }
         user_payments.push(unbond_staking_farm_token);
 
-        let _ = Self::Api::send_api_impl().direct_multi_esdt_transfer_execute(
-            &caller,
-            &user_payments,
-            0,
-            &ManagedBuffer::new(),
-            &ManagedArgBuffer::new_empty(),
-        );
+        self.send().direct_multi(&caller, &user_payments, &[]);
 
         user_payments.into()
     }

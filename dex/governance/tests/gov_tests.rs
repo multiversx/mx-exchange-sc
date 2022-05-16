@@ -74,7 +74,6 @@ where
                 OptionalValue::None,
                 OptionalValue::None,
                 OptionalValue::None,
-                OptionalValue::None,
             );
         })
         .assert_ok();

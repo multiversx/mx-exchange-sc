@@ -42,7 +42,7 @@ pub trait MigrationModule:
         let caller = self.blockchain().get_caller();
         require!(caller == config.old_farm_address, "bad caller");
 
-        //Make sure this is the right farm SC based on old farm token attrs.
+        // Make sure this is the right farm SC based on old farm token attrs.
         require!(
             old_attrs.with_locked_rewards == config.migration_role.is_new_with_lock(),
             "bad lock option"
@@ -62,7 +62,7 @@ pub trait MigrationModule:
         let new_pos_token_id = self.farm_token_id().get();
         let new_pos_amount = farming_tokens.amount.clone();
 
-        //Note that this function does not modify the farm supply
+        // Note that this function does not modify the farm supply
         let new_pos_nonce = self.send().esdt_nft_create_compact(
             &new_pos_token_id,
             &new_pos_amount,

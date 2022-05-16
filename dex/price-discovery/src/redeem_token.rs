@@ -12,11 +12,11 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
     #[endpoint(issueRedeemToken)]
     fn issue_redeem_token(
         &self,
-        #[payment_amount] payment_amount: BigUint,
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
     ) {
+        let payment_amount = self.call_value().egld_value();
         require!(
             self.redeem_token_id().is_empty(),
             "Redeem token already issued"

@@ -153,12 +153,11 @@ pub trait ProxyFarmModule:
             &[],
         );
 
-        self.send().direct(
+        self.send_tokens_non_zero(
             &caller,
             &reward_token_returned.token_identifier,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-            &[],
         );
         self.send().esdt_local_burn(&token_id, token_nonce, &amount);
 
@@ -230,12 +229,11 @@ pub trait ProxyFarmModule:
 
         // Send the reward to the caller.
         let caller = self.blockchain().get_caller();
-        self.send().direct(
+        self.send_tokens_non_zero(
             &caller,
             &reward_token_returned.token_identifier,
             reward_token_returned.token_nonce,
             &reward_token_returned.amount,
-            &[],
         );
 
         // Create new Wrapped tokens and send them.

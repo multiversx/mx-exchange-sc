@@ -9,7 +9,7 @@ pub trait TokenSendModule {
         &self,
         destination: &ManagedAddress,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+    ) {
         let mut non_zero_payments = ManagedVec::new();
         for payment in payments {
             if payment.amount > 0u32 {
@@ -21,7 +21,19 @@ pub trait TokenSendModule {
             self.send()
                 .direct_multi(destination, &non_zero_payments, &[])
         }
+    }
 
-        non_zero_payments
+    fn send_tokens_non_zero(
+        &self,
+        to: &ManagedAddress,
+        token_id: &TokenIdentifier,
+        token_nonce: u64,
+        amount: &BigUint,
+    ) {
+        if amount == &0 {
+            return;
+        }
+
+        self.send().direct(to, token_id, token_nonce, amount, &[]);
     }
 }

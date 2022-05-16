@@ -83,13 +83,9 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     ) {
         match result {
             ManagedAsyncCallResult::Ok(token_id) => {
-                self.last_error_message().clear();
-
                 self.dual_yield_token_id().set_if_empty(&token_id);
             }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
+            ManagedAsyncCallResult::Err(_) => {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
@@ -122,20 +118,7 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
                 roles.iter().cloned(),
             )
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
-    }
-
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-            }
-        }
     }
 
     fn require_dual_yield_token(&self, token_id: &TokenIdentifier) {
@@ -257,8 +240,4 @@ pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
     #[view(getDualYieldTokenId)]
     #[storage_mapper("dualYieldTokenId")]
     fn dual_yield_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
-    #[view(getLastErrorMessage)]
-    #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 }

@@ -37,13 +37,10 @@ pub trait MigrationModule:
 {
     #[payable("*")]
     #[endpoint(migrateV1_2Position)]
-    fn migrate_v1_2_position(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] payment_token_nonce: u64,
-        #[payment_amount] payment_amount: BigUint,
-        farm_address: ManagedAddress,
-    ) {
+    fn migrate_v1_2_position(&self, farm_address: ManagedAddress) {
+        let (payment_token_id, payment_token_nonce, payment_amount) =
+            self.call_value().payment_as_tuple();
+
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();

@@ -175,13 +175,12 @@ pub trait ProxyPairModule:
     #[endpoint(removeLiquidityProxy)]
     fn remove_liquidity_proxy(
         &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: BigUint,
-        #[payment_nonce] token_nonce: Nonce,
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) {
+        let (token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
         require!(token_nonce != 0, "Can only be called with an SFT");

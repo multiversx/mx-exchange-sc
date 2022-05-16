@@ -43,9 +43,7 @@ pub trait Config {
     #[endpoint(changePriceProviders)]
     fn change_price_providers(
         &self,
-        price_providers: MultiValueEncoded<
-            MultiValue2<TokenIdentifier, ManagedAddress>,
-        >,
+        price_providers: MultiValueEncoded<MultiValue2<TokenIdentifier, ManagedAddress>>,
     ) {
         self.require_caller_self();
 
@@ -83,9 +81,7 @@ pub trait Config {
 
     fn try_change_price_providers(
         &self,
-        price_providers: MultiValueEncoded<
-            MultiValue2<TokenIdentifier, ManagedAddress>,
-        >,
+        price_providers: MultiValueEncoded<MultiValue2<TokenIdentifier, ManagedAddress>>,
     ) {
         self.price_providers().clear();
 

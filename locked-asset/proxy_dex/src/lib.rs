@@ -63,11 +63,11 @@ pub trait ProxyDexImpl:
     #[endpoint(registerProxyPair)]
     fn register_proxy_pair(
         &self,
-        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
+        let register_cost = self.call_value().egld_value();
         require!(
             self.wrapped_lp_token_id().is_empty(),
             "Token exists already"
@@ -86,11 +86,11 @@ pub trait ProxyDexImpl:
     #[endpoint(registerProxyFarm)]
     fn register_proxy_farm(
         &self,
-        #[payment_amount] register_cost: BigUint,
         token_display_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
+        let register_cost = self.call_value().egld_value();
         require!(
             self.wrapped_farm_token_id().is_empty(),
             "Token exists already"
@@ -140,25 +140,19 @@ pub trait ProxyDexImpl:
         #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
     ) {
         match result {
-            ManagedAsyncCallResult::Ok(token_id) => {
-                self.last_error_message().clear();
-
-                match request_type {
-                    RegisterRequestType::ProxyPair => {
-                        if self.wrapped_lp_token_id().is_empty() {
-                            self.wrapped_lp_token_id().set(&token_id);
-                        }
-                    }
-                    RegisterRequestType::ProxyFarm => {
-                        if self.wrapped_farm_token_id().is_empty() {
-                            self.wrapped_farm_token_id().set(&token_id);
-                        }
+            ManagedAsyncCallResult::Ok(token_id) => match request_type {
+                RegisterRequestType::ProxyPair => {
+                    if self.wrapped_lp_token_id().is_empty() {
+                        self.wrapped_lp_token_id().set(&token_id);
                     }
                 }
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
+                RegisterRequestType::ProxyFarm => {
+                    if self.wrapped_farm_token_id().is_empty() {
+                        self.wrapped_farm_token_id().set(&token_id);
+                    }
+                }
+            },
+            ManagedAsyncCallResult::Err(_) => {
                 let (payment, token_id) = self.call_value().payment_token_pair();
                 self.send().direct(
                     &self.blockchain().get_owner_address(),
@@ -183,23 +177,6 @@ pub trait ProxyDexImpl:
             .esdt_system_sc_proxy()
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
     }
-
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-            }
-        }
-    }
-
-    #[view(getLastErrorMessage)]
-    #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 }

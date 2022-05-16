@@ -143,12 +143,11 @@ pub trait Farm:
             &attributes,
             &additional_payments,
         );
-        self.send().direct(
+        self.send_tokens_non_zero(
             &caller,
             &farm_token_id,
             new_farm_token.token_amount.token_nonce,
             &new_farm_token.token_amount.amount,
-            &[],
         );
 
         new_farm_token.token_amount
@@ -522,10 +521,7 @@ pub trait Farm:
         reward_amount: &BigUint,
         destination: &ManagedAddress,
     ) {
-        if reward_amount > &0 {
-            self.send()
-                .direct(destination, reward_token_id, 0, reward_amount, &[]);
-        }
+        self.send_tokens_non_zero(destination, reward_token_id, 0, reward_amount);
     }
 
     #[view(calculateRewardsForGivenPosition)]
