@@ -37,7 +37,6 @@ elrond_wasm_node::wasm_endpoints! {
         getTokensForGivenPosition
         getTotalFeePercent
         getTotalSupply
-        getTransferExecGasLimit
         getTrustedSwapPairs
         getUnlockEpoch
         getWhitelistedManagedAddresses
@@ -59,7 +58,6 @@ elrond_wasm_node::wasm_endpoints! {
         setStateActiveNoSwaps
         setUnlockEpoch
         set_extern_swap_gas_limit
-        set_transfer_exec_gas_limit
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput

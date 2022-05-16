@@ -21,7 +21,6 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
-        getLastErrorMessage
         getLastRewardBlockNonce
         getLockedAssetFactoryManagedAddress
         getMinUnbondEpochs
@@ -33,7 +32,6 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardPerShare
         getRewardTokenId
         getState
-        getTransferExecGasLimit
         isWhitelisted
         mergeFarmTokens
         pause
@@ -47,7 +45,6 @@ elrond_wasm_node::wasm_endpoints! {
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
-        set_transfer_exec_gas_limit
         stakeFarm
         stakeFarmThroughProxy
         startProduceRewards

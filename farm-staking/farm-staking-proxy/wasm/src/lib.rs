@@ -11,7 +11,6 @@ elrond_wasm_node::wasm_endpoints! {
         claimDualYield
         getDualYieldTokenId
         getFarmTokenId
-        getLastErrorMessage
         getLpFarmAddress
         getLpFarmTokenId
         getLpTokenId

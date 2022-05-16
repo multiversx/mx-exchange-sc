@@ -13,14 +13,12 @@ elrond_wasm_node::wasm_endpoints! {
         getAllPairContractMetadata
         getAllPairTokens
         getAllPairsManagedAddresses
-        getLastErrorMessage
         getOwner
         getPair
         getPairCreationEnabled
         getPairTemplateAddress
         getState
         getTemporaryOwnerPeriod
-        getTransferExecGasLimit
         issueLpToken
         multiPairSwap
         pause

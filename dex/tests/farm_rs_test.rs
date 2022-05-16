@@ -12,8 +12,8 @@ use migration_from_v1_2::{FarmTokenAttributesV1_2, MigrationModule};
 use config::*;
 use farm::*;
 
-const GENERATED_FILE_PREFIX: &'static str = "_generated_";
-const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";
+// const GENERATED_FILE_PREFIX: &'static str = "_generated_";
+// const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";
 const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
 
 const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
@@ -359,6 +359,7 @@ where
     farm_setup.blockchain_wrapper.set_block_epoch(block_epoch);
 }
 
+/*
 fn create_generated_mandos_file_name(suffix: &str) -> String {
     let mut path = GENERATED_FILE_PREFIX.to_owned();
     path += suffix;
@@ -366,15 +367,18 @@ fn create_generated_mandos_file_name(suffix: &str) -> String {
 
     path
 }
+*/
 
 #[test]
 fn test_farm_setup() {
-    let farm_setup = setup_farm(farm::contract_obj);
-    let file_name = create_generated_mandos_file_name("init");
+    let _ = setup_farm(farm::contract_obj);
 
+    /*
+    let file_name = create_generated_mandos_file_name("init");
     farm_setup
         .blockchain_wrapper
         .write_mandos_output(&file_name);
+    */
 }
 
 #[test]
@@ -396,10 +400,12 @@ fn test_enter_farm() {
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
 
+    /*
     let file_name = create_generated_mandos_file_name("enter_farm");
     farm_setup
         .blockchain_wrapper
         .write_mandos_output(&file_name);
+    */
 }
 
 #[test]

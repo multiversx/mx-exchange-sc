@@ -14,7 +14,6 @@ elrond_wasm_node::wasm_endpoints! {
         enterFarmLockedToken
         exitFarmLockedToken
         farmClaimRewardsLockedToken
-        farmCompoundRewardsLockedToken
         getFarmProxyTokenId
         getKnownFarms
         getKnownLiquidityPools
