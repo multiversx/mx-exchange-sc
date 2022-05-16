@@ -84,7 +84,7 @@ pub trait LockedAssetFactory:
     #[only_owner]
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
-        let _ = self.whitelisted_contracts().swap_remove(&address);
+        let _ = self.whitelisted_contracts().remove(&address);
     }
 
     #[endpoint(createAndForwardCustomPeriod)]
@@ -421,7 +421,7 @@ pub trait LockedAssetFactory:
 
     #[view(getWhitelistedContracts)]
     #[storage_mapper("whitelist")]
-    fn whitelisted_contracts(&self) -> UnorderedSetMapper<ManagedAddress>;
+    fn whitelisted_contracts(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getDefaultUnlockPeriod)]
     #[storage_mapper("default_unlock_period")]
