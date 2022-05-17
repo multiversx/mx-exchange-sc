@@ -93,10 +93,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("last_reward_block_nonce")]
     fn last_reward_block_nonce(&self) -> SingleValueMapper<Nonce>;
 
-    #[view(getFarmTokenId)]
-    #[storage_mapper("farm_token_id")]
-    fn farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;

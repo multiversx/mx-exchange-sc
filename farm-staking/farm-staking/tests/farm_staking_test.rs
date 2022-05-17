@@ -1,3 +1,4 @@
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -10,6 +11,7 @@ use config::*;
 use farm_staking::custom_rewards::{CustomRewardsModule, BLOCKS_IN_YEAR};
 use farm_staking::farm_token_merge::StakingFarmTokenAttributes;
 use farm_staking::*;
+use farm_token::FarmTokenModule;
 
 const FARM_WASM_PATH: &'static str = "farm/output/farm-staking.wasm";
 
@@ -66,7 +68,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token_id().set(&farm_token_id);
+            sc.farm_token().set_token_id(&farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));

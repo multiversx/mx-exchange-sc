@@ -38,6 +38,7 @@ pub trait Farm:
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
@@ -59,7 +60,8 @@ pub trait Farm:
             ERROR_NOT_AN_ESDT
         );
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
-        let farm_token = self.farm_token_id().get();
+
+        let farm_token = self.farm_token().get_token_id();
         require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
         require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
@@ -126,7 +128,7 @@ pub trait Farm:
             current_farm_amount: first_payment_amount,
         };
         let virtual_position = FarmToken {
-            token_amount: virtual_position_token_amount,
+            payment: virtual_position_token_amount,
             attributes: virtual_position_attributes,
         };
 
@@ -258,7 +260,7 @@ pub trait Farm:
                 .clone(),
         };
         let virtual_position = FarmToken {
-            token_amount: virtual_position_token_amount,
+            payment: virtual_position_token_amount,
             attributes: virtual_position_attributes,
         };
 
@@ -346,7 +348,7 @@ pub trait Farm:
         };
 
         let virtual_position = FarmToken {
-            token_amount: virtual_position_token_amount,
+            payment: virtual_position_token_amount,
             attributes: virtual_position_attributes,
         };
 
@@ -405,18 +407,14 @@ pub trait Farm:
         self.burn_farm_tokens_from_payments(additional_positions);
 
         let new_amount = merged_attributes.current_farm_amount.clone();
-        let new_nonce = self.mint_farm_tokens(
-            &storage_cache.farm_token_id.clone().unwrap(),
-            &new_amount,
+        let new_tokens = self.mint_farm_tokens(
+            storage_cache.farm_token_id.clone().unwrap(),
+            new_amount,
             &merged_attributes,
         );
 
         let new_farm_token = FarmToken {
-            token_amount: EsdtTokenPayment::new(
-                storage_cache.farm_token_id.clone().unwrap(),
-                new_nonce,
-                new_amount,
-            ),
+            payment: new_tokens,
             attributes: merged_attributes,
         };
         let is_merged = additional_payments_len != 0;

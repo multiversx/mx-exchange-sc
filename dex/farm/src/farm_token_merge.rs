@@ -13,6 +13,7 @@ pub trait FarmTokenMergeModule:
     + farm_token::FarmTokenModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
@@ -21,16 +22,21 @@ pub trait FarmTokenMergeModule:
         let payments = self.call_value().all_esdt_transfers();
 
         let attrs = self.get_merged_farm_token_attributes(&payments, Option::None);
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
         self.burn_farm_tokens_from_payments(&payments);
 
-        let new_nonce = self.mint_farm_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
-        let new_amount = attrs.current_farm_amount;
+        let new_tokens =
+            self.mint_farm_tokens(farm_token_id, attrs.current_farm_amount.clone(), &attrs);
 
-        self.send()
-            .direct(&caller, &farm_token_id, new_nonce, &new_amount, &[]);
+        self.send().direct(
+            &caller,
+            &new_tokens.token_identifier,
+            new_tokens.token_nonce,
+            &new_tokens.amount,
+            &[],
+        );
 
-        EsdtTokenPayment::new(farm_token_id, new_nonce, new_amount)
+        new_tokens
     }
 
     fn get_merged_farm_token_attributes(
@@ -44,7 +50,7 @@ pub trait FarmTokenMergeModule:
         );
 
         let mut tokens = ManagedVec::new();
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
 
         for payment in payments.iter() {
             require!(payment.amount != 0u64, ERROR_ZERO_AMOUNT);
@@ -54,9 +60,9 @@ pub trait FarmTokenMergeModule:
             );
 
             let attributes =
-                self.get_farm_attributes(&payment.token_identifier, payment.token_nonce);
+                self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
             tokens.push(FarmToken {
-                token_amount: payment,
+                payment: payment,
                 attributes,
             });
         }
@@ -87,7 +93,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount,
+                weight: x.payment.amount,
             })
         });
         self.weighted_average_ceil(dataset)
@@ -100,7 +106,7 @@ pub trait FarmTokenMergeModule:
         let mut sum = BigUint::zero();
         for x in tokens.iter() {
             sum += &self.rule_of_three_non_zero_result(
-                &x.token_amount.amount,
+                &x.payment.amount,
                 &x.attributes.current_farm_amount,
                 &x.attributes.initial_farming_amount,
             );
@@ -112,7 +118,7 @@ pub trait FarmTokenMergeModule:
         let mut sum = BigUint::zero();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
-                &x.token_amount.amount,
+                &x.payment.amount,
                 &x.attributes.current_farm_amount,
                 &x.attributes.compounded_reward,
             )
@@ -124,7 +130,7 @@ pub trait FarmTokenMergeModule:
         let mut aggregated_amount = BigUint::zero();
         tokens
             .iter()
-            .for_each(|x| aggregated_amount += &x.token_amount.amount);
+            .for_each(|x| aggregated_amount += &x.payment.amount);
         aggregated_amount
     }
 }

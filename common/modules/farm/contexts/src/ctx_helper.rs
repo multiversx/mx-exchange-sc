@@ -10,6 +10,7 @@ pub trait CtxHelper:
     + rewards::RewardsModule
     + farm_token::FarmTokenModule
     + token_merge::TokenMergeModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn new_farm_context(&self) -> GenericContext<Self::Api> {
         let caller = self.blockchain().get_caller();
@@ -37,7 +38,7 @@ pub trait CtxHelper:
 
     #[inline]
     fn load_farm_token_id(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_farm_token_id(self.farm_token_id().get());
+        context.set_farm_token_id(self.farm_token().get_token_id());
     }
 
     #[inline]

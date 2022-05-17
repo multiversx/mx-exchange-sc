@@ -11,6 +11,7 @@ pub trait CustomRewardsModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn mint_per_block_rewards(&self) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();

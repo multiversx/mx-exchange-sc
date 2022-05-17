@@ -39,6 +39,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + whitelist::WhitelistModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
@@ -59,7 +60,8 @@ pub trait Farm:
             division_safety_constant != 0,
             "Division constant cannot be 0"
         );
-        let farm_token = self.farm_token_id().get();
+
+        let farm_token = self.farm_token().get_token_id();
         require!(
             farming_token_id != farm_token,
             "Farming token ID cannot be farm token ID"
@@ -68,8 +70,8 @@ pub trait Farm:
 
         self.state().set(&State::Inactive);
         self.minimum_farming_epochs()
-            .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
+            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -77,7 +79,7 @@ pub trait Farm:
         self.reward_token_id().set(&farming_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
-        self.min_unbond_epochs().set(&min_unbond_epochs);
+        self.min_unbond_epochs().set(min_unbond_epochs);
     }
 
     #[payable("*")]
@@ -113,7 +115,7 @@ pub trait Farm:
         payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> EnterFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        require!(!self.farm_token().is_empty(), "No farm token");
 
         let payment_0 = payments
             .try_get(0)
@@ -136,30 +138,30 @@ pub trait Farm:
         };
 
         let caller = self.blockchain().get_caller();
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
-            &enter_amount,
-            &farm_token_id,
+            farm_token_id,
+            enter_amount,
             &attributes,
             &additional_payments,
         );
         self.send_tokens_non_zero(
             &caller,
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
+            &new_farm_token.payment.token_identifier,
+            new_farm_token.payment.token_nonce,
+            &new_farm_token.payment.amount,
         );
 
-        new_farm_token.token_amount
+        new_farm_token.payment
     }
 
     #[payable("*")]
     #[endpoint(unstakeFarm)]
     fn unstake_farm(&self) -> ExitFarmResultType<Self::Api> {
-        let (amount, payment_token_id) = self.call_value().payment_token_pair();
-        let token_nonce = self.call_value().esdt_token_nonce();
+        let (payment_token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+        let farm_token_id = self.farm_token().get_token_id();
 
-        self.unstake_farm_common(payment_token_id, token_nonce, amount, None)
+        self.unstake_farm_common(farm_token_id, payment_token_id, token_nonce, amount, None)
     }
 
     #[payable("*")]
@@ -181,13 +183,14 @@ pub trait Farm:
         );
 
         let second_payment = payments.get(1);
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
         require!(
             second_payment.token_identifier == farm_token_id,
             "Invalid second payment"
         );
 
         self.unstake_farm_common(
+            farm_token_id,
             second_payment.token_identifier,
             second_payment.token_nonce,
             second_payment.amount,
@@ -197,15 +200,15 @@ pub trait Farm:
 
     fn unstake_farm_common(
         &self,
+        farm_token_id: TokenIdentifier,
         payment_token_id: TokenIdentifier,
         token_nonce: Nonce,
         payment_amount: BigUint,
         opt_unbond_amount: Option<BigUint>,
     ) -> ExitFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        require!(farm_token_id.is_esdt(), "No farm token");
 
-        let farm_token_id = self.farm_token_id().get();
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(payment_amount > 0u32, "Payment amount cannot be zero");
 
@@ -265,25 +268,21 @@ pub trait Farm:
     #[endpoint(unbondFarm)]
     fn unbond_farm(&self) -> UnbondFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        require!(!self.farm_token().is_empty(), "No farm token");
 
-        let (amount, payment_token_id) = self.call_value().payment_token_pair();
-        let token_nonce = self.call_value().esdt_token_nonce();
+        let (payment_token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
 
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(amount > 0, "Payment amount cannot be zero");
 
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            &farm_token_id,
-            token_nonce,
-        );
-        let unlock_epoch = token_info
-            .decode_attributes::<UnbondSftAttributes>()
-            .unlock_epoch;
+        let attributes: UnbondSftAttributes =
+            self.get_farm_token_attributes(&farm_token_id, token_nonce);
         let current_epoch = self.blockchain().get_block_epoch();
-        require!(current_epoch >= unlock_epoch, "Unbond period not over");
+        require!(
+            current_epoch >= attributes.unlock_epoch,
+            "Unbond period not over"
+        );
 
         self.send()
             .esdt_local_burn(&farm_token_id, token_nonce, &amount);
@@ -300,13 +299,13 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        require!(!self.farm_token().is_empty(), "No farm token");
 
         let (payment_token_id, token_nonce, old_farming_amount) =
             self.call_value().payment_as_tuple();
         require!(old_farming_amount > 0u32, "Zero amount");
 
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
 
         let caller = self.blockchain().get_caller();
@@ -326,7 +325,7 @@ pub trait Farm:
         new_farming_amount: BigUint,
     ) -> ClaimRewardsResultType<Self::Api> {
         require!(self.is_active(), "Not active");
-        require!(!self.farm_token_id().is_empty(), "No farm token");
+        require!(!self.farm_token().is_empty(), "No farm token");
 
         let caller = self.blockchain().get_caller();
         self.require_whitelisted(&caller);
@@ -335,7 +334,7 @@ pub trait Farm:
             self.call_value().payment_as_tuple();
         require!(old_farming_amount > 0u32, "Zero amount");
 
-        let farm_token_id = self.farm_token_id().get();
+        let farm_token_id = self.farm_token().get_token_id();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
 
         self.claim_rewards_common(
@@ -381,22 +380,17 @@ pub trait Farm:
 
         self.burn_farm_tokens(&farm_token_id, farm_token_nonce, &old_farming_amount);
 
-        let new_nonce = self.mint_farm_tokens(&farm_token_id, &new_farming_amount, &new_attributes);
+        let new_tokens = self.mint_farm_tokens(farm_token_id, new_farming_amount, &new_attributes);
         let new_farm_token = StakingFarmToken {
-            token_amount: EsdtTokenPayment {
-                token_type: EsdtTokenType::SemiFungible,
-                token_identifier: farm_token_id.clone(),
-                token_nonce: new_nonce,
-                amount: new_farming_amount,
-            },
+            payment: new_tokens,
             attributes: new_attributes,
         };
 
         self.send().direct(
             &caller,
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
+            &new_farm_token.payment.token_identifier,
+            new_farm_token.payment.token_nonce,
+            &new_farm_token.payment.amount,
             &[],
         );
 
@@ -404,7 +398,7 @@ pub trait Farm:
         self.send_rewards(&reward_token_id, &reward, &caller);
 
         (
-            new_farm_token.token_amount,
+            new_farm_token.payment,
             EsdtTokenPayment::new(reward_token_id, 0, reward),
         )
             .into()
@@ -428,8 +422,8 @@ pub trait Farm:
         let payment_token_nonce = payment_0.token_nonce;
         require!(payment_amount > 0u32, "Zero amount");
 
-        require!(!self.farm_token_id().is_empty(), "No farm token");
-        let farm_token_id = self.farm_token_id().get();
+        require!(!self.farm_token().is_empty(), "No farm token");
+        let farm_token_id = self.farm_token().get_token_id();
         require!(payment_token_id == farm_token_id, "Unknown farm token");
 
         let farming_token = self.farming_token_id().get();
@@ -467,47 +461,46 @@ pub trait Farm:
         self.burn_farm_tokens(&farm_token_id, payment_token_nonce, &payment_amount);
         let caller = self.blockchain().get_caller();
         let (new_farm_token, _created_with_merge) = self.create_farm_tokens_by_merging(
-            &new_farm_contribution,
-            &farm_token_id,
+            farm_token_id,
+            new_farm_contribution,
             &new_attributes,
             &additional_payments,
         );
         self.send().direct(
             &caller,
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
+            &new_farm_token.payment.token_identifier,
+            new_farm_token.payment.token_nonce,
+            &new_farm_token.payment.amount,
             &[],
         );
 
-        new_farm_token.token_amount
+        new_farm_token.payment
     }
 
     fn create_farm_tokens_by_merging(
         &self,
-        amount: &BigUint,
-        token_id: &TokenIdentifier,
+        farm_token_id: TokenIdentifier,
+        amount: BigUint,
         attributes: &StakingFarmTokenAttributes<Self::Api>,
         additional_payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> (StakingFarmToken<Self::Api>, bool) {
         let current_position_replic = StakingFarmToken {
-            token_amount: EsdtTokenPayment::new(token_id.clone(), 0, amount.clone()),
+            payment: EsdtTokenPayment::new(farm_token_id.clone(), 0, amount),
             attributes: attributes.clone(),
         };
 
         let additional_payments_len = additional_payments.len();
-        let merged_attributes = self.get_merged_farm_token_attributes(
-            additional_payments,
-            Some(current_position_replic),
-            None,
-        );
+        let merged_attributes = self
+            .get_merged_farm_token_attributes(additional_payments, Some(current_position_replic));
         self.burn_farm_tokens_from_payments(additional_payments);
 
-        let new_amount = &merged_attributes.current_farm_amount;
-        let new_nonce = self.mint_farm_tokens(token_id, new_amount, &merged_attributes);
-
+        let new_tokens = self.mint_farm_tokens(
+            farm_token_id,
+            merged_attributes.current_farm_amount.clone(),
+            &merged_attributes,
+        );
         let new_farm_token = StakingFarmToken {
-            token_amount: EsdtTokenPayment::new(token_id.clone(), new_nonce, new_amount.clone()),
+            payment: new_tokens,
             attributes: merged_attributes,
         };
         let is_merged = additional_payments_len != 0;

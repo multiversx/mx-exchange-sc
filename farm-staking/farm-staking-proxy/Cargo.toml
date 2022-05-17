@@ -40,3 +40,6 @@ path = "../../common/modules/farm/config"
 
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
+
+[dev-dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"

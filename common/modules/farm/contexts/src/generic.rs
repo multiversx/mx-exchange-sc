@@ -283,7 +283,7 @@ impl<M: ManagedTypeApi> GenericContext<M> {
 
     #[inline]
     pub fn set_output_position(&mut self, position: FarmToken<M>, created_with_merge: bool) {
-        self.output_payments.push(position.token_amount);
+        self.output_payments.push(position.payment);
         self.output_created_with_merge = created_with_merge;
         self.output_attributes = Some(position.attributes);
     }

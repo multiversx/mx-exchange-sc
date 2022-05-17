@@ -24,3 +24,6 @@ path = "../../token_send"
 
 [dependencies.elrond-wasm]
 version = "0.31.1"
+
+[dependencies.elrond-wasm-modules]
+version = "0.31.1"

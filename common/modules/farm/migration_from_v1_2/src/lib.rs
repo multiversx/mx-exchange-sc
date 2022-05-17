@@ -25,6 +25,7 @@ pub trait MigrationModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]
     #[endpoint(migrateFromV1_2Farm)]
@@ -59,33 +60,18 @@ pub trait MigrationModule:
             "bad farming token id"
         );
 
-        let new_pos_token_id = self.farm_token_id().get();
-        let new_pos_amount = farming_tokens.amount.clone();
-
-        // Note that this function does not modify the farm supply
-        let new_pos_nonce = self.send().esdt_nft_create_compact(
-            &new_pos_token_id,
-            &new_pos_amount,
+        self.farm_token().nft_create_and_send(
+            &orig_caller,
+            farming_tokens.amount.clone(),
             &FarmTokenAttributes {
                 reward_per_share: old_attrs.reward_per_share,
                 entering_epoch: old_attrs.entering_epoch,
                 original_entering_epoch: old_attrs.original_entering_epoch,
-                initial_farming_amount: farming_tokens.amount,
+                initial_farming_amount: farming_tokens.amount.clone(),
                 compounded_reward: BigUint::zero(),
-                current_farm_amount: new_pos_amount.clone(),
+                current_farm_amount: farming_tokens.amount,
             },
-        );
-
-        // Use this function since it works regardless of wasm ocasional unalignment.
-        self.send().direct(
-            &orig_caller,
-            &new_pos_token_id,
-            new_pos_nonce,
-            &new_pos_amount,
-            &[],
-        );
-
-        EsdtTokenPayment::new(new_pos_token_id, new_pos_nonce, new_pos_amount)
+        )
     }
 
     // Each farm that will be migrated and the newer version to which we migrate to

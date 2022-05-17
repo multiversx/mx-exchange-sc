@@ -22,7 +22,7 @@ pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
 
 #[derive(ManagedVecItem, Clone)]
 pub struct StakingFarmToken<M: ManagedTypeApi> {
-    pub token_amount: EsdtTokenPayment<M>,
+    pub payment: EsdtTokenPayment<M>,
     pub attributes: StakingFarmTokenAttributes<M>,
 }
 
@@ -32,6 +32,7 @@ pub trait FarmTokenMergeModule:
     + farm_token::FarmTokenModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
@@ -39,52 +40,40 @@ pub trait FarmTokenMergeModule:
         let caller = self.blockchain().get_caller();
         let payments = self.call_value().all_esdt_transfers();
 
-        let attrs = self.get_merged_farm_token_attributes(&payments, None, None);
+        let attrs = self.get_merged_farm_token_attributes(&payments, None);
 
-        let farm_token_id = self.farm_token_id().get();
         self.burn_farm_tokens_from_payments(&payments);
 
-        let new_nonce = self.mint_farm_tokens(&farm_token_id, &attrs.current_farm_amount, &attrs);
-        let new_amount = attrs.current_farm_amount;
-
-        self.send()
-            .direct(&caller, &farm_token_id, new_nonce, &new_amount, &[]);
-
-        EsdtTokenPayment::new(farm_token_id, new_nonce, new_amount)
+        self.farm_token()
+            .nft_create_and_send(&caller, attrs.current_farm_amount.clone(), &attrs)
     }
 
     fn get_merged_farm_token_attributes(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         replic: Option<StakingFarmToken<Self::Api>>,
-        opt_custom_attributes_for_payments: Option<
-            &ManagedVec<StakingFarmTokenAttributes<Self::Api>>,
-        >,
     ) -> StakingFarmTokenAttributes<Self::Api> {
         require!(
             !payments.is_empty() || replic.is_some(),
             "No tokens to merge"
         );
 
-        let mut tokens = ManagedVec::new();
-        let farm_token_id = self.farm_token_id().get();
-        let empty_vec = ManagedVec::new();
-        let custom_attributes = opt_custom_attributes_for_payments.unwrap_or(&empty_vec);
+        let farm_token_id = match &replic {
+            Some(r) => r.payment.token_identifier.clone(),
+            None => self.farm_token().get_token_id(),
+        };
 
-        for (i, payment) in payments.iter().enumerate() {
+        let mut tokens = ManagedVec::new();
+        for payment in payments {
             require!(payment.amount != 0u64, "zero entry amount");
             require!(
                 payment.token_identifier == farm_token_id,
                 "Not a farm token"
             );
 
-            let attributes = match custom_attributes.try_get(i) {
-                Some(attr) => attr,
-                None => self.get_attributes(&payment.token_identifier, payment.token_nonce),
-            };
             tokens.push(StakingFarmToken {
-                token_amount: payment,
-                attributes,
+                attributes: self.get_attributes(&payment.token_identifier, payment.token_nonce),
+                payment,
             });
         }
 
@@ -113,7 +102,7 @@ pub trait FarmTokenMergeModule:
         tokens.iter().for_each(|x| {
             dataset.push(ValueWeight {
                 value: x.attributes.reward_per_share.clone(),
-                weight: x.token_amount.amount,
+                weight: x.payment.amount,
             })
         });
         self.weighted_average_ceil(dataset)
@@ -126,7 +115,7 @@ pub trait FarmTokenMergeModule:
         let mut sum = BigUint::zero();
         tokens.iter().for_each(|x| {
             sum += &self.rule_of_three(
-                &x.token_amount.amount,
+                &x.payment.amount,
                 &x.attributes.current_farm_amount,
                 &x.attributes.compounded_reward,
             )
@@ -141,7 +130,7 @@ pub trait FarmTokenMergeModule:
         let mut aggregated_amount = BigUint::zero();
         tokens
             .iter()
-            .for_each(|x| aggregated_amount += &x.token_amount.amount);
+            .for_each(|x| aggregated_amount += &x.payment.amount);
         aggregated_amount
     }
 
