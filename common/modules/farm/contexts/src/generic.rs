@@ -12,7 +12,6 @@ pub trait FarmContracTraitBounds =
         + token_send::TokenSendModule
         + rewards::RewardsModule
         + farm_token::FarmTokenModule
-        + token_merge::TokenMergeModule
         + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
 
 pub struct StorageCache<M: ManagedTypeApi> {
@@ -27,7 +26,7 @@ pub struct StorageCache<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> StorageCache<M> {
-    fn new<C: FarmContracTraitBounds<Api = M>>(farm_sc: &C) -> Self {
+    pub fn new<C: FarmContracTraitBounds<Api = M>>(farm_sc: &C) -> Self {
         StorageCache {
             contract_state: farm_sc.state().get(),
             farm_token_id: farm_sc.farm_token().get_token_id(),

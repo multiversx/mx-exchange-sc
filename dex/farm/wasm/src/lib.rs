@@ -37,7 +37,6 @@ elrond_wasm_node::wasm_endpoints! {
         resume
         setFarmMigrationConfig
         setFarmTokenSupply
-        setLocalRolesFarmToken
         setPerBlockRewardAmount
         setRpsAndStartRewards
         set_burn_gas_limit
