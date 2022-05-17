@@ -62,7 +62,7 @@ pub trait FarmTokenMergeModule:
             let attributes =
                 self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
             tokens.push(FarmToken {
-                payment: payment,
+                payment,
                 attributes,
             });
         }

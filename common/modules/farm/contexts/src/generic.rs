@@ -213,7 +213,7 @@ impl<M: ManagedTypeApi + BlockchainApi + StorageMapperApi + CallTypeApi + CallVa
     #[inline]
     pub fn get_input_attributes(&self) -> &FarmTokenAttributes<M> {
         if let Some(attr) = &self.tx_input.attributes {
-            return attr;
+            attr
         } else {
             M::error_api_impl().signal_error(b"No farm token attributes");
         }
