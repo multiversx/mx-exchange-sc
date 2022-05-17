@@ -47,13 +47,8 @@ pub struct GenericContext<M: ManagedTypeApi> {
 }
 
 pub struct GenericTxInput<M: ManagedTypeApi> {
-    args: GenericArgs<M>,
     payments: GenericPayments<M>,
     attributes: Option<FarmTokenAttributes<M>>,
-}
-
-pub struct GenericArgs<M: ManagedTypeApi> {
-    opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>,
 }
 
 pub struct GenericPayments<M: ManagedTypeApi> {
@@ -62,19 +57,10 @@ pub struct GenericPayments<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> GenericTxInput<M> {
-    pub fn new(args: GenericArgs<M>, payments: GenericPayments<M>) -> Self {
+    pub fn new(payments: GenericPayments<M>) -> Self {
         GenericTxInput {
-            args,
             payments,
             attributes: None,
-        }
-    }
-}
-
-impl<M: ManagedTypeApi> GenericArgs<M> {
-    pub fn new(opt_accept_funds_func: OptionalValue<ManagedBuffer<M>>) -> Self {
-        GenericArgs {
-            opt_accept_funds_func,
         }
     }
 }
@@ -133,11 +119,6 @@ impl<M: ManagedTypeApi> GenericContext<M> {
     #[inline]
     pub fn get_output_payments(&self) -> &ManagedVec<M, EsdtTokenPayment<M>> {
         &self.output_payments
-    }
-
-    #[inline]
-    pub fn get_opt_accept_funds_func(&self) -> &OptionalValue<ManagedBuffer<M>> {
-        &self.tx_input.args.opt_accept_funds_func
     }
 
     #[inline]
@@ -413,11 +394,6 @@ impl<M: ManagedTypeApi> GenericPayments<M> {
 }
 
 impl<M: ManagedTypeApi> GenericTxInput<M> {
-    #[inline]
-    pub fn get_args(&self) -> &GenericArgs<M> {
-        &self.args
-    }
-
     #[inline]
     pub fn get_payments(&self) -> &GenericPayments<M> {
         &self.payments

@@ -3,9 +3,8 @@ use std::ops::Mul;
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
-    types::{Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
+use elrond_wasm::types::{
+    Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded,
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -244,7 +243,7 @@ fn enter_farm<FarmObjBuilder, FactoryObjBuilder>(
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock
         .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm(OptionalValue::None);
+            let payment = sc.enter_farm();
             assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
             check_biguint_eq(
                 payment.amount,
@@ -292,7 +291,7 @@ fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
             farm_token_nonce,
             &farm_out_amount.clone(),
             |sc| {
-                let multi_result = sc.exit_farm(OptionalValue::None);
+                let multi_result = sc.exit_farm();
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -316,7 +315,7 @@ fn exit_farm<FarmObjBuilder, FactoryObjBuilder>(
         LKMEX_TOKEN_ID,
         1,
         &expected_mex_balance,
-        &expected_attributes,
+        Some(&expected_attributes),
     );
 }
 

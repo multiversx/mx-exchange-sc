@@ -148,7 +148,7 @@ where
                 DUAL_YIELD_TOKEN_ID,
                 dual_yield_nonce,
                 &rust_biguint!(expected_staking_token_amount),
-                &expected_dual_yield_attributes,
+                Some(&expected_dual_yield_attributes),
             );
         });
 
@@ -293,7 +293,7 @@ where
                 STAKING_FARM_TOKEN_ID,
                 unbond_token_nonce,
                 &rust_biguint!(expected_unbond_token_amount),
-                &expected_attributes,
+                Some(&expected_attributes),
             );
         });
 

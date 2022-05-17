@@ -15,20 +15,12 @@ pub trait WrappedLpTokenMerge:
 {
     #[payable("*")]
     #[endpoint(mergeWrappedLpTokens)]
-    fn merge_wrapped_lp_tokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) {
+    fn merge_wrapped_lp_tokens(&self) {
         let caller = self.blockchain().get_caller();
         let payments_vec = self.call_value().all_esdt_transfers();
         let payments_iter = payments_vec.iter();
 
-        self.merge_wrapped_lp_tokens_and_send(
-            &caller,
-            payments_iter,
-            Option::None,
-            opt_accept_funds_func,
-        );
+        self.merge_wrapped_lp_tokens_and_send(&caller, payments_iter, Option::None);
     }
 
     fn merge_wrapped_lp_tokens_and_send(
@@ -36,7 +28,6 @@ pub trait WrappedLpTokenMerge:
         caller: &ManagedAddress,
         payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
         replic: Option<WrappedLpToken<Self::Api>>,
-        opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> (WrappedLpToken<Self::Api>, bool) {
         require!(!payments.is_empty() || replic.is_some(), "Empty payments");
         let payments_len = payments.len();
@@ -53,32 +44,35 @@ pub trait WrappedLpTokenMerge:
 
         let merged_locked_token_amount = self.merge_locked_asset_tokens_from_wrapped_lp(&tokens);
         let merged_wrapped_lp_amount = self.get_merged_wrapped_lp_tokens_amount(&tokens);
-        let lp_token_amount = self.create_payment(
-            &tokens.get(0).attributes.lp_token_id,
+        let lp_token_amount = EsdtTokenPayment::new(
+            tokens.get(0).attributes.lp_token_id,
             0,
-            &merged_wrapped_lp_amount,
+            merged_wrapped_lp_amount.clone(),
         );
 
         let attrs = self
             .get_merged_wrapped_lp_token_attributes(&lp_token_amount, &merged_locked_token_amount);
         self.burn_payment_tokens(payments);
 
-        let new_nonce =
-            self.nft_create_tokens(&wrapped_lp_token_id, &merged_wrapped_lp_amount, &attrs);
+        let new_nonce = self.send().esdt_nft_create_compact(
+            &wrapped_lp_token_id,
+            &merged_wrapped_lp_amount,
+            &attrs,
+        );
 
-        self.transfer_execute_custom(
+        self.send().direct(
             caller,
             &wrapped_lp_token_id,
             new_nonce,
             &merged_wrapped_lp_amount,
-            &opt_accept_funds_func,
+            &[],
         );
 
         let new_token = WrappedLpToken {
-            token_amount: self.create_payment(
-                &wrapped_lp_token_id,
+            token_amount: EsdtTokenPayment::new(
+                wrapped_lp_token_id,
                 new_nonce,
-                &merged_wrapped_lp_amount,
+                merged_wrapped_lp_amount,
             ),
             attributes: attrs,
         };
@@ -162,10 +156,10 @@ pub trait WrappedLpTokenMerge:
                 &token.attributes.locked_assets_invested,
             );
 
-            return self.create_payment(
-                &locked_asset_token,
+            return EsdtTokenPayment::new(
+                locked_asset_token,
                 token.attributes.locked_assets_nonce,
-                &amount,
+                amount,
             );
         }
 
@@ -185,9 +179,9 @@ pub trait WrappedLpTokenMerge:
         }
 
         self.locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens(OptionalValue::None)
+            .merge_locked_asset_tokens()
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     fn get_merged_wrapped_lp_tokens_amount(

@@ -22,7 +22,7 @@ This contract allows users to provide liquidity and to swap tokens. Users are in
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        #[var_args] initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        initial_liquidity_adder: OptionalValue<ManagedAddress>,
     );
 ```
 
@@ -45,7 +45,6 @@ The init function is called when deploying/upgrading a smart contract. It receiv
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -63,17 +62,13 @@ As stated above, this function receives two payments, the first token payment an
 
 - __first_token_amount_min__ - The minimum amounts throught all the endpoints in the contract are used to set the slippage. The way it works is the following: when the above formula is applied and the resulted __aB__ is bigger than the transferred __aB__, the transferred __aB__ will be fixated and the __aA__ will be calculated using the formula. The resulted __aA__ has to be between the transferred __aA__ and the __first_token_amount_min__, thus setting the accepted range/slippage.
 - __second_token_amount_min__
-- __opt_accept_funds_func__ - Throughout all the endpoints of the contract, this parameter means the following: if you want to receive any form of payment from this execution via another execution, you can specify the endpoint name using this parameter. This is the case of non payable contracts that use this smart contract. By being non payable, the Pair smart contract cannot just send the tokens to the caller. Instead, it has to send the tokens by also triggering the execution of some function.
 
 ### addInitialLiquidity
 
 ```rust
     #[payable("*")]
     #[endpoint(addInitialLiquidity)]
-    fn add_initial_liquidity(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn add_initial_liquidity(&self);
 ```
 
 This endpoint is ment to be called by Price Discovery smart contract. The contract works in the following way:
@@ -93,7 +88,6 @@ This endpoint is ment to be called by Price Discovery smart contract. The contra
         #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -113,7 +107,6 @@ One might wonder when to use ```#[payment_*]``` macros and when not to use them.
         #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     );
 ```
 
@@ -161,8 +154,7 @@ The remaining fee, which is ```f * aI``` would be split afterwards into regular 
         #[payment_nonce] nonce: u64,
         #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
-        amount_out: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        amount_out: BigUint
     );
 ```
 

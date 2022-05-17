@@ -1,3 +1,5 @@
+use elrond_wasm::elrond_codec::Empty;
+
 elrond_wasm::imports!();
 
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
@@ -10,11 +12,11 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
     #[endpoint(issueRedeemToken)]
     fn issue_redeem_token(
         &self,
-        #[payment_amount] payment_amount: BigUint,
         token_name: ManagedBuffer,
         token_ticker: ManagedBuffer,
         nr_decimals: usize,
     ) {
+        let payment_amount = self.call_value().egld_value();
         require!(
             self.redeem_token_id().is_empty(),
             "Redeem token already issued"
@@ -70,7 +72,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
             launched_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
-            &(),
+            &Empty,
             &empty_vec,
         );
         let _ = self.send().esdt_nft_create(
@@ -79,7 +81,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
             accepted_token_id.as_managed_buffer(),
             &zero,
             &empty_buffer,
-            &(),
+            &Empty,
             &empty_vec,
         );
     }

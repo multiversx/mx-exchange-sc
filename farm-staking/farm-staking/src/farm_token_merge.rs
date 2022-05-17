@@ -50,7 +50,7 @@ pub trait FarmTokenMergeModule:
         self.send()
             .direct(&caller, &farm_token_id, new_nonce, &new_amount, &[]);
 
-        self.create_payment(&farm_token_id, new_nonce, &new_amount)
+        EsdtTokenPayment::new(farm_token_id, new_nonce, new_amount)
     }
 
     fn get_merged_farm_token_attributes(
@@ -83,11 +83,7 @@ pub trait FarmTokenMergeModule:
                 None => self.get_attributes(&payment.token_identifier, payment.token_nonce),
             };
             tokens.push(StakingFarmToken {
-                token_amount: self.create_payment(
-                    &payment.token_identifier,
-                    payment.token_nonce,
-                    &payment.amount,
-                ),
+                token_amount: payment,
                 attributes,
             });
         }

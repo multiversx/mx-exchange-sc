@@ -35,10 +35,7 @@ The arguments are:
 ```rust
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn enter_farm(&self);
 ```
 
 This endpoint receives at least one payment:
@@ -53,10 +50,7 @@ This endpoint will give back to the caller a Farm position as a result. The Farm
 ```rust
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn exit_farm(&self);
 ```
 
 This endpoint receives one payment, and that is the Farm Position. Based on an internal counter that the contract keeps track of, which is the __rps__ - meaning reward per share, the contract can calculate the reward that it needs to return to the caller for those specific tokens that he has sent. The output will consist of two payments: the LP tokens initially added and the accumulated rewards.
@@ -70,10 +64,7 @@ If a user decides to exit too early, they will receive a penalty. This contract 
 ```rust
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn claim_rewards(&self);
 ```
 
 This endpoint receives at least one payment:
@@ -86,10 +77,7 @@ This endpoint receives at least one payment:
 ```rust
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn compound_rewards(&self);
 ```
 
 This endpoint is similar with claimRewards, the differences being that instead of giving back the rewards to the caller, they are compounded into the newly created position (with the reset RPS). For this to be possible, reward token and farming token have to be the same, hence it is applicable only in case of MEX Farm.
@@ -99,10 +87,7 @@ This endpoint is similar with claimRewards, the differences being that instead o
 ```rust
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn merge_farm_tokens(&self);
 ```
 
 This endpoint merges two or more farm positions together and returns a single consolidated position to the caller.

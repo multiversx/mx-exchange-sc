@@ -18,9 +18,7 @@ elrond_wasm_node::wasm_endpoints! {
         getAssetTokenId
         getIntermediatedFarms
         getIntermediatedPairs
-        getLastErrorMessage
         getLockedAssetTokenId
-        getTransferExecGasLimit
         getWrappedFarmTokenId
         getWrappedLpTokenId
         mergeWrappedFarmTokens

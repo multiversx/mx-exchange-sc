@@ -50,16 +50,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [
-                    "0x01",
-                    {
-                        "1-token_type": "u8:2",
-                        "2-token_id": "nested:str:FARM-abcdef",
-                        "3-token_nonce": "u64:1",
-                        "4-amount": "biguint:8,000"
-                    },
-                    "0x01"
-                ],
+                "out": [],
                 "status": "0",
                 "gas": "*",
                 "refund": "*"

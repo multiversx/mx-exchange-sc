@@ -216,7 +216,6 @@ fn add_liquidity<RouterObjBuilder, PairObjBuilder>(
                 sc.add_liquidity(
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
-                    OptionalValue::None,
                 );
             },
         )
@@ -245,7 +244,6 @@ fn add_liquidity<RouterObjBuilder, PairObjBuilder>(
                 sc.add_liquidity(
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
                     managed_biguint!(ADD_LIQUIDITY_TOKENS),
-                    OptionalValue::None,
                 );
             },
         )
@@ -282,13 +280,7 @@ fn multi_pair_swap<RoouterObjBuilder, PairObjBuilder>(
                     )));
                 }
 
-                sc.multi_pair_swap(
-                    managed_token_id!(payment_token),
-                    managed_biguint!(payment_amount),
-                    0,
-                    swap_operations,
-                    OptionalValue::None,
-                );
+                sc.multi_pair_swap(swap_operations);
             },
         )
         .assert_ok();

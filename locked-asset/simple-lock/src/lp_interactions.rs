@@ -63,7 +63,7 @@ pub trait LpInteractionsModule {
             .lp_proxy(lp_address)
             .add_liquidity(first_token_amount_min, second_token_amount_min)
             .with_multi_token_transfer(lp_payments_in)
-            .execute_on_dest_context_custom_range(|_, after| (after - 3, after));
+            .execute_on_dest_context();
         let (lp_tokens, first_token_optimal_payment, second_token_optimal_payment) =
             lp_payments_out.into_tuple();
 
@@ -108,7 +108,7 @@ pub trait LpInteractionsModule {
             .lp_proxy(lp_address)
             .remove_liquidity(first_token_amount_min, second_token_amount_min)
             .add_token_transfer(lp_token_id, 0, lp_token_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
 
         let (first_token_payment_out, second_token_payment_out) = lp_payments_out.into_tuple();
         require!(

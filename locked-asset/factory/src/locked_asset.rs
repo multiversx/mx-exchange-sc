@@ -45,21 +45,16 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         additional_amount_to_create: &BigUint,
         address: &ManagedAddress,
         attributes: &LockedAssetTokenAttributesEx<Self::Api>,
-        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) -> Nonce {
         let token_id = self.locked_asset_token_id().get();
-        let last_created_nonce = self.nft_create_tokens(
+        let last_created_nonce = self.send().esdt_nft_create_compact(
             &token_id,
             &(amount + additional_amount_to_create),
             attributes,
         );
-        self.transfer_execute_custom(
-            address,
-            &token_id,
-            last_created_nonce,
-            amount,
-            opt_accept_funds_func,
-        );
+        self.send()
+            .direct(address, &token_id, last_created_nonce, amount, &[]);
+
         last_created_nonce
     }
 
@@ -68,11 +63,11 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         amount: &BigUint,
         sft_nonce: Nonce,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) {
         let token_id = self.locked_asset_token_id().get();
         self.send().esdt_local_mint(&token_id, sft_nonce, amount);
-        self.transfer_execute_custom(address, &token_id, sft_nonce, amount, opt_accept_funds_func)
+        self.send()
+            .direct(address, &token_id, sft_nonce, amount, &[]);
     }
 
     fn get_unlock_amount(
@@ -206,12 +201,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         }
 
         require!(percents_sum == 100, "Percents do not sum up to 100");
-    }
-
-    #[only_owner]
-    #[endpoint]
-    fn set_transfer_exec_gas_limit(&self, gas_limit: u64) {
-        self.transfer_exec_gas_limit().set(&gas_limit);
     }
 
     fn mint_and_send_assets(&self, dest: &ManagedAddress, amount: &BigUint) {

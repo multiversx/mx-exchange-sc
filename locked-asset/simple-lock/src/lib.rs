@@ -41,7 +41,7 @@ pub trait SimpleLock:
     fn lock_tokens(
         &self,
         unlock_epoch: u64,
-        #[var_args] opt_destination: OptionalValue<ManagedAddress>,
+        opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
@@ -87,7 +87,7 @@ pub trait SimpleLock:
     #[endpoint(unlockTokens)]
     fn unlock_tokens(
         &self,
-        #[var_args] opt_destination: OptionalValue<ManagedAddress>,
+        opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);

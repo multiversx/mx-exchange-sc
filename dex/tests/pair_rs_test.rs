@@ -141,7 +141,6 @@ fn add_liquidity<PairObjBuilder>(
                 let MultiValue3 { 0: payments } = sc.add_liquidity(
                     managed_biguint!(first_token_min),
                     managed_biguint!(second_token_min),
-                    OptionalValue::None,
                 );
 
                 assert_eq!(payments.0.token_identifier, managed_token_id!(LP_TOKEN_ID));
@@ -183,12 +182,8 @@ fn swap_fixed_input<PairObjBuilder>(
             &rust_biguint!(payment_amount),
             |sc| {
                 let ret = sc.swap_tokens_fixed_input(
-                    managed_token_id!(payment_token_id),
-                    0,
-                    managed_biguint!(payment_amount),
                     managed_token_id!(desired_token_id),
                     managed_biguint!(desired_amount_min),
-                    OptionalValue::None,
                 );
 
                 assert_eq!(ret.token_identifier, managed_token_id!(desired_token_id));
@@ -219,12 +214,8 @@ fn swap_fixed_input_expect_error<PairObjBuilder>(
             &rust_biguint!(payment_amount),
             |sc| {
                 sc.swap_tokens_fixed_input(
-                    managed_token_id!(payment_token_id),
-                    0,
-                    managed_biguint!(payment_amount),
                     managed_token_id!(desired_token_id),
                     managed_biguint!(desired_amount_min),
-                    OptionalValue::None,
                 );
             },
         )
@@ -265,12 +256,8 @@ fn swap_fixed_output<PairObjBuilder>(
             &rust_biguint!(payment_amount_max),
             |sc| {
                 let ret = sc.swap_tokens_fixed_output(
-                    managed_token_id!(payment_token_id),
-                    0,
-                    managed_biguint!(payment_amount_max),
                     managed_token_id!(desired_token_id),
                     managed_biguint!(desired_amount),
-                    OptionalValue::None,
                 );
 
                 let (desired_token_output, payment_token_residuum) = ret.into_tuple();
@@ -930,12 +917,8 @@ fn test_locked_asset() {
             &rust_biguint!(1_000),
             |sc| {
                 let ret = sc.swap_tokens_fixed_input(
-                    managed_token_id!(MEX_TOKEN_ID),
-                    0,
-                    managed_biguint!(1_000),
                     managed_token_id!(WEGLD_TOKEN_ID),
                     managed_biguint!(10),
-                    OptionalValue::None,
                 );
 
                 assert_eq!(ret.token_identifier, managed_token_id!(LOCKED_TOKEN_ID));
@@ -951,11 +934,11 @@ fn test_locked_asset() {
         LOCKED_TOKEN_ID,
         1,
         &rust_biguint!(996),
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
-        },
+        }),
     );
 
     let user_wegld_balance_before =
@@ -1096,11 +1079,11 @@ fn add_liquidity_through_simple_lock_proxy() {
         LOCKED_TOKEN_ID,
         1,
         &rust_biguint!(1_000_000),
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
-        },
+        }),
     );
 
     pair_setup
@@ -1121,11 +1104,11 @@ fn add_liquidity_through_simple_lock_proxy() {
         LOCKED_TOKEN_ID,
         2,
         &rust_biguint!(2_000_000),
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(MEX_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 15,
-        },
+        }),
     );
 
     pair_setup.blockchain_wrapper.set_block_epoch(5);
@@ -1183,13 +1166,13 @@ fn add_liquidity_through_simple_lock_proxy() {
         LP_PROXY_TOKEN_ID,
         1,
         &rust_biguint!(500_000),
-        &LpProxyTokenAttributes::<DebugApi> {
+        Some(&LpProxyTokenAttributes::<DebugApi> {
             lp_token_id: managed_token_id!(LP_TOKEN_ID),
             first_token_id: managed_token_id!(WEGLD_TOKEN_ID),
             first_token_locked_nonce: 1,
             second_token_id: managed_token_id!(MEX_TOKEN_ID),
             second_token_locked_nonce: 0,
-        },
+        }),
     );
     pair_setup.blockchain_wrapper.check_esdt_balance(
         locking_sc_wrapper.address_ref(),
@@ -1243,11 +1226,11 @@ fn add_liquidity_through_simple_lock_proxy() {
         LOCKED_TOKEN_ID,
         1,
         &(user_locked_token_balance_before + 500_000u32),
-        &LockedTokenAttributes::<DebugApi> {
+        Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
-        },
+        }),
     );
     pair_setup.blockchain_wrapper.check_esdt_balance(
         &pair_setup.user_address,

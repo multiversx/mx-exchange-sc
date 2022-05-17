@@ -4,7 +4,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
 
 mod amm;
@@ -58,7 +57,7 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        #[var_args] initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        initial_liquidity_adder: OptionalValue<ManagedAddress>,
     ) {
         require!(first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
         require!(second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
@@ -69,8 +68,6 @@ pub trait Pair<ContractReader>:
         self.set_fee_percents(total_fee_percent, special_fee_percent);
 
         self.state().set(&State::Inactive);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
         self.extern_swap_gas_limit()
             .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
@@ -84,15 +81,8 @@ pub trait Pair<ContractReader>:
 
     #[payable("*")]
     #[endpoint(addInitialLiquidity)]
-    fn add_initial_liquidity(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> AddLiquidityResultType<Self::Api> {
-        let mut context = self.new_add_liquidity_context(
-            BigUint::from(1u64),
-            BigUint::from(1u64),
-            opt_accept_funds_func,
-        );
+    fn add_initial_liquidity(&self) -> AddLiquidityResultType<Self::Api> {
+        let mut context = self.new_add_liquidity_context(BigUint::from(1u64), BigUint::from(1u64));
         require!(
             self.initial_liquidity_adder()
                 .get()
@@ -161,13 +151,9 @@ pub trait Pair<ContractReader>:
         &self,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> AddLiquidityResultType<Self::Api> {
-        let mut context = self.new_add_liquidity_context(
-            first_token_amount_min,
-            second_token_amount_min,
-            opt_accept_funds_func,
-        );
+        let mut context =
+            self.new_add_liquidity_context(first_token_amount_min, second_token_amount_min);
         require!(
             context.get_tx_input().get_args().are_valid(),
             ERROR_INVALID_ARGS
@@ -238,20 +224,16 @@ pub trait Pair<ContractReader>:
     #[endpoint(removeLiquidity)]
     fn remove_liquidity(
         &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_nonce] nonce: u64,
-        #[payment_amount] liquidity: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> RemoveLiquidityResultType<Self::Api> {
+        let (token_id, nonce, liquidity) = self.call_value().payment_as_tuple();
         let mut context = self.new_remove_liquidity_context(
             &token_id,
             nonce,
             &liquidity,
             first_token_amount_min,
             second_token_amount_min,
-            opt_accept_funds_func,
         );
         require!(
             context.get_tx_input().get_args().are_valid(),
@@ -307,20 +289,14 @@ pub trait Pair<ContractReader>:
 
     #[payable("*")]
     #[endpoint(removeLiquidityAndBuyBackAndBurnToken)]
-    fn remove_liquidity_and_burn_token(
-        &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_nonce] nonce: u64,
-        #[payment_amount] amount_in: BigUint,
-        token_to_buyback_and_burn: TokenIdentifier,
-    ) {
+    fn remove_liquidity_and_burn_token(&self, token_to_buyback_and_burn: TokenIdentifier) {
+        let (token_in, nonce, amount_in) = self.call_value().payment_as_tuple();
         let mut context = self.new_remove_liquidity_context(
             &token_in,
             nonce,
             &amount_in,
             BigUint::from(1u64),
             BigUint::from(1u64),
-            OptionalValue::None,
         );
         require!(
             self.whitelist().contains(context.get_caller()),
@@ -387,21 +363,14 @@ pub trait Pair<ContractReader>:
 
     #[payable("*")]
     #[endpoint(swapNoFeeAndForward)]
-    fn swap_no_fee(
-        &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_nonce] nonce: u64,
-        #[payment_amount] amount_in: BigUint,
-        token_out: TokenIdentifier,
-        destination_address: ManagedAddress,
-    ) {
+    fn swap_no_fee(&self, token_out: TokenIdentifier, destination_address: ManagedAddress) {
+        let (token_in, nonce, amount_in) = self.call_value().payment_as_tuple();
         let mut context = self.new_swap_context(
             &token_in,
             nonce,
             &amount_in,
             token_out.clone(),
             BigUint::from(1u64),
-            OptionalValue::None,
         );
         require!(
             self.whitelist().contains(context.get_caller()),
@@ -452,21 +421,12 @@ pub trait Pair<ContractReader>:
     #[endpoint(swapTokensFixedInput)]
     fn swap_tokens_fixed_input(
         &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_nonce] nonce: u64,
-        #[payment_amount] amount_in: BigUint,
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        let mut context = self.new_swap_context(
-            &token_in,
-            nonce,
-            &amount_in,
-            token_out,
-            amount_out_min,
-            opt_accept_funds_func,
-        );
+        let (token_in, nonce, amount_in) = self.call_value().payment_as_tuple();
+        let mut context =
+            self.new_swap_context(&token_in, nonce, &amount_in, token_out, amount_out_min);
         require!(
             context.get_tx_input().get_args().are_valid(),
             ERROR_INVALID_ARGS
@@ -520,21 +480,12 @@ pub trait Pair<ContractReader>:
     #[endpoint(swapTokensFixedOutput)]
     fn swap_tokens_fixed_output(
         &self,
-        #[payment_token] token_in: TokenIdentifier,
-        #[payment_nonce] nonce: u64,
-        #[payment_amount] amount_in_max: BigUint,
         token_out: TokenIdentifier,
         amount_out: BigUint,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
-        let mut context = self.new_swap_context(
-            &token_in,
-            nonce,
-            &amount_in_max,
-            token_out,
-            amount_out,
-            opt_accept_funds_func,
-        );
+        let (token_in, nonce, amount_in_max) = self.call_value().payment_as_tuple();
+        let mut context =
+            self.new_swap_context(&token_in, nonce, &amount_in_max, token_out, amount_out);
         require!(
             context.get_tx_input().get_args().are_valid(),
             ERROR_INVALID_ARGS

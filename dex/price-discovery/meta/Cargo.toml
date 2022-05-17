@@ -9,7 +9,7 @@ authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
 path = ".."
 
 [dependencies.elrond-wasm]
-version = "0.29"
+version = "0.31.1"
 
 [dependencies.elrond-wasm-debug]
-version = "0.29"
+version = "0.31.1"

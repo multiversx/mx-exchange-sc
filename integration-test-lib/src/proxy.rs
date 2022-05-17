@@ -1,5 +1,6 @@
 #[cfg(test)]
 pub mod migration_tests {
+    use elrond_wasm::elrond_codec::Empty;
     use elrond_wasm::types::{Address, EsdtLocalRole};
     use elrond_wasm_debug::tx_mock::TxContextStack;
     use elrond_wasm_debug::{
@@ -162,14 +163,14 @@ pub mod migration_tests {
             FARM_TOKEN_ID,
             1,
             &rust_biguint!(100_000),
-            &(),
+            &Empty,
         );
         proxy_setup.blockchain_wrapper.set_nft_balance(
             proxy_setup.proxy_wrapper.address_ref(),
             WRAPPED_LP_TOKEN_ID,
             1,
             &rust_biguint!(100_000),
-            &(),
+            &Empty,
         );
         proxy_setup.blockchain_wrapper.set_nft_balance(
             &owner_addr,
@@ -196,12 +197,7 @@ pub mod migration_tests {
                 2,
                 &rust_biguint!(50_000),
                 |sc| {
-                    sc.migrate_v1_2_position(
-                        managed_token_id!(WRAPPED_FARM_TOKEN_ID),
-                        2,
-                        managed_biguint!(50_000),
-                        managed_address!(farm_address),
-                    );
+                    sc.migrate_v1_2_position(managed_address!(farm_address));
                 },
             )
             .assert_ok();

@@ -290,12 +290,12 @@ fn test_stake_farm_through_proxy_with_merging() {
             DUAL_YIELD_TOKEN_ID,
             first_dual_yield_token_nonce,
             &rust_biguint!(400_000_000),
-            &DualYieldTokenAttributes::<DebugApi> {
+            Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 1,
                 lp_farm_token_amount: managed_biguint!(400_000_000),
                 staking_farm_token_nonce: 1,
                 staking_farm_token_amount: managed_biguint!(400_000_000),
-            },
+            }),
         )
     });
 
@@ -313,7 +313,7 @@ fn test_stake_farm_through_proxy_with_merging() {
         DUAL_YIELD_TOKEN_ID,
         first_dual_yield_token_nonce,
         &rust_biguint!(0),
-        &vec![0, 1, 4, 400000000, 0, 1, 4, 400000000], //old attributes
+        Some(&vec![0, 1, 4, 400000000, 0, 1, 4, 400000000]), //old attributes
     );
     setup.b_mock.execute_in_managed_environment(|| {
         setup.b_mock.check_nft_balance(
@@ -321,12 +321,12 @@ fn test_stake_farm_through_proxy_with_merging() {
             DUAL_YIELD_TOKEN_ID,
             new_dual_yield_token_nonce,
             &rust_biguint!(1_000_000_000),
-            &DualYieldTokenAttributes::<DebugApi> {
+            Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 2,
                 lp_farm_token_amount: managed_biguint!(1_000_000_000),
                 staking_farm_token_nonce: 2,
                 staking_farm_token_amount: managed_biguint!(1_000_000_000),
-            },
+            }),
         )
     });
 
@@ -344,7 +344,7 @@ fn test_stake_farm_through_proxy_with_merging() {
             LP_FARM_TOKEN_ID,
             2,
             &rust_biguint!(1_000_000_000),
-            &vec![0, 0, 0, 0, 0, 4, 1000000000, 0, 4, 1000000000], //current attributes
+            Some(&vec![0, 0, 0, 0, 0, 4, 1000000000, 0, 4, 1000000000]), //current attributes
         )
     });
 }

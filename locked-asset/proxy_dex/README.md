@@ -111,8 +111,7 @@ The original LP tokens and Farm tokens, for which the contract mints Wrapped Tok
     #[endpoint(mergeWrappedFarmTokens)]
     fn merge_wrapped_farm_tokens(
         &self,
-        farm_contract: ManagedAddress,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        farm_contract: ManagedAddress
     );
 ```
 
@@ -123,10 +122,7 @@ This function merges two or more positions of Wrapped Farm (farm positions obtai
 ```rust
     #[payable("*")]
     #[endpoint(mergeWrappedLpTokens)]
-    fn merge_wrapped_lp_tokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    );
+    fn merge_wrapped_lp_tokens(&self);
 ```
 
 This function merges two or more positions of Wrapped LP tokens (LP positions obtained using Locked MEX instead of MEX and this intermediary contract). The same logic as for __mergeWrappedFarmTokens__ is applied.

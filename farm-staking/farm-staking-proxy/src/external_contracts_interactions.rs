@@ -26,20 +26,20 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .claim_rewards(OptionalValue::None)
+            .claim_rewards()
             .add_token_transfer(
                 lp_farm_token_id.clone(),
                 lp_farm_token_nonce,
                 lp_farm_token_amount,
             )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
         let (mut new_lp_farm_tokens, mut lp_farm_rewards) = lp_farm_result.into_tuple();
 
         self.swap_payments_if_wrong_order(
             &mut new_lp_farm_tokens,
             &mut lp_farm_rewards,
             &lp_farm_token_id,
-            "lp_farm_claim_rewards",
+            b"lp_farm_claim_rewards",
         );
 
         LpFarmClaimRewardsResult {
@@ -57,9 +57,9 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm(OptionalValue::None)
+            .exit_farm()
             .add_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
         let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
         let expected_lp_token_id = self.lp_token_id().get();
 
@@ -67,7 +67,7 @@ pub trait ExternalContractsInteractionsModule:
             &mut lp_tokens,
             &mut lp_farm_rewards,
             &expected_lp_token_id,
-            "lp_farm_exit",
+            b"lp_farm_exit",
         );
 
         LpFarmExitResult {
@@ -89,9 +89,9 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens(OptionalValue::None)
+            .merge_farm_tokens()
             .with_multi_token_transfer(additional_lp_tokens)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .execute_on_dest_context()
     }
 
     // staking farm
@@ -106,7 +106,7 @@ pub trait ExternalContractsInteractionsModule:
             .staking_farm_proxy_obj(staking_farm_address)
             .stake_farm_through_proxy(staking_token_amount)
             .with_multi_token_transfer(staking_farm_tokens)
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .execute_on_dest_context();
 
         StakingFarmEnterResult {
             received_staking_farm_token,
@@ -129,7 +129,7 @@ pub trait ExternalContractsInteractionsModule:
                 staking_farm_token_nonce,
                 staking_farm_token_amount,
             )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
         let (mut new_staking_farm_tokens, mut staking_farm_rewards) =
             staking_farm_result.into_tuple();
 
@@ -137,7 +137,7 @@ pub trait ExternalContractsInteractionsModule:
             &mut new_staking_farm_tokens,
             &mut staking_farm_rewards,
             &staking_farm_token_id,
-            "staking_farm_claim_rewards",
+            b"staking_farm_claim_rewards",
         );
 
         StakingFarmClaimRewardsResult {
@@ -165,14 +165,14 @@ pub trait ExternalContractsInteractionsModule:
             .staking_farm_proxy_obj(staking_farm_address)
             .unstake_farm_through_proxy()
             .with_multi_token_transfer(payments)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
         let (mut unbond_staking_farm_token, mut staking_rewards) = unstake_result.into_tuple();
 
         self.swap_payments_if_wrong_order(
             &mut unbond_staking_farm_token,
             &mut staking_rewards,
             &staking_farm_token_id,
-            "staking_farm_unstake",
+            b"staking_farm_unstake",
         );
 
         StakingFarmExitResult {
@@ -192,15 +192,13 @@ pub trait ExternalContractsInteractionsModule:
         let pair_address = self.pair_address().get();
         let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
             .pair_proxy_obj(pair_address)
-            .remove_liquidity(
+            .remove_liquidity(pair_first_token_min_amount, pair_second_token_min_amount)
+            .add_token_transfer(
                 lp_tokens.token_identifier,
                 lp_tokens.token_nonce,
                 lp_tokens.amount,
-                pair_first_token_min_amount,
-                pair_second_token_min_amount,
-                OptionalValue::None,
             )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
         let (pair_first_token_payment, pair_second_token_payment) =
             pair_withdraw_result.into_tuple();
 
@@ -225,7 +223,7 @@ pub trait ExternalContractsInteractionsModule:
         let result: SafePriceResult<Self::Api> = self
             .pair_proxy_obj(pair_address)
             .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after));
+            .execute_on_dest_context();
         let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();
 
@@ -243,13 +241,16 @@ pub trait ExternalContractsInteractionsModule:
         first_payment: &mut EsdtTokenPayment<Self::Api>,
         second_payment: &mut EsdtTokenPayment<Self::Api>,
         expected_first_payment_id: &TokenIdentifier,
-        called_function_name: &'static str,
+        called_function_name: &[u8],
     ) {
         if &first_payment.token_identifier != expected_first_payment_id {
             if &second_payment.token_identifier == expected_first_payment_id {
                 swap(first_payment, second_payment);
             } else {
-                sc_panic!("Invalid tokens received on {}", called_function_name);
+                sc_panic!(
+                    "Invalid tokens received on {}",
+                    ManagedBuffer::new_from_bytes(called_function_name)
+                );
             }
         }
     }

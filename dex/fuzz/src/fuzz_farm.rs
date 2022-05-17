@@ -88,7 +88,7 @@ pub mod fuzz_farm_test {
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                sc.enter_farm(OptionalValue::None);
+                sc.enter_farm();
             },
         );
 
@@ -176,7 +176,7 @@ pub mod fuzz_farm_test {
             farm_token_nonce,
             &farm_out_amount,
             |sc| {
-                sc.exit_farm(OptionalValue::None);
+                sc.exit_farm();
             },
         );
 
@@ -266,7 +266,7 @@ pub mod fuzz_farm_test {
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                sc.claim_rewards(OptionalValue::None);
+                sc.claim_rewards();
             },
         );
 
@@ -375,7 +375,7 @@ pub mod fuzz_farm_test {
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                sc.compound_rewards(OptionalValue::None);
+                sc.compound_rewards();
             },
         );
 

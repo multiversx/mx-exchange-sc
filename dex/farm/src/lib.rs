@@ -16,8 +16,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
-    DEFAULT_TRANSFER_EXEC_GAS_LIMIT, MAX_PERCENT,
+    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
 };
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -51,21 +50,24 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) {
-        require!(reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(
+            reward_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
+        require!(
+            farming_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
         let farm_token = self.farm_token_id().get();
         require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
         require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(&State::Inactive);
-        self.penalty_percent()
-            .set_if_empty(&DEFAULT_PENALTY_PERCENT);
+        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
-            .set_if_empty(&DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.burn_gas_limit().set_if_empty(&DEFAULT_BURN_GAS_LIMIT);
+            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
+        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -76,11 +78,8 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EnterFarmResultType<Self::Api> {
-        let mut context = self.new_farm_context(opt_accept_funds_func);
+    fn enter_farm(&self) -> EnterFarmResultType<Self::Api> {
+        let mut context = self.new_farm_context();
 
         self.load_state(&mut context);
         require!(
@@ -113,10 +112,10 @@ pub trait Farm:
             .amount
             .clone();
 
-        let virtual_position_token_amount = self.create_payment(
-            context.get_farm_token_id().unwrap(),
+        let virtual_position_token_amount = EsdtTokenPayment::new(
+            context.get_farm_token_id().unwrap().clone(),
             0,
-            &first_payment_amount,
+            first_payment_amount.clone(),
         );
         let virtual_position_attributes = FarmTokenAttributes {
             reward_per_share: context.get_reward_per_share().unwrap().clone(),
@@ -151,11 +150,8 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> ExitFarmResultType<Self::Api> {
-        let mut context = self.new_farm_context(opt_accept_funds_func);
+    fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
+        let mut context = self.new_farm_context();
 
         self.load_state(&mut context);
         require!(
@@ -201,11 +197,8 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> ClaimRewardsResultType<Self::Api> {
-        let mut context = self.new_farm_context(opt_accept_funds_func);
+    fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
+        let mut context = self.new_farm_context();
 
         self.load_state(&mut context);
         require!(
@@ -292,11 +285,8 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> CompoundRewardsResultType<Self::Api> {
-        let mut context = self.new_farm_context(opt_accept_funds_func);
+    fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
+        let mut context = self.new_farm_context();
 
         self.load_state(&mut context);
         require!(
@@ -395,12 +385,8 @@ pub trait Farm:
         } else {
             let gas_limit = self.burn_gas_limit().get();
             self.pair_contract_proxy(pair_contract_address)
-                .remove_liquidity_and_burn_token(
-                    farming_token_id.clone(),
-                    0,
-                    farming_amount.clone(),
-                    reward_token_id.clone(),
-                )
+                .remove_liquidity_and_burn_token(reward_token_id.clone())
+                .add_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
                 .with_gas_limit(gas_limit)
                 .transfer_execute();
         }
@@ -426,10 +412,10 @@ pub trait Farm:
         );
 
         let new_farm_token = FarmToken {
-            token_amount: self.create_payment(
-                &storage_cache.farm_token_id.clone().unwrap(),
+            token_amount: EsdtTokenPayment::new(
+                storage_cache.farm_token_id.clone().unwrap(),
                 new_nonce,
-                &new_amount,
+                new_amount,
             ),
             attributes: merged_attributes,
         };
@@ -443,32 +429,25 @@ pub trait Farm:
         farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
         destination: &ManagedAddress,
-        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) {
-        self.transfer_execute_custom(
-            destination,
-            farming_token_id,
-            0,
-            farming_amount,
-            opt_accept_funds_func,
-        );
+        self.send()
+            .direct(destination, farming_token_id, 0, farming_amount, &[]);
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
         if context.get_position_reward().unwrap() > &0u64 {
-            self.transfer_execute_custom(
+            self.send_tokens_non_zero(
                 context.get_caller(),
                 context.get_reward_token_id().unwrap(),
                 0,
                 context.get_position_reward().unwrap(),
-                context.get_opt_accept_funds_func(),
             );
         }
 
-        context.set_final_reward(self.create_payment(
-            context.get_reward_token_id().unwrap(),
+        context.set_final_reward(EsdtTokenPayment::new(
+            context.get_reward_token_id().unwrap().clone(),
             0,
-            context.get_position_reward().unwrap(),
+            context.get_position_reward().unwrap().clone(),
         ));
     }
 

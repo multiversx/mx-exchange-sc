@@ -15,14 +15,8 @@ pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
-    fn multi_pair_swap(
-        &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: BigUint,
-        #[payment_nonce] nonce: u64,
-        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) {
+    fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) {
+        let (token_id, nonce, amount) = self.call_value().payment_as_tuple();
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
         require!(
@@ -66,7 +60,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         }
 
         payments.push(last_payment);
-        self.send_multiple_tokens(&caller, &payments, &opt_accept_funds_func);
+        self.send().direct_multi(&caller, &payments, &[]);
     }
 
     fn actual_swap_fixed_input(
@@ -78,15 +72,9 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         amount_out_min: BigUint,
     ) -> EsdtTokenPayment<Self::Api> {
         self.pair_contract_proxy(pair_address)
-            .swap_tokens_fixed_input(
-                token_in,
-                0,
-                amount_in,
-                token_out,
-                amount_out_min,
-                OptionalValue::None,
-            )
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after))
+            .swap_tokens_fixed_input(token_out, amount_out_min)
+            .add_token_transfer(token_in, 0, amount_in)
+            .execute_on_dest_context()
     }
 
     fn actual_swap_fixed_output(
@@ -97,17 +85,13 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         token_out: TokenIdentifier,
         amount_out: BigUint,
     ) -> (EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>) {
-        self.pair_contract_proxy(pair_address)
-            .swap_tokens_fixed_output(
-                token_in,
-                0,
-                amount_in_max,
-                token_out,
-                amount_out,
-                OptionalValue::None,
-            )
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
-            .into_tuple()
+        let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
+            self.pair_contract_proxy(pair_address)
+                .swap_tokens_fixed_output(token_out, amount_out)
+                .add_token_transfer(token_in, 0, amount_in_max)
+                .execute_on_dest_context();
+
+        call_result.into_tuple()
     }
 
     fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {

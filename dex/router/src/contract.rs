@@ -25,7 +25,7 @@ pub trait Router:
     factory::FactoryModule + events::EventsModule + lib::Lib + token_send::TokenSendModule
 {
     #[init]
-    fn init(&self, #[var_args] pair_template_address_opt: OptionalValue<ManagedAddress>) {
+    fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
         self.state().set_if_empty(&true);
         self.pair_creation_enabled().set_if_empty(&false);
 
@@ -65,7 +65,7 @@ pub trait Router:
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
         initial_liquidity_adder: ManagedAddress,
-        #[var_args] opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
+        opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -172,11 +172,12 @@ pub trait Router:
     #[endpoint(issueLpToken)]
     fn issue_lp_token(
         &self,
-        #[payment_amount] issue_cost: BigUint,
         pair_address: ManagedAddress,
         lp_token_display_name: ManagedBuffer,
         lp_token_ticker: ManagedBuffer,
     ) {
+        let issue_cost = self.call_value().egld_value();
+
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
         if caller != self.owner().get() {
@@ -195,10 +196,10 @@ pub trait Router:
             }
         };
 
-        let result = self
+        let result: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .execute_on_dest_context();
         require!(result.is_egld(), "LP Token already issued");
 
         self.send()
@@ -233,10 +234,10 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        let pair_token = self
+        let pair_token: TokenIdentifier = self
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
-            .execute_on_dest_context_custom_range(|_, after| (after - 1, after));
+            .execute_on_dest_context();
         require!(pair_token.is_esdt(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
@@ -245,7 +246,6 @@ pub trait Router:
             .esdt_system_sc_proxy()
             .set_special_roles(&pair_address, &pair_token, roles.iter().cloned())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
     }
 
@@ -255,7 +255,7 @@ pub trait Router:
         &self,
         token: TokenIdentifier,
         address: ManagedAddress,
-        #[var_args] roles: MultiValueEncoded<EsdtLocalRole>,
+        roles: MultiValueEncoded<EsdtLocalRole>,
     ) {
         require!(self.is_active(), "Not active");
 
@@ -263,7 +263,6 @@ pub trait Router:
             .esdt_system_sc_proxy()
             .set_special_roles(&address, &token, roles.into_iter())
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
     }
 
@@ -378,31 +377,15 @@ pub trait Router:
     ) {
         match result {
             ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id)
                     .execute_on_dest_context_ignore_result();
             }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
+            ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
                     let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
                 }
-            }
-        }
-    }
-
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
             }
         }
     }
@@ -421,10 +404,6 @@ pub trait Router:
     #[view(getPairCreationEnabled)]
     #[storage_mapper("pair_creation_enabled")]
     fn pair_creation_enabled(&self) -> SingleValueMapper<bool>;
-
-    #[view(getLastErrorMessage)]
-    #[storage_mapper("last_error_message")]
-    fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
 
     #[view(getState)]
     #[storage_mapper("state")]
