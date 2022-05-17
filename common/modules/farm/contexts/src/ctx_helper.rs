@@ -13,114 +13,19 @@ pub trait CtxHelper:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn new_farm_context(&self) -> GenericContext<Self::Api> {
-        let caller = self.blockchain().get_caller();
-
-        let payments = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments.iter();
-
-        let first_payment = payments_iter.next().unwrap();
-
-        let mut additional_payments = ManagedVec::new();
-        for payment in payments_iter {
-            additional_payments.push(payment);
-        }
-
-        let payments = GenericPayments::new(first_payment, additional_payments);
-        let tx = GenericTxInput::new(payments);
-
-        GenericContext::new(tx, caller)
+        GenericContext::new(self)
     }
 
-    #[inline]
-    fn load_state(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_contract_state(self.state().get());
-    }
-
-    #[inline]
-    fn load_farm_token_id(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_farm_token_id(self.farm_token().get_token_id());
-    }
-
-    #[inline]
-    fn load_farming_token_id(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_farming_token_id(self.farming_token_id().get());
-    }
-
-    #[inline]
-    fn load_reward_token_id(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_reward_token_id(self.reward_token_id().get());
-    }
-
-    #[inline]
-    fn load_block_nonce(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_block_nonce(self.blockchain().get_block_nonce());
-    }
-
-    #[inline]
-    fn load_block_epoch(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_block_epoch(self.blockchain().get_block_epoch());
-    }
-
-    #[inline]
-    fn load_reward_reserve(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_reward_reserve(self.reward_reserve().get());
-    }
-
-    #[inline]
-    fn load_reward_per_share(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_reward_per_share(self.reward_per_share().get());
-    }
-
-    #[inline]
-    fn load_farm_token_supply(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_farm_token_supply(self.farm_token_supply().get());
-    }
-
-    #[inline]
-    fn load_division_safety_constant(&self, context: &mut GenericContext<Self::Api>) {
-        context.set_division_safety_constant(self.division_safety_constant().get());
-    }
-
-    #[inline]
-    fn commit_changes(&self, context: &GenericContext<Self::Api>) {
-        if let Some(value) = context.get_reward_reserve() {
-            self.reward_reserve().set(value);
-        }
-        if let Some(value) = context.get_reward_per_share() {
-            self.reward_per_share().set(value);
-        }
-    }
-
-    #[inline]
-    fn execute_output_payments(&self, context: &GenericContext<Self::Api>) {
-        self.send_multiple_tokens_if_not_zero(context.get_caller(), context.get_output_payments());
-    }
-
-    #[inline]
-    fn load_farm_attributes(&self, context: &mut GenericContext<Self::Api>) {
-        let farm_token_id = context.get_farm_token_id().unwrap().clone();
-        let nonce = context
-            .get_tx_input()
-            .get_payments()
-            .get_first()
-            .token_nonce;
-
-        context.set_input_attributes(
-            self.blockchain()
-                .get_esdt_token_data(&self.blockchain().get_sc_address(), &farm_token_id, nonce)
-                .decode_attributes(),
-        )
-    }
-
-    #[inline]
     fn calculate_reward(&self, context: &mut GenericContext<Self::Api>) {
-        let reward = if context.get_reward_per_share().unwrap()
-            > &context.get_input_attributes().unwrap().reward_per_share
-        {
-            &context.get_tx_input().get_payments().get_first().amount
-                * &(context.get_reward_per_share().unwrap()
-                    - &context.get_input_attributes().unwrap().reward_per_share)
-                / context.get_division_safety_constant().unwrap()
+        let farm_token_attributes = context.get_input_attributes();
+        let rps = context.get_reward_per_share();
+
+        let reward = if rps > &farm_token_attributes.reward_per_share {
+            let first_payment = &context.get_tx_input().first_payment;
+            let rps_diff = rps - &farm_token_attributes.reward_per_share;
+            let div_safety = context.get_division_safety_constant();
+
+            &first_payment.amount * &rps_diff / div_safety
         } else {
             BigUint::zero()
         };
@@ -129,23 +34,26 @@ pub trait CtxHelper:
     }
 
     fn calculate_initial_farming_amount(&self, context: &mut GenericContext<Self::Api>) {
+        let first_payment = &context.get_tx_input().first_payment;
+        let farm_token_attributes = context.get_input_attributes();
+
         let initial_farming_token_amount = self.rule_of_three_non_zero_result(
-            &context.get_tx_input().get_payments().get_first().amount,
-            &context.get_input_attributes().unwrap().current_farm_amount,
-            &context
-                .get_input_attributes()
-                .unwrap()
-                .initial_farming_amount,
+            &first_payment.amount,
+            &farm_token_attributes.current_farm_amount,
+            &farm_token_attributes.initial_farming_amount,
         );
 
         context.set_initial_farming_amount(initial_farming_token_amount);
     }
 
     fn increase_reward_with_compounded_rewards(&self, context: &mut GenericContext<Self::Api>) {
+        let first_payment = &context.get_tx_input().first_payment;
+        let farm_token_attributes = context.get_input_attributes();
+
         let amount = self.rule_of_three(
-            &context.get_tx_input().get_payments().get_first().amount,
-            &context.get_input_attributes().unwrap().current_farm_amount,
-            &context.get_input_attributes().unwrap().compounded_reward,
+            &first_payment.amount,
+            &farm_token_attributes.current_farm_amount,
+            &farm_token_attributes.compounded_reward,
         );
 
         context.increase_position_reward(&amount);
@@ -155,9 +63,9 @@ pub trait CtxHelper:
         let mut result = ManagedVec::new();
 
         result.push(EsdtTokenPayment::new(
-            context.get_farming_token_id().unwrap().clone(),
+            context.get_farming_token_id().clone(),
             0,
-            context.get_initial_farming_amount().unwrap().clone(),
+            context.get_initial_farming_amount().clone(),
         ));
 
         context.set_output_payments(result);
@@ -171,5 +79,14 @@ pub trait CtxHelper:
             context.get_output_payments().get(0),
             context.get_final_reward().unwrap().clone(),
         ))
+    }
+
+    fn commit_changes(&self, context: &GenericContext<Self::Api>) {
+        self.reward_reserve().set(context.get_reward_reserve());
+        self.reward_per_share().set(context.get_reward_per_share());
+    }
+
+    fn execute_output_payments(&self, context: &GenericContext<Self::Api>) {
+        self.send_multiple_tokens_if_not_zero(context.get_caller(), context.get_output_payments());
     }
 }

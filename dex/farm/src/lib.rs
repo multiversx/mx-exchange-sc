@@ -476,13 +476,11 @@ pub trait Farm:
         }
     }
 
-    #[inline]
     fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
         entering_epoch + self.minimum_farming_epochs().get() as u64
             > self.blockchain().get_block_epoch()
     }
 
-    #[inline]
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
         amount * self.penalty_percent().get() / MAX_PERCENT
     }
