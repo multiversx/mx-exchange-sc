@@ -57,7 +57,7 @@ pub struct GenericContext<M: ManagedTypeApi> {
 pub struct GenericTxInput<M: ManagedTypeApi> {
     pub first_payment: EsdtTokenPayment<M>,
     pub additional_payments: ManagedVec<M, EsdtTokenPayment<M>>,
-    pub attributes: FarmTokenAttributes<M>,
+    attributes: Option<FarmTokenAttributes<M>>,
 }
 
 impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi + CallValueApi> GenericTxInput<M> {
@@ -67,13 +67,10 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi + CallValueApi> GenericT
         let first_payment = payments.get(0);
         payments.remove(0);
 
-        let attributes = farm_sc
-            .get_farm_token_attributes(&first_payment.token_identifier, first_payment.token_nonce);
-
         GenericTxInput {
             first_payment,
             additional_payments: payments,
-            attributes,
+            attributes: None,
         }
     }
 }
@@ -81,13 +78,24 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi + CallValueApi> GenericT
 impl<M: ManagedTypeApi + BlockchainApi + StorageMapperApi + CallTypeApi + CallValueApi>
     GenericContext<M>
 {
-    pub fn new<'a, C: FarmContracTraitBounds<Api = M>>(farm_sc: &'a C) -> Self {
+    pub fn new<C: FarmContracTraitBounds<Api = M>>(farm_sc: &C) -> Self {
+        let storage_cache = StorageCache::new(farm_sc);
+        let mut tx_input = GenericTxInput::new(farm_sc);
+
+        if tx_input.first_payment.token_identifier == storage_cache.farm_token_id {
+            let attributes: FarmTokenAttributes<M> = farm_sc.get_farm_token_attributes(
+                &tx_input.first_payment.token_identifier,
+                tx_input.first_payment.token_nonce,
+            );
+            tx_input.attributes = Some(attributes);
+        }
+
         GenericContext {
             caller: farm_sc.blockchain().get_caller(),
             block_epoch: farm_sc.blockchain().get_block_epoch(),
             block_nonce: farm_sc.blockchain().get_block_nonce(),
-            tx_input: GenericTxInput::new(farm_sc),
-            storage_cache: StorageCache::new(farm_sc),
+            tx_input,
+            storage_cache,
             position_reward: BigUint::zero(),
             initial_farming_amount: BigUint::zero(),
             final_reward: None,
@@ -204,7 +212,11 @@ impl<M: ManagedTypeApi + BlockchainApi + StorageMapperApi + CallTypeApi + CallVa
 
     #[inline]
     pub fn get_input_attributes(&self) -> &FarmTokenAttributes<M> {
-        &self.tx_input.attributes
+        if let Some(attr) = &self.tx_input.attributes {
+            return attr;
+        } else {
+            M::error_api_impl().signal_error(b"No farm token attributes");
+        }
     }
 
     #[inline]
