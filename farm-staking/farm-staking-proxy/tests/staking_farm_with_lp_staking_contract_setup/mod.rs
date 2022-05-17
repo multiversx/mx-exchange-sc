@@ -117,8 +117,8 @@ where
                 managed_token_id!(LP_TOKEN_ID),
             );
 
-            sc.dual_yield_token_id()
-                .set(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
+            sc.dual_yield_token()
+                .set_token_id(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
         })
         .assert_ok();
 
