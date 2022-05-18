@@ -8,7 +8,10 @@ pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_p
 
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
-    config::ConfigModule + token_send::TokenSendModule + farm_token::FarmTokenModule
+    config::ConfigModule
+    + token_send::TokenSendModule
+    + farm_token::FarmTokenModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_extra_rewards_since_last_allocation(&self) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();

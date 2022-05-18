@@ -16,6 +16,9 @@ num-bigint = "0.4.2"
 [dev-dependencies.config]
 path = "../common/modules/farm/config"
 
+[dev-dependencies.farm_token]
+path = "../common/modules/farm/farm_token"
+
 [dev-dependencies.rewards]
 path = "../common/modules/farm/rewards"
 

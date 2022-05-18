@@ -1,3 +1,4 @@
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
@@ -13,6 +14,7 @@ use farm_staking_config::ConfigModule as _;
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
 use farm_staking_proxy::*;
+use farm_token::FarmTokenModule;
 
 use crate::constants::*;
 
@@ -36,8 +38,8 @@ where
 
             sc.init(farming_token_id, div_const, max_apr, UNBOND_EPOCHS);
 
-            sc.farm_token_id()
-                .set(&managed_token_id!(STAKING_FARM_TOKEN_ID));
+            sc.farm_token()
+                .set_token_id(&managed_token_id!(STAKING_FARM_TOKEN_ID));
 
             sc.state().set(&farm_staking_config::State::Active);
             sc.produce_rewards_enabled().set(&true);
@@ -115,8 +117,8 @@ where
                 managed_token_id!(LP_TOKEN_ID),
             );
 
-            sc.dual_yield_token_id()
-                .set(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
+            sc.dual_yield_token()
+                .set_token_id(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
         })
         .assert_ok();
 

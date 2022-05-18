@@ -9,12 +9,16 @@ use elrond_wasm::elrond_codec::TopEncode;
 
 #[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
-    pub token_amount: EsdtTokenPayment<M>,
+    pub payment: EsdtTokenPayment<M>,
     pub attributes: FarmTokenAttributes<M>,
 }
 
 #[elrond_wasm::module]
-pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
+pub trait FarmTokenModule:
+    config::ConfigModule
+    + token_send::TokenSendModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+{
     #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]
@@ -25,107 +29,14 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
         num_decimals: usize,
     ) {
         let payment_amount = self.call_value().egld_value();
-        require!(self.farm_token_id().is_empty(), "Token exists already");
-
-        self.register_token(
+        self.farm_token().issue_and_set_all_roles(
+            EsdtTokenType::Meta,
             payment_amount,
             token_display_name,
             token_ticker,
             num_decimals,
-        )
-    }
-
-    fn register_token(
-        &self,
-        register_cost: BigUint,
-        token_display_name: ManagedBuffer,
-        token_ticker: ManagedBuffer,
-        num_decimals: usize,
-    ) {
-        self.send()
-            .esdt_system_sc_proxy()
-            .register_meta_esdt(
-                register_cost,
-                &token_display_name,
-                &token_ticker,
-                MetaTokenProperties {
-                    num_decimals,
-                    can_freeze: true,
-                    can_wipe: true,
-                    can_pause: true,
-                    can_change_owner: true,
-                    can_upgrade: true,
-                    can_add_special_roles: true,
-                },
-            )
-            .async_call()
-            .with_callback(
-                self.callbacks()
-                    .register_callback(self.blockchain().get_caller()),
-            )
-            .call_and_exit()
-    }
-
-    #[callback]
-    fn register_callback(
-        &self,
-        caller: ManagedAddress,
-        #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
-    ) {
-        match result {
-            ManagedAsyncCallResult::Ok(token_id) => {
-                if self.farm_token_id().is_empty() {
-                    self.farm_token_id().set(&token_id);
-                }
-            }
-            ManagedAsyncCallResult::Err(_) => {
-                let (returned_tokens, token_id) = self.call_value().payment_token_pair();
-                if token_id.is_egld() && returned_tokens > 0 {
-                    let _ = self.send().direct_egld(&caller, &returned_tokens, &[]);
-                }
-            }
-        }
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRolesFarmToken)]
-    fn set_local_roles_farm_token(&self) {
-        require!(!self.farm_token_id().is_empty(), "No farm token");
-
-        let token = self.farm_token_id().get();
-        self.set_local_roles(token)
-    }
-
-    fn set_local_roles(&self, token: TokenIdentifier) {
-        let roles = [
-            EsdtLocalRole::NftCreate,
-            EsdtLocalRole::NftAddQuantity,
-            EsdtLocalRole::NftBurn,
-        ];
-
-        self.send()
-            .esdt_system_sc_proxy()
-            .set_special_roles(
-                &self.blockchain().get_sc_address(),
-                &token,
-                roles.iter().cloned(),
-            )
-            .async_call()
-            .call_and_exit()
-    }
-
-    fn get_farm_attributes(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> FarmTokenAttributes<Self::Api> {
-        let token_info = self.blockchain().get_esdt_token_data(
-            &self.blockchain().get_sc_address(),
-            token_id,
-            token_nonce,
+            None,
         );
-
-        token_info.decode_attributes()
     }
 
     fn burn_farm_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment<Self::Api>>) {
@@ -135,24 +46,44 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
         }
+
         self.farm_token_supply().update(|x| *x -= total_amount);
     }
 
     fn mint_farm_tokens<T: TopEncode>(
         &self,
-        token_id: &TokenIdentifier,
-        amount: &BigUint,
+        token_id: TokenIdentifier,
+        amount: BigUint,
         attributes: &T,
-    ) -> u64 {
+    ) -> EsdtTokenPayment<Self::Api> {
         let new_nonce = self
             .send()
-            .esdt_nft_create_compact(token_id, amount, attributes);
-        self.farm_token_supply().update(|x| *x += amount);
-        new_nonce
+            .esdt_nft_create_compact(&token_id, &amount, attributes);
+        self.farm_token_supply().update(|x| *x += &amount);
+
+        EsdtTokenPayment::new(token_id, new_nonce, amount)
     }
 
     fn burn_farm_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
         self.send().esdt_local_burn(token_id, nonce, amount);
         self.farm_token_supply().update(|x| *x -= amount);
     }
+
+    fn get_farm_token_attributes<T: TopDecode>(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: u64,
+    ) -> T {
+        let token_info = self.blockchain().get_esdt_token_data(
+            &self.blockchain().get_sc_address(),
+            token_id,
+            token_nonce,
+        );
+
+        token_info.decode_attributes()
+    }
+
+    #[view(getFarmTokenId)]
+    #[storage_mapper("farm_token_id")]
+    fn farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 }

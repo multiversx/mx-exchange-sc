@@ -1,4 +1,5 @@
 use common_structs::FarmTokenAttributes;
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
@@ -11,6 +12,7 @@ use migration_from_v1_2::{FarmTokenAttributesV1_2, MigrationModule};
 
 use config::*;
 use farm::*;
+use farm_token::FarmTokenModule;
 
 // const GENERATED_FILE_PREFIX: &'static str = "_generated_";
 // const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";
@@ -70,7 +72,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token_id().set(&farm_token_id);
+            sc.farm_token().set_token_id(&farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));

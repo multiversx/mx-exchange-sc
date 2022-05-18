@@ -17,6 +17,7 @@ pub trait FarmStakingProxy:
     + external_contracts_interactions::ExternalContractsInteractionsModule
     + lp_farm_token::LpFarmTokenModule
     + token_merge::TokenMergeModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
     fn init(
@@ -73,7 +74,8 @@ pub trait FarmStakingProxy:
             lp_farm_token_payment.token_identifier == lp_farm_token_id,
             "Invalid first payment"
         );
-        self.require_all_payments_dual_yield_tokens(&additional_payments);
+        self.dual_yield_token()
+            .require_all_same_token(&additional_payments);
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut additional_staking_farm_tokens = ManagedVec::new();
@@ -122,7 +124,7 @@ pub trait FarmStakingProxy:
     #[endpoint(claimDualYield)]
     fn claim_dual_yield(&self) -> ClaimDualYieldResult<Self::Api> {
         let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
-        self.require_dual_yield_token(&payment_token);
+        self.dual_yield_token().require_same_token(&payment_token);
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
 
@@ -196,10 +198,8 @@ pub trait FarmStakingProxy:
         pair_first_token_min_amount: BigUint,
         pair_second_token_min_amount: BigUint,
     ) -> UnstakeResult<Self::Api> {
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
-        let payment_nonce = self.call_value().esdt_token_nonce();
-
-        self.require_dual_yield_token(&payment_token);
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
+        self.dual_yield_token().require_same_token(&payment_token);
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
         let lp_farm_token_amount =

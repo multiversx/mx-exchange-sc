@@ -3,6 +3,7 @@ use std::ops::Mul;
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{
     Address, BigUint, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded,
 };
@@ -17,6 +18,7 @@ type RustBigUint = num_bigint::BigUint;
 use config::*;
 use factory::locked_asset::LockedAssetModule;
 use factory::*;
+use farm_token::FarmTokenModule;
 use farm_with_lock::custom_rewards::CustomRewardsModule;
 use farm_with_lock::*;
 use rewards::*;
@@ -136,7 +138,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token_id().set(&farm_token_id);
+            sc.farm_token().set_token_id(&farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&to_managed_biguint(per_block_reward_amount));

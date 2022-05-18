@@ -1,4 +1,5 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
@@ -14,6 +15,7 @@ use pair_config::ConfigModule as _;
 use ::config as farm_config;
 use farm::*;
 use farm_config::ConfigModule as _;
+use farm_token::FarmTokenModule;
 
 use crate::constants::*;
 
@@ -220,7 +222,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
-            sc.farm_token_id().set(&farm_token_id);
+            sc.farm_token().set_token_id(&farm_token_id);
 
             sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
             sc.penalty_percent().set(&PENALTY_PERCENT);

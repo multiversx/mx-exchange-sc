@@ -1,5 +1,6 @@
 use std::ops::Mul;
 
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -10,6 +11,7 @@ type RustBigUint = num_bigint::BigUint;
 use config::*;
 use custom_rewards::*;
 use farm::*;
+use farm_token::FarmTokenModule;
 use rewards::*;
 
 const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
@@ -65,7 +67,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token_id().set(&farm_token_id);
+            sc.farm_token().set_token_id(&farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&to_managed_biguint(per_block_reward_amount));

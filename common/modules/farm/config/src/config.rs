@@ -13,7 +13,7 @@ pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi, Clone, Copy)]
 pub enum State {
     Inactive,
     Active,
@@ -92,10 +92,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getLastRewardBlockNonce)]
     #[storage_mapper("last_reward_block_nonce")]
     fn last_reward_block_nonce(&self) -> SingleValueMapper<Nonce>;
-
-    #[view(getFarmTokenId)]
-    #[storage_mapper("farm_token_id")]
-    fn farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
