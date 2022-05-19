@@ -20,8 +20,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         #[payment_token] token_id: TokenIdentifier,
         #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: u64,
-        swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
+        #[var_args] swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>
     ) {
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
@@ -66,7 +65,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         }
 
         payments.push(last_payment);
-        self.send_multiple_tokens(&caller, &payments, &opt_accept_funds_func);
+        self.send_multiple_tokens(&caller, &payments, &OptionalValue::None);
     }
 
     fn actual_swap_fixed_input(
