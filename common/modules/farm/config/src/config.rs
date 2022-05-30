@@ -62,6 +62,10 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("farm_token_supply")]
     fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getGlobalFarmTokenSupply)]
+    #[storage_mapper("global_farm_token_supply")]
+    fn global_farm_token_supply(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getState)]
     #[storage_mapper("state")]
     fn state(&self) -> SingleValueMapper<State>;
@@ -88,6 +92,10 @@ pub trait ConfigModule: token_send::TokenSendModule {
 
     #[storage_mapper("produce_rewards_enabled")]
     fn produce_rewards_enabled(&self) -> SingleValueMapper<bool>;
+
+    #[view(getCurrentCheckpointBlockNonce)]
+    #[storage_mapper("current_checkpoint_block_nonce")]
+    fn current_checkpoint_block_nonce(&self) -> SingleValueMapper<Nonce>;
 
     #[view(getLastRewardBlockNonce)]
     #[storage_mapper("last_reward_block_nonce")]

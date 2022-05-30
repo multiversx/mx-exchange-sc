@@ -22,6 +22,7 @@ pub struct StorageCache<M: ManagedTypeApi> {
     pub reward_reserve: BigUint<M>,
     pub reward_per_share: BigUint<M>,
     pub farm_token_supply: BigUint<M>,
+    pub global_farm_token_supply: BigUint<M>,
     pub division_safety_constant: BigUint<M>,
 }
 
@@ -35,6 +36,7 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> StorageCache<M> {
             reward_reserve: farm_sc.reward_reserve().get(),
             reward_per_share: farm_sc.reward_per_share().get(),
             farm_token_supply: farm_sc.farm_token_supply().get(),
+            global_farm_token_supply: farm_sc.global_farm_token_supply().get(),
             division_safety_constant: farm_sc.division_safety_constant().get(),
         }
     }

@@ -14,21 +14,22 @@ pub trait CustomRewardsModule:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_extra_rewards_since_last_allocation(&self) -> BigUint {
-        let current_block_nonce = self.blockchain().get_block_nonce();
+        let current_checkpoint_block_nonce = self.current_checkpoint_block_nonce().get();
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
-        if current_block_nonce > last_reward_nonce {
+        if current_checkpoint_block_nonce > last_reward_nonce {
             let extra_rewards_unbounded =
-                self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+                self.calculate_per_block_rewards(current_checkpoint_block_nonce, last_reward_nonce);
 
-            let farm_token_supply = self.farm_token_supply().get();
+            let global_farm_token_supply = self.global_farm_token_supply().get();
             let extra_rewards_apr_bounded_per_block =
-                self.get_amount_apr_bounded(&farm_token_supply);
+                self.get_amount_apr_bounded(&global_farm_token_supply);
 
-            let block_nonce_diff = current_block_nonce - last_reward_nonce;
+            let block_nonce_diff = current_checkpoint_block_nonce - last_reward_nonce;
             let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
 
-            self.last_reward_block_nonce().set(&current_block_nonce);
+            self.last_reward_block_nonce()
+                .set(&current_checkpoint_block_nonce);
 
             core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
         } else {
@@ -69,7 +70,6 @@ pub trait CustomRewardsModule:
     #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {
-        self.generate_aggregated_rewards();
         self.produce_rewards_enabled().set(&false);
     }
 
@@ -78,7 +78,6 @@ pub trait CustomRewardsModule:
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
         require!(per_block_amount != 0, "Amount cannot be zero");
 
-        self.generate_aggregated_rewards();
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
@@ -87,7 +86,6 @@ pub trait CustomRewardsModule:
     fn set_max_apr(&self, max_apr: BigUint) {
         require!(max_apr != 0, "Max APR cannot be zero");
 
-        self.generate_aggregated_rewards();
         self.max_annual_percentage_rewards().set(&max_apr);
     }
 
@@ -99,15 +97,17 @@ pub trait CustomRewardsModule:
 
     fn calculate_per_block_rewards(
         &self,
-        current_block_nonce: Nonce,
+        current_checkpoint_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
     ) -> BigUint {
-        if current_block_nonce <= last_reward_block_nonce || !self.produces_per_block_rewards() {
+        if current_checkpoint_block_nonce <= last_reward_block_nonce
+            || !self.produces_per_block_rewards()
+        {
             return BigUint::zero();
         }
 
         let per_block_reward = self.per_block_reward_amount().get();
-        let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
+        let block_nonce_diff = current_checkpoint_block_nonce - last_reward_block_nonce;
 
         per_block_reward * block_nonce_diff
     }

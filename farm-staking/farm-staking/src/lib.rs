@@ -33,6 +33,7 @@ pub struct UnbondSftAttributes {
 #[elrond_wasm::contract]
 pub trait Farm:
     custom_rewards::CustomRewardsModule
+    + multishard::MultishardModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
@@ -82,6 +83,16 @@ pub trait Farm:
         self.min_unbond_epochs().set(min_unbond_epochs);
     }
 
+    #[endpoint]
+    fn synchronize(&self) {
+        self.synchronize_impl(|| self.generate_aggregated_rewards());
+    }
+
+    #[endpoint(acceptSynchronization)]
+    fn accept_synchronization(&self, sibling_supply: BigUint) {
+        self.accept_synchronization_impl(sibling_supply, || self.generate_aggregated_rewards());
+    }
+
     #[payable("*")]
     #[endpoint(stakeFarmThroughProxy)]
     fn stake_farm_through_proxy(
@@ -128,8 +139,6 @@ pub trait Farm:
         let farming_token_id = self.farming_token_id().get();
         require!(token_in == farming_token_id, "Bad input token");
         require!(enter_amount > 0u32, "Cannot farm with amount of 0");
-
-        self.generate_aggregated_rewards();
 
         let attributes = StakingFarmTokenAttributes {
             reward_per_share: self.reward_per_share().get(),
@@ -217,7 +226,6 @@ pub trait Farm:
             token_nonce,
         );
         let reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards();
 
         let reward = self.calculate_reward(
             &payment_amount,
@@ -359,8 +367,6 @@ pub trait Farm:
             farm_token_nonce,
         );
 
-        self.generate_aggregated_rewards();
-
         let current_reward_per_share = self.reward_per_share().get();
         let reward = self.calculate_reward(
             &old_farming_amount,
@@ -432,7 +438,6 @@ pub trait Farm:
             farming_token == reward_token,
             "Farming token differ from reward token"
         );
-        self.generate_aggregated_rewards();
 
         let current_rps = self.reward_per_share().get();
         let farm_attributes = self.get_attributes::<StakingFarmTokenAttributes<Self::Api>>(
@@ -528,9 +533,9 @@ pub trait Farm:
         require!(farm_token_supply >= amount, "Not enough supply");
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
-        let current_block_nonce = self.blockchain().get_block_nonce();
+        let current_checkpoint_block_nonce = self.current_checkpoint_block_nonce().get();
         let reward_increase =
-            self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+            self.calculate_per_block_rewards(current_checkpoint_block_nonce, last_reward_nonce);
         let reward_per_share_increase =
             self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
 

@@ -14,15 +14,17 @@ pub trait RewardsModule:
 {
     fn calculate_per_block_rewards(
         &self,
-        current_block_nonce: Nonce,
+        current_checkpoint_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
     ) -> BigUint {
-        if current_block_nonce <= last_reward_block_nonce || !self.produces_per_block_rewards() {
+        if current_checkpoint_block_nonce <= last_reward_block_nonce
+            || !self.produces_per_block_rewards()
+        {
             return BigUint::zero();
         }
 
         let per_block_reward = self.per_block_reward_amount().get();
-        let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
+        let block_nonce_diff = current_checkpoint_block_nonce - last_reward_block_nonce;
 
         per_block_reward * block_nonce_diff
     }
