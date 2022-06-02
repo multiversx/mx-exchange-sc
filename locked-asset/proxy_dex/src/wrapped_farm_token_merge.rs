@@ -52,7 +52,7 @@ pub trait WrappedFarmTokenMerge:
         require!(!payments.is_empty() || replic.is_some(), "Empty deposit");
         let deposit_len = payments.len();
 
-        let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
+        let wrapped_farm_token_id = self.wrapped_farm_token().get_token_id();
         self.require_all_tokens_are_wrapped_farm_tokens(payments.clone(), &wrapped_farm_token_id);
 
         let mut tokens = self.get_wrapped_farm_tokens_from_deposit(payments.clone());
@@ -89,7 +89,7 @@ pub trait WrappedFarmTokenMerge:
         );
 
         let new_token = WrappedFarmToken {
-            token_amount: merged_farm_token_amount,
+            token: merged_farm_token_amount,
             attributes: new_attrs,
         };
         let is_merged = deposit_len != 0;
@@ -108,7 +108,7 @@ pub trait WrappedFarmTokenMerge:
                 .get_wrapped_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
 
             result.push(WrappedFarmToken {
-                token_amount: payment.clone(),
+                token: payment.clone(),
                 attributes: attr,
             })
         }
@@ -159,7 +159,7 @@ pub trait WrappedFarmTokenMerge:
         if tokens.len() == 1 {
             let token = tokens.get(0);
             let locked_token_amount = self.rule_of_three_non_zero_result(
-                &token.token_amount.amount,
+                &token.token.amount,
                 &token.attributes.farm_token_amount,
                 &token.attributes.farming_token_amount,
             );
@@ -174,7 +174,7 @@ pub trait WrappedFarmTokenMerge:
         let mut payments = ManagedVec::new();
         for entry in tokens.iter() {
             let locked_token_amount = self.rule_of_three_non_zero_result(
-                &entry.token_amount.amount,
+                &entry.token.amount,
                 &entry.attributes.farm_token_amount,
                 &entry.attributes.farming_token_amount,
             );
@@ -203,7 +203,7 @@ pub trait WrappedFarmTokenMerge:
             return EsdtTokenPayment::new(
                 token.attributes.farm_token_id,
                 token.attributes.farm_token_nonce,
-                token.token_amount.amount,
+                token.token.amount,
             );
         }
 
@@ -212,7 +212,7 @@ pub trait WrappedFarmTokenMerge:
             payments.push(EsdtTokenPayment::new(
                 entry.attributes.farm_token_id.clone(),
                 entry.attributes.farm_token_nonce,
-                entry.token_amount.amount.clone(),
+                entry.token.amount.clone(),
             ));
         }
 
@@ -229,7 +229,7 @@ pub trait WrappedFarmTokenMerge:
         if tokens.len() == 1 {
             let first_token = tokens.get(0);
             let farming_amount = self.rule_of_three_non_zero_result(
-                &first_token.token_amount.amount,
+                &first_token.token.amount,
                 &first_token.attributes.farm_token_amount,
                 &first_token.attributes.farming_token_amount,
             );
@@ -259,7 +259,7 @@ pub trait WrappedFarmTokenMerge:
 
         for token in tokens.iter() {
             let wrapped_lp_token_amount = self.rule_of_three_non_zero_result(
-                &token.token_amount.amount,
+                &token.token.amount,
                 &token.attributes.farm_token_amount,
                 &token.attributes.farming_token_amount,
             );
@@ -270,7 +270,7 @@ pub trait WrappedFarmTokenMerge:
             let attributes =
                 self.get_wrapped_lp_token_attributes(&wrapped_lp_token_id, wrapped_lp_token_nonce);
             let wrapped_lp_token = WrappedLpToken {
-                token_amount: EsdtTokenPayment::new(
+                token: EsdtTokenPayment::new(
                     wrapped_lp_token_id,
                     wrapped_lp_token_nonce,
                     wrapped_lp_token_amount,
@@ -303,9 +303,9 @@ pub trait WrappedFarmTokenMerge:
 
         for wrapped_lp_token in wrapped_lp_tokens.iter() {
             self.send().esdt_local_burn(
-                &wrapped_lp_token.token_amount.token_identifier,
-                wrapped_lp_token.token_amount.token_nonce,
-                &wrapped_lp_token.token_amount.amount,
+                &wrapped_lp_token.token.token_identifier,
+                wrapped_lp_token.token.token_nonce,
+                &wrapped_lp_token.token.amount,
             );
         }
 

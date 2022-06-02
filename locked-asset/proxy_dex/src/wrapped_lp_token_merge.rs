@@ -32,7 +32,7 @@ pub trait WrappedLpTokenMerge:
         require!(!payments.is_empty() || replic.is_some(), "Empty payments");
         let payments_len = payments.len();
 
-        let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
+        let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
         self.require_all_tokens_are_wrapped_lp_tokens(payments.clone(), &wrapped_lp_token_id);
 
         let mut tokens = self.get_wrapped_lp_tokens_from_deposit(payments.clone());
@@ -69,7 +69,7 @@ pub trait WrappedLpTokenMerge:
         );
 
         let new_token = WrappedLpToken {
-            token_amount: EsdtTokenPayment::new(
+            token: EsdtTokenPayment::new(
                 wrapped_lp_token_id,
                 new_nonce,
                 merged_wrapped_lp_amount,
@@ -92,7 +92,7 @@ pub trait WrappedLpTokenMerge:
                 .get_wrapped_lp_token_attributes(&payment.token_identifier, payment.token_nonce);
 
             result.push(WrappedLpToken {
-                token_amount: payment.clone(),
+                token: payment.clone(),
                 attributes: attr,
             })
         }
@@ -151,7 +151,7 @@ pub trait WrappedLpTokenMerge:
             let token = tokens.get(0);
 
             let amount = self.rule_of_three_non_zero_result(
-                &token.token_amount.amount,
+                &token.token.amount,
                 &token.attributes.lp_token_total_amount,
                 &token.attributes.locked_assets_invested,
             );
@@ -166,7 +166,7 @@ pub trait WrappedLpTokenMerge:
         let mut payments = ManagedVec::new();
         for entry in tokens.iter() {
             let amount = self.rule_of_three_non_zero_result(
-                &entry.token_amount.amount,
+                &entry.token.amount,
                 &entry.attributes.lp_token_total_amount,
                 &entry.attributes.locked_assets_invested,
             );
@@ -192,7 +192,7 @@ pub trait WrappedLpTokenMerge:
 
         tokens
             .iter()
-            .for_each(|x| token_amount += &x.token_amount.amount);
+            .for_each(|x| token_amount += &x.token.amount);
         token_amount
     }
 }

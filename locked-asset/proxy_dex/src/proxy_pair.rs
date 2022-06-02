@@ -22,7 +22,7 @@ type RemoveLiquidityResultType<BigUint> =
 
 #[derive(ManagedVecItem, Clone)]
 pub struct WrappedLpToken<M: ManagedTypeApi> {
-    pub token_amount: EsdtTokenPayment<M>,
+    pub token: EsdtTokenPayment<M>,
     pub attributes: WrappedLpTokenAttributes<M>,
 }
 
@@ -54,7 +54,7 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) {
+    ) -> AddLiquidityResultType<Self::Api> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
@@ -163,12 +163,19 @@ pub trait ProxyPairModule:
             &second_token_id,
             first_token_nonce,
             &second_token_used.amount,
-            &new_wrapped_lp_token.token_amount.token_identifier,
-            new_wrapped_lp_token.token_amount.token_nonce,
-            &new_wrapped_lp_token.token_amount.amount,
+            &new_wrapped_lp_token.token.token_identifier,
+            new_wrapped_lp_token.token.token_nonce,
+            &new_wrapped_lp_token.token.amount,
             &new_wrapped_lp_token.attributes,
             created_with_merge,
         );
+
+        (
+            new_wrapped_lp_token.token,
+            surplus_payments.get(0),
+            surplus_payments.get(1),
+        )
+            .into()
     }
 
     #[payable("*")]
@@ -178,7 +185,7 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) {
+    ) -> RemoveLiquidityResultType<Self::Api> {
         let (token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
 
         self.require_is_intermediated_pair(&pair_address);
@@ -186,7 +193,7 @@ pub trait ProxyPairModule:
         require!(token_nonce != 0, "Can only be called with an SFT");
         require!(amount != 0, "Payment amount cannot be zero");
 
-        let wrapped_lp_token_id = self.wrapped_lp_token_id().get();
+        let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
         require!(token_id == wrapped_lp_token_id, "Wrong input token");
 
         let caller = self.blockchain().get_caller();
@@ -270,6 +277,8 @@ pub trait ProxyPairModule:
             0,
             &tokens_for_position.1.amount,
         );
+
+        tokens_for_position.into()
     }
 
     fn actual_add_liquidity(
@@ -343,8 +352,8 @@ pub trait ProxyPairModule:
             caller,
             additional_payments,
             Option::Some(WrappedLpToken {
-                token_amount: EsdtTokenPayment::new(
-                    self.wrapped_lp_token_id().get(),
+                token: EsdtTokenPayment::new(
+                    self.wrapped_lp_token().get_token_id(),
                     0,
                     lp_token_amount.clone(),
                 ),
@@ -366,6 +375,6 @@ pub trait ProxyPairModule:
     }
 
     fn require_wrapped_lp_token_id_not_empty(&self) {
-        require!(!self.wrapped_lp_token_id().is_empty(), "Empty token id");
+        require!(!self.wrapped_lp_token().is_empty(), "Empty token id");
     }
 }

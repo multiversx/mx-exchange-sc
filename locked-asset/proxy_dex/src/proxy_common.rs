@@ -60,11 +60,11 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
 
     #[view(getWrappedLpTokenId)]
     #[storage_mapper("wrapped_lp_token_id")]
-    fn wrapped_lp_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn wrapped_lp_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
     #[view(getWrappedFarmTokenId)]
     #[storage_mapper("wrapped_farm_token_id")]
-    fn wrapped_farm_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn wrapped_farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
