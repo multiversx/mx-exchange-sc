@@ -16,7 +16,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -36,7 +36,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -63,7 +63,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -80,7 +80,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -97,7 +97,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -136,7 +136,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
