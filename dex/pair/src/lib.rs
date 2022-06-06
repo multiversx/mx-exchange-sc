@@ -4,9 +4,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
-const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
-
 mod amm;
 pub mod config;
 mod events;
@@ -36,49 +33,40 @@ pub trait Pair:
     + token_send::TokenSendModule
     + events::EventsModule
 {
+    #[storage_mapper("temporaryWhitelist")]
+    fn temporary_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
+
     #[init]
-    fn init(
+    fn init(&self, #[var_args] whitelist: ManagedVarArgs<ManagedAddress>) -> SCResult<()> {
+        self.add_to_temporary_whitelist(whitelist)
+    }
+
+    #[endpoint(addToTemporaryWhitelist)]
+    fn add_to_temporary_whitelist(
         &self,
-        first_token_id: TokenIdentifier,
-        second_token_id: TokenIdentifier,
-        router_address: ManagedAddress,
-        router_owner_address: ManagedAddress,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
+        #[var_args] whitelist: ManagedVarArgs<ManagedAddress>,
     ) -> SCResult<()> {
-        require!(
-            first_token_id.is_esdt(),
-            "First token ID is not a valid ESDT identifier"
-        );
-        require!(
-            second_token_id.is_esdt(),
-            "Second token ID is not a valid ESDT identifier"
-        );
-        require!(
-            first_token_id != second_token_id,
-            "Exchange tokens cannot be the same"
-        );
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(
-            first_token_id != lp_token_id,
-            "First token ID cannot be the same as LP token ID"
-        );
-        require!(
-            second_token_id != lp_token_id,
-            "Second token ID cannot be the same as LP token ID"
-        );
-        self.try_set_fee_percents(total_fee_percent, special_fee_percent)?;
+        let mut mapper = self.temporary_whitelist();
+        for addr in whitelist {
+            let _ = mapper.insert(addr);
+        }
 
-        self.state().set_if_empty(&State::ActiveNoSwaps);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.extern_swap_gas_limit()
-            .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
+        Ok(())
+    }
 
-        self.router_address().set(&router_address);
-        self.router_owner_address().set(&router_owner_address);
-        self.first_token_id().set(&first_token_id);
-        self.second_token_id().set(&second_token_id);
+    #[endpoint(clearTemporaryWhitelist)]
+    fn clear_whitelist(&self) -> SCResult<()> {
+        self.temporary_whitelist().clear();
+        Ok(())
+    }
+
+    fn require_addr_in_temp_whitelist(&self, addr: &ManagedAddress) -> SCResult<()> {
+        let mapper = self.temporary_whitelist();
+        require!(
+            mapper.is_empty() || mapper.contains(addr),
+            "Not whitelisted"
+        );
+
         Ok(())
     }
 
@@ -90,6 +78,9 @@ pub trait Pair:
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<AddLiquidityResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_addr_in_temp_whitelist(&caller)?;
+
         require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -163,7 +154,6 @@ pub trait Pair:
         payments.push(self.create_payment(&expected_first_token_id, 0, &first_token_unused));
         payments.push(self.create_payment(&expected_second_token_id, 0, &second_token_unused));
 
-        let caller = self.blockchain().get_caller();
         self.send_multiple_tokens_if_not_zero(&caller, &payments, &opt_accept_funds_func)?;
 
         self.emit_add_liquidity_event(
@@ -195,12 +185,14 @@ pub trait Pair:
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_addr_in_temp_whitelist(&caller)?;
+
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
         );
 
-        let caller = self.blockchain().get_caller();
         let lp_token_id = self.lp_token_identifier().get();
         require!(token_id == lp_token_id, "Wrong liquidity token");
 
@@ -358,6 +350,9 @@ pub trait Pair:
         amount_out_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_addr_in_temp_whitelist(&caller)?;
+
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0u32, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
@@ -391,8 +386,6 @@ pub trait Pair:
             "Insufficient amount out reserve"
         );
         require!(amount_out_optimal != 0u32, "Optimal value is zero");
-
-        let caller = self.blockchain().get_caller();
 
         let mut fee_amount = BigUint::zero();
         let mut amount_in_after_fee = amount_in.clone();
@@ -444,6 +437,9 @@ pub trait Pair:
         amount_out: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedOutputResultType<Self::Api>> {
+        let caller = self.blockchain().get_caller();
+        self.require_addr_in_temp_whitelist(&caller)?;
+
         require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
@@ -474,7 +470,6 @@ pub trait Pair:
             "Computed amount in greater than maximum amount in"
         );
 
-        let caller = self.blockchain().get_caller();
         let residuum = &amount_in_max - &amount_in_optimal;
 
         let mut fee_amount = BigUint::zero();
