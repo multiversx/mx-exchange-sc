@@ -4,9 +4,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
-const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
-
 mod amm;
 pub mod bot_protection;
 pub mod config;
@@ -50,36 +47,13 @@ pub trait Pair<ContractReader>:
     + locking_wrapper::LockingWrapperModule
 {
     #[init]
-    fn init(
-        &self,
-        first_token_id: TokenIdentifier,
-        second_token_id: TokenIdentifier,
-        router_address: ManagedAddress,
-        router_owner_address: ManagedAddress,
-        total_fee_percent: u64,
-        special_fee_percent: u64,
-        #[var_args] initial_liquidity_adder: OptionalValue<ManagedAddress>,
-    ) {
-        require!(first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
-        let lp_token_id = self.lp_token_identifier().get();
-        require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        self.set_fee_percents(total_fee_percent, special_fee_percent);
-
+    fn init(&self, #[var_args] whitelist: MultiValueEncoded<ManagedAddress>) {
         self.state().set(&State::Inactive);
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.extern_swap_gas_limit()
-            .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
-        self.router_address().set(&router_address);
-        self.router_owner_address().set(&router_owner_address);
-        self.first_token_id().set(&first_token_id);
-        self.second_token_id().set(&second_token_id);
-        self.initial_liquidity_adder()
-            .set(&initial_liquidity_adder.into_option());
+        let mut whitelist_mapper = self.whitelist();
+        for addr in whitelist {
+            let _ = whitelist_mapper.insert(addr);
+        }
     }
 
     #[payable("*")]
@@ -183,7 +157,8 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.is_state_active(context.get_contract_state()),
+            self.is_state_active(context.get_contract_state())
+                || self.whitelist().contains(context.get_caller()),
             ERROR_NOT_ACTIVE
         );
 
@@ -268,7 +243,8 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.is_state_active(context.get_contract_state()),
+            self.is_state_active(context.get_contract_state())
+                || self.whitelist().contains(context.get_caller()),
             ERROR_NOT_ACTIVE
         );
 
@@ -482,7 +458,8 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.can_swap(context.get_contract_state()),
+            self.can_swap(context.get_contract_state())
+                || self.whitelist().contains(context.get_caller()),
             ERROR_SWAP_NOT_ENABLED
         );
 
@@ -550,7 +527,8 @@ pub trait Pair<ContractReader>:
 
         self.load_state(&mut context);
         require!(
-            self.can_swap(context.get_contract_state()),
+            self.can_swap(context.get_contract_state())
+                || self.whitelist().contains(context.get_caller()),
             ERROR_SWAP_NOT_ENABLED
         );
 
