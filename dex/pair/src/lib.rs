@@ -47,13 +47,8 @@ pub trait Pair<ContractReader>:
     + locking_wrapper::LockingWrapperModule
 {
     #[init]
-    fn init(&self, #[var_args] whitelist: MultiValueEncoded<ManagedAddress>) {
+    fn init(&self, #[var_args] _ignore: IgnoreValue) {
         self.state().set(&State::Inactive);
-
-        let mut whitelist_mapper = self.whitelist();
-        for addr in whitelist {
-            let _ = whitelist_mapper.insert(addr);
-        }
     }
 
     #[payable("*")]
