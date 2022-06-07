@@ -9,7 +9,6 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         acceptSynchronization
-        addAddressToSiblingWhitelist
         addAddressToWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -42,12 +41,12 @@ elrond_wasm_node::wasm_endpoints! {
         mergeFarmTokens
         pause
         registerFarmToken
-        removeAddressFromSiblingWhitelist
         removeAddressFromWhitelist
         resume
         setMaxApr
         setMinUnbondEpochs
         setPerBlockRewardAmount
+        setSiblingWhitelist
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent

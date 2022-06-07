@@ -82,19 +82,12 @@ pub trait Farm:
 
     #[endpoint]
     fn synchronize(&self) {
-        self.synchronize_impl(|| self.generate_rewards());
+        self.synchronize_impl(|| self.generate_aggregated_rewards());
     }
 
     #[endpoint(acceptSynchronization)]
     fn accept_synchronization(&self, sibling_supply: BigUint) {
-        self.accept_synchronization_impl(sibling_supply, || self.generate_rewards());
-    }
-
-    fn generate_rewards(&self) {
-        let mut context = self.new_farm_context();
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
-        self.reward_per_share().set(context.get_reward_per_share());
-        self.reward_reserve().set(context.get_reward_reserve());
+        self.accept_synchronization_impl(sibling_supply, || self.generate_aggregated_rewards());
     }
 
     #[payable("*")]

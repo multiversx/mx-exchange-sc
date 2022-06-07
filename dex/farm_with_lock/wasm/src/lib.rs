@@ -9,7 +9,6 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         acceptSynchronization
-        addAddressToSiblingWhitelist
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
@@ -40,12 +39,12 @@ elrond_wasm_node::wasm_endpoints! {
         migrateFromV1_2Farm
         pause
         registerFarmToken
-        removeAddressFromSiblingWhitelist
         resume
         setFarmMigrationConfig
         setFarmTokenSupply
         setPerBlockRewardAmount
         setRpsAndStartRewards
+        setSiblingWhitelist
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent

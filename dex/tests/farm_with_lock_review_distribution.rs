@@ -265,6 +265,25 @@ fn enter_farm<FarmObjBuilder, FactoryObjBuilder>(
     b_mock.add_mandos_sc_call(sc_call, Some(tx_expect));
 }
 
+fn synchronize_single_farm<FarmObjBuilder, FactoryObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder, FactoryObjBuilder>)
+where
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_lock::ContractObj<DebugApi>,
+    FactoryObjBuilder: 'static + Copy + Fn() -> factory::ContractObj<DebugApi>,
+{
+    let rust_zero = rust_biguint!(0u64);
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock
+        .execute_tx(
+            &farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.synchronize();
+            },
+        )
+        .assert_ok();
+}
+
 fn to_managed_biguint(value: RustBigUint) -> BigUint<DebugApi> {
     BigUint::from_bytes_be(&value.to_bytes_be())
 }
@@ -422,6 +441,7 @@ fn step<FarmObjBuilder, FactoryObjBuilder>(
     farm_setup
         .blockchain_wrapper
         .set_block_nonce(block_number + 1); // spreadsheet correction
+    synchronize_single_farm(farm_setup);
     handle_action(farm_setup, action);
     check_expected(farm_setup, expected);
 }

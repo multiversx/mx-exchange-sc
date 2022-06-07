@@ -40,7 +40,7 @@ pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
     }
 
     fn try_create_checkpoint<F: FnOnce()>(&self, generate_rewards: F) {
-        if self.sibling_supplies().len() != self.sibling_whitelist().len() + 1 {
+        if self.sibling_supplies().len() <= self.sibling_whitelist().len() {
             return;
         }
 
@@ -59,16 +59,14 @@ pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
     }
 
     #[only_owner]
-    #[endpoint(addAddressToSiblingWhitelist)]
-    fn add_address_to_sibling_whitelist(&self, address: ManagedAddress) {
-        self.sibling_whitelist().insert(address);
-    }
+    #[endpoint(setSiblingWhitelist)]
+    fn set_sibling_whitelist(&self, sibling_addresses: MultiValueEncoded<ManagedAddress>) {
+        self.sibling_whitelist().clear();
+        self.sibling_supplies().clear();
 
-    #[only_owner]
-    #[endpoint(removeAddressFromSiblingWhitelist)]
-    fn remove_address_from_sibling_whitelist(&self, address: ManagedAddress) {
-        self.sibling_whitelist().remove(&address);
-        self.sibling_supplies().remove(&address);
+        for address in sibling_addresses {
+            self.sibling_whitelist().insert(address);
+        }
     }
 
     #[endpoint(isSiblingWhitelisted)]
