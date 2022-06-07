@@ -41,11 +41,15 @@ pub trait Pair:
         self.add_to_temporary_whitelist(whitelist)
     }
 
+    #[only_owner]
     #[endpoint(addToTemporaryWhitelist)]
     fn add_to_temporary_whitelist(
         &self,
         #[var_args] whitelist: ManagedVarArgs<ManagedAddress>,
     ) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
         let mut mapper = self.temporary_whitelist();
         for addr in whitelist {
             let _ = mapper.insert(addr);
@@ -55,7 +59,10 @@ pub trait Pair:
     }
 
     #[endpoint(clearTemporaryWhitelist)]
-    fn clear_whitelist(&self) -> SCResult<()> {
+    fn clear_temporary_whitelist(&self) -> SCResult<()> {
+        let caller = self.blockchain().get_caller();
+        self.require_whitelisted(&caller)?;
+
         self.temporary_whitelist().clear();
         Ok(())
     }
