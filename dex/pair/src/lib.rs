@@ -47,8 +47,7 @@ pub trait Pair:
         &self,
         #[var_args] whitelist: ManagedVarArgs<ManagedAddress>,
     ) -> SCResult<()> {
-        let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller)?;
+        self.require_permissions()?;
 
         let mut mapper = self.temporary_whitelist();
         for addr in whitelist {
@@ -60,8 +59,7 @@ pub trait Pair:
 
     #[endpoint(clearTemporaryWhitelist)]
     fn clear_temporary_whitelist(&self) -> SCResult<()> {
-        let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller)?;
+        self.require_permissions()?;
 
         self.temporary_whitelist().clear();
         Ok(())
