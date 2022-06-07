@@ -34,13 +34,8 @@ pub trait Pair:
     + events::EventsModule
 {
     #[init]
-    fn init(&self, #[var_args] whitelist: ManagedVarArgs<ManagedAddress>) {
+    fn init(&self, #[var_args] _ignore: IgnoreVarArgs) {
         self.state().set(&State::Inactive);
-
-        let mut whitelist_mapper = self.whitelist();
-        for addr in whitelist {
-            let _ = whitelist_mapper.insert(addr);
-        }
     }
 
     #[payable("*")]
