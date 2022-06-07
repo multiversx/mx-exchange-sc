@@ -33,46 +33,14 @@ pub trait Pair:
     + token_send::TokenSendModule
     + events::EventsModule
 {
-    #[storage_mapper("temporaryWhitelist")]
-    fn temporary_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
-
     #[init]
-    fn init(&self, #[var_args] whitelist: ManagedVarArgs<ManagedAddress>) -> SCResult<()> {
-        self.add_to_temporary_whitelist(whitelist)
-    }
+    fn init(&self, #[var_args] whitelist: ManagedVarArgs<ManagedAddress>) {
+        self.state().set(&State::Inactive);
 
-    #[only_owner]
-    #[endpoint(addToTemporaryWhitelist)]
-    fn add_to_temporary_whitelist(
-        &self,
-        #[var_args] whitelist: ManagedVarArgs<ManagedAddress>,
-    ) -> SCResult<()> {
-        self.require_permissions()?;
-
-        let mut mapper = self.temporary_whitelist();
+        let mut whitelist_mapper = self.whitelist();
         for addr in whitelist {
-            let _ = mapper.insert(addr);
+            let _ = whitelist_mapper.insert(addr);
         }
-
-        Ok(())
-    }
-
-    #[endpoint(clearTemporaryWhitelist)]
-    fn clear_temporary_whitelist(&self) -> SCResult<()> {
-        self.require_permissions()?;
-
-        self.temporary_whitelist().clear();
-        Ok(())
-    }
-
-    fn require_addr_in_temp_whitelist(&self, addr: &ManagedAddress) -> SCResult<()> {
-        let mapper = self.temporary_whitelist();
-        require!(
-            mapper.is_empty() || mapper.contains(addr),
-            "Not whitelisted"
-        );
-
-        Ok(())
     }
 
     #[payable("*")]
@@ -84,9 +52,11 @@ pub trait Pair:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<AddLiquidityResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        self.require_addr_in_temp_whitelist(&caller)?;
+        require!(
+            self.is_active() || self.whitelist().contains(&caller),
+            "Not active"
+        );
 
-        require!(self.is_active(), "Not active");
         require!(
             !self.lp_token_identifier().is_empty(),
             "LP token not issued"
@@ -191,7 +161,10 @@ pub trait Pair:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<RemoveLiquidityResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        self.require_addr_in_temp_whitelist(&caller)?;
+        require!(
+            self.is_active() || self.whitelist().contains(&caller),
+            "Not active"
+        );
 
         require!(
             !self.lp_token_identifier().is_empty(),
@@ -356,9 +329,11 @@ pub trait Pair:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedInputResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        self.require_addr_in_temp_whitelist(&caller)?;
+        require!(
+            self.can_swap() || self.whitelist().contains(&caller),
+            "Swap is not enabled"
+        );
 
-        require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in > 0u32, "Invalid amount_in");
         require!(token_in != token_out, "Swap with same token");
         let first_token_id = self.first_token_id().get();
@@ -443,9 +418,11 @@ pub trait Pair:
         #[var_args] opt_accept_funds_func: OptionalArg<ManagedBuffer>,
     ) -> SCResult<SwapTokensFixedOutputResultType<Self::Api>> {
         let caller = self.blockchain().get_caller();
-        self.require_addr_in_temp_whitelist(&caller)?;
+        require!(
+            self.can_swap() || self.whitelist().contains(&caller),
+            "Swap is not enabled"
+        );
 
-        require!(self.can_swap(), "Swap is not enabled");
         require!(amount_in_max > 0, "Invalid amount_in");
         require!(token_in != token_out, "Invalid swap with same token");
         let first_token_id = self.first_token_id().get();
