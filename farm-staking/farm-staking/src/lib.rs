@@ -529,15 +529,15 @@ pub trait Farm:
         attributes: StakingFarmTokenAttributes<Self::Api>,
     ) -> BigUint {
         require!(amount > 0, "Zero liquidity input");
-        let farm_token_supply = self.farm_token_supply().get();
-        require!(farm_token_supply >= amount, "Not enough supply");
+        let global_farm_token_supply = self.global_farm_token_supply().get();
+        require!(global_farm_token_supply >= amount, "Not enough supply");
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let current_checkpoint_block_nonce = self.current_checkpoint_block_nonce().get();
         let reward_increase =
             self.calculate_per_block_rewards(current_checkpoint_block_nonce, last_reward_nonce);
         let reward_per_share_increase =
-            self.calculate_reward_per_share_increase(&reward_increase, &farm_token_supply);
+            self.calculate_reward_per_share_increase(&reward_increase, &global_farm_token_supply);
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
 

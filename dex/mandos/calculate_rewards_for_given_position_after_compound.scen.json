@@ -7,6 +7,25 @@
         },
         {
             "step": "scCall",
+            "txId": "synchronize-1",
+            "tx": {
+                "from": "address:user_with_mex",
+                "to": "sc:mex_farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "calculateRewards",
             "tx": {
                 "from": "address:user1",
@@ -34,6 +53,25 @@
             "currentBlockInfo": {
                 "blockNonce": "11",
                 "blockEpoch": "10"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "synchronize-2",
+            "tx": {
+                "from": "address:user_with_mex",
+                "to": "sc:mex_farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
             }
         },
         {
