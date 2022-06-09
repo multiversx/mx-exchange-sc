@@ -1,6 +1,7 @@
 #[cfg(test)]
 pub mod migration_tests {
     use elrond_wasm::elrond_codec::Empty;
+    use elrond_wasm::storage::mappers::StorageTokenWrapper;
     use elrond_wasm::types::{Address, EsdtLocalRole};
     use elrond_wasm_debug::tx_mock::TxContextStack;
     use elrond_wasm_debug::{
@@ -70,10 +71,10 @@ pub mod migration_tests {
                     managed_address!(&Address::zero()),
                 );
 
-                sc.wrapped_farm_token_id()
-                    .set(&managed_token_id!(WRAPPED_FARM_TOKEN_ID));
-                sc.wrapped_lp_token_id()
-                    .set(&managed_token_id!(WRAPPED_LP_TOKEN_ID));
+                sc.wrapped_farm_token()
+                    .set_token_id(&managed_token_id!(WRAPPED_FARM_TOKEN_ID));
+                sc.wrapped_lp_token()
+                    .set_token_id(&managed_token_id!(WRAPPED_LP_TOKEN_ID));
             })
             .assert_ok();
 

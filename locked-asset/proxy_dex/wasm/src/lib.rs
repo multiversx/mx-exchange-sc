@@ -29,6 +29,5 @@ elrond_wasm_node::wasm_endpoints! {
         removeIntermediatedFarm
         removeIntermediatedPair
         removeLiquidityProxy
-        setLocalRoles
     )
 }

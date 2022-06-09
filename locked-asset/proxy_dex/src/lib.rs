@@ -31,6 +31,7 @@ pub trait ProxyDexImpl:
     + wrapped_lp_token_merge::WrappedLpTokenMerge
     + events::EventsModule
     + migration_from_v1_2::MigrationModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
     fn init(
@@ -40,11 +41,11 @@ pub trait ProxyDexImpl:
         locked_asset_factory_address: ManagedAddress,
     ) {
         require!(
-            asset_token_id.is_esdt(),
+            asset_token_id.is_valid_esdt_identifier(),
             "Asset token ID is not a valid esdt identifier"
         );
         require!(
-            locked_asset_token_id.is_esdt(),
+            locked_asset_token_id.is_valid_esdt_identifier(),
             "Locked asset token ID is not a valid esdt identifier"
         );
         require!(
@@ -68,17 +69,14 @@ pub trait ProxyDexImpl:
         num_decimals: usize,
     ) {
         let register_cost = self.call_value().egld_value();
-        require!(
-            self.wrapped_lp_token_id().is_empty(),
-            "Token exists already"
-        );
-        self.register_meta_esdt(
+        self.wrapped_lp_token().issue_and_set_all_roles(
+            EsdtTokenType::Meta,
             register_cost,
             token_display_name,
             token_ticker,
             num_decimals,
-            RegisterRequestType::ProxyPair,
-        )
+            None,
+        );
     }
 
     #[only_owner]
@@ -91,92 +89,13 @@ pub trait ProxyDexImpl:
         num_decimals: usize,
     ) {
         let register_cost = self.call_value().egld_value();
-        require!(
-            self.wrapped_farm_token_id().is_empty(),
-            "Token exists already"
-        );
-        self.register_meta_esdt(
+        self.wrapped_farm_token().issue_and_set_all_roles(
+            EsdtTokenType::Meta,
             register_cost,
             token_display_name,
             token_ticker,
             num_decimals,
-            RegisterRequestType::ProxyFarm,
-        )
-    }
-
-    fn register_meta_esdt(
-        &self,
-        register_cost: BigUint,
-        token_display_name: ManagedBuffer,
-        token_ticker: ManagedBuffer,
-        num_decimals: usize,
-        request_type: RegisterRequestType,
-    ) {
-        self.send()
-            .esdt_system_sc_proxy()
-            .register_meta_esdt(
-                register_cost,
-                &token_display_name,
-                &token_ticker,
-                MetaTokenProperties {
-                    num_decimals,
-                    can_add_special_roles: true,
-                    can_change_owner: false,
-                    can_freeze: false,
-                    can_pause: false,
-                    can_upgrade: true,
-                    can_wipe: false,
-                },
-            )
-            .async_call()
-            .with_callback(self.callbacks().register_callback(request_type))
-            .call_and_exit()
-    }
-
-    #[callback]
-    fn register_callback(
-        &self,
-        request_type: RegisterRequestType,
-        #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>,
-    ) {
-        match result {
-            ManagedAsyncCallResult::Ok(token_id) => match request_type {
-                RegisterRequestType::ProxyPair => {
-                    if self.wrapped_lp_token_id().is_empty() {
-                        self.wrapped_lp_token_id().set(&token_id);
-                    }
-                }
-                RegisterRequestType::ProxyFarm => {
-                    if self.wrapped_farm_token_id().is_empty() {
-                        self.wrapped_farm_token_id().set(&token_id);
-                    }
-                }
-            },
-            ManagedAsyncCallResult::Err(_) => {
-                let (payment, token_id) = self.call_value().payment_token_pair();
-                self.send().direct(
-                    &self.blockchain().get_owner_address(),
-                    &token_id,
-                    0,
-                    &payment,
-                    &[],
-                );
-            }
-        };
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRoles)]
-    fn set_local_roles(
-        &self,
-        token: TokenIdentifier,
-        address: ManagedAddress,
-        roles: MultiValueEncoded<EsdtLocalRole>,
-    ) {
-        self.send()
-            .esdt_system_sc_proxy()
-            .set_special_roles(&address, &token, roles.into_iter())
-            .async_call()
-            .call_and_exit()
+            None,
+        );
     }
 }

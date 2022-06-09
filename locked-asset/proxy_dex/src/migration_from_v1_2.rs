@@ -45,7 +45,7 @@ pub trait MigrationModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
-        let wrapped_farm_token = self.wrapped_farm_token_id().get();
+        let wrapped_farm_token = self.wrapped_farm_token().get_token_id();
         require!(
             payment_token_id == wrapped_farm_token,
             "Should only be used with wrapped farm tokens"

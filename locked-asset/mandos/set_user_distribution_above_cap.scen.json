@@ -17,7 +17,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -38,7 +38,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
@@ -62,7 +62,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "4",
                 "message": "*",
                 "gas": "*",
@@ -81,7 +81,7 @@
                 "gasPrice": "0"
             },
             "expect": {
-                "out": [],
+                "out": "*",
                 "status": "",
                 "gas": "*",
                 "refund": "*"
