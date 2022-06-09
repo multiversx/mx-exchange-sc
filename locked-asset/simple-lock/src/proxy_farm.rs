@@ -202,7 +202,7 @@ pub trait ProxyFarmModule:
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
     fn exit_farm_locked_token(&self) -> ExitFarmThroughProxyResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
 
@@ -225,13 +225,12 @@ pub trait ProxyFarmModule:
         let caller = self.blockchain().get_caller();
 
         let lp_proxy_token = self.lp_proxy_token();
-        let lp_proxy_token_payment = EsdtTokenPayment {
-            token_identifier: lp_proxy_token.get_token_id(),
-            token_nonce: farm_proxy_token_attributes.farming_token_locked_nonce,
-            amount: exit_farm_result.initial_farming_tokens.amount,
-            token_type: EsdtTokenType::Meta,
-        };
-        self.send().direct(
+        let lp_proxy_token_payment = EsdtTokenPayment::new(
+            lp_proxy_token.get_token_id(),
+            farm_proxy_token_attributes.farming_token_locked_nonce,
+            exit_farm_result.initial_farming_tokens.amount,
+        );
+        self.send().direct_esdt(
             &caller,
             &lp_proxy_token_payment.token_identifier,
             lp_proxy_token_payment.token_nonce,
@@ -240,7 +239,7 @@ pub trait ProxyFarmModule:
         );
 
         if exit_farm_result.reward_tokens.amount > 0 {
-            self.send().direct(
+            self.send().direct_esdt(
                 &caller,
                 &exit_farm_result.reward_tokens.token_identifier,
                 exit_farm_result.reward_tokens.token_nonce,
@@ -264,7 +263,7 @@ pub trait ProxyFarmModule:
     #[payable("*")]
     #[endpoint(farmClaimRewardsLockedToken)]
     fn farm_claim_rewards_locked_token(&self) -> FarmClaimRewardsThroughProxyResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let mut farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
 
@@ -295,7 +294,7 @@ pub trait ProxyFarmModule:
         );
 
         if claim_rewards_result.reward_tokens.amount > 0 {
-            self.send().direct(
+            self.send().direct_esdt(
                 &caller,
                 &claim_rewards_result.reward_tokens.token_identifier,
                 claim_rewards_result.reward_tokens.token_nonce,

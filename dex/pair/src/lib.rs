@@ -59,8 +59,8 @@ pub trait Pair<ContractReader>:
         special_fee_percent: u64,
         initial_liquidity_adder: OptionalValue<ManagedAddress>,
     ) {
-        require!(first_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(second_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(first_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
+        require!(second_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
         let lp_token_id = self.lp_token_identifier().get();
         require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
@@ -227,7 +227,7 @@ pub trait Pair<ContractReader>:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        let (token_id, nonce, liquidity) = self.call_value().payment_as_tuple();
+        let (token_id, nonce, liquidity) = self.call_value().single_esdt().into_tuple();
         let mut context = self.new_remove_liquidity_context(
             &token_id,
             nonce,
@@ -290,7 +290,7 @@ pub trait Pair<ContractReader>:
     #[payable("*")]
     #[endpoint(removeLiquidityAndBuyBackAndBurnToken)]
     fn remove_liquidity_and_burn_token(&self, token_to_buyback_and_burn: TokenIdentifier) {
-        let (token_in, nonce, amount_in) = self.call_value().payment_as_tuple();
+        let (token_in, nonce, amount_in) = self.call_value().single_esdt().into_tuple();
         let mut context = self.new_remove_liquidity_context(
             &token_in,
             nonce,
@@ -364,7 +364,7 @@ pub trait Pair<ContractReader>:
     #[payable("*")]
     #[endpoint(swapNoFeeAndForward)]
     fn swap_no_fee(&self, token_out: TokenIdentifier, destination_address: ManagedAddress) {
-        let (token_in, nonce, amount_in) = self.call_value().payment_as_tuple();
+        let (token_in, nonce, amount_in) = self.call_value().single_esdt().into_tuple();
         let mut context = self.new_swap_context(
             &token_in,
             nonce,
@@ -424,7 +424,7 @@ pub trait Pair<ContractReader>:
         token_out: TokenIdentifier,
         amount_out_min: BigUint,
     ) -> SwapTokensFixedInputResultType<Self::Api> {
-        let (token_in, nonce, amount_in) = self.call_value().payment_as_tuple();
+        let (token_in, nonce, amount_in) = self.call_value().single_esdt().into_tuple();
         let mut context =
             self.new_swap_context(&token_in, nonce, &amount_in, token_out, amount_out_min);
         require!(
@@ -483,7 +483,7 @@ pub trait Pair<ContractReader>:
         token_out: TokenIdentifier,
         amount_out: BigUint,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {
-        let (token_in, nonce, amount_in_max) = self.call_value().payment_as_tuple();
+        let (token_in, nonce, amount_in_max) = self.call_value().single_esdt().into_tuple();
         let mut context =
             self.new_swap_context(&token_in, nonce, &amount_in_max, token_out, amount_out);
         require!(
@@ -547,7 +547,7 @@ pub trait Pair<ContractReader>:
                 && token_identifier != self.second_token_id().get(),
             ERROR_LP_TOKEN_SAME_AS_POOL_TOKENS
         );
-        require!(token_identifier.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(token_identifier.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         self.lp_token_identifier().set(&token_identifier);
     }
 

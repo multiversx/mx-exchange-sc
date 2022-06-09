@@ -64,25 +64,12 @@ pub trait LockedTokenModule:
     ) {
         let payment_amount = self.call_value().egld_value();
 
-        self.locked_token().issue(
+        self.locked_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,
             token_display_name,
             token_ticker,
             num_decimals,
-            None,
-        );
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRolesLockedToken)]
-    fn set_local_roles_locked_token(&self) {
-        self.locked_token().set_local_roles(
-            &[
-                EsdtLocalRole::NftCreate,
-                EsdtLocalRole::NftAddQuantity,
-                EsdtLocalRole::NftBurn,
-            ],
             None,
         );
     }
@@ -118,7 +105,7 @@ pub trait LockedTokenModule:
             }
         }
 
-        self.send().direct(
+        self.send().direct_esdt(
             to,
             &payment.token_identifier,
             payment.token_nonce,

@@ -107,7 +107,7 @@ pub trait PairMock {
 
         let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
         self.send()
-            .direct(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
+            .direct_esdt(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
 
         (
             EsdtTokenPayment::new(lp_token_id, 0, lp_token_amount),

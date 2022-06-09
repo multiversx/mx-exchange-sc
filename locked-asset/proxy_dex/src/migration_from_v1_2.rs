@@ -39,7 +39,7 @@ pub trait MigrationModule:
     #[endpoint(migrateV1_2Position)]
     fn migrate_v1_2_position(&self, farm_address: ManagedAddress) {
         let (payment_token_id, payment_token_nonce, payment_amount) =
-            self.call_value().payment_as_tuple();
+            self.call_value().single_esdt().into_tuple();
 
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
@@ -63,7 +63,7 @@ pub trait MigrationModule:
         let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.farm_v1_2_contract_proxy(farm_address)
                 .migrate_to_new_farm(self.blockchain().get_sc_address())
-                .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
+                .add_esdt_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
                 .execute_on_dest_context();
 
         let (new_pos, reward) = call_result.into_tuple();
@@ -101,7 +101,7 @@ pub trait MigrationModule:
         }
 
         let caller = self.blockchain().get_caller();
-        self.send().direct_multi(&caller, &payments, &[]);
+        self.send().direct_esdt_multi(&caller, &payments, &[]);
     }
 
     #[proxy]

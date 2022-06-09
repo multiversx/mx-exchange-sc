@@ -34,6 +34,7 @@ pub trait TokenSendModule {
             return;
         }
 
-        self.send().direct(to, token_id, token_nonce, amount, &[]);
+        self.send()
+            .direct_esdt(to, token_id, token_nonce, amount, &[]);
     }
 }

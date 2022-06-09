@@ -42,14 +42,14 @@ pub trait FarmStakingProxy:
             self.blockchain().is_smart_contract(&pair_address),
             "Invalid Pair address"
         );
-        require!(staking_token_id.is_esdt(), "Invalid Staking token ID");
-        require!(lp_farm_token_id.is_esdt(), "Invalid Farm token ID");
+        require!(staking_token_id.is_valid_esdt_identifier(), "Invalid Staking token ID");
+        require!(lp_farm_token_id.is_valid_esdt_identifier(), "Invalid Farm token ID");
         require!(
-            staking_farm_token_id.is_esdt(),
+            staking_farm_token_id.is_valid_esdt_identifier(),
             "Invalid Staking Farm token ID"
         );
 
-        require!(lp_token_id.is_esdt(), "Invalide LP token ID");
+        require!(lp_token_id.is_valid_esdt_identifier(), "Invalide LP token ID");
 
         self.lp_farm_address().set(&lp_farm_address);
         self.staking_farm_address().set(&staking_farm_address);
@@ -123,7 +123,7 @@ pub trait FarmStakingProxy:
     #[payable("*")]
     #[endpoint(claimDualYield)]
     fn claim_dual_yield(&self) -> ClaimDualYieldResult<Self::Api> {
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().single_esdt().into_tuple();
         self.dual_yield_token().require_same_token(&payment_token);
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
@@ -186,7 +186,7 @@ pub trait FarmStakingProxy:
 
         let caller = self.blockchain().get_caller();
         self.send()
-            .direct_multi(&caller, &user_output_payments, &[]);
+            .direct_esdt_multi(&caller, &user_output_payments, &[]);
 
         user_output_payments.into()
     }
@@ -198,7 +198,7 @@ pub trait FarmStakingProxy:
         pair_first_token_min_amount: BigUint,
         pair_second_token_min_amount: BigUint,
     ) -> UnstakeResult<Self::Api> {
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().payment_as_tuple();
+        let (payment_token, payment_nonce, payment_amount) = self.call_value().single_esdt().into_tuple();
         self.dual_yield_token().require_same_token(&payment_token);
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
@@ -252,7 +252,7 @@ pub trait FarmStakingProxy:
         }
         user_payments.push(unbond_staking_farm_token);
 
-        self.send().direct_multi(&caller, &user_payments, &[]);
+        self.send().direct_esdt_multi(&caller, &user_payments, &[]);
 
         user_payments.into()
     }

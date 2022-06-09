@@ -57,7 +57,7 @@ pub trait DualYieldTokenModule:
             staking_farm_token_nonce,
             staking_farm_token_amount,
         );
-        self.send().direct(
+        self.send().direct_esdt(
             to,
             &payment.token_identifier,
             payment.token_nonce,

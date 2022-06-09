@@ -53,7 +53,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
             attributes,
         );
         self.send()
-            .direct(address, &token_id, last_created_nonce, amount, &[]);
+            .direct_esdt(address, &token_id, last_created_nonce, amount, &[]);
 
         last_created_nonce
     }
@@ -67,7 +67,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         let token_id = self.locked_asset_token_id().get();
         self.send().esdt_local_mint(&token_id, sft_nonce, amount);
         self.send()
-            .direct(address, &token_id, sft_nonce, amount, &[]);
+            .direct_esdt(address, &token_id, sft_nonce, amount, &[]);
     }
 
     fn get_unlock_amount(
@@ -207,7 +207,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
         if amount > &0 {
             let asset_token_id = self.asset_token_id().get();
             self.send().esdt_local_mint(&asset_token_id, 0, amount);
-            self.send().direct(dest, &asset_token_id, 0, amount, &[]);
+            self.send().direct_esdt(dest, &asset_token_id, 0, amount, &[]);
         }
     }
 

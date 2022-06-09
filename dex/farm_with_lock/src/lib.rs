@@ -55,8 +55,8 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) {
-        require!(reward_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
-        require!(farming_token_id.is_esdt(), ERROR_NOT_AN_ESDT);
+        require!(reward_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
+        require!(farming_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
 
         let farm_token = self.farm_token().get_token_id();
@@ -326,7 +326,7 @@ pub trait Farm:
             let gas_limit = self.burn_gas_limit().get();
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(reward_token_id.clone())
-                .add_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
+                .add_esdt_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
                 .with_gas_limit(gas_limit)
                 .execute_on_dest_context_ignore_result();
         }
@@ -367,7 +367,7 @@ pub trait Farm:
         destination: &ManagedAddress,
     ) {
         self.send()
-            .direct(destination, farming_token_id, 0, farming_amount, &[]);
+            .direct_esdt(destination, farming_token_id, 0, farming_amount, &[]);
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {

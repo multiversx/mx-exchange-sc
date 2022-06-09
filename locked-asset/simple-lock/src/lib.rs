@@ -43,13 +43,13 @@ pub trait SimpleLock:
         unlock_epoch: u64,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
         let dest_address = self.dest_from_optional(opt_destination);
         let current_epoch = self.blockchain().get_block_epoch();
         if current_epoch >= unlock_epoch {
-            self.send().direct(
+            self.send().direct_esdt(
                 &dest_address,
                 &payment.token_identifier,
                 payment.token_nonce,
@@ -89,7 +89,7 @@ pub trait SimpleLock:
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
         let locked_token_mapper = self.locked_token();
@@ -106,7 +106,7 @@ pub trait SimpleLock:
         locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let dest_address = self.dest_from_optional(opt_destination);
-        self.send().direct(
+        self.send().direct_esdt(
             &dest_address,
             &attributes.original_token_id,
             attributes.original_token_nonce,

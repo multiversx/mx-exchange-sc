@@ -186,7 +186,7 @@ pub trait ProxyPairModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        let (token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
 
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
@@ -233,10 +233,10 @@ pub trait ProxyPairModule:
 
         //Send back the tokens removed from pair sc.
         self.send()
-            .direct(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
+            .direct_esdt(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.send().direct(
+        self.send().direct_esdt(
             &caller,
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
@@ -248,7 +248,7 @@ pub trait ProxyPairModule:
         if assets_received > locked_assets_invested {
             let difference = assets_received - locked_assets_invested;
             self.send()
-                .direct(&caller, &asset_token_id, 0, &difference, &[]);
+                .direct_esdt(&caller, &asset_token_id, 0, &difference, &[]);
         } else if assets_received < locked_assets_invested {
             let difference = locked_assets_invested - assets_received;
             self.send().esdt_local_burn(
@@ -329,7 +329,7 @@ pub trait ProxyPairModule:
                 first_token_amount_min.clone(),
                 second_token_amount_min.clone(),
             )
-            .add_token_transfer(lp_token_id.clone(), 0, liquidity.clone())
+            .add_esdt_token_transfer(lp_token_id.clone(), 0, liquidity.clone())
             .execute_on_dest_context()
     }
 

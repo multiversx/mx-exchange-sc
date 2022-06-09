@@ -80,11 +80,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -142,11 +142,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -238,7 +238,7 @@ pub trait Router:
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
-        require!(pair_token.is_esdt(), "LP token not issued");
+        require!(pair_token.is_valid_esdt_identifier(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
 
@@ -277,11 +277,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let mut pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -384,7 +384,7 @@ pub trait Router:
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
+                    let _ = self.send().direct_esdt_egld(caller, &returned_tokens, &[]);
                 }
             }
         }

@@ -8,7 +8,7 @@ edition = "2018"
 path = "src/locking_module.rs"
 
 [dependencies.elrond-wasm]
-version = "0.31.1"
+version = "0.32.0"
 
 [dependencies.simple-lock]
 path = "../../../locked-asset/simple-lock"

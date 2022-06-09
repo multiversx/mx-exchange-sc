@@ -51,7 +51,7 @@ pub trait LockingModule {
 
         proxy_instance
             .lock_tokens(unlock_epoch, opt_dest)
-            .add_token_transfer(token_id, 0, amount)
+            .add_esdt_token_transfer(token_id, 0, amount)
             .execute_on_dest_context()
     }
 

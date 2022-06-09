@@ -37,7 +37,7 @@ pub trait LockedAssetFactory:
         default_unlock_period: MultiValueEncoded<UnlockMilestone>,
     ) {
         require!(
-            asset_token_id.is_esdt(),
+            asset_token_id.is_valid_esdt_identifier(),
             "Asset token ID is not a valid esdt identifier"
         );
         require!(
@@ -146,7 +146,7 @@ pub trait LockedAssetFactory:
     #[payable("*")]
     #[endpoint(unlockAssets)]
     fn unlock_assets(&self) {
-        let (token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
@@ -165,12 +165,8 @@ pub trait LockedAssetFactory:
         let caller = self.blockchain().get_caller();
         self.mint_and_send_assets(&caller, &unlock_amount);
 
-        let mut output_locked_assets_token_amount = EsdtTokenPayment {
-            token_identifier: token_id.clone(),
-            token_nonce: 0,
-            amount: BigUint::zero(),
-            token_type: EsdtTokenType::Invalid,
-        };
+        let mut output_locked_assets_token_amount =
+            EsdtTokenPayment::new(token_id.clone(), 0, BigUint::zero());
         let mut output_locked_asset_attributes = LockedAssetTokenAttributesEx {
             unlock_schedule: UnlockScheduleEx {
                 unlock_milestones: ManagedVec::new(),
@@ -218,7 +214,7 @@ pub trait LockedAssetFactory:
     #[payable("*")]
     #[endpoint(lockAssets)]
     fn lock_assets(&self) -> EsdtTokenPayment<Self::Api> {
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let caller = self.blockchain().get_caller();
 
         let asset_token_id = self.asset_token_id().get();
@@ -357,8 +353,8 @@ pub trait LockedAssetFactory:
                 }
             }
             ManagedAsyncCallResult::Err(_) => {
-                let (payment, token_id) = self.call_value().payment_token_pair();
-                self.send().direct(
+                let (token_id, payment) = self.call_value().single_fungible_esdt();
+                self.send().direct_esdt(
                     &self.blockchain().get_owner_address(),
                     &token_id,
                     0,

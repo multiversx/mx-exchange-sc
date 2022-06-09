@@ -60,7 +60,7 @@ pub trait WrappedLpTokenMerge:
             &attrs,
         );
 
-        self.send().direct(
+        self.send().direct_esdt(
             caller,
             &wrapped_lp_token_id,
             new_nonce,

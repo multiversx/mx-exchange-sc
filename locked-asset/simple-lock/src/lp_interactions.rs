@@ -107,7 +107,7 @@ pub trait LpInteractionsModule {
         let lp_payments_out: RemoveLiquidityResultType<Self::Api> = self
             .lp_proxy(lp_address)
             .remove_liquidity(first_token_amount_min, second_token_amount_min)
-            .add_token_transfer(lp_token_id, 0, lp_token_amount)
+            .add_esdt_token_transfer(lp_token_id, 0, lp_token_amount)
             .execute_on_dest_context();
 
         let (first_token_payment_out, second_token_payment_out) = lp_payments_out.into_tuple();

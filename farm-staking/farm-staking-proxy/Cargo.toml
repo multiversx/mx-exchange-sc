@@ -9,10 +9,10 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.31.1"
+version = "0.32.0"
 
 [dependencies.elrond-wasm-modules]
-version = "0.31.1"
+version = "0.32.0"
 
 [dependencies]
 hex-literal = "0.3.1"
@@ -33,7 +33,7 @@ path = "../../common/modules/token_merge"
 path = "../../common/common_structs"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.31.1"
+version = "0.32.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

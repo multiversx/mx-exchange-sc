@@ -83,7 +83,7 @@ pub trait ProxyLpModule:
             MUST_USE_DIFFERENT_TOKENS_ERR_MSG
         );
         require!(
-            first_token_id.is_esdt() && second_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier() && second_token_id.is_valid_esdt_identifier(),
             "Only ESDT tokens accepted"
         );
         require!(
@@ -256,7 +256,7 @@ pub trait ProxyLpModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityThroughProxyResultType<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let lp_proxy_token_mapper = self.lp_proxy_token();
         lp_proxy_token_mapper.require_same_token(&payment.token_identifier);
 

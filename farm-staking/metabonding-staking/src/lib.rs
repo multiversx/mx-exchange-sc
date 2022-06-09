@@ -99,7 +99,7 @@ pub trait MetabondingStaking:
         };
 
         let locked_asset_token_id = self.locked_asset_token_id().get();
-        self.send().direct(
+        self.send().direct_esdt(
             &caller,
             &locked_asset_token_id,
             user_entry.token_nonce,

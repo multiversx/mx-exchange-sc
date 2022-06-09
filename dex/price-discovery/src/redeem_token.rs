@@ -46,7 +46,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
                 let (returned_tokens, token_id) = self.call_value().payment_token_pair();
                 if token_id.is_egld() && returned_tokens > 0 {
                     self.send()
-                        .direct(&caller, &token_id, 0, &returned_tokens, &[]);
+                        .direct_esdt(&caller, &token_id, 0, &returned_tokens, &[]);
                 }
             }
         }
@@ -100,7 +100,7 @@ pub trait RedeemTokenModule: crate::common_storage::CommonStorageModule {
             .update(|supply| *supply += &amount);
 
         self.send()
-            .direct(to, &redeem_token_id, nonce, &amount, &[]);
+            .direct_esdt(to, &redeem_token_id, nonce, &amount, &[]);
 
         EsdtTokenPayment::new(redeem_token_id, nonce, amount)
     }

@@ -292,7 +292,7 @@ pub trait Farm:
             let gas_limit = self.burn_gas_limit().get();
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(reward_token_id.clone())
-                .add_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
+                .add_esdt_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
                 .with_gas_limit(gas_limit)
                 .transfer_execute();
         }
@@ -333,7 +333,7 @@ pub trait Farm:
         destination: &ManagedAddress,
     ) {
         self.send()
-            .direct(destination, farming_token_id, 0, farming_amount, &[]);
+            .direct_esdt(destination, farming_token_id, 0, farming_amount, &[]);
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {

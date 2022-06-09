@@ -16,7 +16,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
     fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) {
-        let (token_id, nonce, amount) = self.call_value().payment_as_tuple();
+        let (token_id, nonce, amount) = self.call_value().single_esdt().into_tuple();
         require!(nonce == 0, "Invalid nonce. Should be zero");
         require!(amount > 0u64, "Invalid amount. Should not be zero");
         require!(
@@ -60,7 +60,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         }
 
         payments.push(last_payment);
-        self.send().direct_multi(&caller, &payments, &[]);
+        self.send().direct_esdt_multi(&caller, &payments, &[]);
     }
 
     fn actual_swap_fixed_input(
@@ -73,7 +73,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
     ) -> EsdtTokenPayment<Self::Api> {
         self.pair_contract_proxy(pair_address)
             .swap_tokens_fixed_input(token_out, amount_out_min)
-            .add_token_transfer(token_in, 0, amount_in)
+            .add_esdt_token_transfer(token_in, 0, amount_in)
             .execute_on_dest_context()
     }
 
@@ -88,7 +88,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.pair_contract_proxy(pair_address)
                 .swap_tokens_fixed_output(token_out, amount_out)
-                .add_token_transfer(token_in, 0, amount_in_max)
+                .add_esdt_token_transfer(token_in, 0, amount_in_max)
                 .execute_on_dest_context();
 
         call_result.into_tuple()

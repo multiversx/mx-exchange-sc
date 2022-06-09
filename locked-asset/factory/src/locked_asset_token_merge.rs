@@ -36,7 +36,7 @@ pub trait LockedAssetTokenMergeModule:
             .send()
             .esdt_nft_create_compact(&locked_asset_token, &amount, &attrs);
         self.send()
-            .direct(&caller, &locked_asset_token, new_nonce, &amount, &[]);
+            .direct_esdt(&caller, &locked_asset_token, new_nonce, &amount, &[]);
 
         EsdtTokenPayment::new(locked_asset_token, new_nonce, amount)
     }
