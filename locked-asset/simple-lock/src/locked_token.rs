@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedDecode, NestedEncode, PartialEq, Debug)]
 pub struct LockedTokenAttributes<M: ManagedTypeApi> {
-    pub original_token_id: TokenIdentifier<M>,
+    pub original_token_id: EgldOrEsdtTokenIdentifier<M>,
     pub original_token_nonce: u64,
     pub unlock_epoch: u64,
 }

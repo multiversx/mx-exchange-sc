@@ -6,7 +6,7 @@ use crate::contexts::swap::SwapContext;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct SwapEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_id_in: TokenIdentifier<M>,
@@ -21,7 +21,7 @@ pub struct SwapEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     token_id_in: TokenIdentifier<M>,
@@ -34,7 +34,7 @@ pub struct SwapNoFeeAndForwardEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,
@@ -51,7 +51,7 @@ pub struct AddLiquidityEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     first_token_id: TokenIdentifier<M>,

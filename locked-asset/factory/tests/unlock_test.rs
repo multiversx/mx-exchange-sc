@@ -1,5 +1,5 @@
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
-use elrond_wasm::types::{EsdtTokenPayment, EsdtTokenType, ManagedVec, TokenIdentifier};
+use elrond_wasm::types::{EsdtTokenPayment, ManagedVec, TokenIdentifier};
 use elrond_wasm_debug::{managed_biguint, rust_biguint, testing_framework::*, DebugApi};
 
 const SC_WASM_PATH: &'static str = "output/factory.wasm";
@@ -22,9 +22,8 @@ fn test_unlock_100mil_1mil() {
             let mut tokens = ManagedVec::new();
             let token1 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(100_000_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -65,9 +64,8 @@ fn test_unlock_100mil_1mil() {
             };
             let token2 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(1_000_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -155,9 +153,8 @@ fn test_unlock_1mil_100mil() {
             let mut tokens = ManagedVec::new();
             let token1 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(1_000_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -198,9 +195,8 @@ fn test_unlock_1mil_100mil() {
             };
             let token2 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(100_000_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -288,9 +284,8 @@ fn test_unlock_60_40() {
             let mut tokens = ManagedVec::new();
             let token1 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(60_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -331,9 +326,8 @@ fn test_unlock_60_40() {
             };
             let token2 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(40_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -421,9 +415,8 @@ fn test_unlock_40_60() {
             let mut tokens = ManagedVec::new();
             let token1 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(40_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -464,9 +457,8 @@ fn test_unlock_40_60() {
             };
             let token2 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(60_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -554,9 +546,8 @@ fn test_aggregated_unlock_schedule() {
             let mut tokens = ManagedVec::new();
             let token1 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(608_212_266_882_971_044),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -597,9 +588,8 @@ fn test_aggregated_unlock_schedule() {
             };
             let token2 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(700_000_000_000_000_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -664,9 +654,8 @@ fn test_aggregated_unlock_schedule_with_1_offset() {
             let mut tokens = ManagedVec::new();
             let token1 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(608_212_266_882_971_044),
                 },
                 attributes: LockedAssetTokenAttributesEx {
@@ -707,9 +696,8 @@ fn test_aggregated_unlock_schedule_with_1_offset() {
             };
             let token2 = LockedTokenEx::<DebugApi> {
                 token_amount: EsdtTokenPayment {
-                    token_type: EsdtTokenType::NonFungible,    //placeholder
-                    token_identifier: TokenIdentifier::egld(), //placeholder
-                    token_nonce: 0,                            //placeholder
+                    token_identifier: TokenIdentifier::empty(), //placeholder
+                    token_nonce: 0,                             //placeholder
                     amount: managed_biguint!(700_000_000_000_000_000),
                 },
                 attributes: LockedAssetTokenAttributesEx {

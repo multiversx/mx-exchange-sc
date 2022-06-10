@@ -24,9 +24,9 @@ pub trait LockingModule {
     #[inline]
     fn lock_tokens(
         &self,
-        token_id: TokenIdentifier,
+        token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
         self.lock_common(OptionalValue::None, token_id, amount)
     }
 
@@ -34,24 +34,24 @@ pub trait LockingModule {
     fn lock_tokens_and_forward(
         &self,
         to: ManagedAddress,
-        token_id: TokenIdentifier,
+        token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
         self.lock_common(OptionalValue::Some(to), token_id, amount)
     }
 
     fn lock_common(
         &self,
         opt_dest: OptionalValue<ManagedAddress>,
-        token_id: TokenIdentifier,
+        token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let unlock_epoch = self.unlock_epoch().get();
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
             .lock_tokens(unlock_epoch, opt_dest)
-            .add_esdt_token_transfer(token_id, 0, amount)
+            .with_egld_or_single_esdt_token_transfer(token_id, 0, amount)
             .execute_on_dest_context()
     }
 

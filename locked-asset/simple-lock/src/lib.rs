@@ -42,14 +42,14 @@ pub trait SimpleLock:
         &self,
         unlock_epoch: u64,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        let payment = self.call_value().egld_or_single_esdt();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
         let dest_address = self.dest_from_optional(opt_destination);
         let current_epoch = self.blockchain().get_block_epoch();
         if current_epoch >= unlock_epoch {
-            self.send().direct_esdt(
+            self.send().direct(
                 &dest_address,
                 &payment.token_identifier,
                 payment.token_nonce,
@@ -68,11 +68,12 @@ pub trait SimpleLock:
         let locked_token_mapper = self.locked_token();
         let sft_nonce = self.get_or_create_nonce_for_attributes(
             &locked_token_mapper,
-            payment.token_identifier.as_managed_buffer(),
+            &payment.token_identifier.into_name(),
             &attributes,
         );
         self.locked_token()
             .nft_add_quantity_and_send(&dest_address, sft_nonce, payment.amount)
+            .into()
     }
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
@@ -88,7 +89,7 @@ pub trait SimpleLock:
     fn unlock_tokens(
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
@@ -106,7 +107,7 @@ pub trait SimpleLock:
         locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let dest_address = self.dest_from_optional(opt_destination);
-        self.send().direct_esdt(
+        self.send().direct(
             &dest_address,
             &attributes.original_token_id,
             attributes.original_token_nonce,
@@ -114,7 +115,7 @@ pub trait SimpleLock:
             &[],
         );
 
-        EsdtTokenPayment::new(
+        EgldOrEsdtTokenPayment::new(
             attributes.original_token_id,
             attributes.original_token_nonce,
             payment.amount,

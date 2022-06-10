@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.elrond-wasm]
 version = "0.32.0"
 
+[dependencies.elrond-wasm-modules]
+version = "0.32.0"
+
 [dependencies]
 hex-literal = "0.3.1"
 

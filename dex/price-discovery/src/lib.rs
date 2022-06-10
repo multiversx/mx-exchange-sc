@@ -1,19 +1,20 @@
 #![no_std]
 
+elrond_wasm::imports!();
+
 use crate::{
     common_storage::MAX_PERCENTAGE,
     redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NONCE},
 };
-
-elrond_wasm::imports!();
+use core::ops::Deref;
 
 pub mod common_storage;
 pub mod events;
 pub mod phase;
 pub mod redeem_token;
 
-const INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
-const BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
+static INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
+static BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
 const MAX_TOKEN_DECIMALS: u32 = 18;
 
 #[elrond_wasm::contract]
@@ -23,13 +24,14 @@ pub trait PriceDiscovery:
     + locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     /// For explanations regarding what each parameter means, please refer to docs/setup.md
     #[init]
     fn init(
         &self,
         launched_token_id: TokenIdentifier,
-        accepted_token_id: TokenIdentifier,
+        accepted_token_id: EgldOrEsdtTokenIdentifier,
         launched_token_decimals: u32,
         min_launched_token_price: BigUint,
         start_block: u64,
@@ -46,14 +48,24 @@ pub trait PriceDiscovery:
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
         );
-        require!(
-            accepted_token_id.is_egld() || accepted_token_id.is_valid_esdt_identifier(),
-            "Invalid payment token ID"
-        );
-        require!(
-            launched_token_id != accepted_token_id,
-            "Launched and accepted token must be different"
-        );
+
+        if !accepted_token_id.is_egld() {
+            require!(
+                accepted_token_id.is_valid_esdt_identifier(),
+                "Invalid payment token ID"
+            );
+
+            unsafe {
+                let acc_token_id_ref = accepted_token_id
+                    .as_esdt_token_identifier()
+                    .unwrap_unchecked();
+                require!(
+                    &launched_token_id != acc_token_id_ref.deref(),
+                    "Launched and accepted token must be different"
+                );
+            }
+        }
+
         require!(
             launched_token_decimals <= MAX_TOKEN_DECIMALS,
             "Launched token has too many decimals"
@@ -91,9 +103,9 @@ pub trait PriceDiscovery:
 
         self.launched_token_id().set(&launched_token_id);
         self.accepted_token_id().set(&accepted_token_id);
-        self.start_block().set(&start_block);
-        self.end_block().set(&end_block);
-        self.unlock_epoch().set(&unlock_epoch);
+        self.start_block().set(start_block);
+        self.end_block().set(end_block);
+        self.unlock_epoch().set(unlock_epoch);
 
         let price_precision = 10u64.pow(launched_token_decimals);
         self.price_precision().set(&price_precision);
@@ -101,11 +113,11 @@ pub trait PriceDiscovery:
             .set(&min_launched_token_price);
 
         self.no_limit_phase_duration_blocks()
-            .set(&no_limit_phase_duration_blocks);
+            .set(no_limit_phase_duration_blocks);
         self.linear_penalty_phase_duration_blocks()
-            .set(&linear_penalty_phase_duration_blocks);
+            .set(linear_penalty_phase_duration_blocks);
         self.fixed_penalty_phase_duration_blocks()
-            .set(&fixed_penalty_phase_duration_blocks);
+            .set(fixed_penalty_phase_duration_blocks);
         self.penalty_min_percentage().set(&penalty_min_percentage);
         self.penalty_max_percentage().set(&penalty_max_percentage);
         self.fixed_penalty_percentage()
@@ -122,10 +134,9 @@ pub trait PriceDiscovery:
         let phase = self.get_current_phase();
         self.require_deposit_allowed(&phase);
 
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().egld_or_single_fungible_esdt();
         let accepted_token_id = self.accepted_token_id().get();
         let launched_token_id = self.launched_token_id().get();
-        let redeem_token_id = self.redeem_token_id().get();
         let (redeem_token_nonce, balance_mapper) = if payment_token == accepted_token_id {
             (ACCEPTED_TOKEN_REDEEM_NONCE, self.accepted_token_balance())
         } else if payment_token == launched_token_id {
@@ -150,7 +161,7 @@ pub trait PriceDiscovery:
         self.emit_deposit_event(
             payment_token,
             payment_amount.clone(),
-            redeem_token_id,
+            payment_result.token_identifier.clone(),
             redeem_token_nonce,
             payment_amount,
             current_price,
@@ -165,17 +176,18 @@ pub trait PriceDiscovery:
     /// of the initial tokens will be received.
     #[payable("*")]
     #[endpoint]
-    fn withdraw(&self) -> EsdtTokenPayment<Self::Api> {
+    fn withdraw(&self) -> EgldOrEsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_withdraw_allowed(&phase);
 
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().single_esdt().into_tuple();
-        let redeem_token_id = self.redeem_token_id().get();
+        let (payment_token, payment_nonce, payment_amount) =
+            self.call_value().single_esdt().into_tuple();
+        let redeem_token_id = self.redeem_token().get_token_id();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
         let (refund_token_id, balance_mapper) = match payment_nonce {
             LAUNCHED_TOKEN_REDEEM_NONCE => (
-                self.launched_token_id().get(),
+                EgldOrEsdtTokenIdentifier::esdt(self.launched_token_id().get()),
                 self.launched_token_balance(),
             ),
             ACCEPTED_TOKEN_REDEEM_NONCE => (
@@ -199,7 +211,7 @@ pub trait PriceDiscovery:
 
         let caller = self.blockchain().get_caller();
         self.send()
-            .direct_esdt(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
+            .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
 
         self.emit_withdraw_event(
             refund_token_id.clone(),
@@ -211,7 +223,7 @@ pub trait PriceDiscovery:
             phase,
         );
 
-        EsdtTokenPayment::new(refund_token_id, 0, withdraw_amount)
+        EgldOrEsdtTokenPayment::new(refund_token_id, 0, withdraw_amount)
     }
 
     /// After all phases have ended,
@@ -223,12 +235,13 @@ pub trait PriceDiscovery:
     /// through the SC at locking_sc_address
     #[payable("*")]
     #[endpoint]
-    fn redeem(&self) -> EsdtTokenPayment<Self::Api> {
+    fn redeem(&self) -> EgldOrEsdtTokenPayment<Self::Api> {
         let phase = self.get_current_phase();
         self.require_redeem_allowed(&phase);
 
-        let (payment_token, payment_nonce, payment_amount) = self.call_value().single_esdt().into_tuple();
-        let redeem_token_id = self.redeem_token_id().get();
+        let (payment_token, payment_nonce, payment_amount) =
+            self.call_value().single_esdt().into_tuple();
+        let redeem_token_id = self.redeem_token().get_token_id();
         require!(payment_token == redeem_token_id, INVALID_PAYMENT_ERR_MSG);
 
         let bought_tokens = self.compute_bought_tokens(payment_nonce, &payment_amount);
@@ -260,7 +273,7 @@ pub trait PriceDiscovery:
         &self,
         redeem_token_nonce: u64,
         redeem_token_amount: &BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let redeem_token_supply = self
             .redeem_token_total_circulating_supply(redeem_token_nonce)
             .get();
@@ -268,7 +281,7 @@ pub trait PriceDiscovery:
         // users that deposited accepted tokens get launched tokens, and vice-versa
         let (token_id, total_token_supply) = match redeem_token_nonce {
             ACCEPTED_TOKEN_REDEEM_NONCE => (
-                self.launched_token_id().get(),
+                EgldOrEsdtTokenIdentifier::esdt(self.launched_token_id().get()),
                 self.launched_token_balance().get(),
             ),
             LAUNCHED_TOKEN_REDEEM_NONCE => (
@@ -279,12 +292,7 @@ pub trait PriceDiscovery:
         };
         let reward_amount = total_token_supply * redeem_token_amount / redeem_token_supply;
 
-        EsdtTokenPayment {
-            token_type: EsdtTokenType::Fungible,
-            token_identifier: token_id,
-            token_nonce: 0,
-            amount: reward_amount,
-        }
+        EgldOrEsdtTokenPayment::new(token_id, 0, reward_amount)
     }
 
     #[view(getCurrentPrice)]

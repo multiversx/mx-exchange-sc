@@ -565,7 +565,7 @@ pub trait Pair<ContractReader>:
         let second_token_id = self.second_token_id().get();
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.lp_token_supply().get();
         (first_token_reserve, second_token_reserve, total_supply).into()
     }
 

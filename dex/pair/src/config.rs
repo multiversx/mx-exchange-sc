@@ -43,11 +43,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
         self.state().set(&State::ActiveNoSwaps);
     }
 
-    #[view(getLpTokenIdentifier)]
-    fn get_lp_token_identifier(&self) -> TokenIdentifier {
-        self.lp_token_identifier().get()
-    }
-
     #[endpoint(setFeePercents)]
     fn set_fee_percent(&self, total_fee_percent: u64, special_fee_percent: u64) {
         self.require_permissions();
@@ -87,6 +82,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("extern_swap_gas_limit")]
     fn extern_swap_gas_limit(&self) -> SingleValueMapper<u64>;
 
+    #[view(getLpTokenIdentifier)]
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<TokenIdentifier>;
 
@@ -98,6 +94,7 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("second_token_id")]
     fn second_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
+    #[view(getTotalSupply)]
     #[storage_mapper("lp_token_supply")]
     fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
 

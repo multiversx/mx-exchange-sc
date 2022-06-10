@@ -157,9 +157,9 @@ pub trait ProxyLpModule:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> AddLiquidityThroughProxyResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
+        let [first_payment, second_payment] = self.call_value().multi_esdt();
         let (mut first_payment_unlocked_wrapper, mut second_payment_unlocked_wrapper) =
-            self.unlock_lp_payments(payments);
+            self.unlock_lp_payments(first_payment, second_payment);
         let lp_address = self.try_get_lp_address_and_fix_token_order(
             &mut first_payment_unlocked_wrapper,
             &mut second_payment_unlocked_wrapper,
@@ -298,16 +298,12 @@ pub trait ProxyLpModule:
 
     fn unlock_lp_payments(
         &self,
-        payments: ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>>,
+        first_payment: EsdtTokenPayment<Self::Api>,
+        second_payment: EsdtTokenPayment<Self::Api>,
     ) -> (
         UnlockedPaymentWrapper<Self::Api>,
         UnlockedPaymentWrapper<Self::Api>,
     ) {
-        require!(payments.len() == 2, INVALID_PAYMENTS_ERR_MSG);
-
-        let first_payment = payments.get(0);
-        let second_payment = payments.get(1);
-
         let first_payment_unlocked = self.unlock_single_payment(first_payment);
         let second_payment_unlocked = self.unlock_single_payment(second_payment);
 
@@ -328,7 +324,7 @@ pub trait ProxyLpModule:
             locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
             let unlocked_payment = EsdtTokenPayment::new(
-                attributes.original_token_id,
+                attributes.original_token_id.unwrap_esdt(),
                 attributes.original_token_nonce,
                 payment.amount,
             );
