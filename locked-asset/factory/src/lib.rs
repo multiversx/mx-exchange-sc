@@ -4,6 +4,7 @@
 
 mod attr_ex_helper;
 mod cache;
+mod energy;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
@@ -29,6 +30,7 @@ pub trait LockedAssetFactory:
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
+    + energy::EnergyModule
 {
     #[init]
     fn init(
