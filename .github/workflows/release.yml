@@ -10,6 +10,9 @@ on:
         required: true
         description: Release title
 
+permissions:
+  contents: write
+
 env:
   # https://github.com/actions/runner/issues/863 ($HOME is overridden for containers)
   ELROND_HOME: /home/elrond
