@@ -9,21 +9,18 @@ elrond_wasm::derive_imports!();
 pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
     fn synchronize_impl<F: FnOnce()>(&self, generate_rewards: F) {
         let local_supply = self.farm_token_supply().get();
-        self.sibling_supplies()
-            .insert(self.blockchain().get_sc_address(), local_supply);
-
         for sibling in self.sibling_whitelist().iter() {
-            self.proxy_call_accept_synchronization(sibling);
+            self.proxy_call_accept_synchronization(sibling, &local_supply);
         }
+        self.update_sibling_supply(&self.blockchain().get_sc_address(), local_supply);
 
         self.try_create_checkpoint(generate_rewards);
     }
 
-    fn proxy_call_accept_synchronization(&self, sibling: ManagedAddress) {
+    fn proxy_call_accept_synchronization(&self, sibling: ManagedAddress, local_supply: &BigUint) {
         let endpoint_name = ManagedBuffer::new_from_bytes(b"acceptSynchronization");
         let mut accept_sync: ContractCall<<Self as ContractBase>::Api, ()> =
             self.send().contract_call(sibling, endpoint_name);
-        let local_supply = self.farm_token_supply().get();
         accept_sync.push_endpoint_arg(&local_supply);
         accept_sync.transfer_execute();
     }
@@ -34,22 +31,27 @@ pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
         generate_rewards: F,
     ) {
         let sibling = self.blockchain().get_caller();
-        self.require_sibling_whitelisted(sibling.clone());
-        self.sibling_supplies().insert(sibling, sibling_supply);
+        self.require_sibling_whitelisted(&sibling);
+        self.update_sibling_supply(&sibling, sibling_supply);
         self.try_create_checkpoint(generate_rewards);
     }
 
     fn try_create_checkpoint<F: FnOnce()>(&self, generate_rewards: F) {
-        if self.sibling_supplies().len() <= self.sibling_whitelist().len() {
+        if self.sibling_supplies_received().get() <= self.sibling_whitelist().len() {
             return;
         }
 
         let mut global_liquidity = BigUint::zero();
-        for local_liquidity in self.sibling_supplies().values() {
-            global_liquidity += local_liquidity;
+        for sibling in self.sibling_whitelist().iter() {
+            global_liquidity += self.get_sibling_supply(&sibling);
+            self.sibling_supply(&sibling).clear();
         }
 
-        self.sibling_supplies().clear();
+        let sc_address = self.blockchain().get_sc_address();
+        global_liquidity += self.get_sibling_supply(&sc_address);
+        self.sibling_supply(&sc_address).clear();
+
+        self.sibling_supplies_received().clear();
 
         let current_nonce = self.blockchain().get_block_nonce();
         self.current_checkpoint_block_nonce().set(current_nonce);
@@ -61,12 +63,35 @@ pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
     #[only_owner]
     #[endpoint(setSiblingWhitelist)]
     fn set_sibling_whitelist(&self, sibling_addresses: MultiValueEncoded<ManagedAddress>) {
+        for sibling in self.sibling_whitelist().iter() {
+            self.sibling_supply(&sibling).clear();
+        }
+        self.sibling_supply(&self.blockchain().get_sc_address())
+            .clear();
+        self.sibling_supplies_received().clear();
         self.sibling_whitelist().clear();
-        self.sibling_supplies().clear();
 
         for address in sibling_addresses {
             self.sibling_whitelist().insert(address);
         }
+        self.sibling_whitelist()
+            .swap_remove(&self.blockchain().get_sc_address());
+    }
+
+    fn get_sibling_supply(&self, sibling: &ManagedAddress) -> BigUint {
+        self.sibling_supply(sibling)
+            .get()
+            .unwrap_or_else(|| sc_panic!("Expected supply"))
+    }
+
+    fn update_sibling_supply(&self, sibling: &ManagedAddress, new_supply: BigUint) {
+        self.sibling_supply(sibling).update(|supply| {
+            if *supply == Option::None {
+                self.sibling_supplies_received()
+                    .update(|received| *received += 1);
+            }
+            *supply = Some(new_supply)
+        });
     }
 
     #[endpoint(isSiblingWhitelisted)]
@@ -83,8 +108,13 @@ pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
 
     #[view(getSiblingWhitelist)]
     #[storage_mapper("sibling_whitelist")]
-    fn sibling_whitelist(&self) -> SetMapper<ManagedAddress>;
+    fn sibling_whitelist(&self) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[storage_mapper("sibling_supplies")]
-    fn sibling_supplies(&self) -> MapMapper<ManagedAddress, BigUint>;
+    #[view(getSiblingSupply)]
+    #[storage_mapper("sibling_supply")]
+    fn sibling_supply(&self, sibling: &ManagedAddress) -> SingleValueMapper<Option<BigUint>>;
+
+    #[view(getSiblingSuppliesReceived)]
+    #[storage_mapper("sibling_supplies_received")]
+    fn sibling_supplies_received(&self) -> SingleValueMapper<usize>;
 }

@@ -34,6 +34,8 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardCapacity
         getRewardPerShare
         getRewardTokenId
+        getSiblingSuppliesReceived
+        getSiblingSupply
         getSiblingWhitelist
         getState
         isSiblingWhitelisted
