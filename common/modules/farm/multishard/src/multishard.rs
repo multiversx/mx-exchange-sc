@@ -70,11 +70,11 @@ pub trait MultishardModule: config::ConfigModule + token_send::TokenSendModule {
     }
 
     #[endpoint(isSiblingWhitelisted)]
-    fn is_sibling_whitelisted(&self, address: ManagedAddress) -> bool {
-        self.sibling_whitelist().contains(&address)
+    fn is_sibling_whitelisted(&self, address: &ManagedAddress) -> bool {
+        self.sibling_whitelist().contains(address)
     }
 
-    fn require_sibling_whitelisted(&self, address: ManagedAddress) {
+    fn require_sibling_whitelisted(&self, address: &ManagedAddress) {
         require!(
             self.is_sibling_whitelisted(address),
             ERROR_SIBLING_PERMISSIONS
