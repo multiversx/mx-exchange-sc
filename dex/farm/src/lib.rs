@@ -366,15 +366,20 @@ pub trait Farm:
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
         require!(amount > 0u64, ERROR_ZERO_AMOUNT);
+        let local_farm_token_supply = self.local_farm_token_supply().get();
+        require!(local_farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
         let global_farm_token_supply = self.global_farm_token_supply().get();
-        require!(global_farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
         let current_checkpoint_block_nonce = self.current_checkpoint_block_nonce().get();
-        let reward_increase =
-            self.calculate_per_block_rewards(current_checkpoint_block_nonce, last_reward_nonce);
+        let reward_increase = self.calculate_per_block_rewards(
+            current_checkpoint_block_nonce,
+            last_reward_nonce,
+            &local_farm_token_supply,
+            &global_farm_token_supply,
+        );
         let reward_per_share_increase =
-            reward_increase * &self.division_safety_constant().get() / global_farm_token_supply;
+            reward_increase * &self.division_safety_constant().get() / local_farm_token_supply;
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
 

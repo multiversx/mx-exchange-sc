@@ -19,12 +19,14 @@ elrond_wasm_node::wasm_endpoints! {
         getAnnualPercentageRewards
         getBurnGasLimit
         getCurrentCheckpointBlockNonce
+        getDefaultRatio
         getDivisionSafetyConstant
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
         getGlobalFarmTokenSupply
         getLastRewardBlockNonce
+        getLocalFarmTokenSupply
         getLockedAssetFactoryManagedAddress
         getMinUnbondEpochs
         getMinimumFarmingEpoch

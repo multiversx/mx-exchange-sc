@@ -17,6 +17,7 @@ elrond_wasm_node::wasm_endpoints! {
         exitFarm
         getBurnGasLimit
         getCurrentCheckpointBlockNonce
+        getDefaultRatio
         getDivisionSafetyConstant
         getFarmMigrationConfiguration
         getFarmTokenId
@@ -24,6 +25,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmingTokenId
         getGlobalFarmTokenSupply
         getLastRewardBlockNonce
+        getLocalFarmTokenSupply
         getLockedAssetFactoryManagedAddress
         getMinimumFarmingEpoch
         getPairContractManagedAddress

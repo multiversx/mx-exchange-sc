@@ -87,6 +87,7 @@
                     "storage": {
                         "str:division_safety_constant": "1,000,000,000,000",
                         "str:farm_token_id)": "str:FARM-abcdef",
+                        "str:local_farm_token_supply": "200,000,000",
                         "str:global_farm_token_supply": "200,000,000",
                         "str:farming_token_id": "str:LPTOK-abcdef",
                         "str:minimum_farming_epochs": "2",

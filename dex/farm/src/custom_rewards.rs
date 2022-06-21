@@ -16,8 +16,15 @@ pub trait CustomRewardsModule:
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_checkpoint_block_nonce > last_reward_nonce {
-            let to_mint =
-                self.calculate_per_block_rewards(current_checkpoint_block_nonce, last_reward_nonce);
+            let local_farm_token_supply = self.local_farm_token_supply().get();
+            let global_farm_token_supply = self.global_farm_token_supply().get();
+
+            let to_mint = self.calculate_per_block_rewards(
+                current_checkpoint_block_nonce,
+                last_reward_nonce,
+                &local_farm_token_supply,
+                &global_farm_token_supply,
+            );
 
             if to_mint != 0 {
                 self.send().esdt_local_mint(token_id, 0, &to_mint);
