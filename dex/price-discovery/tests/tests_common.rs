@@ -1,7 +1,9 @@
 use elrond_wasm::elrond_codec::Empty;
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxResult;
-use elrond_wasm_debug::{managed_address, managed_biguint, testing_framework::*};
+use elrond_wasm_debug::{
+    managed_address, managed_biguint, managed_token_id_wrapped, testing_framework::*,
+};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 
 use price_discovery::redeem_token::*;
@@ -141,7 +143,7 @@ where
         .execute_tx(&owner_address, &pd_wrapper, &rust_zero, |sc| {
             sc.init(
                 managed_token_id!(LAUNCHED_TOKEN_ID),
-                managed_token_id!(ACCEPTED_TOKEN_ID),
+                managed_token_id_wrapped!(ACCEPTED_TOKEN_ID),
                 18,
                 managed_biguint!(0),
                 START_BLOCK,
@@ -155,8 +157,8 @@ where
                 managed_address!(locking_sc_wrapper.address_ref()),
             );
 
-            sc.redeem_token_id()
-                .set(&managed_token_id!(REDEEM_TOKEN_ID));
+            sc.redeem_token()
+                .set_token_id(&managed_token_id!(REDEEM_TOKEN_ID));
         })
         .assert_ok();
 

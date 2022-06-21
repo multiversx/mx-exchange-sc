@@ -59,7 +59,7 @@ pub trait CustomRewardsModule:
     #[payable("*")]
     #[endpoint(topUpRewards)]
     fn top_up_rewards(&self) {
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 

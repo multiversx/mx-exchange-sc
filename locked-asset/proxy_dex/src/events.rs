@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     pair_address: ManagedAddress<M>,
@@ -23,7 +23,7 @@ pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     pair_address: ManagedAddress<M>,
@@ -42,7 +42,7 @@ pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct EnterFarmProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,
@@ -59,7 +59,7 @@ pub struct EnterFarmProxyEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,
@@ -78,7 +78,7 @@ pub struct ExitFarmProxyEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct ClaimRewardsProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,
@@ -99,7 +99,7 @@ pub struct ClaimRewardsProxyEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct CompoundRewardsProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,

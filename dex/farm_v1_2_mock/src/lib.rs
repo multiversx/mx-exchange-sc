@@ -22,12 +22,9 @@ pub trait FarmV12Mock {
     #[endpoint(migrateToNewFarm)]
     fn migrate_to_new_farm(
         &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] token_nonce: u64,
-        #[payment_amount] amount: BigUint,
         _orig_caller: ManagedAddress,
     ) -> SCResult<MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>>> {
-        let payment_1 = EsdtTokenPayment::new(payment_token_id, token_nonce, amount);
+        let payment_1 = self.call_value().single_esdt();
         let payment_2 = EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero());
 
         Ok(MultiValue2::from((payment_1, payment_2)))

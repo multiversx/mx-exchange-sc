@@ -103,7 +103,7 @@ pub trait ProposalHelper: config::Config {
     }
 
     fn execute_action(&self, action: &Action<Self::Api>) -> Result<(), &'static [u8]> {
-        Self::Api::send_api_impl().direct_egld_execute(
+        Self::Api::send_api_impl().transfer_value_execute(
             &action.dest_address,
             &BigUint::zero(),
             action.gas_limit,

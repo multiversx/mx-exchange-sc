@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::LockedAssetTokenAttributesEx;
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     destination: ManagedAddress<M>,
@@ -17,7 +17,7 @@ pub struct CreateAndForwardEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct UnlockAssetsEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     input_locked_assets_token_id: TokenIdentifier<M>,

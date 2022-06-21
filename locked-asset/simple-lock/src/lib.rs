@@ -42,8 +42,8 @@ pub trait SimpleLock:
         &self,
         unlock_epoch: u64,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        let payment = self.call_value().egld_or_single_esdt();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
         let dest_address = self.dest_from_optional(opt_destination);
@@ -54,7 +54,6 @@ pub trait SimpleLock:
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
-                &[],
             );
 
             return payment;
@@ -68,11 +67,12 @@ pub trait SimpleLock:
         let locked_token_mapper = self.locked_token();
         let sft_nonce = self.get_or_create_nonce_for_attributes(
             &locked_token_mapper,
-            payment.token_identifier.as_managed_buffer(),
+            &payment.token_identifier.into_name(),
             &attributes,
         );
         self.locked_token()
             .nft_add_quantity_and_send(&dest_address, sft_nonce, payment.amount)
+            .into()
     }
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
@@ -88,8 +88,8 @@ pub trait SimpleLock:
     fn unlock_tokens(
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        let payment: EsdtTokenPayment<Self::Api> = self.call_value().payment();
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
         let locked_token_mapper = self.locked_token();
@@ -111,10 +111,9 @@ pub trait SimpleLock:
             &attributes.original_token_id,
             attributes.original_token_nonce,
             &payment.amount,
-            &[],
         );
 
-        EsdtTokenPayment::new(
+        EgldOrEsdtTokenPayment::new(
             attributes.original_token_id,
             attributes.original_token_nonce,
             payment.amount,

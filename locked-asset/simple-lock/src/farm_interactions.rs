@@ -57,9 +57,9 @@ pub trait FarmInteractionsModule {
         let mut contract_call = self
             .farm_proxy(farm_address)
             .enter_farm()
-            .add_token_transfer(farming_token, 0, farming_token_amount);
+            .add_esdt_token_transfer(farming_token, 0, farming_token_amount);
         for farm_token in &additional_farm_tokens {
-            contract_call = contract_call.add_token_transfer(
+            contract_call = contract_call.add_esdt_token_transfer(
                 farm_token.token_identifier,
                 farm_token.token_nonce,
                 farm_token.amount,
@@ -84,7 +84,7 @@ pub trait FarmInteractionsModule {
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .farm_proxy(farm_address)
             .exit_farm()
-            .add_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
+            .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
         let (initial_farming_tokens, reward_tokens) = exit_farm_result.into_tuple();
@@ -104,7 +104,7 @@ pub trait FarmInteractionsModule {
         let farm_claim_rewards_result: ClaimRewardsResultType<Self::Api> = self
             .farm_proxy(farm_address)
             .claim_rewards()
-            .add_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
+            .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
         let (new_farm_tokens, reward_tokens) = farm_claim_rewards_result.into_tuple();

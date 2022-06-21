@@ -193,7 +193,7 @@ impl<M: ManagedTypeApi> AddLiquidityPayments<M> {
             Some(payment) => {
                 payment.amount != 0
                     && payment.token_nonce == 0
-                    && payment.token_identifier.is_esdt()
+                    && payment.token_identifier.is_valid_esdt_identifier()
             }
             None => false,
         }

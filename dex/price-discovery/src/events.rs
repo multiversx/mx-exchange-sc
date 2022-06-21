@@ -3,9 +3,9 @@ use crate::phase::Phase;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct DepositEvent<M: ManagedTypeApi> {
-    token_id_in: TokenIdentifier<M>,
+    token_id_in: EgldOrEsdtTokenIdentifier<M>,
     token_amount_in: BigUint<M>,
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,
@@ -16,9 +16,9 @@ pub struct DepositEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct WithdrawEvent<M: ManagedTypeApi> {
-    token_id_out: TokenIdentifier<M>,
+    token_id_out: EgldOrEsdtTokenIdentifier<M>,
     token_amount_out: BigUint<M>,
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,
@@ -29,12 +29,12 @@ pub struct WithdrawEvent<M: ManagedTypeApi> {
     current_phase: Phase<M>,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct RedeemEvent<M: ManagedTypeApi> {
     redeem_token_id: TokenIdentifier<M>,
     redeem_token_nonce: u64,
     redeem_token_amount: BigUint<M>,
-    bought_token_id: TokenIdentifier<M>,
+    bought_token_id: EgldOrEsdtTokenIdentifier<M>,
     bought_token_amount: BigUint<M>,
 }
 
@@ -42,7 +42,7 @@ pub struct RedeemEvent<M: ManagedTypeApi> {
 pub trait EventsModule: crate::common_storage::CommonStorageModule {
     fn emit_deposit_event(
         &self,
-        token_id_in: TokenIdentifier,
+        token_id_in: EgldOrEsdtTokenIdentifier,
         token_amount_in: BigUint,
         redeem_token_id: TokenIdentifier,
         redeem_token_nonce: u64,
@@ -79,7 +79,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
 
     fn emit_withdraw_event(
         &self,
-        token_id_out: TokenIdentifier,
+        token_id_out: EgldOrEsdtTokenIdentifier,
         token_amount_out: BigUint,
         redeem_token_id: TokenIdentifier,
         redeem_token_nonce: u64,
@@ -119,7 +119,7 @@ pub trait EventsModule: crate::common_storage::CommonStorageModule {
         redeem_token_id: TokenIdentifier,
         redeem_token_nonce: u64,
         redeem_token_amount: BigUint,
-        bought_token_id: TokenIdentifier,
+        bought_token_id: EgldOrEsdtTokenIdentifier,
         bought_token_amount: BigUint,
     ) {
         let caller = self.blockchain().get_caller();

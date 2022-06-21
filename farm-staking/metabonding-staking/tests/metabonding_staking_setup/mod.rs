@@ -1,6 +1,7 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
+use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
 use elrond_wasm_debug::tx_mock::{TxInputESDT, TxResult};
 use elrond_wasm_debug::{
@@ -163,7 +164,7 @@ where
                 sc.init(asset_token_id, unlocked_percents.into());
 
                 let locked_asset_token_id = managed_token_id!(LOCKED_ASSET_TOKEN_ID);
-                sc.locked_asset_token_id().set(&locked_asset_token_id);
+                sc.locked_asset_token().set_token_id(&locked_asset_token_id);
             })
             .assert_ok();
 

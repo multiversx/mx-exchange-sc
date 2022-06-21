@@ -127,7 +127,7 @@ pub trait ProxyFarmModule:
     #[payable("*")]
     #[endpoint(exitFarmProxy)]
     fn exit_farm_proxy(&self, farm_address: ManagedAddress) -> ExitFarmResultType<Self::Api> {
-        let (token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -150,12 +150,11 @@ pub trait ProxyFarmModule:
         let reward_token_returned = farm_result.1;
 
         let caller = self.blockchain().get_caller();
-        self.send().direct(
+        self.send().direct_esdt(
             &caller,
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
             &farming_token_returned.amount,
-            &[],
         );
 
         self.send_tokens_non_zero(
@@ -440,7 +439,7 @@ pub trait ProxyFarmModule:
     ) -> ExitFarmResultType<Self::Api> {
         self.farm_contract_proxy(farm_address.clone())
             .exit_farm()
-            .add_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
+            .add_esdt_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
             .execute_on_dest_context()
     }
 

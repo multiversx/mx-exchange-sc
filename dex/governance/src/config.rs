@@ -58,13 +58,13 @@ pub trait Config {
     }
 
     fn try_change_mex_token_id(&self, token_id: TokenIdentifier) {
-        require!(token_id.is_esdt(), INVALID_ESDT);
+        require!(token_id.is_valid_esdt_identifier(), INVALID_ESDT);
 
         self.mex_token_id().set(&token_id);
     }
 
     fn try_change_vote_nft_id(&self, token_id: TokenIdentifier) {
-        require!(token_id.is_esdt(), INVALID_ESDT);
+        require!(token_id.is_valid_esdt_identifier(), INVALID_ESDT);
 
         self.vote_nft_id().set(&token_id);
     }
@@ -73,7 +73,7 @@ pub trait Config {
         self.governance_token_ids().clear();
 
         for token_id in token_ids.into_iter() {
-            require!(token_id.is_esdt(), INVALID_ESDT);
+            require!(token_id.is_valid_esdt_identifier(), INVALID_ESDT);
 
             self.governance_token_ids().insert(token_id);
         }
@@ -87,7 +87,7 @@ pub trait Config {
 
         for provider in price_providers.into_iter() {
             let tuple = provider.into_tuple();
-            require!(tuple.0.is_esdt(), INVALID_ESDT);
+            require!(tuple.0.is_valid_esdt_identifier(), INVALID_ESDT);
             require!(!tuple.1.is_zero(), ERROR_ZERO_VALUE);
 
             self.price_providers().insert(tuple.0, tuple.1);
