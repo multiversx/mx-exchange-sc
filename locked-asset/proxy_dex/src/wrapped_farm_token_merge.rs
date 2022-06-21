@@ -80,12 +80,11 @@ pub trait WrappedFarmTokenMerge:
             &merged_farm_token_amount.amount,
             &new_attrs,
         );
-        self.send().direct(
+        self.send().direct_esdt(
             caller,
             &wrapped_farm_token_id,
             new_nonce,
             &merged_farm_token_amount.amount,
-            &[],
         );
 
         let new_token = WrappedFarmToken {

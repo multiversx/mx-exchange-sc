@@ -16,14 +16,7 @@ mod self_proxy {
     pub trait PairProxy {
         #[payable("*")]
         #[endpoint(swapNoFeeAndForward)]
-        fn swap_no_fee(
-            &self,
-            #[payment_token] token_in: TokenIdentifier,
-            #[payment_nonce] nonce: u64,
-            #[payment_amount] amount_in: BigUint,
-            token_out: TokenIdentifier,
-            destination_address: ManagedAddress,
-        );
+        fn swap_no_fee(&self, token_out: TokenIdentifier, destination_address: ManagedAddress);
     }
 }
 
@@ -238,13 +231,8 @@ pub trait FeeModule:
 
         self.pair_proxy()
             .contract(pair_address)
-            .swap_no_fee(
-                available_token.clone(),
-                0,
-                available_amount.clone(),
-                requested_token.clone(),
-                destination_address.clone(),
-            )
+            .swap_no_fee(requested_token.clone(), destination_address.clone())
+            .add_esdt_token_transfer(available_token.clone(), 0, available_amount.clone())
             .execute_on_dest_context_ignore_result();
     }
 

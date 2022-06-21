@@ -65,9 +65,9 @@ impl<M: ManagedTypeApi> Default for StorageCache<M> {
     fn default() -> Self {
         StorageCache {
             contract_state: State::Inactive,
-            lp_token_id: TokenIdentifier::egld(),
-            first_token_id: TokenIdentifier::egld(),
-            second_token_id: TokenIdentifier::egld(),
+            lp_token_id: TokenIdentifier::from_esdt_bytes(&[]),
+            first_token_id: TokenIdentifier::from_esdt_bytes(&[]),
+            second_token_id: TokenIdentifier::from_esdt_bytes(&[]),
             first_token_reserve: BigUint::zero(),
             second_token_reserve: BigUint::zero(),
             lp_token_supply: BigUint::zero(),

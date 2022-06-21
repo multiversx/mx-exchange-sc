@@ -78,7 +78,7 @@ where
             ]));
             sc.init(asset_token_id.clone(), default_unlock_period);
 
-            sc.locked_asset_token_id().set(&asset_token_id);
+            sc.locked_asset_token().set_token_id(&asset_token_id);
         })
         .assert_ok();
 

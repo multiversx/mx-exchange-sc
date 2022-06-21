@@ -177,7 +177,6 @@ fn enter_farm<FarmObjBuilder>(
     let mut tx_expect = TxExpectMandos::new(0);
     tx_expect.add_out_value(&expected_farm_token_nonce);
     tx_expect.add_out_value(&EsdtTokenPayment::<DebugApi> {
-        token_type: elrond_wasm::types::EsdtTokenType::SemiFungible,
         token_identifier: managed_token_id!(FARM_TOKEN_ID),
         token_nonce: expected_farm_token_nonce,
         amount: managed_biguint!(farm_in_amount),

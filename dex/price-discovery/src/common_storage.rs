@@ -10,7 +10,7 @@ pub trait CommonStorageModule {
 
     #[view(getAcceptedTokenId)]
     #[storage_mapper("acceptedTokenId")]
-    fn accepted_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn accepted_token_id(&self) -> SingleValueMapper<EgldOrEsdtTokenIdentifier>;
 
     #[view(getLaunchedTokenBalance)]
     #[storage_mapper("launchedTokenBalance")]

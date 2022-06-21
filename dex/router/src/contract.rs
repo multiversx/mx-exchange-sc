@@ -80,11 +80,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -142,11 +142,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -200,7 +200,10 @@ pub trait Router:
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
-        require!(result.is_egld(), "LP Token already issued");
+        require!(
+            !result.is_valid_esdt_identifier(),
+            "LP Token already issued"
+        );
 
         self.send()
             .esdt_system_sc_proxy()
@@ -238,7 +241,7 @@ pub trait Router:
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
-        require!(pair_token.is_esdt(), "LP token not issued");
+        require!(pair_token.is_valid_esdt_identifier(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
 
@@ -277,11 +280,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let mut pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -369,22 +372,21 @@ pub trait Router:
     #[callback]
     fn lp_token_issue_callback(
         &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] returned_tokens: BigUint,
         caller: &ManagedAddress,
         address: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let (token_id, returned_tokens) = self.call_value().egld_or_single_fungible_esdt();
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
-                    .set_lp_token_identifier(token_id)
+                    .set_lp_token_identifier(token_id.unwrap_esdt())
                     .execute_on_dest_context_ignore_result();
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
+                    let _ = self.send().direct_egld(caller, &returned_tokens);
                 }
             }
         }

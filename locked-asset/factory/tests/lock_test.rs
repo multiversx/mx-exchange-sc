@@ -1,7 +1,10 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::types::{EsdtLocalRole, ManagedVec, MultiValueEncoded};
+use elrond_wasm::{
+    storage::mappers::StorageTokenWrapper,
+    types::{EsdtLocalRole, ManagedVec, MultiValueEncoded},
+};
 use elrond_wasm_debug::{
     managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
 };
@@ -10,8 +13,8 @@ const SC_WASM_PATH: &'static str = "output/factory.wasm";
 
 use factory::{locked_asset::LockedAssetModule, LockedAssetFactory};
 
-const ASSET_TOKEN_ID: &[u8] = b"MEX-1234";
-const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-1234";
+const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
+const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-123456";
 
 #[test]
 fn test_lock_assets() {
@@ -34,8 +37,8 @@ fn test_lock_assets() {
                 unlock_percent: 100,
             });
             sc.init(asset_token_id, unlock_period);
-            sc.locked_asset_token_id()
-                .set(&managed_token_id!(LOCKED_ASSET_TOKEN_ID));
+            sc.locked_asset_token()
+                .set_token_id(&managed_token_id!(LOCKED_ASSET_TOKEN_ID));
         })
         .assert_ok();
 

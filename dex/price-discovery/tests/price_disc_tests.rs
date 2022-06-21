@@ -1,5 +1,5 @@
 use elrond_wasm::elrond_codec::Empty;
-use elrond_wasm_debug::{managed_biguint, managed_token_id};
+use elrond_wasm_debug::{managed_biguint, managed_token_id_wrapped};
 use elrond_wasm_debug::{rust_biguint, DebugApi};
 use price_discovery::common_storage::*;
 use price_discovery::redeem_token::*;
@@ -374,7 +374,7 @@ fn redeem_ok() {
         1,
         &first_user_expected_launched_tokens_balance,
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(LAUNCHED_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: UNLOCK_EPOCH,
         }),
@@ -388,7 +388,7 @@ fn redeem_ok() {
         1,
         &second_user_expected_launched_tokens_balance,
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(LAUNCHED_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(LAUNCHED_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: UNLOCK_EPOCH,
         }),
@@ -402,7 +402,7 @@ fn redeem_ok() {
         2,
         &owner_expected_accepted_tokens_balance,
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(ACCEPTED_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(ACCEPTED_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: UNLOCK_EPOCH,
         }),
