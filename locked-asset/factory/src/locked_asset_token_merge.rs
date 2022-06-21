@@ -28,17 +28,11 @@ pub trait LockedAssetTokenMergeModule:
 
         let (amount, attrs) =
             self.get_merged_locked_asset_token_amount_and_attributes(payments_iter.clone());
-        let locked_asset_token = self.locked_asset_token_id().get();
 
         self.burn_tokens_from_payments(payments_iter);
 
-        let new_nonce = self
-            .send()
-            .esdt_nft_create_compact(&locked_asset_token, &amount, &attrs);
-        self.send()
-            .direct_esdt(&caller, &locked_asset_token, new_nonce, &amount);
-
-        EsdtTokenPayment::new(locked_asset_token, new_nonce, amount)
+        self.locked_asset_token()
+            .nft_create_and_send(&caller, amount, &attrs)
     }
 
     fn burn_tokens_from_payments(
@@ -59,7 +53,7 @@ pub trait LockedAssetTokenMergeModule:
 
         let mut tokens = ManagedVec::new();
         let mut sum_amount = BigUint::zero();
-        let locked_asset_token_id = self.locked_asset_token_id().get();
+        let locked_asset_token_id = self.locked_asset_token().get_token_id();
 
         for entry in payments {
             require!(
@@ -70,10 +64,8 @@ pub trait LockedAssetTokenMergeModule:
             sum_amount += &entry.amount;
 
             let attributes = self.get_attributes_ex(&entry.token_identifier, entry.token_nonce);
-            let payment =
-                EsdtTokenPayment::new(entry.token_identifier, entry.token_nonce, entry.amount);
             tokens.push(LockedTokenEx {
-                token_amount: payment,
+                token_amount: entry,
                 attributes,
             });
         }

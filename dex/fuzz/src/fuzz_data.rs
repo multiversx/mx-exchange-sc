@@ -544,7 +544,7 @@ pub mod fuzz_data_tests {
                 ]));
                 sc.init(asset_token_id, default_unlock_period);
                 sc.set_init_epoch(FACTORY_LOCK_NONCE);
-                sc.locked_asset_token_id().set(&locked_asset_token_id);
+                sc.locked_asset_token().set_token_id(&locked_asset_token_id);
             })
             .assert_ok();
 

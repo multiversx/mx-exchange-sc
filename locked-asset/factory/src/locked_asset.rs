@@ -39,35 +39,39 @@ where
 
 #[elrond_wasm::module]
 pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrExHelper {
+    #[inline]
     fn create_and_send_locked_assets(
         &self,
         amount: &BigUint,
         additional_amount_to_create: &BigUint,
         address: &ManagedAddress,
         attributes: &LockedAssetTokenAttributesEx<Self::Api>,
-    ) -> Nonce {
-        let token_id = self.locked_asset_token_id().get();
-        let last_created_nonce = self.send().esdt_nft_create_compact(
-            &token_id,
-            &(amount + additional_amount_to_create),
-            attributes,
-        );
-        self.send()
-            .direct_esdt(address, &token_id, last_created_nonce, amount);
+    ) -> EsdtTokenPayment<Self::Api> {
+        let total_amount = amount + additional_amount_to_create;
+        let mut created_tokens = self
+            .locked_asset_token()
+            .nft_create(total_amount, attributes);
+        created_tokens.amount -= additional_amount_to_create;
 
-        last_created_nonce
+        self.send().direct_esdt(
+            address,
+            &created_tokens.token_identifier,
+            created_tokens.token_nonce,
+            &created_tokens.amount,
+        );
+
+        created_tokens
     }
 
+    #[inline]
     fn add_quantity_and_send_locked_assets(
         &self,
-        amount: &BigUint,
+        amount: BigUint,
         sft_nonce: Nonce,
         address: &ManagedAddress,
-    ) {
-        let token_id = self.locked_asset_token_id().get();
-        self.send().esdt_local_mint(&token_id, sft_nonce, amount);
-        self.send()
-            .direct_esdt(address, &token_id, sft_nonce, amount);
+    ) -> EsdtTokenPayment<Self::Api> {
+        self.locked_asset_token()
+            .nft_add_quantity_and_send(address, sft_nonce, amount)
     }
 
     fn get_unlock_amount(
@@ -213,7 +217,7 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
-    fn locked_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    fn locked_asset_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]
