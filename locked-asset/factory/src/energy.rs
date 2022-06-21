@@ -46,7 +46,7 @@ pub trait EnergyModule {
 
             while let Some(node) = &mut current_list_node {
                 let unlock_epoch_in_list = node.get_value_cloned();
-                if unlock_epoch_in_list > milestone.unlock_epoch {
+                if unlock_epoch_in_list >= milestone.unlock_epoch {
                     break;
                 }
 
@@ -56,7 +56,15 @@ pub trait EnergyModule {
 
             match &mut current_list_node {
                 Some(list_node) => {
-                    list_mapper.push_before(list_node, milestone.unlock_epoch);
+                    let unlock_epoch_in_list = list_node.get_value_cloned();
+                    if unlock_epoch_in_list != milestone.unlock_epoch {
+                        list_mapper.push_before(list_node, milestone.unlock_epoch);
+                    }
+
+                    self.tokens_for_unlock_epoch(user, milestone.unlock_epoch)
+                        .update(|tokens_for_epoch| {
+                            *tokens_for_epoch += &unlock_amount_at_milestone
+                        });
                 }
                 None => {
                     let _ = list_mapper.push_back(milestone.unlock_epoch);
