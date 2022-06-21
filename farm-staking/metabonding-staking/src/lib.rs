@@ -104,7 +104,6 @@ pub trait MetabondingStaking:
             &locked_asset_token_id,
             user_entry.token_nonce,
             &unstake_amount,
-            &[],
         );
 
         self.unbond_event(&caller, opt_entry_after_action);

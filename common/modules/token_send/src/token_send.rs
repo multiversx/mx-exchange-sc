@@ -18,8 +18,7 @@ pub trait TokenSendModule {
         }
 
         if !non_zero_payments.is_empty() {
-            self.send()
-                .direct_multi(destination, &non_zero_payments, &[])
+            self.send().direct_multi(destination, &non_zero_payments)
         }
     }
 
@@ -34,7 +33,6 @@ pub trait TokenSendModule {
             return;
         }
 
-        self.send()
-            .direct_esdt(to, token_id, token_nonce, amount, &[]);
+        self.send().direct_esdt(to, token_id, token_nonce, amount);
     }
 }

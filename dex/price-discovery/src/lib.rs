@@ -6,7 +6,6 @@ use crate::{
     common_storage::MAX_PERCENTAGE,
     redeem_token::{ACCEPTED_TOKEN_REDEEM_NONCE, LAUNCHED_TOKEN_REDEEM_NONCE},
 };
-use core::ops::Deref;
 
 pub mod common_storage;
 pub mod events;
@@ -48,23 +47,11 @@ pub trait PriceDiscovery:
             launched_token_id.is_valid_esdt_identifier(),
             "Invalid launched token ID"
         );
-
-        if !accepted_token_id.is_egld() {
-            require!(
-                accepted_token_id.is_valid_esdt_identifier(),
-                "Invalid payment token ID"
-            );
-
-            unsafe {
-                let acc_token_id_ref = accepted_token_id
-                    .as_esdt_token_identifier()
-                    .unwrap_unchecked();
-                require!(
-                    &launched_token_id != acc_token_id_ref.deref(),
-                    "Launched and accepted token must be different"
-                );
-            }
-        }
+        require!(accepted_token_id.is_valid(), "Invalid payment token ID");
+        require!(
+            accepted_token_id != launched_token_id,
+            "Launched and accepted token must be different"
+        );
 
         require!(
             launched_token_decimals <= MAX_TOKEN_DECIMALS,
@@ -211,7 +198,7 @@ pub trait PriceDiscovery:
 
         let caller = self.blockchain().get_caller();
         self.send()
-            .direct(&caller, &refund_token_id, 0, &withdraw_amount, &[]);
+            .direct(&caller, &refund_token_id, 0, &withdraw_amount);
 
         self.emit_withdraw_event(
             refund_token_id.clone(),

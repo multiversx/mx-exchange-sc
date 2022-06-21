@@ -241,7 +241,6 @@ pub trait ProxyPairModule:
             &locked_asset_token_id,
             attributes.locked_assets_nonce,
             &locked_assets_to_send,
-            &[],
         );
 
         //Do cleanup

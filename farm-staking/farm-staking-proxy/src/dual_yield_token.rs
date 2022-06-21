@@ -62,7 +62,6 @@ pub trait DualYieldTokenModule:
             &payment.token_identifier,
             payment.token_nonce,
             &payment.amount,
-            &[],
         );
 
         payment

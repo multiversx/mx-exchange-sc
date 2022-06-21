@@ -252,7 +252,7 @@ pub trait FarmStakingProxy:
         }
         user_payments.push(unbond_staking_farm_token);
 
-        self.send().direct_esdt_multi(&caller, &user_payments, &[]);
+        self.send().direct_multi(&caller, &user_payments);
 
         user_payments.into()
     }

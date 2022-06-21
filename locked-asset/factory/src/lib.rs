@@ -359,7 +359,6 @@ pub trait LockedAssetFactory:
                     &token_id,
                     0,
                     &payment,
-                    &[],
                 );
             }
         };

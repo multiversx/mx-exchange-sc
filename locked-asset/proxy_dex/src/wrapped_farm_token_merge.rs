@@ -85,7 +85,6 @@ pub trait WrappedFarmTokenMerge:
             &wrapped_farm_token_id,
             new_nonce,
             &merged_farm_token_amount.amount,
-            &[],
         );
 
         let new_token = WrappedFarmToken {

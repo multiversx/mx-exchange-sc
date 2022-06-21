@@ -1,6 +1,6 @@
 use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::types::EsdtLocalRole;
-use elrond_wasm_debug::{managed_biguint, testing_framework::*};
+use elrond_wasm_debug::{managed_biguint, managed_token_id_wrapped, testing_framework::*};
 use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
 
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
@@ -71,7 +71,7 @@ fn lock_unlock_test() {
         lock_token_nonce,
         &lock_amount,
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(FREE_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(FREE_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
         }),

@@ -24,8 +24,8 @@ panic = "abort"
 path = ".."
 
 [dependencies.elrond-wasm-node]
-version = "0.32.0"
+version = "0.33.0"
 
 [dependencies.elrond-wasm-output]
-version = "0.32.0"
+version = "0.33.0"
 features = ["wasm-output-mode"]

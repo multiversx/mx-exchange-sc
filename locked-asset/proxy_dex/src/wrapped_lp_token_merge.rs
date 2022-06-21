@@ -65,7 +65,6 @@ pub trait WrappedLpTokenMerge:
             &wrapped_lp_token_id,
             new_nonce,
             &merged_wrapped_lp_amount,
-            &[],
         );
 
         let new_token = WrappedLpToken {

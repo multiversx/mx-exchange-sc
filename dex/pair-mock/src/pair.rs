@@ -67,7 +67,10 @@ pub trait PairMock {
         require!(self.state().get(), "Inactive");
 
         let lp_token_id = self.lp_token_id().get();
-        require!(!lp_token_id.is_empty(), "LP token not issued");
+        require!(
+            !lp_token_id.is_valid_esdt_identifier(),
+            "LP token not issued"
+        );
 
         let (first_payment, second_payment) = payments
             .into_iter()
@@ -107,7 +110,7 @@ pub trait PairMock {
 
         let lp_token_amount = liquidity - MINIMUM_LIQUIDITY;
         self.send()
-            .direct_esdt(&caller, &lp_token_id, 0, &lp_token_amount, &[]);
+            .direct_esdt(&caller, &lp_token_id, 0, &lp_token_amount);
 
         (
             EsdtTokenPayment::new(lp_token_id, 0, lp_token_amount),

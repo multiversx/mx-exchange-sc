@@ -391,7 +391,6 @@ pub trait Farm:
             &new_farm_token.payment.token_identifier,
             new_farm_token.payment.token_nonce,
             &new_farm_token.payment.amount,
-            &[],
         );
 
         let reward_token_id = self.reward_token_id().get();
@@ -471,7 +470,6 @@ pub trait Farm:
             &new_farm_token.payment.token_identifier,
             new_farm_token.payment.token_nonce,
             &new_farm_token.payment.amount,
-            &[],
         );
 
         new_farm_token.payment

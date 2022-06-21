@@ -235,7 +235,6 @@ pub trait ProxyFarmModule:
             &lp_proxy_token_payment.token_identifier,
             lp_proxy_token_payment.token_nonce,
             &lp_proxy_token_payment.amount,
-            &[],
         );
 
         if exit_farm_result.reward_tokens.amount > 0 {
@@ -244,7 +243,6 @@ pub trait ProxyFarmModule:
                 &exit_farm_result.reward_tokens.token_identifier,
                 exit_farm_result.reward_tokens.token_nonce,
                 &exit_farm_result.reward_tokens.amount,
-                &[],
             );
         }
 
@@ -299,7 +297,6 @@ pub trait ProxyFarmModule:
                 &claim_rewards_result.reward_tokens.token_identifier,
                 claim_rewards_result.reward_tokens.token_nonce,
                 &claim_rewards_result.reward_tokens.amount,
-                &[],
             );
         }
 

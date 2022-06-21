@@ -33,7 +33,6 @@ pub trait FarmTokenMergeModule:
             &new_tokens.token_identifier,
             new_tokens.token_nonce,
             &new_tokens.amount,
-            &[],
         );
 
         new_tokens

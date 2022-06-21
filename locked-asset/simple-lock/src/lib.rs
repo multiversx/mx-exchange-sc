@@ -54,7 +54,6 @@ pub trait SimpleLock:
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
-                &[],
             );
 
             return payment;
@@ -112,7 +111,6 @@ pub trait SimpleLock:
             &attributes.original_token_id,
             attributes.original_token_nonce,
             &payment.amount,
-            &[],
         );
 
         EgldOrEsdtTokenPayment::new(

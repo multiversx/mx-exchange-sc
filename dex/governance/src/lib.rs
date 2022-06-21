@@ -51,7 +51,6 @@ pub trait Lib: config::Config {
             &payment.token_identifier,
             payment.token_nonce,
             &payment.amount,
-            &[],
         );
     }
 

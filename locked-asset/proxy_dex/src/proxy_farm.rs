@@ -155,7 +155,6 @@ pub trait ProxyFarmModule:
             &wrapped_farm_token_attrs.farming_token_id,
             wrapped_farm_token_attrs.farming_token_nonce,
             &farming_token_returned.amount,
-            &[],
         );
 
         self.send_tokens_non_zero(

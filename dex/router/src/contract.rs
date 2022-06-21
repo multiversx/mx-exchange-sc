@@ -384,7 +384,7 @@ pub trait Router:
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    let _ = self.send().direct_esdt_egld(caller, &returned_tokens, &[]);
+                    let _ = self.send().direct_egld(caller, &returned_tokens);
                 }
             }
         }

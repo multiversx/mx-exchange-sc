@@ -110,7 +110,6 @@ pub trait LockedTokenModule:
             &payment.token_identifier,
             payment.token_nonce,
             &payment.amount,
-            &[],
         );
 
         payment
