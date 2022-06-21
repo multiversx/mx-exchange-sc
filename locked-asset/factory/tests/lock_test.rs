@@ -10,8 +10,8 @@ const SC_WASM_PATH: &'static str = "output/factory.wasm";
 
 use factory::{locked_asset::LockedAssetModule, LockedAssetFactory};
 
-const ASSET_TOKEN_ID: &[u8] = b"MEX-1234";
-const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-1234";
+const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
+const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-123456";
 
 #[test]
 fn test_lock_assets() {

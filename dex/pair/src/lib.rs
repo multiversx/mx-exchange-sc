@@ -114,7 +114,7 @@ pub trait Pair<ContractReader>:
 
         self.load_lp_token_id(&mut context);
         require!(
-            !context.get_lp_token_id().is_valid_esdt_identifier(),
+            context.get_lp_token_id().is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
 
@@ -178,7 +178,7 @@ pub trait Pair<ContractReader>:
 
         self.load_lp_token_id(&mut context);
         require!(
-            !context.get_lp_token_id().is_valid_esdt_identifier(),
+            context.get_lp_token_id().is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
 
@@ -259,7 +259,7 @@ pub trait Pair<ContractReader>:
 
         self.load_lp_token_id(&mut context);
         require!(
-            !context.get_lp_token_id().is_valid_esdt_identifier(),
+            context.get_lp_token_id().is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
         require!(
@@ -321,7 +321,7 @@ pub trait Pair<ContractReader>:
 
         self.load_lp_token_id(&mut context);
         require!(
-            !context.get_lp_token_id().is_valid_esdt_identifier(),
+            context.get_lp_token_id().is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
         require!(
