@@ -68,7 +68,7 @@ pub trait PairMock {
 
         let lp_token_id = self.lp_token_id().get();
         require!(
-            !lp_token_id.is_valid_esdt_identifier(),
+            lp_token_id.is_valid_esdt_identifier(),
             "LP token not issued"
         );
 
