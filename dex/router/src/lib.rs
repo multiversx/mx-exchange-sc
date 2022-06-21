@@ -60,7 +60,7 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
         }
 
         payments.push(last_payment);
-        self.send().direct_esdt_multi(&caller, &payments, &[]);
+        self.send().direct_multi(&caller, &payments);
     }
 
     fn actual_swap_fixed_input(

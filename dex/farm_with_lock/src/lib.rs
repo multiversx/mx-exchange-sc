@@ -55,8 +55,14 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
     ) {
-        require!(reward_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
-        require!(farming_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
+        require!(
+            reward_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
+        require!(
+            farming_token_id.is_valid_esdt_identifier(),
+            ERROR_NOT_AN_ESDT
+        );
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
 
         let farm_token = self.farm_token().get_token_id();
@@ -88,7 +94,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_enter(), ERROR_BAD_PAYMENTS);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
@@ -137,7 +146,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
@@ -167,7 +179,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_claim(), ERROR_BAD_PAYMENTS);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
@@ -222,7 +237,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_compound(), ERROR_BAD_PAYMENTS);
         require!(
             context.get_farming_token_id() == context.get_reward_token_id(),
@@ -367,7 +385,7 @@ pub trait Farm:
         destination: &ManagedAddress,
     ) {
         self.send()
-            .direct_esdt(destination, farming_token_id, 0, farming_amount, &[]);
+            .direct_esdt(destination, farming_token_id, 0, farming_amount);
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {

@@ -68,11 +68,7 @@ pub trait WrappedLpTokenMerge:
         );
 
         let new_token = WrappedLpToken {
-            token: EsdtTokenPayment::new(
-                wrapped_lp_token_id,
-                new_nonce,
-                merged_wrapped_lp_amount,
-            ),
+            token: EsdtTokenPayment::new(wrapped_lp_token_id, new_nonce, merged_wrapped_lp_amount),
             attributes: attrs,
         };
         let is_merged = payments_len != 0;
@@ -189,9 +185,7 @@ pub trait WrappedLpTokenMerge:
     ) -> BigUint {
         let mut token_amount = BigUint::zero();
 
-        tokens
-            .iter()
-            .for_each(|x| token_amount += &x.token.amount);
+        tokens.iter().for_each(|x| token_amount += &x.token.amount);
         token_amount
     }
 }

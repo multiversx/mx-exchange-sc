@@ -233,7 +233,7 @@ pub trait ProxyPairModule:
 
         //Send back the tokens removed from pair sc.
         self.send()
-            .direct_esdt(&caller, &fungible_token_id, 0, &fungible_token_amount, &[]);
+            .direct_esdt(&caller, &fungible_token_id, 0, &fungible_token_amount);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
         self.send().direct_esdt(
@@ -247,7 +247,7 @@ pub trait ProxyPairModule:
         if assets_received > locked_assets_invested {
             let difference = assets_received - locked_assets_invested;
             self.send()
-                .direct_esdt(&caller, &asset_token_id, 0, &difference, &[]);
+                .direct_esdt(&caller, &asset_token_id, 0, &difference);
         } else if assets_received < locked_assets_invested {
             let difference = locked_assets_invested - assets_received;
             self.send().esdt_local_burn(

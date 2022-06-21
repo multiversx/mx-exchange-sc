@@ -259,7 +259,7 @@ pub trait Farm:
             },
         );
         self.send()
-            .direct_esdt(to, &farm_token_id, nft_nonce, &amount, &[]);
+            .direct_esdt(to, &farm_token_id, nft_nonce, &amount);
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
     }
@@ -290,7 +290,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let farming_token_id = self.farming_token_id().get();
         self.send()
-            .direct_esdt(&caller, &farming_token_id, 0, &amount, &[]);
+            .direct_esdt(&caller, &farming_token_id, 0, &amount);
 
         EsdtTokenPayment::new(farming_token_id, 0, amount)
     }

@@ -58,6 +58,11 @@ pub trait ConfigModule: token_send::TokenSendModule {
         self.special_fee_percent().set(&special_fee_percent);
     }
 
+    #[view(getLpTokenIdentifier)]
+    fn get_lp_token_identifier(&self) -> TokenIdentifier {
+        self.lp_token_identifier().get()
+    }
+
     #[view(getTotalFeePercent)]
     #[storage_mapper("total_fee_percent")]
     fn total_fee_percent(&self) -> SingleValueMapper<u64>;
@@ -82,7 +87,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[storage_mapper("extern_swap_gas_limit")]
     fn extern_swap_gas_limit(&self) -> SingleValueMapper<u64>;
 
-    #[view(getLpTokenIdentifier)]
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<TokenIdentifier>;
 

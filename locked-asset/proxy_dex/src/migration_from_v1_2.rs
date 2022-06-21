@@ -101,7 +101,7 @@ pub trait MigrationModule:
         }
 
         let caller = self.blockchain().get_caller();
-        self.send().direct_esdt_multi(&caller, &payments);
+        self.send().direct_multi(&caller, &payments);
     }
 
     #[proxy]

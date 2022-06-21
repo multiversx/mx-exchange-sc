@@ -6,7 +6,7 @@ elrond_wasm::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::generic::GenericContext;
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farming_token_id: TokenIdentifier<M>,
@@ -24,7 +24,7 @@ pub struct EnterFarmEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct ExitFarmEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     farming_token_id: TokenIdentifier<M>,
@@ -43,7 +43,7 @@ pub struct ExitFarmEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct ClaimRewardsEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     old_farm_token_id: TokenIdentifier<M>,
@@ -65,7 +65,7 @@ pub struct ClaimRewardsEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[derive(TopEncode)]
+#[derive(TypeAbi, TopEncode)]
 pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     old_farm_token_id: TokenIdentifier<M>,
@@ -122,7 +122,9 @@ pub trait EventsModule {
         let first_pay = &ctx.get_tx_input().first_payment;
         let reward = match ctx.get_final_reward() {
             Some(rew) => rew.clone(),
-            None => EsdtTokenPayment::no_payment(),
+            None => {
+                EsdtTokenPayment::new(TokenIdentifier::from_esdt_bytes(&[]), 0, BigUint::zero())
+            }
         };
 
         self.exit_farm_event(
@@ -153,7 +155,9 @@ pub trait EventsModule {
         let first_pay = &ctx.get_tx_input().first_payment;
         let reward = match ctx.get_final_reward() {
             Some(rew) => rew.clone(),
-            None => EsdtTokenPayment::no_payment(),
+            None => {
+                EsdtTokenPayment::new(TokenIdentifier::from_esdt_bytes(&[]), 0, BigUint::zero())
+            }
         };
         let output = ctx.get_output_payments().get(0);
         let output_attributes = ctx
@@ -191,7 +195,9 @@ pub trait EventsModule {
         let first_pay = &ctx.get_tx_input().first_payment;
         let reward = match ctx.get_final_reward() {
             Some(rew) => rew.clone(),
-            None => EsdtTokenPayment::no_payment(),
+            None => {
+                EsdtTokenPayment::new(TokenIdentifier::from_esdt_bytes(&[]), 0, BigUint::zero())
+            }
         };
         let output = ctx.get_output_payments().get(0);
         let output_attributes = ctx

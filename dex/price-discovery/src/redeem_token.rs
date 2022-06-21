@@ -46,7 +46,7 @@ pub trait RedeemTokenModule:
             launched_token_id.as_managed_buffer(),
             &Empty,
         );
-        let _ = token_mapper.nft_create_named(one.clone(), &accepted_token_id.into_name(), &Empty);
+        let _ = token_mapper.nft_create_named(one, &accepted_token_id.into_name(), &Empty);
     }
 
     fn mint_and_send_redeem_token(

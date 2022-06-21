@@ -200,7 +200,10 @@ pub trait Router:
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
-        require!(result.is_egld(), "LP Token already issued");
+        require!(
+            !result.is_valid_esdt_identifier(),
+            "LP Token already issued"
+        );
 
         self.send()
             .esdt_system_sc_proxy()
@@ -369,17 +372,16 @@ pub trait Router:
     #[callback]
     fn lp_token_issue_callback(
         &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] returned_tokens: BigUint,
         caller: &ManagedAddress,
         address: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let (token_id, returned_tokens) = self.call_value().egld_or_single_fungible_esdt();
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
-                    .set_lp_token_identifier(token_id)
+                    .set_lp_token_identifier(token_id.unwrap_esdt())
                     .execute_on_dest_context_ignore_result();
             }
             ManagedAsyncCallResult::Err(_) => {
