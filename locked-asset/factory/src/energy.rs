@@ -146,7 +146,7 @@ pub trait EnergyModule {
 
             let epochs_diff = last_update_epoch - unlock_epoch;
             let energy_removed = &energy_per_lock_epoch * epochs_diff;
-            total_energy_removed -= energy_removed;
+            total_energy_removed += energy_removed;
 
             let tokens_mapper = self.tokens_for_unlock_epoch(user, unlock_epoch);
             let tokens_for_entry = tokens_mapper.get();
