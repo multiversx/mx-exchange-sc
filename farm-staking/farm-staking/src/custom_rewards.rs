@@ -21,9 +21,9 @@ pub trait CustomRewardsModule:
             let extra_rewards_unbounded =
                 self.calculate_per_block_rewards(current_checkpoint_block_nonce, last_reward_nonce);
 
-            let global_farm_token_supply = self.global_farm_token_supply().get();
+            let local_farm_token_supply = self.local_farm_token_supply().get();
             let extra_rewards_apr_bounded_per_block =
-                self.get_amount_apr_bounded(&global_farm_token_supply);
+                self.get_amount_apr_bounded(&local_farm_token_supply);
 
             let block_nonce_diff = current_checkpoint_block_nonce - last_reward_nonce;
             let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
@@ -113,10 +113,10 @@ pub trait CustomRewardsModule:
     }
 
     fn update_reward_per_share(&self, reward_increase: &BigUint) {
-        let farm_token_supply = self.farm_token_supply().get();
-        if farm_token_supply > 0 {
+        let local_farm_token_supply = self.local_farm_token_supply().get();
+        if local_farm_token_supply > 0 {
             let increase =
-                self.calculate_reward_per_share_increase(reward_increase, &farm_token_supply);
+                self.calculate_reward_per_share_increase(reward_increase, &local_farm_token_supply);
             self.reward_per_share().update(|r| *r += increase);
         }
     }

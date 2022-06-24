@@ -339,7 +339,7 @@ fn test_multisharded_reward_distribution() {
     ctx.check_supply(1, 10000, 0, 0, 0, 0);
     ctx.check_supply(2, 10000, 0, 0, 0, 0);
 
-    // enter first farm
+    // enter the first farm
     ctx.enter_farm(0, alice, 100);
     ctx.enter_farm(0, bob, 200);
 
@@ -350,42 +350,64 @@ fn test_multisharded_reward_distribution() {
     ctx.blockchain_wrapper.set_block_nonce(20);
     ctx.synchronize_farms();
 
+    // only the reward per share of the first farm increases since it's the only one in which users added supply
+    // the rewards are 3000, the supply is 300, which means a reward per share of 100 (=3000 / 300)
     ctx.check_supply(0, 40000, 100_000_000_000_000, 300, 300, 300);
     ctx.check_supply(1, 10000, 0, 0, 0, 300);
     ctx.check_supply(2, 10000, 0, 0, 0, 300);
 
-    // enter second farm
+    // enter the second farm
     ctx.enter_farm(1, carol, 350);
     ctx.enter_farm(1, dan, 400);
 
-    // enter third farm
+    // enter the third farm
     ctx.enter_farm(2, eve, 450);
 
     ctx.blockchain_wrapper.set_block_nonce(30);
     ctx.synchronize_farms();
 
-    // percentages of rewards distributed to each farm based on its ratio of local to global supply:
-    // - first farm:  20% (=(100+200)/1500)
-    // - second farm: 50% (=(350+400)/1500)
-    // - third farm:  30% (=450/1500)
-    ctx.check_supply(0, 46000, 104_000_000_000_000, 300, 300, 1500);
-    ctx.check_supply(1, 25000, 10_000_000_000_000, 750, 750, 1500);
-    ctx.check_supply(2, 19000, 6_000_000_000_000, 450, 450, 1500);
+    // Percentages of rewards distributed to each farm based on its ratio of local to global supply:
+    // - first farm:  20% (= (100+200) / 1500)
+    // - second farm: 50% (= (350+400) / 1500)
+    // - third farm:  30% (= 450 / 1500)
+    // the reward per share increases equally because each farm gets a reward directly proportional with how much supply it has
+    // From block 20 to block 30, the total reward is 30000 (=3000 * (30 - 20))
+    // Farm   | Local supply  | Reward increase      | Reward per share increase
+    // First  | 300           | 6000 (= 30000 * 0.2)  | 20 (= 6000 / 300)
+    // Second | 750           | 15000 (= 30000 * 0.5) | 20 (= 15000 / 750)
+    // Third  | 450           | 9000 (= 30000 * 0.3)  | 20 (= 9000 / 450)
+    //
+    // This matches the reward per share increase of 20 (=30000 / 1500) that would occur in a scenario that would only have a single farm
+    ctx.check_supply(0, 46000, 120_000_000_000_000, 300, 300, 1500);
+    ctx.check_supply(1, 25000, 20_000_000_000_000, 750, 750, 1500);
+    ctx.check_supply(2, 19000, 20_000_000_000_000, 450, 450, 1500);
 
-    ctx.exit_farm(0, alice, 1, 100, 10400);
-    ctx.check_supply(0, 35600, 104_000_000_000_000, 200, 300, 1500);
+    // out of the 36000 (= 46000 - 10000) rewards which accumulated during the last 20 blocks, alice should get one third (= 100 / (100 + 200))
+    // which is 12000 (= 1/3 * 36000)
+    ctx.exit_farm(0, alice, 1, 100, 12000);
+    ctx.check_supply(0, 34000, 120_000_000_000_000, 200, 300, 1500);
 
-    ctx.exit_farm(0, bob, 2, 200, 20800);
-    ctx.check_supply(0, 14800, 104_000_000_000_000, 0, 300, 1500);
+    // bob gets the remaining two thirds: 24000 (= 2/3 * 36000)
+    ctx.exit_farm(0, bob, 2, 200, 24000);
+    ctx.check_supply(0, 10000, 120_000_000_000_000, 0, 300, 1500);
 
     ctx.blockchain_wrapper.set_block_nonce(40);
     ctx.synchronize_farms();
 
-    // because the first farm is now empty, it does not receive rewards
-    // the rewards should be distributed only between the last 2 farms
-    ctx.check_supply(0, 14800, 104_000_000_000_000, 0, 0, 1200);
-    ctx.check_supply(1, 43750, 25_625_000_000_000, 750, 750, 1200);
-    ctx.check_supply(2, 30250, 15_375_000_000_000, 450, 450, 1200);
+    // The rewards are distributed as follows:
+    // - first farm: 0% (= 0 / 1200)
+    // - second farm: 62.5% (= 750 / 1200)
+    // - third farm: 37.5% (= 450 / 1200)
+    // The reward from block 30 to block 40 is 30000 (=3000 * (40 - 30))
+    // Farm   | Local supply  | Reward increase         | Reward per share increase
+    // First  | 0             | 0 (= 30000 * 0)         | 0
+    // Second | 750           | 18750 (= 30000 * 0.625) | 25 (= 18750 / 750)
+    // Third  | 450           | 11250 (= 30000 * 0.375) | 25 (= 11250 / 450)
+    //
+    // This matches the reward per share increase of 25 (=30000 / 1200) that would occur in a scenario that would only have a single farm
+    ctx.check_supply(0, 10000, 120_000_000_000_000, 0, 0, 1200);
+    ctx.check_supply(1, 43750, 45_000_000_000_000, 750, 750, 1200);
+    ctx.check_supply(2, 30250, 45_000_000_000_000, 450, 450, 1200);
 }
 
 #[test]

@@ -43,10 +43,10 @@ pub trait CustomRewardsModule:
             self.reward_reserve()
                 .update(|reward_reserve| *reward_reserve += &total_reward);
 
-            let global_farm_token_supply = self.global_farm_token_supply().get();
-            if global_farm_token_supply != 0u64 {
+            let local_farm_token_supply = self.local_farm_token_supply().get();
+            if local_farm_token_supply != 0u64 {
                 let division_safety_constant = self.division_safety_constant().get();
-                let increase = total_reward * &division_safety_constant / &global_farm_token_supply;
+                let increase = total_reward * &division_safety_constant / &local_farm_token_supply;
                 self.reward_per_share()
                     .update(|reward_per_share| *reward_per_share += &increase);
             }
