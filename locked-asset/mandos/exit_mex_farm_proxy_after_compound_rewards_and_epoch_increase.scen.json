@@ -17,6 +17,24 @@
             "txId": "14",
             "tx": {
                 "from": "address:user_with_wegld1",
+                "to": "sc:mex_farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "1,000,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "15",
+            "tx": {
+                "from": "address:user_with_wegld1",
                 "to": "sc:proxy_dex_contract",
                 "esdtValue": [
                     {
@@ -43,7 +61,7 @@
             "step": "checkState",
             "accounts": {
                 "address:user_with_wegld1": {
-                    "nonce": "4",
+                    "nonce": "6",
                     "balance": "100,000,000",
                     "esdt": {
                         "str:LKMEX-abcdef": {

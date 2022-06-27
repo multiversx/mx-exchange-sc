@@ -18,7 +18,6 @@ elrond_wasm_node::wasm_endpoints! {
         getStakingFarmAddress
         getStakingTokenId
         registerDualYieldToken
-        setLocalRolesDualYieldToken
         stakeFarmTokens
         unstakeFarmTokens
     )

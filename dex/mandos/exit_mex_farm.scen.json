@@ -14,6 +14,25 @@
         },
         {
             "step": "scCall",
+            "txId": "synchronize",
+            "tx": {
+                "from": "address:user_with_mex",
+                "to": "sc:mex_farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "unstake",
             "tx": {
                 "from": "address:user_with_mex",

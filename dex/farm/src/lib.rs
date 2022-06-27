@@ -29,6 +29,7 @@ type ExitFarmResultType<BigUint> =
 #[elrond_wasm::contract]
 pub trait Farm:
     custom_rewards::CustomRewardsModule
+    + multishard::MultishardModule
     + rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
@@ -78,6 +79,16 @@ pub trait Farm:
         self.pair_contract_address().set(&pair_contract_address);
     }
 
+    #[endpoint]
+    fn synchronize(&self) {
+        self.synchronize_impl(|| self.generate_aggregated_rewards());
+    }
+
+    #[endpoint(acceptSynchronization)]
+    fn accept_synchronization(&self, sibling_supply: BigUint) {
+        self.accept_synchronization_impl(sibling_supply, || self.generate_aggregated_rewards());
+    }
+
     #[payable("*")]
     #[endpoint(enterFarm)]
     fn enter_farm(&self) -> EnterFarmResultType<Self::Api> {
@@ -89,8 +100,6 @@ pub trait Farm:
         );
         require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
         require!(context.is_accepted_payment_enter(), ERROR_BAD_PAYMENTS);
-
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
 
         let tx_input = context.get_tx_input();
         let first_payment_amount = tx_input.first_payment.amount.clone();
@@ -139,7 +148,6 @@ pub trait Farm:
         require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
         require!(context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS);
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
         self.calculate_initial_farming_amount(&mut context);
@@ -169,7 +177,6 @@ pub trait Farm:
         require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
         require!(context.is_accepted_payment_claim(), ERROR_BAD_PAYMENTS);
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
 
@@ -228,7 +235,6 @@ pub trait Farm:
             ERROR_DIFFERENT_TOKEN_IDS
         );
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
         self.calculate_reward(&mut context);
         context.decrease_reward_reserve();
         self.calculate_initial_farming_amount(&mut context);
@@ -360,15 +366,20 @@ pub trait Farm:
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
         require!(amount > 0u64, ERROR_ZERO_AMOUNT);
-        let farm_token_supply = self.farm_token_supply().get();
-        require!(farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
+        let local_farm_token_supply = self.local_farm_token_supply().get();
+        require!(local_farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
+        let global_farm_token_supply = self.global_farm_token_supply().get();
 
         let last_reward_nonce = self.last_reward_block_nonce().get();
-        let current_block_nonce = self.blockchain().get_block_nonce();
-        let reward_increase =
-            self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
-        let reward_per_share_increase = reward_increase * &self.division_safety_constant().get()
-            / self.farm_token_supply().get();
+        let current_checkpoint_block_nonce = self.current_checkpoint_block_nonce().get();
+        let reward_increase = self.calculate_per_block_rewards(
+            current_checkpoint_block_nonce,
+            last_reward_nonce,
+            &local_farm_token_supply,
+            &global_farm_token_supply,
+        );
+        let reward_per_share_increase =
+            reward_increase * &self.division_safety_constant().get() / local_farm_token_supply;
 
         let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
 

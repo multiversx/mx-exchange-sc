@@ -71,6 +71,25 @@
         },
         {
             "step": "scCall",
+            "txId": "synchronize-1",
+            "tx": {
+                "from": "address:alice",
+                "to": "sc:farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "alice-enters",
             "tx": {
                 "from": "address:alice",
@@ -104,6 +123,25 @@
         },
         {
             "step": "scCall",
+            "txId": "synchronize-2",
+            "tx": {
+                "from": "address:alice",
+                "to": "sc:farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "bob-enters",
             "tx": {
                 "from": "address:bob",
@@ -133,6 +171,25 @@
             "step": "setState",
             "currentBlockInfo": {
                 "blockNonce": "9"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "synchronize-3",
+            "tx": {
+                "from": "address:alice",
+                "to": "sc:farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
             }
         },
         {

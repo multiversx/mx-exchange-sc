@@ -83,7 +83,6 @@ pub trait CtxHelper:
 
     fn commit_changes(&self, context: &GenericContext<Self::Api>) {
         self.reward_reserve().set(context.get_reward_reserve());
-        self.reward_per_share().set(context.get_reward_per_share());
     }
 
     fn execute_output_payments(&self, context: &GenericContext<Self::Api>) {

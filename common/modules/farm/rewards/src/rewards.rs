@@ -14,17 +14,25 @@ pub trait RewardsModule:
 {
     fn calculate_per_block_rewards(
         &self,
-        current_block_nonce: Nonce,
+        current_checkpoint_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
+        local_farm_token_supply: &BigUint,
+        global_farm_token_supply: &BigUint,
     ) -> BigUint {
-        if current_block_nonce <= last_reward_block_nonce || !self.produces_per_block_rewards() {
+        if current_checkpoint_block_nonce <= last_reward_block_nonce
+            || !self.produces_per_block_rewards()
+        {
             return BigUint::zero();
         }
 
         let per_block_reward = self.per_block_reward_amount().get();
-        let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
+        let block_nonce_diff = current_checkpoint_block_nonce - last_reward_block_nonce;
 
-        per_block_reward * block_nonce_diff
+        if global_farm_token_supply == &BigUint::zero() {
+            per_block_reward * block_nonce_diff / self.default_ratio().get()
+        } else {
+            per_block_reward * block_nonce_diff * local_farm_token_supply / global_farm_token_supply
+        }
     }
 
     #[only_owner]

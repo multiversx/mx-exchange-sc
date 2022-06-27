@@ -204,6 +204,24 @@ fn enter_farm<FarmObjBuilder>(
     let _ = TxContextStack::static_pop();
 }
 
+fn synchronize_farm<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>)
+where
+    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+{
+    let rust_zero = rust_biguint!(0u64);
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock
+        .execute_tx(
+            &farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.synchronize();
+            },
+        )
+        .assert_ok();
+}
+
 fn exit_farm<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     farm_token_amount: u64,
@@ -384,7 +402,7 @@ fn test_farm_setup() {
 }
 
 #[test]
-fn test_enter_farm() {
+fn test_farm_enter_farm() {
     let mut farm_setup = setup_farm(farm::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -411,7 +429,7 @@ fn test_enter_farm() {
 }
 
 #[test]
-fn test_exit_farm() {
+fn test_farm_exit_farm() {
     let mut farm_setup = setup_farm(farm::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -431,6 +449,8 @@ fn test_exit_farm() {
 
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
+
+    synchronize_farm(&mut farm_setup);
 
     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
     let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS);
@@ -446,7 +466,7 @@ fn test_exit_farm() {
 }
 
 #[test]
-fn test_claim_rewards() {
+fn test_farm_claim_rewards() {
     let mut farm_setup = setup_farm(farm::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -466,6 +486,8 @@ fn test_claim_rewards() {
 
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
+
+    synchronize_farm(&mut farm_setup);
 
     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
     let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount);
@@ -507,6 +529,8 @@ where
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
 
+    synchronize_farm(&mut farm_setup);
+
     let second_farm_in_amount = 200_000_000;
     let prev_farm_tokens = [TxInputESDT {
         token_identifier: FARM_TOKEN_ID.to_vec(),
@@ -542,12 +566,12 @@ where
 }
 
 #[test]
-fn test_enter_farm_twice() {
+fn test_farm_enter_farm_twice() {
     let _ = steps_enter_farm_twice(farm::contract_obj);
 }
 
 #[test]
-fn test_exit_farm_after_enter_twice() {
+fn test_farm_exit_farm_after_enter_twice() {
     let mut farm_setup = steps_enter_farm_twice(farm::contract_obj);
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
@@ -556,6 +580,8 @@ fn test_exit_farm_after_enter_twice() {
 
     set_block_epoch(&mut farm_setup, 8);
     set_block_nonce(&mut farm_setup, 25);
+
+    synchronize_farm(&mut farm_setup);
 
     let current_farm_supply = farm_in_amount;
 
@@ -708,10 +734,10 @@ fn test_farm_through_simple_lock() {
     let _ = DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
     let mut farm_setup = setup_farm(farm::contract_obj);
-    let b_mock = &mut farm_setup.blockchain_wrapper;
 
     // change farming token for farm
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_tx(
             &farm_setup.owner_address,
             &farm_setup.farm_wrapper,
@@ -723,7 +749,7 @@ fn test_farm_through_simple_lock() {
         .assert_ok();
 
     // setup simple lock SC
-    let lock_wrapper = b_mock.create_sc_account(
+    let lock_wrapper = farm_setup.blockchain_wrapper.create_sc_account(
         &rust_zero,
         Some(&farm_setup.owner_address),
         simple_lock::contract_obj,
@@ -731,7 +757,8 @@ fn test_farm_through_simple_lock() {
     );
 
     let farm_addr = farm_setup.farm_wrapper.address_ref().clone();
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_tx(&farm_setup.owner_address, &lock_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
@@ -748,7 +775,7 @@ fn test_farm_through_simple_lock() {
         })
         .assert_ok();
 
-    b_mock.set_esdt_local_roles(
+    farm_setup.blockchain_wrapper.set_esdt_local_roles(
         lock_wrapper.address_ref(),
         LOCKED_LP_TOKEN_ID,
         &[
@@ -757,7 +784,7 @@ fn test_farm_through_simple_lock() {
             EsdtLocalRole::NftBurn,
         ],
     );
-    b_mock.set_esdt_local_roles(
+    farm_setup.blockchain_wrapper.set_esdt_local_roles(
         lock_wrapper.address_ref(),
         FARM_PROXY_TOKEN_ID,
         &[
@@ -778,7 +805,7 @@ fn test_farm_through_simple_lock() {
         second_token_locked_nonce: 2,
     };
 
-    b_mock.set_nft_balance(
+    farm_setup.blockchain_wrapper.set_nft_balance(
         &user_addr,
         LOCKED_LP_TOKEN_ID,
         1,
@@ -786,14 +813,15 @@ fn test_farm_through_simple_lock() {
         &lp_proxy_token_attributes,
     );
 
-    b_mock.set_esdt_balance(
+    farm_setup.blockchain_wrapper.set_esdt_balance(
         &lock_wrapper.address_ref(),
         LP_TOKEN_ID,
         &rust_biguint!(1_000_000_000),
     );
 
     // user enter farm
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -812,7 +840,7 @@ fn test_farm_through_simple_lock() {
         )
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         FARM_PROXY_TOKEN_ID,
         1,
@@ -827,10 +855,13 @@ fn test_farm_through_simple_lock() {
     );
 
     // user claim farm rewards
-    b_mock.set_block_nonce(10);
-    b_mock.set_block_epoch(5);
+    farm_setup.blockchain_wrapper.set_block_nonce(10);
+    farm_setup.blockchain_wrapper.set_block_epoch(5);
 
-    b_mock
+    synchronize_farm(&mut farm_setup);
+
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -860,7 +891,7 @@ fn test_farm_through_simple_lock() {
         )
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         FARM_PROXY_TOKEN_ID,
         2,
@@ -873,16 +904,19 @@ fn test_farm_through_simple_lock() {
             farming_token_locked_nonce: 1,
         }),
     );
-    b_mock.check_esdt_balance(
+    farm_setup.blockchain_wrapper.check_esdt_balance(
         &user_addr,
         MEX_TOKEN_ID,
         &rust_biguint!(10 * PER_BLOCK_REWARD_AMOUNT),
     );
 
     // user exit farm
-    b_mock.set_block_nonce(25);
+    farm_setup.blockchain_wrapper.set_block_nonce(25);
 
-    b_mock
+    synchronize_farm(&mut farm_setup);
+
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -913,23 +947,26 @@ fn test_farm_through_simple_lock() {
         )
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         LOCKED_LP_TOKEN_ID,
         1,
         &rust_biguint!(1_000_000_000),
         Some(&lp_proxy_token_attributes),
     );
-    b_mock.check_esdt_balance(
+    farm_setup.blockchain_wrapper.check_esdt_balance(
         &user_addr,
         MEX_TOKEN_ID,
         &rust_biguint!(25 * PER_BLOCK_REWARD_AMOUNT),
     );
 
     // user enter farm again
-    b_mock.set_block_epoch(0);
+    farm_setup.blockchain_wrapper.set_block_epoch(0);
 
-    b_mock
+    synchronize_farm(&mut farm_setup);
+
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -948,7 +985,7 @@ fn test_farm_through_simple_lock() {
         )
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         FARM_PROXY_TOKEN_ID,
         3,
@@ -975,7 +1012,8 @@ fn test_farm_through_simple_lock() {
             value: rust_biguint!(500_000_000),
         },
     ];
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
             let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
             assert_eq!(
@@ -987,7 +1025,7 @@ fn test_farm_through_simple_lock() {
         })
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         FARM_PROXY_TOKEN_ID,
         4,
@@ -1002,7 +1040,8 @@ fn test_farm_through_simple_lock() {
     );
 
     // test enter with three additional farm tokens
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -1014,7 +1053,8 @@ fn test_farm_through_simple_lock() {
             },
         )
         .assert_ok();
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -1049,7 +1089,8 @@ fn test_farm_through_simple_lock() {
             value: rust_biguint!(50_000_000),
         },
     ];
-    b_mock
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
             let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
             assert_eq!(
@@ -1061,7 +1102,7 @@ fn test_farm_through_simple_lock() {
         })
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         FARM_PROXY_TOKEN_ID,
         7,
@@ -1076,8 +1117,12 @@ fn test_farm_through_simple_lock() {
     );
 
     // exit farm
-    b_mock.set_block_epoch(25);
-    b_mock
+    farm_setup.blockchain_wrapper.set_block_epoch(25);
+
+    synchronize_farm(&mut farm_setup);
+
+    farm_setup
+        .blockchain_wrapper
         .execute_esdt_transfer(
             &user_addr,
             &lock_wrapper,
@@ -1098,7 +1143,7 @@ fn test_farm_through_simple_lock() {
         )
         .assert_ok();
 
-    b_mock.check_nft_balance(
+    farm_setup.blockchain_wrapper.check_nft_balance(
         &user_addr,
         LOCKED_LP_TOKEN_ID,
         1,

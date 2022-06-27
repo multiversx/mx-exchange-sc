@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm_staking
     (
         callBack
+        acceptSynchronization
         addAddressToWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -17,11 +18,15 @@ elrond_wasm_node::wasm_endpoints! {
         getAccumulatedRewards
         getAnnualPercentageRewards
         getBurnGasLimit
+        getCurrentCheckpointBlockNonce
+        getDefaultRatio
         getDivisionSafetyConstant
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
+        getGlobalFarmTokenSupply
         getLastRewardBlockNonce
+        getLocalFarmTokenSupply
         getLockedAssetFactoryManagedAddress
         getMinUnbondEpochs
         getMinimumFarmingEpoch
@@ -31,23 +36,28 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardCapacity
         getRewardPerShare
         getRewardTokenId
+        getSiblingSuppliesReceived
+        getSiblingSupply
+        getSiblingWhitelist
         getState
+        isSiblingWhitelisted
         isWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
         removeAddressFromWhitelist
         resume
-        setLocalRolesFarmToken
         setMaxApr
         setMinUnbondEpochs
         setPerBlockRewardAmount
+        setSiblingWhitelist
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
         stakeFarm
         stakeFarmThroughProxy
         startProduceRewards
+        synchronize
         topUpRewards
         unbondFarm
         unstakeFarm

@@ -6,6 +6,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 
+use farm::Farm as _;
 use farm_staking::UnbondSftAttributes;
 use farm_staking::*;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
@@ -105,6 +106,27 @@ where
             staking_farm_wrapper,
             proxy_wrapper,
         }
+    }
+
+    pub fn synchronize_farms(&mut self) {
+        let rust_zero = rust_biguint!(0u64);
+
+        self.b_mock
+            .execute_tx(&self.owner_addr, &self.lp_farm_wrapper, &rust_zero, |sc| {
+                sc.synchronize();
+            })
+            .assert_ok();
+
+        self.b_mock
+            .execute_tx(
+                &self.owner_addr,
+                &self.staking_farm_wrapper,
+                &rust_zero,
+                |sc| {
+                    sc.synchronize();
+                },
+            )
+            .assert_ok();
     }
 
     pub fn stake_farm_lp_proxy(

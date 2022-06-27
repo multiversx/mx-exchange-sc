@@ -1,0 +1,20 @@
+[package]
+name = "multishard"
+version = "0.0.0"
+authors = [ "ClaudiuB <claudiu.bruda@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/multishard.rs"
+
+[dependencies.elrond-wasm]
+version = "0.31.1"
+
+[dependencies.common_errors]
+path = "../../../common_errors"
+
+[dependencies.config]
+path = "../config"
+
+[dependencies.token_send]
+path = "../../token_send"

@@ -50,6 +50,7 @@ fn test_claim_rewards_farm_proxy_full() {
     setup
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
@@ -77,6 +78,7 @@ fn test_claim_rewards_farm_proxy_half() {
     setup
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = expected_staking_token_amount / 2;
     let _dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
@@ -105,6 +107,7 @@ fn test_claim_rewards_farm_proxy_twice() {
     setup
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let dual_yield_token_nonce_after_first_claim = setup.claim_rewards_proxy(
@@ -119,6 +122,7 @@ fn test_claim_rewards_farm_proxy_twice() {
     setup
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 40);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let _ = setup.claim_rewards_proxy(
@@ -147,6 +151,7 @@ fn test_unstake_through_proxy_no_claim() {
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = 1_001_000_000;
     setup.unstake_proxy(
@@ -177,6 +182,7 @@ fn unstake_through_proxy_after_claim() {
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
@@ -216,6 +222,7 @@ fn unbond_test() {
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 20);
     setup.b_mock.set_block_epoch(20);
+    setup.synchronize_farms();
 
     let dual_yield_token_amount = expected_staking_token_amount;
     let dual_yield_token_nonce_after_claim = setup.claim_rewards_proxy(
@@ -238,6 +245,7 @@ fn unbond_test() {
     );
 
     setup.b_mock.set_block_epoch(30);
+    setup.synchronize_farms();
 
     let unbond_amount = 1_001_000_000;
     setup.unbond_proxy(unbond_token_nonce, unbond_amount, unbond_amount);
@@ -259,6 +267,7 @@ fn farm_staking_compound_rewards_and_unstake_test() {
         .b_mock
         .set_block_nonce(BLOCK_NONCE_AFTER_PAIR_SETUP + 100);
     setup.b_mock.set_block_epoch(10);
+    setup.synchronize_farms();
 
     let new_farming_amount = 500_004_700; // 47 * 100, limited by the APR
     farm_staking_nonce =

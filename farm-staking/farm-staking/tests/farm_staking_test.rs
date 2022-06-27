@@ -182,6 +182,24 @@ fn stake_farm<FarmObjBuilder>(
     let _ = TxContextStack::static_pop();
 }
 
+fn synchronize_farm<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>)
+where
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
+{
+    let rust_zero = rust_biguint!(0u64);
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock
+        .execute_tx(
+            &farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.synchronize();
+            },
+        )
+        .assert_ok();
+}
+
 fn unbond_farm<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     farm_token_nonce: u64,
@@ -389,12 +407,12 @@ where
 }
 
 #[test]
-fn test_farm_setup() {
+fn test_staking_setup() {
     let _ = setup_farm(farm_staking::contract_obj);
 }
 
 #[test]
-fn test_enter_farm() {
+fn test_staking_enter_farm() {
     let mut farm_setup = setup_farm(farm_staking::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -411,7 +429,7 @@ fn test_enter_farm() {
 }
 
 #[test]
-fn test_unstake_farm() {
+fn test_staking_unstake_farm() {
     let mut farm_setup = setup_farm(farm_staking::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -430,6 +448,7 @@ fn test_unstake_farm() {
     let current_epoch = 5;
     set_block_epoch(&mut farm_setup, current_epoch);
     set_block_nonce(&mut farm_setup, current_block);
+    synchronize_farm(&mut farm_setup);
 
     let block_diff = current_block - 0;
     let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
@@ -459,7 +478,7 @@ fn test_unstake_farm() {
 }
 
 #[test]
-fn test_claim_rewards() {
+fn test_staking_claim_rewards() {
     let mut farm_setup = setup_farm(farm_staking::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -476,6 +495,7 @@ fn test_claim_rewards() {
 
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
+    synchronize_farm(&mut farm_setup);
 
     // value taken from the "test_unstake_farm" test
     let expected_reward_token_out = 40;
@@ -515,6 +535,7 @@ where
 
     set_block_epoch(&mut farm_setup, 5);
     set_block_nonce(&mut farm_setup, 10);
+    synchronize_farm(&mut farm_setup);
 
     let second_farm_in_amount = 200_000_000;
     let prev_farm_tokens = [TxInputESDT {
@@ -546,18 +567,19 @@ where
 }
 
 #[test]
-fn test_enter_farm_twice() {
+fn test_staking_enter_farm_twice() {
     let _ = steps_enter_farm_twice(farm_staking::contract_obj);
 }
 
 #[test]
-fn test_exit_farm_after_enter_twice() {
+fn test_staking_exit_farm_after_enter_twice() {
     let mut farm_setup = steps_enter_farm_twice(farm_staking::contract_obj);
     let farm_in_amount = 100_000_000;
     let second_farm_in_amount = 200_000_000;
 
     set_block_epoch(&mut farm_setup, 8);
     set_block_nonce(&mut farm_setup, 25);
+    synchronize_farm(&mut farm_setup);
 
     let _current_farm_supply = farm_in_amount;
 
@@ -582,7 +604,7 @@ fn test_exit_farm_after_enter_twice() {
 }
 
 #[test]
-fn test_unbond() {
+fn test_staking_unbond() {
     let mut farm_setup = setup_farm(farm_staking::contract_obj);
 
     let farm_in_amount = 100_000_000;
@@ -601,6 +623,7 @@ fn test_unbond() {
     let current_epoch = 5;
     set_block_epoch(&mut farm_setup, current_epoch);
     set_block_nonce(&mut farm_setup, current_block);
+    synchronize_farm(&mut farm_setup);
 
     let block_diff = current_block - 0;
     let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
@@ -629,6 +652,7 @@ fn test_unbond() {
     check_farm_token_supply(&mut farm_setup, 0);
 
     set_block_epoch(&mut farm_setup, current_epoch + MIN_UNBOND_EPOCHS);
+    synchronize_farm(&mut farm_setup);
 
     unbond_farm(
         &mut farm_setup,

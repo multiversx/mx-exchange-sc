@@ -7,6 +7,25 @@
         },
         {
             "step": "scCall",
+            "txId": "synchronize",
+            "tx": {
+                "from": "address:user1",
+                "to": "sc:farm_contract",
+                "function": "synchronize",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "scCall",
             "txId": "calculateRewards",
             "tx": {
                 "from": "address:user1",
@@ -68,7 +87,8 @@
                     "storage": {
                         "str:division_safety_constant": "1,000,000,000,000",
                         "str:farm_token_id)": "str:FARM-abcdef",
-                        "str:farm_token_supply": "200,000,000",
+                        "str:local_farm_token_supply": "200,000,000",
+                        "str:global_farm_token_supply": "200,000,000",
                         "str:farming_token_id": "str:LPTOK-abcdef",
                         "str:minimum_farming_epochs": "2",
                         "str:pair_contract_address": "sc:pair_contract",
@@ -77,7 +97,8 @@
                         "str:router_address": "sc:router_contract",
                         "str:state": "1",
                         "str:per_block_reward_amount": "500",
-                        "str:produce_rewards_enabled": "1"
+                        "str:produce_rewards_enabled": "1",
+                        "str:current_checkpoint_block_nonce": "2"
                     },
                     "code": "file:../farm/output/farm.wasm",
                     "owner": "address:owner"
