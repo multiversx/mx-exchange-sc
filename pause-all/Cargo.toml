@@ -16,3 +16,9 @@ version = "0.33.0"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.33.0"
+
+[dev-dependencies.farm]
+path = "../dex/farm"
+
+[dev-dependencies.pair]
+path = "../dex/pair"

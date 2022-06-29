@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
 pub enum State {
     Inactive,
     Active,
