@@ -47,13 +47,17 @@ pub trait LockedAssetFactory:
         let unlock_milestones = default_unlock_period.to_vec();
         self.validate_unlock_milestones(&unlock_milestones);
 
-        self.init_epoch()
-            .set_if_empty(&self.blockchain().get_block_epoch());
+        let is_sc_upgrade = !self.init_epoch().is_empty();
+        if is_sc_upgrade {
+            self.set_extended_attributes_activation_nonce();
+        } else {
+            let current_epoch = self.blockchain().get_block_epoch();
+            self.init_epoch().set(current_epoch);
+        }
 
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
-        self.set_extended_attributes_activation_nonce();
     }
 
     fn set_extended_attributes_activation_nonce(&self) {
