@@ -12,6 +12,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
+const FIRST_TOKEN_NONCE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
 use attr_ex_helper::PRECISION_EX_INCREASE;
@@ -47,21 +48,24 @@ pub trait LockedAssetFactory:
         let unlock_milestones = default_unlock_period.to_vec();
         self.validate_unlock_milestones(&unlock_milestones);
 
-        let is_sc_upgrade = !self.init_epoch().is_empty();
-        if is_sc_upgrade {
-            self.set_extended_attributes_activation_nonce();
-        } else {
+        let is_sc_deploy = self.init_epoch().is_empty();
+        if is_sc_deploy {
             let current_epoch = self.blockchain().get_block_epoch();
             self.init_epoch().set(current_epoch);
         }
+        self.set_extended_attributes_activation_nonce(!is_sc_deploy);
 
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
     }
 
-    fn set_extended_attributes_activation_nonce(&self) {
-        if self.extended_attributes_activation_nonce().is_empty() {
+    fn set_extended_attributes_activation_nonce(&self, is_sc_upgrade: bool) {
+        if !self.extended_attributes_activation_nonce().is_empty() {
+            return;
+        }
+
+        if is_sc_upgrade {
             let one = BigUint::from(1u64);
             let zero = BigUint::zero();
             let mb_empty = ManagedBuffer::new();
@@ -73,8 +77,10 @@ pub trait LockedAssetFactory:
             );
             self.send().esdt_local_burn(&token_id, nonce, &one);
 
+            self.extended_attributes_activation_nonce().set(nonce + 1);
+        } else {
             self.extended_attributes_activation_nonce()
-                .set(&(nonce + 1));
+                .set(FIRST_TOKEN_NONCE);
         }
     }
 
