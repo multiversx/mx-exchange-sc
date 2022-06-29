@@ -36,5 +36,8 @@ members = [
   "locked-asset/simple-lock",
   "locked-asset/simple-lock/meta",
 
+  "pause-all",
+  "pause-all/meta",
+
   "integration-test-lib",
 ]

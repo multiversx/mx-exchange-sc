@@ -81,6 +81,9 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.min_unbond_epochs().set(min_unbond_epochs);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]

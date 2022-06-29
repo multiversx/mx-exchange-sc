@@ -77,6 +77,9 @@ pub trait Farm:
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]

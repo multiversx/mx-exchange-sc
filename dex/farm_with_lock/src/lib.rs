@@ -84,6 +84,9 @@ pub trait Farm:
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]
