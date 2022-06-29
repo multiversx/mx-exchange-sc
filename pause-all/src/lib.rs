@@ -42,6 +42,9 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
         }
     }
 
+    /// Will pause the given list of contracts.
+    /// Contracts will only be paused if they are in the pausable_contracts list.
+    /// Other contracts will be ignored.
     #[only_owner]
     #[endpoint(pauseSelected)]
     fn pause_selected(&self, pausable_sc_addr: MultiValueEncoded<ManagedAddress>) {
@@ -53,6 +56,10 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
         }
     }
 
+    /// Will attempt to pause all contracts from the whitelist.
+    /// Returns "completed" if all were paused.
+    /// Otherwise, it will save progress and return "interrupted",
+    /// and will require more calls to complete
     #[only_owner]
     #[endpoint(pauseAll)]
     fn pause_all(&self) -> OperationCompletionStatus {
@@ -86,6 +93,8 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
             .execute_on_dest_context_ignore_result();
     }
 
+    /// Will unpause the given list of contracts.
+    /// Contracts not in the whitelist will be ignored.
     #[only_owner]
     #[endpoint(resumeSelected)]
     fn resume_selected(&self, pausable_sc_addr: MultiValueEncoded<ManagedAddress>) {
@@ -97,6 +106,10 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
         }
     }
 
+    /// Will attempt to unpause all contracts from the whitelist.
+    /// Returns "completed" if all were unpaused.
+    /// Otherwise, it will save progress and return "interrupted",
+    /// and will require more calls to complete
     #[only_owner]
     #[endpoint(resumeAll)]
     fn resume_all(&self) -> OperationCompletionStatus {
