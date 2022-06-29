@@ -20,6 +20,7 @@ use common_structs::{
     Epoch, LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockPeriod,
     UnlockScheduleEx,
 };
+use elrond_wasm::elrond_codec::Empty;
 
 #[elrond_wasm::contract]
 pub trait LockedAssetFactory:
@@ -67,14 +68,9 @@ pub trait LockedAssetFactory:
 
         if is_sc_upgrade {
             let one = BigUint::from(1u64);
-            let zero = BigUint::zero();
-            let mb_empty = ManagedBuffer::new();
-            let mv_empty = ManagedVec::new();
             let token_id = self.locked_asset_token().get_token_id();
 
-            let nonce = self.send().esdt_nft_create(
-                &token_id, &one, &mb_empty, &zero, &mb_empty, &mb_empty, &mv_empty,
-            );
+            let nonce = self.send().esdt_nft_create_compact(&token_id, &one, &Empty);
             self.send().esdt_local_burn(&token_id, nonce, &one);
 
             self.extended_attributes_activation_nonce().set(nonce + 1);
