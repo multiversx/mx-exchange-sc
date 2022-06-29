@@ -12,6 +12,7 @@ use config::*;
 use custom_rewards::*;
 use farm::*;
 use farm_token::FarmTokenModule;
+use pausable::{PausableModule, State};
 use rewards::*;
 
 const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";

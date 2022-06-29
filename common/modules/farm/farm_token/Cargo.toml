@@ -19,6 +19,9 @@ path = "../config"
 [dependencies.token_send]
 path = "../../token_send"
 
+[dependencies.pausable]
+path = "../../pausable"
+
 [dependencies.elrond-wasm]
 version = "0.33.0"
 

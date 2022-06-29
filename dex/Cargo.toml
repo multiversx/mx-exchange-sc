@@ -28,6 +28,9 @@ path = "../common/modules/farm/migration_from_v1_2"
 [dev-dependencies.locking_module]
 path = "../common/modules/locking_module"
 
+[dev-dependencies.pausable]
+path = "../common/modules/pausable"
+
 [dev-dependencies.common_structs]
 path = "../common/common_structs"
 

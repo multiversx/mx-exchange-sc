@@ -1,17 +1,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use pausable::State;
+
 use super::errors::*;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub enum State {
-    Inactive,
-    Active,
-    ActiveNoSwaps,
-}
-
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule {
+pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
     #[endpoint]
     fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
         self.require_permissions();
@@ -25,22 +20,10 @@ pub trait ConfigModule: token_send::TokenSendModule {
         require!(caller == owner || caller == router, ERROR_PERMISSION_DENIED);
     }
 
-    #[endpoint]
-    fn pause(&self) {
-        self.require_permissions();
-        self.state().set(&State::Inactive);
-    }
-
-    #[endpoint]
-    fn resume(&self) {
-        self.require_permissions();
-        self.state().set(&State::Active);
-    }
-
     #[endpoint(setStateActiveNoSwaps)]
     fn set_state_active_no_swaps(&self) {
         self.require_permissions();
-        self.state().set(&State::ActiveNoSwaps);
+        self.state().set(State::PartialActive);
     }
 
     #[endpoint(setFeePercents)]
@@ -78,10 +61,6 @@ pub trait ConfigModule: token_send::TokenSendModule {
     #[view(getRouterOwnerManagedAddress)]
     #[storage_mapper("router_owner_address")]
     fn router_owner_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<State>;
 
     #[view(getExternSwapGasLimit)]
     #[storage_mapper("extern_swap_gas_limit")]

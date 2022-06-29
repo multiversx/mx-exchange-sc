@@ -18,6 +18,7 @@ pub trait FarmTokenModule:
     config::ConfigModule
     + token_send::TokenSendModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + pausable::PausableModule
 {
     #[only_owner]
     #[payable("EGLD")]

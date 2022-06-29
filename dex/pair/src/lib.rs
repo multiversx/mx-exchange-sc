@@ -20,9 +20,9 @@ pub mod safe_price;
 
 use crate::errors::*;
 
-use config::State;
 use contexts::base::*;
 use contexts::swap::SwapContext;
+use pausable::State;
 
 pub type AddLiquidityResultType<BigUint> =
     MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -47,6 +47,7 @@ pub trait Pair<ContractReader>:
     + safe_price::SafePriceModule
     + bot_protection::BPModule
     + locking_wrapper::LockingWrapperModule
+    + pausable::PausableModule
 {
     #[init]
     fn init(
@@ -70,7 +71,7 @@ pub trait Pair<ContractReader>:
         require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
         self.set_fee_percents(total_fee_percent, special_fee_percent);
 
-        self.state().set(&State::Inactive);
+        self.state().set(State::Inactive);
         self.extern_swap_gas_limit()
             .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
@@ -80,6 +81,10 @@ pub trait Pair<ContractReader>:
         self.second_token_id().set(&second_token_id);
         self.initial_liquidity_adder()
             .set(&initial_liquidity_adder.into_option());
+
+        let pause_whitelist = self.pause_whitelist();
+        pause_whitelist.add(&router_address);
+        pause_whitelist.add(&router_owner_address);
     }
 
     #[payable("*")]
@@ -138,7 +143,7 @@ pub trait Pair<ContractReader>:
         let liq_added = context.get_liquidity_added();
         self.send().esdt_local_mint(lpt, 0, liq_added);
 
-        self.state().set(&State::ActiveNoSwaps);
+        self.state().set(State::PartialActive);
 
         self.commit_changes(&context);
         self.construct_add_liquidity_output_payments(&mut context);
@@ -653,7 +658,7 @@ pub trait Pair<ContractReader>:
 
     #[inline]
     fn is_state_active(&self, state: &State) -> bool {
-        state == &State::Active || state == &State::ActiveNoSwaps
+        state == &State::Active || state == &State::PartialActive
     }
 
     #[inline]

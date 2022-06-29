@@ -12,6 +12,7 @@ use factory::PairTokens;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
 use pair::ProxyTrait as _;
+use pausable::ProxyTrait as _;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;

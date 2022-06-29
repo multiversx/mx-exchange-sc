@@ -13,6 +13,9 @@ version = "0.33.0"
 [dependencies.elrond-wasm-debug]
 version = "0.33.0"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
 [dependencies.config]
 path = "../../common/modules/farm/config"
 

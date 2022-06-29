@@ -86,7 +86,7 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
 
 #[elrond_wasm::module]
 pub trait SafePriceModule:
-    config::ConfigModule + token_send::TokenSendModule + amm::AmmModule
+    config::ConfigModule + token_send::TokenSendModule + amm::AmmModule + pausable::PausableModule
 {
     #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
     fn update_and_get_tokens_for_given_position_with_safe_price(

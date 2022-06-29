@@ -5,7 +5,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
-use config::State;
+use pausable::State;
 
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct FarmTokenAttributesV1_2<M: ManagedTypeApi> {
@@ -25,6 +25,7 @@ pub trait MigrationModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]

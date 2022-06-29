@@ -21,6 +21,7 @@ use factory::*;
 use farm_token::FarmTokenModule;
 use farm_with_lock::custom_rewards::CustomRewardsModule;
 use farm_with_lock::*;
+use pausable::{PausableModule, State};
 use rewards::*;
 
 const FACTORY_WASM_PATH: &'static str = "../locked-asset/factory/output/factory.wasm";

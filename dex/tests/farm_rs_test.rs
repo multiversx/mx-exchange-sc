@@ -13,6 +13,7 @@ use migration_from_v1_2::{FarmTokenAttributesV1_2, MigrationModule};
 use config::*;
 use farm::*;
 use farm_token::FarmTokenModule;
+use pausable::{PausableModule, State};
 
 // const GENERATED_FILE_PREFIX: &'static str = "_generated_";
 // const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";

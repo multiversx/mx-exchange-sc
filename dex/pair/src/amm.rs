@@ -4,7 +4,9 @@ elrond_wasm::derive_imports!();
 use super::config;
 
 #[elrond_wasm::module]
-pub trait AmmModule: config::ConfigModule + token_send::TokenSendModule {
+pub trait AmmModule:
+    config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+{
     fn calculate_k_constant(
         &self,
         first_token_amount: &BigUint,

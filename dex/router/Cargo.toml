@@ -11,6 +11,9 @@ path = "src/contract.rs"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
 [dependencies.elrond-wasm]
 version = "0.33.0"
 
