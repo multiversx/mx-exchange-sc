@@ -12,6 +12,7 @@ use farm_staking::custom_rewards::{CustomRewardsModule, BLOCKS_IN_YEAR};
 use farm_staking::farm_token_merge::StakingFarmTokenAttributes;
 use farm_staking::*;
 use farm_token::FarmTokenModule;
+use pausable::{PausableModule, State};
 
 const FARM_WASM_PATH: &'static str = "farm/output/farm-staking.wasm";
 

@@ -3,7 +3,9 @@ elrond_wasm::imports!();
 use crate::contexts::swap::SwapContext;
 
 #[elrond_wasm::module]
-pub trait LockingWrapperModule: crate::config::ConfigModule + token_send::TokenSendModule {
+pub trait LockingWrapperModule:
+    crate::config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+{
     #[endpoint(setLockingDeadlineEpoch)]
     fn set_locking_deadline_epoch(&self, new_deadline: u64) {
         self.require_permissions();

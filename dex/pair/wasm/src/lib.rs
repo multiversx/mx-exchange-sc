@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         addInitialLiquidity
         addLiquidity
+        addToPauseWhitelist
         addTrustedSwapPair
         getAmountIn
         getAmountOut
@@ -41,6 +42,7 @@ elrond_wasm_node::wasm_endpoints! {
         getUnlockEpoch
         getWhitelistedManagedAddresses
         pause
+        removeFromPauseWhitelist
         removeLiquidity
         removeLiquidityAndBuyBackAndBurnToken
         removeTrustedSwapPair

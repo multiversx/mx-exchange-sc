@@ -4,8 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::api::{CallTypeApi, StorageMapperApi};
 use farm_token::FarmToken;
-
-use config::State;
+use pausable::State;
 
 pub trait FarmContracTraitBounds =
     config::ConfigModule

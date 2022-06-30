@@ -8,7 +8,6 @@ pub mod farm_token_merge;
 use common_errors::*;
 
 use common_structs::FarmTokenAttributes;
-use config::State;
 use contexts::generic::{GenericContext, StorageCache};
 use farm_token::FarmToken;
 
@@ -18,6 +17,7 @@ elrond_wasm::derive_imports!();
 use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
 };
+use pausable::State;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -35,6 +35,7 @@ pub trait Farm:
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
+    + pausable::PausableModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
@@ -83,6 +84,9 @@ pub trait Farm:
         self.locked_asset_factory_address()
             .set(&locked_asset_factory_address);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]

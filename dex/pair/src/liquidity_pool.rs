@@ -12,7 +12,7 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm::module]
 pub trait LiquidityPoolModule:
-    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule
+    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
 {
     fn pool_add_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
         let zero = &BigUint::zero();

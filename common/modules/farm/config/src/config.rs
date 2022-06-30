@@ -6,6 +6,7 @@ elrond_wasm::derive_imports!();
 use common_errors::*;
 
 use common_structs::Nonce;
+use pausable::State;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
@@ -13,14 +14,8 @@ pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
 pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi, Clone, Copy)]
-pub enum State {
-    Inactive,
-    Active,
-}
-
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule {
+pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -46,25 +41,9 @@ pub trait ConfigModule: token_send::TokenSendModule {
         self.burn_gas_limit().set(&gas_limit);
     }
 
-    #[only_owner]
-    #[endpoint]
-    fn pause(&self) {
-        self.state().set(&State::Inactive);
-    }
-
-    #[only_owner]
-    #[endpoint]
-    fn resume(&self) {
-        self.state().set(&State::Active);
-    }
-
     #[view(getFarmTokenSupply)]
     #[storage_mapper("farm_token_supply")]
     fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getState)]
-    #[storage_mapper("state")]
-    fn state(&self) -> SingleValueMapper<State>;
 
     #[view(getFarmingTokenId)]
     #[storage_mapper("farming_token_id")]

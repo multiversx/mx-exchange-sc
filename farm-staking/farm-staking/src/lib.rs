@@ -8,7 +8,7 @@ pub mod farm_token_merge;
 pub mod whitelist;
 
 use common_structs::Nonce;
-use config::State;
+use pausable::State;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -39,6 +39,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + whitelist::WhitelistModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[proxy]
@@ -80,6 +81,9 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.min_unbond_epochs().set(min_unbond_epochs);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]

@@ -22,6 +22,7 @@ const ADD_LIQUIDITY_TOKENS: u64 = 1_001_000;
 
 use pair::config::*;
 use pair::*;
+use pausable::{PausableModule, State};
 use router::factory::*;
 use router::lib::*;
 use router::*;

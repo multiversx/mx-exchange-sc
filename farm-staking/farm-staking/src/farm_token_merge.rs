@@ -32,6 +32,7 @@ pub trait FarmTokenMergeModule:
     + farm_token::FarmTokenModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]

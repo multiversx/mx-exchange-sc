@@ -22,6 +22,7 @@ pub trait CtxHelper:
     + token_send::TokenSendModule
     + crate::amm::AmmModule
     + crate::locking_wrapper::LockingWrapperModule
+    + pausable::PausableModule
 {
     fn new_add_liquidity_context(
         &self,

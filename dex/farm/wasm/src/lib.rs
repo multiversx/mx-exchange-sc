@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
+        addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
@@ -34,6 +35,7 @@ elrond_wasm_node::wasm_endpoints! {
         migrateFromV1_2Farm
         pause
         registerFarmToken
+        removeFromPauseWhitelist
         resume
         setFarmMigrationConfig
         setFarmTokenSupply

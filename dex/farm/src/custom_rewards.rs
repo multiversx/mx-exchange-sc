@@ -11,6 +11,7 @@ pub trait CustomRewardsModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> BigUint {

@@ -12,6 +12,7 @@ pub mod fuzz_data_tests {
         testing_framework::*, DebugApi,
     };
     use elrond_wasm_debug::{managed_biguint, HashMap};
+    use pausable::{PausableModule, State};
     use std::cell::Cell;
 
     type RustBigUint = num_bigint::BigUint;
@@ -368,7 +369,7 @@ pub mod fuzz_data_tests {
                 let lp_token_id = managed_token_id!(lp_token);
                 config::ConfigModule::lp_token_identifier(&sc).set(&lp_token_id);
 
-                config::ConfigModule::state(&sc).set(&config::State::Active);
+                pausable::PausableModule::state(&sc).set(&pausable::State::Active);
             })
             .assert_ok();
 
@@ -447,7 +448,7 @@ pub mod fuzz_data_tests {
                 sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(&FARM_PENALTY_PERCENT);
 
-                sc.state().set(&::config::State::Active);
+                sc.state().set(&State::Active);
                 sc.produce_rewards_enabled().set(&true);
             })
             .assert_ok();

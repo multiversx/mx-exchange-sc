@@ -23,6 +23,7 @@ use pair::config::*;
 use pair::locking_wrapper::LockingWrapperModule;
 use pair::safe_price::*;
 use pair::*;
+use pausable::{PausableModule, State};
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use simple_lock::proxy_lp::{LpProxyTokenAttributes, ProxyLpModule};
 use simple_lock::SimpleLock;

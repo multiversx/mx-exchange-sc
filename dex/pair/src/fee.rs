@@ -26,6 +26,7 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_send::TokenSendModule
+    + pausable::PausableModule
 {
     #[storage_mapper("fee_destination")]
     fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
