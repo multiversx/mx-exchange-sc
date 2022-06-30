@@ -30,6 +30,7 @@ pub trait LockedAssetFactory:
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]
     fn init(
