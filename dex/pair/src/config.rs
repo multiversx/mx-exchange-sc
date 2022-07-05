@@ -46,11 +46,6 @@ pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
         self.lp_token_identifier().get()
     }
 
-    #[view(getInitialLiquidtyAdder)]
-    fn get_initial_liquidity_adder(&self) -> Option<ManagedAddress> {
-        self.initial_liquidity_adder().get()
-    }
-
     #[view(getTotalFeePercent)]
     #[storage_mapper("total_fee_percent")]
     fn total_fee_percent(&self) -> SingleValueMapper<u64>;
@@ -86,6 +81,7 @@ pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
     #[storage_mapper("lp_token_supply")]
     fn lp_token_supply(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getInitialLiquidtyAdder)]
     #[storage_mapper("initial_liquidity_adder")]
     fn initial_liquidity_adder(&self) -> SingleValueMapper<Option<ManagedAddress>>;
 
