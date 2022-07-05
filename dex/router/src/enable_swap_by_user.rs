@@ -1,9 +1,13 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use pair::{config::ProxyTrait as _, safe_price::ProxyTrait as _};
+use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
+use pair::safe_price::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
+
+static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
+static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
@@ -78,7 +82,7 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         let locked_token_attributes: LockedTokenAttributes<Self::Api> =
             locked_token_data.decode_attributes();
 
-        let pair_lp_token_id = self.get_pair_lp_token_id(pair_address.clone());
+        let pair_lp_token_id = self.get_pair_lp_token_id(&pair_address);
         require!(
             locked_token_attributes.original_token_id == pair_lp_token_id,
             "Invalid locked LP token"
@@ -103,7 +107,7 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         );
 
         let caller = self.blockchain().get_caller();
-        self.require_caller_initial_liquidity_adder(pair_address.clone(), &caller);
+        self.require_caller_initial_liquidity_adder(&pair_address, &caller);
 
         self.pair_resume(pair_address);
 
@@ -123,12 +127,9 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         mapper.get()
     }
 
-    fn get_pair_lp_token_id(&self, pair_address: ManagedAddress) -> TokenIdentifier {
-        let lp_token_id: TokenIdentifier = self
-            .user_pair_proxy(pair_address)
-            .get_lp_token_identifier()
-            .execute_on_dest_context();
-
+    fn get_pair_lp_token_id(&self, pair_address: &ManagedAddress) -> TokenIdentifier {
+        let storage_key = ManagedBuffer::new_from_bytes(PAIR_LP_TOKEN_ID_STORAGE_KEY);
+        let lp_token_id: TokenIdentifier = self.read_storage_from_pair(pair_address, &storage_key);
         require!(
             lp_token_id.is_valid_esdt_identifier(),
             "Invalid LP token received from pair"
@@ -160,13 +161,12 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
 
     fn require_caller_initial_liquidity_adder(
         &self,
-        pair_address: ManagedAddress,
+        pair_address: &ManagedAddress,
         caller: &ManagedAddress,
     ) {
-        let opt_initial_liq_adder: Option<ManagedAddress> = self
-            .user_pair_proxy(pair_address)
-            .get_initial_liquidity_adder()
-            .execute_on_dest_context();
+        let storage_key = ManagedBuffer::new_from_bytes(PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY);
+        let opt_initial_liq_adder: Option<ManagedAddress> =
+            self.read_storage_from_pair(pair_address, &storage_key);
 
         match opt_initial_liq_adder {
             Some(initial_liq_adder) => {
@@ -183,6 +183,23 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         self.user_pair_proxy(pair_address)
             .resume()
             .execute_on_dest_context_ignore_result();
+    }
+
+    fn read_storage_from_pair<T: TopDecode>(
+        &self,
+        pair_address: &ManagedAddress,
+        storage_key: &ManagedBuffer,
+    ) -> T {
+        let result_buffer = ManagedBuffer::new();
+        Self::Api::storage_read_api_impl().storage_load_from_address(
+            pair_address.get_raw_handle(),
+            storage_key.get_raw_handle(),
+            result_buffer.get_raw_handle(),
+        );
+
+        T::top_decode(result_buffer).unwrap_or_else(|_| {
+            sc_panic!("Failed to deserialize result after storage read from pair")
+        })
     }
 
     #[proxy]
