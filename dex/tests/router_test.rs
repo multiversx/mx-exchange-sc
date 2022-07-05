@@ -24,7 +24,7 @@ use pair::config::*;
 use pair::*;
 use pausable::{PausableModule, State};
 use router::factory::*;
-use router::lib::*;
+use router::multi_pair_swap::*;
 use router::*;
 
 #[allow(dead_code)]
