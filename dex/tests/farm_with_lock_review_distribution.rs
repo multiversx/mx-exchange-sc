@@ -21,6 +21,7 @@ use factory::*;
 use farm_token::FarmTokenModule;
 use farm_with_lock::custom_rewards::CustomRewardsModule;
 use farm_with_lock::*;
+use pausable::{PausableModule, State};
 use rewards::*;
 
 const FACTORY_WASM_PATH: &'static str = "../locked-asset/factory/output/factory.wasm";
@@ -78,7 +79,7 @@ where
             ]));
             sc.init(asset_token_id.clone(), default_unlock_period);
 
-            sc.locked_asset_token_id().set(&asset_token_id);
+            sc.locked_asset_token().set_token_id(&asset_token_id);
         })
         .assert_ok();
 

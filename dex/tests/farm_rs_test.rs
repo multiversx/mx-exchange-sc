@@ -13,6 +13,7 @@ use migration_from_v1_2::{FarmTokenAttributesV1_2, MigrationModule};
 use config::*;
 use farm::*;
 use farm_token::FarmTokenModule;
+use pausable::{PausableModule, State};
 
 // const GENERATED_FILE_PREFIX: &'static str = "_generated_";
 // const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";
@@ -177,7 +178,6 @@ fn enter_farm<FarmObjBuilder>(
     let mut tx_expect = TxExpectMandos::new(0);
     tx_expect.add_out_value(&expected_farm_token_nonce);
     tx_expect.add_out_value(&EsdtTokenPayment::<DebugApi> {
-        token_type: elrond_wasm::types::EsdtTokenType::SemiFungible,
         token_identifier: managed_token_id!(FARM_TOKEN_ID),
         token_nonce: expected_farm_token_nonce,
         amount: managed_biguint!(farm_in_amount),

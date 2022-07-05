@@ -3,7 +3,9 @@ elrond_wasm::imports!();
 use crate::contexts::swap::SwapContext;
 
 #[elrond_wasm::module]
-pub trait LockingWrapperModule: crate::config::ConfigModule + token_send::TokenSendModule {
+pub trait LockingWrapperModule:
+    crate::config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+{
     #[endpoint(setLockingDeadlineEpoch)]
     fn set_locking_deadline_epoch(&self, new_deadline: u64) {
         self.require_permissions();
@@ -55,10 +57,13 @@ pub trait LockingWrapperModule: crate::config::ConfigModule + token_send::TokenS
         let unlock_epoch = self.unlock_epoch().get();
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
-        proxy_instance
+        let payment: EgldOrEsdtTokenPayment<Self::Api> = proxy_instance
             .lock_tokens(unlock_epoch, opt_dest)
-            .add_token_transfer(token_id, 0, amount)
-            .execute_on_dest_context()
+            .add_esdt_token_transfer(token_id, 0, amount)
+            .execute_on_dest_context();
+        let (token_id, token_nonce, amount) = payment.into_tuple();
+
+        EsdtTokenPayment::new(token_id.unwrap_esdt(), token_nonce, amount)
     }
 
     fn should_generate_locked_asset(&self) -> bool {

@@ -15,6 +15,7 @@ use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
 use farm_staking_proxy::*;
 use farm_token::FarmTokenModule;
+use pausable::{PausableModule, State};
 
 use crate::constants::*;
 
@@ -41,7 +42,7 @@ where
             sc.farm_token()
                 .set_token_id(&managed_token_id!(STAKING_FARM_TOKEN_ID));
 
-            sc.state().set(&farm_staking_config::State::Active);
+            sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(STAKING_FARM_PER_BLOCK_REWARD_AMOUNT));

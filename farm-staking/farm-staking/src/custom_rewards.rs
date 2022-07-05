@@ -11,6 +11,7 @@ pub trait CustomRewardsModule:
     config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_extra_rewards_since_last_allocation(&self) -> BigUint {
@@ -59,7 +60,7 @@ pub trait CustomRewardsModule:
     #[payable("*")]
     #[endpoint(topUpRewards)]
     fn top_up_rewards(&self) {
-        let (payment_amount, payment_token) = self.call_value().payment_token_pair();
+        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
 

@@ -8,7 +8,7 @@ pub mod farm_token_merge;
 pub mod whitelist;
 
 use common_structs::Nonce;
-use config::State;
+use pausable::State;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -39,6 +39,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + whitelist::WhitelistModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[proxy]
@@ -53,7 +54,7 @@ pub trait Farm:
         min_unbond_epochs: u64,
     ) {
         require!(
-            farming_token_id.is_esdt(),
+            farming_token_id.is_valid_esdt_identifier(),
             "Farming token ID is not a valid esdt identifier"
         );
         require!(
@@ -80,6 +81,9 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.min_unbond_epochs().set(min_unbond_epochs);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]
@@ -158,7 +162,7 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(unstakeFarm)]
     fn unstake_farm(&self) -> ExitFarmResultType<Self::Api> {
-        let (payment_token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+        let (payment_token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let farm_token_id = self.farm_token().get_token_id();
 
         self.unstake_farm_common(farm_token_id, payment_token_id, token_nonce, amount, None)
@@ -207,7 +211,7 @@ pub trait Farm:
         opt_unbond_amount: Option<BigUint>,
     ) -> ExitFarmResultType<Self::Api> {
         require!(self.is_active(), "Not active");
-        require!(farm_token_id.is_esdt(), "No farm token");
+        require!(farm_token_id.is_valid_esdt_identifier(), "No farm token");
 
         require!(payment_token_id == farm_token_id, "Bad input token");
         require!(payment_amount > 0u32, "Payment amount cannot be zero");
@@ -259,7 +263,7 @@ pub trait Farm:
             },
         );
         self.send()
-            .direct(to, &farm_token_id, nft_nonce, &amount, &[]);
+            .direct_esdt(to, &farm_token_id, nft_nonce, &amount);
 
         EsdtTokenPayment::new(farm_token_id, nft_nonce, amount)
     }
@@ -270,7 +274,7 @@ pub trait Farm:
         require!(self.is_active(), "Not active");
         require!(!self.farm_token().is_empty(), "No farm token");
 
-        let (payment_token_id, token_nonce, amount) = self.call_value().payment_as_tuple();
+        let (payment_token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
 
         let farm_token_id = self.farm_token().get_token_id();
         require!(payment_token_id == farm_token_id, "Bad input token");
@@ -290,7 +294,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let farming_token_id = self.farming_token_id().get();
         self.send()
-            .direct(&caller, &farming_token_id, 0, &amount, &[]);
+            .direct_esdt(&caller, &farming_token_id, 0, &amount);
 
         EsdtTokenPayment::new(farming_token_id, 0, amount)
     }
@@ -302,7 +306,7 @@ pub trait Farm:
         require!(!self.farm_token().is_empty(), "No farm token");
 
         let (payment_token_id, token_nonce, old_farming_amount) =
-            self.call_value().payment_as_tuple();
+            self.call_value().single_esdt().into_tuple();
         require!(old_farming_amount > 0u32, "Zero amount");
 
         let farm_token_id = self.farm_token().get_token_id();
@@ -331,7 +335,7 @@ pub trait Farm:
         self.require_whitelisted(&caller);
 
         let (payment_token_id, token_nonce, old_farming_amount) =
-            self.call_value().payment_as_tuple();
+            self.call_value().single_esdt().into_tuple();
         require!(old_farming_amount > 0u32, "Zero amount");
 
         let farm_token_id = self.farm_token().get_token_id();
@@ -386,12 +390,11 @@ pub trait Farm:
             attributes: new_attributes,
         };
 
-        self.send().direct(
+        self.send().direct_esdt(
             &caller,
             &new_farm_token.payment.token_identifier,
             new_farm_token.payment.token_nonce,
             &new_farm_token.payment.amount,
-            &[],
         );
 
         let reward_token_id = self.reward_token_id().get();
@@ -466,12 +469,11 @@ pub trait Farm:
             &new_attributes,
             &additional_payments,
         );
-        self.send().direct(
+        self.send().direct_esdt(
             &caller,
             &new_farm_token.payment.token_identifier,
             new_farm_token.payment.token_nonce,
             &new_farm_token.payment.amount,
-            &[],
         );
 
         new_farm_token.payment

@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     factory
     (
-        callBack
         createAndForward
         createAndForwardCustomPeriod
         getAssetTokenId
@@ -23,9 +22,10 @@ elrond_wasm_node::wasm_endpoints! {
         registerLockedAssetToken
         removeWhitelist
         setInitEpoch
-        setLocalRolesLockedAssetToken
         setUnlockPeriod
         unlockAssets
         whitelist
     )
 }
+
+elrond_wasm_node::wasm_empty_callback! {}

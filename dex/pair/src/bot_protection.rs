@@ -17,7 +17,9 @@ pub struct BPConfig {
 }
 
 #[elrond_wasm::module]
-pub trait BPModule: config::ConfigModule + token_send::TokenSendModule {
+pub trait BPModule:
+    config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+{
     fn require_can_proceed_swap(&self, ctx: &SwapContext<Self::Api>) {
         if self.bp_swap_config().is_empty() {
             return;

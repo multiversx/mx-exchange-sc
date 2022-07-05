@@ -86,7 +86,7 @@ impl<M: ManagedTypeApi> CumulativeState<M> {
 
 #[elrond_wasm::module]
 pub trait SafePriceModule:
-    config::ConfigModule + token_send::TokenSendModule + amm::AmmModule
+    config::ConfigModule + token_send::TokenSendModule + amm::AmmModule + pausable::PausableModule
 {
     #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
     fn update_and_get_tokens_for_given_position_with_safe_price(
@@ -247,7 +247,6 @@ pub trait SafePriceModule:
         current_state.num_observations == max_observations_per_record / 2
     }
 
-    #[inline]
     fn get_current_state_or_default(&self) -> CumulativeState<Self::Api> {
         if !self.current_state().is_empty() {
             self.current_state().get()
@@ -256,7 +255,6 @@ pub trait SafePriceModule:
         }
     }
 
-    #[inline]
     fn get_future_state_or_default(&self) -> CumulativeState<Self::Api> {
         if !self.future_state().is_empty() {
             self.future_state().get()
@@ -265,7 +263,6 @@ pub trait SafePriceModule:
         }
     }
 
-    #[inline]
     fn get_max_observations_per_record(&self) -> u64 {
         if !self.max_observations_per_record().is_empty() {
             self.max_observations_per_record().get()

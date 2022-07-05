@@ -12,7 +12,7 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 
 #[elrond_wasm::module]
 pub trait LiquidityPoolModule:
-    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule
+    amm::AmmModule + config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
 {
     fn pool_add_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
         let zero = &BigUint::zero();
@@ -181,7 +181,7 @@ pub trait LiquidityPoolModule:
         token_id: TokenIdentifier,
     ) -> EsdtTokenPayment<Self::Api> {
         let reserve = self.pair_reserve(&token_id).get();
-        let total_supply = self.get_total_lp_token_supply();
+        let total_supply = self.lp_token_supply().get();
         if total_supply != 0 {
             let amount = liquidity * reserve / total_supply;
             EsdtTokenPayment::new(token_id, 0, amount)
@@ -265,11 +265,6 @@ pub trait LiquidityPoolModule:
                 amount_out
             }
         }
-    }
-
-    #[view(getTotalSupply)]
-    fn get_total_lp_token_supply(&self) -> BigUint {
-        self.lp_token_supply().get()
     }
 
     #[inline]

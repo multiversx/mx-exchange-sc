@@ -10,6 +10,7 @@ pub trait RewardsModule:
     config::ConfigModule
     + farm_token::FarmTokenModule
     + token_send::TokenSendModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_per_block_rewards(

@@ -171,14 +171,14 @@ impl<M: ManagedTypeApi> Context<M> for SwapContext<M> {
 
 impl<M: ManagedTypeApi> TxInputArgs<M> for SwapArgs<M> {
     fn are_valid(&self) -> bool {
-        self.output_amount != 0 && self.output_token_id.is_esdt()
+        self.output_amount != 0 && self.output_token_id.is_valid_esdt_identifier()
     }
 }
 
 impl<M: ManagedTypeApi> TxInputPayments<M> for SwapPayments<M> {
     fn are_valid(&self) -> bool {
         self.input.amount != 0
-            && self.input.token_identifier.is_esdt()
+            && self.input.token_identifier.is_valid_esdt_identifier()
             && self.input.token_nonce == 0
     }
 }

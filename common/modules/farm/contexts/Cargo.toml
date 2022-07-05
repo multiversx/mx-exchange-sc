@@ -28,8 +28,11 @@ path = "../../token_merge"
 [dependencies.config]
 path = "../config"
 
+[dependencies.pausable]
+path = "../../pausable"
+
 [dependencies.elrond-wasm]
-version = "0.31.1"
+version = "0.33.0"
 
 [dependencies.elrond-wasm-modules]
-version = "0.31.1"
+version = "0.33.0"

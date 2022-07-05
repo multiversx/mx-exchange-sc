@@ -8,11 +8,15 @@ elrond_wasm_node::wasm_endpoints! {
     router
     (
         callBack
+        addCommonTokensForUserPairs
         clearPairTemporaryOwnerStorage
+        configEnableByUserParameters
         createPair
         getAllPairContractMetadata
         getAllPairTokens
         getAllPairsManagedAddresses
+        getCommonTokensForUserPairs
+        getEnableSwapByUserConfig
         getOwner
         getPair
         getPairCreationEnabled
@@ -22,6 +26,7 @@ elrond_wasm_node::wasm_endpoints! {
         issueLpToken
         multiPairSwap
         pause
+        removeCommonTokensForUserPairs
         removePair
         resume
         setFeeOff
@@ -30,6 +35,7 @@ elrond_wasm_node::wasm_endpoints! {
         setLocalRolesOwner
         setPairCreationEnabled
         setPairTemplateAddress
+        setSwapEnabledByUser
         setTemporaryOwnerPeriod
         upgradePair
     )

@@ -14,6 +14,9 @@ path = "../../common/common_structs"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
 [dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
 
@@ -22,7 +25,7 @@ version = "0.10.1"
 default-features = false
 
 [dependencies.elrond-wasm]
-version = "0.31.1"
+version = "0.33.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.31.1"
+version = "0.33.0"

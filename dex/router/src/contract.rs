@@ -4,14 +4,16 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub mod enable_swap_by_user;
 mod events;
 pub mod factory;
-pub mod lib;
+pub mod multi_pair_swap;
 
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
 use pair::fee::ProxyTrait as _;
 use pair::ProxyTrait as _;
+use pausable::ProxyTrait as _;
 
 const LP_TOKEN_DECIMALS: usize = 18;
 const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
@@ -22,12 +24,16 @@ const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
 #[elrond_wasm::contract]
 pub trait Router:
-    factory::FactoryModule + events::EventsModule + lib::Lib + token_send::TokenSendModule
+    factory::FactoryModule
+    + events::EventsModule
+    + multi_pair_swap::MultiPairSwap
+    + token_send::TokenSendModule
+    + enable_swap_by_user::EnableSwapByUserModule
 {
     #[init]
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
-        self.state().set_if_empty(&true);
-        self.pair_creation_enabled().set_if_empty(&false);
+        self.state().set_if_empty(true);
+        self.pair_creation_enabled().set_if_empty(false);
 
         self.init_factory(pair_template_address_opt.into_option());
         self.owner().set(&self.blockchain().get_caller());
@@ -37,7 +43,7 @@ pub trait Router:
     #[endpoint]
     fn pause(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            self.state().set(&false);
+            self.state().set(false);
         } else {
             self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
@@ -50,7 +56,7 @@ pub trait Router:
     #[endpoint]
     fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            self.state().set(&true);
+            self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
@@ -80,11 +86,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -142,11 +148,11 @@ pub trait Router:
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -200,7 +206,10 @@ pub trait Router:
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
-        require!(result.is_egld(), "LP Token already issued");
+        require!(
+            !result.is_valid_esdt_identifier(),
+            "LP Token already issued"
+        );
 
         self.send()
             .esdt_system_sc_proxy()
@@ -238,7 +247,7 @@ pub trait Router:
             .pair_contract_proxy(pair_address.clone())
             .get_lp_token_identifier()
             .execute_on_dest_context();
-        require!(pair_token.is_esdt(), "LP token not issued");
+        require!(pair_token.is_valid_esdt_identifier(), "LP token not issued");
 
         let roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
 
@@ -272,16 +281,16 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-    ) -> SCResult<ManagedAddress> {
+    ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
 
         require!(first_token_id != second_token_id, "Identical tokens");
         require!(
-            first_token_id.is_esdt(),
+            first_token_id.is_valid_esdt_identifier(),
             "First Token ID is not a valid esdt token ID"
         );
         require!(
-            second_token_id.is_esdt(),
+            second_token_id.is_valid_esdt_identifier(),
             "Second Token ID is not a valid esdt token ID"
         );
         let mut pair_address = self.get_pair(first_token_id.clone(), second_token_id.clone());
@@ -305,7 +314,7 @@ pub trait Router:
                 .unwrap_or_else(ManagedAddress::zero);
         }
 
-        Ok(pair_address)
+        pair_address
     }
 
     #[only_owner]
@@ -340,51 +349,24 @@ pub trait Router:
             .execute_on_dest_context_ignore_result();
     }
 
-    #[view(getPair)]
-    fn get_pair(
-        &self,
-        first_token_id: TokenIdentifier,
-        second_token_id: TokenIdentifier,
-    ) -> ManagedAddress {
-        let mut address = self
-            .pair_map()
-            .get(&PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            })
-            .unwrap_or_else(ManagedAddress::zero);
-
-        if address.is_zero() {
-            address = self
-                .pair_map()
-                .get(&PairTokens {
-                    first_token_id: second_token_id,
-                    second_token_id: first_token_id,
-                })
-                .unwrap_or_else(ManagedAddress::zero);
-        }
-        address
-    }
-
     #[callback]
     fn lp_token_issue_callback(
         &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] returned_tokens: BigUint,
         caller: &ManagedAddress,
         address: &ManagedAddress,
         #[call_result] result: ManagedAsyncCallResult<()>,
     ) {
+        let (token_id, returned_tokens) = self.call_value().egld_or_single_fungible_esdt();
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
                 self.pair_contract_proxy(address.clone())
-                    .set_lp_token_identifier(token_id)
+                    .set_lp_token_identifier(token_id.unwrap_esdt())
                     .execute_on_dest_context_ignore_result();
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    let _ = self.send().direct_egld(caller, &returned_tokens, &[]);
+                    self.send().direct_egld(caller, &returned_tokens);
                 }
             }
         }

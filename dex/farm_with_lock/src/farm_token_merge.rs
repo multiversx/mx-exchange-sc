@@ -13,6 +13,7 @@ pub trait FarmTokenMergeModule:
     + farm_token::FarmTokenModule
     + config::ConfigModule
     + token_merge::TokenMergeModule
+    + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]
@@ -28,12 +29,11 @@ pub trait FarmTokenMergeModule:
         let new_tokens =
             self.mint_farm_tokens(farm_token_id, attrs.current_farm_amount.clone(), &attrs);
 
-        self.send().direct(
+        self.send().direct_esdt(
             &caller,
             &new_tokens.token_identifier,
             new_tokens.token_nonce,
             &new_tokens.amount,
-            &[],
         );
 
         new_tokens

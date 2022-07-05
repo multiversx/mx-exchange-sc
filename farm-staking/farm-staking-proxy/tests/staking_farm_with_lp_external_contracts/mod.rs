@@ -11,6 +11,7 @@ use pair::config as pair_config;
 use pair::safe_price::SafePriceModule;
 use pair::*;
 use pair_config::ConfigModule as _;
+use pausable::{PausableModule, State};
 
 use ::config as farm_config;
 use farm::*;
@@ -54,7 +55,7 @@ where
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
-            sc.state().set(&pair_config::State::Active);
+            sc.state().set(&pausable::State::Active);
             sc.set_max_observations_per_record(10);
         })
         .assert_ok();
@@ -227,7 +228,7 @@ where
             sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
             sc.penalty_percent().set(&PENALTY_PERCENT);
 
-            sc.state().set(&farm_config::State::Active);
+            sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));

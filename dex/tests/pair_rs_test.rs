@@ -2,8 +2,8 @@ use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
 use elrond_wasm::types::{Address, EsdtLocalRole};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    DebugApi,
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    testing_framework::*, DebugApi,
 };
 
 const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
@@ -23,6 +23,7 @@ use pair::config::*;
 use pair::locking_wrapper::LockingWrapperModule;
 use pair::safe_price::*;
 use pair::*;
+use pausable::{PausableModule, State};
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use simple_lock::proxy_lp::{LpProxyTokenAttributes, ProxyLpModule};
 use simple_lock::SimpleLock;
@@ -935,7 +936,7 @@ fn test_locked_asset() {
         1,
         &rust_biguint!(996),
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(WEGLD_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
         }),
@@ -1080,7 +1081,7 @@ fn add_liquidity_through_simple_lock_proxy() {
         1,
         &rust_biguint!(1_000_000),
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(WEGLD_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
         }),
@@ -1105,7 +1106,7 @@ fn add_liquidity_through_simple_lock_proxy() {
         2,
         &rust_biguint!(2_000_000),
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(MEX_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 15,
         }),
@@ -1227,7 +1228,7 @@ fn add_liquidity_through_simple_lock_proxy() {
         1,
         &(user_locked_token_balance_before + 500_000u32),
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id!(WEGLD_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(WEGLD_TOKEN_ID),
             original_token_nonce: 0,
             unlock_epoch: 10,
         }),

@@ -39,7 +39,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     #[init]
     fn init(&self, asset_token_id: TokenIdentifier, locked_asset_factory_address: ManagedAddress) {
         require!(
-            asset_token_id.is_esdt(),
+            asset_token_id.is_valid_esdt_identifier(),
             "Asset token ID is not a valid esdt identifier"
         );
 

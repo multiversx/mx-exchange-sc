@@ -8,7 +8,6 @@ pub mod farm_token_merge;
 use common_errors::*;
 
 use common_structs::{Epoch, FarmTokenAttributes};
-use config::State;
 use contexts::generic::{GenericContext, StorageCache};
 use farm_token::FarmToken;
 
@@ -18,6 +17,7 @@ elrond_wasm::derive_imports!();
 use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
 };
+use pausable::State;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -35,6 +35,7 @@ pub trait Farm:
     + token_merge::TokenMergeModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
+    + pausable::PausableModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
@@ -76,6 +77,9 @@ pub trait Farm:
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let caller = self.blockchain().get_caller();
+        self.pause_whitelist().add(&caller);
     }
 
     #[payable("*")]
@@ -87,7 +91,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_enter(), ERROR_BAD_PAYMENTS);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
@@ -136,7 +143,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
@@ -166,7 +176,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_claim(), ERROR_BAD_PAYMENTS);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
@@ -221,7 +234,10 @@ pub trait Farm:
             context.get_contract_state() == State::Active,
             ERROR_NOT_ACTIVE
         );
-        require!(!context.get_farm_token_id().is_empty(), ERROR_NO_FARM_TOKEN);
+        require!(
+            context.get_farm_token_id().is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
         require!(context.is_accepted_payment_compound(), ERROR_BAD_PAYMENTS);
         require!(
             context.get_farming_token_id() == context.get_reward_token_id(),
@@ -292,7 +308,7 @@ pub trait Farm:
             let gas_limit = self.burn_gas_limit().get();
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(reward_token_id.clone())
-                .add_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
+                .add_esdt_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
                 .with_gas_limit(gas_limit)
                 .transfer_execute();
         }
@@ -333,7 +349,7 @@ pub trait Farm:
         destination: &ManagedAddress,
     ) {
         self.send()
-            .direct(destination, farming_token_id, 0, farming_amount, &[]);
+            .direct_esdt(destination, farming_token_id, 0, farming_amount);
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
