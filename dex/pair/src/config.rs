@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use super::errors::*;
 
-#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi, Debug)]
 pub enum State {
     Inactive,
     Active,
