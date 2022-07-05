@@ -22,3 +22,6 @@ path = "../pair"
 
 [dependencies.locking_module]
 path = "../../common/modules/locking_module"
+
+[dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"

@@ -23,7 +23,7 @@ const ADD_LIQUIDITY_TOKENS: u64 = 1_001_000;
 use pair::config::*;
 use pair::*;
 use router::factory::*;
-use router::lib::*;
+use router::multi_pair_swap::*;
 use router::*;
 
 #[allow(dead_code)]

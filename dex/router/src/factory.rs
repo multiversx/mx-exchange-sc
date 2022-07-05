@@ -105,9 +105,6 @@ pub trait FactoryModule {
         );
     }
 
-    #[storage_mapper("pair_map")]
-    fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
-
     #[view(getAllPairsManagedAddresses)]
     fn get_all_pairs_addresses(&self) -> MultiValueEncoded<ManagedAddress> {
         let mut result = MultiValueEncoded::new();
@@ -138,6 +135,41 @@ pub trait FactoryModule {
             result.push(pair_metadata);
         }
         result
+    }
+
+    #[view(getPair)]
+    fn get_pair(
+        &self,
+        first_token_id: TokenIdentifier,
+        second_token_id: TokenIdentifier,
+    ) -> ManagedAddress {
+        let mut address = self
+            .pair_map()
+            .get(&PairTokens {
+                first_token_id: first_token_id.clone(),
+                second_token_id: second_token_id.clone(),
+            })
+            .unwrap_or_else(ManagedAddress::zero);
+
+        if address.is_zero() {
+            address = self
+                .pair_map()
+                .get(&PairTokens {
+                    first_token_id: second_token_id,
+                    second_token_id: first_token_id,
+                })
+                .unwrap_or_else(ManagedAddress::zero);
+        }
+        address
+    }
+
+    fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
+        require!(
+            self.pair_map()
+                .values()
+                .any(|address| &address == pair_address),
+            "Not a pair SC"
+        );
     }
 
     fn get_pair_temporary_owner(&self, pair_address: &ManagedAddress) -> Option<ManagedAddress> {
@@ -177,6 +209,9 @@ pub trait FactoryModule {
     fn set_pair_template_address(&self, address: ManagedAddress) {
         self.pair_template_address().set(&address);
     }
+
+    #[storage_mapper("pair_map")]
+    fn pair_map(&self) -> MapMapper<PairTokens<Self::Api>, ManagedAddress>;
 
     #[view(getPairTemplateAddress)]
     #[storage_mapper("pair_template_address")]
