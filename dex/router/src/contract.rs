@@ -4,9 +4,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub mod enable_swap_by_user;
 mod events;
 pub mod factory;
-pub mod lib;
+pub mod multi_pair_swap;
 
 use factory::PairTokens;
 use pair::config::ProxyTrait as _;
@@ -23,12 +24,16 @@ const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 
 #[elrond_wasm::contract]
 pub trait Router:
-    factory::FactoryModule + events::EventsModule + lib::Lib + token_send::TokenSendModule
+    factory::FactoryModule
+    + events::EventsModule
+    + multi_pair_swap::MultiPairSwap
+    + token_send::TokenSendModule
+    + enable_swap_by_user::EnableSwapByUserModule
 {
     #[init]
     fn init(&self, pair_template_address_opt: OptionalValue<ManagedAddress>) {
-        self.state().set_if_empty(&true);
-        self.pair_creation_enabled().set_if_empty(&false);
+        self.state().set_if_empty(true);
+        self.pair_creation_enabled().set_if_empty(false);
 
         self.init_factory(pair_template_address_opt.into_option());
         self.owner().set(&self.blockchain().get_caller());
@@ -38,7 +43,7 @@ pub trait Router:
     #[endpoint]
     fn pause(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            self.state().set(&false);
+            self.state().set(false);
         } else {
             self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
@@ -51,7 +56,7 @@ pub trait Router:
     #[endpoint]
     fn resume(&self, address: ManagedAddress) {
         if address == self.blockchain().get_sc_address() {
-            self.state().set(&true);
+            self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
             self.pair_contract_proxy(address)
@@ -276,7 +281,7 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
-    ) -> SCResult<ManagedAddress> {
+    ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
 
         require!(first_token_id != second_token_id, "Identical tokens");
@@ -309,7 +314,7 @@ pub trait Router:
                 .unwrap_or_else(ManagedAddress::zero);
         }
 
-        Ok(pair_address)
+        pair_address
     }
 
     #[only_owner]
@@ -344,32 +349,6 @@ pub trait Router:
             .execute_on_dest_context_ignore_result();
     }
 
-    #[view(getPair)]
-    fn get_pair(
-        &self,
-        first_token_id: TokenIdentifier,
-        second_token_id: TokenIdentifier,
-    ) -> ManagedAddress {
-        let mut address = self
-            .pair_map()
-            .get(&PairTokens {
-                first_token_id: first_token_id.clone(),
-                second_token_id: second_token_id.clone(),
-            })
-            .unwrap_or_else(ManagedAddress::zero);
-
-        if address.is_zero() {
-            address = self
-                .pair_map()
-                .get(&PairTokens {
-                    first_token_id: second_token_id,
-                    second_token_id: first_token_id,
-                })
-                .unwrap_or_else(ManagedAddress::zero);
-        }
-        address
-    }
-
     #[callback]
     fn lp_token_issue_callback(
         &self,
@@ -387,7 +366,7 @@ pub trait Router:
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
-                    let _ = self.send().direct_egld(caller, &returned_tokens);
+                    self.send().direct_egld(caller, &returned_tokens);
                 }
             }
         }

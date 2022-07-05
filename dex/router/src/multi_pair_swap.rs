@@ -12,7 +12,7 @@ pub const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
 pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 
 #[elrond_wasm::module]
-pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
+pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
     #[payable("*")]
     #[endpoint(multiPairSwap)]
     fn multi_pair_swap(&self, swap_operations: MultiValueEncoded<SwapOperationType<Self::Api>>) {
@@ -92,15 +92,6 @@ pub trait Lib: factory::FactoryModule + token_send::TokenSendModule {
                 .execute_on_dest_context();
 
         call_result.into_tuple()
-    }
-
-    fn check_is_pair_sc(&self, pair_address: &ManagedAddress) {
-        require!(
-            self.pair_map()
-                .values()
-                .any(|address| &address == pair_address),
-            "Not a pair SC"
-        );
     }
 
     #[proxy]
