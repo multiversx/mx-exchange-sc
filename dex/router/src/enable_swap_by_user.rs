@@ -137,9 +137,9 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         let (first_result, second_result) = multi_value.into_tuple();
         let whitelist = self.common_tokens_for_user_pairs();
         if whitelist.contains(&first_result.token_identifier) {
-            second_result.amount
-        } else if whitelist.contains(&second_result.token_identifier) {
             first_result.amount
+        } else if whitelist.contains(&second_result.token_identifier) {
+            second_result.amount
         } else {
             sc_panic!("Invalid tokens in Pair contract");
         }
