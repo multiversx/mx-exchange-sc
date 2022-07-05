@@ -21,6 +21,7 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         locked_token_id: TokenIdentifier,
         min_locked_token_value: BigUint,
         min_lock_period_epochs: u64,
+        common_tokens_for_user_pairs: MultiValueEncoded<TokenIdentifier>,
     ) {
         require!(
             locked_token_id.is_valid_esdt_identifier(),
@@ -33,6 +34,8 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
                 min_locked_token_value,
                 min_lock_period_epochs,
             });
+
+        self.add_common_tokens_for_user_pairs(common_tokens_for_user_pairs);
     }
 
     #[only_owner]
@@ -40,6 +43,7 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
     fn add_common_tokens_for_user_pairs(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
         let mut whitelist = self.common_tokens_for_user_pairs();
         for token in tokens {
+            require!(token.is_valid_esdt_identifier(), "Invalid token ID");
             let _ = whitelist.insert(token);
         }
     }
