@@ -84,7 +84,8 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
             "Invalid locked LP token"
         );
 
-        let lp_token_value = self.get_lp_token_value(pair_address.clone(), payment.amount);
+        let locked_lp_token_amount = payment.amount.clone();
+        let lp_token_value = self.get_lp_token_value(pair_address.clone(), locked_lp_token_amount);
         require!(
             lp_token_value >= config.min_locked_token_value,
             "Not enough value locked"
@@ -101,9 +102,17 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
             "Token not locked for long enough"
         );
 
-        self.require_caller_initial_liquidity_adder(pair_address.clone());
+        let caller = self.blockchain().get_caller();
+        self.require_caller_initial_liquidity_adder(pair_address.clone(), &caller);
 
         self.pair_resume(pair_address);
+
+        self.send().direct_esdt(
+            &caller,
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
     }
 
     #[view(getEnableSwapByUserConfig)]
@@ -149,7 +158,11 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         }
     }
 
-    fn require_caller_initial_liquidity_adder(&self, pair_address: ManagedAddress) {
+    fn require_caller_initial_liquidity_adder(
+        &self,
+        pair_address: ManagedAddress,
+        caller: &ManagedAddress,
+    ) {
         let opt_initial_liq_adder: Option<ManagedAddress> = self
             .user_pair_proxy(pair_address)
             .get_initial_liquidity_adder()
@@ -157,9 +170,8 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
 
         match opt_initial_liq_adder {
             Some(initial_liq_adder) => {
-                let caller = self.blockchain().get_caller();
                 require!(
-                    caller == initial_liq_adder,
+                    caller == &initial_liq_adder,
                     "Caller is not the initial liq adder"
                 );
             }
