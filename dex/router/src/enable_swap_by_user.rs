@@ -16,8 +16,16 @@ pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
     pub min_lock_period_epochs: u64,
 }
 
+pub struct SafePriceResult<M: ManagedTypeApi> {
+    pub first_token_id: TokenIdentifier<M>,
+    pub second_token_id: TokenIdentifier<M>,
+    pub safe_price_in_common_token: BigUint<M>,
+}
+
 #[elrond_wasm::module]
-pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
+pub trait EnableSwapByUserModule:
+    crate::factory::FactoryModule + crate::events::EventsModule
+{
     #[only_owner]
     #[endpoint(configEnableByUserParameters)]
     fn config_enable_by_user_parameters(
@@ -89,9 +97,10 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         );
 
         let locked_lp_token_amount = payment.amount.clone();
-        let lp_token_value = self.get_lp_token_value(pair_address.clone(), locked_lp_token_amount);
+        let lp_token_safe_price_result =
+            self.get_lp_token_value(pair_address.clone(), locked_lp_token_amount);
         require!(
-            lp_token_value >= config.min_locked_token_value,
+            lp_token_safe_price_result.safe_price_in_common_token >= config.min_locked_token_value,
             "Not enough value locked"
         );
 
@@ -109,13 +118,20 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         let caller = self.blockchain().get_caller();
         self.require_caller_initial_liquidity_adder(&pair_address, &caller);
 
-        self.pair_resume(pair_address);
+        self.pair_resume(pair_address.clone());
 
         self.send().direct_esdt(
             &caller,
             &payment.token_identifier,
             payment.token_nonce,
             &payment.amount,
+        );
+
+        self.emit_user_swaps_enabled_event(
+            caller,
+            lp_token_safe_price_result.first_token_id,
+            lp_token_safe_price_result.second_token_id,
+            pair_address,
         );
     }
 
@@ -142,7 +158,7 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
         &self,
         pair_address: ManagedAddress,
         lp_token_amount: BigUint,
-    ) -> BigUint {
+    ) -> SafePriceResult<Self::Api> {
         let multi_value: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.user_pair_proxy(pair_address)
                 .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
@@ -150,12 +166,18 @@ pub trait EnableSwapByUserModule: crate::factory::FactoryModule {
 
         let (first_result, second_result) = multi_value.into_tuple();
         let whitelist = self.common_tokens_for_user_pairs();
-        if whitelist.contains(&first_result.token_identifier) {
+        let safe_price_in_common_token = if whitelist.contains(&first_result.token_identifier) {
             first_result.amount
         } else if whitelist.contains(&second_result.token_identifier) {
             second_result.amount
         } else {
             sc_panic!("Invalid tokens in Pair contract");
+        };
+
+        SafePriceResult {
+            first_token_id: first_result.token_identifier,
+            second_token_id: second_result.token_identifier,
+            safe_price_in_common_token,
         }
     }
 
