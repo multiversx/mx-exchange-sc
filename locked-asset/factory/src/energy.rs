@@ -154,6 +154,7 @@ pub trait EnergyModule:
             );
         }
 
+        self.user_energy(&caller).set(&energy);
         self.user_updated_energy_for_old_tokens(&caller).set(true);
     }
 
