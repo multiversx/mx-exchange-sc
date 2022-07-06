@@ -1,191 +1,234 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use crate::locked_asset::PERCENTAGE_TOTAL_EX;
 use common_structs::{Epoch, UnlockScheduleEx};
 
-pub type Energy<M> = BigUint<M>;
+#[derive(TopEncode, TopDecode)]
+pub struct Energy<M: ManagedTypeApi> {
+    amount: BigUint<M>,
+    amount_depleted_under_zero: BigUint<M>,
+    last_update_epoch: Epoch,
+    total_locked_tokens: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> Default for Energy<M> {
+    fn default() -> Self {
+        Self {
+            amount: BigUint::zero(),
+            amount_depleted_under_zero: BigUint::zero(),
+            last_update_epoch: 0,
+            total_locked_tokens: BigUint::zero(),
+        }
+    }
+}
+
+impl<M: ManagedTypeApi> Energy<M> {
+    pub fn deplete(&mut self, current_epoch: Epoch) {
+        if self.last_update_epoch == current_epoch {
+            return;
+        }
+
+        if self.total_locked_tokens > 0 && self.last_update_epoch > 0 {
+            let epoch_diff = current_epoch - self.last_update_epoch;
+            let energy_decrease = &self.total_locked_tokens * epoch_diff;
+            if self.amount > energy_decrease {
+                self.amount -= energy_decrease;
+            } else {
+                let extra_depleted = &energy_decrease - &self.amount;
+                self.amount_depleted_under_zero += extra_depleted;
+
+                self.amount = BigUint::zero();
+            }
+        }
+
+        self.last_update_epoch = current_epoch;
+    }
+
+    pub fn add_after_token_lock(
+        &mut self,
+        lock_amount: &BigUint<M>,
+        unlock_schedule: &UnlockScheduleEx<M>,
+        current_epoch: Epoch,
+    ) {
+        let milestones_len = unlock_schedule.unlock_milestones.len();
+        if milestones_len == 0 {
+            return;
+        }
+
+        let last_milestone_index = milestones_len - 1;
+        let mut total_tokens_processed = BigUint::zero();
+        for (i, milestone) in unlock_schedule.unlock_milestones.iter().enumerate() {
+            // account for approximation errors
+            let unlock_amount_at_milestone = if i < last_milestone_index {
+                lock_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX
+            } else {
+                lock_amount - &total_tokens_processed
+            };
+
+            total_tokens_processed += &unlock_amount_at_milestone;
+
+            if current_epoch >= milestone.unlock_epoch {
+                continue;
+            }
+
+            let epochs_diff = milestone.unlock_epoch - current_epoch;
+            let energy_added = &unlock_amount_at_milestone * epochs_diff;
+            self.amount += energy_added;
+        }
+
+        self.total_locked_tokens += lock_amount;
+    }
+
+    pub fn refund_after_token_unlock(
+        &mut self,
+        unlock_amount: &BigUint<M>,
+        unlock_epoch: Epoch,
+        current_epoch: Epoch,
+    ) {
+        self.total_locked_tokens -= unlock_amount;
+
+        if unlock_epoch == current_epoch {
+            return;
+        }
+
+        let epochs_diff = current_epoch - unlock_epoch;
+        let mut extra_energy_depleted = unlock_amount * epochs_diff;
+        if self.amount_depleted_under_zero > 0 {
+            if self.amount_depleted_under_zero > extra_energy_depleted {
+                self.amount_depleted_under_zero -= &extra_energy_depleted;
+                extra_energy_depleted = BigUint::zero();
+            } else {
+                extra_energy_depleted -= &self.amount_depleted_under_zero;
+                self.amount_depleted_under_zero = BigUint::zero();
+            }
+        }
+
+        self.amount += extra_energy_depleted;
+    }
+
+    #[inline]
+    pub fn into_energy_amount(self) -> BigUint<M> {
+        self.amount
+    }
+}
 
 #[elrond_wasm::module]
-pub trait EnergyModule {
+pub trait EnergyModule:
+    crate::locked_asset::LockedAssetModule
+    + token_send::TokenSendModule
+    + crate::attr_ex_helper::AttrExHelper
+{
+    #[payable("*")]
+    #[endpoint(computeEnergyForOldLockedTokens)]
+    fn compute_energy_for_old_locked_tokens(&self) {
+        let caller = self.blockchain().get_caller();
+        require!(
+            !self.did_user_update_old_tokens(&caller),
+            "Already updated old tokens"
+        );
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut energy = self.get_energy_or_default(&caller);
+        energy.deplete(current_epoch);
+
+        let locked_token_id = self.locked_asset_token().get_token_id();
+        let energy_activation_nonce = self.energy_activation_locked_token_nonce_start().get();
+        let payments = self.call_value().all_esdt_transfers();
+        for payment in &payments {
+            require!(
+                payment.token_identifier == locked_token_id,
+                "Invalid payment token"
+            );
+            require!(
+                payment.token_nonce < energy_activation_nonce,
+                "Token already acknowledged"
+            );
+
+            let token_attributes =
+                self.get_attributes_ex(&payment.token_identifier, payment.token_nonce);
+            energy.add_after_token_lock(
+                &payment.amount,
+                &token_attributes.unlock_schedule,
+                current_epoch,
+            );
+        }
+
+        self.user_updated_energy_for_old_tokens(&caller).set(true);
+    }
+
     fn update_energy_after_lock(
         &self,
         user: &ManagedAddress,
         lock_amount: &BigUint,
         unlock_schedule: &UnlockScheduleEx<Self::Api>,
     ) {
-        self.update_energy_for_user(user);
-        self.add_new_energy_entries(user, lock_amount, unlock_schedule);
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut energy = self.get_energy_or_default(user);
+
+        energy.deplete(current_epoch);
+        energy.add_after_token_lock(lock_amount, unlock_schedule, current_epoch);
+
+        self.user_energy(user).set(&energy);
     }
 
-    fn update_energy_buckets_after_merge(&self) {
+    fn update_energy_after_merge(&self) {
         // TODO
     }
 
-    fn add_new_energy_entries(
+    fn update_energy_after_unlock(
         &self,
         user: &ManagedAddress,
-        lock_amount: &BigUint,
-        unlock_schedule: &UnlockScheduleEx<Self::Api>,
+        old_locked_token_amount: &BigUint,
+        old_unlock_schedule: &UnlockScheduleEx<Self::Api>,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let energy_per_lock_epoch = self.energy_per_lock_epoch().get();
+        let mut energy = self.get_energy_or_default(user);
+        energy.deplete(current_epoch);
 
-        let mut total_unlock = BigUint::zero();
-        let mut remaining_milestones = unlock_schedule.unlock_milestones.len();
-        let mut total_energy_added = BigUint::zero();
-
-        let mut list_mapper = self.user_unlock_epochs(&user);
-        let mut current_list_node = list_mapper.front();
-        for milestone in &unlock_schedule.unlock_milestones {
-            // account for approximation errors
-            let unlock_amount_at_milestone = if remaining_milestones > 1 {
-                lock_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX
-            } else {
-                lock_amount - &total_unlock
-            };
-
-            while let Some(node) = &mut current_list_node {
-                let unlock_epoch_in_list = node.get_value_cloned();
-                if unlock_epoch_in_list >= milestone.unlock_epoch {
-                    break;
-                }
-
-                let next_node_id = node.get_next_node_id();
-                current_list_node = list_mapper.get_node_by_id(next_node_id);
+        for milestone in &old_unlock_schedule.unlock_milestones {
+            if milestone.unlock_epoch > current_epoch {
+                continue;
             }
 
-            match &mut current_list_node {
-                Some(list_node) => {
-                    let unlock_epoch_in_list = list_node.get_value_cloned();
-                    if unlock_epoch_in_list != milestone.unlock_epoch {
-                        list_mapper.push_before(list_node, milestone.unlock_epoch);
-                    }
-
-                    self.tokens_for_unlock_epoch(user, milestone.unlock_epoch)
-                        .update(|tokens_for_epoch| {
-                            *tokens_for_epoch += &unlock_amount_at_milestone
-                        });
-                }
-                None => {
-                    let _ = list_mapper.push_back(milestone.unlock_epoch);
-                }
-            }
-
-            let epochs_diff = milestone.unlock_epoch - current_epoch;
-            let energy_added = &energy_per_lock_epoch * epochs_diff;
-            total_energy_added += energy_added;
-
-            total_unlock += unlock_amount_at_milestone;
-            remaining_milestones -= 1;
+            let unlock_amount =
+                old_locked_token_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX;
+            energy.refund_after_token_unlock(&unlock_amount, milestone.unlock_epoch, current_epoch);
         }
 
-        self.total_locked_tokens_for_user(user)
-            .update(|total_locked| *total_locked += lock_amount);
-        self.current_energy_for_user(user)
-            .update(|total_energy| *total_energy += total_energy_added);
+        self.user_energy(user).set(&energy);
+    }
+
+    fn get_energy_or_default(&self, user: &ManagedAddress) -> Energy<Self::Api> {
+        let energy_mapper = self.user_energy(user);
+        if !energy_mapper.is_empty() {
+            energy_mapper.get()
+        } else {
+            Energy::default()
+        }
     }
 
     #[view(getEnergyForUser)]
-    fn update_and_get_energy_for_user(&self, user: &ManagedAddress) -> Energy<Self::Api> {
-        self.update_energy_for_user(user);
-        self.current_energy_for_user(user).get()
-    }
-
-    fn update_energy_for_user(&self, user: &ManagedAddress) {
-        let total_locked_tokens = self.total_locked_tokens_for_user(user).get();
-        if total_locked_tokens == 0 {
-            return;
-        }
-
+    fn get_energy_for_user_view(&self, user: ManagedAddress) -> BigUint {
         let current_epoch = self.blockchain().get_block_epoch();
-        let last_update_mapper = self.last_energy_update_epoch(user);
-        let last_update_epoch = last_update_mapper.get();
-        if last_update_epoch == current_epoch {
-            return;
-        }
+        let mut energy = self.get_energy_or_default(&user);
 
-        self.remove_expired_entries(user, current_epoch, last_update_epoch);
-        self.decrease_energy_for_user(user, current_epoch, last_update_epoch);
-        last_update_mapper.set(current_epoch);
+        energy.deplete(current_epoch);
+
+        energy.into_energy_amount()
     }
 
-    fn decrease_energy_for_user(
-        &self,
-        user: &ManagedAddress,
-        current_epoch: Epoch,
-        last_update_epoch: Epoch,
-    ) {
-        if current_epoch == last_update_epoch {
-            return;
-        }
-
-        let epoch_diff = current_epoch - last_update_epoch;
-        let total_locked = self.total_locked_tokens_for_user(user).get();
-        let energy_decrease = total_locked * epoch_diff;
-
-        self.current_energy_for_user(user)
-            .update(|total_energy| *total_energy -= energy_decrease);
+    #[inline]
+    fn did_user_update_old_tokens(&self, user: &ManagedAddress) -> bool {
+        self.user_updated_energy_for_old_tokens(user).get()
     }
 
-    fn remove_expired_entries(
-        &self,
-        user: &ManagedAddress,
-        current_epoch: Epoch,
-        last_update_epoch: Epoch,
-    ) {
-        let energy_per_lock_epoch = self.energy_per_lock_epoch().get();
-        let mut epochs_mapper = self.user_unlock_epochs(user);
+    #[storage_mapper("userEnergy")]
+    fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
 
-        let mut total_tokens_removed = BigUint::zero();
-        let mut total_energy_removed = BigUint::zero();
-        while let Some(list_node) = epochs_mapper.front() {
-            let unlock_epoch = list_node.get_value_cloned();
-            if unlock_epoch > current_epoch {
-                break;
-            }
+    #[storage_mapper("userUpdatedEnergyForOldTokens")]
+    fn user_updated_energy_for_old_tokens(&self, user: &ManagedAddress) -> SingleValueMapper<bool>;
 
-            let epochs_diff = last_update_epoch - unlock_epoch;
-            let energy_removed = &energy_per_lock_epoch * epochs_diff;
-            total_energy_removed += energy_removed;
-
-            let tokens_mapper = self.tokens_for_unlock_epoch(user, unlock_epoch);
-            let tokens_for_entry = tokens_mapper.get();
-            total_tokens_removed += tokens_for_entry;
-
-            tokens_mapper.clear();
-            epochs_mapper.remove_node(&list_node);
-        }
-
-        if total_tokens_removed > 0 {
-            self.total_locked_tokens_for_user(user)
-                .update(|total_locked| *total_locked -= total_tokens_removed);
-            self.current_energy_for_user(user)
-                .update(|total_energy| *total_energy -= total_energy_removed);
-        }
-    }
-
-    #[storage_mapper("energyPerLockEpoch")]
-    fn energy_per_lock_epoch(&self) -> SingleValueMapper<Energy<Self::Api>>;
-
-    #[storage_mapper("userUnlockEpochs")]
-    fn user_unlock_epochs(&self, user: &ManagedAddress) -> LinkedListMapper<Epoch>;
-
-    #[storage_mapper("tokensForUnlockEpoch")]
-    fn tokens_for_unlock_epoch(
-        &self,
-        user: &ManagedAddress,
-        unlock_epoch: Epoch,
-    ) -> SingleValueMapper<Energy<Self::Api>>;
-
-    #[storage_mapper("currentEnergyForUser")]
-    fn current_energy_for_user(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<Energy<Self::Api>>;
-
-    #[storage_mapper("lastEnergyUpdateEpoch")]
-    fn last_energy_update_epoch(&self, user: &ManagedAddress) -> SingleValueMapper<Epoch>;
-
-    #[storage_mapper("totalLockedTokensForUser")]
-    fn total_locked_tokens_for_user(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
+    #[storage_mapper("energyActivationLockedTokenNonceStart")]
+    fn energy_activation_locked_token_nonce_start(&self) -> SingleValueMapper<u64>;
 }
