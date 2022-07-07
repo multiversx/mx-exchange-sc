@@ -1,5 +1,5 @@
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole};
+use elrond_wasm::types::{Address, EsdtLocalRole, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -37,7 +37,13 @@ where
             let div_const = managed_biguint!(DIVISION_SAFETY_CONSTANT);
             let max_apr = managed_biguint!(MAX_APR);
 
-            sc.init(farming_token_id, div_const, max_apr, UNBOND_EPOCHS);
+            sc.init(
+                farming_token_id,
+                div_const,
+                max_apr,
+                UNBOND_EPOCHS,
+                MultiValueEncoded::new(),
+            );
 
             sc.farm_token()
                 .set_token_id(&managed_token_id!(STAKING_FARM_TOKEN_ID));

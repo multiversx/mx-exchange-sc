@@ -32,7 +32,7 @@ const LKMEX_TOKEN_ID: &[u8] = b"LKMEX-abcdef";
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-const MIN_FARMING_EPOCHS: u8 = 2;
+const MIN_FARMING_EPOCHS: u64 = 2;
 const PENALTY_PERCENT: u64 = 10;
 
 #[allow(dead_code)] // owner_address is unused, at least for now

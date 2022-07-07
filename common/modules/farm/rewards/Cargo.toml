@@ -25,6 +25,9 @@ path = "../../token_send"
 [dependencies.pausable]
 path = "../../pausable"
 
+[dependencies.admin_whitelist]
+path = "../../admin_whitelist"
+
 [dependencies.elrond-wasm]
 version = "0.33.0"
 

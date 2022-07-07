@@ -1,7 +1,7 @@
 use std::ops::Mul;
 
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
+use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     tx_mock::TxInputESDT, DebugApi,
@@ -21,7 +21,7 @@ const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-const MIN_FARMING_EPOCHS: u8 = 2;
+const MIN_FARMING_EPOCHS: u64 = 2;
 const PENALTY_PERCENT: u64 = 10;
 
 #[allow(dead_code)] // owner_address is unused, at least for now
@@ -65,6 +65,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                MultiValueEncoded::new(),
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
