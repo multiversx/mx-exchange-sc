@@ -2,9 +2,12 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
+use pair::config::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
+
+use crate::DEFAULT_SPECIAL_FEE_PERCENT;
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
@@ -118,6 +121,7 @@ pub trait EnableSwapByUserModule:
         let caller = self.blockchain().get_caller();
         self.require_caller_initial_liquidity_adder(&pair_address, &caller);
 
+        self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
 
         self.send().direct_esdt(
@@ -199,6 +203,12 @@ pub trait EnableSwapByUserModule:
             }
             None => sc_panic!("No initial liq adder was set for pair"),
         }
+    }
+
+    fn set_fee_percents(&self, pair_address: ManagedAddress) {
+        self.user_pair_proxy(pair_address)
+            .set_fee_percent(1_000u64, DEFAULT_SPECIAL_FEE_PERCENT)
+            .execute_on_dest_context_ignore_result();
     }
 
     fn pair_resume(&self, pair_address: ManagedAddress) {
