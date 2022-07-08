@@ -7,7 +7,7 @@ use pair::safe_price::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::DEFAULT_SPECIAL_FEE_PERCENT;
+use crate::{DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
@@ -207,7 +207,7 @@ pub trait EnableSwapByUserModule:
 
     fn set_fee_percents(&self, pair_address: ManagedAddress) {
         self.user_pair_proxy(pair_address)
-            .set_fee_percent(1_000u64, DEFAULT_SPECIAL_FEE_PERCENT)
+            .set_fee_percent(USER_DEFINED_TOTAL_FEE_PERCENT, DEFAULT_SPECIAL_FEE_PERCENT)
             .execute_on_dest_context_ignore_result();
     }
 
