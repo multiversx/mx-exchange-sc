@@ -20,6 +20,7 @@ const LP_TOKEN_INITIAL_SUPPLY: u64 = 1000;
 const DEFAULT_TOTAL_FEE_PERCENT: u64 = 300;
 const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
+const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
 #[elrond_wasm::contract]
 pub trait Router:
