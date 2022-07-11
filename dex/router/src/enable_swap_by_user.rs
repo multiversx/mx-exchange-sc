@@ -1,7 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
+use elrond_wasm::{
+    api::{StorageReadApi, StorageReadApiImpl},
+    elrond_codec::CodecFrom,
+};
 use pair::config::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 use pausable::ProxyTrait as _;
@@ -24,6 +27,17 @@ pub struct SafePriceResult<M: ManagedTypeApi> {
     pub second_token_id: TokenIdentifier<M>,
     pub safe_price_in_common_token: BigUint<M>,
 }
+
+#[derive(TopDecode, TopEncode)]
+pub struct CustomEsdtTokenPayment<M: ManagedTypeApi> {
+    pub token_type: u8,
+    pub token_identifier: TokenIdentifier<M>,
+    pub token_nonce: u64,
+    pub amount: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> CodecFrom<EsdtTokenPayment<M>> for CustomEsdtTokenPayment<M> {}
+impl<M: ManagedTypeApi> CodecFrom<CustomEsdtTokenPayment<M>> for EsdtTokenPayment<M> {}
 
 #[elrond_wasm::module]
 pub trait EnableSwapByUserModule:
@@ -163,10 +177,13 @@ pub trait EnableSwapByUserModule:
         pair_address: ManagedAddress,
         lp_token_amount: BigUint,
     ) -> SafePriceResult<Self::Api> {
-        let multi_value: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
-            self.user_pair_proxy(pair_address)
-                .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
-                .execute_on_dest_context();
+        let multi_value: MultiValue2<
+            CustomEsdtTokenPayment<Self::Api>,
+            CustomEsdtTokenPayment<Self::Api>,
+        > = self
+            .user_pair_proxy(pair_address)
+            .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
+            .execute_on_dest_context();
 
         let (first_result, second_result) = multi_value.into_tuple();
         let whitelist = self.common_tokens_for_user_pairs();
