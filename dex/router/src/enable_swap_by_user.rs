@@ -6,7 +6,6 @@ use elrond_wasm::{
     elrond_codec::CodecFrom,
 };
 use pair::config::ProxyTrait as _;
-use pair::safe_price::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -14,6 +13,22 @@ use crate::{DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
+
+mod custom_pair_proxy {
+    use super::CustomEsdtTokenPayment;
+
+    elrond_wasm::imports!();
+    elrond_wasm::derive_imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait CustomPairProxy {
+        #[view(latestPriceFeedOptional)]
+        fn update_and_get_tokens_for_given_position_with_safe_price(
+            &self,
+            lp_token_amount: BigUint,
+        ) -> MultiValue2<CustomEsdtTokenPayment<Self::Api>, CustomEsdtTokenPayment<Self::Api>>;
+    }
+}
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct EnableSwapByUserConfig<M: ManagedTypeApi> {
@@ -181,7 +196,7 @@ pub trait EnableSwapByUserModule:
             CustomEsdtTokenPayment<Self::Api>,
             CustomEsdtTokenPayment<Self::Api>,
         > = self
-            .user_pair_proxy(pair_address)
+            .custom_pair_proxy(pair_address)
             .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
             .execute_on_dest_context();
 
@@ -253,6 +268,9 @@ pub trait EnableSwapByUserModule:
 
     #[proxy]
     fn user_pair_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
+
+    #[proxy]
+    fn custom_pair_proxy(&self, to: ManagedAddress) -> custom_pair_proxy::Proxy<Self::Api>;
 
     #[storage_mapper("enableSwapByUserConfig")]
     fn enable_swap_by_user_config(&self) -> SingleValueMapper<EnableSwapByUserConfig<Self::Api>>;
