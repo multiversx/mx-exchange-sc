@@ -5,7 +5,7 @@ use super::amm;
 use super::config;
 use super::errors::*;
 use super::liquidity_pool;
-use crate::contexts::base::Context;
+use crate::contexts::base::StorageCache;
 
 use common_structs::TokenPair;
 
@@ -98,7 +98,7 @@ pub trait FeeModule:
 
     fn send_fee(
         &self,
-        context: &mut dyn Context<Self::Api>,
+        storage_cache: &mut StorageCache<Self::Api>,
         fee_token: &TokenIdentifier,
         fee_amount: &BigUint,
     ) {
@@ -118,7 +118,7 @@ pub trait FeeModule:
 
         for (fee_address, fee_token_requested) in self.destination_map().iter() {
             self.send_fee_slice(
-                context,
+                storage_cache,
                 fee_token,
                 &fee_slice,
                 &fee_address,
@@ -129,35 +129,51 @@ pub trait FeeModule:
 
     fn send_fee_slice(
         &self,
-        context: &mut dyn Context<Self::Api>,
+        storage_cache: &mut StorageCache<Self::Api>,
         fee_token: &TokenIdentifier,
         fee_slice: &BigUint,
         fee_address: &ManagedAddress,
         requested_fee_token: &TokenIdentifier,
     ) {
-        if self.can_send_fee_directly(fee_token, requested_fee_token) {
+        let can_send_directly = self.can_send_fee_directly(fee_token, requested_fee_token);
+        if can_send_directly {
             self.burn(fee_token, fee_slice);
-        } else if self.can_resolve_swap_locally(
+
+            return;
+        }
+
+        let can_resolve_locally = self.can_resolve_swap_locally(
             fee_token,
             requested_fee_token,
-            context.get_first_token_id(),
-            context.get_second_token_id(),
-        ) {
-            let to_burn = self.swap_safe_no_fee(context, fee_token, fee_slice);
+            &storage_cache.first_token_id,
+            &storage_cache.second_token_id,
+        );
+        if can_resolve_locally {
+            let to_burn = self.swap_safe_no_fee(&mut storage_cache, fee_token, fee_slice);
             self.burn(requested_fee_token, &to_burn);
-        } else if self.can_extern_swap_directly(fee_token, requested_fee_token) {
+
+            return;
+        }
+
+        let can_extern_swap = self.can_extern_swap_directly(fee_token, requested_fee_token);
+        if can_extern_swap {
             self.extern_swap_and_forward(fee_token, fee_slice, requested_fee_token, fee_address);
-        } else if self.can_extern_swap_after_local_swap(
-            context.get_first_token_id(),
-            context.get_second_token_id(),
+
+            return;
+        }
+
+        let can_extern_swap_after_local = self.can_extern_swap_after_local_swap(
+            &storage_cache.first_token_id,
+            &storage_cache.second_token_id,
             fee_token,
             requested_fee_token,
-        ) {
-            let to_send = self.swap_safe_no_fee(context, fee_token, fee_slice);
-            let to_send_token = if fee_token == context.get_first_token_id() {
-                context.get_second_token_id().clone()
+        );
+        if can_extern_swap_after_local {
+            let to_send = self.swap_safe_no_fee(&mut storage_cache, fee_token, fee_slice);
+            let to_send_token = if fee_token == &storage_cache.first_token_id {
+                storage_cache.second_token_id.clone()
             } else {
-                context.get_first_token_id().clone()
+                storage_cache.first_token_id.clone()
             };
 
             self.extern_swap_and_forward(
@@ -180,7 +196,6 @@ pub trait FeeModule:
         fee_token == requested_fee_token
     }
 
-    #[inline]
     fn can_resolve_swap_locally(
         &self,
         fee_token: &TokenIdentifier,
@@ -192,7 +207,6 @@ pub trait FeeModule:
             || (requested_fee_token == pool_second_token_id && fee_token == pool_first_token_id)
     }
 
-    #[inline]
     fn can_extern_swap_directly(
         &self,
         fee_token: &TokenIdentifier,
@@ -202,7 +216,6 @@ pub trait FeeModule:
         !pair_address.is_zero()
     }
 
-    #[inline]
     fn can_extern_swap_after_local_swap(
         &self,
         first_token: &TokenIdentifier,

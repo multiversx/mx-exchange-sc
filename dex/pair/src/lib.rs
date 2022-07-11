@@ -301,10 +301,9 @@ pub trait Pair<ContractReader>:
         );
         require!(new_k <= initial_k, ERROR_K_INVARIANT_FAILED);
 
-        self.send().esdt_local_burn(
+        self.burn(
             &storage_cache.lp_token_id,
-            0,
-            &remove_liq_context.lp_token_payment.amount,
+            &remove_liq_context.lp_token_payment_amount,
         );
 
         let output_payments =
@@ -321,75 +320,56 @@ pub trait Pair<ContractReader>:
     #[payable("*")]
     #[endpoint(removeLiquidityAndBuyBackAndBurnToken)]
     fn remove_liquidity_and_burn_token(&self, token_to_buyback_and_burn: TokenIdentifier) {
-        let (token_in, nonce, amount_in) = self.call_value().single_esdt().into_tuple();
-        let mut context = self.new_remove_liquidity_context(
-            &token_in,
-            nonce,
-            &amount_in,
-            BigUint::from(1u64),
-            BigUint::from(1u64),
-        );
-        require!(
-            self.whitelist().contains(context.get_caller()),
-            ERROR_NOT_WHITELISTED
-        );
+        let mut storage_cache = StorageCache::new(self);
+        let caller = self.blockchain().get_caller();
+        let payment = self.call_value().single_esdt();
 
+        require!(self.whitelist().contains(&caller), ERROR_NOT_WHITELISTED);
         require!(
-            context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS
-        );
-        require!(
-            context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS
-        );
-        require!(
-            context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS
-        );
-
-        self.load_lp_token_id(&mut context);
-        require!(
-            context.get_lp_token_id().is_valid_esdt_identifier(),
+            storage_cache.lp_token_id.is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
         require!(
-            context.get_lp_token_id() == &context.get_lp_token_payment().token_identifier,
+            payment.token_identifier == storage_cache.lp_token_id && payment.amount > 0,
             ERROR_BAD_PAYMENT_TOKENS
         );
 
-        self.load_pool_token_ids(&mut context);
-        self.load_pool_reserves(&mut context);
-        self.update_safe_state_from_context(&context);
-        self.load_lp_token_supply(&mut context);
+        self.update_safe_state(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        self.pool_remove_liquidity(&mut context);
-        self.require_can_proceed_remove(&context);
+        let mut remove_liq_context =
+            RemoveLiquidityContext::new(payment, BigUint::from(1u64), BigUint::from(1u64));
+        self.pool_remove_liquidity(&mut remove_liq_context, &mut storage_cache);
+        self.require_can_proceed_remove(
+            &storage_cache.lp_token_supply,
+            &remove_liq_context.lp_token_payment_amount,
+        );
 
-        self.burn(&token_in, &amount_in);
-        self.lp_token_supply().update(|x| *x -= &amount_in);
+        self.burn(
+            &storage_cache.lp_token_id,
+            &remove_liq_context.lp_token_payment_amount,
+        );
 
-        let first_token_id = context.get_first_token_id().clone();
-        let first_token_amount_removed = context.get_first_token_amount_removed().clone();
         let dest_address = ManagedAddress::zero();
+        let first_token_id = storage_cache.first_token_id.clone();
         self.send_fee_slice(
-            &mut context,
+            &mut storage_cache,
             &first_token_id,
-            &first_token_amount_removed,
+            &remove_liq_context.first_token_amount_removed,
             &dest_address,
             &token_to_buyback_and_burn,
         );
 
-        let second_token_id = context.get_second_token_id().clone();
-        let second_token_amount_removed = context.get_second_token_amount_removed().clone();
+        let second_token_id = storage_cache.second_token_id.clone();
         self.send_fee_slice(
-            &mut context,
+            &mut storage_cache,
             &second_token_id,
-            &second_token_amount_removed,
+            &remove_liq_context.second_token_amount_removed,
             &dest_address,
             &token_to_buyback_and_burn,
         );
-
-        self.commit_changes(&context);
     }
 
     #[payable("*")]

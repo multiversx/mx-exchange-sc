@@ -190,59 +190,39 @@ pub trait LiquidityPoolModule:
 
     fn swap_safe_no_fee(
         &self,
-        context: &mut dyn Context<Self::Api>,
+        storage_cache: &mut StorageCache<Self::Api>,
         token_in: &TokenIdentifier,
         amount_in: &BigUint,
     ) -> BigUint {
-        let a_to_b = token_in == context.get_first_token_id();
-        match a_to_b {
-            true => {
-                require!(
-                    context.get_first_token_reserve() != &0u64,
-                    ERROR_ZERO_AMOUNT
-                );
+        let (first_token_reserve_ref, second_token_reserve_ref) =
+            if token_in == &storage_cache.first_token_id {
+                (
+                    &mut storage_cache.first_token_reserve,
+                    &mut storage_cache.second_token_reserve,
+                )
+            } else {
+                (
+                    &mut storage_cache.second_token_reserve,
+                    &mut storage_cache.first_token_reserve,
+                )
+            };
 
-                let amount_out = self.get_amount_out_no_fee(
-                    amount_in,
-                    context.get_first_token_reserve(),
-                    context.get_second_token_reserve(),
-                );
-                require!(
-                    context.get_second_token_reserve() > &amount_out && amount_out != 0u64,
-                    ERROR_ZERO_AMOUNT
-                );
+        require!(*first_token_reserve_ref != 0, ERROR_ZERO_AMOUNT);
 
-                let new_first_amount = context.get_first_token_reserve() + amount_in;
-                let new_second_amount = context.get_second_token_reserve() - &amount_out;
-                context.set_first_token_reserve(new_first_amount);
-                context.set_second_token_reserve(new_second_amount);
+        let amount_out = self.get_amount_out_no_fee(
+            amount_in,
+            first_token_reserve_ref,
+            &second_token_reserve_ref,
+        );
+        require!(
+            *second_token_reserve_ref > amount_out && amount_out != 0,
+            ERROR_ZERO_AMOUNT
+        );
 
-                amount_out
-            }
-            false => {
-                require!(
-                    context.get_second_token_reserve() != &0u64,
-                    ERROR_ZERO_AMOUNT
-                );
+        *first_token_reserve_ref += amount_in;
+        *second_token_reserve_ref -= &amount_out;
 
-                let amount_out = self.get_amount_out_no_fee(
-                    amount_in,
-                    context.get_second_token_reserve(),
-                    context.get_first_token_reserve(),
-                );
-                require!(
-                    context.get_first_token_reserve() > &amount_out && amount_out != 0u64,
-                    ERROR_ZERO_AMOUNT
-                );
-
-                let new_first_amount = context.get_first_token_reserve() - &amount_out;
-                let new_second_amount = context.get_second_token_reserve() + amount_in;
-                context.set_first_token_reserve(new_first_amount);
-                context.set_second_token_reserve(new_second_amount);
-
-                amount_out
-            }
-        }
+        amount_out
     }
 
     fn biguint_min(&self, a: &BigUint, b: &BigUint) -> BigUint {
