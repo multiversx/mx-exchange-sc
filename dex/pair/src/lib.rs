@@ -18,6 +18,7 @@ mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod safe_price;
 
+use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::errors::*;
 
 use contexts::base::*;
@@ -46,6 +47,7 @@ pub trait Pair<ContractReader>:
     + ctx_helper::CtxHelper
     + safe_price::SafePriceModule
     + bot_protection::BPModule
+    + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
     + pausable::PausableModule
 {
@@ -73,7 +75,7 @@ pub trait Pair<ContractReader>:
 
         self.state().set(State::Inactive);
         self.extern_swap_gas_limit()
-            .set_if_empty(&DEFAULT_EXTERN_SWAP_GAS_LIMIT);
+            .set_if_empty(DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
         self.router_address().set(&router_address);
         self.router_owner_address().set(&router_owner_address);
@@ -90,67 +92,72 @@ pub trait Pair<ContractReader>:
     #[payable("*")]
     #[endpoint(addInitialLiquidity)]
     fn add_initial_liquidity(&self) -> AddLiquidityResultType<Self::Api> {
-        let mut context = self.new_add_liquidity_context(BigUint::from(1u64), BigUint::from(1u64));
-        require!(
-            self.initial_liquidity_adder()
-                .get()
-                .map_or(true, |adder| &adder == context.get_caller()),
-            ERROR_PERMISSION_DENIED
-        );
+        let mut storage_cache = StorageCache::new(self);
+        let caller = self.blockchain().get_caller();
 
-        require!(
-            context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS
-        );
-        require!(
-            context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS
-        );
-        require!(
-            context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS
-        );
+        let opt_initial_liq_adder = self.initial_liquidity_adder().get();
+        if let Some(initial_liq_adder) = opt_initial_liq_adder {
+            require!(caller == initial_liq_adder, ERROR_PERMISSION_DENIED);
+        }
 
-        self.load_state(&mut context);
+        let [first_payment, second_payment] = self.call_value().multi_esdt();
         require!(
-            !self.is_state_active(context.get_contract_state()),
-            ERROR_ACTIVE
-        );
-
-        self.load_lp_token_id(&mut context);
-        require!(
-            context.get_lp_token_id().is_valid_esdt_identifier(),
-            ERROR_LP_TOKEN_NOT_ISSUED
-        );
-
-        self.load_pool_token_ids(&mut context);
-        require!(
-            context.payment_tokens_match_pool_tokens(),
+            first_payment.token_identifier == storage_cache.first_token_id
+                && first_payment.amount > 0,
             ERROR_BAD_PAYMENT_TOKENS
         );
-
-        self.load_lp_token_supply(&mut context);
         require!(
-            context.get_lp_token_supply() == &0u64,
+            second_payment.token_identifier == storage_cache.second_token_id
+                && second_payment.amount > 0,
+            ERROR_BAD_PAYMENT_TOKENS
+        );
+        require!(
+            !self.is_state_active(storage_cache.contract_state),
+            ERROR_ACTIVE
+        );
+        require!(
+            storage_cache.lp_token_supply == 0,
             ERROR_INITIAL_LIQUIDITY_ALREADY_ADDED
         );
-        self.update_safe_state_from_context(&context);
 
-        self.calculate_optimal_amounts(&mut context);
-        self.pool_add_initial_liquidity(&mut context);
+        self.update_safe_state(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        let lpt = context.get_lp_token_id();
-        let liq_added = context.get_liquidity_added();
-        self.send().esdt_local_mint(lpt, 0, liq_added);
+        let first_token_optimal_amount = &first_payment.amount;
+        let second_token_optimal_amount = &second_payment.amount;
+        let liq_added = self.pool_add_initial_liquidity(
+            first_token_optimal_amount,
+            second_token_optimal_amount,
+            &mut storage_cache,
+        );
+
+        self.send()
+            .esdt_local_mint(&storage_cache.lp_token_id, 0, &liq_added);
+        self.send()
+            .direct_esdt(&caller, &storage_cache.lp_token_id, 0, &liq_added);
 
         self.state().set(State::PartialActive);
 
-        self.commit_changes(&context);
-        self.construct_add_liquidity_output_payments(&mut context);
-        self.execute_output_payments(&context);
-        self.emit_add_liquidity_event(&context);
+        self.emit_add_liquidity_event(
+            &storage_cache,
+            &AddLiquidityContext {
+                first_payment,
+                second_payment,
+                first_token_amount_min: BigUint::from(1u32),
+                second_token_amount_min: BigUint::from(1u32),
+                first_token_optimal_amount: first_token_optimal_amount.clone(),
+                second_token_optimal_amount: second_token_optimal_amount.clone(),
+            },
+        );
 
-        self.construct_and_get_add_liquidity_output_results(&context)
+        self.build_add_initial_liq_results(
+            storage_cache,
+            liq_added,
+            first_token_optimal_amount,
+            second_token_optimal_amount,
+        )
     }
 
     #[payable("*")]
@@ -160,72 +167,86 @@ pub trait Pair<ContractReader>:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> AddLiquidityResultType<Self::Api> {
-        let mut context =
-            self.new_add_liquidity_context(first_token_amount_min, second_token_amount_min);
         require!(
-            context.get_tx_input().get_args().are_valid(),
+            first_token_amount_min > 0 && second_token_amount_min > 0,
             ERROR_INVALID_ARGS
         );
-        require!(
-            context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS
-        );
-        require!(
-            context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS
-        );
 
-        self.load_state(&mut context);
+        let mut storage_cache = StorageCache::new(self);
+        let caller = self.blockchain().get_caller();
+
+        let [first_payment, second_payment] = self.call_value().multi_esdt();
         require!(
-            self.is_state_active(context.get_contract_state()),
+            first_payment.token_identifier == storage_cache.first_token_id
+                && first_payment.amount > 0,
+            ERROR_BAD_PAYMENT_TOKENS
+        );
+        require!(
+            second_payment.token_identifier == storage_cache.second_token_id
+                && second_payment.amount > 0,
+            ERROR_BAD_PAYMENT_TOKENS
+        );
+        require!(
+            self.is_state_active(storage_cache.contract_state),
             ERROR_NOT_ACTIVE
         );
-
-        self.load_lp_token_id(&mut context);
         require!(
-            context.get_lp_token_id().is_valid_esdt_identifier(),
+            storage_cache.lp_token_id.is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
-
-        self.load_lp_token_supply(&mut context);
         require!(
-            self.initial_liquidity_adder().get().is_none()
-                || context.get_lp_token_supply() != &0u64,
+            self.initial_liquidity_adder().get().is_none() || storage_cache.lp_token_supply != 0,
             ERROR_INITIAL_LIQUIDITY_NOT_ADDED
         );
 
-        self.load_pool_token_ids(&mut context);
-        require!(
-            context.payment_tokens_match_pool_tokens(),
-            ERROR_BAD_PAYMENT_TOKENS
+        self.update_safe_state(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
         );
 
-        self.load_pool_reserves(&mut context);
-        self.update_safe_state_from_context(&context);
-        self.load_initial_k(&mut context);
+        let initial_k = self.calculate_k_constant(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        self.calculate_optimal_amounts(&mut context);
+        let add_liq_context = AddLiquidityContext::new(
+            first_payment,
+            second_payment,
+            first_token_amount_min,
+            second_token_amount_min,
+        );
+        self.set_optimal_amounts(&mut add_liq_context, &storage_cache);
 
-        if context.get_lp_token_supply() == &0u64 {
-            self.pool_add_initial_liquidity(&mut context);
+        let liq_added = if storage_cache.lp_token_supply == 0u64 {
+            self.pool_add_initial_liquidity(
+                &add_liq_context.first_token_optimal_amount,
+                &add_liq_context.second_token_optimal_amount,
+                &mut storage_cache,
+            )
         } else {
-            self.pool_add_liquidity(&mut context);
-        }
-        self.require_can_proceed_add(&context);
+            self.pool_add_liquidity(
+                &add_liq_context.first_token_optimal_amount,
+                &add_liq_context.second_token_optimal_amount,
+                &mut storage_cache,
+            )
+        };
+        self.require_can_proceed_add(&storage_cache.lp_token_supply, &liq_added);
 
-        let new_k = self.calculate_k(&context);
-        require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
+        let new_k = self.calculate_k_constant(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
+        require!(initial_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
-        let lpt = context.get_lp_token_id();
-        let liq_added = context.get_liquidity_added();
-        self.send().esdt_local_mint(lpt, 0, liq_added);
-        self.commit_changes(&context);
+        self.send()
+            .esdt_local_mint(&storage_cache.lp_token_id, 0, liq_added.clone());
 
-        self.construct_add_liquidity_output_payments(&mut context);
-        self.execute_output_payments(&context);
-        self.emit_add_liquidity_event(&context);
+        let output_payments = self.build_add_liq_output(storage_cache, add_liq_context, liq_added);
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        self.construct_and_get_add_liquidity_output_results(&context)
+        self.emit_add_liquidity_event(&storage_cache, &add_liq_context);
+
+        self.build_add_liq_results(storage_cache, add_liq_context, liq_added)
     }
 
     #[payable("*")]
@@ -657,13 +678,13 @@ pub trait Pair<ContractReader>:
     }
 
     #[inline]
-    fn is_state_active(&self, state: &State) -> bool {
-        state == &State::Active || state == &State::PartialActive
+    fn is_state_active(&self, state: State) -> bool {
+        state == State::Active || state == State::PartialActive
     }
 
     #[inline]
-    fn can_swap(&self, state: &State) -> bool {
-        state == &State::Active
+    fn can_swap(&self, state: State) -> bool {
+        state == State::Active
     }
 
     fn perform_swap_fixed_input(&self, context: &mut SwapContext<Self::Api>) {

@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 
 use crate::{
     amm, config,
-    contexts::base::Context,
     errors::{ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT},
 };
 

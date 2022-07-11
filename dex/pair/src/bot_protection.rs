@@ -2,8 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::config;
-use crate::contexts::add_liquidity::AddLiquidityContext;
-use crate::contexts::base::*;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::contexts::swap::SwapContext;
 
@@ -96,12 +94,12 @@ pub trait BPModule:
         self.num_removes_by_address(caller).set(&(num_removes + 1));
     }
 
-    fn require_can_proceed_add(&self, ctx: &AddLiquidityContext<Self::Api>) {
+    fn require_can_proceed_add(&self, lp_token_supply: &BigUint, liquidity_added: &BigUint) {
         if self.bp_add_config().is_empty() {
             return;
         }
 
-        let caller = ctx.get_caller();
+        let caller = self.blockchain().get_caller();
         let bp_config = self.bp_add_config().get();
         let current_block = self.blockchain().get_block_nonce();
         if bp_config.protect_stop_block < current_block {
@@ -109,8 +107,7 @@ pub trait BPModule:
             return;
         }
 
-        let current_liquidity = ctx.get_lp_token_supply();
-        if current_liquidity == &0u64 {
+        if lp_token_supply == 0 {
             return;
         }
 
@@ -120,14 +117,13 @@ pub trait BPModule:
             "too many adds by address"
         );
 
-        let liquidity_added = ctx.get_liquidity_added();
-        let percent_added = liquidity_added * PERCENT_MAX / current_liquidity;
+        let percent_added = liquidity_added * PERCENT_MAX / lp_token_supply;
         require!(
             percent_added < bp_config.volume_percent,
             "add liquidity too large"
         );
 
-        self.num_adds_by_address(caller).set(&(num_adds + 1));
+        self.num_adds_by_address(caller).set(num_adds + 1);
     }
 
     #[endpoint(setBPSwapConfig)]

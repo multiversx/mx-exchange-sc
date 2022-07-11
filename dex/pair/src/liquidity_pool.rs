@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 use crate::contexts::add_liquidity::AddLiquidityContext;
-use crate::contexts::base::Context;
+use crate::contexts::base::StorageCache;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 
@@ -14,44 +14,46 @@ const MINIMUM_LIQUIDITY: u64 = 1_000;
 pub trait LiquidityPoolModule:
     amm::AmmModule + config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
 {
-    fn pool_add_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
-        let zero = &BigUint::zero();
-        require!(context.get_lp_token_supply() != zero, ERROR_ZERO_AMOUNT);
+    fn pool_add_liquidity(
+        &self,
+        first_token_optimal_amount: &BigUint,
+        second_token_optimal_amount: &BigUint,
+        storage_cache: &mut StorageCache<Self::Api>,
+    ) -> BigUint {
+        let first_potential_amt = first_token_optimal_amount * &storage_cache.lp_token_supply
+            / &storage_cache.first_token_reserve;
+        let second_potential_amt = second_token_optimal_amount * &storage_cache.lp_token_supply
+            / &storage_cache.second_token_reserve;
 
-        let first_payment_amount = context.get_first_amount_optimal();
-        let second_payment_amount = context.get_second_amount_optimal();
-        let lp_token_supply = context.get_lp_token_supply();
-        let first_token_reserve = context.get_first_token_reserve();
-        let second_token_reserve = context.get_second_token_reserve();
+        let liquidity = core::cmp::min(first_potential_amt, second_potential_amt);
+        require!(liquidity > 0, ERROR_INSUFFICIENT_LIQUIDITY);
 
-        let liquidity = self.biguint_min(
-            &(&(first_payment_amount * lp_token_supply) / first_token_reserve),
-            &(&(second_payment_amount * lp_token_supply) / second_token_reserve),
-        );
-        require!(&liquidity > zero, ERROR_INSUFFICIENT_LIQUIDITY);
+        storage_cache.lp_token_supply += &liquidity;
 
-        context.increase_lp_token_supply(&liquidity);
-        context.set_liquidity_added(liquidity);
-        context.increase_reserves();
+        storage_cache.first_token_reserve += first_token_optimal_amount;
+        storage_cache.second_token_reserve += second_token_optimal_amount;
+
+        liquidity
     }
 
-    fn pool_add_initial_liquidity(&self, context: &mut AddLiquidityContext<Self::Api>) {
-        let zero = &BigUint::zero();
-        require!(context.get_lp_token_supply() == zero, ERROR_ZERO_AMOUNT);
-
-        let liquidity = self.biguint_min(
-            context.get_first_amount_optimal(),
-            context.get_second_amount_optimal(),
-        );
+    fn pool_add_initial_liquidity(
+        &self,
+        first_token_optimal_amount: &BigUint,
+        second_token_optimal_amount: &BigUint,
+        storage_cache: &mut StorageCache<Self::Api>,
+    ) -> BigUint {
+        let liquidity = self.biguint_min(first_token_optimal_amount, second_token_optimal_amount);
         let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
         require!(liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
 
-        let lpt = context.get_lp_token_id();
-        self.send().esdt_local_mint(lpt, 0, &minimum_liquidity);
+        self.send()
+            .esdt_local_mint(&storage_cache.lp_token_id, 0, &minimum_liquidity);
 
-        context.set_liquidity_added(&liquidity - &minimum_liquidity);
-        context.set_lp_token_supply(liquidity);
-        context.increase_reserves();
+        storage_cache.lp_token_supply = liquidity.clone();
+        storage_cache.first_token_reserve += first_token_optimal_amount;
+        storage_cache.second_token_reserve += second_token_optimal_amount;
+
+        liquidity - minimum_liquidity
     }
 
     fn pool_remove_liquidity(&self, context: &mut RemoveLiquidityContext<Self::Api>) {
@@ -99,19 +101,6 @@ pub trait LiquidityPoolModule:
         (first_amount_removed, second_amount_removed)
     }
 
-    fn calculate_optimal_amounts(&self, context: &mut AddLiquidityContext<Self::Api>) {
-        let is_initial_add = context.get_lp_token_supply() == &0u64;
-
-        let (first_amount_optimal, second_amount_optimal) = if is_initial_add {
-            self.get_initial_liquidity_optimal_amounts(context)
-        } else {
-            self.get_optimal_amounts(context)
-        };
-
-        context.set_first_amount_optimal(first_amount_optimal);
-        context.set_second_amount_optimal(second_amount_optimal);
-    }
-
     fn get_initial_liquidity_optimal_amounts(
         &self,
         context: &mut AddLiquidityContext<Self::Api>,
@@ -121,57 +110,45 @@ pub trait LiquidityPoolModule:
         (first_amount_optimal, second_amount_optimal)
     }
 
-    fn get_optimal_amounts(
+    fn set_optimal_amounts(
         &self,
         context: &mut AddLiquidityContext<Self::Api>,
-    ) -> (BigUint, BigUint) {
-        let zero = &BigUint::zero();
-        let first_token_reserve = context.get_first_token_reserve();
-        let second_token_reserve = context.get_second_token_reserve();
-        let first_token_amount_desired = &context.get_first_payment().amount;
-        let second_token_amount_desired = &context.get_second_payment().amount;
-        let first_token_amount_min = context.get_first_token_amount_min();
-        let second_token_amount_min = context.get_second_token_amount_min();
-        require!(
-            first_token_reserve != zero && second_token_reserve != zero,
-            ERROR_INITIAL_LIQUIDITY_NOT_ADDED
-        );
+        storage_cache: &StorageCache<Self::Api>,
+    ) {
+        let first_token_amount_desired = &context.first_payment.amount;
+        let second_token_amount_desired = &context.second_payment.amount;
 
         let second_token_amount_optimal = self.quote(
             first_token_amount_desired,
-            first_token_reserve,
-            second_token_reserve,
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
         );
 
         if &second_token_amount_optimal <= second_token_amount_desired {
             require!(
-                &second_token_amount_optimal >= second_token_amount_min,
+                second_token_amount_optimal >= context.second_token_amount_min,
                 ERROR_INSUFFICIENT_SECOND_TOKEN
             );
 
-            (
-                first_token_amount_desired.clone(),
-                second_token_amount_optimal,
-            )
+            context.first_token_optimal_amount = first_token_amount_desired.clone();
+            context.second_token_optimal_amount = second_token_amount_optimal;
         } else {
             let first_token_amount_optimal = self.quote(
                 second_token_amount_desired,
-                second_token_reserve,
-                first_token_reserve,
+                &storage_cache.second_token_reserve,
+                &storage_cache.first_token_reserve,
             );
             require!(
                 &first_token_amount_optimal <= first_token_amount_desired,
                 ERROR_OPTIMAL_GRATER_THAN_PAID
             );
             require!(
-                &first_token_amount_optimal >= first_token_amount_min,
+                first_token_amount_optimal >= context.first_token_amount_min,
                 ERROR_INSUFFICIENT_FIRST_TOKEN
             );
 
-            (
-                first_token_amount_optimal,
-                second_token_amount_desired.clone(),
-            )
+            context.first_token_optimal_amount = first_token_amount_optimal;
+            context.second_token_optimal_amount = second_token_amount_desired.clone();
         }
     }
 
@@ -267,7 +244,6 @@ pub trait LiquidityPoolModule:
         }
     }
 
-    #[inline]
     fn biguint_min(&self, a: &BigUint, b: &BigUint) -> BigUint {
         if a < b {
             a.clone()
