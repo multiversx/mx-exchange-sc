@@ -2,7 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::config;
-use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::contexts::swap::SwapContext;
 
 const PERCENT_MAX: u64 = 100_000;
@@ -60,21 +59,19 @@ pub trait BPModule:
         self.num_swaps_by_address(caller).set(&(num_swaps + 1));
     }
 
-    fn require_can_proceed_remove(&self, ctx: &RemoveLiquidityContext<Self::Api>) {
+    fn require_can_proceed_remove(&self, lp_token_supply: &BigUint, liquidity_removed: &BigUint) {
         if self.bp_remove_config().is_empty() {
             return;
         }
 
-        let caller = ctx.get_caller();
+        let caller = self.blockchain().get_caller();
         let bp_config = self.bp_remove_config().get();
         let current_block = self.blockchain().get_block_nonce();
         if bp_config.protect_stop_block < current_block {
             self.num_removes_by_address(caller).clear();
             return;
         }
-
-        let current_liquidity = ctx.get_lp_token_supply();
-        if current_liquidity == &0u64 {
+        if lp_token_supply == &0u64 {
             return;
         }
 
@@ -84,14 +81,13 @@ pub trait BPModule:
             "too many removes by address"
         );
 
-        let removed_liquidity = &ctx.get_lp_token_payment().amount;
-        let percent_removed = removed_liquidity * PERCENT_MAX / current_liquidity;
+        let percent_removed = liquidity_removed * PERCENT_MAX / lp_token_supply;
         require!(
             percent_removed < bp_config.volume_percent,
             "remove liquidity too large"
         );
 
-        self.num_removes_by_address(caller).set(&(num_removes + 1));
+        self.num_removes_by_address(&caller).set(num_removes + 1);
     }
 
     fn require_can_proceed_add(&self, lp_token_supply: &BigUint, liquidity_added: &BigUint) {
@@ -106,8 +102,7 @@ pub trait BPModule:
             self.num_adds_by_address(caller).clear();
             return;
         }
-
-        if lp_token_supply == 0 {
+        if lp_token_supply == &0 {
             return;
         }
 
@@ -123,7 +118,7 @@ pub trait BPModule:
             "add liquidity too large"
         );
 
-        self.num_adds_by_address(caller).set(num_adds + 1);
+        self.num_adds_by_address(&caller).set(num_adds + 1);
     }
 
     #[endpoint(setBPSwapConfig)]

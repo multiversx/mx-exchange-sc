@@ -56,45 +56,53 @@ pub trait LiquidityPoolModule:
         liquidity - minimum_liquidity
     }
 
-    fn pool_remove_liquidity(&self, context: &mut RemoveLiquidityContext<Self::Api>) {
-        let (first_amount_removed, second_amounts_removed) = self.get_amounts_removed(context);
-        context.set_first_token_amount_removed(first_amount_removed);
-        context.set_second_token_amount_removed(second_amounts_removed);
-        context.decrease_lp_token_supply();
-        context.decrease_reserves();
+    fn pool_remove_liquidity(
+        &self,
+        context: &mut RemoveLiquidityContext<Self::Api>,
+        storage_cache: &mut StorageCache<Self::Api>,
+    ) {
+        let (first_amount_removed, second_amount_removed) = self.get_amounts_removed(context);
+        storage_cache.lp_token_supply -= &context.lp_token_payment.amount;
+        storage_cache.first_token_reserve -= &first_amount_removed;
+        storage_cache.second_token_reserve -= &second_amount_removed;
+
+        context.first_token_amount_removed = first_amount_removed;
+        context.second_token_amount_removed = second_amount_removed;
     }
 
     fn get_amounts_removed(
         &self,
-        context: &mut RemoveLiquidityContext<Self::Api>,
+        context: &RemoveLiquidityContext<Self::Api>,
+        storage_cache: &StorageCache<Self::Api>,
     ) -> (BigUint, BigUint) {
-        let total_supply = context.get_lp_token_supply();
-        let liquidity = &context.get_lp_token_payment().amount;
-
         require!(
-            total_supply >= &(liquidity + MINIMUM_LIQUIDITY),
+            storage_cache.lp_token_supply >= &context.lp_token_payment_amount + MINIMUM_LIQUIDITY,
             ERROR_NOT_ENOUGH_LP
         );
 
-        let first_amount_removed = (liquidity * context.get_first_token_reserve()) / total_supply;
+        let first_amount_removed = (&context.lp_token_payment_amount
+            * &storage_cache.first_token_reserve)
+            / &storage_cache.lp_token_supply;
         require!(first_amount_removed > 0u64, ERROR_INSUFFICIENT_LIQ_BURNED);
         require!(
-            &first_amount_removed >= context.get_first_token_amount_min(),
+            first_amount_removed >= context.first_token_amount_min,
             ERROR_SLIPPAGE_ON_REMOVE
         );
         require!(
-            context.get_first_token_reserve() > &first_amount_removed,
+            storage_cache.first_token_reserve > first_amount_removed,
             ERROR_NOT_ENOUGH_RESERVE
         );
 
-        let second_amount_removed = (liquidity * context.get_second_token_reserve()) / total_supply;
+        let second_amount_removed = (&context.lp_token_payment_amount
+            * &storage_cache.second_token_reserve)
+            / &storage_cache.lp_token_supply;
         require!(second_amount_removed > 0u64, ERROR_INSUFFICIENT_LIQ_BURNED);
         require!(
-            &second_amount_removed >= context.get_second_token_amount_min(),
+            second_amount_removed >= context.second_token_amount_min,
             ERROR_SLIPPAGE_ON_REMOVE
         );
         require!(
-            context.get_second_token_reserve() > &second_amount_removed,
+            storage_cache.second_token_reserve > second_amount_removed,
             ERROR_NOT_ENOUGH_RESERVE
         );
 
@@ -178,13 +186,6 @@ pub trait LiquidityPoolModule:
         let token_second_token_amount =
             self.get_token_for_given_position(liquidity, second_token_id);
         (token_first_token_amount, token_second_token_amount).into()
-    }
-
-    fn calculate_k(&self, context: &dyn Context<Self::Api>) -> BigUint {
-        self.calculate_k_constant(
-            context.get_first_token_reserve(),
-            context.get_second_token_reserve(),
-        )
     }
 
     fn swap_safe_no_fee(

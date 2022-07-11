@@ -8,6 +8,7 @@ pub struct AddLiquidityContext<M: ManagedTypeApi> {
     pub second_token_amount_min: BigUint<M>,
     pub first_token_optimal_amount: BigUint<M>,
     pub second_token_optimal_amount: BigUint<M>,
+    pub liq_added: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> AddLiquidityContext<M> {
@@ -24,6 +25,7 @@ impl<M: ManagedTypeApi> AddLiquidityContext<M> {
             second_token_amount_min,
             first_token_optimal_amount: BigUint::zero(),
             second_token_optimal_amount: BigUint::zero(),
+            liq_added: BigUint::zero(),
         }
     }
 }

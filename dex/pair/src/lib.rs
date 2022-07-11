@@ -19,6 +19,7 @@ pub mod locking_wrapper;
 pub mod safe_price;
 
 use crate::contexts::add_liquidity::AddLiquidityContext;
+use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 
 use contexts::base::*;
@@ -140,24 +141,19 @@ pub trait Pair<ContractReader>:
 
         self.state().set(State::PartialActive);
 
-        self.emit_add_liquidity_event(
-            &storage_cache,
-            &AddLiquidityContext {
-                first_payment,
-                second_payment,
-                first_token_amount_min: BigUint::from(1u32),
-                second_token_amount_min: BigUint::from(1u32),
-                first_token_optimal_amount: first_token_optimal_amount.clone(),
-                second_token_optimal_amount: second_token_optimal_amount.clone(),
-            },
-        );
+        let add_liq_context = AddLiquidityContext {
+            first_payment,
+            second_payment,
+            first_token_amount_min: BigUint::from(1u32),
+            second_token_amount_min: BigUint::from(1u32),
+            first_token_optimal_amount: first_token_optimal_amount.clone(),
+            second_token_optimal_amount: second_token_optimal_amount.clone(),
+        };
+        let output = self.build_add_initial_liq_results(&storage_cache, &add_liq_context);
 
-        self.build_add_initial_liq_results(
-            storage_cache,
-            liq_added,
-            first_token_optimal_amount,
-            second_token_optimal_amount,
-        )
+        self.emit_add_liquidity_event(storage_cache, add_liq_context);
+
+        output
     }
 
     #[payable("*")]
@@ -209,7 +205,7 @@ pub trait Pair<ContractReader>:
             &storage_cache.second_token_reserve,
         );
 
-        let add_liq_context = AddLiquidityContext::new(
+        let mut add_liq_context = AddLiquidityContext::new(
             first_payment,
             second_payment,
             first_token_amount_min,
@@ -231,6 +227,7 @@ pub trait Pair<ContractReader>:
             )
         };
         self.require_can_proceed_add(&storage_cache.lp_token_supply, &liq_added);
+        add_liq_context.liq_added = liq_added;
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
@@ -239,14 +236,16 @@ pub trait Pair<ContractReader>:
         require!(initial_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
         self.send()
-            .esdt_local_mint(&storage_cache.lp_token_id, 0, liq_added.clone());
+            .esdt_local_mint(&storage_cache.lp_token_id, 0, &add_liq_context.liq_added);
 
-        let output_payments = self.build_add_liq_output(storage_cache, add_liq_context, liq_added);
+        let output_payments = self.build_add_liq_output_payments(&storage_cache, &add_liq_context);
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        self.emit_add_liquidity_event(&storage_cache, &add_liq_context);
+        let output = self.build_add_liq_results(&storage_cache, &add_liq_context);
 
-        self.build_add_liq_results(storage_cache, add_liq_context, liq_added)
+        self.emit_add_liquidity_event(storage_cache, add_liq_context);
+
+        output
     }
 
     #[payable("*")]
@@ -256,64 +255,67 @@ pub trait Pair<ContractReader>:
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
     ) -> RemoveLiquidityResultType<Self::Api> {
-        let (token_id, nonce, liquidity) = self.call_value().single_esdt().into_tuple();
-        let mut context = self.new_remove_liquidity_context(
-            &token_id,
-            nonce,
-            &liquidity,
-            first_token_amount_min,
-            second_token_amount_min,
-        );
         require!(
-            context.get_tx_input().get_args().are_valid(),
+            first_token_amount_min > 0 && second_token_amount_min > 0,
             ERROR_INVALID_ARGS
         );
-        require!(
-            context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS
-        );
-        require!(
-            context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS
-        );
 
-        self.load_state(&mut context);
+        let mut storage_cache = StorageCache::new(self);
+        let caller = self.blockchain().get_caller();
+        let payment = self.call_value().single_esdt();
+
         require!(
-            self.is_state_active(context.get_contract_state()),
+            self.is_state_active(storage_cache.contract_state),
             ERROR_NOT_ACTIVE
         );
-
-        self.load_lp_token_id(&mut context);
         require!(
-            context.get_lp_token_id().is_valid_esdt_identifier(),
+            storage_cache.lp_token_id.is_valid_esdt_identifier(),
             ERROR_LP_TOKEN_NOT_ISSUED
         );
         require!(
-            context.get_lp_token_id() == &context.get_lp_token_payment().token_identifier,
+            payment.token_identifier == storage_cache.lp_token_id && payment.amount > 0,
             ERROR_BAD_PAYMENT_TOKENS
         );
 
-        self.load_pool_token_ids(&mut context);
-        self.load_pool_reserves(&mut context);
-        self.update_safe_state_from_context(&context);
-        self.load_lp_token_supply(&mut context);
-        self.load_initial_k(&mut context);
+        self.update_safe_state(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        self.pool_remove_liquidity(&mut context);
-        self.require_can_proceed_remove(&context);
+        let initial_k = self.calculate_k_constant(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        let new_k = self.calculate_k(&context);
-        require!(&new_k <= context.get_initial_k(), ERROR_K_INVARIANT_FAILED);
+        let mut remove_liq_context =
+            RemoveLiquidityContext::new(payment, first_token_amount_min, second_token_amount_min);
+        self.pool_remove_liquidity(&mut remove_liq_context, &mut storage_cache);
+        self.require_can_proceed_remove(
+            &storage_cache.lp_token_supply,
+            &remove_liq_context.lp_token_payment.amount,
+        );
 
-        let lpt = context.get_lp_token_id();
-        self.burn(lpt, &context.get_lp_token_payment().amount);
-        self.commit_changes(&context);
+        let new_k = self.calculate_k_constant(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
+        require!(new_k <= initial_k, ERROR_K_INVARIANT_FAILED);
 
-        self.construct_remove_liquidity_output_payments(&mut context);
-        self.execute_output_payments(&context);
-        self.emit_remove_liquidity_event(&context);
+        self.send().esdt_local_burn(
+            &storage_cache.lp_token_id,
+            0,
+            &remove_liq_context.lp_token_payment.amount,
+        );
 
-        self.construct_and_get_remove_liquidity_output_results(&context)
+        let output_payments =
+            self.build_remove_liq_output_payments(storage_cache, remove_liq_context);
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+
+        let output = self.build_remove_liq_results(output_payments);
+
+        self.emit_remove_liquidity_event(storage_cache, remove_liq_context);
+
+        output
     }
 
     #[payable("*")]

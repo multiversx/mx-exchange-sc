@@ -160,13 +160,6 @@ pub trait SafePriceModule:
             .set(max_observations_per_record);
     }
 
-    fn update_safe_state_from_context(&self, ctx: &dyn Context<Self::Api>) {
-        self.update_safe_state(
-            ctx.get_first_token_reserve(),
-            ctx.get_second_token_reserve(),
-        )
-    }
-
     fn update_safe_state_on_the_fly(&self) {
         self.update_safe_state(
             &self.pair_reserve(&self.first_token_id().get()).get(),
