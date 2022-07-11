@@ -22,8 +22,8 @@ mod custom_pair_proxy {
 
     #[elrond_wasm::proxy]
     pub trait CustomPairProxy {
-        #[view(latestPriceFeedOptional)]
-        fn update_and_get_tokens_for_given_position_with_safe_price(
+        #[view(getTokensForGivenPosition)]
+        fn get_tokens_for_given_position(
             &self,
             lp_token_amount: BigUint,
         ) -> MultiValue2<CustomEsdtTokenPayment<Self::Api>, CustomEsdtTokenPayment<Self::Api>>;
@@ -135,7 +135,6 @@ pub trait EnableSwapByUserModule:
             lp_token_safe_price_result.safe_price_in_common_token >= config.min_locked_token_value,
             "Not enough value locked"
         );
-
         let current_epoch = self.blockchain().get_block_epoch();
         let locked_epochs = if current_epoch < locked_token_attributes.unlock_epoch {
             locked_token_attributes.unlock_epoch - current_epoch
@@ -197,7 +196,7 @@ pub trait EnableSwapByUserModule:
             CustomEsdtTokenPayment<Self::Api>,
         > = self
             .custom_pair_proxy(pair_address)
-            .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
+            .get_tokens_for_given_position(lp_token_amount)
             .execute_on_dest_context();
 
         let (first_result, second_result) = multi_value.into_tuple();
