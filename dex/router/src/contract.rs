@@ -141,6 +141,7 @@ pub trait Router:
         &self,
         first_token_id: TokenIdentifier,
         second_token_id: TokenIdentifier,
+        initial_liquidity_adder: ManagedAddress,
         total_fee_percent_requested: u64,
         special_fee_percent_requested: u64,
     ) {
@@ -169,6 +170,7 @@ pub trait Router:
             &first_token_id,
             &second_token_id,
             &self.owner().get(),
+            &initial_liquidity_adder,
             total_fee_percent_requested,
             special_fee_percent_requested,
         );
