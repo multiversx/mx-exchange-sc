@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use crate::State;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum SwapTokensOrder {
     PoolOrder,
     ReverseOrder,
@@ -62,14 +62,34 @@ where
         }
     }
 
-    pub fn get_reserve_in(&self, swap_tokens_order: SwapTokensOrder) -> &mut BigUint<C::Api> {
+    pub fn get_reserve_in(&self, swap_tokens_order: SwapTokensOrder) -> &BigUint<C::Api> {
+        match swap_tokens_order {
+            SwapTokensOrder::PoolOrder => &self.first_token_reserve,
+            SwapTokensOrder::ReverseOrder => &self.second_token_reserve,
+        }
+    }
+
+    pub fn get_reserve_out(&self, swap_tokens_order: SwapTokensOrder) -> &BigUint<C::Api> {
+        match swap_tokens_order {
+            SwapTokensOrder::PoolOrder => &self.second_token_reserve,
+            SwapTokensOrder::ReverseOrder => &self.first_token_reserve,
+        }
+    }
+
+    pub fn get_mut_reserve_in(
+        &mut self,
+        swap_tokens_order: SwapTokensOrder,
+    ) -> &mut BigUint<C::Api> {
         match swap_tokens_order {
             SwapTokensOrder::PoolOrder => &mut self.first_token_reserve,
             SwapTokensOrder::ReverseOrder => &mut self.second_token_reserve,
         }
     }
 
-    pub fn get_reserve_out(&self, swap_tokens_order: SwapTokensOrder) -> &mut BigUint<C::Api> {
+    pub fn get_mut_reserve_out(
+        &mut self,
+        swap_tokens_order: SwapTokensOrder,
+    ) -> &mut BigUint<C::Api> {
         match swap_tokens_order {
             SwapTokensOrder::PoolOrder => &mut self.second_token_reserve,
             SwapTokensOrder::ReverseOrder => &mut self.first_token_reserve,

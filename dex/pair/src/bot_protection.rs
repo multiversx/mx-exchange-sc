@@ -53,7 +53,7 @@ pub trait BPModule:
             "swap amount in too large"
         );
 
-        let amount_out_percent = ctx.final_output_amount * PERCENT_MAX / &*reserve_out;
+        let amount_out_percent = &ctx.final_output_amount * PERCENT_MAX / &*reserve_out;
         require!(
             amount_out_percent < bp_config.volume_percent,
             "swap amount out too large"

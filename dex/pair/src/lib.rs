@@ -140,8 +140,8 @@ pub trait Pair<ContractReader>:
         self.state().set(State::PartialActive);
 
         let add_liq_context = AddLiquidityContext {
-            first_payment,
-            second_payment,
+            first_payment: first_payment.clone(),
+            second_payment: second_payment.clone(),
             first_token_amount_min: BigUint::from(1u32),
             second_token_amount_min: BigUint::from(1u32),
             first_token_optimal_amount: first_token_optimal_amount.clone(),
@@ -150,7 +150,7 @@ pub trait Pair<ContractReader>:
         };
         let output = self.build_add_initial_liq_results(&storage_cache, &add_liq_context);
 
-        self.emit_add_liquidity_event(storage_cache, add_liq_context);
+        self.emit_add_liquidity_event(&storage_cache, add_liq_context);
 
         output
     }
@@ -242,7 +242,7 @@ pub trait Pair<ContractReader>:
 
         let output = self.build_add_liq_results(&storage_cache, &add_liq_context);
 
-        self.emit_add_liquidity_event(storage_cache, add_liq_context);
+        self.emit_add_liquidity_event(&storage_cache, add_liq_context);
 
         output
     }
@@ -309,10 +309,10 @@ pub trait Pair<ContractReader>:
         );
 
         let output_payments =
-            self.build_remove_liq_output_payments(storage_cache, remove_liq_context);
+            self.build_remove_liq_output_payments(&storage_cache, &remove_liq_context);
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        self.emit_remove_liquidity_event(storage_cache, remove_liq_context);
+        self.emit_remove_liquidity_event(&storage_cache, remove_liq_context);
 
         self.build_remove_liq_results(output_payments)
     }
@@ -377,57 +377,59 @@ pub trait Pair<ContractReader>:
     #[payable("*")]
     #[endpoint(swapNoFeeAndForward)]
     fn swap_no_fee(&self, token_out: TokenIdentifier, destination_address: ManagedAddress) {
-        let (token_in, nonce, amount_in) = self.call_value().single_esdt().into_tuple();
-        let mut context = self.new_swap_context(
-            &token_in,
-            nonce,
-            &amount_in,
-            token_out.clone(),
-            BigUint::from(1u64),
-        );
-        require!(
-            self.whitelist().contains(context.get_caller()),
-            ERROR_NOT_WHITELISTED
-        );
-        require!(
-            context.get_tx_input().get_args().are_valid(),
-            ERROR_INVALID_ARGS
-        );
-        require!(
-            context.get_tx_input().get_payments().are_valid(),
-            ERROR_INVALID_PAYMENTS
-        );
-        require!(
-            context.get_tx_input().is_valid(),
-            ERROR_ARGS_NOT_MATCH_PAYMENTS
-        );
+        let caller = self.blockchain().get_caller();
+        require!(self.whitelist().contains(&caller), ERROR_NOT_WHITELISTED);
 
-        self.load_state(&mut context);
+        let mut storage_cache = StorageCache::new(self);
+        let (token_in, _, amount_in) = self.call_value().single_esdt().into_tuple();
+        let swap_tokens_order = storage_cache.get_swap_tokens_order(&token_in, &token_out);
+
         require!(
-            self.can_swap(context.get_contract_state()),
+            self.can_swap(storage_cache.contract_state),
             ERROR_SWAP_NOT_ENABLED
         );
 
-        self.load_pool_token_ids(&mut context);
-        require!(context.input_tokens_match_pool_tokens(), ERROR_INVALID_ARGS);
+        self.update_safe_state(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        self.load_pool_reserves(&mut context);
-        self.update_safe_state_from_context(&context);
-        self.load_initial_k(&mut context);
+        let initial_k = self.calculate_k_constant(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
-        context.set_final_input_amount(amount_in.clone());
-        let amount_out = self.swap_safe_no_fee(&mut context, &token_in, &amount_in);
+        let mut swap_context = SwapContext::new(
+            token_in,
+            amount_in.clone(),
+            token_out,
+            BigUint::from(1u32),
+            swap_tokens_order,
+        );
+        swap_context.final_input_amount = amount_in;
+
+        let amount_out = self.swap_safe_no_fee(
+            &mut storage_cache,
+            swap_context.swap_tokens_order,
+            &swap_context.final_input_amount,
+        );
         require!(amount_out > 0u64, ERROR_ZERO_AMOUNT);
-        context.set_final_output_amount(amount_out.clone());
 
-        self.require_can_proceed_swap(&context);
+        swap_context.final_output_amount = amount_out;
+        self.require_can_proceed_swap(&swap_context, &storage_cache);
 
-        let new_k = self.calculate_k(&context);
-        require!(context.get_initial_k() <= &new_k, ERROR_K_INVARIANT_FAILED);
+        let new_k = self.calculate_k_constant(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
+        require!(initial_k <= new_k, ERROR_K_INVARIANT_FAILED);
 
-        self.commit_changes(&context);
-        self.burn(&token_out, &amount_out);
-        self.emit_swap_no_fee_and_forward_event(&context, &destination_address);
+        self.burn(
+            &swap_context.output_token_id,
+            &swap_context.final_output_amount,
+        );
+
+        self.emit_swap_no_fee_and_forward_event(swap_context, destination_address);
     }
 
     #[payable("*")]
@@ -448,7 +450,7 @@ pub trait Pair<ContractReader>:
             ERROR_SWAP_NOT_ENABLED
         );
 
-        let reserve_out = storage_cache.get_reserve_out(swap_tokens_order);
+        let reserve_out = storage_cache.get_mut_reserve_out(swap_tokens_order);
         require!(*reserve_out > amount_out_min, ERROR_NOT_ENOUGH_RESERVE);
 
         self.update_safe_state(
@@ -461,7 +463,7 @@ pub trait Pair<ContractReader>:
             &storage_cache.second_token_reserve,
         );
 
-        let swap_context = SwapContext::new(
+        let mut swap_context = SwapContext::new(
             token_in,
             amount_in,
             token_out,
@@ -490,7 +492,7 @@ pub trait Pair<ContractReader>:
         let output_payments = self.build_swap_output_payments(&swap_context);
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        self.emit_swap_event(storage_cache, swap_context);
+        self.emit_swap_event(&storage_cache, swap_context);
 
         self.build_swap_fixed_input_results(output_payments)
     }
@@ -513,7 +515,7 @@ pub trait Pair<ContractReader>:
             ERROR_SWAP_NOT_ENABLED
         );
 
-        let reserve_out = storage_cache.get_reserve_out(swap_tokens_order);
+        let reserve_out = storage_cache.get_mut_reserve_out(swap_tokens_order);
         require!(*reserve_out > amount_out, ERROR_NOT_ENOUGH_RESERVE);
 
         self.update_safe_state(
@@ -526,7 +528,7 @@ pub trait Pair<ContractReader>:
             &storage_cache.second_token_reserve,
         );
 
-        let swap_context = SwapContext::new(
+        let mut swap_context = SwapContext::new(
             token_in,
             amount_in_max,
             token_out,
@@ -555,7 +557,7 @@ pub trait Pair<ContractReader>:
         let output_payments = self.build_swap_output_payments(&swap_context);
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
-        self.emit_swap_event(storage_cache, swap_context);
+        self.emit_swap_event(&storage_cache, swap_context);
 
         self.build_swap_fixed_output_results(output_payments)
     }
@@ -712,8 +714,9 @@ pub trait Pair<ContractReader>:
             context.fee_amount = fee_amount;
         }
 
-        *reserve_in += amount_in_after_fee;
-        *reserve_out -= &context.final_output_amount;
+        *storage_cache.get_mut_reserve_in(context.swap_tokens_order) += amount_in_after_fee;
+        *storage_cache.get_mut_reserve_out(context.swap_tokens_order) -=
+            &context.final_output_amount;
     }
 
     fn perform_swap_fixed_output(
@@ -744,7 +747,8 @@ pub trait Pair<ContractReader>:
             context.fee_amount = fee_amount;
         }
 
-        *reserve_in += amount_in_optimal_after_fee;
-        *reserve_out -= &context.final_output_amount;
+        *storage_cache.get_mut_reserve_in(context.swap_tokens_order) += amount_in_optimal_after_fee;
+        *storage_cache.get_mut_reserve_out(context.swap_tokens_order) -=
+            &context.final_output_amount;
     }
 }

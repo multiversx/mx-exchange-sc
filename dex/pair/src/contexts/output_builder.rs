@@ -50,7 +50,7 @@ pub trait OutputBuilderModule:
         let mut payments: ManagedVec<EsdtTokenPayment<Self::Api>> = ManagedVec::new();
 
         payments.push(EsdtTokenPayment::new(
-            storage_cache.lp_token_id,
+            storage_cache.lp_token_id.clone(),
             0,
             add_liq_context.liq_added.clone(),
         ));
@@ -95,20 +95,20 @@ pub trait OutputBuilderModule:
 
     fn build_remove_liq_output_payments(
         &self,
-        storage_cache: StorageCache<Self>,
-        remove_liq_context: RemoveLiquidityContext<Self::Api>,
+        storage_cache: &StorageCache<Self>,
+        remove_liq_context: &RemoveLiquidityContext<Self::Api>,
     ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
         let mut payments = ManagedVec::new();
 
         payments.push(EsdtTokenPayment::new(
-            storage_cache.first_token_id,
+            storage_cache.first_token_id.clone(),
             0,
-            remove_liq_context.first_token_amount_removed,
+            remove_liq_context.first_token_amount_removed.clone(),
         ));
         payments.push(EsdtTokenPayment::new(
-            storage_cache.second_token_id,
+            storage_cache.second_token_id.clone(),
             0,
-            remove_liq_context.second_token_amount_removed,
+            remove_liq_context.second_token_amount_removed.clone(),
         ));
 
         payments

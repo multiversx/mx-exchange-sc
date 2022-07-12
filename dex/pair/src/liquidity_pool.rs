@@ -197,8 +197,8 @@ pub trait LiquidityPoolModule:
             ERROR_ZERO_AMOUNT
         );
 
-        *reserve_in += amount_in;
-        *reserve_out -= &amount_out;
+        *storage_cache.get_mut_reserve_in(swap_tokens_order) += amount_in;
+        *storage_cache.get_mut_reserve_out(swap_tokens_order) -= &amount_out;
 
         amount_out
     }

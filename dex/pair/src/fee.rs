@@ -153,7 +153,7 @@ pub trait FeeModule:
             &storage_cache.second_token_id,
         );
         if can_resolve_locally {
-            let to_burn = self.swap_safe_no_fee(&mut storage_cache, swap_tokens_order, fee_slice);
+            let to_burn = self.swap_safe_no_fee(storage_cache, swap_tokens_order, fee_slice);
             self.burn(requested_fee_token, &to_burn);
 
             return;
@@ -173,7 +173,7 @@ pub trait FeeModule:
             requested_fee_token,
         );
         if can_extern_swap_after_local {
-            let to_send = self.swap_safe_no_fee(&mut storage_cache, swap_tokens_order, fee_slice);
+            let to_send = self.swap_safe_no_fee(storage_cache, swap_tokens_order, fee_slice);
             let to_send_token = if fee_token == &storage_cache.first_token_id {
                 storage_cache.second_token_id.clone()
             } else {
