@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 
 use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
 use pair::config::ProxyTrait as _;
-use pair::safe_price::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -165,7 +164,7 @@ pub trait EnableSwapByUserModule:
     ) -> SafePriceResult<Self::Api> {
         let multi_value: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.user_pair_proxy(pair_address)
-                .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
+                .get_tokens_for_given_position(lp_token_amount)
                 .execute_on_dest_context();
 
         let (first_result, second_result) = multi_value.into_tuple();
