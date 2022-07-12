@@ -119,6 +119,14 @@ pub trait LiquidityPoolModule:
         let first_token_amount_desired = &context.first_payment.amount;
         let second_token_amount_desired = &context.second_payment.amount;
 
+        let is_initial_liq_add = storage_cache.lp_token_supply == 0;
+        if is_initial_liq_add {
+            context.first_token_optimal_amount = first_token_amount_desired.clone();
+            context.second_token_optimal_amount = second_token_amount_desired.clone();
+
+            return;
+        }
+
         let second_token_amount_optimal = self.quote(
             first_token_amount_desired,
             &storage_cache.first_token_reserve,
