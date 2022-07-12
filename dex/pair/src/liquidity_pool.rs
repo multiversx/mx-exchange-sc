@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::StorageCache;
+use crate::contexts::base::SwapTokensOrder;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 
@@ -18,7 +19,7 @@ pub trait LiquidityPoolModule:
         &self,
         first_token_optimal_amount: &BigUint,
         second_token_optimal_amount: &BigUint,
-        storage_cache: &mut StorageCache<Self::Api>,
+        storage_cache: &mut StorageCache<Self>,
     ) -> BigUint {
         let first_potential_amt = first_token_optimal_amount * &storage_cache.lp_token_supply
             / &storage_cache.first_token_reserve;
@@ -40,7 +41,7 @@ pub trait LiquidityPoolModule:
         &self,
         first_token_optimal_amount: &BigUint,
         second_token_optimal_amount: &BigUint,
-        storage_cache: &mut StorageCache<Self::Api>,
+        storage_cache: &mut StorageCache<Self>,
     ) -> BigUint {
         let liquidity = self.biguint_min(first_token_optimal_amount, second_token_optimal_amount);
         let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
@@ -59,10 +60,11 @@ pub trait LiquidityPoolModule:
     fn pool_remove_liquidity(
         &self,
         context: &mut RemoveLiquidityContext<Self::Api>,
-        storage_cache: &mut StorageCache<Self::Api>,
+        storage_cache: &mut StorageCache<Self>,
     ) {
-        let (first_amount_removed, second_amount_removed) = self.get_amounts_removed(context);
-        storage_cache.lp_token_supply -= &context.lp_token_payment.amount;
+        let (first_amount_removed, second_amount_removed) =
+            self.get_amounts_removed(context, storage_cache);
+        storage_cache.lp_token_supply -= &context.lp_token_payment_amount;
         storage_cache.first_token_reserve -= &first_amount_removed;
         storage_cache.second_token_reserve -= &second_amount_removed;
 
@@ -73,7 +75,7 @@ pub trait LiquidityPoolModule:
     fn get_amounts_removed(
         &self,
         context: &RemoveLiquidityContext<Self::Api>,
-        storage_cache: &StorageCache<Self::Api>,
+        storage_cache: &StorageCache<Self>,
     ) -> (BigUint, BigUint) {
         require!(
             storage_cache.lp_token_supply >= &context.lp_token_payment_amount + MINIMUM_LIQUIDITY,
@@ -109,19 +111,10 @@ pub trait LiquidityPoolModule:
         (first_amount_removed, second_amount_removed)
     }
 
-    fn get_initial_liquidity_optimal_amounts(
-        &self,
-        context: &mut AddLiquidityContext<Self::Api>,
-    ) -> (BigUint, BigUint) {
-        let first_amount_optimal = context.get_first_payment().amount.clone();
-        let second_amount_optimal = context.get_second_payment().amount.clone();
-        (first_amount_optimal, second_amount_optimal)
-    }
-
     fn set_optimal_amounts(
         &self,
         context: &mut AddLiquidityContext<Self::Api>,
-        storage_cache: &StorageCache<Self::Api>,
+        storage_cache: &StorageCache<Self>,
     ) {
         let first_token_amount_desired = &context.first_payment.amount;
         let second_token_amount_desired = &context.second_payment.amount;
@@ -190,37 +183,22 @@ pub trait LiquidityPoolModule:
 
     fn swap_safe_no_fee(
         &self,
-        storage_cache: &mut StorageCache<Self::Api>,
-        token_in: &TokenIdentifier,
+        storage_cache: &mut StorageCache<Self>,
+        swap_tokens_order: SwapTokensOrder,
         amount_in: &BigUint,
     ) -> BigUint {
-        let (first_token_reserve_ref, second_token_reserve_ref) =
-            if token_in == &storage_cache.first_token_id {
-                (
-                    &mut storage_cache.first_token_reserve,
-                    &mut storage_cache.second_token_reserve,
-                )
-            } else {
-                (
-                    &mut storage_cache.second_token_reserve,
-                    &mut storage_cache.first_token_reserve,
-                )
-            };
+        let reserve_in = storage_cache.get_reserve_in(swap_tokens_order);
+        let reserve_out = storage_cache.get_reserve_out(swap_tokens_order);
+        require!(*reserve_in != 0, ERROR_ZERO_AMOUNT);
 
-        require!(*first_token_reserve_ref != 0, ERROR_ZERO_AMOUNT);
-
-        let amount_out = self.get_amount_out_no_fee(
-            amount_in,
-            first_token_reserve_ref,
-            &second_token_reserve_ref,
-        );
+        let amount_out = self.get_amount_out_no_fee(amount_in, reserve_in, reserve_out);
         require!(
-            *second_token_reserve_ref > amount_out && amount_out != 0,
+            *reserve_out > amount_out && amount_out != 0,
             ERROR_ZERO_AMOUNT
         );
 
-        *first_token_reserve_ref += amount_in;
-        *second_token_reserve_ref -= &amount_out;
+        *reserve_in += amount_in;
+        *reserve_out -= &amount_out;
 
         amount_out
     }

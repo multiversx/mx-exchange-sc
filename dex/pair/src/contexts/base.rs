@@ -3,6 +3,12 @@ elrond_wasm::derive_imports!();
 
 use crate::State;
 
+#[derive(PartialEq)]
+pub enum SwapTokensOrder {
+    PoolOrder,
+    ReverseOrder,
+}
+
 pub struct StorageCache<'a, C>
 where
     C: crate::config::ConfigModule,
@@ -36,6 +42,37 @@ where
             second_token_reserve,
             lp_token_supply: sc_ref.lp_token_supply().get(),
             sc_ref,
+        }
+    }
+
+    pub fn get_swap_tokens_order(
+        &self,
+        first_token_id: &TokenIdentifier<C::Api>,
+        second_token_id: &TokenIdentifier<C::Api>,
+    ) -> SwapTokensOrder {
+        if first_token_id == &self.first_token_id && second_token_id == &self.second_token_id {
+            SwapTokensOrder::PoolOrder
+        } else if first_token_id == &self.second_token_id && second_token_id == &self.first_token_id
+        {
+            SwapTokensOrder::ReverseOrder
+        } else {
+            elrond_wasm::contract_base::ErrorHelper::<C::Api>::signal_error_with_message(
+                &b"Invalid tokens"[..],
+            );
+        }
+    }
+
+    pub fn get_reserve_in(&self, swap_tokens_order: SwapTokensOrder) -> &mut BigUint<C::Api> {
+        match swap_tokens_order {
+            SwapTokensOrder::PoolOrder => &mut self.first_token_reserve,
+            SwapTokensOrder::ReverseOrder => &mut self.second_token_reserve,
+        }
+    }
+
+    pub fn get_reserve_out(&self, swap_tokens_order: SwapTokensOrder) -> &mut BigUint<C::Api> {
+        match swap_tokens_order {
+            SwapTokensOrder::PoolOrder => &mut self.second_token_reserve,
+            SwapTokensOrder::ReverseOrder => &mut self.first_token_reserve,
         }
     }
 }

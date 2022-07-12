@@ -69,23 +69,26 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait EventsModule {
-    fn emit_swap_event(&self, context: &SwapContext<Self::Api>) {
+pub trait EventsModule:
+    crate::config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+{
+    fn emit_swap_event(&self, storage_cache: StorageCache<Self>, context: SwapContext<Self::Api>) {
         let epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
         self.swap_event(
-            context.get_token_in(),
-            context.get_token_out(),
-            context.get_caller(),
+            &context.input_token_id,
+            &context.output_token_id,
+            &caller,
             epoch,
             &SwapEvent {
-                caller: context.get_caller().clone(),
-                token_id_in: context.get_token_in().clone(),
-                token_amount_in: context.get_final_input_amount().clone(),
-                token_id_out: context.get_token_out().clone(),
-                token_amount_out: context.get_final_output_amount().clone(),
-                fee_amount: context.get_fee_amount().clone(),
-                token_in_reserve: context.get_reserve_in().clone(),
-                token_out_reserve: context.get_reserve_out().clone(),
+                caller,
+                token_id_in: context.input_token_id,
+                token_amount_in: context.final_input_amount,
+                token_id_out: context.output_token_id,
+                token_amount_out: context.final_output_amount,
+                fee_amount: context.fee_amount,
+                token_in_reserve: *storage_cache.get_reserve_in(context.swap_tokens_order),
+                token_out_reserve: *storage_cache.get_reserve_out(context.swap_tokens_order),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -98,28 +101,28 @@ pub trait EventsModule {
         context: &SwapContext<Self::Api>,
         destination: &ManagedAddress,
     ) {
-        let epoch = self.blockchain().get_block_epoch();
-        self.swap_no_fee_and_forward_event(
-            &context.get_swap_args().output_token_id,
-            context.get_caller(),
-            epoch,
-            &SwapNoFeeAndForwardEvent {
-                caller: context.get_caller().clone(),
-                token_id_in: context.get_payment().token_identifier.clone(),
-                token_amount_in: context.get_payment().amount.clone(),
-                token_id_out: context.get_swap_args().output_token_id.clone(),
-                token_amount_out: context.get_final_output_amount().clone(),
-                destination: destination.clone(),
-                block: self.blockchain().get_block_nonce(),
-                epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
-            },
-        )
+        // let epoch = self.blockchain().get_block_epoch();
+        // self.swap_no_fee_and_forward_event(
+        //     &context.get_swap_args().output_token_id,
+        //     context.get_caller(),
+        //     epoch,
+        //     &SwapNoFeeAndForwardEvent {
+        //         caller: context.get_caller().clone(),
+        //         token_id_in: context.get_payment().token_identifier.clone(),
+        //         token_amount_in: context.get_payment().amount.clone(),
+        //         token_id_out: context.get_swap_args().output_token_id.clone(),
+        //         token_amount_out: context.get_final_output_amount().clone(),
+        //         destination: destination.clone(),
+        //         block: self.blockchain().get_block_nonce(),
+        //         epoch,
+        //         timestamp: self.blockchain().get_block_timestamp(),
+        //     },
+        // )
     }
 
     fn emit_add_liquidity_event(
         &self,
-        storage_cache: StorageCache<Self::Api>,
+        storage_cache: StorageCache<Self>,
         context: AddLiquidityContext<Self::Api>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -149,7 +152,7 @@ pub trait EventsModule {
 
     fn emit_remove_liquidity_event(
         &self,
-        storage_cache: StorageCache<Self::Api>,
+        storage_cache: StorageCache<Self>,
         context: RemoveLiquidityContext<Self::Api>,
     ) {
         let epoch = self.blockchain().get_block_epoch();

@@ -6,6 +6,7 @@ use super::config;
 use super::errors::*;
 use super::liquidity_pool;
 use crate::contexts::base::StorageCache;
+use crate::contexts::base::SwapTokensOrder;
 
 use common_structs::TokenPair;
 
@@ -98,7 +99,8 @@ pub trait FeeModule:
 
     fn send_fee(
         &self,
-        storage_cache: &mut StorageCache<Self::Api>,
+        storage_cache: &mut StorageCache<Self>,
+        swap_tokens_order: SwapTokensOrder,
         fee_token: &TokenIdentifier,
         fee_amount: &BigUint,
     ) {
@@ -119,6 +121,7 @@ pub trait FeeModule:
         for (fee_address, fee_token_requested) in self.destination_map().iter() {
             self.send_fee_slice(
                 storage_cache,
+                swap_tokens_order,
                 fee_token,
                 &fee_slice,
                 &fee_address,
@@ -129,7 +132,8 @@ pub trait FeeModule:
 
     fn send_fee_slice(
         &self,
-        storage_cache: &mut StorageCache<Self::Api>,
+        storage_cache: &mut StorageCache<Self>,
+        swap_tokens_order: SwapTokensOrder,
         fee_token: &TokenIdentifier,
         fee_slice: &BigUint,
         fee_address: &ManagedAddress,
@@ -149,7 +153,7 @@ pub trait FeeModule:
             &storage_cache.second_token_id,
         );
         if can_resolve_locally {
-            let to_burn = self.swap_safe_no_fee(&mut storage_cache, fee_token, fee_slice);
+            let to_burn = self.swap_safe_no_fee(&mut storage_cache, swap_tokens_order, fee_slice);
             self.burn(requested_fee_token, &to_burn);
 
             return;
@@ -169,7 +173,7 @@ pub trait FeeModule:
             requested_fee_token,
         );
         if can_extern_swap_after_local {
-            let to_send = self.swap_safe_no_fee(&mut storage_cache, fee_token, fee_slice);
+            let to_send = self.swap_safe_no_fee(&mut storage_cache, swap_tokens_order, fee_slice);
             let to_send_token = if fee_token == &storage_cache.first_token_id {
                 storage_cache.second_token_id.clone()
             } else {
