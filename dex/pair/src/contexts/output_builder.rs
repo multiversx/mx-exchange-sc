@@ -161,7 +161,7 @@ pub trait OutputBuilderModule:
         output_payments.get(0)
     }
 
-    fn build_swap_output_results(
+    fn build_swap_fixed_output_results(
         &self,
         output_payments: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> SwapTokensFixedOutputResultType<Self::Api> {

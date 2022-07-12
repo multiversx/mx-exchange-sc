@@ -8,13 +8,12 @@ pub struct SwapContext<M: ManagedTypeApi> {
     pub input_token_amount: BigUint<M>,
 
     pub output_token_id: TokenIdentifier<M>,
-    pub output_amount_min: BigUint<M>,
+    pub output_token_amount: BigUint<M>,
     pub swap_tokens_order: SwapTokensOrder,
 
     pub final_input_amount: BigUint<M>,
     pub final_output_amount: BigUint<M>,
     pub fee_amount: BigUint<M>,
-    // locked_asset_output: Option<EsdtTokenPayment<M>>,
 }
 
 impl<M: ManagedTypeApi> SwapContext<M> {
@@ -22,14 +21,14 @@ impl<M: ManagedTypeApi> SwapContext<M> {
         input_token_id: TokenIdentifier<M>,
         input_token_amount: BigUint<M>,
         output_token_id: TokenIdentifier<M>,
-        output_amount_min: BigUint<M>,
+        output_token_amount: BigUint<M>,
         swap_tokens_order: SwapTokensOrder,
     ) -> Self {
         SwapContext {
             input_token_id,
             input_token_amount,
             output_token_id,
-            output_amount_min,
+            output_token_amount,
             swap_tokens_order,
             final_input_amount: BigUint::zero(),
             final_output_amount: BigUint::zero(),
