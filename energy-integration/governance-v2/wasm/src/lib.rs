@@ -5,8 +5,31 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    empty
+    governance_v2
     (
+        cancel
+        changeLockTimeAfterVotingEndsInBlocks
+        changeQuorum
+        changeVotingDelayInBlocks
+        changeVotingPeriodInBlocks
+        depositTokensForAction
+        downvote
+        execute
+        getEnergyFactoryAddress
+        getLockTimeAfterVotingEndsInBlocks
+        getProposalActions
+        getProposalDescription
+        getProposalStatus
+        getProposer
+        getQuorum
+        getTotalDownvotes
+        getTotalVotes
+        getVotingDelayInBlocks
+        getVotingPeriodInBlocks
+        propose
+        queue
+        setEnergyFactoryAddress
+        vote
     )
 }
 

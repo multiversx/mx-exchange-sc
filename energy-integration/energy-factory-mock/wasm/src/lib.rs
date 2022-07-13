@@ -5,8 +5,9 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    empty
+    energy_factory_mock
     (
+        getEnergyForUser
     )
 }
 
