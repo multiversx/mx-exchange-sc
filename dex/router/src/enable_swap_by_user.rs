@@ -2,9 +2,11 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
-use pair::safe_price::ProxyTrait as _;
+use pair::config::ProxyTrait as _;
 use pausable::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
+
+use crate::{DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
 
 static PAIR_LP_TOKEN_ID_STORAGE_KEY: &[u8] = b"lpTokenIdentifier";
 static PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY: &[u8] = b"initial_liquidity_adder";
@@ -118,6 +120,7 @@ pub trait EnableSwapByUserModule:
         let caller = self.blockchain().get_caller();
         self.require_caller_initial_liquidity_adder(&pair_address, &caller);
 
+        self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
 
         self.send().direct_esdt(
@@ -161,7 +164,7 @@ pub trait EnableSwapByUserModule:
     ) -> SafePriceResult<Self::Api> {
         let multi_value: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.user_pair_proxy(pair_address)
-                .update_and_get_tokens_for_given_position_with_safe_price(lp_token_amount)
+                .get_tokens_for_given_position(lp_token_amount)
                 .execute_on_dest_context();
 
         let (first_result, second_result) = multi_value.into_tuple();
@@ -199,6 +202,12 @@ pub trait EnableSwapByUserModule:
             }
             None => sc_panic!("No initial liq adder was set for pair"),
         }
+    }
+
+    fn set_fee_percents(&self, pair_address: ManagedAddress) {
+        self.user_pair_proxy(pair_address)
+            .set_fee_percent(USER_DEFINED_TOTAL_FEE_PERCENT, DEFAULT_SPECIAL_FEE_PERCENT)
+            .execute_on_dest_context_ignore_result();
     }
 
     fn pair_resume(&self, pair_address: ManagedAddress) {
