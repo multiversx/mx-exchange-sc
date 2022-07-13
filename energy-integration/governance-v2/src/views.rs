@@ -6,7 +6,9 @@ use crate::proposal::{
 
 #[elrond_wasm::module]
 pub trait ViewsModule:
-    crate::proposal_storage::ProposalStorageModule + crate::configurable::ConfigurablePropertiesModule
+    crate::proposal_storage::ProposalStorageModule
+    + crate::configurable::ConfigurablePropertiesModule
+    + energy_query_module::EnergyQueryModule
 {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, proposal_id: ProposalId) -> GovernanceProposalStatus {

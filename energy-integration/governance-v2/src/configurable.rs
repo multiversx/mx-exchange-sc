@@ -27,14 +27,15 @@ elrond_wasm::imports!();
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
 #[elrond_wasm::module]
-pub trait ConfigurablePropertiesModule {
+pub trait ConfigurablePropertiesModule: energy_query_module::EnergyQueryModule {
     #[init]
-    fn init_governance_module(
+    fn init(
         &self,
         quorum: BigUint,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         lock_time_after_voting_ends_in_blocks: u64,
+        energy_factory_address: ManagedAddress,
     ) {
         self.try_change_quorum(quorum);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
@@ -42,6 +43,7 @@ pub trait ConfigurablePropertiesModule {
         self.try_change_lock_time_after_voting_ends_in_blocks(
             lock_time_after_voting_ends_in_blocks,
         );
+        self.set_energy_factory_address(energy_factory_address);
     }
 
     // endpoints - these can only be called by the SC itself.
