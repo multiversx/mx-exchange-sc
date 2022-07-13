@@ -57,7 +57,7 @@ pub trait FactoryModule {
             self.blockchain().get_gas_left(),
             &BigUint::zero(),
             &self.pair_template_address().get(),
-            CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC,
+            CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
             &arg_buffer,
         );
 
@@ -84,6 +84,7 @@ pub trait FactoryModule {
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
         owner: &ManagedAddress,
+        initial_liquidity_adder: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) {
@@ -95,12 +96,16 @@ pub trait FactoryModule {
         arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
         arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
 
+        if !initial_liquidity_adder.is_zero() {
+            arg_buffer.push_arg(initial_liquidity_adder)
+        }
+
         Self::Api::send_api_impl().upgrade_from_source_contract(
             pair_address,
             self.blockchain().get_gas_left(),
             &BigUint::zero(),
             &self.pair_template_address().get(),
-            CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC,
+            CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
             &arg_buffer,
         );
     }
