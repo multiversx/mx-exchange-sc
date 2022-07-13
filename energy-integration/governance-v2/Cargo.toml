@@ -1,0 +1,18 @@
+[package]
+name = "governance-v2"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.energy-query-module]
+path = "../energy-query-module"
+
+[dependencies.elrond-wasm]
+version = "0.34.0"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.34.0"

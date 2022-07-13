@@ -19,6 +19,9 @@ members = [
   "dex/pair-mock",
   "dex/pair-mock/meta",
 
+  "energy-integration/governance-v2",
+  "energy-integration/governance-v2/meta",
+
   "farm-staking/farm-staking",
   "farm-staking/farm-staking/meta",
   "farm-staking/farm-staking-proxy",

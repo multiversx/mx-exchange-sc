@@ -1,0 +1,275 @@
+#![no_std]
+
+elrond_wasm::imports!();
+
+pub mod configurable;
+pub mod events;
+pub mod proposal;
+pub mod proposal_storage;
+pub mod views;
+
+use proposal::*;
+
+const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
+static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
+
+/// An empty contract. To be used as a template when starting a new contract from scratch.
+#[elrond_wasm::contract]
+pub trait GovernanceV2:
+    configurable::ConfigurablePropertiesModule
+    + events::EventsModule
+    + proposal_storage::ProposalStorageModule
+    + views::ViewsModule
+    + energy_query_module::EnergyQueryModule
+{
+    // Used to deposit tokens for "payable" actions
+    // There is no "withdraw" functionality
+    // Funds can only be retrived through an action
+    #[payable("*")]
+    #[endpoint(depositTokensForAction)]
+    fn deposit_tokens_for_action(&self) {
+        self.require_caller_not_self();
+
+        let payments = self.call_value().all_esdt_transfers();
+        let caller = self.blockchain().get_caller();
+
+        self.user_deposit_event(&caller, &payments);
+    }
+
+    /// Propose a list of actions.
+    /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
+    ///
+    /// An action has the following format:
+    ///     - gas limit for action execution
+    ///     - destination address
+    ///     - a vector of ESDT transfers, in the form of ManagedVec<EsdTokenPayment>
+    ///     - endpoint to be called on the destination
+    ///     - a vector of arguments for the endpoint, in the form of ManagedVec<ManagedBuffer>
+    ///
+    /// The proposer's energy is automatically used for voting already.
+    ///
+    /// Returns the ID of the newly created proposal.
+    #[endpoint]
+    fn propose(
+        &self,
+        description: ManagedBuffer,
+        actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
+    ) -> ProposalId {
+        self.require_caller_not_self();
+        require!(!actions.is_empty(), "Proposal has no actions");
+        require!(
+            actions.len() <= MAX_GOVERNANCE_PROPOSAL_ACTIONS,
+            "Exceeded max actions per proposal"
+        );
+
+        let mut gov_actions = ArrayVec::new();
+        for action_multiarg in actions {
+            let gov_action = GovernanceAction::from(action_multiarg);
+            require!(
+                gov_action.gas_limit < MAX_GAS_LIMIT_PER_BLOCK,
+                "A single action cannot use more than the max gas limit per block"
+            );
+
+            gov_actions.push(gov_action);
+        }
+
+        require!(
+            self.total_gas_needed(&gov_actions) < MAX_GAS_LIMIT_PER_BLOCK,
+            "Actions require too much gas to be executed"
+        );
+
+        let proposer = self.blockchain().get_caller();
+        let proposal = GovernanceProposal {
+            proposer: proposer.clone(),
+            description,
+            actions: gov_actions,
+        };
+        let proposal_id = self.proposals().push(&proposal);
+
+        let user_energy = self.get_energy_non_zero(proposer.clone());
+        self.total_votes(proposal_id).set(&user_energy);
+        let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
+
+        let current_block = self.blockchain().get_block_nonce();
+        self.proposal_start_block(proposal_id).set(&current_block);
+
+        self.proposal_created_event(proposal_id, &proposer, current_block, &proposal);
+
+        proposal_id
+    }
+
+    /// Vote on a proposal. The voting power depends on the user's energy.
+    #[endpoint]
+    fn vote(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
+            "Proposal is not active"
+        );
+
+        let voter = self.blockchain().get_caller();
+        let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
+        require!(new_user, ALREADY_VOTED_ERR_MSG);
+
+        let user_energy = self.get_energy_non_zero(voter.clone());
+        self.total_votes(proposal_id)
+            .update(|total_votes| *total_votes += &user_energy);
+
+        self.vote_cast_event(&voter, proposal_id, &user_energy);
+    }
+
+    /// Downvote a proposal. The voting power depends on the user's energy.
+    #[endpoint]
+    fn downvote(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
+            "Proposal is not active"
+        );
+
+        let downvoter = self.blockchain().get_caller();
+        let new_user = self.user_voted_proposals(&downvoter).insert(proposal_id);
+        require!(new_user, ALREADY_VOTED_ERR_MSG);
+
+        let user_energy = self.get_energy_non_zero(downvoter.clone());
+        self.total_downvotes(proposal_id)
+            .update(|total_downvotes| *total_downvotes += &user_energy);
+
+        self.downvote_cast_event(&downvoter, proposal_id, &user_energy);
+    }
+
+    /// Queue a proposal for execution.
+    /// This can be done only if the proposal has reached the quorum.
+    /// A proposal is considered successful and ready for queing if
+    /// total_votes - total_downvotes >= quorum
+    #[endpoint]
+    fn queue(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Succeeded,
+            "Can only queue succeeded proposals"
+        );
+
+        let current_block = self.blockchain().get_block_nonce();
+        self.proposal_queue_block(proposal_id).set(&current_block);
+
+        self.proposal_queued_event(proposal_id, current_block);
+    }
+
+    /// Execute a previously queued proposal.
+    /// This will clear the proposal and unlock the governance tokens.
+    /// Said tokens can then be withdrawn and used to vote/downvote other proposals.
+    #[endpoint]
+    fn execute(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Queued,
+            "Can only execute queued proposals"
+        );
+
+        let current_block = self.blockchain().get_block_nonce();
+        let lock_blocks = self.lock_time_after_voting_ends_in_blocks().get();
+
+        let lock_start = self.proposal_queue_block(proposal_id).get();
+        let lock_end = lock_start + lock_blocks;
+
+        require!(
+            current_block >= lock_end,
+            "Proposal is in timelock status. Try again later"
+        );
+
+        let proposal = self.proposals().get(proposal_id);
+        let total_gas_needed = self.total_gas_needed(&proposal.actions);
+        let gas_left = self.blockchain().get_gas_left();
+
+        require!(
+            gas_left > total_gas_needed,
+            "Not enough gas to execute all proposals"
+        );
+
+        for action in proposal.actions {
+            let mut contract_call = self
+                .send()
+                .contract_call::<()>(action.dest_address, action.function_name)
+                .with_gas_limit(action.gas_limit);
+
+            if !action.payments.is_empty() {
+                contract_call = contract_call.with_multi_token_transfer(action.payments);
+            }
+
+            for arg in &action.arguments {
+                contract_call.push_arg_managed_buffer(arg);
+            }
+
+            contract_call.transfer_execute();
+        }
+
+        self.clear_proposal(proposal_id);
+
+        self.proposal_executed_event(proposal_id);
+    }
+
+    /// Cancel a proposed action. This can be done:
+    /// - by the proposer, at any time
+    /// - by anyone, if the proposal was defeated
+    #[endpoint]
+    fn cancel(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        
+        match self.get_proposal_status(proposal_id) {
+            GovernanceProposalStatus::None => {
+                sc_panic!("Proposal does not exist");
+            }
+            GovernanceProposalStatus::Pending => {
+                let proposal = self.proposals().get(proposal_id);
+                let caller = self.blockchain().get_caller();
+
+                require!(
+                    caller == proposal.proposer,
+                    "Only original proposer may cancel a pending proposal"
+                );
+            }
+            GovernanceProposalStatus::Defeated => {}
+            _ => {
+                sc_panic!("Action may not be cancelled");
+            }
+        }
+
+        self.clear_proposal(proposal_id);
+
+        self.proposal_canceled_event(proposal_id);
+    }
+
+    fn require_caller_not_self(&self) {
+        let caller = self.blockchain().get_caller();
+        let sc_address = self.blockchain().get_sc_address();
+
+        require!(
+            caller != sc_address,
+            "Cannot call this endpoint through proposed action"
+        );
+    }
+
+    fn total_gas_needed(
+        &self,
+        actions: &ArrayVec<GovernanceAction<Self::Api>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
+    ) -> u64 {
+        let mut total = 0;
+        for action in actions {
+            total += action.gas_limit;
+        }
+
+        total
+    }
+
+    fn clear_proposal(&self, proposal_id: ProposalId) {
+        self.proposals().clear_entry(proposal_id);
+        self.proposal_start_block(proposal_id).clear();
+        self.proposal_queue_block(proposal_id).clear();
+
+        self.total_votes(proposal_id).clear();
+        self.total_downvotes(proposal_id).clear();
+    }
+}
