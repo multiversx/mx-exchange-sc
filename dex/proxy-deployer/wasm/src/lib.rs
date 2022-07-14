@@ -5,8 +5,13 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    empty
+    proxy_deployer
     (
+        deployFarm
+        pauseFarm
+        registerFarmToken
+        resumeFarm
+        setFarmBurnGasLimit
     )
 }
 
