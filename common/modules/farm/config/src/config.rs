@@ -5,17 +5,20 @@ elrond_wasm::derive_imports!();
 
 use common_errors::*;
 
-use common_structs::Nonce;
+use common_structs::{Epoch, Nonce};
 use pausable::State;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;
-pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u8 = 3;
+pub const DEFAULT_MINUMUM_FARMING_EPOCHS: u64 = 3;
 pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
+pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
+pub trait ConfigModule:
+    token_send::TokenSendModule + pausable::PausableModule + admin_whitelist::AdminWhitelistModule
+{
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -26,19 +29,21 @@ pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) {
         require!(percent < MAX_PERCENT, ERROR_PARAMETERS);
-        self.penalty_percent().set(&percent);
+        self.penalty_percent().set(percent);
     }
 
-    #[only_owner]
     #[endpoint]
-    fn set_minimum_farming_epochs(&self, epochs: u8) {
-        self.minimum_farming_epochs().set(&epochs);
+    fn set_minimum_farming_epochs(&self, epochs: Epoch) {
+        self.require_caller_is_admin();
+        require!(epochs <= MAX_MINIMUM_FARMING_EPOCHS, ERROR_PARAMETERS);
+
+        self.minimum_farming_epochs().set(epochs);
     }
 
     #[only_owner]
     #[endpoint]
     fn set_burn_gas_limit(&self, gas_limit: u64) {
-        self.burn_gas_limit().set(&gas_limit);
+        self.burn_gas_limit().set(gas_limit);
     }
 
     #[view(getFarmTokenSupply)]
@@ -59,7 +64,7 @@ pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
 
     #[view(getMinimumFarmingEpoch)]
     #[storage_mapper("minimum_farming_epochs")]
-    fn minimum_farming_epochs(&self) -> SingleValueMapper<u8>;
+    fn minimum_farming_epochs(&self) -> SingleValueMapper<Epoch>;
 
     #[view(getPerBlockRewardAmount)]
     #[storage_mapper("per_block_reward_amount")]

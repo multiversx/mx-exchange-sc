@@ -12,6 +12,7 @@ pub trait CustomRewardsModule:
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
     + pausable::PausableModule
+    + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> BigUint {
@@ -45,9 +46,10 @@ pub trait CustomRewardsModule:
         }
     }
 
-    #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {
+        self.require_caller_is_admin();
+
         let mut storage = StorageCache::new(self);
 
         self.generate_aggregated_rewards(&mut storage);
@@ -57,9 +59,9 @@ pub trait CustomRewardsModule:
         self.produce_rewards_enabled().set(false);
     }
 
-    #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
+        self.require_caller_is_admin();
         require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
 
         let mut storage = StorageCache::new(self);

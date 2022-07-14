@@ -11,6 +11,7 @@ pub trait RewardsModule:
     + farm_token::FarmTokenModule
     + token_send::TokenSendModule
     + pausable::PausableModule
+    + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_per_block_rewards(
@@ -28,9 +29,9 @@ pub trait RewardsModule:
         per_block_reward * block_nonce_diff
     }
 
-    #[only_owner]
     #[endpoint(startProduceRewards)]
-    fn start_produce_rewards_as_owner(&self) {
+    fn start_produce_rewards_endpoint(&self) {
+        self.require_caller_is_admin();
         self.start_produce_rewards();
     }
 
@@ -44,11 +45,11 @@ pub trait RewardsModule:
             "Producing rewards is already enabled"
         );
         let current_nonce = self.blockchain().get_block_nonce();
-        self.produce_rewards_enabled().set(&true);
-        self.last_reward_block_nonce().set(&current_nonce);
+        self.produce_rewards_enabled().set(true);
+        self.last_reward_block_nonce().set(current_nonce);
     }
 
-    #[inline(always)]
+    #[inline]
     fn produces_per_block_rewards(&self) -> bool {
         self.produce_rewards_enabled().get()
     }

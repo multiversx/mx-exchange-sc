@@ -36,6 +36,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
+    + admin_whitelist::AdminWhitelistModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
@@ -51,6 +52,7 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
+        mut admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
             reward_token_id.is_valid_esdt_identifier(),
@@ -66,7 +68,7 @@ pub trait Farm:
         require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
         require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
-        self.state().set(&State::Inactive);
+        self.state().set(State::Inactive);
         self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
@@ -80,6 +82,11 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         self.pause_whitelist().add(&caller);
+
+        if admins.is_empty() {
+            admins.push(caller);
+        }
+        self.add_admins(admins);
     }
 
     #[payable("*")]
@@ -397,8 +404,7 @@ pub trait Farm:
     }
 
     fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
-        entering_epoch + self.minimum_farming_epochs().get() as u64
-            > self.blockchain().get_block_epoch()
+        entering_epoch + self.minimum_farming_epochs().get() > self.blockchain().get_block_epoch()
     }
 
     fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
