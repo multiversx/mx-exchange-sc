@@ -42,11 +42,13 @@ pub trait FarmConfigModule {
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
+        let payment = self.call_value().egld_value();
         let gas_left = self.blockchain().get_gas_left();
         let gas_for_call = gas_left - GAS_LIMIT_FOR_CLEANUP;
 
         self.farm_config_proxy(farm_address)
             .register_farm_token(token_display_name, token_ticker, num_decimals)
+            .with_egld_transfer(payment)
             .with_gas_limit(gas_for_call)
             .execute_on_dest_context_ignore_result();
     }
