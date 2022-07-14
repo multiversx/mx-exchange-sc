@@ -1,0 +1,18 @@
+[package]
+name = "fees-collector"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "0.34.0"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
