@@ -1,5 +1,5 @@
 [package]
-name = "governance-meta"
+name = "proxy-deployer-meta"
 version = "0.0.0"
 edition = "2018"
 publish = false
@@ -7,11 +7,8 @@ authors = [ "you",]
 
 [dev-dependencies]
 
-[dependencies.governance]
+[dependencies.proxy-deployer]
 path = ".."
-
-[dependencies.elrond-wasm]
-version = "0.34.0"
 
 [dependencies.elrond-wasm-debug]
 version = "0.34.0"

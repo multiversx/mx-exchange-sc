@@ -1,9 +1,9 @@
 [package]
-name = "farm-wasm"
+name = "proxy-deployer-wasm"
 version = "0.0.0"
-authors = [ "you",]
 edition = "2018"
 publish = false
+authors = [ "you",]
 
 [lib]
 crate-type = [ "cdylib",]
@@ -20,8 +20,7 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.farm]
-default-features = false
+[dependencies.proxy-deployer]
 path = ".."
 
 [dependencies.elrond-wasm-node]
@@ -29,4 +28,4 @@ version = "0.34.0"
 
 [dependencies.elrond-wasm-output]
 version = "0.34.0"
-features = ["wasm-output-mode"]
+features = [ "wasm-output-mode",]

@@ -1,12 +1,15 @@
 [package]
-name = "governance"
+name = "proxy-deployer"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
 publish = false
 
 [lib]
-path = "src/contract.rs"
+path = "src/lib.rs"
+
+[dependencies.farm]
+path = "../farm"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"
@@ -16,6 +19,3 @@ version = "0.34.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
-
-[dev-dependencies.pair-mock]
-path = "../pair-mock"
