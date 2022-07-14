@@ -16,6 +16,8 @@ members = [
   "dex/governance/meta",
   "dex/price-discovery",
   "dex/price-discovery/meta",
+  "dex/proxy-deployer",
+  "dex/proxy-deployer/meta",
   "dex/pair-mock",
   "dex/pair-mock/meta",
 
