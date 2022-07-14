@@ -21,7 +21,7 @@ pub trait FarmDeployModule {
         let code_metadata =
             CodeMetadata::PAYABLE_BY_SC & CodeMetadata::READABLE & CodeMetadata::UPGRADEABLE;
         let (new_farm_address, ()) = self
-            .farm_proxy(ManagedAddress::zero())
+            .farm_deploy_proxy()
             .init(
                 reward_token_id,
                 farming_token_id,
@@ -35,7 +35,7 @@ pub trait FarmDeployModule {
     }
 
     #[proxy]
-    fn farm_proxy(&self, sc_address: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn farm_deploy_proxy(&self) -> farm::Proxy<Self::Api>;
 
     #[storage_mapper("farmTemplateAddress")]
     fn farm_template_address(&self) -> SingleValueMapper<ManagedAddress>;

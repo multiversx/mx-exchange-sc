@@ -2,10 +2,11 @@
 
 elrond_wasm::imports!();
 
+pub mod farm_config;
 pub mod farm_deploy;
 
 #[elrond_wasm::contract]
-pub trait ProxyDeployer: farm_deploy::FarmDeployModule {
+pub trait ProxyDeployer: farm_deploy::FarmDeployModule + farm_config::FarmConfigModule {
     #[init]
     fn init(&self, farm_template_address: ManagedAddress) {
         require!(
