@@ -18,7 +18,7 @@ pub const BLOCK_NONCE_AFTER_PAIR_SETUP: u64 = 100;
 pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
 pub const LP_FARM_TOKEN_ID: &[u8] = b"LPFARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-pub const MIN_FARMING_EPOCHS: u8 = 2;
+pub const MIN_FARMING_EPOCHS: u64 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
 pub const LP_FARM_PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 

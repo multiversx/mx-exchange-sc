@@ -45,7 +45,7 @@ pub mod fuzz_data_tests {
     pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEXFARM-abcdef";
     pub const LOCKED_MEX_TOKEN_ID: &[u8] = b"LKMEX-abcdef";
     pub const FACTORY_LOCK_NONCE: u64 = 1;
-    pub const MIN_FARMING_EPOCHS: u8 = 2;
+    pub const MIN_FARMING_EPOCHS: u64 = 2;
     pub const FARM_PENALTY_PERCENT: u64 = 10;
     pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
     pub const USER_TOTAL_MEX_TOKENS: u64 = 100_000_000_000;
@@ -438,6 +438,7 @@ pub mod fuzz_data_tests {
                     farming_token_id,
                     division_safety_constant,
                     pair_address,
+                    MultiValueEncoded::new(),
                 );
 
                 let farm_token_id = managed_token_id!(farm_token);
@@ -445,8 +446,8 @@ pub mod fuzz_data_tests {
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
-                sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(&FARM_PENALTY_PERCENT);
+                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
+                sc.penalty_percent().set(FARM_PENALTY_PERCENT);
 
                 sc.state().set(&State::Active);
                 sc.produce_rewards_enabled().set(&true);

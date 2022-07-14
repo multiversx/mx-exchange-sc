@@ -72,6 +72,27 @@
             }
         },
         {
+            "step": "scCall",
+            "txId": "add-admin",
+            "tx": {
+                "from": "address:alice",
+                "to": "sc:farm_contract",
+                "function": "addAdmins",
+                "arguments": [
+                    "address:alice"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
             "step": "setState",
             "currentBlockInfo": {
                 "blockNonce": "3"

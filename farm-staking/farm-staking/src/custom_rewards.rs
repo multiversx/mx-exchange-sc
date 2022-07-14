@@ -1,10 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Nonce;
+use common_structs::{Epoch, Nonce};
 use config::MAX_PERCENT;
 
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
+const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
@@ -12,6 +13,7 @@ pub trait CustomRewardsModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
+    + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_extra_rewards_since_last_allocation(&self) -> BigUint {
@@ -56,10 +58,11 @@ pub trait CustomRewardsModule:
         }
     }
 
-    #[only_owner]
     #[payable("*")]
     #[endpoint(topUpRewards)]
     fn top_up_rewards(&self) {
+        self.require_caller_is_admin();
+
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let reward_token_id = self.reward_token_id().get();
         require!(payment_token == reward_token_id, "Invalid token");
@@ -67,35 +70,45 @@ pub trait CustomRewardsModule:
         self.reward_capacity().update(|r| *r += payment_amount);
     }
 
-    #[only_owner]
     #[endpoint]
     fn end_produce_rewards(&self) {
+        self.require_caller_is_admin();
+
         self.generate_aggregated_rewards();
         self.produce_rewards_enabled().set(&false);
     }
 
-    #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
+        self.require_caller_is_admin();
         require!(per_block_amount != 0, "Amount cannot be zero");
 
         self.generate_aggregated_rewards();
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
-    #[only_owner]
     #[endpoint(setMaxApr)]
     fn set_max_apr(&self, max_apr: BigUint) {
+        self.require_caller_is_admin();
         require!(max_apr != 0, "Max APR cannot be zero");
 
         self.generate_aggregated_rewards();
         self.max_annual_percentage_rewards().set(&max_apr);
     }
 
-    #[only_owner]
     #[endpoint(setMinUnbondEpochs)]
-    fn set_min_unbond_epochs(&self, min_unbond_epochs: u64) {
-        self.min_unbond_epochs().set(&min_unbond_epochs);
+    fn set_min_unbond_epochs_endpoint(&self, min_unbond_epochs: Epoch) {
+        self.require_caller_is_admin();
+        self.try_set_min_unbond_epochs(min_unbond_epochs);
+    }
+
+    fn try_set_min_unbond_epochs(&self, min_unbond_epochs: Epoch) {
+        require!(
+            min_unbond_epochs <= MAX_MIN_UNBOND_EPOCHS,
+            "Invalid min unbond epochs"
+        );
+
+        self.min_unbond_epochs().set(min_unbond_epochs);
     }
 
     fn calculate_per_block_rewards(
@@ -149,9 +162,9 @@ pub trait CustomRewardsModule:
         amount * &max_apr / MAX_PERCENT / BLOCKS_IN_YEAR
     }
 
-    #[only_owner]
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) {
+        self.require_caller_is_admin();
         require!(
             self.per_block_reward_amount().get() != 0,
             "Cannot produce zero reward amount"
@@ -188,5 +201,5 @@ pub trait CustomRewardsModule:
 
     #[view(getMinUnbondEpochs)]
     #[storage_mapper("minUnbondEpochs")]
-    fn min_unbond_epochs(&self) -> SingleValueMapper<u64>;
+    fn min_unbond_epochs(&self) -> SingleValueMapper<Epoch>;
 }

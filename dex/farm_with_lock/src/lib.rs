@@ -36,6 +36,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
+    + admin_whitelist::AdminWhitelistModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
