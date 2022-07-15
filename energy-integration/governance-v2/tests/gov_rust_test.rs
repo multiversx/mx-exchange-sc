@@ -1,6 +1,6 @@
 mod gov_test_setup;
 
-use elrond_wasm_debug::managed_biguint;
+use elrond_wasm_debug::{managed_biguint, rust_biguint};
 use gov_test_setup::*;
 use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal_storage::ProposalStorageModule,
@@ -113,4 +113,50 @@ fn gov_cancel_defeated_proposal_test() {
 
     gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
     gov_setup.cancel(&second_user_addr, proposal_id).assert_ok();
+}
+
+#[test]
+fn gov_paymnts_refund_test() {
+    let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
+
+    let user_addr = gov_setup.first_user.clone();
+    let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+
+    let token_id = b"COOL-123456".to_vec();
+    let amount = 10064;
+    gov_setup
+        .b_mock
+        .set_esdt_balance(&user_addr, &token_id, &rust_biguint!(amount));
+
+    let payments = vec![Payment {
+        token: token_id.clone(),
+        nonce: 0,
+        amount,
+    }];
+    let (result, proposal_id) = gov_setup.propose(
+        &user_addr,
+        &sc_addr,
+        payments.clone(),
+        b"giveMeTokens",
+        vec![1_000u64.to_be_bytes().to_vec()],
+    );
+    result.assert_ok();
+    assert_eq!(proposal_id, 1);
+
+    gov_setup
+        .deposit_tokens(&user_addr, &payments, proposal_id)
+        .assert_ok();
+
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&sc_addr, &token_id, &rust_biguint!(amount));
+
+    gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
+    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
+    gov_setup.cancel(&user_addr, proposal_id).assert_ok();
+
+    // tokens were refunded to the user
+    gov_setup
+        .b_mock
+        .check_esdt_balance(&user_addr, &token_id, &rust_biguint!(amount));
 }

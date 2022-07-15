@@ -29,13 +29,14 @@ pub trait GovernanceV2:
     #[endpoint(depositTokensForProposal)]
     fn deposit_tokens_for_proposal(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
 
         let depositor_mapper = self.payments_depositor(proposal_id);
         require!(depositor_mapper.is_empty(), "Payments already deposited");
 
         let required_payments = self.pending_payments_for_proposal(proposal_id).get();
         require!(
-            required_payments.is_empty(),
+            !required_payments.is_empty(),
             "This proposal requires no payments"
         );
 

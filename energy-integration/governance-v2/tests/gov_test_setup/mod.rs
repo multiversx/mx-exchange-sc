@@ -2,7 +2,7 @@ use elrond_wasm::types::{Address, EsdtTokenPayment, ManagedVec, MultiValueEncode
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
+    tx_mock::{TxInputESDT, TxResult},
     DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
@@ -16,6 +16,7 @@ pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 pub const USER_ENERGY: u64 = 1_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
 
+#[derive(Clone)]
 pub struct Payment {
     pub token: Vec<u8>,
     pub nonce: u64,
@@ -174,6 +175,27 @@ where
         self.b_mock
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
                 sc.cancel(proposal_id);
+            })
+    }
+
+    pub fn deposit_tokens(
+        &mut self,
+        caller: &Address,
+        payments: &Vec<Payment>,
+        proposal_id: usize,
+    ) -> TxResult {
+        let mut esdt_transfers = Vec::new();
+        for p in payments {
+            esdt_transfers.push(TxInputESDT {
+                token_identifier: p.token.clone(),
+                nonce: p.nonce,
+                value: rust_biguint!(p.amount),
+            });
+        }
+
+        self.b_mock
+            .execute_esdt_multi_transfer(caller, &self.gov_wrapper, &esdt_transfers, |sc| {
+                sc.deposit_tokens_for_proposal(proposal_id);
             })
     }
 
