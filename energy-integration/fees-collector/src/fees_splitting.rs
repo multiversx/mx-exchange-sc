@@ -24,7 +24,17 @@ pub trait FeesSplittingModule:
             self.send().direct_multi(&caller, &user_rewards);
         }
 
-        self.add_energy_for_next_week(caller, current_week);
+        self.user_energy_for_week(&caller, week).clear();
+        self.update_user_energy_for_next_week(caller, current_week);
+
+        let users_remaining_for_given_week =
+            self.total_users_for_week(week).update(|total_users| {
+                *total_users -= 1;
+                *total_users
+            });
+        if users_remaining_for_given_week == 0 {
+            self.clear_storage_for_week(week);
+        }
     }
 
     fn collect_and_get_rewards_for_week(&self, week: Week) -> TokenAmountPairsVec<Self::Api> {
@@ -62,18 +72,28 @@ pub trait FeesSplittingModule:
         user_rewards
     }
 
-    fn add_energy_for_next_week(&self, user: ManagedAddress, current_week: usize) {
+    fn update_user_energy_for_next_week(&self, user: ManagedAddress, current_week: usize) {
         let next_week = current_week + 1;
         let user_energy_mapper = self.user_energy_for_week(&user, next_week);
 
-        let previous_energy = user_energy_mapper.get();
+        let prev_saved_energy = user_energy_mapper.get();
+        if prev_saved_energy == 0 {
+            self.total_users_for_week(next_week)
+                .update(|total_users| *total_users += 1);
+        }
+
         let user_energy_for_next_week = self.get_energy_non_zero(user);
         user_energy_mapper.set(&user_energy_for_next_week);
 
         self.total_energy_for_week(next_week).update(|total| {
-            *total -= previous_energy;
+            *total -= prev_saved_energy;
             *total += user_energy_for_next_week
         });
+    }
+
+    fn clear_storage_for_week(&self, week: Week) {
+        self.total_rewards_for_week(week).clear();
+        self.total_energy_for_week(week).clear();
     }
 
     #[storage_mapper("totalRewardsForWeek")]
