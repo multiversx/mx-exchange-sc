@@ -6,6 +6,7 @@ pub type Week = usize;
 pub type Epoch = u64;
 
 pub const EPOCHS_IN_WEEK: Epoch = 7;
+pub const FIRST_WEEK: Week = 1;
 
 #[elrond_wasm::module]
 pub trait WeekTimekeepingModule {

@@ -5,8 +5,19 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    empty
+    fees_collector
     (
+        addKnownPairContracts
+        addKnownTokens
+        claimRewards
+        depositSwapFees
+        getAllKnownPairContracts
+        getAllTokens
+        getCurrentWeek
+        getEnergyFactoryAddress
+        removeKnownPairContracts
+        removeKnownTokens
+        setEnergyFactoryAddress
     )
 }
 

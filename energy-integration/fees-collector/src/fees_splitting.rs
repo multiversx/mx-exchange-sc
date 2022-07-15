@@ -1,6 +1,9 @@
 elrond_wasm::imports!();
 
-use crate::{fees_accumulation::TokenAmountPair, week_timekeeping::Week};
+use crate::{
+    fees_accumulation::TokenAmountPair,
+    week_timekeeping::{Week, FIRST_WEEK},
+};
 
 pub type TokenAmountPairsVec<M> = ManagedVec<M, TokenAmountPair<M>>;
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
@@ -38,6 +41,10 @@ pub trait FeesSplittingModule:
     }
 
     fn collect_and_get_rewards_for_week(&self, week: Week) -> TokenAmountPairsVec<Self::Api> {
+        if week == FIRST_WEEK {
+            return ManagedVec::new();
+        }
+
         let total_rewards_mapper = self.total_rewards_for_week(week);
         if total_rewards_mapper.is_empty() {
             let total_rewards = self.collect_accumulated_fees_for_week(week);
@@ -56,6 +63,10 @@ pub trait FeesSplittingModule:
         total_rewards: &TokenAmountPairsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let mut user_rewards = ManagedVec::new();
+        if week == FIRST_WEEK {
+            return user_rewards;
+        }
+
         let user_energy = self.user_energy_for_week(user, week).get();
         if user_energy == 0 {
             return user_rewards;
@@ -75,7 +86,6 @@ pub trait FeesSplittingModule:
     fn update_user_energy_for_next_week(&self, user: ManagedAddress, current_week: usize) {
         let next_week = current_week + 1;
         let user_energy_mapper = self.user_energy_for_week(&user, next_week);
-
         let prev_saved_energy = user_energy_mapper.get();
         if prev_saved_energy == 0 {
             self.total_users_for_week(next_week)

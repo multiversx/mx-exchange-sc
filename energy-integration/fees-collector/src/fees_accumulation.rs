@@ -20,6 +20,8 @@ impl<M: ManagedTypeApi> TokenAmountPair<M> {
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule + crate::week_timekeeping::WeekTimekeepingModule
 {
+    /// Pair SC will deposit the fees through this endpoint
+    /// Deposits for current week are stored to be accessible starting next week
     #[payable("*")]
     #[endpoint(depositSwapFees)]
     fn deposit_swap_fees(&self) {
@@ -35,8 +37,8 @@ pub trait FeesAccumulationModule:
             "Invalid payment token"
         );
 
-        let current_week = self.get_current_week();
-        self.accumulated_fees(current_week, &payment_token)
+        let next_week = self.get_current_week() + 1;
+        self.accumulated_fees(next_week, &payment_token)
             .update(|amt| *amt += payment_amount);
     }
 
