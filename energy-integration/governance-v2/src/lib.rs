@@ -22,18 +22,33 @@ pub trait GovernanceV2:
     + views::ViewsModule
     + energy_query_module::EnergyQueryModule
 {
-    // Used to deposit tokens for "payable" actions
-    // There is no "withdraw" functionality
-    // Funds can only be retrived through an action
+    /// Used to deposit tokens for "payable" actions.
+    /// Funds will be returned if the proposal is defeated.
+    /// To keep the logic simple, all tokens have to be deposited at once
     #[payable("*")]
-    #[endpoint(depositTokensForAction)]
-    fn deposit_tokens_for_action(&self) {
+    #[endpoint(depositTokensForProposal)]
+    fn deposit_tokens_for_proposal(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
 
-        let payments = self.call_value().all_esdt_transfers();
-        let caller = self.blockchain().get_caller();
+        let depositor_mapper = self.payments_depositor(proposal_id);
+        require!(depositor_mapper.is_empty(), "Payments already deposited");
 
-        self.user_deposit_event(&caller, &payments);
+        let required_payments = self.pending_payments_for_proposal(proposal_id).get();
+        require!(
+            required_payments.is_empty(),
+            "This proposal requires no payments"
+        );
+
+        let actual_payments = self.call_value().all_esdt_transfers();
+        require!(
+            actual_payments == required_payments,
+            "Invalid payments, must match the required payments"
+        );
+
+        let caller = self.blockchain().get_caller();
+        depositor_mapper.set(&caller);
+
+        self.user_deposit_event(&caller, proposal_id, &actual_payments);
     }
 
     /// Propose a list of actions.
@@ -63,12 +78,17 @@ pub trait GovernanceV2:
         );
 
         let mut gov_actions = ArrayVec::new();
+        let mut payments_for_action = ManagedVec::new();
         for action_multiarg in actions {
             let gov_action = GovernanceAction::from(action_multiarg);
             require!(
                 gov_action.gas_limit < MAX_GAS_LIMIT_PER_BLOCK,
                 "A single action cannot use more than the max gas limit per block"
             );
+
+            if !gov_action.payments.is_empty() {
+                payments_for_action.append_vec(gov_action.payments.clone());
+            }
 
             gov_actions.push(gov_action);
         }
@@ -85,6 +105,11 @@ pub trait GovernanceV2:
             actions: gov_actions,
         };
         let proposal_id = self.proposals().push(&proposal);
+
+        if !payments_for_action.is_empty() {
+            self.pending_payments_for_proposal(proposal_id)
+                .set(&payments_for_action);
+        }
 
         let user_energy = self.get_energy_non_zero(proposer.clone());
         self.total_votes(proposal_id).set(&user_energy);
@@ -144,12 +169,18 @@ pub trait GovernanceV2:
     /// This can be done only if the proposal has reached the quorum.
     /// A proposal is considered successful and ready for queing if
     /// total_votes - total_downvotes >= quorum
+    /// and all the required payments were deposited
     #[endpoint]
     fn queue(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         require!(
             self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Succeeded,
             "Can only queue succeeded proposals"
+        );
+        require!(
+            self.pending_payments_for_proposal(proposal_id).is_empty()
+                || !self.payments_depositor(proposal_id).is_empty(),
+            "Payments for proposal not deposited"
         );
 
         let current_block = self.blockchain().get_block_nonce();
@@ -217,7 +248,7 @@ pub trait GovernanceV2:
     #[endpoint]
     fn cancel(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
-        
+
         match self.get_proposal_status(proposal_id) {
             GovernanceProposalStatus::None => {
                 sc_panic!("Proposal does not exist");
@@ -237,6 +268,7 @@ pub trait GovernanceV2:
             }
         }
 
+        self.refund_payments(proposal_id);
         self.clear_proposal(proposal_id);
 
         self.proposal_canceled_event(proposal_id);
@@ -264,10 +296,26 @@ pub trait GovernanceV2:
         total
     }
 
+    fn refund_payments(&self, proposal_id: ProposalId) {
+        let payments = self.pending_payments_for_proposal(proposal_id).get();
+        if payments.is_empty() {
+            return;
+        }
+
+        let depositor_mapper = self.payments_depositor(proposal_id);
+        if !depositor_mapper.is_empty() {
+            let depositor = depositor_mapper.get();
+            self.send().direct_multi(&depositor, &payments);
+        }
+    }
+
     fn clear_proposal(&self, proposal_id: ProposalId) {
         self.proposals().clear_entry(proposal_id);
         self.proposal_start_block(proposal_id).clear();
         self.proposal_queue_block(proposal_id).clear();
+
+        self.pending_payments_for_proposal(proposal_id).clear();
+        self.payments_depositor(proposal_id).clear();
 
         self.total_votes(proposal_id).clear();
         self.total_downvotes(proposal_id).clear();
