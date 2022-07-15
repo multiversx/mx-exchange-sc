@@ -1,6 +1,20 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use crate::week_timekeeping::Week;
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
+pub struct TokenAmountPair<M: ManagedTypeApi> {
+    pub token: TokenIdentifier<M>,
+    pub amount: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> TokenAmountPair<M> {
+    #[inline]
+    pub fn new(token: TokenIdentifier<M>, amount: BigUint<M>) -> Self {
+        TokenAmountPair { token, amount }
+    }
+}
 
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
@@ -26,19 +40,28 @@ pub trait FeesAccumulationModule:
             .update(|amt| *amt += payment_amount);
     }
 
-    #[view(getAccumulatedFeesForWeek)]
-    fn get_accumulated_fees_for_week(
+    fn collect_accumulated_fees_for_week(
         &self,
         week: Week,
-    ) -> MultiValueEncoded<MultiValue2<TokenIdentifier, BigUint>> {
-        let mut results = MultiValueEncoded::new();
+    ) -> ManagedVec<TokenAmountPair<Self::Api>> {
+        let mut results = ManagedVec::new();
         let all_tokens = self.all_tokens().get();
         for token in &all_tokens {
-            let accumulated_fees = self.accumulated_fees(week, &token).get();
-            results.push((token, accumulated_fees).into());
+            let accumulated_fees = self.get_and_clear_acccumulated_fees(week, &token);
+            if accumulated_fees > 0 {
+                results.push(TokenAmountPair::new(token, accumulated_fees));
+            }
         }
 
         results
+    }
+
+    fn get_and_clear_acccumulated_fees(&self, week: Week, token: &TokenIdentifier) -> BigUint {
+        let mapper = self.accumulated_fees(week, token);
+        let value = mapper.get();
+        mapper.clear();
+
+        value
     }
 
     #[storage_mapper("accumulatedFees")]
