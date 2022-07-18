@@ -36,15 +36,19 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::Active;
         }
 
-        let total_votes = self.total_votes(proposal_id).get();
-        let total_downvotes = self.total_downvotes(proposal_id).get();
-        let quorum = self.quorum().get();
-
-        if total_votes > total_downvotes && total_votes - total_downvotes >= quorum {
+        if self.quorum_reached(proposal_id) {
             GovernanceProposalStatus::Succeeded
         } else {
             GovernanceProposalStatus::Defeated
         }
+    }
+
+    fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
+        let total_votes = self.total_votes(proposal_id).get();
+        let total_downvotes = self.total_downvotes(proposal_id).get();
+        let quorum = self.quorum().get();
+
+        &total_votes + &total_downvotes >= quorum && total_votes > total_downvotes
     }
 
     #[view(getProposer)]
