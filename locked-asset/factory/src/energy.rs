@@ -6,8 +6,7 @@ use common_structs::{Epoch, UnlockScheduleEx};
 
 #[derive(TopEncode, TopDecode)]
 pub struct Energy<M: ManagedTypeApi> {
-    amount: BigUint<M>,
-    amount_depleted_under_zero: BigUint<M>,
+    amount: BigInt<M>,
     last_update_epoch: Epoch,
     total_locked_tokens: BigUint<M>,
 }
@@ -15,8 +14,7 @@ pub struct Energy<M: ManagedTypeApi> {
 impl<M: ManagedTypeApi> Default for Energy<M> {
     fn default() -> Self {
         Self {
-            amount: BigUint::zero(),
-            amount_depleted_under_zero: BigUint::zero(),
+            amount: BigInt::zero(),
             last_update_epoch: 0,
             total_locked_tokens: BigUint::zero(),
         }
@@ -32,14 +30,7 @@ impl<M: ManagedTypeApi> Energy<M> {
         if self.total_locked_tokens > 0 && self.last_update_epoch > 0 {
             let epoch_diff = current_epoch - self.last_update_epoch;
             let energy_decrease = &self.total_locked_tokens * epoch_diff;
-            if self.amount > energy_decrease {
-                self.amount -= energy_decrease;
-            } else {
-                let extra_depleted = &energy_decrease - &self.amount;
-                self.amount_depleted_under_zero += extra_depleted;
-
-                self.amount = BigUint::zero();
-            }
+            self.amount -= to_bigint(energy_decrease);
         }
 
         self.last_update_epoch = current_epoch;
@@ -74,7 +65,7 @@ impl<M: ManagedTypeApi> Energy<M> {
 
             let epochs_diff = milestone.unlock_epoch - current_epoch;
             let energy_added = &unlock_amount_at_milestone * epochs_diff;
-            self.amount += energy_added;
+            self.amount += to_bigint(energy_added);
         }
 
         self.total_locked_tokens += lock_amount;
@@ -93,23 +84,16 @@ impl<M: ManagedTypeApi> Energy<M> {
         }
 
         let epochs_diff = current_epoch - unlock_epoch;
-        let mut extra_energy_depleted = unlock_amount * epochs_diff;
-        if self.amount_depleted_under_zero > 0 {
-            if self.amount_depleted_under_zero > extra_energy_depleted {
-                self.amount_depleted_under_zero -= &extra_energy_depleted;
-                extra_energy_depleted = BigUint::zero();
-            } else {
-                extra_energy_depleted -= &self.amount_depleted_under_zero;
-                self.amount_depleted_under_zero = BigUint::zero();
-            }
-        }
-
-        self.amount += extra_energy_depleted;
+        let extra_energy_depleted = unlock_amount * epochs_diff;
+        self.amount += to_bigint(extra_energy_depleted);
     }
 
-    #[inline]
     pub fn into_energy_amount(self) -> BigUint<M> {
-        self.amount
+        if self.amount >= 0 {
+            self.amount.magnitude()
+        } else {
+            BigUint::zero()
+        }
     }
 }
 
@@ -232,4 +216,9 @@ pub trait EnergyModule:
 
     #[storage_mapper("energyActivationLockedTokenNonceStart")]
     fn energy_activation_locked_token_nonce_start(&self) -> SingleValueMapper<u64>;
+}
+
+// temporary until added to Rust framework
+fn to_bigint<M: ManagedTypeApi>(biguint: BigUint<M>) -> BigInt<M> {
+    BigInt::from_raw_handle(biguint.get_raw_handle())
 }
