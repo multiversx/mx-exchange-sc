@@ -8,6 +8,7 @@ use elrond_wasm_debug::{
 use energy_factory_mock::EnergyFactoryMock;
 use governance_v2::{configurable::ConfigurablePropertiesModule, GovernanceV2};
 
+pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;
 pub const QUORUM: u64 = 1_500;
 pub const VOTING_DELAY_BLOCKS: u64 = 10;
 pub const VOTING_PERIOD_BLOCKS: u64 = 20;
@@ -70,6 +71,7 @@ where
         b_mock
             .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
                 sc.init(
+                    managed_biguint!(MIN_ENERGY_FOR_PROPOSE),
                     managed_biguint!(QUORUM),
                     VOTING_DELAY_BLOCKS,
                     VOTING_PERIOD_BLOCKS,

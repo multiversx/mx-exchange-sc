@@ -10,6 +10,7 @@ elrond_wasm::imports!();
 /// Voting is done through energy.
 ///
 /// The module provides the following configurable parameters:  
+/// - `minEnergyForPropose` - the minimum energy required for submitting a proposal
 /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
 /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
 /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
@@ -31,12 +32,14 @@ pub trait ConfigurablePropertiesModule: energy_query_module::EnergyQueryModule {
     #[init]
     fn init(
         &self,
+        min_energy_for_propose: BigUint,
         quorum: BigUint,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
         lock_time_after_voting_ends_in_blocks: u64,
         energy_factory_address: ManagedAddress,
     ) {
+        self.try_change_min_energy_for_propose(min_energy_for_propose);
         self.try_change_quorum(quorum);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
@@ -48,6 +51,13 @@ pub trait ConfigurablePropertiesModule: energy_query_module::EnergyQueryModule {
 
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
+
+    #[endpoint]
+    fn change_min_energy_for_propose(&self, new_value: BigUint) {
+        self.require_caller_self();
+
+        self.try_change_min_energy_for_propose(new_value);
+    }
 
     #[endpoint(changeQuorum)]
     fn change_quorum(&self, new_value: BigUint) {
@@ -87,6 +97,12 @@ pub trait ConfigurablePropertiesModule: energy_query_module::EnergyQueryModule {
         );
     }
 
+    fn try_change_min_energy_for_propose(&self, new_value: BigUint) {
+        require!(new_value != 0, "Min energy for proposal can't be set to 0");
+
+        self.min_energy_for_propose().set(&new_value);
+    }
+
     fn try_change_quorum(&self, new_value: BigUint) {
         require!(new_value != 0, "Quorum can't be set to 0");
 
@@ -116,6 +132,10 @@ pub trait ConfigurablePropertiesModule: energy_query_module::EnergyQueryModule {
 
         self.lock_time_after_voting_ends_in_blocks().set(&new_value);
     }
+
+    #[view(getMinEnergyForPropose)]
+    #[storage_mapper("minEnergyForPropose")]
+    fn min_energy_for_propose(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getQuorum)]
     #[storage_mapper("quorum")]

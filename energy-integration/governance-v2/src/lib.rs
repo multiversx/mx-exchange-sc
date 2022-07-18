@@ -78,6 +78,14 @@ pub trait GovernanceV2:
             "Exceeded max actions per proposal"
         );
 
+        let proposer = self.blockchain().get_caller();
+        let user_energy = self.get_energy_non_zero(proposer.clone());
+        let min_energy_for_propose = self.min_energy_for_propose().get();
+        require!(
+            user_energy >= min_energy_for_propose,
+            "Not enough energy for propose"
+        );
+
         let mut gov_actions = ArrayVec::new();
         let mut payments_for_action = ManagedVec::new();
         for action_multiarg in actions {
@@ -99,7 +107,6 @@ pub trait GovernanceV2:
             "Actions require too much gas to be executed"
         );
 
-        let proposer = self.blockchain().get_caller();
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
             description,
@@ -112,7 +119,6 @@ pub trait GovernanceV2:
                 .set(&payments_for_action);
         }
 
-        let user_energy = self.get_energy_non_zero(proposer.clone());
         self.total_votes(proposal_id).set(&user_energy);
         let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
 
