@@ -1,6 +1,6 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment};
+use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -25,7 +25,7 @@ const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 const OLD_FARM_TOKEN_ID: &[u8] = b"OFARM-abcdef";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
-const MIN_FARMING_EPOCHS: u8 = 2;
+const MIN_FARMING_EPOCHS: u64 = 2;
 const PENALTY_PERCENT: u64 = 10;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 
@@ -70,6 +70,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                MultiValueEncoded::new(),
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
@@ -77,8 +78,8 @@ where
 
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
-            sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-            sc.penalty_percent().set(&PENALTY_PERCENT);
+            sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
+            sc.penalty_percent().set(PENALTY_PERCENT);
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);

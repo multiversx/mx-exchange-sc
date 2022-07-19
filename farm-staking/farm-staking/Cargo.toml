@@ -26,6 +26,9 @@ path = "../../common/modules/token_merge"
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
+[dependencies.admin_whitelist]
+path = "../../common/modules/admin_whitelist"
+
 [dependencies.factory]
 path = "../../locked-asset/factory"
 
@@ -39,13 +42,13 @@ path = "../../common/common_structs"
 path = "../../common/common_errors"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "0.34.0"
 
 [dependencies.elrond-wasm-modules]
-version = "0.33.0"
+version = "0.34.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.33.0"
+version = "0.34.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

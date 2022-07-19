@@ -1,6 +1,6 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole};
+use elrond_wasm::types::{Address, EsdtLocalRole, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -220,12 +220,13 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                MultiValueEncoded::new(),
             );
 
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
             sc.farm_token().set_token_id(&farm_token_id);
 
-            sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
+            sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
             sc.penalty_percent().set(&PENALTY_PERCENT);
 
             sc.state().set(&State::Active);

@@ -17,10 +17,10 @@ pub struct FarmToken<M: ManagedTypeApi> {
 pub trait FarmTokenModule:
     config::ConfigModule
     + token_send::TokenSendModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + pausable::PausableModule
+    + admin_whitelist::AdminWhitelistModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]
     fn register_farm_token(
@@ -29,6 +29,8 @@ pub trait FarmTokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
+        self.require_caller_is_owner_or_admin();
+
         let payment_amount = self.call_value().egld_value();
         self.farm_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
