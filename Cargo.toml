@@ -21,8 +21,12 @@ members = [
   "dex/pair-mock",
   "dex/pair-mock/meta",
 
+  "energy-integration/energy-factory-mock",
+  "energy-integration/energy-factory-mock/meta",
   "energy-integration/fees-collector",
   "energy-integration/fees-collector/meta",
+  "energy-integration/governance-v2",
+  "energy-integration/governance-v2/meta",
 
   "farm-staking/farm-staking",
   "farm-staking/farm-staking/meta",
