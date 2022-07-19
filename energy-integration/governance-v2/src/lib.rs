@@ -175,8 +175,10 @@ pub trait GovernanceV2:
     /// Queue a proposal for execution.
     /// This can be done only if the proposal has reached the quorum.
     /// A proposal is considered successful and ready for queing if
-    /// total_votes - total_downvotes >= quorum
-    /// and all the required payments were deposited
+    /// total_votes + total_downvotes >= quorum && total_votes > total_downvotes
+    /// i.e. at least 50% + 1 of the people voted "yes".
+    /// 
+    /// Additionally, all the required payments must be deposited before calling this endpoint.
     #[endpoint]
     fn queue(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
@@ -196,9 +198,8 @@ pub trait GovernanceV2:
         self.proposal_queued_event(proposal_id, current_block);
     }
 
-    /// Execute a previously queued proposal.
-    /// This will clear the proposal and unlock the governance tokens.
-    /// Said tokens can then be withdrawn and used to vote/downvote other proposals.
+    /// Execute a previously queued proposal. 
+    /// This will also clear the proposal from storage.
     #[endpoint]
     fn execute(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
