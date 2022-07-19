@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::locked_asset::PERCENTAGE_TOTAL_EX;
+use crate::locked_asset::{EpochAmountPair, MAX_MILESTONES_IN_SCHEDULE};
 use common_structs::{Epoch, UnlockScheduleEx};
 
 #[derive(TopEncode, TopDecode)]
@@ -22,15 +22,37 @@ impl<M: ManagedTypeApi> Default for Energy<M> {
 }
 
 impl<M: ManagedTypeApi> Energy<M> {
+    fn add(&mut self, future_epoch: Epoch, current_epoch: Epoch, amount_per_epoch: &BigUint<M>) {
+        if current_epoch >= future_epoch {
+            return;
+        }
+
+        let epochs_diff = future_epoch - current_epoch;
+        let energy_added = amount_per_epoch * epochs_diff;
+        self.amount += to_bigint(energy_added);
+    }
+
+    fn subtract(&mut self, past_epoch: Epoch, current_epoch: Epoch, amount_per_epoch: &BigUint<M>) {
+        if past_epoch >= current_epoch {
+            return;
+        }
+
+        let epoch_diff = current_epoch - past_epoch;
+        let energy_decrease = amount_per_epoch * epoch_diff;
+        self.amount -= to_bigint(energy_decrease);
+    }
+
     pub fn deplete(&mut self, current_epoch: Epoch) {
         if self.last_update_epoch == current_epoch {
             return;
         }
 
         if self.total_locked_tokens > 0 && self.last_update_epoch > 0 {
-            let epoch_diff = current_epoch - self.last_update_epoch;
-            let energy_decrease = &self.total_locked_tokens * epoch_diff;
-            self.amount -= to_bigint(energy_decrease);
+            self.subtract(
+                self.last_update_epoch,
+                current_epoch,
+                &self.total_locked_tokens.clone(),
+            );
         }
 
         self.last_update_epoch = current_epoch;
@@ -39,33 +61,15 @@ impl<M: ManagedTypeApi> Energy<M> {
     pub fn add_after_token_lock(
         &mut self,
         lock_amount: &BigUint<M>,
-        unlock_schedule: &UnlockScheduleEx<M>,
+        epoch_amount_pairs: &ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE>,
         current_epoch: Epoch,
     ) {
-        let milestones_len = unlock_schedule.unlock_milestones.len();
-        if milestones_len == 0 {
+        if epoch_amount_pairs.is_empty() {
             return;
         }
 
-        let last_milestone_index = milestones_len - 1;
-        let mut total_tokens_processed = BigUint::zero();
-        for (i, milestone) in unlock_schedule.unlock_milestones.iter().enumerate() {
-            // account for approximation errors
-            let unlock_amount_at_milestone = if i < last_milestone_index {
-                lock_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX
-            } else {
-                lock_amount - &total_tokens_processed
-            };
-
-            total_tokens_processed += &unlock_amount_at_milestone;
-
-            if current_epoch >= milestone.unlock_epoch {
-                continue;
-            }
-
-            let epochs_diff = milestone.unlock_epoch - current_epoch;
-            let energy_added = &unlock_amount_at_milestone * epochs_diff;
-            self.amount += to_bigint(energy_added);
+        for pair in epoch_amount_pairs {
+            self.add(pair.epoch, current_epoch, &pair.amount);
         }
 
         self.total_locked_tokens += lock_amount;
@@ -74,18 +78,18 @@ impl<M: ManagedTypeApi> Energy<M> {
     pub fn refund_after_token_unlock(
         &mut self,
         unlock_amount: &BigUint<M>,
-        unlock_epoch: Epoch,
+        epoch_amount_pairs: &ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE>,
         current_epoch: Epoch,
     ) {
-        self.total_locked_tokens -= unlock_amount;
-
-        if unlock_epoch == current_epoch {
+        if epoch_amount_pairs.is_empty() {
             return;
         }
 
-        let epochs_diff = current_epoch - unlock_epoch;
-        let extra_energy_depleted = unlock_amount * epochs_diff;
-        self.amount += to_bigint(extra_energy_depleted);
+        for pair in epoch_amount_pairs {
+            self.add(current_epoch, pair.epoch, &pair.amount);
+        }
+
+        self.total_locked_tokens -= unlock_amount;
     }
 
     pub fn into_energy_amount(self) -> BigUint<M> {
@@ -131,11 +135,11 @@ pub trait EnergyModule:
 
             let token_attributes =
                 self.get_attributes_ex(&payment.token_identifier, payment.token_nonce);
-            energy.add_after_token_lock(
+            let unlock_amounts = self.get_unlock_amounts_per_milestone(
+                &token_attributes.unlock_schedule.unlock_milestones,
                 &payment.amount,
-                &token_attributes.unlock_schedule,
-                current_epoch,
             );
+            energy.add_after_token_lock(&payment.amount, &unlock_amounts, current_epoch);
         }
 
         self.user_energy(&caller).set(&energy);
@@ -150,9 +154,11 @@ pub trait EnergyModule:
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_or_default(user);
-
         energy.deplete(current_epoch);
-        energy.add_after_token_lock(lock_amount, unlock_schedule, current_epoch);
+
+        let unlock_amounts =
+            self.get_unlock_amounts_per_milestone(&unlock_schedule.unlock_milestones, lock_amount);
+        energy.add_after_token_lock(lock_amount, &unlock_amounts, current_epoch);
 
         self.user_energy(user).set(&energy);
     }
@@ -171,15 +177,11 @@ pub trait EnergyModule:
         let mut energy = self.get_energy_or_default(user);
         energy.deplete(current_epoch);
 
-        for milestone in &old_unlock_schedule.unlock_milestones {
-            if milestone.unlock_epoch > current_epoch {
-                continue;
-            }
-
-            let unlock_amount =
-                old_locked_token_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX;
-            energy.refund_after_token_unlock(&unlock_amount, milestone.unlock_epoch, current_epoch);
-        }
+        let unlock_amounts = self.get_unlock_amounts_per_milestone(
+            &old_unlock_schedule.unlock_milestones,
+            old_locked_token_amount,
+        );
+        energy.refund_after_token_unlock(&old_locked_token_amount, &unlock_amounts, current_epoch);
 
         self.user_energy(user).set(&energy);
     }
@@ -197,7 +199,6 @@ pub trait EnergyModule:
     fn get_energy_for_user_view(&self, user: ManagedAddress) -> BigUint {
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_or_default(&user);
-
         energy.deplete(current_epoch);
 
         energy.into_energy_amount()

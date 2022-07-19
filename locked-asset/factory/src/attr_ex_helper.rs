@@ -27,17 +27,10 @@ pub trait AttrExHelper {
 
         let attr_ex_activation = self.extended_attributes_activation_nonce().get();
         if token_nonce < attr_ex_activation {
-            let attr = self
-                .serializer()
-                .top_decode_from_managed_buffer::<LockedAssetTokenAttributes<Self::Api>>(
-                    &token_info.attributes,
-                );
+            let attr: LockedAssetTokenAttributes<Self::Api> = token_info.decode_attributes();
             self.convert_attr_to_attr_ex(&attr)
         } else {
-            self.serializer()
-                .top_decode_from_managed_buffer::<LockedAssetTokenAttributesEx<Self::Api>>(
-                    &token_info.attributes,
-                )
+            token_info.decode_attributes()
         }
     }
 

@@ -84,6 +84,36 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
             / PERCENTAGE_TOTAL_EX
     }
 
+    fn get_unlock_amounts_per_milestone(
+        &self,
+        unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
+        total_amount: &BigUint,
+    ) -> ArrayVec<EpochAmountPair<Self::Api>, MAX_MILESTONES_IN_SCHEDULE> {
+        let mut amounts = ArrayVec::new();
+        if unlock_milestones.is_empty() {
+            return amounts;
+        }
+
+        let mut total_tokens_processed = BigUint::zero();
+        let last_milestone_index = unlock_milestones.len() - 1;
+        for (i, milestone) in unlock_milestones.iter().enumerate() {
+            // account for approximation errors
+            let unlock_amount_at_milestone = if i < last_milestone_index {
+                total_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX
+            } else {
+                total_amount - &total_tokens_processed
+            };
+
+            total_tokens_processed += &unlock_amount_at_milestone;
+            amounts.push(EpochAmountPair {
+                epoch: milestone.unlock_epoch,
+                amount: unlock_amount_at_milestone,
+            });
+        }
+
+        amounts
+    }
+
     fn get_unlock_percent(
         &self,
         current_epoch: Epoch,
