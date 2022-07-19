@@ -181,7 +181,7 @@ pub trait EnergyModule:
             &old_unlock_schedule.unlock_milestones,
             old_locked_token_amount,
         );
-        energy.refund_after_token_unlock(&old_locked_token_amount, &unlock_amounts, current_epoch);
+        energy.refund_after_token_unlock(old_locked_token_amount, &unlock_amounts, current_epoch);
 
         self.user_energy(user).set(&energy);
     }
