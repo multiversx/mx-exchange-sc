@@ -4,7 +4,6 @@
 elrond_wasm::imports!();
 
 pub mod config;
-pub mod energy_query;
 pub mod fees_accumulation;
 pub mod fees_splitting;
 pub mod week_timekeeping;
@@ -15,7 +14,7 @@ pub trait FeesCollector:
     + week_timekeeping::WeekTimekeepingModule
     + fees_splitting::FeesSplittingModule
     + fees_accumulation::FeesAccumulationModule
-    + energy_query::EnergyQueryModule
+    + energy_query_module::EnergyQueryModule
 {
     #[init]
     fn init(&self) {

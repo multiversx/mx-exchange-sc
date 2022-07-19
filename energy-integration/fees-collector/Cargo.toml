@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.elrond-wasm]
 version = "0.34.0"
 
+[dependencies.energy-query-module]
+path = "../energy-query-module"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "0.34.0"
 

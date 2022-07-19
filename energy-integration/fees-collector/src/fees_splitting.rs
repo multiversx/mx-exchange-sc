@@ -13,7 +13,7 @@ pub trait FeesSplittingModule:
     crate::config::ConfigModule
     + crate::week_timekeeping::WeekTimekeepingModule
     + crate::fees_accumulation::FeesAccumulationModule
-    + crate::energy_query::EnergyQueryModule
+    + energy_query_module::EnergyQueryModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards(&self, week: Week) {
@@ -27,17 +27,21 @@ pub trait FeesSplittingModule:
             self.send().direct_multi(&caller, &user_rewards);
         }
 
-        self.user_energy_for_week(&caller, week).clear();
-        self.update_user_energy_for_next_week(caller, current_week);
+        let energy_mapper = self.user_energy_for_week(&caller, week);
+        if !energy_mapper.is_empty() {
+            energy_mapper.clear();
 
-        let users_remaining_for_given_week =
-            self.total_users_for_week(week).update(|total_users| {
-                *total_users -= 1;
-                *total_users
-            });
-        if users_remaining_for_given_week == 0 {
-            self.clear_storage_for_week(week);
+            let users_remaining_for_given_week =
+                self.total_users_for_week(week).update(|total_users| {
+                    *total_users -= 1;
+                    *total_users
+                });
+            if users_remaining_for_given_week == 0 {
+                self.clear_storage_for_week(week);
+            }
         }
+
+        self.update_user_energy_for_next_week(caller, current_week);
     }
 
     fn collect_and_get_rewards_for_week(&self, week: Week) -> TokenAmountPairsVec<Self::Api> {
@@ -86,13 +90,14 @@ pub trait FeesSplittingModule:
     fn update_user_energy_for_next_week(&self, user: ManagedAddress, current_week: usize) {
         let next_week = current_week + 1;
         let user_energy_mapper = self.user_energy_for_week(&user, next_week);
+
         let prev_saved_energy = user_energy_mapper.get();
-        if prev_saved_energy == 0 {
+        let user_energy_for_next_week = self.get_energy(user);
+        if prev_saved_energy == 0 && user_energy_for_next_week != 0 {
             self.total_users_for_week(next_week)
                 .update(|total_users| *total_users += 1);
         }
 
-        let user_energy_for_next_week = self.get_energy_non_zero(user);
         user_energy_mapper.set(&user_energy_for_next_week);
 
         self.total_energy_for_week(next_week).update(|total| {
