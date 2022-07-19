@@ -34,7 +34,7 @@ pub trait GovernanceV2:
         let depositor_mapper = self.payments_depositor(proposal_id);
         require!(depositor_mapper.is_empty(), "Payments already deposited");
 
-        let required_payments = self.pending_payments_for_proposal(proposal_id).get();
+        let required_payments = self.required_payments_for_proposal(proposal_id).get();
         require!(
             !required_payments.is_empty(),
             "This proposal requires no payments"
@@ -115,7 +115,7 @@ pub trait GovernanceV2:
         let proposal_id = self.proposals().push(&proposal);
 
         if !payments_for_action.is_empty() {
-            self.pending_payments_for_proposal(proposal_id)
+            self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
 
@@ -177,7 +177,7 @@ pub trait GovernanceV2:
     /// A proposal is considered successful and ready for queing if
     /// total_votes + total_downvotes >= quorum && total_votes > total_downvotes
     /// i.e. at least 50% + 1 of the people voted "yes".
-    /// 
+    ///
     /// Additionally, all the required payments must be deposited before calling this endpoint.
     #[endpoint]
     fn queue(&self, proposal_id: ProposalId) {
@@ -187,7 +187,7 @@ pub trait GovernanceV2:
             "Can only queue succeeded proposals"
         );
         require!(
-            self.pending_payments_for_proposal(proposal_id).is_empty()
+            self.required_payments_for_proposal(proposal_id).is_empty()
                 || !self.payments_depositor(proposal_id).is_empty(),
             "Payments for proposal not deposited"
         );
@@ -198,7 +198,7 @@ pub trait GovernanceV2:
         self.proposal_queued_event(proposal_id, current_block);
     }
 
-    /// Execute a previously queued proposal. 
+    /// Execute a previously queued proposal.
     /// This will also clear the proposal from storage.
     #[endpoint]
     fn execute(&self, proposal_id: ProposalId) {
@@ -305,7 +305,7 @@ pub trait GovernanceV2:
     }
 
     fn refund_payments(&self, proposal_id: ProposalId) {
-        let payments = self.pending_payments_for_proposal(proposal_id).get();
+        let payments = self.required_payments_for_proposal(proposal_id).get();
         if payments.is_empty() {
             return;
         }
@@ -322,7 +322,7 @@ pub trait GovernanceV2:
         self.proposal_start_block(proposal_id).clear();
         self.proposal_queue_block(proposal_id).clear();
 
-        self.pending_payments_for_proposal(proposal_id).clear();
+        self.required_payments_for_proposal(proposal_id).clear();
         self.payments_depositor(proposal_id).clear();
 
         self.total_votes(proposal_id).clear();

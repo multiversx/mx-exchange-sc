@@ -7,8 +7,8 @@ pub trait ProposalStorageModule {
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
 
-    #[storage_mapper("pendingPaymentsForProposal")]
-    fn pending_payments_for_proposal(
+    #[storage_mapper("requiredPaymentsForProposal")]
+    fn required_payments_for_proposal(
         &self,
         proposal_id: ProposalId,
     ) -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
