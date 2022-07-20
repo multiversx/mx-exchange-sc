@@ -1,5 +1,5 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
-use elrond_wasm::types::{Address, EsdtLocalRole};
+use elrond_wasm::types::{Address, EsdtLocalRole, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
@@ -18,8 +18,12 @@ const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
+use fees_collector::config::ConfigModule as FeesCollectorConfigModule;
+use fees_collector::fees_accumulation::FeesAccumulationModule;
+use fees_collector::FeesCollector;
 use pair::bot_protection::*;
-use pair::config::*;
+use pair::config::{ConfigModule as PairConfigModule, MAX_PERCENTAGE};
+use pair::fee::FeeModule;
 use pair::locking_wrapper::LockingWrapperModule;
 use pair::safe_price::*;
 use pair::*;
@@ -1302,6 +1306,91 @@ fn add_liquidity_through_simple_lock_proxy() {
                 sc.known_liquidity_pools()
                     .contains(&managed_address!(&lp_address)),
                 true
+            );
+        })
+        .assert_ok();
+}
+
+#[test]
+fn fees_collector_pair_test() {
+    let mut pair_setup = setup_pair(pair::contract_obj);
+    let fees_collector_wrapper = pair_setup.blockchain_wrapper.create_sc_account(
+        &rust_biguint!(0),
+        None,
+        fees_collector::contract_obj,
+        "fees collector path",
+    );
+
+    let pair_addr = pair_setup.pair_wrapper.address_ref().clone();
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(
+            &pair_setup.owner_address,
+            &fees_collector_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.init();
+                let _ = sc
+                    .known_pair_contracts()
+                    .insert(managed_address!(&pair_addr));
+
+                let mut tokens = MultiValueEncoded::new();
+                tokens.push(managed_token_id!(WEGLD_TOKEN_ID));
+                tokens.push(managed_token_id!(MEX_TOKEN_ID));
+
+                sc.add_known_tokens(tokens);
+            },
+        )
+        .assert_ok();
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_tx(
+            &pair_setup.owner_address,
+            &pair_setup.pair_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.setup_fees_collector(
+                    managed_address!(fees_collector_wrapper.address_ref()),
+                    MAX_PERCENTAGE / 2,
+                );
+            },
+        )
+        .assert_ok();
+
+    add_liquidity(
+        &mut pair_setup,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        1_000_000,
+        1_001_000,
+        1_001_000,
+    );
+
+    swap_fixed_input(
+        &mut pair_setup,
+        WEGLD_TOKEN_ID,
+        100_000,
+        MEX_TOKEN_ID,
+        900,
+        90_669,
+    );
+
+    pair_setup.blockchain_wrapper.check_esdt_balance(
+        fees_collector_wrapper.address_ref(),
+        WEGLD_TOKEN_ID,
+        &rust_biguint!(25),
+    );
+
+    pair_setup
+        .blockchain_wrapper
+        .execute_query(&fees_collector_wrapper, |sc| {
+            assert_eq!(
+                sc.accumulated_fees(2, &managed_token_id!(WEGLD_TOKEN_ID))
+                    .get(),
+                managed_biguint!(25)
             );
         })
         .assert_ok();

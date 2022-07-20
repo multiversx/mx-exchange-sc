@@ -10,6 +10,7 @@ use crate::contexts::base::StorageCache;
 use crate::contexts::base::SwapTokensOrder;
 
 use common_structs::TokenPair;
+use fees_collector::fees_accumulation::ProxyTrait as _;
 
 mod self_proxy {
     elrond_wasm::imports!();
@@ -19,17 +20,6 @@ mod self_proxy {
         #[payable("*")]
         #[endpoint(swapNoFeeAndForward)]
         fn swap_no_fee(&self, token_out: TokenIdentifier, destination_address: ManagedAddress);
-    }
-}
-
-mod fees_collector_proxy {
-    elrond_wasm::imports!();
-
-    #[elrond_wasm::proxy]
-    pub trait FeesCollectorProxy {
-        #[payable("*")]
-        #[endpoint(depositSwapFees)]
-        fn deposit_swap_fees(&self);
     }
 }
 
@@ -43,7 +33,7 @@ pub trait FeeModule:
 {
     #[view(getFeeState)]
     fn is_fee_enabled(&self) -> bool {
-        !self.destination_map().is_empty()
+        !self.destination_map().is_empty() || !self.fees_collector_address().is_empty()
     }
 
     #[endpoint(whitelist)]
@@ -399,10 +389,7 @@ pub trait FeeModule:
     fn pair_proxy(&self) -> self_proxy::Proxy<Self::Api>;
 
     #[proxy]
-    fn fees_collector_proxy(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> fees_collector_proxy::Proxy<Self::Api>;
+    fn fees_collector_proxy(&self, sc_address: ManagedAddress) -> fees_collector::Proxy<Self::Api>;
 
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
