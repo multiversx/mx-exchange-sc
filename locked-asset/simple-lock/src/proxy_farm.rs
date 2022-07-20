@@ -46,25 +46,12 @@ pub trait ProxyFarmModule:
     ) {
         let payment_amount = self.call_value().egld_value();
 
-        self.farm_proxy_token().issue(
+        self.farm_proxy_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,
             token_display_name,
             token_ticker,
             num_decimals,
-            None,
-        );
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRolesFarmProxyToken)]
-    fn set_local_roles_farm_proxy_token(&self) {
-        self.farm_proxy_token().set_local_roles(
-            &[
-                EsdtLocalRole::NftCreate,
-                EsdtLocalRole::NftAddQuantity,
-                EsdtLocalRole::NftBurn,
-            ],
             None,
         );
     }
