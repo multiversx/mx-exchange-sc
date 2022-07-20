@@ -1,0 +1,24 @@
+[package]
+name = "fees-collector"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "0.34.0"
+
+[dependencies.energy-query-module]
+path = "../energy-query-module"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.energy-factory-mock]
+path = "../energy-factory-mock"
