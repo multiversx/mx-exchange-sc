@@ -5,6 +5,7 @@ use super::amm;
 use super::config;
 use super::errors::*;
 use super::liquidity_pool;
+use crate::config::MAX_PERCENTAGE;
 use crate::contexts::base::StorageCache;
 use crate::contexts::base::SwapTokensOrder;
 
@@ -21,6 +22,17 @@ mod self_proxy {
     }
 }
 
+mod fees_collector_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait FeesCollectorProxy {
+        #[payable("*")]
+        #[endpoint(depositSwapFees)]
+        fn deposit_swap_fees(&self);
+    }
+}
+
 #[elrond_wasm::module]
 pub trait FeeModule:
     config::ConfigModule
@@ -29,15 +41,6 @@ pub trait FeeModule:
     + token_send::TokenSendModule
     + pausable::PausableModule
 {
-    #[storage_mapper("fee_destination")]
-    fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
-
-    #[storage_mapper("trusted_swap_pair")]
-    fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
-
-    #[storage_mapper("whitelist")]
-    fn whitelist(&self) -> SetMapper<ManagedAddress>;
-
     #[view(getFeeState)]
     fn is_fee_enabled(&self) -> bool {
         !self.destination_map().is_empty()
@@ -97,6 +100,28 @@ pub trait FeeModule:
         }
     }
 
+    /// `fees_collector_cut_percentage` of the total fees are sent to the fees_collector_address SC
+    #[endpoint(setupFeesCollector)]
+    fn setup_fees_collector(
+        &self,
+        fees_collector_address: ManagedAddress,
+        fees_collector_cut_percentage: u64,
+    ) {
+        self.require_permissions();
+        require!(
+            self.blockchain().is_smart_contract(&fees_collector_address),
+            "Invalid fees collector address"
+        );
+        require!(
+            fees_collector_cut_percentage > 0 && fees_collector_cut_percentage <= MAX_PERCENTAGE,
+            "Invalid fees percentage"
+        );
+
+        self.fees_collector_address().set(&fees_collector_address);
+        self.fees_collector_cut_percentage()
+            .set(fees_collector_cut_percentage);
+    }
+
     fn send_fee(
         &self,
         storage_cache: &mut StorageCache<Self>,
@@ -108,13 +133,28 @@ pub trait FeeModule:
             return;
         }
 
+        let fees_collector_configured = !self.fees_collector_address().is_empty();
+        let remaining_fee = if fees_collector_configured {
+            let fees_collector_cut_percentage = self.fees_collector_cut_percentage().get();
+            let cut_amount = fee_amount * fees_collector_cut_percentage / MAX_PERCENTAGE;
+            let reminder = fee_amount - &cut_amount;
+
+            if cut_amount > 0 {
+                self.send_fees_collector_cut(fee_token.clone(), cut_amount);
+            }
+
+            reminder
+        } else {
+            fee_amount.clone()
+        };
+
         let slices = self.destination_map().len() as u64;
-        if slices == 0u64 {
+        if slices == 0 {
             return;
         }
 
-        let fee_slice = fee_amount / slices;
-        if fee_slice == 0u64 {
+        let fee_slice = remaining_fee / slices;
+        if fee_slice == 0 {
             return;
         }
 
@@ -128,6 +168,14 @@ pub trait FeeModule:
                 &fee_token_requested,
             );
         }
+    }
+
+    fn send_fees_collector_cut(&self, token: TokenIdentifier, cut_amount: BigUint) {
+        let fees_collector_address = self.fees_collector_address().get();
+        self.fees_collector_proxy(fees_collector_address)
+            .deposit_swap_fees()
+            .add_esdt_token_transfer(token, 0, cut_amount)
+            .execute_on_dest_context_ignore_result();
     }
 
     fn send_fee_slice(
@@ -349,4 +397,27 @@ pub trait FeeModule:
 
     #[proxy]
     fn pair_proxy(&self) -> self_proxy::Proxy<Self::Api>;
+
+    #[proxy]
+    fn fees_collector_proxy(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> fees_collector_proxy::Proxy<Self::Api>;
+
+    #[view(getFeesCollectorAddress)]
+    #[storage_mapper("feesCollectorAddress")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getFeesCollectorCutPercentage)]
+    #[storage_mapper("feesCollectorCutPercentage")]
+    fn fees_collector_cut_percentage(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("fee_destination")]
+    fn destination_map(&self) -> MapMapper<ManagedAddress, TokenIdentifier>;
+
+    #[storage_mapper("trusted_swap_pair")]
+    fn trusted_swap_pair(&self) -> MapMapper<TokenPair<Self::Api>, ManagedAddress>;
+
+    #[storage_mapper("whitelist")]
+    fn whitelist(&self) -> SetMapper<ManagedAddress>;
 }

@@ -5,6 +5,8 @@ use pausable::State;
 
 use super::errors::*;
 
+pub const MAX_PERCENTAGE: u64 = 100_000;
+
 #[elrond_wasm::module]
 pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
     #[endpoint]
@@ -34,7 +36,7 @@ pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
 
     fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
         require!(
-            total_fee_percent >= special_fee_percent && total_fee_percent < 100_000,
+            total_fee_percent >= special_fee_percent && total_fee_percent < MAX_PERCENTAGE,
             ERROR_BAD_PERCENTS
         );
         self.total_fee_percent().set(&total_fee_percent);

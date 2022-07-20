@@ -1,9 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use super::config;
+use crate::config::MAX_PERCENTAGE;
 
-const MAX_PERCENTAGE: u64 = 100_000;
+use super::config;
 
 #[elrond_wasm::module]
 pub trait AmmModule:
