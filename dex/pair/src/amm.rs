@@ -3,6 +3,8 @@ elrond_wasm::derive_imports!();
 
 use super::config;
 
+const MAX_PERCENTAGE: u64 = 100_000;
+
 #[elrond_wasm::module]
 pub trait AmmModule:
     config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
@@ -42,9 +44,9 @@ pub trait AmmModule:
         reserve_in: &BigUint,
         reserve_out: &BigUint,
     ) -> BigUint {
-        let amount_in_with_fee = amount_in * (100000 - self.total_fee_percent().get());
+        let amount_in_with_fee = amount_in * (MAX_PERCENTAGE - self.total_fee_percent().get());
         let numerator = &amount_in_with_fee * reserve_out;
-        let denominator = (reserve_in * 100000u64) + amount_in_with_fee;
+        let denominator = (reserve_in * MAX_PERCENTAGE) + amount_in_with_fee;
 
         numerator / denominator
     }
@@ -55,13 +57,14 @@ pub trait AmmModule:
         reserve_in: &BigUint,
         reserve_out: &BigUint,
     ) -> BigUint {
-        let numerator = reserve_in * amount_out * 100000u64;
-        let denominator = (reserve_out - amount_out) * (100000 - self.total_fee_percent().get());
+        let numerator = reserve_in * amount_out * MAX_PERCENTAGE;
+        let denominator =
+            (reserve_out - amount_out) * (MAX_PERCENTAGE - self.total_fee_percent().get());
 
         (numerator / denominator) + 1u64
     }
 
     fn get_special_fee_from_input(&self, amount_in: &BigUint) -> BigUint {
-        amount_in * self.special_fee_percent().get() / 100000u64
+        amount_in * self.special_fee_percent().get() / MAX_PERCENTAGE
     }
 }
