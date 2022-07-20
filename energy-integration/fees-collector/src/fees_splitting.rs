@@ -16,7 +16,7 @@ pub trait FeesSplittingModule:
     + energy_query_module::EnergyQueryModule
 {
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self, week: Week) {
+    fn claim_rewards(&self, week: Week) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
         require!(week <= current_week, "Invalid week number");
 
@@ -42,6 +42,8 @@ pub trait FeesSplittingModule:
         }
 
         self.update_user_energy_for_next_week(caller, current_week);
+
+        user_rewards
     }
 
     fn collect_and_get_rewards_for_week(&self, week: Week) -> TokenAmountPairsVec<Self::Api> {
