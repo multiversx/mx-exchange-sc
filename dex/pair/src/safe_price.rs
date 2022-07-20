@@ -3,7 +3,6 @@ elrond_wasm::derive_imports!();
 
 use crate::{
     amm, config,
-    contexts::base::Context,
     errors::{ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT},
 };
 
@@ -159,13 +158,6 @@ pub trait SafePriceModule:
         self.require_permissions();
         self.max_observations_per_record()
             .set(max_observations_per_record);
-    }
-
-    fn update_safe_state_from_context(&self, ctx: &dyn Context<Self::Api>) {
-        self.update_safe_state(
-            ctx.get_first_token_reserve(),
-            ctx.get_second_token_reserve(),
-        )
     }
 
     fn update_safe_state_on_the_fly(&self) {
