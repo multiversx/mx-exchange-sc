@@ -20,6 +20,9 @@ path = "../../common/modules/pausable"
 [dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
 
+[dependencies.fees-collector]
+path = "../../energy-integration/fees-collector"
+
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false
