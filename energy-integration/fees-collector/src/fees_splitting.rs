@@ -25,20 +25,7 @@ pub trait FeesSplittingModule:
             self.send().direct_multi(&caller, &user_rewards);
         }
 
-        let energy_mapper = self.user_energy_for_week(&caller, week);
-        if !energy_mapper.is_empty() {
-            energy_mapper.clear();
-
-            let users_remaining_for_given_week =
-                self.total_users_for_week(week).update(|total_users| {
-                    *total_users -= 1;
-                    *total_users
-                });
-            if users_remaining_for_given_week == 0 {
-                self.clear_storage_for_week(week);
-            }
-        }
-
+        self.user_energy_for_week(&caller, week).clear();
         self.update_user_energy_for_next_week(caller, current_week);
 
         user_rewards
@@ -92,12 +79,7 @@ pub trait FeesSplittingModule:
         let user_energy_mapper = self.user_energy_for_week(&user, next_week);
 
         let prev_saved_energy = user_energy_mapper.get();
-        let user_energy_for_next_week = self.get_energy(user);
-        if prev_saved_energy == 0 && user_energy_for_next_week != 0 {
-            self.total_users_for_week(next_week)
-                .update(|total_users| *total_users += 1);
-        }
-
+        let user_energy_for_next_week = self.get_energy_amount(user);
         user_energy_mapper.set(&user_energy_for_next_week);
 
         self.total_energy_for_week(next_week).update(|total| {
@@ -106,19 +88,14 @@ pub trait FeesSplittingModule:
         });
     }
 
-    fn clear_storage_for_week(&self, week: Week) {
-        self.total_rewards_for_week(week).clear();
-        self.total_energy_for_week(week).clear();
-    }
-
     #[storage_mapper("totalRewardsForWeek")]
     fn total_rewards_for_week(
         &self,
         week: Week,
     ) -> SingleValueMapper<ManagedVec<TokenAmountPair<Self::Api>>>;
 
-    #[storage_mapper("totalUsersForWeek")]
-    fn total_users_for_week(&self, week: Week) -> SingleValueMapper<usize>;
+    #[storage_mapper("lastInteractionWeek")]
+    fn last_interaction_week(&self, user: &ManagedAddress) -> SingleValueMapper<Week>;
 
     #[storage_mapper("userEnergyForWeek")]
     fn user_energy_for_week(&self, user: &ManagedAddress, week: Week)

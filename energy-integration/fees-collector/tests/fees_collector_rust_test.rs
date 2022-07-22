@@ -64,8 +64,6 @@ fn claim_first_week_test() {
                 managed_biguint!(USER_BALANCE / 2)
             );
 
-            assert_eq!(sc.total_users_for_week(2).get(), 2);
-
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&first_user), 2)
                     .get(),
@@ -101,8 +99,6 @@ fn claim_first_week_test() {
                     .get(),
                 managed_biguint!(USER_BALANCE / 2)
             );
-
-            assert_eq!(sc.total_users_for_week(2).get(), 2);
 
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&first_user), 2)
@@ -206,13 +202,11 @@ fn claim_second_week_test() {
             assert_eq!(sc.total_rewards_for_week(2).get(), expected_total_rewards);
 
             // first user's energy was removed for this week, and added to week 3
-            assert_eq!(sc.total_users_for_week(2).get(), 1);
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&first_user), 2)
                     .get(),
                 0
             );
-            assert_eq!(sc.total_users_for_week(3).get(), 1);
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&first_user), 3)
                     .get(),
@@ -251,13 +245,11 @@ fn claim_second_week_test() {
             assert_eq!(sc.total_rewards_for_week(2).get(), expected_total_rewards);
 
             // first user's energy was removed for this week, and added to week 3
-            assert_eq!(sc.total_users_for_week(2).get(), 1);
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&first_user), 2)
                     .get(),
                 0
             );
-            assert_eq!(sc.total_users_for_week(3).get(), 1);
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&first_user), 3)
                     .get(),
@@ -289,7 +281,6 @@ fn claim_second_week_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             // rewards are cleared after everyone claims
             assert!(sc.total_rewards_for_week(2).is_empty());
-            assert_eq!(sc.total_users_for_week(2).get(), 0);
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&second_user), 2)
                     .get(),
@@ -297,7 +288,6 @@ fn claim_second_week_test() {
             );
             assert_eq!(sc.total_energy_for_week(2).get(), 0);
 
-            assert_eq!(sc.total_users_for_week(3).get(), 2);
             assert_eq!(
                 sc.user_energy_for_week(&managed_address!(&second_user), 3)
                     .get(),
