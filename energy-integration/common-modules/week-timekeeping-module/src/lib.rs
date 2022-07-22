@@ -1,3 +1,5 @@
+#![no_std]
+
 elrond_wasm::imports!();
 
 use core::convert::TryInto;
