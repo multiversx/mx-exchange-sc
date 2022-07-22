@@ -12,7 +12,10 @@ path = "src/lib.rs"
 version = "0.34.0"
 
 [dependencies.energy-query-module]
-path = "../energy-query-module"
+path = "../common-modules/energy-query-module"
+
+[dependencies.week-timekeeping-module]
+path = "../common-modules/week-timekeeping-module"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.34.0"

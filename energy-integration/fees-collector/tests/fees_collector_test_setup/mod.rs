@@ -6,12 +6,10 @@ use elrond_wasm_debug::{
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query_module::EnergyQueryModule;
 use fees_collector::{
-    config::ConfigModule,
-    fees_accumulation::FeesAccumulationModule,
-    fees_splitting::FeesSplittingModule,
-    week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK},
-    *,
+    config::ConfigModule, fees_accumulation::FeesAccumulationModule,
+    fees_splitting::FeesSplittingModule, *,
 };
+use week_timekeeping_module::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
 
 const INIT_EPOCH: u64 = 5;
 

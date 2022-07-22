@@ -1,9 +1,7 @@
 elrond_wasm::imports!();
 
-use crate::{
-    fees_accumulation::TokenAmountPair,
-    week_timekeeping::{Week, FIRST_WEEK},
-};
+use crate::fees_accumulation::TokenAmountPair;
+use week_timekeeping_module::{Week, FIRST_WEEK};
 
 pub type TokenAmountPairsVec<M> = ManagedVec<M, TokenAmountPair<M>>;
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
@@ -11,9 +9,9 @@ pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
 #[elrond_wasm::module]
 pub trait FeesSplittingModule:
     crate::config::ConfigModule
-    + crate::week_timekeeping::WeekTimekeepingModule
     + crate::fees_accumulation::FeesAccumulationModule
     + energy_query_module::EnergyQueryModule
+    + week_timekeeping_module::WeekTimekeepingModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards(&self, week: Week) -> PaymentsVec<Self::Api> {

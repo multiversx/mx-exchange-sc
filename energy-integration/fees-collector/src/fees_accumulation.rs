@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::week_timekeeping::Week;
+use week_timekeeping_module::Week;
 
 #[derive(
     TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, PartialEq, Debug, Clone,
@@ -20,7 +20,7 @@ impl<M: ManagedTypeApi> TokenAmountPair<M> {
 
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
-    crate::config::ConfigModule + crate::week_timekeeping::WeekTimekeepingModule
+    crate::config::ConfigModule + week_timekeeping_module::WeekTimekeepingModule
 {
     /// Pair SC will deposit the fees through this endpoint
     /// Deposits for current week are stored to be accessible starting next week
