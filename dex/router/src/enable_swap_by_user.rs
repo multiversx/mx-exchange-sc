@@ -2,8 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
-use pair::config::ProxyTrait as _;
-use pausable::{ProxyTrait as _, State};
+use pair::config::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::{DEFAULT_SPECIAL_FEE_PERCENT, USER_DEFINED_TOTAL_FEE_PERCENT};
@@ -78,7 +77,7 @@ pub trait EnableSwapByUserModule:
         self.check_is_pair_sc(&pair_address);
         self.require_state_active_no_swaps(&pair_address);
 
-        let payment = self.call_value().single_esdt();
+        let payment = self.call_value().payment();
         let config = self.try_get_config();
         require!(
             payment.token_identifier == config.locked_token_id,
@@ -125,11 +124,12 @@ pub trait EnableSwapByUserModule:
         self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
 
-        self.send().direct_esdt(
+        self.send().direct(
             &caller,
             &payment.token_identifier,
             payment.token_nonce,
             &payment.amount,
+            &[],
         );
 
         self.emit_user_swaps_enabled_event(
@@ -190,7 +190,7 @@ pub trait EnableSwapByUserModule:
         let storage_key = ManagedBuffer::new_from_bytes(PAIR_STATE_STORAGE_KEY);
         let state: State = self.read_storage_from_pair(pair_address, &storage_key);
         require!(
-            state == State::PartialActive,
+            state == State::ActiveNoSwaps,
             "Pair not in ActiveNoSwaps state"
         );
     }
