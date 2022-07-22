@@ -61,3 +61,5 @@ path = "router"
 [dev-dependencies.governance]
 path = "governance"
 
+[dev-dependencies.fees-collector]
+path = "../energy-integration/fees-collector"

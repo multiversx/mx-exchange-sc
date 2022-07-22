@@ -1,7 +1,5 @@
 elrond_wasm::imports!();
 
-use crate::contexts::swap::SwapContext;
-
 #[elrond_wasm::module]
 pub trait LockingWrapperModule:
     crate::config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
@@ -71,13 +69,6 @@ pub trait LockingWrapperModule:
         let locking_deadline_epoch = self.locking_deadline_epoch().get();
 
         current_epoch < locking_deadline_epoch
-    }
-
-    fn call_lock_tokens(&self, context: &SwapContext<Self::Api>) -> EsdtTokenPayment<Self::Api> {
-        let token_out = context.get_token_out().clone();
-        let amount_out = context.get_final_output_amount().clone();
-
-        self.lock_tokens(token_out, amount_out)
     }
 
     fn get_locking_sc_proxy_instance(&self) -> simple_lock::Proxy<Self::Api> {

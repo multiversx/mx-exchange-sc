@@ -20,6 +20,8 @@ elrond_wasm_node::wasm_endpoints! {
         getExternSwapGasLimit
         getFeeDestinations
         getFeeState
+        getFeesCollectorAddress
+        getFeesCollectorCutPercentage
         getFirstTokenId
         getInitialLiquidtyAdder
         getLockingDeadlineEpoch
@@ -60,6 +62,7 @@ elrond_wasm_node::wasm_endpoints! {
         setStateActiveNoSwaps
         setUnlockEpoch
         set_extern_swap_gas_limit
+        setupFeesCollector
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput

@@ -25,6 +25,13 @@ pub trait EnergyQueryModule {
         self.energy_factory_address().set(&sc_address);
     }
 
+    fn get_energy(&self, user: ManagedAddress) -> BigUint {
+        let sc_address = self.energy_factory_address().get();
+        self.energy_factory_proxy(sc_address)
+            .get_energy_for_user(user)
+            .execute_on_dest_context()
+    }
+
     fn get_energy_non_zero(&self, user: ManagedAddress) -> BigUint {
         let sc_address = self.energy_factory_address().get();
         let energy: BigUint = self
