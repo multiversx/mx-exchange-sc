@@ -119,6 +119,14 @@ pub trait EnableSwapByUserModule:
 
         let caller = self.blockchain().get_caller();
         self.require_caller_initial_liquidity_adder(&pair_address, &caller);
+        let result = self.get_pair_temporary_owner(&pair_address);
+
+        match result {
+            None => {}
+            Some(temporary_owner) => {
+                require!(caller == temporary_owner, "Temporary owner differs");
+            }
+        };
 
         self.set_fee_percents(pair_address.clone());
         self.pair_resume(pair_address.clone());
