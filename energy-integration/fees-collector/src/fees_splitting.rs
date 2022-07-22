@@ -103,4 +103,7 @@ pub trait FeesSplittingModule:
 
     #[storage_mapper("totalEnergyForWeek")]
     fn total_energy_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("globalEnergyDepleteAmountPerWeek")]
+    fn global_energy_deplete_amount_per_week(&self) -> SingleValueMapper<BigUint>;
 }

@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 use crate::locked_asset::{EpochAmountPair, MAX_MILESTONES_IN_SCHEDULE};
 use common_structs::{Epoch, UnlockScheduleEx};
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct Energy<M: ManagedTypeApi> {
     amount: BigInt<M>,
     last_update_epoch: Epoch,
@@ -92,6 +92,16 @@ impl<M: ManagedTypeApi> Energy<M> {
         self.total_locked_tokens -= unlock_amount;
     }
 
+    #[inline]
+    pub fn get_last_update_epoch(&self) -> Epoch {
+        self.last_update_epoch
+    }
+
+    #[inline]
+    pub fn get_total_locked_tokens(&self) -> &BigUint<M> {
+        &self.total_locked_tokens
+    }
+
     pub fn into_energy_amount(self) -> BigUint<M> {
         if self.amount >= 0 {
             self.amount.magnitude()
@@ -117,11 +127,10 @@ pub trait EnergyModule:
         );
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_energy_or_default(&caller);
-        energy.deplete(current_epoch);
+        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
+        let energy_activation_nonce = self.energy_activation_locked_token_nonce_start().get();
 
         let locked_token_id = self.locked_asset_token().get_token_id();
-        let energy_activation_nonce = self.energy_activation_locked_token_nonce_start().get();
         let payments = self.call_value().all_esdt_transfers();
         for payment in &payments {
             require!(
@@ -153,8 +162,7 @@ pub trait EnergyModule:
         unlock_schedule: &UnlockScheduleEx<Self::Api>,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_energy_or_default(user);
-        energy.deplete(current_epoch);
+        let mut energy = self.get_updated_energy_entry_for_user(user, current_epoch);
 
         let unlock_amounts =
             self.get_unlock_amounts_per_milestone(&unlock_schedule.unlock_milestones, lock_amount);
@@ -174,8 +182,7 @@ pub trait EnergyModule:
         old_unlock_schedule: &UnlockScheduleEx<Self::Api>,
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_energy_or_default(user);
-        energy.deplete(current_epoch);
+        let mut energy = self.get_updated_energy_entry_for_user(user, current_epoch);
 
         let unlock_amounts = self.get_unlock_amounts_per_milestone(
             &old_unlock_schedule.unlock_milestones,
@@ -186,20 +193,32 @@ pub trait EnergyModule:
         self.user_energy(user).set(&energy);
     }
 
-    fn get_energy_or_default(&self, user: &ManagedAddress) -> Energy<Self::Api> {
+    fn get_updated_energy_entry_for_user(
+        &self,
+        user: &ManagedAddress,
+        current_epoch: u64,
+    ) -> Energy<Self::Api> {
         let energy_mapper = self.user_energy(user);
-        if !energy_mapper.is_empty() {
+        let mut energy = if !energy_mapper.is_empty() {
             energy_mapper.get()
         } else {
             Energy::default()
-        }
+        };
+        energy.deplete(current_epoch);
+
+        energy
     }
 
-    #[view(getEnergyForUser)]
-    fn get_energy_for_user_view(&self, user: ManagedAddress) -> BigUint {
+    #[view(getEnergyEntryForUser)]
+    fn get_energy_entry_for_user_view(&self, user: &ManagedAddress) -> Energy<Self::Api> {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_energy_or_default(&user);
-        energy.deplete(current_epoch);
+        self.get_updated_energy_entry_for_user(&user, current_epoch)
+    }
+
+    #[view(getEnergyAmountForUser)]
+    fn get_energy_amount_for_user(&self, user: ManagedAddress) -> BigUint {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let energy = self.get_updated_energy_entry_for_user(&user, current_epoch);
 
         energy.into_energy_amount()
     }
