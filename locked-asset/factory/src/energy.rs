@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 use crate::locked_asset::{EpochAmountPair, MAX_MILESTONES_IN_SCHEDULE};
 use common_structs::{Epoch, UnlockScheduleEx};
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone)]
 pub struct Energy<M: ManagedTypeApi> {
     amount: BigInt<M>,
     last_update_epoch: Epoch,
@@ -102,8 +102,8 @@ impl<M: ManagedTypeApi> Energy<M> {
         &self.total_locked_tokens
     }
 
-    pub fn into_energy_amount(self) -> BigUint<M> {
-        if self.amount >= 0 {
+    pub fn get_energy_amount(&self) -> BigUint<M> {
+        if self.amount > 0 {
             self.amount.magnitude()
         } else {
             BigUint::zero()
@@ -220,7 +220,7 @@ pub trait EnergyModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let energy = self.get_updated_energy_entry_for_user(&user, current_epoch);
 
-        energy.into_energy_amount()
+        energy.get_energy_amount()
     }
 
     #[inline]
