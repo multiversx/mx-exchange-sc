@@ -1388,7 +1388,7 @@ fn fees_collector_pair_test() {
         .blockchain_wrapper
         .execute_query(&fees_collector_wrapper, |sc| {
             assert_eq!(
-                sc.accumulated_fees(2, &managed_token_id!(WEGLD_TOKEN_ID))
+                sc.accumulated_fees(1, &managed_token_id!(WEGLD_TOKEN_ID))
                     .get(),
                 managed_biguint!(25)
             );
