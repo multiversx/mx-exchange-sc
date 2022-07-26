@@ -8,7 +8,7 @@ use week_timekeeping_module::{Week, EPOCHS_IN_WEEK};
 pub type TokenAmountPairsVec<M> = ManagedVec<M, TokenAmountPair<M>>;
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,
@@ -122,12 +122,20 @@ pub trait FeesSplittingModule:
             last_active_mapper.set(current_week);
         }
 
-        self.update_global_amounts_for_current_week(current_week, &prev_energy, current_energy);
+        self.user_energy_for_week(user, current_week)
+            .set(current_energy);
+        self.update_global_amounts_for_current_week(
+            current_week,
+            last_active_week,
+            &prev_energy,
+            current_energy,
+        );
     }
 
     fn update_global_amounts_for_current_week(
         &self,
         current_week: Week,
+        user_last_active_week: Week,
         prev_user_energy: &Energy<Self::Api>,
         current_user_energy: &Energy<Self::Api>,
     ) {
@@ -160,6 +168,11 @@ pub trait FeesSplittingModule:
             });
         self.total_energy_for_week(current_week)
             .update(|total_energy| {
+                // revert the 7 * tokens removed in global decrease step
+                if user_last_active_week != current_week {
+                    *total_energy += prev_user_energy.get_total_locked_tokens() * EPOCHS_IN_WEEK;
+                }
+
                 *total_energy -= prev_user_energy.get_energy_amount();
                 *total_energy += current_user_energy.get_energy_amount();
             });

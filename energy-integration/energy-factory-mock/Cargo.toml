@@ -8,6 +8,9 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.energy-query-module]
+path = "../common-modules/energy-query-module"
+
 [dependencies.elrond-wasm]
 version = "0.34.0"
 

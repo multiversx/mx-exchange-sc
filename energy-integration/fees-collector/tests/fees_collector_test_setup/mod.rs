@@ -1,10 +1,10 @@
-use elrond_wasm::types::{Address, MultiValueEncoded};
+use elrond_wasm::types::{Address, BigInt, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     tx_mock::TxResult, DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
-use energy_query_module::EnergyQueryModule;
+use energy_query_module::{Energy, EnergyQueryModule};
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule,
     fees_splitting::FeesSplittingModule, *,
@@ -129,22 +129,26 @@ where
         )
     }
 
-    pub fn claim(&mut self, user: &Address, week: Week) -> TxResult {
+    pub fn claim(&mut self, user: &Address) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc.claim_rewards(week);
+                let _ = sc.claim_rewards();
             })
     }
 
-    pub fn set_energy(&mut self, user: &Address, energy: u64) {
+    pub fn set_energy(&mut self, user: &Address, total_locked_tokens: u64, energy_amount: u64) {
+        let current_epoch = self.current_epoch;
         self.b_mock
             .execute_tx(
                 user,
                 &self.energy_factory_wrapper,
                 &rust_biguint!(0),
                 |sc| {
-                    sc.energy_for_user(&managed_address!(user))
-                        .set(&managed_biguint!(energy));
+                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                        BigInt::from(managed_biguint!(energy_amount)),
+                        current_epoch,
+                        managed_biguint!(total_locked_tokens),
+                    ));
                 },
             )
             .assert_ok();
