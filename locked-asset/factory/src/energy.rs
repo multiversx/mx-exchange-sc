@@ -225,7 +225,7 @@ pub trait EnergyModule:
     #[view(getEnergyEntryForUser)]
     fn get_energy_entry_for_user_view(&self, user: &ManagedAddress) -> Energy<Self::Api> {
         let current_epoch = self.blockchain().get_block_epoch();
-        self.get_updated_energy_entry_for_user(&user, current_epoch)
+        self.get_updated_energy_entry_for_user(user, current_epoch)
     }
 
     #[view(getEnergyAmountForUser)]

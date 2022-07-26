@@ -1,4 +1,4 @@
-use elrond_wasm::types::{Address, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
+use elrond_wasm::types::{Address, BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -6,6 +6,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
+use energy_query_module::Energy;
 use governance_v2::{configurable::ConfigurablePropertiesModule, GovernanceV2};
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;
@@ -57,10 +58,18 @@ where
         b_mock
             .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.init();
-                sc.energy_for_user(&managed_address!(&first_user))
-                    .set(&managed_biguint!(USER_ENERGY));
-                sc.energy_for_user(&managed_address!(&second_user))
-                    .set(&managed_biguint!(USER_ENERGY));
+                sc.user_energy(&managed_address!(&first_user))
+                    .set(&Energy::new(
+                        BigInt::from(managed_biguint!(USER_ENERGY)),
+                        0,
+                        managed_biguint!(0),
+                    ));
+                sc.user_energy(&managed_address!(&second_user))
+                    .set(&Energy::new(
+                        BigInt::from(managed_biguint!(USER_ENERGY)),
+                        0,
+                        managed_biguint!(0),
+                    ));
             })
             .assert_ok();
 
