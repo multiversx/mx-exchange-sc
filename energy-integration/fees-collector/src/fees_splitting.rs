@@ -83,6 +83,15 @@ pub trait FeesSplittingModule:
             self.send().direct_multi(user, &user_rewards);
         }
 
+        let next_week = claim_progress.week + 1;
+        let next_energy_mapper = self.user_energy_for_week(user, next_week);
+        let opt_next_week_energy = if next_energy_mapper.is_empty() {
+            None
+        } else {
+            Some(next_energy_mapper.get())
+        };
+        claim_progress.advance_week(opt_next_week_energy);
+
         user_rewards
     }
 
