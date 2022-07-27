@@ -29,10 +29,7 @@ pub trait CustomRewardsModule:
                 self.last_reward_block_nonce().set(&current_block_nonce);
                 rewards
             } else if farm_rewards_type == FarmRewardsType::Locked {
-                let rewards =
-                    self.calculate_per_block_custom_rewards(current_block_nonce, last_reward_nonce);
-                self.last_reward_block_nonce().set(&current_block_nonce);
-                rewards
+                BigUint::zero()
             } else
             //FarmRewardsType::Default
             {

@@ -364,17 +364,24 @@ pub trait Farm:
     }
 
     fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
+        let reward_token_id;
+        let farm_rewards_type = self.farm_rewards_type().get();
+        if farm_rewards_type == FarmRewardsType::Custom {
+            reward_token_id = self.custom_reward_token().get();
+        }
+        else {
+            reward_token_id = context.get_reward_token_id().clone();
+        }
         if context.get_position_reward() > &0u64 {
             self.send_tokens_non_zero(
                 context.get_caller(),
-                context.get_reward_token_id(),
+                &reward_token_id,
                 0,
                 context.get_position_reward(),
             );
         }
-
         context.set_final_reward(EsdtTokenPayment::new(
-            context.get_reward_token_id().clone(),
+            reward_token_id,
             0,
             context.get_position_reward().clone(),
         ));
