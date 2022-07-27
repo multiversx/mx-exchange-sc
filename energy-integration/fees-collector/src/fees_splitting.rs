@@ -66,7 +66,7 @@ pub trait FeesSplittingModule:
                 return STOP_OP;
             }
 
-            let rewards_for_week = self.claim_single(&caller, &mut claim_progress);
+            let rewards_for_week = self.claim_single(&caller, current_week, &mut claim_progress);
             all_rewards.append_vec(rewards_for_week);
 
             CONTINUE_OP
@@ -80,6 +80,7 @@ pub trait FeesSplittingModule:
     fn claim_single(
         &self,
         user: &ManagedAddress,
+        current_week: Week,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let total_rewards = self.collect_and_get_rewards_for_week(claim_progress.week);
@@ -97,7 +98,12 @@ pub trait FeesSplittingModule:
         let opt_next_week_energy = if next_energy_mapper.is_empty() {
             None
         } else {
-            Some(next_energy_mapper.get())
+            let saved_energy = next_energy_mapper.get();
+            if next_week != current_week {
+                next_energy_mapper.clear();
+            }
+
+            Some(saved_energy)
         };
         claim_progress.advance_week(opt_next_week_energy);
 
@@ -229,7 +235,6 @@ pub trait FeesSplittingModule:
         user: &ManagedAddress,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
-    // TODO: Think about clearing entries that are not needed anymore
     #[storage_mapper("userEnergyForWeek")]
     fn user_energy_for_week(
         &self,
