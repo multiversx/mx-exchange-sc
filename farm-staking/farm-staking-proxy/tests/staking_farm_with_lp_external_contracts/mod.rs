@@ -15,7 +15,7 @@ use pausable::{PausableModule, State};
 
 use ::config as farm_config;
 use farm::*;
-use farm_config::ConfigModule as _;
+use farm_config::{ConfigModule as _, FarmRewardsType};
 use farm_token::FarmTokenModule;
 
 use crate::constants::*;
@@ -221,6 +221,7 @@ where
                 division_safety_constant,
                 pair_address,
                 MultiValueEncoded::new(),
+                FarmRewardsType::Default
             );
 
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);

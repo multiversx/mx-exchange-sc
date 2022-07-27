@@ -71,6 +71,7 @@ where
                 division_safety_constant,
                 pair_address,
                 MultiValueEncoded::new(),
+                FarmRewardsType::Default
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);

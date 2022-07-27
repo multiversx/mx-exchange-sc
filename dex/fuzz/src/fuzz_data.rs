@@ -3,7 +3,7 @@ pub mod fuzz_data_tests {
     elrond_wasm::imports!();
     elrond_wasm::derive_imports!();
 
-    use ::config::ConfigModule;
+    use ::config::{ConfigModule, FarmRewardsType};
     use common_structs::UnlockMilestone;
     use elrond_wasm::elrond_codec::Empty;
     use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
@@ -439,6 +439,7 @@ pub mod fuzz_data_tests {
                     division_safety_constant,
                     pair_address,
                     MultiValueEncoded::new(),
+                    FarmRewardsType::Default
                 );
 
                 let farm_token_id = managed_token_id!(farm_token);

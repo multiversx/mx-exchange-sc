@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.pausable]
 path = "../common/modules/pausable"
 
+[dependencies.config]
+path = "../common/modules/farm/config"
+
 [dependencies.elrond-wasm]
 version = "0.34.0"
 

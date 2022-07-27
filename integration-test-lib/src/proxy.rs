@@ -16,6 +16,7 @@ pub mod migration_tests {
     use proxy_dex::proxy_common::*;
     use proxy_dex::proxy_farm::*;
     use proxy_dex::*;
+    use config::FarmRewardsType;
 
     const PROXY_WASM_PATH: &str = "locked-asset/proxy_dex/output/proxy_dex.wasm";
     const FARM_WASM_PATH: &str = "dex/farm/output/farm.wasm";
@@ -93,6 +94,7 @@ pub mod migration_tests {
                     managed_biguint!(DIVISION_SAFETY_CONSTANT),
                     managed_address!(&Address::zero()),
                     MultiValueEncoded::new(),
+                    FarmRewardsType::Default
                 );
             })
             .assert_ok();

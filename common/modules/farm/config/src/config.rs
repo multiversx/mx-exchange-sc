@@ -15,6 +15,13 @@ pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
+#[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
+pub enum FarmRewardsType {
+    Default,
+    Locked,
+    Custom,
+}
+
 #[elrond_wasm::module]
 pub trait ConfigModule:
     token_send::TokenSendModule + pausable::PausableModule + admin_whitelist::AdminWhitelistModule
@@ -92,4 +99,8 @@ pub trait ConfigModule:
     #[view(getLockedAssetFactoryManagedAddress)]
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getFarmRewardsType)]
+    #[storage_mapper("farm_rewards_type")]
+    fn farm_rewards_type(&self) -> SingleValueMapper<FarmRewardsType>;
 }

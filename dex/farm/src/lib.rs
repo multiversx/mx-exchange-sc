@@ -15,7 +15,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
+    FarmRewardsType, DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS,
+    DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
 };
 use pausable::State;
 
@@ -30,6 +31,7 @@ type ExitFarmResultType<BigUint> =
 pub trait Farm:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
+    + custom_token_rewards:: CustomTokenRewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + token_merge::TokenMergeModule
@@ -53,6 +55,7 @@ pub trait Farm:
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
         mut admins: MultiValueEncoded<ManagedAddress>,
+        farm_rewards_type: FarmRewardsType,
     ) {
         require!(
             reward_token_id.is_valid_esdt_identifier(),
@@ -79,6 +82,7 @@ pub trait Farm:
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.pair_contract_address().set(&pair_contract_address);
+        self.farm_rewards_type().set(farm_rewards_type);
 
         let caller = self.blockchain().get_caller();
         self.pause_whitelist().add(&caller);

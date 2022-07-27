@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 
 use farm::ProxyTrait as _;
+use config::FarmRewardsType;
 
 const DIVISION_SAFETY_CONST: u64 = 1_000_000_000_000_000_000;
 
@@ -28,6 +29,7 @@ pub trait FarmDeployModule {
                 DIVISION_SAFETY_CONST,
                 pair_contract_address,
                 admins_list,
+                FarmRewardsType::Default
             )
             .deploy_from_source(&farm_template, code_metadata);
 

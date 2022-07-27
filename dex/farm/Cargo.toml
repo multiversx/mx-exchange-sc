@@ -17,6 +17,9 @@ path = "../../common/modules/farm/farm_token"
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 
+[dependencies.custom_token_rewards]
+path = "../../common/modules/farm/custom_token_rewards"
+
 [dependencies.migration_from_v1_2]
 path = "../../common/modules/farm/migration_from_v1_2"
 

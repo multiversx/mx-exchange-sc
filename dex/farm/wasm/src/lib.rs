@@ -8,16 +8,23 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
+        addAdmins
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
+        depositRewards
         end_produce_rewards
         enterFarm
         exitFarm
+        getAdmins
         getBurnGasLimit
+        getCustomRewardToken
+        getCustomRewardsPerBlock
+        getCustomTokenFinalRewardBlock
         getDivisionSafetyConstant
         getFarmMigrationConfiguration
+        getFarmRewardsType
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
@@ -27,6 +34,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getRemainingCustomRewardsReserve
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
@@ -34,9 +42,12 @@ elrond_wasm_node::wasm_endpoints! {
         mergeFarmTokens
         migrateFromV1_2Farm
         pause
+        pauseProduceCustomRewards
         registerFarmToken
+        removeAdmins
         removeFromPauseWhitelist
         resume
+        setCustomRewardToken
         setFarmMigrationConfig
         setFarmTokenSupply
         setPerBlockRewardAmount
@@ -44,6 +55,7 @@ elrond_wasm_node::wasm_endpoints! {
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
+        startProduceCustomRewards
         startProduceRewards
     )
 }

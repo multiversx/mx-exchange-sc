@@ -3,6 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_errors::*;
 
+use config::FarmRewardsType;
 use contexts::generic::StorageCache;
 
 #[elrond_wasm::module]
@@ -11,6 +12,7 @@ pub trait CustomRewardsModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
+    + custom_token_rewards::CustomTokenRewardsModule
     + pausable::PausableModule
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -20,13 +22,29 @@ pub trait CustomRewardsModule:
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_block_nonce > last_reward_nonce {
-            let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+            let farm_rewards_type = self.farm_rewards_type().get();
+            if farm_rewards_type == FarmRewardsType::Custom {
+                let rewards =
+                    self.calculate_per_block_custom_rewards(current_block_nonce, last_reward_nonce);
+                self.last_reward_block_nonce().set(&current_block_nonce);
+                rewards
+            } else if farm_rewards_type == FarmRewardsType::Locked {
+                let rewards =
+                    self.calculate_per_block_custom_rewards(current_block_nonce, last_reward_nonce);
+                self.last_reward_block_nonce().set(&current_block_nonce);
+                rewards
+            } else
+            //FarmRewardsType::Default
+            {
+                let to_mint =
+                    self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
 
-            if to_mint != 0 {
-                self.send().esdt_local_mint(token_id, 0, &to_mint);
+                if to_mint != 0 {
+                    self.send().esdt_local_mint(token_id, 0, &to_mint);
+                }
+                self.last_reward_block_nonce().set(&current_block_nonce);
+                to_mint
             }
-            self.last_reward_block_nonce().set(&current_block_nonce);
-            to_mint
         } else {
             BigUint::zero()
         }

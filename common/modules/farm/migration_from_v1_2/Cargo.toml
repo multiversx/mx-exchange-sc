@@ -25,6 +25,9 @@ path = "../../token_send"
 [dependencies.rewards]
 path = "../rewards"
 
+[dependencies.custom_token_rewards]
+path = "../custom_token_rewards"
+
 [dependencies.pausable]
 path = "../../pausable"
 

@@ -9,6 +9,7 @@ use farm::Farm;
 use pair::Pair;
 use pausable::{PausableModule, State};
 use pause_all::*;
+use config::FarmRewardsType;
 
 static REWARD_TOKEN_ID: &[u8] = b"REWARD-123456";
 static FARMING_TOKEN_ID: &[u8] = b"FARMING-123456";
@@ -52,6 +53,7 @@ fn pause_all_test() {
                 managed_biguint!(DIV_SAFETY),
                 managed_address!(pair_sc.address_ref()),
                 MultiValueEncoded::new(),
+                FarmRewardsType::Default
             );
 
             sc.pause_whitelist()
