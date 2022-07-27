@@ -42,7 +42,7 @@ impl<M: ManagedTypeApi> Energy<M> {
 
         let epochs_diff = future_epoch - current_epoch;
         let energy_added = amount_per_epoch * epochs_diff;
-        self.amount += to_bigint(energy_added);
+        self.amount += BigInt::from(energy_added);
     }
 
     fn subtract(&mut self, past_epoch: Epoch, current_epoch: Epoch, amount_per_epoch: &BigUint<M>) {
@@ -52,7 +52,7 @@ impl<M: ManagedTypeApi> Energy<M> {
 
         let epoch_diff = current_epoch - past_epoch;
         let energy_decrease = amount_per_epoch * epoch_diff;
-        self.amount -= to_bigint(energy_decrease);
+        self.amount -= BigInt::from(energy_decrease);
     }
 
     pub fn deplete(&mut self, current_epoch: Epoch) {
@@ -249,9 +249,4 @@ pub trait EnergyModule:
 
     #[storage_mapper("energyActivationLockedTokenNonceStart")]
     fn energy_activation_locked_token_nonce_start(&self) -> SingleValueMapper<u64>;
-}
-
-// temporary until added to Rust framework
-fn to_bigint<M: ManagedTypeApi>(biguint: BigUint<M>) -> BigInt<M> {
-    BigInt::from_raw_handle(biguint.get_raw_handle())
 }

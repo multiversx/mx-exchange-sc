@@ -191,7 +191,7 @@ fn claim_second_week_test() {
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
 
     fc_setup.set_energy(&first_user, 500, 1_000);
-    fc_setup.set_energy(&second_user, 500, 3_000);
+    fc_setup.set_energy(&second_user, 500, 9_000);
 
     fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
@@ -228,9 +228,9 @@ fn claim_second_week_test() {
         })
         .assert_ok();
 
-    let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 4_000u32;
+    let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
     let first_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 4_000u32;
+        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 10_000u32;
 
     fc_setup.b_mock.check_esdt_balance(
         &first_user,
@@ -282,8 +282,11 @@ fn claim_second_week_test() {
                 first_user_energy
             );
 
-            // 5_000 total, - 500 for global decrease from second_user
-            assert_eq!(sc.total_energy_for_week(2).get(), 4_500);
+            // 10_000 total prev week
+            // - 7 * 1_000 global decrease (-7_000)
+            // + 7 * 500 - 1_000 + 2_000 (+4_500) (for first user -> global refund + energy update)
+            // = 10_000 - 7_000 + 4_500 = 7_500
+            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -339,8 +342,7 @@ fn claim_second_week_test() {
                 first_user_energy
             );
 
-            // 5_000 total, - 500 for global decrease from second_user
-            assert_eq!(sc.total_energy_for_week(2).get(), 4_500);
+            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -358,9 +360,114 @@ fn claim_second_week_test() {
     // second user claim for week 2
     fc_setup.claim(&second_user).assert_ok();
 
-    let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 3_000u32 / 4_000u32;
+    let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 10_000u32;
     let second_user_expected_second_token_amt =
-        rust_biguint!(USER_BALANCE / 2) * 3_000u32 / 4_000u32;
+        rust_biguint!(USER_BALANCE / 2) * 9_000u32 / 10_000u32;
+
+    fc_setup.b_mock.check_esdt_balance(
+        &second_user,
+        FIRST_TOKEN_ID,
+        &second_user_expected_first_token_amt,
+    );
+    fc_setup.b_mock.check_esdt_balance(
+        &second_user,
+        SECOND_TOKEN_ID,
+        &second_user_expected_second_token_amt,
+    );
+}
+
+#[test]
+fn claim_inactive_week_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 50, 3_000);
+    fc_setup.set_energy(&second_user, 50, 9_000);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // user claim first week - users only get registered for week 2, without receiving rewards
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // advance week
+    fc_setup.advance_week();
+
+    // deposit rewards week 2
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // decrease user energy
+    fc_setup.set_energy(&first_user, 50, 2_500);
+
+    // only first user claims in second week
+    fc_setup.claim(&first_user).assert_ok();
+
+    let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 3_000u32 / 12_000u32;
+    let first_user_expected_second_token_amt =
+        rust_biguint!(USER_BALANCE / 2) * 3_000u32 / 12_000u32;
+
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        FIRST_TOKEN_ID,
+        &first_user_expected_first_token_amt,
+    );
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        SECOND_TOKEN_ID,
+        &first_user_expected_second_token_amt,
+    );
+
+    let current_epoch = fc_setup.current_epoch;
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            // 12_000 - 700 + 350 - 3_000 + 2_500
+            // = 11_300 + 350 - 500
+            // = 11_150
+            assert_eq!(sc.total_energy_for_week(2).get(), 11_150);
+            assert_eq!(sc.total_locked_tokens_for_week(2).get(), 100);
+            assert_eq!(sc.last_global_update_week().get(), 2);
+
+            let first_user_energy = Energy::new(
+                BigInt::from(managed_biguint!(2_500)),
+                current_epoch,
+                managed_biguint!(50),
+            );
+            assert_eq!(
+                sc.current_claim_progress(&managed_address!(&first_user))
+                    .get(),
+                ClaimProgress {
+                    energy: first_user_energy,
+                    week: 2
+                }
+            );
+        })
+        .assert_ok();
+
+    // advance week
+    fc_setup.advance_week();
+
+    // second user claim third week
+    fc_setup.claim(&second_user).assert_ok();
+
+    // energy week 2 for second user will be 9_000 - 7 * 50 = 9_000 - 350 = 8_650
+    let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 12_000u32
+        + rust_biguint!(USER_BALANCE) * 8_650u32 / 11_150u32;
+    let second_user_expected_second_token_amt = rust_biguint!(USER_BALANCE / 2) * 9_000u32
+        / 12_000u32
+        + rust_biguint!(USER_BALANCE / 2) * 8_650u32 / 11_150u32;
 
     fc_setup.b_mock.check_esdt_balance(
         &second_user,

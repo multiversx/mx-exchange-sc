@@ -62,12 +62,12 @@ where
         b_mock.set_esdt_balance(
             &depositor_address,
             FIRST_TOKEN_ID,
-            &rust_biguint!(USER_BALANCE),
+            &rust_biguint!(USER_BALANCE * 2),
         );
         b_mock.set_esdt_balance(
             &depositor_address,
             SECOND_TOKEN_ID,
-            &rust_biguint!(USER_BALANCE),
+            &rust_biguint!(USER_BALANCE * 2),
         );
 
         b_mock.set_block_epoch(INIT_EPOCH);
