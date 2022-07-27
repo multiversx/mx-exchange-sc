@@ -43,6 +43,8 @@ pub trait FeesSplittingModule:
         let caller = self.blockchain().get_caller();
         let current_user_energy = self.get_energy_entry(caller.clone());
 
+        self.update_user_energy_for_current_week(&caller, current_week, &current_user_energy);
+
         let claim_progress_mapper = self.current_claim_progress(&caller);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
@@ -62,7 +64,6 @@ pub trait FeesSplittingModule:
             all_rewards.append_vec(rewards_for_week)
         }
 
-        self.update_user_energy_for_current_week(&caller, current_week, &current_user_energy);
         claim_progress_mapper.set(&claim_progress);
 
         all_rewards
