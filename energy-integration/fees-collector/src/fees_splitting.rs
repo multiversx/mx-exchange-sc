@@ -53,7 +53,7 @@ pub trait FeesSplittingModule:
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
-                energy: current_user_energy.clone(),
+                energy: current_user_energy,
                 week: current_week,
             }
         } else {
