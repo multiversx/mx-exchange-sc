@@ -1,7 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::fees_accumulation::TokenAmountPair;
+use crate::{
+    fees_accumulation::TokenAmountPair,
+    ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP},
+};
 use energy_query_module::Energy;
 use week_timekeeping_module::{Week, EPOCHS_IN_WEEK};
 
@@ -36,6 +39,7 @@ pub trait FeesSplittingModule:
     + crate::fees_accumulation::FeesAccumulationModule
     + energy_query_module::EnergyQueryModule
     + week_timekeeping_module::WeekTimekeepingModule
+    + crate::ongoing_operation::OngoingOperationModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
@@ -56,13 +60,17 @@ pub trait FeesSplittingModule:
             claim_progress_mapper.get()
         };
 
-        // TODO: Ongoing operation pattern
         let mut all_rewards = ManagedVec::new();
-        let has_gas = true;
-        while has_gas && claim_progress.week < current_week {
+        let _ = self.run_while_it_has_gas(DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, || {
+            if claim_progress.week == current_week {
+                return STOP_OP;
+            }
+
             let rewards_for_week = self.claim_single(&caller, &mut claim_progress);
-            all_rewards.append_vec(rewards_for_week)
-        }
+            all_rewards.append_vec(rewards_for_week);
+
+            CONTINUE_OP
+        });
 
         claim_progress_mapper.set(&claim_progress);
 

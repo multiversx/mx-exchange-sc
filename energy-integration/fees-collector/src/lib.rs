@@ -6,6 +6,7 @@ elrond_wasm::imports!();
 pub mod config;
 pub mod fees_accumulation;
 pub mod fees_splitting;
+pub mod ongoing_operation;
 
 #[elrond_wasm::contract]
 pub trait FeesCollector:
@@ -14,6 +15,7 @@ pub trait FeesCollector:
     + fees_accumulation::FeesAccumulationModule
     + energy_query_module::EnergyQueryModule
     + week_timekeeping_module::WeekTimekeepingModule
+    + ongoing_operation::OngoingOperationModule
 {
     #[init]
     fn init(&self) {
