@@ -26,6 +26,18 @@ path = "../../common/modules/farm/events"
 [dependencies.contexts]
 path = "../../common/modules/farm/contexts"
 
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../energy-integration/common-modules/weekly-rewards-splitting"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 

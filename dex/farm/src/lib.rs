@@ -41,6 +41,12 @@ pub trait Farm:
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    // boosted yields
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
+    + energy_query::EnergyQueryModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;

@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
+        addAdmins
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -15,8 +16,12 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
+        getAdmins
+        getBoostedYieldsRewardsPercenatage
         getBurnGasLimit
+        getCurrentWeek
         getDivisionSafetyConstant
+        getEnergyFactoryAddress
         getFarmMigrationConfiguration
         getFarmTokenId
         getFarmTokenSupply
@@ -35,8 +40,11 @@ elrond_wasm_node::wasm_endpoints! {
         migrateFromV1_2Farm
         pause
         registerFarmToken
+        removeAdmins
         removeFromPauseWhitelist
         resume
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
         setFarmMigrationConfig
         setFarmTokenSupply
         setPerBlockRewardAmount
