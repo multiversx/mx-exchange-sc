@@ -1,0 +1,52 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
+#![no_std]
+
+elrond_wasm_node::wasm_endpoints! {
+    farm_with_community_rewards
+    (
+        callBack
+        addToPauseWhitelist
+        calculateRewardsForGivenPosition
+        claimRewards
+        compoundRewards
+        depositRewards
+        end_produce_rewards
+        enterFarm
+        exitFarm
+        getBurnGasLimit
+        getCommunityRewardsRemainingReserve
+        getDivisionSafetyConstant
+        getFarmMigrationConfiguration
+        getFarmTokenId
+        getFarmTokenSupply
+        getFarmingTokenId
+        getLastRewardBlockNonce
+        getLockedAssetFactoryManagedAddress
+        getMinimumFarmingEpoch
+        getPairContractManagedAddress
+        getPenaltyPercent
+        getPerBlockRewardAmount
+        getRewardPerShare
+        getRewardReserve
+        getRewardTokenId
+        getState
+        mergeFarmTokens
+        migrateFromV1_2Farm
+        pause
+        registerFarmToken
+        removeFromPauseWhitelist
+        resume
+        setFarmMigrationConfig
+        setFarmTokenSupply
+        setPerBlockRewardAmount
+        setRpsAndStartRewards
+        set_burn_gas_limit
+        set_minimum_farming_epochs
+        set_penalty_percent
+        startProduceCommunityRewards
+        startProduceRewards
+    )
+}
