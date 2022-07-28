@@ -63,11 +63,13 @@ pub trait FeesSplittingModule:
             claim_progress_mapper.get()
         };
 
+        // Gas costs will increase the more weeks are claimed,
+        // as the all_rewards vec will be more expensive to serialize and return
         let mut all_rewards = ManagedVec::new();
         let total_weeks_to_claim = current_week - claim_progress.week;
-        let gas_for_progress_save =
+        let gas_for_return_data =
             (total_weeks_to_claim as u64 + 1) * DEFAULT_MIN_GAS_TO_SAVE_PROGRESS;
-        let _ = self.run_while_it_has_gas(gas_for_progress_save, || {
+        let _ = self.run_while_it_has_gas(gas_for_return_data, || {
             if claim_progress.week == current_week {
                 return STOP_OP;
             }
