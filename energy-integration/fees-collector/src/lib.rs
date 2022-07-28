@@ -1,31 +1,38 @@
 #![no_std]
 #![feature(generic_associated_types)]
 
-use energy_query_module::Energy;
-
-use crate::ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
+use common_types::{PaymentsVec, Week};
+use energy_query::Energy;
+use weekly_rewards_splitting::ongoing_operation::{
+    CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
+};
 
 elrond_wasm::imports!();
 
 pub mod config;
 pub mod fees_accumulation;
-pub mod fees_splitting;
-pub mod ongoing_operation;
 
 #[elrond_wasm::contract]
 pub trait FeesCollector:
     config::ConfigModule
-    + fees_splitting::FeesSplittingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + fees_accumulation::FeesAccumulationModule
-    + energy_query_module::EnergyQueryModule
-    + week_timekeeping_module::WeekTimekeepingModule
-    + ongoing_operation::OngoingOperationModule
+    + energy_query::EnergyQueryModule
+    + week_timekeeping::WeekTimekeepingModule
     + elrond_wasm_modules::pause::PauseModule
 {
     #[init]
     fn init(&self) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
+    }
+
+    #[endpoint(claimRewards)]
+    fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
+        require!(self.not_paused(), "Cannot claim while paused");
+
+        self.claim_multi(|week: Week| self.collect_accumulated_fees_for_week(week))
     }
 
     /// Accepts pairs of (user address, energy amount, total locked tokens).

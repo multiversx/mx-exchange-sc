@@ -8,7 +8,7 @@ use crate::proposal::{
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
-    + energy_query_module::EnergyQueryModule
+    + energy_query::EnergyQueryModule
 {
     #[view(getProposalStatus)]
     fn get_proposal_status(&self, proposal_id: ProposalId) -> GovernanceProposalStatus {

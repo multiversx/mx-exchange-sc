@@ -14,11 +14,17 @@ version = "0.34.0"
 [dependencies.elrond-wasm-modules]
 version = "0.34.0"
 
-[dependencies.energy-query-module]
-path = "../common-modules/energy-query-module"
+[dependencies.energy-query]
+path = "../common-modules/energy-query"
 
-[dependencies.week-timekeeping-module]
-path = "../common-modules/week-timekeeping-module"
+[dependencies.week-timekeeping]
+path = "../common-modules/week-timekeeping"
+
+[dependencies.weekly-rewards-splitting]
+path = "../common-modules/weekly-rewards-splitting"
+
+[dependencies.common-types]
+path = "../common-types"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.34.0"

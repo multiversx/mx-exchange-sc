@@ -20,7 +20,7 @@ pub trait GovernanceV2:
     + events::EventsModule
     + proposal_storage::ProposalStorageModule
     + views::ViewsModule
-    + energy_query_module::EnergyQueryModule
+    + energy_query::EnergyQueryModule
 {
     /// Used to deposit tokens for "payable" actions.
     /// Funds will be returned if the proposal is defeated.

@@ -1,15 +1,14 @@
+#![no_std]
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::{
-    fees_accumulation::TokenAmountPair,
-    ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP},
-};
-use energy_query_module::Energy;
-use week_timekeeping_module::{Week, EPOCHS_IN_WEEK};
+pub mod ongoing_operation;
 
-pub type TokenAmountPairsVec<M> = ManagedVec<M, TokenAmountPair<M>>;
-pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
+use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
+use energy_query::Energy;
+use ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
+use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
 #[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub struct ClaimProgress<M: ManagedTypeApi> {
@@ -34,18 +33,15 @@ impl<M: ManagedTypeApi> ClaimProgress<M> {
 }
 
 #[elrond_wasm::module]
-pub trait FeesSplittingModule:
-    crate::config::ConfigModule
-    + crate::fees_accumulation::FeesAccumulationModule
-    + energy_query_module::EnergyQueryModule
-    + week_timekeeping_module::WeekTimekeepingModule
-    + crate::ongoing_operation::OngoingOperationModule
-    + elrond_wasm_modules::pause::PauseModule
+pub trait WeeklyRewardsSplittingModule:
+    energy_query::EnergyQueryModule
+    + week_timekeeping::WeekTimekeepingModule
+    + ongoing_operation::OngoingOperationModule
 {
-    #[endpoint(claimRewards)]
-    fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
-        require!(self.not_paused(), "Cannot claim while paused");
-
+    fn claim_multi<CollectRewardsFn: Fn(Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
+        &self,
+        collect_rewards_fn: CollectRewardsFn,
+    ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
         let caller = self.blockchain().get_caller();
         let current_user_energy = self.get_energy_entry(caller.clone());
@@ -74,8 +70,17 @@ pub trait FeesSplittingModule:
                 return STOP_OP;
             }
 
-            let rewards_for_week = self.claim_single(&caller, current_week, &mut claim_progress);
-            all_rewards.append_vec(rewards_for_week);
+            let rewards_for_week = self.claim_single(
+                &caller,
+                current_week,
+                collect_rewards_fn,
+                &mut claim_progress,
+            );
+            if !rewards_for_week.is_empty() {
+                self.send().direct_multi(&caller, &rewards_for_week);
+
+                all_rewards.append_vec(rewards_for_week);
+            }
 
             CONTINUE_OP
         });
@@ -85,21 +90,20 @@ pub trait FeesSplittingModule:
         all_rewards
     }
 
-    fn claim_single(
+    fn claim_single<CollectRewardsFn: Fn(Week) -> TokenAmountPairsVec<Self::Api>>(
         &self,
         user: &ManagedAddress,
         current_week: Week,
+        collect_rewards_fn: CollectRewardsFn,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
-        let total_rewards = self.collect_and_get_rewards_for_week(claim_progress.week);
+        let total_rewards =
+            self.collect_and_get_rewards_for_week(claim_progress.week, collect_rewards_fn);
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
             claim_progress.energy.get_energy_amount(),
             &total_rewards,
         );
-        if !user_rewards.is_empty() {
-            self.send().direct_multi(user, &user_rewards);
-        }
 
         let next_week = claim_progress.week + 1;
         let next_energy_mapper = self.user_energy_for_week(user, next_week);
@@ -114,6 +118,46 @@ pub trait FeesSplittingModule:
             Some(saved_energy)
         };
         claim_progress.advance_week(opt_next_week_energy);
+
+        user_rewards
+    }
+
+    fn collect_and_get_rewards_for_week<
+        CollectRewardsFn: Fn(Week) -> TokenAmountPairsVec<Self::Api>,
+    >(
+        &self,
+        week: Week,
+        collect_rewards_fn: CollectRewardsFn,
+    ) -> TokenAmountPairsVec<Self::Api> {
+        let total_rewards_mapper = self.total_rewards_for_week(week);
+        if total_rewards_mapper.is_empty() {
+            let total_rewards = collect_rewards_fn(week);
+            total_rewards_mapper.set(&total_rewards);
+
+            total_rewards
+        } else {
+            total_rewards_mapper.get()
+        }
+    }
+
+    fn get_user_rewards_for_week(
+        &self,
+        week: Week,
+        energy_amount: BigUint,
+        total_rewards: &TokenAmountPairsVec<Self::Api>,
+    ) -> PaymentsVec<Self::Api> {
+        let mut user_rewards = ManagedVec::new();
+        if energy_amount == 0 {
+            return user_rewards;
+        }
+
+        let total_energy = self.total_energy_for_week(week).get();
+        for weekly_reward in total_rewards {
+            let reward_amount = weekly_reward.amount * &energy_amount / &total_energy;
+            if reward_amount > 0 {
+                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, reward_amount));
+            }
+        }
 
         user_rewards
     }
@@ -198,40 +242,6 @@ pub trait FeesSplittingModule:
                 *total_energy -= prev_user_energy.get_energy_amount();
                 *total_energy += current_user_energy.get_energy_amount();
             });
-    }
-
-    fn collect_and_get_rewards_for_week(&self, week: Week) -> TokenAmountPairsVec<Self::Api> {
-        let total_rewards_mapper = self.total_rewards_for_week(week);
-        if total_rewards_mapper.is_empty() {
-            let total_rewards = self.collect_accumulated_fees_for_week(week);
-            total_rewards_mapper.set(&total_rewards);
-
-            total_rewards
-        } else {
-            total_rewards_mapper.get()
-        }
-    }
-
-    fn get_user_rewards_for_week(
-        &self,
-        week: Week,
-        energy_amount: BigUint,
-        total_rewards: &TokenAmountPairsVec<Self::Api>,
-    ) -> PaymentsVec<Self::Api> {
-        let mut user_rewards = ManagedVec::new();
-        if energy_amount == 0 {
-            return user_rewards;
-        }
-
-        let total_energy = self.total_energy_for_week(week).get();
-        for weekly_reward in total_rewards {
-            let reward_amount = weekly_reward.amount * &energy_amount / &total_energy;
-            if reward_amount > 0 {
-                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, reward_amount));
-            }
-        }
-
-        user_rewards
     }
 
     // user info

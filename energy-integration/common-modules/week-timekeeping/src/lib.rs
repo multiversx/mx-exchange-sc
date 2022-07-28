@@ -4,8 +4,7 @@ elrond_wasm::imports!();
 
 use core::convert::TryInto;
 
-pub type Week = usize;
-pub type Epoch = u64;
+pub use common_types::{Epoch, Week};
 
 pub const EPOCHS_IN_WEEK: Epoch = 7;
 pub const FIRST_WEEK: Week = 1;
