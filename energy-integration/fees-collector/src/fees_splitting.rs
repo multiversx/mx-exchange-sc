@@ -40,9 +40,12 @@ pub trait FeesSplittingModule:
     + energy_query_module::EnergyQueryModule
     + week_timekeeping_module::WeekTimekeepingModule
     + crate::ongoing_operation::OngoingOperationModule
+    + elrond_wasm_modules::pause::PauseModule
 {
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
+        require!(self.not_paused(), "Cannot claim while paused");
+
         let current_week = self.get_current_week();
         let caller = self.blockchain().get_caller();
         let current_user_energy = self.get_energy_entry(caller.clone());
@@ -125,8 +128,7 @@ pub trait FeesSplittingModule:
         };
 
         let prev_week = current_week - 1;
-        if last_active_week != prev_week && last_active_week != current_week && last_active_week > 0
-        {
+        if last_active_week < prev_week && last_active_week > 0 {
             let inactive_weeks = prev_week - last_active_week;
             let deplete_end_epoch =
                 prev_energy.get_last_update_epoch() + inactive_weeks as u64 * EPOCHS_IN_WEEK;
