@@ -15,9 +15,13 @@ elrond_wasm_node::wasm_endpoints! {
         getAllTokens
         getCurrentWeek
         getEnergyFactoryAddress
+        isPaused
+        pause
+        recomputeEnergy
         removeKnownPairContracts
         removeKnownTokens
         setEnergyFactoryAddress
+        unpause
     )
 }
 
