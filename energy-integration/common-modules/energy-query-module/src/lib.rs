@@ -1,16 +1,10 @@
 #![no_std]
 
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
-mod energy_factory {
-    elrond_wasm::imports!();
-
-    #[elrond_wasm::proxy]
-    pub trait EnergyFactory {
-        #[view(getEnergyForUser)]
-        fn get_energy_for_user(&self, user: ManagedAddress) -> BigUint;
-    }
-}
+pub use factory::energy::Energy;
+use factory::energy::ProxyTrait as _;
 
 #[elrond_wasm::module]
 pub trait EnergyQueryModule {
@@ -25,26 +19,29 @@ pub trait EnergyQueryModule {
         self.energy_factory_address().set(&sc_address);
     }
 
-    fn get_energy(&self, user: ManagedAddress) -> BigUint {
+    fn get_energy_amount(&self, user: ManagedAddress) -> BigUint {
         let sc_address = self.energy_factory_address().get();
         self.energy_factory_proxy(sc_address)
-            .get_energy_for_user(user)
+            .get_energy_amount_for_user(user)
             .execute_on_dest_context()
     }
 
-    fn get_energy_non_zero(&self, user: ManagedAddress) -> BigUint {
-        let sc_address = self.energy_factory_address().get();
-        let energy: BigUint = self
-            .energy_factory_proxy(sc_address)
-            .get_energy_for_user(user)
-            .execute_on_dest_context();
+    fn get_energy_amount_non_zero(&self, user: ManagedAddress) -> BigUint {
+        let energy = self.get_energy_amount(user);
         require!(energy > 0, "No energy");
 
         energy
     }
 
+    fn get_energy_entry(&self, user: ManagedAddress) -> Energy<Self::Api> {
+        let sc_address = self.energy_factory_address().get();
+        self.energy_factory_proxy(sc_address)
+            .get_energy_entry_for_user_view(user)
+            .execute_on_dest_context()
+    }
+
     #[proxy]
-    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
+    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> factory::Proxy<Self::Api>;
 
     #[view(getEnergyFactoryAddress)]
     #[storage_mapper("energyFactoryAddress")]

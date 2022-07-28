@@ -4,7 +4,7 @@
 
 mod attr_ex_helper;
 mod cache;
-mod energy;
+pub mod energy;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
