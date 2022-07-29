@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
 
-use common_errors::{ERROR_BAD_INPUT_TOKEN, ERROR_NOT_AN_ESDT};
+use common_errors::{ERROR_BAD_INPUT_TOKEN};
 
 #[elrond_wasm::module]
 pub trait CommunityRewardsModule:
