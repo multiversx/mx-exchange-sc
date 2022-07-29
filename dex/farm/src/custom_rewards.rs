@@ -14,6 +14,12 @@ pub trait CustomRewardsModule:
     + pausable::PausableModule
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    // boosted yields
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
+    + energy_query::EnergyQueryModule
 {
     fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();
@@ -36,10 +42,11 @@ pub trait CustomRewardsModule:
         let total_reward = self.mint_per_block_rewards(&storage.reward_token_id);
 
         if total_reward > 0u64 {
-            storage.reward_reserve += &total_reward;
+            let split_rewards = self.take_reward_slice(total_reward);
+            storage.reward_reserve += &split_rewards.base_farm;
 
             if storage.farm_token_supply != 0u64 {
-                let increase = (&total_reward * &storage.division_safety_constant)
+                let increase = (&split_rewards.base_farm * &storage.division_safety_constant)
                     / &storage.farm_token_supply;
                 storage.reward_per_share += &increase;
             }

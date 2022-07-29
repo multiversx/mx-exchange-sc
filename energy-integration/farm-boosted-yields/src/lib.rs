@@ -7,6 +7,20 @@ use common_types::{TokenAmountPair, TokenAmountPairsVec};
 use config::MAX_PERCENT;
 use week_timekeeping::Week;
 
+pub struct SplitReward<M: ManagedTypeApi> {
+    pub base_farm: BigUint<M>,
+    pub boosted_farm: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> SplitReward<M> {
+    pub fn new(base_farm: BigUint<M>, boosted_farm: BigUint<M>) -> Self {
+        SplitReward {
+            base_farm,
+            boosted_farm,
+        }
+    }
+}
+
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
     week_timekeeping::WeekTimekeepingModule
@@ -24,24 +38,26 @@ pub trait FarmBoostedYieldsModule:
     }
 
     /// Returns leftover reward
-    fn take_reward_slice(&self, full_reward: BigUint) -> BigUint {
+    fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
         let percentage = self.boosted_yields_rewards_percentage().get();
         if percentage == 0 {
-            return full_reward;
+            return SplitReward::new(full_reward, BigUint::zero());
         }
 
         let boosted_yields_cut = &full_reward * percentage / MAX_PERCENT;
-        if boosted_yields_cut == 0 {
-            return full_reward;
-        }
+        let base_farm_amount = if boosted_yields_cut > 0 {
+            let current_week = self.get_current_week();
+            self.accumulated_rewards_for_week(current_week)
+                .update(|accumulated_rewards| {
+                    *accumulated_rewards += &boosted_yields_cut;
+                });
 
-        let current_week = self.get_current_week();
-        self.accumulated_rewards_for_week(current_week)
-            .update(|accumulated_rewards| {
-                *accumulated_rewards += &boosted_yields_cut;
-            });
+            &full_reward - &boosted_yields_cut
+        } else {
+            full_reward
+        };
 
-        full_reward - boosted_yields_cut
+        SplitReward::new(base_farm_amount, boosted_yields_cut)
     }
 
     fn collect_rewards(
