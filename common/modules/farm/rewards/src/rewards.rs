@@ -29,7 +29,7 @@ pub trait RewardsModule:
         per_block_reward * block_nonce_diff
     }
 
-    #[only_admin]
+    #[only_owner]
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards_as_owner(&self) {
         self.start_produce_rewards();
