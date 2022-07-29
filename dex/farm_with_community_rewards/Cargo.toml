@@ -51,10 +51,10 @@ path = "../../common/common_structs"
 path = "../../common/common_errors"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "0.34.1"
 
 [dependencies.elrond-wasm-modules]
-version = "0.33.0"
+version = "0.34.1"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.33.0"
+version = "0.34.1"

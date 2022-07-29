@@ -29,7 +29,7 @@ path = "../rewards"
 path = "../../pausable"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "0.34.1"
 
 [dependencies.elrond-wasm-modules]
-version = "0.33.0"
+version = "0.34.1"

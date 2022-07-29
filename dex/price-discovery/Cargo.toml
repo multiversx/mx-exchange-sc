@@ -9,10 +9,10 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "0.34.1"
 
 [dependencies.elrond-wasm-modules]
-version = "0.33.0"
+version = "0.34.1"
 
 [dependencies]
 hex-literal = "0.3.1"
@@ -24,7 +24,7 @@ path = "../../common/modules/locking_module"
 path = "../../locked-asset/simple-lock"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.33.0"
+version = "0.34.1"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
