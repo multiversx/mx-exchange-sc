@@ -39,6 +39,7 @@ pub trait Farm:
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[proxy]

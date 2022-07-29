@@ -26,6 +26,7 @@ pub trait MigrationModule:
     + farm_token::FarmTokenModule
     + rewards::RewardsModule
     + pausable::PausableModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]

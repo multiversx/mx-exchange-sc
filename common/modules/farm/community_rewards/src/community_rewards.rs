@@ -14,10 +14,11 @@ pub trait CommunityRewardsModule:
     + farm_token::FarmTokenModule
     + token_send::TokenSendModule
     + pausable::PausableModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]
-    #[only_owner]
+    #[only_admin]
     #[endpoint(depositRewards)]
     fn deposit_rewards(&self) {
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
@@ -30,7 +31,7 @@ pub trait CommunityRewardsModule:
             .update(|total| *total += &payment_amount);
     }
 
-    #[only_owner]
+    #[only_admin]
     #[endpoint(startProduceCommunityRewards)]
     fn start_produce_community_rewards(
         &self,

@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm_with_community_rewards
     (
         callBack
+        addAdmin
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -16,6 +17,7 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
+        getAdmins
         getBurnGasLimit
         getCommunityRewardsRemainingReserve
         getDivisionSafetyConstant
@@ -33,10 +35,12 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardReserve
         getRewardTokenId
         getState
+        isAdmin
         mergeFarmTokens
         migrateFromV1_2Farm
         pause
         registerFarmToken
+        removeAdmin
         removeFromPauseWhitelist
         resume
         setFarmMigrationConfig

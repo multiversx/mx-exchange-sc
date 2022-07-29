@@ -17,10 +17,11 @@ pub struct FarmToken<M: ManagedTypeApi> {
 pub trait FarmTokenModule:
     config::ConfigModule
     + token_send::TokenSendModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + pausable::PausableModule
 {
-    #[only_owner]
+    #[only_admin]
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]
     fn register_farm_token(

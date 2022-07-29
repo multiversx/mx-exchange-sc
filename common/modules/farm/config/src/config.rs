@@ -15,27 +15,31 @@ pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
+pub trait ConfigModule:
+    token_send::TokenSendModule
+    + pausable::PausableModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
+{
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
         state == State::Active
     }
 
-    #[only_owner]
+    #[only_admin]
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) {
         require!(percent < MAX_PERCENT, ERROR_PARAMETERS);
         self.penalty_percent().set(&percent);
     }
 
-    #[only_owner]
+    #[only_admin]
     #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: u8) {
         self.minimum_farming_epochs().set(&epochs);
     }
 
-    #[only_owner]
+    #[only_admin]
     #[endpoint]
     fn set_burn_gas_limit(&self, gas_limit: u64) {
         self.burn_gas_limit().set(&gas_limit);

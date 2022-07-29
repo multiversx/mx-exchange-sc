@@ -12,6 +12,7 @@ pub trait CustomRewardsModule:
     + rewards::RewardsModule
     + community_rewards::CommunityRewardsModule
     + pausable::PausableModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn distribute_per_block_rewards(&self) -> BigUint {
@@ -58,7 +59,7 @@ pub trait CustomRewardsModule:
         }
     }
 
-    #[only_owner]
+    #[only_admin]
     #[endpoint]
     fn end_produce_rewards(&self) {
         let mut storage = StorageCache::new(self);
@@ -70,7 +71,7 @@ pub trait CustomRewardsModule:
         self.produce_community_rewards_enabled().set(false);
     }
 
-    #[only_owner]
+    #[only_admin]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
         // Allow 0 tokens per block distribution case

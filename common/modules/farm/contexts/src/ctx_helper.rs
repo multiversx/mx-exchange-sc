@@ -11,6 +11,7 @@ pub trait CtxHelper:
     + farm_token::FarmTokenModule
     + token_merge::TokenMergeModule
     + pausable::PausableModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn new_farm_context(&self) -> GenericContext<Self::Api> {
