@@ -1,8 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_errors::*;
-
+use community_rewards::MINIMUM_REWARDING_BLOCKS;
 use contexts::generic::StorageCache;
 
 #[elrond_wasm::module]
@@ -15,13 +14,13 @@ pub trait CustomRewardsModule:
     + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    fn mint_per_block_rewards(&self) -> BigUint {
+    fn distribute_per_block_rewards(&self) -> BigUint {
         let current_block_nonce = self.blockchain().get_block_nonce();
         let last_reward_nonce = self.last_reward_block_nonce().get();
 
         if current_block_nonce > last_reward_nonce {
             let mut to_distribute =
-                self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+                self.calculate_per_block_community_rewards(current_block_nonce, last_reward_nonce);
 
             if to_distribute != 0 {
                 let community_rewards_remaining_reserve_mapper =
@@ -32,7 +31,7 @@ pub trait CustomRewardsModule:
                 if to_distribute >= community_rewards_remaining_reserve {
                     to_distribute = community_rewards_remaining_reserve;
                     community_rewards_remaining_reserve_mapper.clear();
-                    self.produce_rewards_enabled().set(false);
+                    self.produce_community_rewards_enabled().set(false);
                 } else {
                     community_rewards_remaining_reserve_mapper
                         .update(|total| *total -= &to_distribute);
@@ -46,7 +45,7 @@ pub trait CustomRewardsModule:
     }
 
     fn generate_aggregated_rewards(&self, storage: &mut StorageCache<Self::Api>) {
-        let total_reward = self.mint_per_block_rewards();
+        let total_reward = self.distribute_per_block_rewards();
 
         if total_reward > 0u64 {
             storage.reward_reserve += &total_reward;
@@ -68,13 +67,24 @@ pub trait CustomRewardsModule:
         self.reward_per_share().set(&storage.reward_per_share);
         self.reward_reserve().set(&storage.reward_reserve);
 
-        self.produce_rewards_enabled().set(false);
+        self.produce_community_rewards_enabled().set(false);
     }
 
     #[only_owner]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+        // Allow 0 tokens per block distribution case
+        // require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+
+        if per_block_amount > 0u64 {
+            let community_rewards_remaining_reserve =
+                self.community_rewards_remaining_reserve().get();
+            let actual_rewarding_blocks_no = community_rewards_remaining_reserve / per_block_amount.clone();
+            require!(
+                actual_rewarding_blocks_no >= MINIMUM_REWARDING_BLOCKS,
+                "Not enough rewards for at least 3 months"
+            );
+        }
 
         let mut storage = StorageCache::new(self);
 
