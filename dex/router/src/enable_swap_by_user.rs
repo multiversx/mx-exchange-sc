@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
 use pair::config::ProxyTrait as _;
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -232,12 +231,7 @@ pub trait EnableSwapByUserModule:
         pair_address: &ManagedAddress,
         storage_key: &ManagedBuffer,
     ) -> T {
-        let result_buffer = ManagedBuffer::new();
-        Self::Api::storage_read_api_impl().storage_load_from_address(
-            pair_address.get_raw_handle(),
-            storage_key.get_raw_handle(),
-            result_buffer.get_raw_handle(),
-        );
+        let result_buffer:ManagedBuffer = self.storage_raw().read_from_address(&pair_address, storage_key.clone());
 
         T::top_decode(result_buffer).unwrap_or_else(|_| {
             sc_panic!("Failed to deserialize result after storage read from pair")
