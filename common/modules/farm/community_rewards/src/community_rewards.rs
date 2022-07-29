@@ -60,11 +60,6 @@ pub trait CommunityRewardsModule:
         self.produce_rewards_enabled().set(true);
     }
 
-    #[inline]
-    fn produces_per_block_community_rewards(&self) -> bool {
-        self.produce_rewards_enabled().get()
-    }
-
     #[view(getCommunityRewardsRemainingReserve)]
     #[storage_mapper("community_rewards_remaining_reserve")]
     fn community_rewards_remaining_reserve(&self) -> SingleValueMapper<BigUint>;

@@ -31,7 +31,6 @@ const MINIMUM_REWARDING_BLOCKS_NO_THRESHOLD: u64 = 0;
 const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
 const OWNER_COMMUNITY_TOKENS: u64 = 500_000;
 
-#[allow(dead_code)] // owner_address is unused, at least for now
 struct FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_community_rewards::ContractObj<DebugApi>,
@@ -477,6 +476,65 @@ fn test_exit_farm() {
     );
     check_farm_token_supply(&mut farm_setup, 0);
 }
+
+
+#[test]
+fn test_start_produce_rewards() {
+    let mut farm_setup = setup_farm(farm_with_community_rewards::contract_obj);
+    deposit_rewards(&mut farm_setup, OWNER_COMMUNITY_TOKENS);
+
+    let rust_zero = rust_biguint!(0u64);
+    let current_block = 2;
+    let starting_block_offset = 5;
+    let starting_block = current_block + starting_block_offset;
+    let minimum_blocks = 110;
+    
+    set_block_nonce(&mut farm_setup, current_block);
+
+    // Check error min blocks
+    let b_mock = &mut farm_setup.blockchain_wrapper;
+    b_mock
+        .execute_tx(
+            &&farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.start_produce_community_rewards(
+                    starting_block_offset,
+                    minimum_blocks,
+                );
+
+                assert_eq!(
+                    sc.last_reward_block_nonce().get(),
+                    starting_block
+                )
+            },
+        )
+        .assert_error(4, "The minimum number of blocks with rewards has not been reached");
+
+        let minimum_blocks = 100;
+
+        b_mock
+        .execute_tx(
+            &&farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.start_produce_community_rewards(
+                    starting_block_offset,
+                    minimum_blocks,
+                );
+
+                assert_eq!(
+                    sc.last_reward_block_nonce().get(),
+                    starting_block
+                )
+            },
+        )
+        .assert_ok();
+
+}
+
 
 #[test]
 fn test_claim_rewards() {
