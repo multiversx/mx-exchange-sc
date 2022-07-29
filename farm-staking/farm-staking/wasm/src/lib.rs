@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         addAddressToWhitelist
+        addAdmin
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -16,6 +17,7 @@ elrond_wasm_node::wasm_endpoints! {
         compoundRewards
         end_produce_rewards
         getAccumulatedRewards
+        getAdmins
         getAnnualPercentageRewards
         getBurnGasLimit
         getDivisionSafetyConstant
@@ -33,11 +35,13 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardPerShare
         getRewardTokenId
         getState
+        isAdmin
         isWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
         removeAddressFromWhitelist
+        removeAdmin
         removeFromPauseWhitelist
         resume
         setMaxApr

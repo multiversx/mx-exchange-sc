@@ -231,7 +231,7 @@ pub trait EnableSwapByUserModule:
         pair_address: &ManagedAddress,
         storage_key: &ManagedBuffer,
     ) -> T {
-        let result_buffer:ManagedBuffer = self.storage_raw().read_from_address(&pair_address, storage_key.clone());
+        let result_buffer:ManagedBuffer = self.storage_raw().read_from_address(pair_address, storage_key.clone());
 
         T::top_decode(result_buffer).unwrap_or_else(|_| {
             sc_panic!("Failed to deserialize result after storage read from pair")

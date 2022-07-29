@@ -12,6 +12,7 @@ pub trait CustomRewardsModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
+    + elrond_wasm_modules::only_admin::OnlyAdminModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_extra_rewards_since_last_allocation(&self) -> BigUint {
