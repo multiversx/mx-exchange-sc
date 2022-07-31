@@ -25,6 +25,8 @@ type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+pub type RemoveLiquidityResultType<BigUint> =
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -300,7 +302,6 @@ pub trait Farm:
         &self,
         farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
-        reward_token_id: &TokenIdentifier,
     ) {
         let pair_contract_address = self.pair_contract_address().get();
         if pair_contract_address.is_zero() {
@@ -308,11 +309,20 @@ pub trait Farm:
                 .esdt_local_burn(farming_token_id, 0, farming_amount);
         } else {
             let gas_limit = self.burn_gas_limit().get();
-            self.pair_contract_proxy(pair_contract_address)
-                .remove_liquidity_and_burn_token(reward_token_id.clone())
+
+            let payments: RemoveLiquidityResultType<Self::Api> = self
+                .pair_contract_proxy(pair_contract_address)
+                .remove_liquidity(1u64, 1u64)
                 .add_esdt_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
                 .with_gas_limit(gas_limit)
-                .transfer_execute();
+                .execute_on_dest_context();
+
+            let (first_payment, second_payment) = payments.into_tuple();
+
+            self.community_accumulated_fees(first_payment.token_identifier.clone())
+                .update(|total| *total += &first_payment.amount);
+            self.community_accumulated_fees(second_payment.token_identifier.clone())
+                .update(|total| *total += &second_payment.amount);
         }
     }
 
@@ -414,7 +424,6 @@ pub trait Farm:
                 self.burn_farming_tokens(
                     context.get_farming_token_id(),
                     &penalty_amount,
-                    context.get_reward_token_id(),
                 );
                 context.decrease_farming_token_amount(&penalty_amount);
             }

@@ -19,6 +19,7 @@ elrond_wasm_node::wasm_endpoints! {
         exitFarm
         getAdmins
         getBurnGasLimit
+        getCommunityAccumulatedFees
         getCommunityRewardsRemainingReserve
         getDivisionSafetyConstant
         getFarmMigrationConfiguration

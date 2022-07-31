@@ -88,4 +88,8 @@ pub trait CommunityRewardsModule:
     #[view(getCommunityRewardsRemainingReserve)]
     #[storage_mapper("community_rewards_remaining_reserve")]
     fn community_rewards_remaining_reserve(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getCommunityAccumulatedFees)]
+    #[storage_mapper("community_accumulated_fees")]
+    fn community_accumulated_fees(&self, token_id: TokenIdentifier) -> SingleValueMapper<BigUint>;
 }
