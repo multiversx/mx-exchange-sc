@@ -1,7 +1,7 @@
-# WALLET_PEM="~/Elrond/MySandbox/testnet/wallets/users/alice.pem"
-WALLET_PEM="~/Documents/shared_folder/elrond_testnet_wallet.pem"
+WALLET_PEM="~/DevKitt/walletKey.pem"
+USER_PEM="~/DevKitt/walletKey2.pem"
 DEPLOY_TRANSACTION=$(erdpy data load --key=deployTransaction-devnet)
-DEPLOY_GAS="1000000000"
+DEPLOY_GAS="600000000"
 PROXY="https://testnet-gateway.elrond.com"
 CHAIN_ID="T"
 # PROXY="http://localhost:7950"
@@ -11,6 +11,7 @@ ESDT_ISSUE_ADDRESS="erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w
 ROUTE_ADDRESS="erd1qqqqqqqqqqqqqpgq9s7ft5fj72zyt8qn8yd24xcl8rxu9v4m0n4sjlh528"
 WEGLD_WRAP_ADDRESS="erd1qqqqqqqqqqqqqpgq4axqc749vuqr27snr8d8qgvlmz44chsr0n4sm4a72g"
 PAIR_ADDRESS="erd1qqqqqqqqqqqqqpgqr23zlc896w6qc2hw3evmmdmppw6jaucv0n4svx9zhn"
+ZERO_ADDRESS="erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu"
 DEFAULT_GAS_LIMIT=50000000
 
 ##### ENDPOINTS #####
@@ -657,6 +658,179 @@ startProduceRewards() {
           --send || return
 }
 
+
+#### COMMUNITY FARM ####
+
+COMMUNITY_FARM_CONTRACT_ADDRESS="erd1qqqqqqqqqqqqqpgqlw74rwapem3nu3k2j2hu9vqlv7mzuhft5dsqcamq62"
+COMMUNITY_FARM_OWNER="erd14nw9pukqyqu75gj0shm8upsegjft8l0awjefp877phfx74775dsq49swp3"
+
+# params:
+#   $1 = Reward Token Identifier
+#   $2 = Farming Token Identifier
+
+deployCommunityFarmContract() {
+
+    reward_token=str:$1
+    farming_token=str:$2
+
+    erdpy --verbose contract deploy --recall-nonce \
+        --bytecode="../farm_with_community_rewards/output/farm_with_community_rewards.wasm" \
+        --pem=${WALLET_PEM} \
+        --gas-limit=600000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --arguments ${reward_token} ${farming_token} 0xE8D4A51000 $ZERO_ADDRESS \
+        --send || return
+}
+
+# params:
+#   $1 = Reward Token Identifier
+#   $2 = Farming Token Identifier
+
+upgradeFarmContract() {
+    reward_token=str:$1
+    farming_token=str:$2
+
+    erdpy --verbose contract upgrade ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+        --bytecode="../farm_with_community_rewards/output/farm_with_community_rewards.wasm" \
+        --pem=${WALLET_PEM} \
+        --gas-limit=600000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --arguments ${reward_token} ${farming_token} 0xE8D4A51000 $ZERO_ADDRESS \
+        --send || return
+}
+
+addAdmin() {
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --gas-limit=10000000 \
+          --function=addAdmin \
+          --arguments $COMMUNITY_FARM_OWNER \
+          --send || return
+}
+
+# params:
+#   $1 = farm contract,
+#   $2 = farm token name,
+#   $3 = farm token ticker,
+#   $3 = num decimals,
+registerCommunityFarmToken() {
+    # farm_token_name="0x$(echo -n $1 | xxd -p -u | tr -d '\n')"
+    # farm_token_ticker="0x$(echo -n $2 | xxd -p -u | tr -d '\n')"
+    farm_token_name=str:$1
+    farm_token_ticker=str:$2
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=100000000 \
+        --value=50000000000000000 \
+        --function=registerFarmToken \
+        --arguments $farm_token_name $farm_token_ticker 0x12 \
+        --send || return
+}
+
+depositRewards() {
+    method_name=str:depositRewards
+    my_token=str:$1
+    token_amount=$2
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --gas-limit=6000000 \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --function="ESDTTransfer" \
+        --arguments $my_token $token_amount $method_name\
+        --send || return
+}
+
+setCommunityPerBlockRewardAmount() {
+    community_per_block_amount=$1
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=6000000 \
+        --function=setPerBlockRewardAmount \
+        --arguments $community_per_block_amount \
+        --send || return
+}
+
+resumeCommunityFarm() {
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --gas-limit=6000000 \
+          --function=resume \
+          --send || return
+}
+
+startProduceCommunityRewards() {
+    starting_block_offset=$1
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+          --pem=${WALLET_PEM} \
+          --proxy=${PROXY} --chain=${CHAIN_ID} \
+          --gas-limit=6000000 \
+          --function=startProduceCommunityRewards \
+          --arguments $community_per_block_amount \
+          --send || return
+}
+
+
+enterCommunityFarm() {
+    method_name=str:enterFarm
+    community_lp_token=str:$1
+    community_lp_token_amount=$2
+
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+        --pem=${USER_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=10000000 \
+        --function=ESDTTransfer \
+        --arguments $community_lp_token $community_lp_token_amount $method_name \
+        --send || return
+}
+
+claimCommunityFarmRewards() {
+    method_name=str:claimRewards
+    community_user_address="$(erdpy wallet pem-address $USER_PEM)"
+    community_farm_token=str:$1
+    community_farm_token_nonce=$2
+    community_farm_amount=$3
+
+    erdpy --verbose contract call $community_user_address --recall-nonce \
+        --pem=${USER_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=500000000 \
+        --function=ESDTNFTTransfer \
+        --arguments $community_farm_token $community_farm_token_nonce $community_farm_amount ${COMMUNITY_FARM_CONTRACT_ADDRESS} $method_name \
+        --send || return
+}
+
+exitCommunityFarm() {
+    method_name=str:exitFarm
+    community_user_address="$(erdpy wallet pem-address $USER_PEM)"
+    community_farm_token=str:$1
+    community_farm_token_nonce=$2
+    community_farm_amount=$3
+
+    erdpy --verbose contract call $community_user_address --recall-nonce \
+        --pem=${USER_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=500000000 \
+        --function=ESDTNFTTransfer \
+        --arguments $community_farm_token $community_farm_token_nonce $community_farm_amount ${COMMUNITY_FARM_CONTRACT_ADDRESS} $method_name \
+        --send || return
+}
+
+setCommunityFarmPenaltyPercent() {
+    penalty_percent=$1
+    erdpy --verbose contract call ${COMMUNITY_FARM_CONTRACT_ADDRESS} --recall-nonce \
+        --pem=${WALLET_PEM} \
+        --proxy=${PROXY} --chain=${CHAIN_ID} \
+        --gas-limit=6000000 \
+        --function=set_penalty_percent \
+        --arguments ${penalty_percent} \
+        --send || return
+}
+
 ##### VIEW FUNCTIONS #####
 
 # params:
@@ -783,6 +957,12 @@ getState() {
     erdpy --verbose contract query $1 \
         --proxy=${PROXY} \
         --function=getState || return
+}
+
+getPenaltyPercent() {
+    erdpy --verbose contract query $1 \
+        --proxy=${PROXY} \
+        --function=getPenaltyPercent || return
 }
 
 ##### UTILS #####
