@@ -30,8 +30,6 @@ const STARTING_BLOCK_OFFSET: u64 = 0;
 const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
 const OWNER_COMMUNITY_TOKENS: u64 = 6_500_000_000;
 
-const MINIMUM_REWARDING_BLOCKS: u64 = 1_296_000; // 3 months
-
 struct FarmSetup<FarmObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_community_rewards::ContractObj<DebugApi>,
@@ -76,7 +74,6 @@ where
                 reward_token_id,
                 farming_token_id,
                 division_safety_constant,
-                MINIMUM_REWARDING_BLOCKS,
                 pair_address,
             );
 

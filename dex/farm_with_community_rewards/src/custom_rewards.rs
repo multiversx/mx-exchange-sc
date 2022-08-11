@@ -62,6 +62,10 @@ pub trait CustomRewardsModule:
     #[endpoint(setMinimumRewardingBlocks)]
     fn set_minimum_rewarding_blocks(&self, new_minimum_rewarding_blocks: u64) {
         require!(
+            !self.produces_per_block_community_rewards(),
+            "Rewards distribution is currently running"
+        );
+        require!(
             new_minimum_rewarding_blocks > 0u64,
             "Minimum rewarding blocks number must be greater than zero"
         );

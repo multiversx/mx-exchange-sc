@@ -19,6 +19,8 @@ use config::{
 };
 use pausable::State;
 
+const DEFAULT_MINIMUM_REWARDING_BLOCKS: u64 = 1_296_000; // 3 months
+
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
@@ -54,7 +56,6 @@ pub trait Farm:
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
-        minimum_rewarding_blocks: u64,
         pair_contract_address: ManagedAddress,
     ) {
         require!(
@@ -66,10 +67,6 @@ pub trait Farm:
             ERROR_NOT_AN_ESDT
         );
         require!(division_safety_constant != 0u64, ERROR_ZERO_AMOUNT);
-        require!(
-            minimum_rewarding_blocks > 0u64,
-            "Minimum rewarding blocks number must be greater than zero"
-        );
 
         let farm_token = self.farm_token().get_token_id();
         require!(reward_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
@@ -77,7 +74,7 @@ pub trait Farm:
 
         self.state().set(&State::Inactive);
         self.minimum_rewarding_blocks()
-            .set(minimum_rewarding_blocks);
+            .set_if_empty(DEFAULT_MINIMUM_REWARDING_BLOCKS);
         self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
