@@ -3,10 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Nonce;
 use common_errors::ERROR_BAD_INPUT_TOKEN;
-
-pub const MINIMUM_REWARDING_BLOCKS: u64 = 1_296_000; // 3 months
+use common_structs::Nonce;
 
 #[elrond_wasm::module]
 pub trait CommunityRewardsModule:
@@ -33,10 +31,7 @@ pub trait CommunityRewardsModule:
 
     #[only_admin]
     #[endpoint(startProduceCommunityRewards)]
-    fn start_produce_community_rewards(
-        &self,
-        starting_block_offset: Nonce
-    ) {
+    fn start_produce_community_rewards(&self, starting_block_offset: Nonce) {
         require!(
             self.community_rewards_remaining_reserve().get() != 0u64,
             "Cannot produce zero reward amount"
@@ -46,13 +41,19 @@ pub trait CommunityRewardsModule:
             "Producing rewards is already enabled"
         );
 
+        let minimum_rewarding_blocks = self.minimum_rewarding_blocks().get();
+        require!(
+            minimum_rewarding_blocks != 0u64,
+            "Minimum rewarding blocks number must be greater than zero"
+        );
+
         let community_rewards_remaining_reserve = self.community_rewards_remaining_reserve().get();
         let per_block_reward_amount = self.per_block_reward_amount().get();
         let actual_rewarding_blocks_no =
             community_rewards_remaining_reserve / per_block_reward_amount;
         require!(
-            actual_rewarding_blocks_no >= MINIMUM_REWARDING_BLOCKS,
-            "Not enough rewards for at least 3 months"
+            actual_rewarding_blocks_no >= minimum_rewarding_blocks,
+            "Minimum rewarding blocks number is lower than the minimum accepted"
         );
 
         let current_block = self.blockchain().get_block_nonce();
@@ -67,7 +68,9 @@ pub trait CommunityRewardsModule:
         current_block_nonce: Nonce,
         last_reward_block_nonce: Nonce,
     ) -> BigUint {
-        if current_block_nonce <= last_reward_block_nonce || !self.produces_per_block_community_rewards() {
+        if current_block_nonce <= last_reward_block_nonce
+            || !self.produces_per_block_community_rewards()
+        {
             return BigUint::zero();
         }
 
@@ -81,6 +84,10 @@ pub trait CommunityRewardsModule:
     fn produces_per_block_community_rewards(&self) -> bool {
         self.produce_community_rewards_enabled().get()
     }
+
+    #[view(getMinimumRewardingBlocks)]
+    #[storage_mapper("minimum_rewarding_blocks")]
+    fn minimum_rewarding_blocks(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("produce_community_rewards_enabled")]
     fn produce_community_rewards_enabled(&self) -> SingleValueMapper<bool>;
