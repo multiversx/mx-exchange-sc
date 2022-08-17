@@ -15,7 +15,7 @@ use contexts::{
     claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
     enter_farm_context::EnterFarmContext,
     exit_farm_context::ExitFarmContext,
-    generic::{GenericContext, StorageCache},
+    generic::GenericContext,
     storage_cache::StorageCache,
 };
 use farm_token::FarmToken;
@@ -108,24 +108,21 @@ pub trait Farm:
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
+        self.generate_aggregated_rewards(&mut storage_cache);
 
-        let tx_input = context.get_tx_input();
-        let first_payment_amount = tx_input.first_payment.amount.clone();
-
-        let virtual_position_token_amount = EsdtTokenPayment::new(
-            context.get_farm_token_id().clone(),
-            0,
-            first_payment_amount.clone(),
-        );
+        let block_epoch = self.blockchain().get_block_epoch();
+        let first_payment_amount = enter_farm_context.farming_token_payment.amount.clone();
         let virtual_position_attributes = FarmTokenAttributes {
-            reward_per_share: context.get_reward_per_share().clone(),
-            entering_epoch: context.get_block_epoch(),
-            original_entering_epoch: context.get_block_epoch(),
+            reward_per_share: storage_cache.reward_per_share.clone(),
+            entering_epoch: block_epoch,
+            original_entering_epoch: block_epoch,
             initial_farming_amount: first_payment_amount.clone(),
             compounded_reward: BigUint::zero(),
-            current_farm_amount: first_payment_amount,
+            current_farm_amount: first_payment_amount.clone(),
         };
+
+        let virtual_position_token_amount =
+            EsdtTokenPayment::new(storage_cache.farm_token_id.clone(), 0, first_payment_amount);
         let virtual_position = FarmToken {
             payment: virtual_position_token_amount,
             attributes: virtual_position_attributes,
@@ -133,161 +130,171 @@ pub trait Farm:
 
         let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
             &virtual_position,
-            &tx_input.additional_payments,
-            context.get_storage_cache(),
+            &enter_farm_context.additional_farm_tokens,
         );
-        context.set_output_position(new_farm_token, created_with_merge);
 
-        self.commit_changes(&context);
-        self.execute_output_payments(&context);
-        self.emit_enter_farm_event(&context);
+        let caller = self.blockchain().get_caller();
+        let output_farm_token_payment = new_farm_token.payment.clone();
+        self.send_tokens_non_zero(
+            &caller,
+            &output_farm_token_payment.token_identifier,
+            output_farm_token_payment.token_nonce,
+            &output_farm_token_payment.amount,
+        );
 
-        context.get_output_payments().get(0)
+        self.emit_enter_farm_event(
+            enter_farm_context.farming_token_payment,
+            new_farm_token,
+            created_with_merge,
+            storage_cache,
+        );
+
+        output_farm_token_payment
     }
 
-    #[payable("*")]
-    #[endpoint(exitFarm)]
-    fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
-        let payment = self.call_value().single_esdt();
-        let mut storage_cache = StorageCache::new(self);
-        let exit_farm_context = ExitFarmContext::new(payment, &storage_cache.farm_token_id);
+    // #[payable("*")]
+    // #[endpoint(exitFarm)]
+    // fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
+    //     let payment = self.call_value().single_esdt();
+    //     let mut storage_cache = StorageCache::new(self);
+    //     let exit_farm_context = ExitFarmContext::new(payment, &storage_cache.farm_token_id);
 
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+    //     self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
-        self.calculate_reward(&mut context);
-        context.decrease_reward_reserve();
-        self.calculate_initial_farming_amount(&mut context);
-        self.increase_reward_with_compounded_rewards(&mut context);
+    //     self.generate_aggregated_rewards(context.get_storage_cache_mut());
+    //     self.calculate_reward(&mut context);
+    //     context.decrease_reward_reserve();
+    //     self.calculate_initial_farming_amount(&mut context);
+    //     self.increase_reward_with_compounded_rewards(&mut context);
 
-        self.commit_changes(&context);
-        self.burn_penalty(&mut context);
-        self.burn_position(&context);
+    //     self.commit_changes(&context);
+    //     self.burn_penalty(&mut context);
+    //     self.burn_position(&context);
 
-        self.send_rewards(&mut context);
-        self.construct_output_payments_exit(&mut context);
-        self.execute_output_payments(&context);
-        self.emit_exit_farm_event(&context);
+    //     self.send_rewards(&mut context);
+    //     self.construct_output_payments_exit(&mut context);
+    //     self.execute_output_payments(&context);
+    //     self.emit_exit_farm_event(&context);
 
-        self.construct_and_get_result(&context)
-    }
+    //     self.construct_and_get_result(&context)
+    // }
 
-    #[payable("*")]
-    #[endpoint(claimRewards)]
-    fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        let mut storage_cache = StorageCache::new(self);
-        let claim_rewards_context =
-            ClaimRewardsContext::new(payments, &storage_cache.farm_token_id);
+    // #[payable("*")]
+    // #[endpoint(claimRewards)]
+    // fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
+    //     let payments = self.call_value().all_esdt_transfers();
+    //     let mut storage_cache = StorageCache::new(self);
+    //     let claim_rewards_context =
+    //         ClaimRewardsContext::new(payments, &storage_cache.farm_token_id);
 
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+    //     self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
-        self.calculate_reward(&mut context);
-        context.decrease_reward_reserve();
+    //     self.generate_aggregated_rewards(context.get_storage_cache_mut());
+    //     self.calculate_reward(&mut context);
+    //     context.decrease_reward_reserve();
 
-        self.calculate_initial_farming_amount(&mut context);
-        let new_compound_reward_amount = self.calculate_new_compound_reward_amount(&context);
+    //     self.calculate_initial_farming_amount(&mut context);
+    //     let new_compound_reward_amount = self.calculate_new_compound_reward_amount(&context);
 
-        let tx_input = context.get_tx_input();
-        let virtual_position_token_amount = EsdtTokenPayment::new(
-            context.get_farm_token_id().clone(),
-            0,
-            tx_input.first_payment.amount.clone(),
-        );
-        let virtual_position_attributes = FarmTokenAttributes {
-            reward_per_share: context.get_reward_per_share().clone(),
-            entering_epoch: context.get_input_attributes().entering_epoch,
-            original_entering_epoch: context.get_input_attributes().original_entering_epoch,
-            initial_farming_amount: context.get_initial_farming_amount().clone(),
-            compounded_reward: new_compound_reward_amount,
-            current_farm_amount: tx_input.first_payment.amount.clone(),
-        };
-        let virtual_position = FarmToken {
-            payment: virtual_position_token_amount,
-            attributes: virtual_position_attributes,
-        };
+    //     let tx_input = context.get_tx_input();
+    //     let virtual_position_token_amount = EsdtTokenPayment::new(
+    //         context.get_farm_token_id().clone(),
+    //         0,
+    //         tx_input.first_payment.amount.clone(),
+    //     );
+    //     let virtual_position_attributes = FarmTokenAttributes {
+    //         reward_per_share: context.get_reward_per_share().clone(),
+    //         entering_epoch: context.get_input_attributes().entering_epoch,
+    //         original_entering_epoch: context.get_input_attributes().original_entering_epoch,
+    //         initial_farming_amount: context.get_initial_farming_amount().clone(),
+    //         compounded_reward: new_compound_reward_amount,
+    //         current_farm_amount: tx_input.first_payment.amount.clone(),
+    //     };
+    //     let virtual_position = FarmToken {
+    //         payment: virtual_position_token_amount,
+    //         attributes: virtual_position_attributes,
+    //     };
 
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &virtual_position,
-            &tx_input.additional_payments,
-            context.get_storage_cache(),
-        );
-        context.set_output_position(new_farm_token, created_with_merge);
+    //     let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+    //         &virtual_position,
+    //         &tx_input.additional_payments,
+    //         context.get_storage_cache(),
+    //     );
+    //     context.set_output_position(new_farm_token, created_with_merge);
 
-        self.burn_position(&context);
-        self.commit_changes(&context);
+    //     self.burn_position(&context);
+    //     self.commit_changes(&context);
 
-        self.send_rewards(&mut context);
-        self.execute_output_payments(&context);
-        self.emit_claim_rewards_event(&context);
+    //     self.send_rewards(&mut context);
+    //     self.execute_output_payments(&context);
+    //     self.emit_claim_rewards_event(&context);
 
-        self.construct_and_get_result(&context)
-    }
+    //     self.construct_and_get_result(&context)
+    // }
 
-    #[payable("*")]
-    #[endpoint(compoundRewards)]
-    fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        let mut storage_cache = StorageCache::new(self);
-        let claim_rewards_context =
-            CompoundRewardsContext::new(payments, &storage_cache.farm_token_id);
+    // #[payable("*")]
+    // #[endpoint(compoundRewards)]
+    // fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
+    //     let payments = self.call_value().all_esdt_transfers();
+    //     let mut storage_cache = StorageCache::new(self);
+    //     let claim_rewards_context =
+    //         CompoundRewardsContext::new(payments, &storage_cache.farm_token_id);
 
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-        require!(
-            context.get_farming_token_id() == context.get_reward_token_id(),
-            ERROR_DIFFERENT_TOKEN_IDS
-        );
+    //     self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+    //     require!(
+    //         context.get_farming_token_id() == context.get_reward_token_id(),
+    //         ERROR_DIFFERENT_TOKEN_IDS
+    //     );
 
-        self.generate_aggregated_rewards(context.get_storage_cache_mut());
-        self.calculate_reward(&mut context);
-        context.decrease_reward_reserve();
-        self.calculate_initial_farming_amount(&mut context);
+    //     self.generate_aggregated_rewards(context.get_storage_cache_mut());
+    //     self.calculate_reward(&mut context);
+    //     context.decrease_reward_reserve();
+    //     self.calculate_initial_farming_amount(&mut context);
 
-        let tx_input = context.get_tx_input();
-        let virtual_position_amount =
-            &tx_input.first_payment.amount + context.get_position_reward();
-        let virtual_position_token_amount = EsdtTokenPayment::new(
-            context.get_farm_token_id().clone(),
-            0,
-            virtual_position_amount,
-        );
+    //     let tx_input = context.get_tx_input();
+    //     let virtual_position_amount =
+    //         &tx_input.first_payment.amount + context.get_position_reward();
+    //     let virtual_position_token_amount = EsdtTokenPayment::new(
+    //         context.get_farm_token_id().clone(),
+    //         0,
+    //         virtual_position_amount,
+    //     );
 
-        let virtual_position_compounded_reward =
-            self.calculate_new_compound_reward_amount(&context) + context.get_position_reward();
-        let virtual_position_current_farm_amount =
-            &tx_input.first_payment.amount + context.get_position_reward();
-        let virtual_position_attributes = FarmTokenAttributes {
-            reward_per_share: context.get_reward_per_share().clone(),
-            entering_epoch: context.get_block_epoch(),
-            original_entering_epoch: context.get_block_epoch(),
-            initial_farming_amount: context.get_initial_farming_amount().clone(),
-            compounded_reward: virtual_position_compounded_reward,
-            current_farm_amount: virtual_position_current_farm_amount,
-        };
+    //     let virtual_position_compounded_reward =
+    //         self.calculate_new_compound_reward_amount(&context) + context.get_position_reward();
+    //     let virtual_position_current_farm_amount =
+    //         &tx_input.first_payment.amount + context.get_position_reward();
+    //     let virtual_position_attributes = FarmTokenAttributes {
+    //         reward_per_share: context.get_reward_per_share().clone(),
+    //         entering_epoch: context.get_block_epoch(),
+    //         original_entering_epoch: context.get_block_epoch(),
+    //         initial_farming_amount: context.get_initial_farming_amount().clone(),
+    //         compounded_reward: virtual_position_compounded_reward,
+    //         current_farm_amount: virtual_position_current_farm_amount,
+    //     };
 
-        let virtual_position = FarmToken {
-            payment: virtual_position_token_amount,
-            attributes: virtual_position_attributes,
-        };
+    //     let virtual_position = FarmToken {
+    //         payment: virtual_position_token_amount,
+    //         attributes: virtual_position_attributes,
+    //     };
 
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &virtual_position,
-            &tx_input.additional_payments,
-            context.get_storage_cache(),
-        );
-        context.set_output_position(new_farm_token, created_with_merge);
+    //     let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+    //         &virtual_position,
+    //         &tx_input.additional_payments,
+    //         context.get_storage_cache(),
+    //     );
+    //     context.set_output_position(new_farm_token, created_with_merge);
 
-        self.burn_position(&context);
-        self.commit_changes(&context);
+    //     self.burn_position(&context);
+    //     self.commit_changes(&context);
 
-        self.execute_output_payments(&context);
+    //     self.execute_output_payments(&context);
 
-        context.set_final_reward_for_emit_compound_event();
-        self.emit_compound_rewards_event(&context);
+    //     context.set_final_reward_for_emit_compound_event();
+    //     self.emit_compound_rewards_event(&context);
 
-        context.get_output_payments().get(0)
-    }
+    //     context.get_output_payments().get(0)
+    // }
 
     fn validate_contract_state(&self, current_state: State, farm_token_id: &TokenIdentifier) {
         require!(current_state == State::Active, ERROR_NOT_ACTIVE);
@@ -321,8 +328,8 @@ pub trait Farm:
         &self,
         virtual_position: &FarmToken<Self::Api>,
         additional_positions: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-        storage_cache: &StorageCache<Self::Api>,
     ) -> (FarmToken<Self::Api>, bool) {
+        let farm_token_id = virtual_position.payment.token_identifier.clone();
         let additional_payments_len = additional_positions.len();
         let merged_attributes =
             self.get_merged_farm_token_attributes(additional_positions, Some(virtual_position));
@@ -330,11 +337,7 @@ pub trait Farm:
         self.burn_farm_tokens_from_payments(additional_positions);
 
         let new_amount = merged_attributes.current_farm_amount.clone();
-        let new_tokens = self.mint_farm_tokens(
-            storage_cache.farm_token_id.clone(),
-            new_amount,
-            &merged_attributes,
-        );
+        let new_tokens = self.mint_farm_tokens(farm_token_id, new_amount, &merged_attributes);
 
         let new_farm_token = FarmToken {
             payment: new_tokens,
@@ -355,22 +358,22 @@ pub trait Farm:
             .direct_esdt(destination, farming_token_id, 0, farming_amount);
     }
 
-    fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
-        if context.get_position_reward() > &0u64 {
-            self.send_tokens_non_zero(
-                context.get_caller(),
-                context.get_reward_token_id(),
-                0,
-                context.get_position_reward(),
-            );
-        }
+    // fn send_rewards(&self, context: &mut GenericContext<Self::Api>) {
+    //     if context.get_position_reward() > &0u64 {
+    //         self.send_tokens_non_zero(
+    //             context.get_caller(),
+    //             context.get_reward_token_id(),
+    //             0,
+    //             context.get_position_reward(),
+    //         );
+    //     }
 
-        context.set_final_reward(EsdtTokenPayment::new(
-            context.get_reward_token_id().clone(),
-            0,
-            context.get_position_reward().clone(),
-        ));
-    }
+    //     context.set_final_reward(EsdtTokenPayment::new(
+    //         context.get_reward_token_id().clone(),
+    //         0,
+    //         context.get_position_reward().clone(),
+    //     ));
+    // }
 
     #[view(calculateRewardsForGivenPosition)]
     fn calculate_rewards_for_given_position(
@@ -407,37 +410,36 @@ pub trait Farm:
         amount * self.penalty_percent().get() / MAX_PERCENT
     }
 
-    fn burn_penalty(&self, context: &mut GenericContext<Self::Api>) {
-        if self.should_apply_penalty(context.get_input_attributes().entering_epoch) {
-            let penalty_amount = self.get_penalty_amount(context.get_initial_farming_amount());
-            if penalty_amount > 0u64 {
-                self.burn_farming_tokens(
-                    context.get_farming_token_id(),
-                    &penalty_amount,
-                    context.get_reward_token_id(),
-                );
-                context.decrease_farming_token_amount(&penalty_amount);
-            }
-        }
-    }
+    // fn burn_penalty(&self, context: &mut GenericContext<Self::Api>) {
+    //     if self.should_apply_penalty(context.get_input_attributes().entering_epoch) {
+    //         let penalty_amount = self.get_penalty_amount(context.get_initial_farming_amount());
+    //         if penalty_amount > 0u64 {
+    //             self.burn_farming_tokens(
+    //                 context.get_farming_token_id(),
+    //                 &penalty_amount,
+    //                 context.get_reward_token_id(),
+    //             );
+    //             context.decrease_farming_token_amount(&penalty_amount);
+    //         }
+    //     }
+    // }
 
-    fn burn_position(&self, context: &GenericContext<Self::Api>) {
-        let farm_token = &context.get_tx_input().first_payment;
+    fn burn_position(&self, farm_token_payment: &EsdtTokenPayment<Self::Api>) {
         self.burn_farm_tokens(
-            &farm_token.token_identifier,
-            farm_token.token_nonce,
-            &farm_token.amount,
+            &farm_token_payment.token_identifier,
+            farm_token_payment.token_nonce,
+            &farm_token_payment.amount,
         );
     }
 
-    fn calculate_new_compound_reward_amount(&self, context: &GenericContext<Self::Api>) -> BigUint {
-        let first_payment = &context.get_tx_input().first_payment;
-        let attributes = context.get_input_attributes();
+    // fn calculate_new_compound_reward_amount(&self, context: &GenericContext<Self::Api>) -> BigUint {
+    //     let first_payment = &context.get_tx_input().first_payment;
+    //     let attributes = context.get_input_attributes();
 
-        self.rule_of_three(
-            &first_payment.amount,
-            &attributes.current_farm_amount,
-            &attributes.compounded_reward,
-        )
-    }
+    //     self.rule_of_three(
+    //         &first_payment.amount,
+    //         &attributes.current_farm_amount,
+    //         &attributes.compounded_reward,
+    //     )
+    // }
 }

@@ -14,6 +14,7 @@ pub trait CtxHelper:
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
+    /*
     fn new_farm_context(&self) -> GenericContext<Self::Api> {
         GenericContext::new(self)
     }
@@ -91,4 +92,5 @@ pub trait CtxHelper:
     fn execute_output_payments(&self, context: &GenericContext<Self::Api>) {
         self.send_multiple_tokens_if_not_zero(context.get_caller(), context.get_output_payments());
     }
+    */
 }

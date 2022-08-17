@@ -4,7 +4,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
-use contexts::generic::GenericContext;
+use contexts::storage_cache::{FarmContracTraitBounds, StorageCache};
+use farm_token::FarmToken;
 
 #[derive(TypeAbi, TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {
@@ -89,35 +90,42 @@ pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait EventsModule {
-    fn emit_enter_farm_event(&self, ctx: &GenericContext<Self::Api>) {
-        let output = ctx.get_output_payments().get(0);
-        let farm_attributes = ctx
-            .get_output_attributes()
-            .unwrap_or_else(|| sc_panic!("No farm attributes"));
+    fn emit_enter_farm_event<'a, C: FarmContracTraitBounds<Api = Self::Api>>(
+        &self,
+        input_farming_token: EsdtTokenPayment<Self::Api>,
+        output_farm_token: FarmToken<Self::Api>,
+        created_with_merge: bool,
+        storage_cache: StorageCache<'a, C>,
+    ) {
+        let caller = self.blockchain().get_caller();
+        let block_nonce = self.blockchain().get_block_nonce();
+        let block_epoch = self.blockchain().get_block_epoch();
+        let block_timestamp = self.blockchain().get_block_timestamp();
 
         self.enter_farm_event(
-            ctx.get_caller(),
-            ctx.get_farm_token_id(),
-            ctx.get_block_epoch(),
+            &caller.clone(),
+            &input_farming_token.token_identifier.clone(),
+            block_epoch,
             &EnterFarmEvent {
-                caller: ctx.get_caller().clone(),
-                farming_token_id: ctx.get_farming_token_id().clone(),
-                farming_token_amount: ctx.get_tx_input().first_payment.amount.clone(),
-                farm_token_id: ctx.get_farm_token_id().clone(),
-                farm_token_nonce: output.token_nonce,
-                farm_token_amount: output.amount,
-                farm_supply: ctx.get_farm_token_supply().clone(),
-                reward_token_id: ctx.get_reward_token_id().clone(),
-                reward_token_reserve: ctx.get_reward_reserve().clone(),
-                farm_attributes: farm_attributes.clone(),
-                created_with_merge: ctx.was_output_created_with_merge(),
-                block: ctx.get_block_nonce(),
-                epoch: ctx.get_block_epoch(),
-                timestamp: self.blockchain().get_block_timestamp(),
+                caller,
+                farming_token_id: input_farming_token.token_identifier,
+                farming_token_amount: input_farming_token.amount,
+                farm_token_id: output_farm_token.payment.token_identifier,
+                farm_token_nonce: output_farm_token.payment.token_nonce,
+                farm_token_amount: output_farm_token.payment.amount,
+                farm_supply: storage_cache.farm_token_supply.clone(),
+                reward_token_id: storage_cache.reward_token_id.clone(),
+                reward_token_reserve: storage_cache.reward_reserve.clone(),
+                farm_attributes: output_farm_token.attributes,
+                created_with_merge,
+                block: block_nonce,
+                epoch: block_epoch,
+                timestamp: block_timestamp,
             },
         )
     }
 
+    /*
     fn emit_exit_farm_event(&self, ctx: &GenericContext<Self::Api>) {
         let first_pay = &ctx.get_tx_input().first_payment;
         let reward = match ctx.get_final_reward() {
@@ -230,6 +238,7 @@ pub trait EventsModule {
             },
         )
     }
+    */
 
     #[event("enter_farm")]
     fn enter_farm_event(

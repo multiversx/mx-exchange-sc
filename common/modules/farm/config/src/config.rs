@@ -16,9 +16,7 @@ pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
-pub trait ConfigModule:
-    token_send::TokenSendModule + pausable::PausableModule + admin_whitelist::AdminWhitelistModule
-{
+pub trait ConfigModule: pausable::PausableModule + admin_whitelist::AdminWhitelistModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -45,10 +43,6 @@ pub trait ConfigModule:
     fn set_burn_gas_limit(&self, gas_limit: u64) {
         self.burn_gas_limit().set(gas_limit);
     }
-
-    #[view(getFarmTokenSupply)]
-    #[storage_mapper("farm_token_supply")]
-    fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getFarmingTokenId)]
     #[storage_mapper("farming_token_id")]

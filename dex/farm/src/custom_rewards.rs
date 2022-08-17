@@ -2,8 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::*;
-
-use contexts::generic::StorageCache;
+use contexts::storage_cache::StorageCache;
 
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
@@ -32,16 +31,15 @@ pub trait CustomRewardsModule:
         }
     }
 
-    fn generate_aggregated_rewards(&self, storage: &mut StorageCache<Self::Api>) {
-        let total_reward = self.mint_per_block_rewards(&storage.reward_token_id);
-
+    fn generate_aggregated_rewards(&self, storage_cache: &mut StorageCache<Self>) {
+        let total_reward = self.mint_per_block_rewards(&storage_cache.reward_token_id);
         if total_reward > 0u64 {
-            storage.reward_reserve += &total_reward;
+            storage_cache.reward_reserve += &total_reward;
 
-            if storage.farm_token_supply != 0u64 {
-                let increase = (&total_reward * &storage.division_safety_constant)
-                    / &storage.farm_token_supply;
-                storage.reward_per_share += &increase;
+            if storage_cache.farm_token_supply != 0u64 {
+                let increase = (&total_reward * &storage_cache.division_safety_constant)
+                    / &storage_cache.farm_token_supply;
+                storage_cache.reward_per_share += &increase;
             }
         }
     }

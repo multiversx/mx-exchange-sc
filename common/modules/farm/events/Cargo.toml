@@ -13,5 +13,8 @@ path = "../../../common_structs"
 [dependencies.contexts]
 path = "../contexts"
 
+[dependencies.farm_token]
+path = "../farm_token"
+
 [dependencies.elrond-wasm]
 version = "0.34.0"

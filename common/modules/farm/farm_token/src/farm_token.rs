@@ -15,10 +15,7 @@ pub struct FarmToken<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule:
-    config::ConfigModule
-    + token_send::TokenSendModule
-    + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("EGLD")]
@@ -89,4 +86,8 @@ pub trait FarmTokenModule:
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
     fn farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+
+    #[view(getFarmTokenSupply)]
+    #[storage_mapper("farm_token_supply")]
+    fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
 }
