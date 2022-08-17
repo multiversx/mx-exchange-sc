@@ -505,7 +505,7 @@ fn test_start_produce_rewards_error() {
                 )
             },
         )
-        .assert_error(4, "Minimum rewarding blocks number is lower than the minimum accepted");
+        .assert_error(4, "Not enough rewards to cover the minimum rewarding blocks");
 }
 
 

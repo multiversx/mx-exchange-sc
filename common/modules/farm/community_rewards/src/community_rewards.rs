@@ -53,7 +53,7 @@ pub trait CommunityRewardsModule:
             community_rewards_remaining_reserve / per_block_reward_amount;
         require!(
             actual_rewarding_blocks_no >= minimum_rewarding_blocks,
-            "Minimum rewarding blocks number is lower than the minimum accepted"
+            "Not enough rewards to cover the minimum rewarding blocks"
         );
 
         let current_block = self.blockchain().get_block_nonce();
