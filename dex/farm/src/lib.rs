@@ -2,17 +2,23 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
+elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
+
 pub mod custom_rewards;
 pub mod farm_token_merge;
 
 use common_errors::*;
 
 use common_structs::{Epoch, FarmTokenAttributes};
-use contexts::generic::{GenericContext, StorageCache};
+use contexts::{
+    claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
+    enter_farm_context::EnterFarmContext,
+    exit_farm_context::ExitFarmContext,
+    generic::{GenericContext, StorageCache},
+    storage_cache::StorageCache,
+};
 use farm_token::FarmToken;
-
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
 
 use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
@@ -92,7 +98,13 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(enterFarm)]
     fn enter_farm(&self) -> EnterFarmResultType<Self::Api> {
-        let mut context = self.new_farm_context();
+        let payments = self.call_value().all_esdt_transfers();
+        let mut storage_cache = StorageCache::new(self);
+        let enter_farm_context = EnterFarmContext::new(
+            payments,
+            &storage_cache.farming_token_id,
+            &storage_cache.farm_token_id,
+        );
 
         require!(
             context.get_contract_state() == State::Active,
@@ -144,7 +156,9 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
-        let mut context = self.new_farm_context();
+        let payment = self.call_value().single_esdt();
+        let mut storage_cache = StorageCache::new(self);
+        let exit_farm_context = ExitFarmContext::new(payment, &storage_cache.farm_token_id);
 
         require!(
             context.get_contract_state() == State::Active,
@@ -177,7 +191,10 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
-        let mut context = self.new_farm_context();
+        let payments = self.call_value().all_esdt_transfers();
+        let mut storage_cache = StorageCache::new(self);
+        let claim_rewards_context =
+            ClaimRewardsContext::new(payments, &storage_cache.farm_token_id);
 
         require!(
             context.get_contract_state() == State::Active,
@@ -235,7 +252,10 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(compoundRewards)]
     fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
-        let mut context = self.new_farm_context();
+        let payments = self.call_value().all_esdt_transfers();
+        let mut storage_cache = StorageCache::new(self);
+        let claim_rewards_context =
+            CompoundRewardsContext::new(payments, &storage_cache.farm_token_id);
 
         require!(
             context.get_contract_state() == State::Active,

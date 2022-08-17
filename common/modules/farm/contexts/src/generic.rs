@@ -6,39 +6,6 @@ use elrond_wasm::api::{CallTypeApi, StorageMapperApi};
 use farm_token::FarmToken;
 use pausable::State;
 
-pub trait FarmContracTraitBounds =
-    config::ConfigModule
-        + token_send::TokenSendModule
-        + rewards::RewardsModule
-        + farm_token::FarmTokenModule
-        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
-
-pub struct StorageCache<M: ManagedTypeApi> {
-    pub contract_state: State,
-    pub farm_token_id: TokenIdentifier<M>,
-    pub farming_token_id: TokenIdentifier<M>,
-    pub reward_token_id: TokenIdentifier<M>,
-    pub reward_reserve: BigUint<M>,
-    pub reward_per_share: BigUint<M>,
-    pub farm_token_supply: BigUint<M>,
-    pub division_safety_constant: BigUint<M>,
-}
-
-impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> StorageCache<M> {
-    pub fn new<C: FarmContracTraitBounds<Api = M>>(farm_sc: &C) -> Self {
-        StorageCache {
-            contract_state: farm_sc.state().get(),
-            farm_token_id: farm_sc.farm_token().get_token_id(),
-            farming_token_id: farm_sc.farming_token_id().get(),
-            reward_token_id: farm_sc.reward_token_id().get(),
-            reward_reserve: farm_sc.reward_reserve().get(),
-            reward_per_share: farm_sc.reward_per_share().get(),
-            farm_token_supply: farm_sc.farm_token_supply().get(),
-            division_safety_constant: farm_sc.division_safety_constant().get(),
-        }
-    }
-}
-
 pub struct GenericContext<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     tx_input: GenericTxInput<M>,
