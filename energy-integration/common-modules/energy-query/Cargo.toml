@@ -1,5 +1,5 @@
 [package]
-name = "energy-query-module"
+name = "energy-query"
 version = "0.0.0"
 authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
 edition = "2018"

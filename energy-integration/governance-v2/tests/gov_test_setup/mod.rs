@@ -6,7 +6,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
-use energy_query_module::Energy;
+use energy_query::Energy;
 use governance_v2::{configurable::ConfigurablePropertiesModule, GovernanceV2};
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;

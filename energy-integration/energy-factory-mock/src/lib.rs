@@ -2,7 +2,7 @@
 
 elrond_wasm::imports!();
 
-use energy_query_module::Energy;
+use energy_query::Energy;
 
 #[elrond_wasm::contract]
 pub trait EnergyFactoryMock {

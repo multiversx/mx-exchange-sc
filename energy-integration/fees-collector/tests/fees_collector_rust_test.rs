@@ -1,18 +1,16 @@
 mod fees_collector_test_setup;
 
+use common_types::TokenAmountPair;
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
     types::{BigInt, ManagedVec, MultiValueEncoded, OperationCompletionStatus},
 };
 use elrond_wasm_debug::{managed_address, managed_biguint, managed_token_id, rust_biguint};
 use elrond_wasm_modules::pause::PauseModule;
-use energy_query_module::Energy;
-use fees_collector::{
-    fees_accumulation::{FeesAccumulationModule, TokenAmountPair},
-    fees_splitting::{ClaimProgress, FeesSplittingModule},
-    FeesCollector,
-};
+use energy_query::Energy;
+use fees_collector::{fees_accumulation::FeesAccumulationModule, FeesCollector};
 use fees_collector_test_setup::*;
+use weekly_rewards_splitting::{ClaimProgress, WeeklyRewardsSplittingModule};
 
 #[test]
 fn setup_test() {

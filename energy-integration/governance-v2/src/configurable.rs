@@ -28,7 +28,7 @@ elrond_wasm::imports!();
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
 #[elrond_wasm::module]
-pub trait ConfigurablePropertiesModule: energy_query_module::EnergyQueryModule {
+pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[init]
     fn init(
         &self,
