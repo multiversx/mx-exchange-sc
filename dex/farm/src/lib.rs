@@ -106,15 +106,7 @@ pub trait Farm:
             &storage_cache.farm_token_id,
         );
 
-        require!(
-            context.get_contract_state() == State::Active,
-            ERROR_NOT_ACTIVE
-        );
-        require!(
-            context.get_farm_token_id().is_valid_esdt_identifier(),
-            ERROR_NO_FARM_TOKEN
-        );
-        require!(context.is_accepted_payment_enter(), ERROR_BAD_PAYMENTS);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
 
@@ -160,15 +152,7 @@ pub trait Farm:
         let mut storage_cache = StorageCache::new(self);
         let exit_farm_context = ExitFarmContext::new(payment, &storage_cache.farm_token_id);
 
-        require!(
-            context.get_contract_state() == State::Active,
-            ERROR_NOT_ACTIVE
-        );
-        require!(
-            context.get_farm_token_id().is_valid_esdt_identifier(),
-            ERROR_NO_FARM_TOKEN
-        );
-        require!(context.is_accepted_payment_exit(), ERROR_BAD_PAYMENTS);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
         self.calculate_reward(&mut context);
@@ -196,15 +180,7 @@ pub trait Farm:
         let claim_rewards_context =
             ClaimRewardsContext::new(payments, &storage_cache.farm_token_id);
 
-        require!(
-            context.get_contract_state() == State::Active,
-            ERROR_NOT_ACTIVE
-        );
-        require!(
-            context.get_farm_token_id().is_valid_esdt_identifier(),
-            ERROR_NO_FARM_TOKEN
-        );
-        require!(context.is_accepted_payment_claim(), ERROR_BAD_PAYMENTS);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
         self.generate_aggregated_rewards(context.get_storage_cache_mut());
         self.calculate_reward(&mut context);
@@ -257,15 +233,7 @@ pub trait Farm:
         let claim_rewards_context =
             CompoundRewardsContext::new(payments, &storage_cache.farm_token_id);
 
-        require!(
-            context.get_contract_state() == State::Active,
-            ERROR_NOT_ACTIVE
-        );
-        require!(
-            context.get_farm_token_id().is_valid_esdt_identifier(),
-            ERROR_NO_FARM_TOKEN
-        );
-        require!(context.is_accepted_payment_compound(), ERROR_BAD_PAYMENTS);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         require!(
             context.get_farming_token_id() == context.get_reward_token_id(),
             ERROR_DIFFERENT_TOKEN_IDS
@@ -319,6 +287,14 @@ pub trait Farm:
         self.emit_compound_rewards_event(&context);
 
         context.get_output_payments().get(0)
+    }
+
+    fn validate_contract_state(&self, current_state: State, farm_token_id: &TokenIdentifier) {
+        require!(current_state == State::Active, ERROR_NOT_ACTIVE);
+        require!(
+            farm_token_id.is_valid_esdt_identifier(),
+            ERROR_NO_FARM_TOKEN
+        );
     }
 
     fn burn_farming_tokens(
