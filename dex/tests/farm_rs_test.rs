@@ -1,6 +1,6 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded};
+use elrond_wasm::types::{Address, BigInt, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -362,26 +362,9 @@ where
     farm_setup.blockchain_wrapper.set_block_epoch(block_epoch);
 }
 
-/*
-fn create_generated_mandos_file_name(suffix: &str) -> String {
-    let mut path = GENERATED_FILE_PREFIX.to_owned();
-    path += suffix;
-    path += MANDOS_FILE_EXTENSION;
-
-    path
-}
-*/
-
 #[test]
 fn test_farm_setup() {
     let _ = setup_farm(farm::contract_obj);
-
-    /*
-    let file_name = create_generated_mandos_file_name("init");
-    farm_setup
-        .blockchain_wrapper
-        .write_mandos_output(&file_name);
-    */
 }
 
 #[test]
@@ -402,13 +385,6 @@ fn test_enter_farm() {
         0,
     );
     check_farm_token_supply(&mut farm_setup, farm_in_amount);
-
-    /*
-    let file_name = create_generated_mandos_file_name("enter_farm");
-    farm_setup
-        .blockchain_wrapper
-        .write_mandos_output(&file_name);
-    */
 }
 
 #[test]
@@ -1107,3 +1083,87 @@ fn test_farm_through_simple_lock() {
         Some(&lp_proxy_token_attributes),
     );
 }
+
+// #[test]
+// fn farm_boosted_yields_test() {
+//     use energy_factory_mock::EnergyFactoryMock;
+//     use energy_query::EnergyQueryModule;
+//     use factory::energy::Energy;
+
+//     let rust_zero = rust_biguint!(0);
+//     let mut farm_setup = setup_farm(farm::contract_obj);
+
+//     // setup energy factory
+//     let energy_factory_wrapper = farm_setup.blockchain_wrapper.create_sc_account(
+//         &rust_zero,
+//         Some(&farm_setup.owner_address),
+//         energy_factory_mock::contract_obj,
+//         "energy factory path",
+//     );
+//     farm_setup
+//         .blockchain_wrapper
+//         .execute_tx(
+//             &farm_setup.owner_address,
+//             &farm_setup.farm_wrapper,
+//             &rust_zero,
+//             |sc| {
+//                 sc.set_energy_factory_address(managed_address!(
+//                     energy_factory_wrapper.address_ref()
+//                 ));
+//             },
+//         )
+//         .assert_ok();
+
+//     // set user energy
+//     let first_user = farm_setup.user_address.clone();
+//     // let second_user = // create new user and enter farm
+//     farm_setup
+//         .blockchain_wrapper
+//         .execute_tx(
+//             &farm_setup.owner_address,
+//             &energy_factory_wrapper,
+//             &rust_biguint!(0),
+//             |sc| {
+//                 sc.user_energy(&managed_address!(&first_user))
+//                     .set(&Energy::new(
+//                         BigInt::from(managed_biguint!(energy_amount)),
+//                         current_epoch,
+//                         managed_biguint!(total_locked_tokens),
+//                     ));
+//             },
+//         )
+//         .assert_ok();
+
+//     let farm_in_amount = 100_000_000;
+//     let expected_farm_token_nonce = 1;
+//     enter_farm(
+//         &mut farm_setup,
+//         farm_in_amount,
+//         &[],
+//         expected_farm_token_nonce,
+//         0,
+//         0,
+//         0,
+//         farm_in_amount,
+//         0,
+//     );
+//     check_farm_token_supply(&mut farm_setup, farm_in_amount);
+
+//     set_block_epoch(&mut farm_setup, 5);
+//     set_block_nonce(&mut farm_setup, 10);
+
+//     let expected_mex_out = 10 * PER_BLOCK_REWARD_AMOUNT;
+//     let expected_lp_token_balance = rust_biguint!(USER_TOTAL_LP_TOKENS - farm_in_amount);
+//     let expected_reward_per_share = 500_000_000;
+//     claim_rewards(
+//         &mut farm_setup,
+//         farm_in_amount,
+//         expected_farm_token_nonce,
+//         expected_mex_out,
+//         &rust_biguint!(expected_mex_out),
+//         &expected_lp_token_balance,
+//         expected_farm_token_nonce + 1,
+//         expected_reward_per_share,
+//     );
+//     check_farm_token_supply(&mut farm_setup, farm_in_amount);
+// }

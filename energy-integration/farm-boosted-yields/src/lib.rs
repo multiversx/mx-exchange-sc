@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_types::{TokenAmountPair, TokenAmountPairsVec};
+use common_types::{TokenAmountPair, TokenAmountPairsVec, PaymentsVec};
 use config::MAX_PERCENT;
 use week_timekeeping::Week;
 
@@ -37,7 +37,13 @@ pub trait FarmBoostedYieldsModule:
         self.boosted_yields_rewards_percentage().set(percentage);
     }
 
-    /// Returns leftover reward
+    #[endpoint(claimBoostedYieldsRewards)]
+    fn claim_boosted_yields_rewards(&self) -> PaymentsVec<Self::Api> {
+        ManagedVec::new()
+
+        // self.claim_multi(|week: Week| self.collect_rewards())
+    }
+
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
         let percentage = self.boosted_yields_rewards_percentage().get();
         if percentage == 0 {

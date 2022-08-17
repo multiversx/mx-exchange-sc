@@ -63,3 +63,9 @@ path = "governance"
 
 [dev-dependencies.fees-collector]
 path = "../energy-integration/fees-collector"
+
+[dev-dependencies.energy-factory-mock]
+path = "../energy-integration/energy-factory-mock"
+
+[dev-dependencies.energy-query]
+path = "../energy-integration/common-modules/energy-query"
