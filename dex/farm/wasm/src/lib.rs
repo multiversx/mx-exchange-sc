@@ -8,13 +8,13 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
+        addAdmins
         addToPauseWhitelist
         calculateRewardsForGivenPosition
-        claimRewards
-        compoundRewards
         end_produce_rewards
         enterFarm
         exitFarm
+        getAdmins
         getBurnGasLimit
         getDivisionSafetyConstant
         getFarmMigrationConfiguration
@@ -35,6 +35,7 @@ elrond_wasm_node::wasm_endpoints! {
         migrateFromV1_2Farm
         pause
         registerFarmToken
+        removeAdmins
         removeFromPauseWhitelist
         resume
         setFarmMigrationConfig

@@ -4,11 +4,7 @@ elrond_wasm::derive_imports!();
 use pausable::State;
 
 pub trait FarmContracTraitBounds =
-    config::ConfigModule
-        + token_send::TokenSendModule
-        + rewards::RewardsModule
-        + farm_token::FarmTokenModule
-        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
+    config::ConfigModule + rewards::RewardsModule + farm_token::FarmTokenModule;
 
 pub struct StorageCache<'a, C: FarmContracTraitBounds> {
     sc_ref: &'a C,

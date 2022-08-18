@@ -14,25 +14,12 @@ pub trait CustomRewardsModule:
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    fn mint_per_block_rewards(&self, token_id: &TokenIdentifier) -> BigUint {
-        let current_block_nonce = self.blockchain().get_block_nonce();
-        let last_reward_nonce = self.last_reward_block_nonce().get();
-
-        if current_block_nonce > last_reward_nonce {
-            let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
-
-            if to_mint != 0 {
-                self.send().esdt_local_mint(token_id, 0, &to_mint);
-            }
-            self.last_reward_block_nonce().set(&current_block_nonce);
-            to_mint
-        } else {
-            BigUint::zero()
-        }
-    }
-
     fn generate_aggregated_rewards(&self, storage_cache: &mut StorageCache<Self>) {
-        let total_reward = self.mint_per_block_rewards(&storage_cache.reward_token_id);
+        let mint_function = |token_id: &TokenIdentifier, amount: &BigUint| {
+            self.send().esdt_local_mint(token_id, 0, amount);
+        };
+        let total_reward =
+            self.mint_per_block_rewards(&storage_cache.reward_token_id, mint_function);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
 

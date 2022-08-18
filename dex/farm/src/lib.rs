@@ -107,7 +107,6 @@ pub trait Farm:
         );
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-
         self.generate_aggregated_rewards(&mut storage_cache);
 
         let block_epoch = self.blockchain().get_block_epoch();
@@ -135,12 +134,7 @@ pub trait Farm:
 
         let caller = self.blockchain().get_caller();
         let output_farm_token_payment = new_farm_token.payment.clone();
-        self.send_tokens_non_zero(
-            &caller,
-            &output_farm_token_payment.token_identifier,
-            output_farm_token_payment.token_nonce,
-            &output_farm_token_payment.amount,
-        );
+        self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
         self.emit_enter_farm_event(
             enter_farm_context.farming_token_payment,
@@ -152,32 +146,65 @@ pub trait Farm:
         output_farm_token_payment
     }
 
-    // #[payable("*")]
-    // #[endpoint(exitFarm)]
-    // fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
-    //     let payment = self.call_value().single_esdt();
-    //     let mut storage_cache = StorageCache::new(self);
-    //     let exit_farm_context = ExitFarmContext::new(payment, &storage_cache.farm_token_id);
+    #[payable("*")]
+    #[endpoint(exitFarm)]
+    fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
+        let payment = self.call_value().single_esdt();
+        let mut storage_cache = StorageCache::new(self);
+        let exit_farm_context =
+            ExitFarmContext::new(payment, &storage_cache.farm_token_id, self.blockchain());
 
-    //     self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        self.generate_aggregated_rewards(&mut storage_cache);
 
-    //     self.generate_aggregated_rewards(context.get_storage_cache_mut());
-    //     self.calculate_reward(&mut context);
-    //     context.decrease_reward_reserve();
-    //     self.calculate_initial_farming_amount(&mut context);
-    //     self.increase_reward_with_compounded_rewards(&mut context);
+        let farm_token_amount = &exit_farm_context.farm_token_payment.amount;
+        let attributes = &exit_farm_context.farm_token_attributes;
+        let mut reward = self.calculate_reward(
+            farm_token_amount,
+            &attributes.reward_per_share,
+            &storage_cache.reward_per_share,
+            &storage_cache.division_safety_constant,
+        );
+        storage_cache.reward_reserve -= &reward;
 
-    //     self.commit_changes(&context);
-    //     self.burn_penalty(&mut context);
-    //     self.burn_position(&context);
+        let compounded_rewards =
+            self.calculate_previously_compounded_rewards(farm_token_amount, attributes);
+        reward += compounded_rewards;
 
-    //     self.send_rewards(&mut context);
-    //     self.construct_output_payments_exit(&mut context);
-    //     self.execute_output_payments(&context);
-    //     self.emit_exit_farm_event(&context);
+        let mut initial_farming_amount =
+            self.calculate_initial_farming_amount(farm_token_amount, attributes);
 
-    //     self.construct_and_get_result(&context)
-    // }
+        if self.should_apply_penalty(attributes.entering_epoch) {
+            self.burn_penalty(
+                &mut initial_farming_amount,
+                &storage_cache.farming_token_id,
+                &storage_cache.reward_token_id,
+            );
+        }
+
+        self.burn_position(&exit_farm_context.farm_token_payment);
+
+        let farming_token_payment = EsdtTokenPayment::new(
+            storage_cache.farming_token_id.clone(),
+            0,
+            initial_farming_amount,
+        );
+        let reward_payment =
+            EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);
+
+        let caller = self.blockchain().get_caller();
+        self.send_payment_non_zero(&caller, &farming_token_payment);
+        self.send_payment_non_zero(&caller, &reward_payment);
+
+        self.emit_exit_farm_event(
+            exit_farm_context,
+            farming_token_payment.clone(),
+            reward_payment.clone(),
+            storage_cache,
+        );
+
+        (farming_token_payment, reward_payment).into()
+    }
 
     // #[payable("*")]
     // #[endpoint(claimRewards)]
@@ -306,8 +333,8 @@ pub trait Farm:
 
     fn burn_farming_tokens(
         &self,
-        farming_token_id: &TokenIdentifier,
         farming_amount: &BigUint,
+        farming_token_id: &TokenIdentifier,
         reward_token_id: &TokenIdentifier,
     ) {
         let pair_contract_address = self.pair_contract_address().get();
@@ -381,25 +408,16 @@ pub trait Farm:
         amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
-        require!(amount > 0u64, ERROR_ZERO_AMOUNT);
-        let farm_token_supply = self.farm_token_supply().get();
-        require!(farm_token_supply >= amount, ERROR_ZERO_AMOUNT);
+        let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        self.generate_aggregated_rewards(&mut storage_cache);
 
-        let last_reward_nonce = self.last_reward_block_nonce().get();
-        let current_block_nonce = self.blockchain().get_block_nonce();
-        let reward_increase =
-            self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
-        let reward_per_share_increase = reward_increase * &self.division_safety_constant().get()
-            / self.farm_token_supply().get();
-
-        let future_reward_per_share = self.reward_per_share().get() + reward_per_share_increase;
-
-        if future_reward_per_share > attributes.reward_per_share {
-            let reward_per_share_diff = future_reward_per_share - attributes.reward_per_share;
-            amount * &reward_per_share_diff / self.division_safety_constant().get()
-        } else {
-            BigUint::zero()
-        }
+        self.calculate_reward(
+            &amount,
+            &attributes.reward_per_share,
+            &storage_cache.reward_per_share,
+            &storage_cache.division_safety_constant,
+        )
     }
 
     fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
@@ -410,19 +428,19 @@ pub trait Farm:
         amount * self.penalty_percent().get() / MAX_PERCENT
     }
 
-    // fn burn_penalty(&self, context: &mut GenericContext<Self::Api>) {
-    //     if self.should_apply_penalty(context.get_input_attributes().entering_epoch) {
-    //         let penalty_amount = self.get_penalty_amount(context.get_initial_farming_amount());
-    //         if penalty_amount > 0u64 {
-    //             self.burn_farming_tokens(
-    //                 context.get_farming_token_id(),
-    //                 &penalty_amount,
-    //                 context.get_reward_token_id(),
-    //             );
-    //             context.decrease_farming_token_amount(&penalty_amount);
-    //         }
-    //     }
-    // }
+    fn burn_penalty(
+        &self,
+        initial_farming_amount: &mut BigUint,
+        farming_token_id: &TokenIdentifier,
+        reward_token_id: &TokenIdentifier,
+    ) {
+        let penalty_amount = self.get_penalty_amount(initial_farming_amount);
+        if penalty_amount > 0u64 {
+            self.burn_farming_tokens(&penalty_amount, farming_token_id, reward_token_id);
+
+            *initial_farming_amount -= penalty_amount;
+        }
+    }
 
     fn burn_position(&self, farm_token_payment: &EsdtTokenPayment<Self::Api>) {
         self.burn_farm_tokens(
@@ -430,6 +448,30 @@ pub trait Farm:
             farm_token_payment.token_nonce,
             &farm_token_payment.amount,
         );
+    }
+
+    fn calculate_initial_farming_amount(
+        &self,
+        farm_token_amount: &BigUint,
+        farm_token_attributes: &FarmTokenAttributes<Self::Api>,
+    ) -> BigUint {
+        self.rule_of_three_non_zero_result(
+            farm_token_amount,
+            &farm_token_attributes.current_farm_amount,
+            &farm_token_attributes.initial_farming_amount,
+        )
+    }
+
+    fn calculate_previously_compounded_rewards(
+        &self,
+        farm_token_amount: &BigUint,
+        farm_token_attributes: &FarmTokenAttributes<Self::Api>,
+    ) -> BigUint {
+        self.rule_of_three(
+            farm_token_amount,
+            &farm_token_attributes.current_farm_amount,
+            &farm_token_attributes.compounded_reward,
+        )
     }
 
     // fn calculate_new_compound_reward_amount(&self, context: &GenericContext<Self::Api>) -> BigUint {

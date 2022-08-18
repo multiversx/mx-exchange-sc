@@ -3,13 +3,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Nonce;
+use common_structs::{FarmTokenAttributes, Nonce};
 
 #[elrond_wasm::module]
 pub trait RewardsModule:
     config::ConfigModule
     + farm_token::FarmTokenModule
-    + token_send::TokenSendModule
     + pausable::PausableModule
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -27,6 +26,42 @@ pub trait RewardsModule:
         let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
 
         per_block_reward * block_nonce_diff
+    }
+
+    fn mint_per_block_rewards<MintFunction: Fn(&TokenIdentifier, &BigUint)>(
+        &self,
+        token_id: &TokenIdentifier,
+        mint_function: MintFunction,
+    ) -> BigUint {
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let last_reward_nonce = self.last_reward_block_nonce().get();
+        if current_block_nonce > last_reward_nonce {
+            let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
+            if to_mint != 0 {
+                mint_function(token_id, &to_mint);
+            }
+
+            self.last_reward_block_nonce().set(current_block_nonce);
+
+            to_mint
+        } else {
+            BigUint::zero()
+        }
+    }
+
+    fn calculate_reward(
+        &self,
+        farm_token_amount: &BigUint,
+        farm_token_reward_per_share: &BigUint,
+        current_reward_per_share: &BigUint,
+        div_safety_const: &BigUint,
+    ) -> BigUint {
+        if current_reward_per_share > farm_token_reward_per_share {
+            let rps_diff = current_reward_per_share - farm_token_reward_per_share;
+            farm_token_amount * &rps_diff / div_safety_const
+        } else {
+            BigUint::zero()
+        }
     }
 
     #[endpoint(startProduceRewards)]
