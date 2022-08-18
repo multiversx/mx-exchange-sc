@@ -157,8 +157,8 @@ pub trait Farm:
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         self.generate_aggregated_rewards(&mut storage_cache);
 
-        let farm_token_amount = &exit_farm_context.farm_token_payment.amount;
-        let attributes = &exit_farm_context.farm_token_attributes;
+        let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
+        let attributes = &exit_farm_context.farm_token.attributes;
         let mut reward = self.calculate_reward(
             farm_token_amount,
             &attributes.reward_per_share,
@@ -182,7 +182,7 @@ pub trait Farm:
             );
         }
 
-        self.burn_position(&exit_farm_context.farm_token_payment);
+        self.burn_position(&exit_farm_context.farm_token.payment);
 
         let farming_token_payment = EsdtTokenPayment::new(
             storage_cache.farming_token_id.clone(),

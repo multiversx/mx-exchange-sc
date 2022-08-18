@@ -4,10 +4,10 @@ elrond_wasm::derive_imports!();
 use common_errors::ERROR_BAD_PAYMENTS;
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::contract_base::BlockchainWrapper;
+use farm_token::FarmToken;
 
 pub struct ExitFarmContext<M: ManagedTypeApi> {
-    pub farm_token_payment: EsdtTokenPayment<M>,
-    pub farm_token_attributes: FarmTokenAttributes<M>,
+    pub farm_token: FarmToken<M>,
 }
 
 impl<M: ManagedTypeApi + BlockchainApi> ExitFarmContext<M> {
@@ -26,8 +26,10 @@ impl<M: ManagedTypeApi + BlockchainApi> ExitFarmContext<M> {
         let attributes: FarmTokenAttributes<M> = token_data.decode_attributes();
 
         ExitFarmContext {
-            farm_token_payment: payment,
-            farm_token_attributes: attributes,
+            farm_token: FarmToken {
+                payment,
+                attributes,
+            },
         }
     }
 }

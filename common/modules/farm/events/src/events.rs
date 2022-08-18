@@ -143,7 +143,8 @@ pub trait EventsModule {
         self.exit_farm_event(
             &caller.clone(),
             &exit_farm_context
-                .farm_token_payment
+                .farm_token
+                .payment
                 .token_identifier
                 .clone(),
             block_epoch,
@@ -151,15 +152,15 @@ pub trait EventsModule {
                 caller,
                 farming_token_id: output_farming_tokens.token_identifier,
                 farming_token_amount: output_farming_tokens.amount,
-                farm_token_id: exit_farm_context.farm_token_payment.token_identifier,
-                farm_token_nonce: exit_farm_context.farm_token_payment.token_nonce,
-                farm_token_amount: exit_farm_context.farm_token_payment.amount,
+                farm_token_id: exit_farm_context.farm_token.payment.token_identifier,
+                farm_token_nonce: exit_farm_context.farm_token.payment.token_nonce,
+                farm_token_amount: exit_farm_context.farm_token.payment.amount,
                 farm_supply: storage_cache.farm_token_supply.clone(),
                 reward_token_id: output_reward.token_identifier,
                 reward_token_nonce: output_reward.token_nonce,
                 reward_token_amount: output_reward.amount,
                 reward_reserve: storage_cache.reward_reserve.clone(),
-                farm_attributes: exit_farm_context.farm_token_attributes,
+                farm_attributes: exit_farm_context.farm_token.attributes,
                 block: block_nonce,
                 epoch: block_epoch,
                 timestamp: block_timestamp,
