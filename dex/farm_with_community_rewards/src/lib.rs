@@ -19,6 +19,8 @@ use config::{
 };
 use pausable::State;
 
+const DEFAULT_MINIMUM_REWARDING_BLOCKS: u64 = 1_296_000; // 3 months
+
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
@@ -71,6 +73,8 @@ pub trait Farm:
         require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(&State::Inactive);
+        self.minimum_rewarding_blocks()
+            .set_if_empty(DEFAULT_MINIMUM_REWARDING_BLOCKS);
         self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
         self.minimum_farming_epochs()
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
@@ -298,11 +302,7 @@ pub trait Farm:
         context.get_output_payments().get(0)
     }
 
-    fn burn_farming_tokens(
-        &self,
-        farming_token_id: &TokenIdentifier,
-        farming_amount: &BigUint,
-    ) {
+    fn burn_farming_tokens(&self, farming_token_id: &TokenIdentifier, farming_amount: &BigUint) {
         let pair_contract_address = self.pair_contract_address().get();
         if pair_contract_address.is_zero() {
             self.send()
@@ -421,10 +421,7 @@ pub trait Farm:
         if self.should_apply_penalty(context.get_input_attributes().entering_epoch) {
             let penalty_amount = self.get_penalty_amount(context.get_initial_farming_amount());
             if penalty_amount > 0u64 {
-                self.burn_farming_tokens(
-                    context.get_farming_token_id(),
-                    &penalty_amount,
-                );
+                self.burn_farming_tokens(context.get_farming_token_id(), &penalty_amount);
                 context.decrease_farming_token_amount(&penalty_amount);
             }
         }

@@ -29,6 +29,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLastRewardBlockNonce
         getLockedAssetFactoryManagedAddress
         getMinimumFarmingEpoch
+        getMinimumRewardingBlocks
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
@@ -46,6 +47,7 @@ elrond_wasm_node::wasm_endpoints! {
         resume
         setFarmMigrationConfig
         setFarmTokenSupply
+        setMinimumRewardingBlocks
         setPerBlockRewardAmount
         setRpsAndStartRewards
         set_burn_gas_limit

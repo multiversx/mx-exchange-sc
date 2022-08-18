@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use community_rewards::MINIMUM_REWARDING_BLOCKS;
 use contexts::generic::StorageCache;
 
 #[elrond_wasm::module]
@@ -59,6 +58,21 @@ pub trait CustomRewardsModule:
         }
     }
 
+    #[only_owner]
+    #[endpoint(setMinimumRewardingBlocks)]
+    fn set_minimum_rewarding_blocks(&self, new_minimum_rewarding_blocks: u64) {
+        require!(
+            !self.produces_per_block_community_rewards(),
+            "Rewards distribution is currently running"
+        );
+        require!(
+            new_minimum_rewarding_blocks > 0u64,
+            "Minimum rewarding blocks number must be greater than zero"
+        );
+        self.minimum_rewarding_blocks()
+            .set(new_minimum_rewarding_blocks);
+    }
+
     #[only_admin]
     #[endpoint]
     fn end_produce_rewards(&self) {
@@ -71,19 +85,24 @@ pub trait CustomRewardsModule:
         self.produce_community_rewards_enabled().set(false);
     }
 
+    // Allow 0 tokens per block distribution case
     #[only_admin]
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        // Allow 0 tokens per block distribution case
-        // require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+        let minimum_rewarding_blocks = self.minimum_rewarding_blocks().get();
+        require!(
+            minimum_rewarding_blocks > 0u64,
+            "Minimum rewarding blocks number must be greater than zero"
+        );
 
         if per_block_amount > 0u64 {
             let community_rewards_remaining_reserve =
                 self.community_rewards_remaining_reserve().get();
-            let actual_rewarding_blocks_no = community_rewards_remaining_reserve / per_block_amount.clone();
+            let actual_rewarding_blocks_no =
+                community_rewards_remaining_reserve / per_block_amount.clone();
             require!(
-                actual_rewarding_blocks_no >= MINIMUM_REWARDING_BLOCKS,
-                "Not enough rewards for at least 3 months"
+                actual_rewarding_blocks_no >= minimum_rewarding_blocks,
+                "Not enough rewards for the minimum rewarding period"
             );
         }
 
