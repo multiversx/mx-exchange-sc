@@ -12,6 +12,7 @@ elrond_wasm_node::wasm_endpoints! {
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
+        compoundRewards
         end_produce_rewards
         enterFarm
         exitFarm
