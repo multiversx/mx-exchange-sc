@@ -5,6 +5,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
 use contexts::{
+    claim_rewards_context::ClaimRewardsContext,
     exit_farm_context::ExitFarmContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
 };
@@ -107,7 +108,7 @@ pub trait EventsModule {
 
         self.enter_farm_event(
             &caller.clone(),
-            &input_farming_token.token_identifier.clone(),
+            &storage_cache.farming_token_id,
             block_epoch,
             &EnterFarmEvent {
                 caller,
@@ -142,11 +143,7 @@ pub trait EventsModule {
 
         self.exit_farm_event(
             &caller.clone(),
-            &exit_farm_context
-                .farm_token
-                .payment
-                .token_identifier
-                .clone(),
+            &storage_cache.farm_token_id,
             block_epoch,
             &ExitFarmEvent {
                 caller,
@@ -168,47 +165,50 @@ pub trait EventsModule {
         )
     }
 
-    /*
-    fn emit_claim_rewards_event(&self, ctx: &GenericContext<Self::Api>) {
-        let first_pay = &ctx.get_tx_input().first_payment;
-        let reward = match ctx.get_final_reward() {
-            Some(rew) => rew.clone(),
-            None => {
-                EsdtTokenPayment::new(TokenIdentifier::from_esdt_bytes(&[]), 0, BigUint::zero())
-            }
-        };
-        let output = ctx.get_output_payments().get(0);
-        let output_attributes = ctx
-            .get_output_attributes()
-            .unwrap_or_else(|| sc_panic!("No farm attributes"));
+    fn emit_claim_rewards_event<'a, C: FarmContracTraitBounds<Api = Self::Api>>(
+        &self,
+        claim_rewards_context: ClaimRewardsContext<Self::Api>,
+        output_farm_token: FarmToken<Self::Api>,
+        created_with_merge: bool,
+        output_reward: EsdtTokenPayment<Self::Api>,
+        storage_cache: StorageCache<'a, C>,
+    ) {
+        let caller = self.blockchain().get_caller();
+        let block_nonce = self.blockchain().get_block_nonce();
+        let block_epoch = self.blockchain().get_block_epoch();
+        let block_timestamp = self.blockchain().get_block_timestamp();
 
         self.claim_rewards_event(
-            ctx.get_caller(),
-            ctx.get_farm_token_id(),
-            ctx.get_block_epoch(),
+            &caller.clone(),
+            &storage_cache.farm_token_id,
+            block_epoch,
             &ClaimRewardsEvent {
-                caller: ctx.get_caller().clone(),
-                old_farm_token_id: ctx.get_farm_token_id().clone(),
-                old_farm_token_nonce: first_pay.token_nonce,
-                old_farm_token_amount: first_pay.amount.clone(),
-                new_farm_token_id: ctx.get_farm_token_id().clone(),
-                new_farm_token_nonce: output.token_nonce,
-                new_farm_token_amount: output.amount,
-                farm_supply: ctx.get_farm_token_supply().clone(),
-                reward_token_id: reward.token_identifier,
-                reward_token_nonce: reward.token_nonce,
-                reward_token_amount: reward.amount,
-                reward_reserve: ctx.get_reward_reserve().clone(),
-                old_farm_attributes: ctx.get_input_attributes().clone(),
-                new_farm_attributes: output_attributes.clone(),
-                created_with_merge: ctx.was_output_created_with_merge(),
-                block: ctx.get_block_nonce(),
-                epoch: ctx.get_block_epoch(),
-                timestamp: self.blockchain().get_block_timestamp(),
+                caller,
+                old_farm_token_id: claim_rewards_context
+                    .first_farm_token
+                    .payment
+                    .token_identifier,
+                old_farm_token_nonce: claim_rewards_context.first_farm_token.payment.token_nonce,
+                old_farm_token_amount: claim_rewards_context.first_farm_token.payment.amount,
+                new_farm_token_id: output_farm_token.payment.token_identifier,
+                new_farm_token_nonce: output_farm_token.payment.token_nonce,
+                new_farm_token_amount: output_farm_token.payment.amount,
+                farm_supply: storage_cache.farm_token_supply.clone(),
+                reward_token_id: output_reward.token_identifier,
+                reward_token_nonce: output_reward.token_nonce,
+                reward_token_amount: output_reward.amount,
+                reward_reserve: storage_cache.reward_reserve.clone(),
+                old_farm_attributes: claim_rewards_context.first_farm_token.attributes,
+                new_farm_attributes: output_farm_token.attributes,
+                created_with_merge,
+                block: block_nonce,
+                epoch: block_epoch,
+                timestamp: block_timestamp,
             },
         )
     }
 
+    /*
     fn emit_compound_rewards_event(self, ctx: &GenericContext<Self::Api>) {
         let first_pay = &ctx.get_tx_input().first_payment;
         let reward = match ctx.get_final_reward() {
