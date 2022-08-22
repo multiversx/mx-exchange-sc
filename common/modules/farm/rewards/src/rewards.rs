@@ -64,6 +64,7 @@ pub trait RewardsModule:
         }
     }
 
+    // Move to the main file
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards_endpoint(&self) {
         self.require_caller_is_admin();

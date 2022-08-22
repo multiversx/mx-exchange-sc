@@ -18,7 +18,7 @@ use farm::farm_token_merge::ProxyTrait as _;
 
 #[elrond_wasm::module]
 pub trait WrappedFarmTokenMerge:
-    token_merge::TokenMergeModule
+    token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + proxy_common::ProxyCommonModule
     + wrapped_lp_token_merge::WrappedLpTokenMerge

@@ -2,6 +2,7 @@
 
 pub static ERROR_NOT_ACTIVE: &[u8] = b"Not active";
 pub static ERROR_EMPTY_PAYMENTS: &[u8] = b"Empty payments";
+pub static ERROR_TOO_MANY_ADDITIONAL_PAYMENTS: &[u8] = b"Too many additional payments";
 pub static ERROR_BAD_INPUT_TOKEN: &[u8] = b"Bad input token";
 pub static ERROR_NO_FARM_TOKEN: &[u8] = b"No farm token";
 pub static ERROR_ZERO_AMOUNT: &[u8] = b"Zero amount";

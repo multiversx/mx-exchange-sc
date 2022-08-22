@@ -5,7 +5,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub mod custom_rewards;
+pub mod enter_farm;
+pub mod base_farm_validation;
 
 use common_errors::*;
 
@@ -22,17 +23,16 @@ use config::{
 };
 use pausable::State;
 
-type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type ClaimRewardsResultType<BigUint> =
+pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
+pub type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
+pub type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
+pub type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[elrond_wasm::contract]
-pub trait Farm:
-    custom_rewards::CustomRewardsModule
-    + rewards::RewardsModule
+#[elrond_wasm::module]
+pub trait FarmBaseImpl:
+    rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
@@ -42,12 +42,14 @@ pub trait Farm:
     + admin_whitelist::AdminWhitelistModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + base_farm_validation::BaseFarmValidationModule
+    + enter_farm::BaseEnterFarmModule
 {
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
+    // use only in SCs importing
+    // #[proxy]
+    // fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
 
-    #[init]
-    fn init(
+    fn base_farm_init(
         &self,
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,

@@ -29,8 +29,8 @@ path = "../../common/modules/farm/contexts"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"

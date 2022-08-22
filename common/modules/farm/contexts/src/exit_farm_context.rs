@@ -2,9 +2,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::ERROR_BAD_PAYMENTS;
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmToken, FarmTokenAttributes};
 use elrond_wasm::contract_base::BlockchainWrapper;
-use farm_token::FarmToken;
 
 pub struct ExitFarmContext<M: ManagedTypeApi> {
     pub farm_token: FarmToken<M>,

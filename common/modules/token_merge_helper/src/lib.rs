@@ -12,32 +12,29 @@ pub struct ValueWeight<M: ManagedTypeApi> {
     pub weight: BigUint<M>,
 }
 
+pub enum WeightedAverageType {
+    Floor,
+    Ceil,
+}
+
 #[elrond_wasm::module]
-pub trait TokenMergeModule {
-    fn weighted_average(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
+pub trait TokenMergeHelperModule {
+    fn weighted_average(
+        &self,
+        dataset: ManagedVec<ValueWeight<Self::Api>>,
+        average_type: WeightedAverageType,
+    ) -> BigUint {
         let mut weight_sum = BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| weight_sum = &weight_sum + &x.weight);
-
         let mut elem_weight_sum = BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| elem_weight_sum += &x.value * &x.weight);
+        for item in &dataset {
+            weight_sum += &item.weight;
+            elem_weight_sum += item.value * item.weight;
+        }
 
-        elem_weight_sum / weight_sum
-    }
-
-    fn weighted_average_ceil(&self, dataset: ManagedVec<ValueWeight<Self::Api>>) -> BigUint {
-        let mut weight_sum = BigUint::zero();
-        dataset.iter().for_each(|x| weight_sum += &x.weight);
-
-        let mut elem_weight_sum = BigUint::zero();
-        dataset
-            .iter()
-            .for_each(|x| elem_weight_sum += &x.value * &x.weight);
-
-        (&elem_weight_sum + &weight_sum - 1u64) / weight_sum
+        match average_type {
+            WeightedAverageType::Floor => elem_weight_sum / weight_sum,
+            WeightedAverageType::Ceil => (elem_weight_sum + &weight_sum - 1u64) / weight_sum,
+        }
     }
 
     /// part * value / total

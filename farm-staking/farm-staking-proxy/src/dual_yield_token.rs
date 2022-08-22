@@ -20,7 +20,7 @@ impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
 
 #[elrond_wasm::module]
 pub trait DualYieldTokenModule:
-    token_merge::TokenMergeModule
+    token_merge_helper::TokenMergeHelperModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]

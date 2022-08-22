@@ -83,7 +83,8 @@ pub trait ConfigModule: pausable::PausableModule + admin_whitelist::AdminWhiteli
     #[storage_mapper("burn_gas_limit")]
     fn burn_gas_limit(&self) -> SingleValueMapper<u64>;
 
-    #[view(getLockedAssetFactoryManagedAddress)]
-    #[storage_mapper("locked_asset_factory_address")]
-    fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
+    // TODO: Move, it's only used in farm-with-lock, not in all farms
+    // #[view(getLockedAssetFactoryManagedAddress)]
+    // #[storage_mapper("locked_asset_factory_address")]
+    // fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

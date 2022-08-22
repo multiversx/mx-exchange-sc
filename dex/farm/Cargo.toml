@@ -8,17 +8,20 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
+[dependencies.farm_token_merge]
+path = "../../common/modules/farm/farm_token_merge"
+
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
-
-[dependencies.migration_from_v1_2]
-path = "../../common/modules/farm/migration_from_v1_2"
 
 [dependencies.events]
 path = "../../common/modules/farm/events"
@@ -29,17 +32,14 @@ path = "../../common/modules/farm/contexts"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
 [dependencies.admin_whitelist]
 path = "../../common/modules/admin_whitelist"
-
-[dependencies.factory]
-path = "../../locked-asset/factory"
 
 [dependencies.pair]
 path = "../pair"

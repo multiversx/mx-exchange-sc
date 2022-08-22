@@ -1,14 +1,11 @@
 [package]
-name = "token_merge"
+name = "token_merge_helper"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
 edition = "2018"
 
 [lib]
-path = "src/token_merge.rs"
-
-[dependencies.common_structs]
-path = "../../common_structs"
+path = "src/lib.rs"
 
 [dependencies.common_errors]
 path = "../../common_errors"

@@ -15,7 +15,7 @@ use super::locked_asset::{
 pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
     + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + attr_ex_helper::AttrExHelper
 {
     #[payable("*")]

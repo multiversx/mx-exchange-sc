@@ -38,9 +38,6 @@ pub trait CustomRewardsModule:
         let mut storage = StorageCache::new(self);
 
         self.generate_aggregated_rewards(&mut storage);
-        self.reward_per_share().set(&storage.reward_per_share);
-        self.reward_reserve().set(&storage.reward_reserve);
-
         self.produce_rewards_enabled().set(false);
     }
 
@@ -52,9 +49,6 @@ pub trait CustomRewardsModule:
         let mut storage = StorageCache::new(self);
 
         self.generate_aggregated_rewards(&mut storage);
-        self.reward_per_share().set(&storage.reward_per_share);
-        self.reward_reserve().set(&storage.reward_reserve);
-
         self.per_block_reward_amount().set(&per_block_amount);
     }
 }

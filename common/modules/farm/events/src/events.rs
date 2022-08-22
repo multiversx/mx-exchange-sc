@@ -3,13 +3,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmToken, FarmTokenAttributes};
 use contexts::{
     claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
     exit_farm_context::ExitFarmContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
 };
-use farm_token::FarmToken;
 
 #[derive(TypeAbi, TopEncode)]
 pub struct EnterFarmEvent<M: ManagedTypeApi> {

@@ -4,14 +4,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, Nonce};
+use common_structs::Nonce;
 use elrond_wasm::elrond_codec::TopEncode;
-
-#[derive(ManagedVecItem, Clone)]
-pub struct FarmToken<M: ManagedTypeApi> {
-    pub payment: EsdtTokenPayment<M>,
-    pub attributes: FarmTokenAttributes<M>,
-}
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule:

@@ -27,7 +27,7 @@ pub trait LockedAssetFactory:
     locked_asset::LockedAssetModule
     + cache::CacheModule
     + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper

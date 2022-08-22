@@ -5,14 +5,14 @@ use common_errors::*;
 
 use common_structs::FarmTokenAttributes;
 use farm_token::FarmToken;
-use token_merge::ValueWeight;
+use token_merge_helper::ValueWeight;
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + config::ConfigModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + pausable::PausableModule
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule

@@ -1,11 +1,11 @@
 [package]
-name = "contexts"
+name = "farm_token_merge"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
 edition = "2018"
 
 [lib]
-path = "src/mod.rs"
+path = "src/lib.rs"
 
 [dependencies.common_structs]
 path = "../../../common_structs"
@@ -13,26 +13,14 @@ path = "../../../common_structs"
 [dependencies.common_errors]
 path = "../../../common_errors"
 
-[dependencies.farm_token]
-path = "../farm_token"
-
-[dependencies.rewards]
-path = "../rewards"
-
-[dependencies.token_send]
-path = "../../token_send"
+[dependencies.admin_whitelist]
+path = "../../admin_whitelist"
 
 [dependencies.token_merge_helper]
 path = "../../token_merge_helper"
 
-[dependencies.config]
-path = "../config"
-
-[dependencies.pausable]
-path = "../../pausable"
-
-[dependencies.admin_whitelist]
-path = "../../admin_whitelist"
+[dependencies.farm_token]
+path = "../farm_token"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"
