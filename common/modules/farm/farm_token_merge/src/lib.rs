@@ -28,7 +28,7 @@ pub trait FarmTokenMergeModule:
     fn create_farm_tokens_by_merging<AttributesType, AttributesMergingFunction>(
         &self,
         virtual_position: PaymentAttributesPair<Self::Api, AttributesType>,
-        additional_positions: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        additional_farm_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         attributes_merging_fn: AttributesMergingFunction,
     ) -> PaymentAttributesPair<Self::Api, AttributesType>
     where
@@ -44,9 +44,10 @@ pub trait FarmTokenMergeModule:
         ) -> AttributesType,
     {
         let farm_token_id = virtual_position.payment.token_identifier.clone();
-        let merged_attributes = attributes_merging_fn(additional_positions, Some(virtual_position));
+        let merged_attributes =
+            attributes_merging_fn(additional_farm_tokens, Some(virtual_position));
 
-        self.burn_farm_tokens_from_payments(additional_positions);
+        self.burn_farm_tokens_from_payments(additional_farm_tokens);
 
         let new_amount = merged_attributes.get_current_farm_amount().clone();
         let new_tokens = self.mint_farm_tokens(farm_token_id, new_amount, &merged_attributes);

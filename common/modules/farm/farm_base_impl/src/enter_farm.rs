@@ -1,15 +1,23 @@
 elrond_wasm::imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes, PaymentsVec};
+use crate::elrond_codec::TopEncode;
+use common_structs::{
+    mergeable_token_traits::CurrentFarmAmountGetter, FarmTokenAttributes, PaymentAttributesPair,
+    PaymentsVec,
+};
 use contexts::{
     enter_farm_context::EnterFarmContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
 };
 
-pub struct InternalEnterFarmResult<'a, C: FarmContracTraitBounds> {
+pub struct InternalEnterFarmResult<'a, C, T>
+where
+    C: FarmContracTraitBounds,
+    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+{
     pub context: EnterFarmContext<C::Api>,
     pub storage_cache: StorageCache<'a, C>,
-    pub new_farm_token: FarmToken<C::Api>,
+    pub new_farm_token: PaymentAttributesPair<C::Api, T>,
     pub created_with_merge: bool,
 }
 
@@ -28,25 +36,40 @@ pub trait BaseEnterFarmModule:
     + crate::base_farm_validation::BaseFarmValidationModule
 {
     fn enter_farm_base<
-        FarmTokenInstanceType,
+        AttributesType,
         GenerateAggregattedRewardsFunction,
         VirtualPositionCreatorFunction,
         TokenMergingFunction,
+        AttributesMergingFunction,
     >(
         &self,
         payments: PaymentsVec<Self::Api>,
         generate_rewards_fn: GenerateAggregattedRewardsFunction,
         virtual_pos_create_fn: VirtualPositionCreatorFunction,
         token_merge_fn: TokenMergingFunction,
-    ) -> InternalEnterFarmResult<Self>
+        attributes_merge_fn: AttributesMergingFunction,
+    ) -> InternalEnterFarmResult<Self, AttributesType>
     where
+        AttributesType: Clone
+            + TopEncode
+            + TopDecode
+            + NestedEncode
+            + NestedDecode
+            + CurrentFarmAmountGetter<Self::Api>,
         GenerateAggregattedRewardsFunction: Fn(&mut StorageCache<Self>),
-        VirtualPositionCreatorFunction:
-            Fn(&EsdtTokenPayment<Self::Api>, &StorageCache<Self>) -> FarmTokenInstanceType,
+        VirtualPositionCreatorFunction: Fn(
+            &EsdtTokenPayment<Self::Api>,
+            &StorageCache<Self>,
+        )
+            -> PaymentAttributesPair<Self::Api, AttributesType>,
         TokenMergingFunction: Fn(
-            FarmTokenInstanceType,
+            PaymentAttributesPair<Self::Api, AttributesType>,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
-        ) -> FarmTokenInstanceType,
+        ) -> PaymentAttributesPair<Self::Api, AttributesType>,
+        AttributesMergingFunction: Fn(
+            &ManagedVec<EsdtTokenPayment<Self::Api>>,
+            Option<PaymentAttributesPair<Self::Api, AttributesType>>,
+        ) -> AttributesType,
     {
         let mut storage_cache = StorageCache::new(self);
         let enter_farm_context = EnterFarmContext::new(
@@ -60,28 +83,16 @@ pub trait BaseEnterFarmModule:
 
         let block_epoch = self.blockchain().get_block_epoch();
         let first_payment_amount = enter_farm_context.farming_token_payment.amount.clone();
-        let virtual_position_attributes = FarmTokenAttributes {
-            reward_per_share: storage_cache.reward_per_share.clone(),
-            entering_epoch: block_epoch,
-            original_entering_epoch: block_epoch,
-            initial_farming_amount: first_payment_amount.clone(),
-            compounded_reward: BigUint::zero(),
-            current_farm_amount: first_payment_amount.clone(),
-        };
-
-        let virtual_position_token_amount =
-            EsdtTokenPayment::new(storage_cache.farm_token_id.clone(), 0, first_payment_amount);
-        let virtual_position = FarmToken {
-            payment: virtual_position_token_amount,
-            attributes: virtual_position_attributes,
-        };
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+        let virtual_position =
+            virtual_pos_create_fn(&enter_farm_context.farming_token_payment, &storage_cache);
+        let new_farm_token = self.create_farm_tokens_by_merging(
             virtual_position,
             &enter_farm_context.additional_farm_tokens,
+            attributes_merge_fn,
         );
 
         // let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = new_farm_token.payment.clone();
+        // let output_farm_token_payment = new_farm_token.payment.clone();
         // self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
         // self.emit_enter_farm_event(
@@ -91,14 +102,19 @@ pub trait BaseEnterFarmModule:
         //     storage_cache,
         // );
 
-        output_farm_token_payment
+        InternalEnterFarmResult {
+            created_with_merge: !enter_farm_context.additional_farm_tokens.is_empty(),
+            context: enter_farm_context,
+            storage_cache,
+            new_farm_token,
+        }
     }
 
-    fn create_enter_farm_temporary_token(
+    fn default_create_enter_farm_virtual_position(
         &self,
         first_payment: &EsdtTokenPayment<Self::Api>,
         storage_cache: &StorageCache<Self>,
-    ) -> FarmToken<Self::Api> {
+    ) -> PaymentAttributesPair<Self::Api, FarmTokenAttributes<Self::Api>> {
         let block_epoch = self.blockchain().get_block_epoch();
         let attributes = FarmTokenAttributes {
             reward_per_share: storage_cache.reward_per_share.clone(),
@@ -114,7 +130,7 @@ pub trait BaseEnterFarmModule:
             first_payment.amount.clone(),
         );
 
-        FarmToken {
+        PaymentAttributesPair {
             payment,
             attributes,
         }
