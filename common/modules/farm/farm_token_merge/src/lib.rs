@@ -4,11 +4,15 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::elrond_codec::TopEncode;
 use common_errors::{
     ERROR_NOT_A_FARM_TOKEN, ERROR_NO_TOKEN_TO_MERGE, ERROR_TOO_MANY_ADDITIONAL_PAYMENTS,
     ERROR_ZERO_AMOUNT,
 };
-use common_structs::{mergeable_token_traits::*, FarmTokenAttributes, PaymentAttributesPair};
+use common_structs::{
+    mergeable_token_traits::*, DefaultFarmPaymentAttributesPair, FarmTokenAttributes,
+    PaymentAttributesPair,
+};
 use token_merge_helper::{ValueWeight, WeightedAverageType};
 
 pub const MAX_ADDITIONAL_TOKENS: usize = 10;
@@ -21,34 +25,42 @@ pub trait FarmTokenMergeModule:
     + admin_whitelist::AdminWhitelistModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
-    fn create_farm_tokens_by_merging(
+    fn create_farm_tokens_by_merging<AttributesType, AttributesMergingFunction>(
         &self,
-        virtual_position: FarmToken<Self::Api>,
+        virtual_position: PaymentAttributesPair<Self::Api, AttributesType>,
         additional_positions: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> (FarmToken<Self::Api>, bool) {
+        attributes_merging_fn: AttributesMergingFunction,
+    ) -> PaymentAttributesPair<Self::Api, AttributesType>
+    where
+        AttributesType: Clone
+            + TopEncode
+            + TopDecode
+            + NestedEncode
+            + NestedDecode
+            + CurrentFarmAmountGetter<Self::Api>,
+        AttributesMergingFunction: Fn(
+            &ManagedVec<EsdtTokenPayment<Self::Api>>,
+            Option<PaymentAttributesPair<Self::Api, AttributesType>>,
+        ) -> AttributesType,
+    {
         let farm_token_id = virtual_position.payment.token_identifier.clone();
-        let additional_payments_len = additional_positions.len();
-        let merged_attributes =
-            self.get_merged_farm_token_attributes(additional_positions, Some(virtual_position));
+        let merged_attributes = attributes_merging_fn(additional_positions, Some(virtual_position));
 
         self.burn_farm_tokens_from_payments(additional_positions);
 
-        let new_amount = merged_attributes.current_farm_amount.clone();
+        let new_amount = merged_attributes.get_current_farm_amount().clone();
         let new_tokens = self.mint_farm_tokens(farm_token_id, new_amount, &merged_attributes);
 
-        let new_farm_token = FarmToken {
+        PaymentAttributesPair {
             payment: new_tokens,
             attributes: merged_attributes,
-        };
-        let is_merged = additional_payments_len != 0;
-
-        (new_farm_token, is_merged)
+        }
     }
 
     fn get_default_merged_farm_token_attributes(
         &self,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-        virtual_position: Option<PaymentAttributesPair<Self::Api, FarmTokenAttributes<Self::Api>>>,
+        virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>,
     ) -> FarmTokenAttributes<Self::Api> {
         require!(
             !payments.is_empty() || virtual_position.is_some(),
@@ -59,10 +71,8 @@ pub trait FarmTokenMergeModule:
             ERROR_TOO_MANY_ADDITIONAL_PAYMENTS
         );
 
-        let mut tokens = ArrayVec::<
-            PaymentAttributesPair<Self::Api, FarmTokenAttributes<Self::Api>>,
-            MAX_TOTAL_TOKENS,
-        >::new();
+        let mut tokens =
+            ArrayVec::<DefaultFarmPaymentAttributesPair<Self::Api>, MAX_TOTAL_TOKENS>::new();
         let farm_token_id = self.farm_token().get_token_id();
 
         for payment in payments {

@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes};
+use common_structs::{DefaultFarmPaymentAttributesPair, FarmTokenAttributes};
 use contexts::{
     claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
     exit_farm_context::ExitFarmContext,
@@ -96,7 +96,7 @@ pub trait EventsModule {
     fn emit_enter_farm_event<'a, C: FarmContracTraitBounds<Api = Self::Api>>(
         &self,
         input_farming_token: EsdtTokenPayment<Self::Api>,
-        output_farm_token: FarmToken<Self::Api>,
+        output_farm_token: DefaultFarmPaymentAttributesPair<Self::Api>,
         created_with_merge: bool,
         storage_cache: StorageCache<'a, C>,
     ) {
@@ -130,7 +130,7 @@ pub trait EventsModule {
 
     fn emit_exit_farm_event<'a, C: FarmContracTraitBounds<Api = Self::Api>>(
         &self,
-        exit_farm_context: ExitFarmContext<Self::Api>,
+        exit_farm_context: ExitFarmContext<Self::Api, FarmTokenAttributes<Self::Api>>,
         output_farming_tokens: EsdtTokenPayment<Self::Api>,
         output_reward: EsdtTokenPayment<Self::Api>,
         storage_cache: StorageCache<'a, C>,
@@ -166,8 +166,8 @@ pub trait EventsModule {
 
     fn emit_claim_rewards_event<'a, C: FarmContracTraitBounds<Api = Self::Api>>(
         &self,
-        claim_rewards_context: ClaimRewardsContext<Self::Api>,
-        output_farm_token: FarmToken<Self::Api>,
+        claim_rewards_context: ClaimRewardsContext<Self::Api, FarmTokenAttributes<Self::Api>>,
+        output_farm_token: DefaultFarmPaymentAttributesPair<Self::Api>,
         created_with_merge: bool,
         output_reward: EsdtTokenPayment<Self::Api>,
         storage_cache: StorageCache<'a, C>,
@@ -209,8 +209,8 @@ pub trait EventsModule {
 
     fn emit_compound_rewards_event<'a, C: FarmContracTraitBounds<Api = Self::Api>>(
         self,
-        compound_rewards_context: CompoundRewardsContext<Self::Api>,
-        output_farm_token: FarmToken<Self::Api>,
+        compound_rewards_context: CompoundRewardsContext<Self::Api, FarmTokenAttributes<Self::Api>>,
+        output_farm_token: DefaultFarmPaymentAttributesPair<Self::Api>,
         created_with_merge: bool,
         compounded_reward_amount: BigUint,
         storage_cache: StorageCache<'a, C>,
