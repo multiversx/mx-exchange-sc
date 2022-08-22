@@ -123,8 +123,8 @@ pub trait FarmTokenMergeModule:
         let mut dataset = ManagedVec::new();
         for token in tokens {
             dataset.push(ValueWeight {
-                value: token.get_payment_amount().clone(),
-                weight: token.get_reward_per_share().clone(),
+                value: token.get_reward_per_share().clone(),
+                weight: token.get_payment_amount().clone(),
             })
         }
 
@@ -147,6 +147,7 @@ pub trait FarmTokenMergeModule:
                 token.get_initial_farming_amount(),
             );
         }
+
         sum
     }
 

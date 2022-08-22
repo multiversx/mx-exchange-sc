@@ -39,15 +39,15 @@ pub trait BaseEnterFarmModule:
         AttributesType,
         GenerateAggregattedRewardsFunction,
         VirtualPositionCreatorFunction,
-        TokenMergingFunction,
         AttributesMergingFunction,
+        TokenMergingFunction,
     >(
         &self,
         payments: PaymentsVec<Self::Api>,
         generate_rewards_fn: GenerateAggregattedRewardsFunction,
         virtual_pos_create_fn: VirtualPositionCreatorFunction,
-        token_merge_fn: TokenMergingFunction,
         attributes_merge_fn: AttributesMergingFunction,
+        token_merge_fn: TokenMergingFunction,
     ) -> InternalEnterFarmResult<Self, AttributesType>
     where
         AttributesType: Clone
@@ -62,14 +62,15 @@ pub trait BaseEnterFarmModule:
             &StorageCache<Self>,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
-        TokenMergingFunction: Fn(
-            PaymentAttributesPair<Self::Api, AttributesType>,
-            &ManagedVec<EsdtTokenPayment<Self::Api>>,
-        ) -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
+        TokenMergingFunction: Fn(
+            PaymentAttributesPair<Self::Api, AttributesType>,
+            &ManagedVec<EsdtTokenPayment<Self::Api>>,
+            AttributesMergingFunction,
+        ) -> PaymentAttributesPair<Self::Api, AttributesType>,
     {
         let mut storage_cache = StorageCache::new(self);
         let enter_farm_context = EnterFarmContext::new(
@@ -81,11 +82,9 @@ pub trait BaseEnterFarmModule:
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         generate_rewards_fn(&mut storage_cache);
 
-        let block_epoch = self.blockchain().get_block_epoch();
-        let first_payment_amount = enter_farm_context.farming_token_payment.amount.clone();
         let virtual_position =
             virtual_pos_create_fn(&enter_farm_context.farming_token_payment, &storage_cache);
-        let new_farm_token = self.create_farm_tokens_by_merging(
+        let new_farm_token = token_merge_fn(
             virtual_position,
             &enter_farm_context.additional_farm_tokens,
             attributes_merge_fn,
