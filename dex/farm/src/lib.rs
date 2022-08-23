@@ -47,7 +47,9 @@ pub trait Farm:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::FarmBaseImpl
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
+    + farm_base_impl::partial_positions::PartialPositionsModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
+    + farm_base_impl::claim_rewards::BaseClaimRewardsModule
 {
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
@@ -119,6 +121,59 @@ pub trait Farm:
         output_farm_token_payment
     }
 
+    #[payable("*")]
+    #[endpoint(claimRewards)]
+    fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
+        let payments = self.call_value().all_esdt_transfers();
+
+        let generate_rewards_fn = |storage_cache: &mut StorageCache<Self>| {
+            self.generate_aggregated_rewards(storage_cache);
+        };
+        let virtual_pos_create_fn =
+            |first_token: &DefaultFarmPaymentAttributesPair<Self::Api>,
+             storage_cache: &StorageCache<Self>| {
+                self.default_create_claim_rewards_virtual_position(first_token, storage_cache)
+            };
+        let attributes_merge_fn =
+            |payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+             virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>| {
+                self.get_default_merged_farm_token_attributes(payments, virtual_position)
+            };
+        let token_merge_fn = |virtual_position: DefaultFarmPaymentAttributesPair<Self::Api>,
+                              additional_farm_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+                              attributes_merging_fn: _| {
+            self.create_farm_tokens_by_merging(
+                virtual_position,
+                additional_farm_tokens,
+                attributes_merging_fn,
+            )
+        };
+
+        let base_claim_rewards_result = self.claim_rewards_base(
+            payments,
+            generate_rewards_fn,
+            virtual_pos_create_fn,
+            attributes_merge_fn,
+            token_merge_fn,
+        );
+
+        let caller = self.blockchain().get_caller();
+        let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment;
+        let rewards_payment = base_claim_rewards_result.rewards;
+        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&caller, &rewards_payment);
+
+        // self.emit_claim_rewards_event(
+        //     claim_rewards_context,
+        //     new_farm_token,
+        //     created_with_merge,
+        //     reward_payment.clone(),
+        //     storage_cache,
+        // );
+
+        (output_farm_token_payment, rewards_payment).into()
+    }
+
     // #[payable("*")]
     // #[endpoint(exitFarm)]
     // fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
@@ -177,76 +232,6 @@ pub trait Farm:
     //     );
 
     //     (farming_token_payment, reward_payment).into()
-    // }
-
-    // #[payable("*")]
-    // #[endpoint(claimRewards)]
-    // fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
-    //     let payments = self.call_value().all_esdt_transfers();
-    //     let mut storage_cache = StorageCache::new(self);
-    //     let claim_rewards_context =
-    //         ClaimRewardsContext::new(payments, &storage_cache.farm_token_id, self.blockchain());
-
-    //     self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-    //     self.generate_aggregated_rewards(&mut storage_cache);
-
-    //     let farm_token_amount = &claim_rewards_context.first_farm_token.payment.amount;
-    //     let attributes = &claim_rewards_context.first_farm_token.attributes;
-    //     let reward = self.calculate_reward(
-    //         farm_token_amount,
-    //         &attributes.reward_per_share,
-    //         &storage_cache.reward_per_share,
-    //         &storage_cache.division_safety_constant,
-    //     );
-    //     storage_cache.reward_reserve -= &reward;
-
-    //     let initial_farming_amount =
-    //         self.calculate_initial_farming_amount(farm_token_amount, attributes);
-    //     let new_compound_reward_amount =
-    //         self.calculate_new_compound_reward_amount(farm_token_amount, attributes);
-
-    //     let virtual_position_token_amount = EsdtTokenPayment::new(
-    //         storage_cache.farm_token_id.clone(),
-    //         0,
-    //         farm_token_amount.clone(),
-    //     );
-    //     let virtual_position_attributes = FarmTokenAttributes {
-    //         reward_per_share: storage_cache.reward_per_share.clone(),
-    //         entering_epoch: attributes.entering_epoch,
-    //         original_entering_epoch: attributes.original_entering_epoch,
-    //         initial_farming_amount,
-    //         compounded_reward: new_compound_reward_amount,
-    //         current_farm_amount: farm_token_amount.clone(),
-    //     };
-
-    //     let virtual_position = FarmToken {
-    //         payment: virtual_position_token_amount,
-    //         attributes: virtual_position_attributes,
-    //     };
-    //     let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-    //         virtual_position,
-    //         &claim_rewards_context.additional_payments,
-    //     );
-
-    //     self.burn_position(&claim_rewards_context.first_farm_token.payment);
-
-    //     let new_farm_token_payment = new_farm_token.payment.clone();
-    //     let reward_payment =
-    //         EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);
-
-    //     let caller = self.blockchain().get_caller();
-    //     self.send_payment_non_zero(&caller, &new_farm_token_payment);
-    //     self.send_payment_non_zero(&caller, &reward_payment);
-
-    //     self.emit_claim_rewards_event(
-    //         claim_rewards_context,
-    //         new_farm_token,
-    //         created_with_merge,
-    //         reward_payment.clone(),
-    //         storage_cache,
-    //     );
-
-    //     (new_farm_token_payment, reward_payment).into()
     // }
 
     // #[payable("*")]

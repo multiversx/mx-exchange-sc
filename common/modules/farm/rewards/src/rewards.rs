@@ -49,20 +49,20 @@ pub trait RewardsModule:
         }
     }
 
-    fn calculate_reward(
-        &self,
-        farm_token_amount: &BigUint,
-        farm_token_reward_per_share: &BigUint,
-        current_reward_per_share: &BigUint,
-        div_safety_const: &BigUint,
-    ) -> BigUint {
-        if current_reward_per_share > farm_token_reward_per_share {
-            let rps_diff = current_reward_per_share - farm_token_reward_per_share;
-            farm_token_amount * &rps_diff / div_safety_const
-        } else {
-            BigUint::zero()
-        }
-    }
+    // fn calculate_reward(
+    //     &self,
+    //     farm_token_amount: &BigUint,
+    //     farm_token_reward_per_share: &BigUint,
+    //     current_reward_per_share: &BigUint,
+    //     div_safety_const: &BigUint,
+    // ) -> BigUint {
+    //     if current_reward_per_share > farm_token_reward_per_share {
+    //         let rps_diff = current_reward_per_share - farm_token_reward_per_share;
+    //         farm_token_amount * &rps_diff / div_safety_const
+    //     } else {
+    //         BigUint::zero()
+    //     }
+    // }
 
     // Move to the main file
     #[endpoint(startProduceRewards)]

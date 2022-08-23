@@ -6,7 +6,9 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod base_farm_validation;
+pub mod claim_rewards;
 pub mod enter_farm;
+pub mod partial_positions;
 
 use common_errors::*;
 
@@ -89,56 +91,6 @@ pub trait FarmBaseImpl:
         }
         self.add_admins(admins);
     }
-
-    // #[payable("*")]
-    // #[endpoint(enterFarm)]
-    // fn enter_farm(&self) -> EnterFarmResultType<Self::Api> {
-    //     let payments = self.call_value().all_esdt_transfers();
-    //     let mut storage_cache = StorageCache::new(self);
-    //     let enter_farm_context = EnterFarmContext::new(
-    //         payments,
-    //         &storage_cache.farming_token_id,
-    //         &storage_cache.farm_token_id,
-    //     );
-
-    //     self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-    //     self.generate_aggregated_rewards(&mut storage_cache);
-
-    //     let block_epoch = self.blockchain().get_block_epoch();
-    //     let first_payment_amount = enter_farm_context.farming_token_payment.amount.clone();
-    //     let virtual_position_attributes = FarmTokenAttributes {
-    //         reward_per_share: storage_cache.reward_per_share.clone(),
-    //         entering_epoch: block_epoch,
-    //         original_entering_epoch: block_epoch,
-    //         initial_farming_amount: first_payment_amount.clone(),
-    //         compounded_reward: BigUint::zero(),
-    //         current_farm_amount: first_payment_amount.clone(),
-    //     };
-
-    //     let virtual_position_token_amount =
-    //         EsdtTokenPayment::new(storage_cache.farm_token_id.clone(), 0, first_payment_amount);
-    //     let virtual_position = FarmToken {
-    //         payment: virtual_position_token_amount,
-    //         attributes: virtual_position_attributes,
-    //     };
-    //     let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-    //         virtual_position,
-    //         &enter_farm_context.additional_farm_tokens,
-    //     );
-
-    //     let caller = self.blockchain().get_caller();
-    //     let output_farm_token_payment = new_farm_token.payment.clone();
-    //     self.send_payment_non_zero(&caller, &output_farm_token_payment);
-
-    //     self.emit_enter_farm_event(
-    //         enter_farm_context.farming_token_payment,
-    //         new_farm_token,
-    //         created_with_merge,
-    //         storage_cache,
-    //     );
-
-    //     output_farm_token_payment
-    // }
 
     // #[payable("*")]
     // #[endpoint(exitFarm)]

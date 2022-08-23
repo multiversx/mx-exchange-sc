@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         addAdmins
         addToPauseWhitelist
+        claimRewards
         end_produce_rewards
         enterFarm
         getAdmins

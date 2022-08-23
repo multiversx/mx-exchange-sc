@@ -63,6 +63,14 @@ pub trait FarmTokenModule:
         self.farm_token_supply().update(|x| *x -= amount);
     }
 
+    fn burn_farm_token_payment(&self, payment: &EsdtTokenPayment<Self::Api>) {
+        self.burn_farm_tokens(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
+    }
+
     fn get_farm_token_attributes<T: TopDecode>(
         &self,
         token_id: &TokenIdentifier,
