@@ -56,17 +56,20 @@ pub trait BaseEnterFarmModule:
             + NestedEncode
             + NestedDecode
             + CurrentFarmAmountGetter<Self::Api>,
-        GenerateAggregattedRewardsFunction: Fn(&mut StorageCache<Self>),
+        GenerateAggregattedRewardsFunction: Fn(&Self, &mut StorageCache<Self>),
         VirtualPositionCreatorFunction: Fn(
+            &Self,
             &EsdtTokenPayment<Self::Api>,
             &StorageCache<Self>,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
+            &Self,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
+            &Self,
             PaymentAttributesPair<Self::Api, AttributesType>,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             AttributesMergingFunction,
@@ -80,11 +83,15 @@ pub trait BaseEnterFarmModule:
         );
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-        generate_rewards_fn(&mut storage_cache);
+        generate_rewards_fn(self, &mut storage_cache);
 
-        let virtual_position =
-            virtual_pos_create_fn(&enter_farm_context.farming_token_payment, &storage_cache);
+        let virtual_position = virtual_pos_create_fn(
+            self,
+            &enter_farm_context.farming_token_payment,
+            &storage_cache,
+        );
         let new_farm_token = token_merge_fn(
+            self,
             virtual_position,
             &enter_farm_context.additional_farm_tokens,
             attributes_merge_fn,

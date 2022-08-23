@@ -54,19 +54,23 @@ pub trait BaseCompoundRewardsModule:
     ) -> InternalCompoundRewardsResult<Self, AttributesType>
     where
         AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
-        GenerateAggregattedRewardsFunction: Fn(&mut StorageCache<Self>),
-        CalculateRewardsFunction: Fn(&BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
+        GenerateAggregattedRewardsFunction: Fn(&Self, &mut StorageCache<Self>),
+        CalculateRewardsFunction:
+            Fn(&Self, &BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
         VirtualPositionCreatorFunction: Fn(
+            &Self,
             &PaymentAttributesPair<Self::Api, AttributesType>,
             &StorageCache<Self>,
             &BigUint,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
+            &Self,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
+            &Self,
             PaymentAttributesPair<Self::Api, AttributesType>,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             AttributesMergingFunction,
@@ -85,19 +89,21 @@ pub trait BaseCompoundRewardsModule:
             ERROR_DIFFERENT_TOKEN_IDS
         );
 
-        generate_rewards_fn(&mut storage_cache);
+        generate_rewards_fn(self, &mut storage_cache);
 
         let farm_token_amount = &compound_rewards_context.first_farm_token.payment.amount;
         let attributes = &compound_rewards_context.first_farm_token.attributes;
-        let reward = calculate_rewards_fn(farm_token_amount, attributes, &storage_cache);
+        let reward = calculate_rewards_fn(self, farm_token_amount, attributes, &storage_cache);
         storage_cache.reward_reserve -= &reward;
 
         let virtual_position = virtual_pos_create_fn(
+            self,
             &compound_rewards_context.first_farm_token,
             &storage_cache,
             &reward,
         );
         let new_farm_token = token_merge_fn(
+            self,
             virtual_position,
             &compound_rewards_context.additional_payments,
             attributes_merge_fn,

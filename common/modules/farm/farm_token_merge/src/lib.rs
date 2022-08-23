@@ -39,13 +39,14 @@ pub trait FarmTokenMergeModule:
             + NestedDecode
             + CurrentFarmAmountGetter<Self::Api>,
         AttributesMergingFunction: Fn(
+            &Self,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
     {
         let farm_token_id = virtual_position.payment.token_identifier.clone();
         let merged_attributes =
-            attributes_merging_fn(additional_farm_tokens, Some(virtual_position));
+            attributes_merging_fn(self, additional_farm_tokens, Some(virtual_position));
 
         self.burn_farm_tokens_from_payments(additional_farm_tokens);
 

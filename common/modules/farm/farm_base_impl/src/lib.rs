@@ -12,20 +12,8 @@ pub mod enter_farm;
 pub mod partial_positions;
 
 use common_errors::*;
-
-use common_structs::{
-    DefaultFarmPaymentAttributesPair, Epoch, FarmTokenAttributes, PaymentAttributesPair,
-};
-use contexts::{
-    claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
-    enter_farm_context::EnterFarmContext,
-    exit_farm_context::ExitFarmContext,
-    storage_cache::StorageCache,
-};
-
-use config::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
-};
+use config::{DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT};
+use contexts::storage_cache::StorageCache;
 use pausable::State;
 
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -100,35 +88,12 @@ pub trait FarmBaseImpl:
 
     fn default_enter_farm_impl(&self) -> EnterFarmResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-
-        let generate_rewards_fn = |storage_cache: &mut StorageCache<Self>| {
-            self.default_generate_aggregated_rewards(storage_cache);
-        };
-        let virtual_pos_create_fn =
-            |first_payment: &EsdtTokenPayment<Self::Api>, storage_cache: &StorageCache<Self>| {
-                self.default_create_enter_farm_virtual_position(first_payment, storage_cache)
-            };
-        let attributes_merge_fn =
-            |payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-             virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>| {
-                self.get_default_merged_farm_token_attributes(payments, virtual_position)
-            };
-        let token_merge_fn = |virtual_position: DefaultFarmPaymentAttributesPair<Self::Api>,
-                              additional_farm_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-                              attributes_merging_fn: _| {
-            self.create_farm_tokens_by_merging(
-                virtual_position,
-                additional_farm_tokens,
-                attributes_merging_fn,
-            )
-        };
-
         let base_enter_farm_result = self.enter_farm_base(
             payments,
-            generate_rewards_fn,
-            virtual_pos_create_fn,
-            attributes_merge_fn,
-            token_merge_fn,
+            Self::default_generate_aggregated_rewards,
+            Self::default_create_enter_farm_virtual_position,
+            Self::get_default_merged_farm_token_attributes,
+            Self::create_farm_tokens_by_merging,
         );
 
         let caller = self.blockchain().get_caller();
@@ -147,47 +112,13 @@ pub trait FarmBaseImpl:
 
     fn default_claim_rewards_impl(&self) -> ClaimRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-
-        let generate_rewards_fn = |storage_cache: &mut StorageCache<Self>| {
-            self.default_generate_aggregated_rewards(storage_cache);
-        };
-        let calculate_rewards_fn =
-            |farm_token_amount: &BigUint,
-             farm_token_attributes: &FarmTokenAttributes<Self::Api>,
-             storage_cache: &StorageCache<Self>| {
-                self.default_calculate_reward(
-                    farm_token_amount,
-                    farm_token_attributes,
-                    storage_cache,
-                )
-            };
-        let virtual_pos_create_fn =
-            |first_token: &DefaultFarmPaymentAttributesPair<Self::Api>,
-             storage_cache: &StorageCache<Self>| {
-                self.default_create_claim_rewards_virtual_position(first_token, storage_cache)
-            };
-        let attributes_merge_fn =
-            |payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-             virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>| {
-                self.get_default_merged_farm_token_attributes(payments, virtual_position)
-            };
-        let token_merge_fn = |virtual_position: DefaultFarmPaymentAttributesPair<Self::Api>,
-                              additional_farm_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-                              attributes_merging_fn: _| {
-            self.create_farm_tokens_by_merging(
-                virtual_position,
-                additional_farm_tokens,
-                attributes_merging_fn,
-            )
-        };
-
         let base_claim_rewards_result = self.claim_rewards_base(
             payments,
-            generate_rewards_fn,
-            calculate_rewards_fn,
-            virtual_pos_create_fn,
-            attributes_merge_fn,
-            token_merge_fn,
+            Self::default_generate_aggregated_rewards,
+            Self::default_calculate_reward,
+            Self::default_create_claim_rewards_virtual_position,
+            Self::get_default_merged_farm_token_attributes,
+            Self::create_farm_tokens_by_merging,
         );
 
         let caller = self.blockchain().get_caller();
@@ -211,51 +142,13 @@ pub trait FarmBaseImpl:
     // How to fix: Don't mint tokens, and allow caller to do what they wish with token/attributes
     fn default_compound_rewards_impl(&self) -> CompoundRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-
-        let generate_rewards_fn = |storage_cache: &mut StorageCache<Self>| {
-            self.default_generate_aggregated_rewards(storage_cache);
-        };
-        let calculate_rewards_fn =
-            |farm_token_amount: &BigUint,
-             farm_token_attributes: &FarmTokenAttributes<Self::Api>,
-             storage_cache: &StorageCache<Self>| {
-                self.default_calculate_reward(
-                    farm_token_amount,
-                    farm_token_attributes,
-                    storage_cache,
-                )
-            };
-        let virtual_pos_create_fn = |first_token: &DefaultFarmPaymentAttributesPair<Self::Api>,
-                                     storage_cache: &StorageCache<Self>,
-                                     reward: &BigUint| {
-            self.default_create_compound_rewards_virtual_position(
-                first_token,
-                storage_cache,
-                reward,
-            )
-        };
-        let attributes_merge_fn =
-            |payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-             virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>| {
-                self.get_default_merged_farm_token_attributes(payments, virtual_position)
-            };
-        let token_merge_fn = |virtual_position: DefaultFarmPaymentAttributesPair<Self::Api>,
-                              additional_farm_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
-                              attributes_merging_fn: _| {
-            self.create_farm_tokens_by_merging(
-                virtual_position,
-                additional_farm_tokens,
-                attributes_merging_fn,
-            )
-        };
-
         let base_compound_rewards_result = self.compound_rewards_base(
             payments,
-            generate_rewards_fn,
-            calculate_rewards_fn,
-            virtual_pos_create_fn,
-            attributes_merge_fn,
-            token_merge_fn,
+            Self::default_generate_aggregated_rewards,
+            Self::default_calculate_reward,
+            Self::default_create_compound_rewards_virtual_position,
+            Self::get_default_merged_farm_token_attributes,
+            Self::create_farm_tokens_by_merging,
         );
 
         let caller = self.blockchain().get_caller();

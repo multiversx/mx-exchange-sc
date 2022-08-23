@@ -54,23 +54,23 @@ pub trait BaseClaimRewardsModule:
         token_merge_fn: TokenMergingFunction,
     ) -> InternalClaimRewardsResult<Self, AttributesType>
     where
-        AttributesType: Clone
-            + TopEncode
-            + TopDecode
-            + NestedEncode
-            + NestedDecode,
-        GenerateAggregattedRewardsFunction: Fn(&mut StorageCache<Self>),
-        CalculateRewardsFunction: Fn(&BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
+        AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+        GenerateAggregattedRewardsFunction: Fn(&Self, &mut StorageCache<Self>),
+        CalculateRewardsFunction:
+            Fn(&Self, &BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
         VirtualPositionCreatorFunction: Fn(
+            &Self,
             &PaymentAttributesPair<Self::Api, AttributesType>,
             &StorageCache<Self>,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
+            &Self,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
+            &Self,
             PaymentAttributesPair<Self::Api, AttributesType>,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             AttributesMergingFunction,
@@ -84,16 +84,20 @@ pub trait BaseClaimRewardsModule:
         );
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-        generate_rewards_fn(&mut storage_cache);
+        generate_rewards_fn(self, &mut storage_cache);
 
         let farm_token_amount = &claim_rewards_context.first_farm_token.payment.amount;
         let attributes = &claim_rewards_context.first_farm_token.attributes;
-        let reward = calculate_rewards_fn(farm_token_amount, attributes, &storage_cache);
+        let reward = calculate_rewards_fn(self, farm_token_amount, attributes, &storage_cache);
         storage_cache.reward_reserve -= &reward;
 
-        let virtual_position =
-            virtual_pos_create_fn(&claim_rewards_context.first_farm_token, &storage_cache);
+        let virtual_position = virtual_pos_create_fn(
+            self,
+            &claim_rewards_context.first_farm_token,
+            &storage_cache,
+        );
         let new_farm_token = token_merge_fn(
+            self,
             virtual_position,
             &claim_rewards_context.additional_payments,
             attributes_merge_fn,
