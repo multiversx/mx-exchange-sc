@@ -14,6 +14,7 @@ elrond_wasm_node::wasm_endpoints! {
         compoundRewards
         end_produce_rewards
         enterFarm
+        exitFarm
         getAdmins
         getBurnGasLimit
         getDivisionSafetyConstant

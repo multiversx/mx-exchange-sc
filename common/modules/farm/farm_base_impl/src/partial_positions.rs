@@ -36,4 +36,20 @@ pub trait PartialPositionsModule: token_merge_helper::TokenMergeHelperModule {
             farm_token_attributes.get_compounded_reward_amount(),
         )
     }
+
+    fn calculate_previously_compounded_rewards<AttributesType>(
+        &self,
+        farm_token_amount: &BigUint,
+        farm_token_attributes: &AttributesType,
+    ) -> BigUint
+    where
+        AttributesType:
+            CurrentFarmAmountGetter<Self::Api> + CompoundedRewardAmountGetter<Self::Api>,
+    {
+        self.rule_of_three(
+            farm_token_amount,
+            farm_token_attributes.get_current_farm_amount(),
+            farm_token_attributes.get_compounded_reward_amount(),
+        )
+    }
 }

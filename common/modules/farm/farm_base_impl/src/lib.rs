@@ -9,11 +9,16 @@ pub mod base_farm_validation;
 pub mod claim_rewards;
 pub mod compound_rewards;
 pub mod enter_farm;
+pub mod exit_farm;
 pub mod partial_positions;
 
+use claim_rewards::InternalClaimRewardsResult;
 use common_errors::*;
-use config::{DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT};
+use common_structs::{FarmTokenAttributes, PaymentsVec};
+use compound_rewards::InternalCompoundRewardsResult;
 use contexts::storage_cache::StorageCache;
+use enter_farm::InternalEnterFarmResult;
+use exit_farm::InternalExitFarmResult;
 use pausable::State;
 
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -40,6 +45,7 @@ pub trait FarmBaseImpl:
     + enter_farm::BaseEnterFarmModule
     + claim_rewards::BaseClaimRewardsModule
     + compound_rewards::BaseCompoundRewardsModule
+    + exit_farm::BaseExitFarmModule
 {
     // use only in SCs importing
     // #[proxy]
@@ -67,10 +73,6 @@ pub trait FarmBaseImpl:
         require!(farming_token_id != farm_token, ERROR_SAME_TOKEN_IDS);
 
         self.state().set(State::Inactive);
-        self.penalty_percent().set_if_empty(DEFAULT_PENALTY_PERCENT);
-        self.minimum_farming_epochs()
-            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.division_safety_constant()
             .set_if_empty(&division_safety_constant);
 
@@ -86,84 +88,58 @@ pub trait FarmBaseImpl:
         self.add_admins(admins);
     }
 
-    fn default_enter_farm_impl(&self) -> EnterFarmResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        let base_enter_farm_result = self.enter_farm_base(
+    fn default_enter_farm_impl(
+        &self,
+        payments: PaymentsVec<Self::Api>,
+    ) -> InternalEnterFarmResult<Self, FarmTokenAttributes<Self::Api>> {
+        self.enter_farm_base(
             payments,
             Self::default_generate_aggregated_rewards,
             Self::default_create_enter_farm_virtual_position,
             Self::get_default_merged_farm_token_attributes,
             Self::create_farm_tokens_by_merging,
-        );
-
-        let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = base_enter_farm_result.new_farm_token.payment;
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
-
-        // self.emit_enter_farm_event(
-        //     enter_farm_context.farming_token_payment,
-        //     new_farm_token,
-        //     created_with_merge,
-        //     storage_cache,
-        // );
-
-        output_farm_token_payment
+        )
     }
 
-    fn default_claim_rewards_impl(&self) -> ClaimRewardsResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        let base_claim_rewards_result = self.claim_rewards_base(
+    fn default_claim_rewards_impl(
+        &self,
+        payments: PaymentsVec<Self::Api>,
+    ) -> InternalClaimRewardsResult<Self, FarmTokenAttributes<Self::Api>> {
+        self.claim_rewards_base(
             payments,
             Self::default_generate_aggregated_rewards,
             Self::default_calculate_reward,
             Self::default_create_claim_rewards_virtual_position,
             Self::get_default_merged_farm_token_attributes,
             Self::create_farm_tokens_by_merging,
-        );
-
-        let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment;
-        let rewards_payment = base_claim_rewards_result.rewards;
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
-        self.send_payment_non_zero(&caller, &rewards_payment);
-
-        // self.emit_claim_rewards_event(
-        //     claim_rewards_context,
-        //     new_farm_token,
-        //     created_with_merge,
-        //     reward_payment.clone(),
-        //     storage_cache,
-        // );
-
-        (output_farm_token_payment, rewards_payment).into()
+        )
     }
 
     // TODO: Think about reusing some of the logic from claim_rewards
     // How to fix: Don't mint tokens, and allow caller to do what they wish with token/attributes
-    fn default_compound_rewards_impl(&self) -> CompoundRewardsResultType<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        let base_compound_rewards_result = self.compound_rewards_base(
+    fn default_compound_rewards_impl(
+        &self,
+        payments: PaymentsVec<Self::Api>,
+    ) -> InternalCompoundRewardsResult<Self, FarmTokenAttributes<Self::Api>> {
+        self.compound_rewards_base(
             payments,
             Self::default_generate_aggregated_rewards,
             Self::default_calculate_reward,
             Self::default_create_compound_rewards_virtual_position,
             Self::get_default_merged_farm_token_attributes,
             Self::create_farm_tokens_by_merging,
-        );
+        )
+    }
 
-        let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment;
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
-
-        // self.emit_compound_rewards_event(
-        //     compound_rewards_context,
-        //     new_farm_token,
-        //     created_with_merge,
-        //     reward,
-        //     storage_cache,
-        // );
-
-        output_farm_token_payment
+    fn default_exit_farm_impl(
+        &self,
+        payment: EsdtTokenPayment<Self::Api>,
+    ) -> InternalExitFarmResult<Self, FarmTokenAttributes<Self::Api>> {
+        self.exit_farm_base(
+            payment,
+            Self::default_generate_aggregated_rewards,
+            Self::default_calculate_reward,
+        )
     }
 
     // #[payable("*")]

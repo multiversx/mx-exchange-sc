@@ -65,13 +65,13 @@ pub trait BaseEnterFarmModule:
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
             &Self,
-            &ManagedVec<EsdtTokenPayment<Self::Api>>,
+            &PaymentsVec<Self::Api>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
             &Self,
             PaymentAttributesPair<Self::Api, AttributesType>,
-            &ManagedVec<EsdtTokenPayment<Self::Api>>,
+            &PaymentsVec<Self::Api>,
             AttributesMergingFunction,
         ) -> PaymentAttributesPair<Self::Api, AttributesType>,
     {
