@@ -1,29 +1,28 @@
 elrond_wasm::imports!();
 
 use crate::elrond_codec::TopEncode;
+use common_errors::ERROR_DIFFERENT_TOKEN_IDS;
 use common_structs::{
-    mergeable_token_traits::RewardPerShareGetter, DefaultFarmPaymentAttributesPair,
-    FarmTokenAttributes, PaymentAttributesPair, PaymentsVec,
+    DefaultFarmPaymentAttributesPair, FarmTokenAttributes, PaymentAttributesPair, PaymentsVec,
 };
 use contexts::{
-    claim_rewards_context::ClaimRewardsContext,
+    claim_rewards_context::CompoundRewardsContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
 };
 
-pub struct InternalClaimRewardsResult<'a, C, T>
+pub struct InternalCompoundRewardsResult<'a, C, T>
 where
     C: FarmContracTraitBounds,
     T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
 {
-    pub context: ClaimRewardsContext<C::Api, T>,
+    pub context: CompoundRewardsContext<C::Api, T>,
     pub storage_cache: StorageCache<'a, C>,
-    pub rewards: EsdtTokenPayment<C::Api>,
     pub new_farm_token: PaymentAttributesPair<C::Api, T>,
     pub created_with_merge: bool,
 }
 
 #[elrond_wasm::module]
-pub trait BaseClaimRewardsModule:
+pub trait BaseCompoundRewardsModule:
     rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
@@ -37,7 +36,7 @@ pub trait BaseClaimRewardsModule:
     + crate::base_farm_validation::BaseFarmValidationModule
     + crate::partial_positions::PartialPositionsModule
 {
-    fn claim_rewards_base<
+    fn compound_rewards_base<
         AttributesType,
         GenerateAggregattedRewardsFunction,
         CalculateRewardsFunction,
@@ -52,18 +51,15 @@ pub trait BaseClaimRewardsModule:
         virtual_pos_create_fn: VirtualPositionCreatorFunction,
         attributes_merge_fn: AttributesMergingFunction,
         token_merge_fn: TokenMergingFunction,
-    ) -> InternalClaimRewardsResult<Self, AttributesType>
+    ) -> InternalCompoundRewardsResult<Self, AttributesType>
     where
-        AttributesType: Clone
-            + TopEncode
-            + TopDecode
-            + NestedEncode
-            + NestedDecode,
+        AttributesType: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
         GenerateAggregattedRewardsFunction: Fn(&mut StorageCache<Self>),
         CalculateRewardsFunction: Fn(&BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
         VirtualPositionCreatorFunction: Fn(
             &PaymentAttributesPair<Self::Api, AttributesType>,
             &StorageCache<Self>,
+            &BigUint,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
@@ -77,58 +73,59 @@ pub trait BaseClaimRewardsModule:
         ) -> PaymentAttributesPair<Self::Api, AttributesType>,
     {
         let mut storage_cache = StorageCache::new(self);
-        let claim_rewards_context = ClaimRewardsContext::<Self::Api, AttributesType>::new(
+        let compound_rewards_context = CompoundRewardsContext::<Self::Api, AttributesType>::new(
             payments,
             &storage_cache.farm_token_id,
             self.blockchain(),
         );
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+        require!(
+            storage_cache.farming_token_id == storage_cache.reward_token_id,
+            ERROR_DIFFERENT_TOKEN_IDS
+        );
+
         generate_rewards_fn(&mut storage_cache);
 
-        let farm_token_amount = &claim_rewards_context.first_farm_token.payment.amount;
-        let attributes = &claim_rewards_context.first_farm_token.attributes;
+        let farm_token_amount = &compound_rewards_context.first_farm_token.payment.amount;
+        let attributes = &compound_rewards_context.first_farm_token.attributes;
         let reward = calculate_rewards_fn(farm_token_amount, attributes, &storage_cache);
         storage_cache.reward_reserve -= &reward;
 
-        let virtual_position =
-            virtual_pos_create_fn(&claim_rewards_context.first_farm_token, &storage_cache);
+        let virtual_position = virtual_pos_create_fn(
+            &compound_rewards_context.first_farm_token,
+            &storage_cache,
+            &reward,
+        );
         let new_farm_token = token_merge_fn(
             virtual_position,
-            &claim_rewards_context.additional_payments,
+            &compound_rewards_context.additional_payments,
             attributes_merge_fn,
         );
 
-        self.burn_farm_token_payment(&claim_rewards_context.first_farm_token.payment);
+        self.burn_farm_token_payment(&compound_rewards_context.first_farm_token.payment);
 
-        InternalClaimRewardsResult {
-            created_with_merge: !claim_rewards_context.additional_payments.is_empty(),
-            context: claim_rewards_context,
-            rewards: EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward),
+        // self.emit_compound_rewards_event(
+        //     compound_rewards_context,
+        //     new_farm_token,
+        //     created_with_merge,
+        //     reward,
+        //     storage_cache,
+        // );
+
+        InternalCompoundRewardsResult {
+            created_with_merge: !compound_rewards_context.additional_payments.is_empty(),
+            context: compound_rewards_context,
             new_farm_token,
             storage_cache,
         }
     }
 
-    fn default_calculate_reward<AttributesType: RewardPerShareGetter<Self::Api>>(
-        &self,
-        farm_token_amount: &BigUint,
-        farm_token_attributes: &AttributesType,
-        storage_cache: &StorageCache<Self>,
-    ) -> BigUint {
-        let farm_token_reward_per_share = farm_token_attributes.get_reward_per_share();
-        if &storage_cache.reward_per_share > farm_token_reward_per_share {
-            let rps_diff = &storage_cache.reward_per_share - farm_token_reward_per_share;
-            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
-        } else {
-            BigUint::zero()
-        }
-    }
-
-    fn default_create_claim_rewards_virtual_position(
+    fn default_create_compound_rewards_virtual_position(
         &self,
         first_token: &DefaultFarmPaymentAttributesPair<Self::Api>,
         storage_cache: &StorageCache<Self>,
+        reward: &BigUint,
     ) -> DefaultFarmPaymentAttributesPair<Self::Api> {
         let farm_token_amount = first_token.payment.amount.clone();
         let initial_farming_amount =
@@ -136,18 +133,23 @@ pub trait BaseClaimRewardsModule:
         let new_compound_reward_amount =
             self.calculate_new_compound_reward_amount(&farm_token_amount, &first_token.attributes);
 
+        let virtual_position_amount = &farm_token_amount + reward;
         let virtual_position_token_amount = EsdtTokenPayment::new(
             storage_cache.farm_token_id.clone(),
             0,
-            farm_token_amount.clone(),
+            virtual_position_amount,
         );
+
+        let block_epoch = self.blockchain().get_block_epoch();
+        let virtual_position_compounded_reward = &new_compound_reward_amount + reward;
+        let virtual_position_current_farm_amount = &farm_token_amount + reward;
         let virtual_position_attributes = FarmTokenAttributes {
             reward_per_share: storage_cache.reward_per_share.clone(),
-            entering_epoch: first_token.attributes.entering_epoch,
-            original_entering_epoch: first_token.attributes.original_entering_epoch,
+            entering_epoch: block_epoch,
+            original_entering_epoch: block_epoch,
             initial_farming_amount,
-            compounded_reward: new_compound_reward_amount,
-            current_farm_amount: farm_token_amount,
+            compounded_reward: virtual_position_compounded_reward,
+            current_farm_amount: virtual_position_current_farm_amount,
         };
 
         PaymentAttributesPair {

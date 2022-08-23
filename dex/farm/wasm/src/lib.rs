@@ -11,6 +11,7 @@ elrond_wasm_node::wasm_endpoints! {
         addAdmins
         addToPauseWhitelist
         claimRewards
+        compoundRewards
         end_produce_rewards
         enterFarm
         getAdmins
