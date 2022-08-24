@@ -5,14 +5,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub mod custom_rewards;
 pub mod exit_penalty;
 
-use common_structs::{Epoch, FarmTokenAttributes, PaymentAttributesPair};
-use contexts::{
-    claim_rewards_context::CompoundRewardsContext, enter_farm_context::EnterFarmContext,
-    exit_farm_context::ExitFarmContext, storage_cache::StorageCache,
-};
+use common_errors::ERROR_ZERO_AMOUNT;
+use common_structs::FarmTokenAttributes;
+use contexts::storage_cache::StorageCache;
 
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
@@ -27,8 +24,7 @@ type ExitFarmResultType<BigUint> =
 
 #[elrond_wasm::contract]
 pub trait Farm:
-    custom_rewards::CustomRewardsModule
-    + rewards::RewardsModule
+    rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
@@ -174,7 +170,7 @@ pub trait Farm:
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
         let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards(&mut storage_cache);
+        self.default_generate_aggregated_rewards(&mut storage_cache);
 
         self.default_calculate_reward(&amount, &attributes, &storage_cache)
     }
@@ -195,5 +191,32 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &new_tokens);
 
         new_tokens
+    }
+
+    #[endpoint(startProduceRewards)]
+    fn start_produce_rewards_endpoint(&self) {
+        self.require_caller_is_admin();
+        self.start_produce_rewards();
+    }
+
+    #[endpoint]
+    fn end_produce_rewards(&self) {
+        self.require_caller_is_admin();
+
+        let mut storage = StorageCache::new(self);
+
+        self.default_generate_aggregated_rewards(&mut storage);
+        self.produce_rewards_enabled().set(false);
+    }
+
+    #[endpoint(setPerBlockRewardAmount)]
+    fn set_per_block_rewards(&self, per_block_amount: BigUint) {
+        self.require_caller_is_admin();
+        require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
+
+        let mut storage = StorageCache::new(self);
+
+        self.default_generate_aggregated_rewards(&mut storage);
+        self.per_block_reward_amount().set(&per_block_amount);
     }
 }
