@@ -38,7 +38,7 @@ pub trait WeeklyRewardsSplittingModule:
     + week_timekeeping::WeekTimekeepingModule
     + ongoing_operation::OngoingOperationModule
 {
-    fn claim_multi<CollectRewardsFn: Fn(Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
+    fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
         &self,
         collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
@@ -90,7 +90,7 @@ pub trait WeeklyRewardsSplittingModule:
         all_rewards
     }
 
-    fn claim_single<CollectRewardsFn: Fn(Week) -> TokenAmountPairsVec<Self::Api>>(
+    fn claim_single<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api>>(
         &self,
         user: &ManagedAddress,
         current_week: Week,
@@ -123,7 +123,7 @@ pub trait WeeklyRewardsSplittingModule:
     }
 
     fn collect_and_get_rewards_for_week<
-        CollectRewardsFn: Fn(Week) -> TokenAmountPairsVec<Self::Api>,
+        CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api>,
     >(
         &self,
         week: Week,
@@ -131,7 +131,7 @@ pub trait WeeklyRewardsSplittingModule:
     ) -> TokenAmountPairsVec<Self::Api> {
         let total_rewards_mapper = self.total_rewards_for_week(week);
         if total_rewards_mapper.is_empty() {
-            let total_rewards = collect_rewards_fn(week);
+            let total_rewards = collect_rewards_fn(self, week);
             total_rewards_mapper.set(&total_rewards);
 
             total_rewards

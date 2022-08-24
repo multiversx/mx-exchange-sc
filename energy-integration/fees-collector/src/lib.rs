@@ -1,7 +1,7 @@
 #![no_std]
 #![feature(generic_associated_types)]
 
-use common_types::{PaymentsVec, Week};
+use common_types::PaymentsVec;
 use energy_query::Energy;
 use weekly_rewards_splitting::ongoing_operation::{
     CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
@@ -32,7 +32,7 @@ pub trait FeesCollector:
     fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
 
-        self.claim_multi(|week: Week| self.collect_accumulated_fees_for_week(week))
+        self.claim_multi(Self::collect_accumulated_fees_for_week)
     }
 
     /// Accepts pairs of (user address, energy amount, total locked tokens).

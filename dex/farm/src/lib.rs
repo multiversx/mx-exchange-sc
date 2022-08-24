@@ -8,12 +8,14 @@ elrond_wasm::derive_imports!();
 pub mod exit_penalty;
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, PaymentsVec};
 use contexts::storage_cache::StorageCache;
 
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
+use farm_base_impl::exit_farm::InternalExitFarmResult;
+use week_timekeeping::Week;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -35,7 +37,6 @@ pub trait Farm:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + exit_penalty::ExitPenaltyModule
-    + farm_base_impl::FarmBaseImpl
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::partial_positions::PartialPositionsModule
@@ -43,6 +44,12 @@ pub trait Farm:
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
+    // farm boosted yields
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
+    + energy_query::EnergyQueryModule
 {
     #[init]
     fn init(
@@ -71,7 +78,13 @@ pub trait Farm:
     #[endpoint(enterFarm)]
     fn enter_farm(&self) -> EnterFarmResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let base_enter_farm_result = self.default_enter_farm_impl(payments);
+        let base_enter_farm_result = self.enter_farm_base(
+            payments,
+            Self::generate_aggregated_rewards_with_boosted_yields,
+            Self::default_create_enter_farm_virtual_position,
+            Self::get_default_merged_farm_token_attributes,
+            Self::create_farm_tokens_by_merging,
+        );
 
         let caller = self.blockchain().get_caller();
         let output_farm_token_payment = base_enter_farm_result.new_farm_token.payment;
@@ -91,7 +104,14 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let base_claim_rewards_result = self.default_claim_rewards_impl(payments);
+        let base_claim_rewards_result = self.claim_rewards_base(
+            payments,
+            Self::generate_aggregated_rewards_with_boosted_yields,
+            Self::default_calculate_reward,
+            Self::default_create_claim_rewards_virtual_position,
+            Self::get_default_merged_farm_token_attributes,
+            Self::create_farm_tokens_by_merging,
+        );
 
         let caller = self.blockchain().get_caller();
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment;
@@ -114,7 +134,14 @@ pub trait Farm:
     #[endpoint(compoundRewards)]
     fn compound_rewards(&self) -> CompoundRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let base_compound_rewards_result = self.default_compound_rewards_impl(payments);
+        let base_compound_rewards_result = self.compound_rewards_base(
+            payments,
+            Self::generate_aggregated_rewards_with_boosted_yields,
+            Self::default_calculate_reward,
+            Self::default_create_compound_rewards_virtual_position,
+            Self::get_default_merged_farm_token_attributes,
+            Self::create_farm_tokens_by_merging,
+        );
 
         let caller = self.blockchain().get_caller();
         let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment;
@@ -135,7 +162,11 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {
         let payment = self.call_value().single_esdt();
-        let base_exit_farm_result = self.default_exit_farm_impl(payment);
+        let base_exit_farm_result: InternalExitFarmResult<Self, FarmTokenAttributes<Self::Api>> = self.exit_farm_base(
+            payment,
+            Self::generate_aggregated_rewards_with_boosted_yields,
+            Self::default_calculate_reward,
+        );
 
         let caller = self.blockchain().get_caller();
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
@@ -170,7 +201,7 @@ pub trait Farm:
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
         let mut storage_cache = StorageCache::new(self);
-        self.default_generate_aggregated_rewards(&mut storage_cache);
+        self.generate_aggregated_rewards_with_boosted_yields(&mut storage_cache);
 
         self.default_calculate_reward(&amount, &attributes, &storage_cache)
     }
@@ -205,7 +236,7 @@ pub trait Farm:
 
         let mut storage = StorageCache::new(self);
 
-        self.default_generate_aggregated_rewards(&mut storage);
+        self.generate_aggregated_rewards_with_boosted_yields(&mut storage);
         self.produce_rewards_enabled().set(false);
     }
 
@@ -216,7 +247,32 @@ pub trait Farm:
 
         let mut storage = StorageCache::new(self);
 
-        self.default_generate_aggregated_rewards(&mut storage);
+        self.generate_aggregated_rewards_with_boosted_yields(&mut storage);
         self.per_block_reward_amount().set(&per_block_amount);
+    }
+
+    #[endpoint(claimBoostedYieldsRewards)]
+    fn claim_boosted_yields_rewards(&self) -> PaymentsVec<Self::Api> {
+        let reward_token_id = self.reward_token_id().get();
+        self.claim_multi(|sc_ref: &Self, week: Week| Self::collect_rewards(sc_ref, week, &reward_token_id))
+    }
+
+    fn generate_aggregated_rewards_with_boosted_yields(&self, storage_cache: &mut StorageCache<Self>) {
+        let mint_function = |token_id: &TokenIdentifier, amount: &BigUint| {
+            self.send().esdt_local_mint(token_id, 0, amount);
+        };
+        let total_reward =
+            self.mint_per_block_rewards(&storage_cache.reward_token_id, mint_function);
+
+        if total_reward > 0u64 {
+            let split_rewards = self.take_reward_slice(total_reward);
+            storage_cache.reward_reserve += &split_rewards.base_farm;
+
+            if storage_cache.farm_token_supply != 0u64 {
+                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                    / &storage_cache.farm_token_supply;
+                storage_cache.reward_per_share += &increase;
+            }
+        }
     }
 }

@@ -11,14 +11,18 @@ elrond_wasm_node::wasm_endpoints! {
         addAdmins
         addToPauseWhitelist
         calculateRewardsForGivenPosition
+        claimBoostedYieldsRewards
         claimRewards
         compoundRewards
         end_produce_rewards
         enterFarm
         exitFarm
         getAdmins
+        getBoostedYieldsRewardsPercenatage
         getBurnGasLimit
+        getCurrentWeek
         getDivisionSafetyConstant
+        getEnergyFactoryAddress
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
@@ -37,6 +41,8 @@ elrond_wasm_node::wasm_endpoints! {
         removeAdmins
         removeFromPauseWhitelist
         resume
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
         setPerBlockRewardAmount
         set_burn_gas_limit
         set_minimum_farming_epochs
