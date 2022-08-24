@@ -70,3 +70,9 @@ version = "0.34.0"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.energy-factory-mock]
+path = "../../energy-integration/energy-factory-mock"

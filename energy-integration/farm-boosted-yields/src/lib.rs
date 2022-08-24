@@ -72,6 +72,23 @@ pub trait FarmBoostedYieldsModule:
         ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id.clone(), total_rewards))
     }
 
+    fn claim_boosted_yields_rewards(
+        &self,
+        user: &ManagedAddress,
+        reward_token_id: &TokenIdentifier,
+    ) -> BigUint {
+        let rewards = self.claim_multi(user, |sc_ref: &Self, week: Week| {
+            Self::collect_rewards(sc_ref, week, reward_token_id)
+        });
+
+        let mut total = BigUint::zero();
+        for rew in &rewards {
+            total += rew.amount;
+        }
+
+        total
+    }
+
     #[view(getBoostedYieldsRewardsPercenatage)]
     #[storage_mapper("boostedYieldsRewardsPercentage")]
     fn boosted_yields_rewards_percentage(&self) -> SingleValueMapper<u64>;

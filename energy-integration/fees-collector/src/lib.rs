@@ -32,7 +32,11 @@ pub trait FeesCollector:
     fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
 
-        self.claim_multi(Self::collect_accumulated_fees_for_week)
+        let caller = self.blockchain().get_caller();
+        let rewards = self.claim_multi(&caller, Self::collect_accumulated_fees_for_week);
+        self.send().direct_multi(&caller, &rewards);
+
+        rewards
     }
 
     /// Accepts pairs of (user address, energy amount, total locked tokens).

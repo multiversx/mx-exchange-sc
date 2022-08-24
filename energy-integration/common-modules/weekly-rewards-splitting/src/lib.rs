@@ -40,15 +40,15 @@ pub trait WeeklyRewardsSplittingModule:
 {
     fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
         &self,
+        user: &ManagedAddress,
         collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
-        let caller = self.blockchain().get_caller();
-        let current_user_energy = self.get_energy_entry(caller.clone());
+        let current_user_energy = self.get_energy_entry(user.clone());
 
-        self.update_user_energy_for_current_week(&caller, current_week, &current_user_energy);
+        self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
-        let claim_progress_mapper = self.current_claim_progress(&caller);
+        let claim_progress_mapper = self.current_claim_progress(user);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
@@ -70,15 +70,9 @@ pub trait WeeklyRewardsSplittingModule:
                 return STOP_OP;
             }
 
-            let rewards_for_week = self.claim_single(
-                &caller,
-                current_week,
-                collect_rewards_fn,
-                &mut claim_progress,
-            );
+            let rewards_for_week =
+                self.claim_single(&user, current_week, collect_rewards_fn, &mut claim_progress);
             if !rewards_for_week.is_empty() {
-                self.send().direct_multi(&caller, &rewards_for_week);
-
                 all_rewards.append_vec(rewards_for_week);
             }
 
@@ -107,15 +101,15 @@ pub trait WeeklyRewardsSplittingModule:
 
         let next_week = claim_progress.week + 1;
         let next_energy_mapper = self.user_energy_for_week(user, next_week);
-        let opt_next_week_energy = if next_energy_mapper.is_empty() {
-            None
-        } else {
+        let opt_next_week_energy = if !next_energy_mapper.is_empty() {
             let saved_energy = next_energy_mapper.get();
             if next_week != current_week {
                 next_energy_mapper.clear();
             }
 
             Some(saved_energy)
+        } else {
+            None
         };
         claim_progress.advance_week(opt_next_week_energy);
 
