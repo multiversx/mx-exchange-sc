@@ -174,6 +174,36 @@ pub trait Farm:
         (farming_token_payment, reward_payment).into()
     }
 
+    #[view(calculateRewardsForGivenPosition)]
+    fn calculate_rewards_for_given_position(
+        &self,
+        amount: BigUint,
+        attributes: FarmTokenAttributes<Self::Api>,
+    ) -> BigUint {
+        let mut storage_cache = StorageCache::new(self);
+        self.generate_aggregated_rewards(&mut storage_cache);
+
+        self.default_calculate_reward(&amount, &attributes, &storage_cache)
+    }
+
+    #[payable("*")]
+    #[endpoint(mergeFarmTokens)]
+    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+        let payments = self.call_value().all_esdt_transfers();
+
+        let attrs = self.get_default_merged_farm_token_attributes(&payments, Option::None);
+        let farm_token_id = self.farm_token().get_token_id();
+        self.burn_farm_tokens_from_payments(&payments);
+
+        let new_tokens =
+            self.mint_farm_tokens(farm_token_id, attrs.current_farm_amount.clone(), &attrs);
+
+        let caller = self.blockchain().get_caller();
+        self.send_payment_non_zero(&caller, &new_tokens);
+
+        new_tokens
+    }
+
     // #[payable("*")]
     // #[endpoint(exitFarm)]
     // fn exit_farm(&self) -> ExitFarmResultType<Self::Api> {

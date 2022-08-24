@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         addAdmins
         addToPauseWhitelist
+        calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
         end_produce_rewards
@@ -30,6 +31,7 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardReserve
         getRewardTokenId
         getState
+        mergeFarmTokens
         pause
         registerFarmToken
         removeAdmins
