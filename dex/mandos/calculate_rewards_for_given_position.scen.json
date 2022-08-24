@@ -7,7 +7,7 @@
         },
         {
             "step": "scCall",
-            "txId": "calculateRewards",
+            "txId": "calculateRewards-1",
             "tx": {
                 "from": "address:user1",
                 "to": "sc:farm_contract",
@@ -63,11 +63,16 @@
                                 }
                             ],
                             "lastNonce": "0"
+                        },
+                        "str:WEGLD-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint"
+                            ]
                         }
                     },
                     "storage": {
                         "str:division_safety_constant": "1,000,000,000,000",
-                        "str:farm_token_id)": "str:FARM-abcdef",
+                        "str:farm_token_id": "str:FARM-abcdef",
                         "str:farm_token_supply": "200,000,000",
                         "str:farming_token_id": "str:LPTOK-abcdef",
                         "str:minimum_farming_epochs": "2",
@@ -86,7 +91,7 @@
         },
         {
             "step": "scCall",
-            "txId": "calculateRewards",
+            "txId": "calculateRewards-2",
             "tx": {
                 "from": "address:user1",
                 "to": "sc:farm_contract",
