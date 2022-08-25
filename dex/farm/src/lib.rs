@@ -8,14 +8,13 @@ elrond_wasm::derive_imports!();
 pub mod exit_penalty;
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_structs::{FarmTokenAttributes, PaymentsVec};
+use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 use farm_base_impl::exit_farm::InternalExitFarmResult;
-use week_timekeeping::Week;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
