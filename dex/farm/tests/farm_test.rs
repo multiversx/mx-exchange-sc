@@ -42,6 +42,7 @@ fn farm_with_no_boost_test() {
 
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
 
+    // calculate rewards - first user
     let first_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         original_entering_epoch: 0,
@@ -53,8 +54,9 @@ fn farm_with_no_boost_test() {
     let first_rewards_amt =
         farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
     let first_expected_rewards_amt = first_farm_token_amount * 10_000 / total_farm_tokens;
-    assert_eq!(first_rewards_amt, rust_biguint!(first_expected_rewards_amt));
+    assert_eq!(first_rewards_amt, first_expected_rewards_amt);
 
+    // calculate rewards - second user
     let second_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         original_entering_epoch: 0,
@@ -66,9 +68,48 @@ fn farm_with_no_boost_test() {
     let second_rewards_amt =
         farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
     let second_expected_rewards_amt = second_farm_token_amount * 10_000 / total_farm_tokens;
-    assert_eq!(
-        second_rewards_amt,
-        rust_biguint!(second_expected_rewards_amt)
+    assert_eq!(second_rewards_amt, second_expected_rewards_amt);
+
+    // first user claim
+    let first_received_reward_amt =
+        farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
+    assert_eq!(first_received_reward_amt, first_expected_rewards_amt);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &first_user,
+            FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(first_farm_token_amount),
+            None,
+        );
+
+    farm_setup.b_mock.check_esdt_balance(
+        &first_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(first_received_reward_amt),
+    );
+
+    // second user claim
+    let second_received_reward_amt =
+        farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
+    assert_eq!(second_received_reward_amt, second_expected_rewards_amt);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &second_user,
+            FARM_TOKEN_ID,
+            4,
+            &rust_biguint!(second_farm_token_amount),
+            None,
+        );
+
+    farm_setup.b_mock.check_esdt_balance(
+        &second_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(second_received_reward_amt),
     );
 }
 
@@ -238,8 +279,8 @@ where
         user: &Address,
         farm_token_amount: u64,
         attributes: FarmTokenAttributes<DebugApi>,
-    ) -> num_bigint::BigUint {
-        let mut result = rust_biguint!(0);
+    ) -> u64 {
+        let mut result = 0;
         self.b_mock
             .execute_query(&self.farm_wrapper, |sc| {
                 let result_managed = sc.calculate_rewards_for_given_position(
@@ -247,9 +288,48 @@ where
                     managed_biguint!(farm_token_amount),
                     attributes,
                 );
-                result =
-                    num_bigint::BigUint::from_bytes_be(result_managed.to_bytes_be().as_slice());
+                result = result_managed.to_u64().unwrap();
             })
+            .assert_ok();
+
+        result
+    }
+
+    pub fn claim_rewards(
+        &mut self,
+        user: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+    ) -> u64 {
+        self.last_farm_token_nonce += 1;
+
+        let expected_farm_token_nonce = self.last_farm_token_nonce;
+        let mut result = 0;
+        self.b_mock
+            .execute_esdt_transfer(
+                user,
+                &self.farm_wrapper,
+                FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (out_farm_token, out_reward_token) = sc.claim_rewards().into_tuple();
+                    assert_eq!(
+                        out_farm_token.token_identifier,
+                        managed_token_id!(FARM_TOKEN_ID)
+                    );
+                    assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                    assert_eq!(out_farm_token.amount, managed_biguint!(farm_token_amount));
+
+                    assert_eq!(
+                        out_reward_token.token_identifier,
+                        managed_token_id!(REWARD_TOKEN_ID)
+                    );
+                    assert_eq!(out_reward_token.token_nonce, 0);
+
+                    result = out_reward_token.amount.to_u64().unwrap();
+                },
+            )
             .assert_ok();
 
         result
