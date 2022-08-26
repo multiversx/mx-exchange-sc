@@ -6,6 +6,7 @@ use pausable::State;
 use super::errors::*;
 
 pub const MAX_PERCENTAGE: u64 = 100_000;
+pub const MAX_FEE_PERCENTAGE: u64 = 5_000;
 
 #[elrond_wasm::module]
 pub trait ConfigModule:
@@ -31,7 +32,7 @@ pub trait ConfigModule:
 
     fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
         require!(
-            total_fee_percent >= special_fee_percent && total_fee_percent < MAX_PERCENTAGE,
+            total_fee_percent >= special_fee_percent && total_fee_percent <= MAX_FEE_PERCENTAGE,
             ERROR_BAD_PERCENTS
         );
         self.total_fee_percent().set(&total_fee_percent);
