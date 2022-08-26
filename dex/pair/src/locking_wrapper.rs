@@ -7,6 +7,12 @@ pub trait LockingWrapperModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
 {
+    #[endpoint(setLockingDeadlineEpoch)]
+    fn set_locking_deadline_epoch(&self, new_deadline: u64) {
+        self.require_caller_has_owner_permissions();
+        self.locking_deadline_epoch().set(&new_deadline);
+    }
+
     #[endpoint(setLockingScAddress)]
     fn set_locking_sc_address(&self, new_address: ManagedAddress) {
         self.require_caller_has_owner_permissions();
@@ -16,6 +22,12 @@ pub trait LockingWrapperModule:
         );
 
         self.locking_sc_address().set(&new_address);
+    }
+
+    #[endpoint(setUnlockEpoch)]
+    fn set_unlock_epoch(&self, new_epoch: u64) {
+        self.require_caller_has_owner_permissions();
+        self.unlock_epoch().set(&new_epoch);
     }
 
     #[inline]
