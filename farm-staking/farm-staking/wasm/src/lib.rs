@@ -29,6 +29,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getPermissions
         getRewardCapacity
         getRewardPerShare
         getRewardTokenId
@@ -43,6 +44,7 @@ elrond_wasm_node::wasm_endpoints! {
         setMaxApr
         setMinUnbondEpochs
         setPerBlockRewardAmount
+        setPermissions
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent

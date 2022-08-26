@@ -14,6 +14,7 @@ use super::{
 pub trait OutputBuilderModule:
     crate::config::ConfigModule
     + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
     + pausable::PausableModule
     + crate::locking_wrapper::LockingWrapperModule
 {

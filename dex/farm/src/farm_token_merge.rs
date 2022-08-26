@@ -14,7 +14,7 @@ pub trait FarmTokenMergeModule:
     + config::ConfigModule
     + token_merge::TokenMergeModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("*")]

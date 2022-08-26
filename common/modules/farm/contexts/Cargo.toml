@@ -31,8 +31,8 @@ path = "../config"
 [dependencies.pausable]
 path = "../../pausable"
 
-[dependencies.admin_whitelist]
-path = "../../admin_whitelist"
+[dependencies.permissions_module]
+path = "../../permissions_module"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"

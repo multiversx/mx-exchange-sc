@@ -364,6 +364,7 @@ pub mod fuzz_data_tests {
                     total_fee_percent,
                     special_fee_percent,
                     OptionalValue::None,
+                    MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
 
                 let lp_token_id = managed_token_id!(lp_token);

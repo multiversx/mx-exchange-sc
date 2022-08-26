@@ -21,9 +21,11 @@ use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 
+use common_errors::ERROR_PERMISSION_DENIED;
 use contexts::base::*;
 use contexts::swap::SwapContext;
 use pausable::State;
+use permissions_module::Permissions;
 
 pub type AddLiquidityResultType<BigUint> =
     MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -48,6 +50,7 @@ pub trait Pair<ContractReader>:
     + bot_protection::BPModule
     + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
+    + permissions_module::PermissionsModule
     + pausable::PausableModule
 {
     #[init]
@@ -60,6 +63,7 @@ pub trait Pair<ContractReader>:
         total_fee_percent: u64,
         special_fee_percent: u64,
         initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(first_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         require!(
@@ -83,9 +87,16 @@ pub trait Pair<ContractReader>:
         self.initial_liquidity_adder()
             .set(&initial_liquidity_adder.into_option());
 
-        let pause_whitelist = self.pause_whitelist();
-        pause_whitelist.add(&router_address);
-        pause_whitelist.add(&router_owner_address);
+        let caller = self.blockchain().get_caller();
+        if admins.is_empty() {
+            // backwards compatibility
+            let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
+            self.set_permissions(router_address, all_permissions);
+            self.set_permissions(router_owner_address, all_permissions);
+        } else {
+            self.set_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+            self.set_permissions_for_all(admins, Permissions::ADMIN);
+        };
     }
 
     #[payable("*")]
@@ -564,7 +575,8 @@ pub trait Pair<ContractReader>:
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
+
         require!(
             self.lp_token_identifier().is_empty(),
             ERROR_LP_TOKEN_NOT_ISSUED

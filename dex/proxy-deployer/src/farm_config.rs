@@ -25,6 +25,30 @@ pub trait FarmConfigModule {
     }
 
     #[only_owner]
+    #[endpoint(addToPauseWhitelistFarm)]
+    fn add_to_pause_whitelist_farm(
+        &self,
+        farm_address: ManagedAddress,
+        addresses: MultiValueEncoded<ManagedAddress>,
+    ) {
+        self.farm_config_proxy(farm_address)
+            .add_to_pause_whitelist(addresses)
+            .execute_on_dest_context_ignore_result();
+    }
+
+    #[only_owner]
+    #[endpoint(removeFromPauseWhitelistFarm)]
+    fn remove_from_pause_whitelist_farm(
+        &self,
+        farm_address: ManagedAddress,
+        addresses: MultiValueEncoded<ManagedAddress>,
+    ) {
+        self.farm_config_proxy(farm_address)
+            .remove_from_pause_whitelist(addresses)
+            .execute_on_dest_context_ignore_result();
+    }
+
+    #[only_owner]
     #[endpoint(setFarmBurnGasLimit)]
     fn set_farm_burn_gas_limit(&self, farm_address: ManagedAddress, gas_limit: u64) {
         self.farm_config_proxy(farm_address)

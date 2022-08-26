@@ -18,7 +18,7 @@ pub trait FarmTokenModule:
     config::ConfigModule
     + token_send::TokenSendModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("EGLD")]
@@ -29,7 +29,7 @@ pub trait FarmTokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        self.require_caller_is_owner_or_admin();
+        self.require_caller_has_owner_or_admin_permissions();
 
         let payment_amount = self.call_value().egld_value();
         self.farm_token().issue_and_set_all_roles(

@@ -15,12 +15,6 @@ pub trait LockingModule {
         self.locking_sc_address().set(&new_address);
     }
 
-    #[only_owner]
-    #[endpoint(setUnlockEpoch)]
-    fn set_unlock_epoch(&self, new_epoch: u64) {
-        self.unlock_epoch().set(&new_epoch);
-    }
-
     #[inline]
     fn lock_tokens(
         &self,

@@ -26,8 +26,8 @@ path = "../../common/modules/token_merge"
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
-[dependencies.admin_whitelist]
-path = "../../common/modules/admin_whitelist"
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
 
 [dependencies.factory]
 path = "../../locked-asset/factory"

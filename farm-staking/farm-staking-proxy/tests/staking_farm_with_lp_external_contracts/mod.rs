@@ -1,6 +1,6 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, MultiValueEncoded};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -50,6 +50,7 @@ where
                 total_fee_percent,
                 special_fee_percent,
                 OptionalValue::None,
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);

@@ -7,9 +7,11 @@
 elrond_wasm_node::wasm_endpoints! {
     proxy_deployer
     (
+        addToPauseWhitelistFarm
         deployFarm
         pauseFarm
         registerFarmToken
+        removeFromPauseWhitelistFarm
         resumeFarm
         setFarmBurnGasLimit
     )

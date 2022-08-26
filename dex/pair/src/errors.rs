@@ -28,7 +28,6 @@ pub static ERROR_NOT_AN_ESDT: &[u8] = b"Not a valid esdt id";
 pub static ERROR_SAME_TOKENS: &[u8] = b"Exchange tokens cannot be the same";
 pub static ERROR_POOL_TOKEN_IS_PLT: &[u8] = b"Token ID cannot be the same as LP token ID";
 pub static ERROR_BAD_PERCENTS: &[u8] = b"Bad percents";
-pub static ERROR_PERMISSION_DENIED: &[u8] = b"Permission denied";
 pub static ERROR_NOT_WHITELISTED: &[u8] = b"Not whitelisted";
 pub static ERROR_ALREADY_WHITELISTED: &[u8] = b"Already whitelisted";
 pub static ERROR_PAIR_ALREADY_TRUSTED: &[u8] = b"Pair already trusted";

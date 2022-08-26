@@ -1,9 +1,10 @@
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
-    types::{Address, MultiValueEncoded, OperationCompletionStatus},
+    types::{Address, ManagedAddress, MultiValueEncoded, OperationCompletionStatus},
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+    DebugApi,
 };
 use farm::Farm;
 use pair::Pair;
@@ -54,8 +55,10 @@ fn pause_all_test() {
                 MultiValueEncoded::new(),
             );
 
-            sc.pause_whitelist()
-                .add(&managed_address!(pause_sc.address_ref()));
+            let mut pause_whitelist =
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new();
+            pause_whitelist.push(managed_address!(pause_sc.address_ref()));
+            sc.add_to_pause_whitelist(pause_whitelist);
 
             assert_eq!(sc.state().get(), State::Inactive);
         })
@@ -72,10 +75,13 @@ fn pause_all_test() {
                 TOTAL_FEE_PERCENT,
                 SPECIAL_FEE_PERCENT,
                 OptionalValue::None,
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
-            sc.pause_whitelist()
-                .add(&managed_address!(pause_sc.address_ref()));
+            let mut pause_whitelist =
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new();
+            pause_whitelist.push(managed_address!(pause_sc.address_ref()));
+            sc.add_to_pause_whitelist(pause_whitelist);
 
             assert_eq!(sc.state().get(), State::Inactive);
         })

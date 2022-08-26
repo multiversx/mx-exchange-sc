@@ -1,6 +1,6 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue4, OptionalValue};
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec, MultiValueEncoded};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, managed_token_id_wrapped,
@@ -102,6 +102,7 @@ where
                 total_fee_percent,
                 special_fee_percent,
                 OptionalValue::None,
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
             let lp_token_id = managed_token_id!(LPMEX_TOKEN_ID);
@@ -128,6 +129,7 @@ where
                 total_fee_percent,
                 special_fee_percent,
                 OptionalValue::None,
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
             let lp_token_id = managed_token_id!(LPUSDC_TOKEN_ID);
@@ -451,6 +453,7 @@ fn user_enable_pair_swaps_through_router_test() {
                 0,
                 0,
                 OptionalValue::Some(managed_address!(&user)),
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
             assert_eq!(sc.state().get(), State::Inactive);

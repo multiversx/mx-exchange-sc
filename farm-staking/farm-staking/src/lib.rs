@@ -9,6 +9,7 @@ pub mod whitelist;
 
 use common_structs::Nonce;
 use pausable::State;
+use permissions_module::Permissions;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -40,7 +41,7 @@ pub trait Farm:
     + farm_token_merge::FarmTokenMergeModule
     + whitelist::WhitelistModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[proxy]
@@ -53,7 +54,7 @@ pub trait Farm:
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
-        mut admins: MultiValueEncoded<ManagedAddress>,
+        admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
             farming_token_id.is_valid_esdt_identifier(),
@@ -85,12 +86,14 @@ pub trait Farm:
         self.try_set_min_unbond_epochs(min_unbond_epochs);
 
         let caller = self.blockchain().get_caller();
-        self.pause_whitelist().add(&caller);
-
         if admins.is_empty() {
-            admins.push(caller);
-        }
-        self.add_admins(admins);
+            // backwards compatibility
+            let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
+            self.set_permissions(caller, all_permissions);
+        } else {
+            self.set_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+            self.set_permissions_for_all(admins, Permissions::ADMIN);
+        };
     }
 
     #[payable("*")]
