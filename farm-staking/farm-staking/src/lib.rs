@@ -89,10 +89,10 @@ pub trait Farm:
         if admins.is_empty() {
             // backwards compatibility
             let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
-            self.set_permissions(caller, all_permissions);
+            self.add_permissions(caller, all_permissions);
         } else {
-            self.set_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
-            self.set_permissions_for_all(admins, Permissions::ADMIN);
+            self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
     }
 

@@ -44,13 +44,13 @@ pub trait PermissionsModule {
         });
     }
 
-    fn set_permissions_for_all(
+    fn add_permissions_for_all(
         &self,
         addresses: MultiValueEncoded<ManagedAddress>,
         permissions: Permissions,
     ) {
         for address in addresses {
-            self.set_permissions(address, permissions);
+            self.add_permissions(address, permissions);
         }
     }
 

@@ -88,7 +88,7 @@ pub trait Farm:
         self.pair_contract_address().set(&pair_contract_address);
 
         let caller = self.blockchain().get_caller();
-        self.set_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+        self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
     }
 
     #[payable("*")]
