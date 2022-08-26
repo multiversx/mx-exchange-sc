@@ -33,6 +33,7 @@ elrond_wasm_node::wasm_endpoints! {
         issueRedeemToken
         redeem
         setLockingScAddress
+        setUnlockEpoch
         withdraw
     )
 }

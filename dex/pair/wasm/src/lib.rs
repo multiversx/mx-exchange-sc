@@ -56,11 +56,13 @@ elrond_wasm_node::wasm_endpoints! {
         setBPSwapConfig
         setFeeOn
         setFeePercents
+        setLockingDeadlineEpoch
         setLockingScAddress
         setLpTokenIdentifier
         setMaxObservationsPerRecord
         setPermissions
         setStateActiveNoSwaps
+        setUnlockEpoch
         set_extern_swap_gas_limit
         setupFeesCollector
         swapNoFeeAndForward
