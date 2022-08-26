@@ -24,6 +24,7 @@ use fees_collector::FeesCollector;
 use pair::bot_protection::*;
 use pair::config::{ConfigModule as PairConfigModule, MAX_PERCENTAGE};
 use pair::fee::FeeModule;
+use pair::locking_wrapper::LockingWrapperModule;
 use pair::safe_price::*;
 use pair::*;
 use pausable::{PausableModule, State};
