@@ -39,7 +39,7 @@ pub trait FeeModule:
 
     #[endpoint(whitelist)]
     fn whitelist_endpoint(&self, address: ManagedAddress) {
-        self.require_caller_has_owner_or_admin_permissions();
+        self.require_caller_has_owner_permissions();
         let is_new = self.whitelist().insert(address);
         require!(is_new, ERROR_ALREADY_WHITELISTED);
     }
