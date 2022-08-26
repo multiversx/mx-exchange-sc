@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         addInitialLiquidity
         addLiquidity
+        addPermissions
         addToPauseWhitelist
         addTrustedSwapPair
         getAmountIn
@@ -48,6 +49,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeFromPauseWhitelist
         removeLiquidity
         removeLiquidityAndBuyBackAndBurnToken
+        removePermissions
         removeTrustedSwapPair
         removeWhitelist
         resume

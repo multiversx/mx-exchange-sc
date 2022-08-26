@@ -13,8 +13,19 @@ pub trait PermissionsModule {
     #[endpoint(setPermissions)]
     fn set_permissions_endpoint(&self, address: ManagedAddress, permissions: Permissions) {
         self.require_caller_has_owner_permissions();
-
         self.set_permissions(address, permissions);
+    }
+
+    #[endpoint(addPermissions)]
+    fn add_permissions_endpoint(&self, address: ManagedAddress, permissions: Permissions) {
+        self.require_caller_has_owner_permissions();
+        self.add_permissions(address, permissions);
+    }
+
+    #[endpoint(removePermissions)]
+    fn remove_permissions_endpoint(&self, address: ManagedAddress, permissions: Permissions) {
+        self.require_caller_has_owner_permissions();
+        self.remove_permissions(address, permissions);
     }
 
     fn set_permissions(&self, address: ManagedAddress, permissions: Permissions) {

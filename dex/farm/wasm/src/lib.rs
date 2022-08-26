@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
+        addPermissions
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -37,6 +38,7 @@ elrond_wasm_node::wasm_endpoints! {
         pause
         registerFarmToken
         removeFromPauseWhitelist
+        removePermissions
         resume
         setFarmMigrationConfig
         setFarmTokenSupply

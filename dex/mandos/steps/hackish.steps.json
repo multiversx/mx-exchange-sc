@@ -30,7 +30,9 @@
                         "str:total_fee_percent": "300",
                         "str:special_fee_percent": "100",
                         "str:send_fee_gas_limit": "25,000,000",
-                        "str:extern_swap_gas_limit": "50,000,000"
+                        "str:extern_swap_gas_limit": "50,000,000",
+                        "str:permissions|sc:router_contract": "7",
+                        "str:permissions|address:owner": "7"
                     },
                     "code": "file:../../pair/output/pair.wasm",
                     "owner": "sc:router_contract"

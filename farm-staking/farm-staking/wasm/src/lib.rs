@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         addAddressToWhitelist
+        addPermissions
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -40,6 +41,7 @@ elrond_wasm_node::wasm_endpoints! {
         registerFarmToken
         removeAddressFromWhitelist
         removeFromPauseWhitelist
+        removePermissions
         resume
         setMaxApr
         setMinUnbondEpochs
