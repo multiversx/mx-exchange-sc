@@ -14,7 +14,8 @@ elrond_wasm_node::wasm_endpoints! {
         getAssetTokenId
         getCacheSize
         getDefaultUnlockPeriod
-        getEnergyForUser
+        getEnergyAmountForUser
+        getEnergyEntryForUser
         getExtendedAttributesActivationNonce
         getInitEpoch
         getLockedAssetTokenId
