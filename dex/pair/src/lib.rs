@@ -87,14 +87,14 @@ pub trait Pair<ContractReader>:
         self.initial_liquidity_adder()
             .set(&initial_liquidity_adder.into_option());
 
-        let caller = self.blockchain().get_caller();
         if admins.is_empty() {
             // backwards compatibility
             let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
             self.add_permissions(router_address, all_permissions);
             self.add_permissions(router_owner_address, all_permissions);
         } else {
-            self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(router_address, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(router_owner_address, Permissions::OWNER | Permissions::PAUSE);
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
     }
