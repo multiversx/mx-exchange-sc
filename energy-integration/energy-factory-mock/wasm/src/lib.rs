@@ -7,7 +7,9 @@
 elrond_wasm_node::wasm_endpoints! {
     energy_factory_mock
     (
-        getEnergyForUser
+        getEnergyAmountForUser
+        getEnergyEntryForUser
+        setUserEnergy
     )
 }
 
