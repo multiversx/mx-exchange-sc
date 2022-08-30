@@ -52,6 +52,7 @@ fn pause_all_test() {
                 managed_token_id!(FARMING_TOKEN_ID),
                 managed_biguint!(DIV_SAFETY),
                 managed_address!(pair_sc.address_ref()),
+                OptionalValue::None,
                 MultiValueEncoded::new(),
             );
 

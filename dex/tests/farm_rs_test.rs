@@ -1,6 +1,7 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded};
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -70,6 +71,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                OptionalValue::None,
                 MultiValueEncoded::new(),
             );
 

@@ -54,6 +54,7 @@ pub trait Farm:
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
+        owner_opt: OptionalValue<ManagedAddress>,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
@@ -84,6 +85,10 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.max_annual_percentage_rewards().set(&max_apr);
         self.try_set_min_unbond_epochs(min_unbond_epochs);
+
+        if let Some(owner) = owner_opt.into_option() {
+            self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
+        }
 
         let caller = self.blockchain().get_caller();
         if admins.is_empty() {

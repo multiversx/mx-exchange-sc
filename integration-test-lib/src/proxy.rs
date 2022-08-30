@@ -3,6 +3,7 @@ pub mod migration_tests {
     use elrond_wasm::elrond_codec::Empty;
     use elrond_wasm::storage::mappers::StorageTokenWrapper;
     use elrond_wasm::types::{Address, EsdtLocalRole, MultiValueEncoded};
+    use elrond_wasm::elrond_codec::multi_types::OptionalValue;
     use elrond_wasm_debug::tx_mock::TxContextStack;
     use elrond_wasm_debug::{
         managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -92,6 +93,7 @@ pub mod migration_tests {
                     managed_token_id!(LP_TOKEN_ID),
                     managed_biguint!(DIVISION_SAFETY_CONSTANT),
                     managed_address!(&Address::zero()),
+                    OptionalValue::None,
                     MultiValueEncoded::new(),
                 );
             })

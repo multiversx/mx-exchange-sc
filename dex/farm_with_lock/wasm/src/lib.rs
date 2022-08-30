@@ -8,7 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm_with_lock
     (
         callBack
-        addPermissions
+        addAdmin
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -37,13 +37,12 @@ elrond_wasm_node::wasm_endpoints! {
         migrateFromV1_2Farm
         pause
         registerFarmToken
+        removeAdmin
         removeFromPauseWhitelist
-        removePermissions
         resume
         setFarmMigrationConfig
         setFarmTokenSupply
         setPerBlockRewardAmount
-        setPermissions
         setRpsAndStartRewards
         set_burn_gas_limit
         set_minimum_farming_epochs

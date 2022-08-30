@@ -221,6 +221,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                OptionalValue::None,
                 MultiValueEncoded::new(),
             );
 

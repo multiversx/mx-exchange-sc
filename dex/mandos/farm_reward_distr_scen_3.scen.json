@@ -78,10 +78,9 @@
             "tx": {
                 "from": "address:alice",
                 "to": "sc:farm_contract",
-                "function": "addPermissions",
+                "function": "addAdmin",
                 "arguments": [
-                    "address:alice",
-                    "2"
+                    "address:alice"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"

@@ -10,22 +10,16 @@ elrond_wasm::imports!();
 
 #[elrond_wasm::module]
 pub trait PermissionsModule {
-    #[endpoint(setPermissions)]
-    fn set_permissions_endpoint(&self, address: ManagedAddress, permissions: Permissions) {
+    #[endpoint(addAdmin)]
+    fn add_permissions_endpoint(&self, address: ManagedAddress) {
         self.require_caller_has_owner_permissions();
-        self.set_permissions(address, permissions);
+        self.add_permissions(address, Permissions::ADMIN);
     }
 
-    #[endpoint(addPermissions)]
-    fn add_permissions_endpoint(&self, address: ManagedAddress, permissions: Permissions) {
+    #[endpoint(removeAdmin)]
+    fn remove_permissions_endpoint(&self, address: ManagedAddress) {
         self.require_caller_has_owner_permissions();
-        self.add_permissions(address, permissions);
-    }
-
-    #[endpoint(removePermissions)]
-    fn remove_permissions_endpoint(&self, address: ManagedAddress, permissions: Permissions) {
-        self.require_caller_has_owner_permissions();
-        self.remove_permissions(address, permissions);
+        self.remove_permissions(address, Permissions::ADMIN);
     }
 
     fn set_permissions(&self, address: ManagedAddress, permissions: Permissions) {

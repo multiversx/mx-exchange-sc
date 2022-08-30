@@ -7,9 +7,9 @@
 elrond_wasm_node::wasm_endpoints! {
     pair
     (
+        addAdmin
         addInitialLiquidity
         addLiquidity
-        addPermissions
         addToPauseWhitelist
         addTrustedSwapPair
         getAmountIn
@@ -46,10 +46,10 @@ elrond_wasm_node::wasm_endpoints! {
         getUnlockEpoch
         getWhitelistedManagedAddresses
         pause
+        removeAdmin
         removeFromPauseWhitelist
         removeLiquidity
         removeLiquidityAndBuyBackAndBurnToken
-        removePermissions
         removeTrustedSwapPair
         removeWhitelist
         resume
@@ -62,7 +62,6 @@ elrond_wasm_node::wasm_endpoints! {
         setLockingScAddress
         setLpTokenIdentifier
         setMaxObservationsPerRecord
-        setPermissions
         setStateActiveNoSwaps
         setUnlockEpoch
         set_extern_swap_gas_limit

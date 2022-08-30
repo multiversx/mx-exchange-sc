@@ -53,6 +53,7 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
+        owner_opt: OptionalValue<ManagedAddress>,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
@@ -80,6 +81,10 @@ pub trait Farm:
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.pair_contract_address().set(&pair_contract_address);
+
+        if let Some(owner) = owner_opt.into_option() {
+            self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
+        }
 
         let caller = self.blockchain().get_caller();
         if admins.is_empty() {
