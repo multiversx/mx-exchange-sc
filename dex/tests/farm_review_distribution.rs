@@ -1,8 +1,7 @@
 use std::ops::Mul;
 
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, MultiValueEncoded};
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
+use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     tx_mock::TxInputESDT, DebugApi,
@@ -66,7 +65,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
 

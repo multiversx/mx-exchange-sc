@@ -54,7 +54,7 @@ pub trait Farm:
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
-        owner_opt: OptionalValue<ManagedAddress>,
+        owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
@@ -86,7 +86,7 @@ pub trait Farm:
         self.max_annual_percentage_rewards().set(&max_apr);
         self.try_set_min_unbond_epochs(min_unbond_epochs);
 
-        if let Some(owner) = owner_opt.into_option() {
+        if !owner.is_zero() {
             self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
         }
 

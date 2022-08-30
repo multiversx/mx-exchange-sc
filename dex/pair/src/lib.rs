@@ -62,7 +62,7 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        initial_liquidity_adder: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(first_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
@@ -84,8 +84,13 @@ pub trait Pair<ContractReader>:
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
+        let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
+            Some(initial_liquidity_adder)
+        } else {
+            None
+        };
         self.initial_liquidity_adder()
-            .set(&initial_liquidity_adder.into_option());
+            .set(&initial_liquidity_adder_opt);
 
         if admins.is_empty() {
             // backwards compatibility

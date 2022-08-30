@@ -101,7 +101,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
@@ -128,7 +128,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
@@ -452,7 +452,7 @@ fn user_enable_pair_swaps_through_router_test() {
                 router_owner_address,
                 0,
                 0,
-                OptionalValue::Some(managed_address!(&user)),
+                managed_address!(&user),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 

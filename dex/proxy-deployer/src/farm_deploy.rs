@@ -13,7 +13,7 @@ pub trait FarmDeployModule {
         farming_token_id: TokenIdentifier,
         pair_contract_address: ManagedAddress,
     ) -> ManagedAddress {
-        let owner_opt = OptionalValue::Some(self.blockchain().get_owner_address());
+        let owner = self.blockchain().get_owner_address();
         let caller = self.blockchain().get_caller();
         let mut admins_list = MultiValueEncoded::new();
         admins_list.push(caller);
@@ -28,7 +28,7 @@ pub trait FarmDeployModule {
                 farming_token_id,
                 DIVISION_SAFETY_CONST,
                 pair_contract_address,
-                owner_opt,
+                owner,
                 admins_list,
             )
             .deploy_from_source(&farm_template, code_metadata);

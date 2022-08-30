@@ -98,6 +98,7 @@ pub trait FactoryModule {
         arg_buffer.push_arg(owner);
         arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
         arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
+        arg_buffer.push_arg(ManagedAddress::zero());
 
         Self::Api::send_api_impl().upgrade_from_source_contract(
             pair_address,

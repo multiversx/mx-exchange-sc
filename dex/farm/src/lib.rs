@@ -53,7 +53,7 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
-        owner_opt: OptionalValue<ManagedAddress>,
+        owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
@@ -82,7 +82,7 @@ pub trait Farm:
         self.farming_token_id().set(&farming_token_id);
         self.pair_contract_address().set(&pair_contract_address);
 
-        if let Some(owner) = owner_opt.into_option() {
+        if !owner.is_zero() {
             self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
         }
 

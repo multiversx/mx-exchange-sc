@@ -1,4 +1,4 @@
-use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
+use elrond_wasm::elrond_codec::multi_types::MultiValue3;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
@@ -49,7 +49,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
@@ -221,7 +221,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
 

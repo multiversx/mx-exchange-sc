@@ -1,7 +1,4 @@
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
-    types::{Address, ManagedAddress, MultiValueEncoded, OperationCompletionStatus},
-};
+use elrond_wasm::types::{Address, ManagedAddress, MultiValueEncoded, OperationCompletionStatus};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -52,7 +49,7 @@ fn pause_all_test() {
                 managed_token_id!(FARMING_TOKEN_ID),
                 managed_biguint!(DIV_SAFETY),
                 managed_address!(pair_sc.address_ref()),
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
 
@@ -75,7 +72,7 @@ fn pause_all_test() {
                 managed_address!(&owner_address),
                 TOTAL_FEE_PERCENT,
                 SPECIAL_FEE_PERCENT,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
