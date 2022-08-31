@@ -9,6 +9,16 @@ on:
       title:
         required: true
         description: Release title
+      image:
+        type: choice
+        required: true
+        description: Frozen image (with tag)
+        options: 
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-001
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-002
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-004
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-005
 
 permissions:
   contents: write
@@ -24,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
     container: 
-      image: elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
+      image: ${{ github.event.inputs.image }}
     steps:
       # We don't use actions/checkout, since we want to control the location of the repository,
       # in order to achieve deterministic builds.
@@ -66,12 +76,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "## Checksums (SHA 256):" >> notes.txt
+          echo "Built using Docker image: **${{ github.event.inputs.image }}**." >> notes.txt
+          echo "" >> notes.txt
+          echo "## Codehashes (SHA 256):" >> notes.txt
           echo "" >> notes.txt
 
-          for i in $(find ./assets -type f); do
+          for i in $(find ./assets -type f -name *.wasm); do
             filename=$(basename ${i})
-            checksum=($(sha256sum ${i}))
+            checksum=($(b2sum -l 256 ${i}))
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
           done
 
