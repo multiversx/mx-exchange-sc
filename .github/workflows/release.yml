@@ -9,6 +9,15 @@ on:
       title:
         required: true
         description: Release title
+      image:
+        type: choice
+        required: true
+        description: Frozen image (with tag)
+        options: 
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-001
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-002
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-004
 
 permissions:
   contents: write
@@ -18,14 +27,13 @@ env:
   ELROND_HOME: /home/elrond
   REPO_PATH: /home/elrond/sc-dex-rs
   REPO_URL: https://github.com/ElrondNetwork/sc-dex-rs.git
-  DOCKER_IMAGE: elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
 
 jobs:
   build:
     runs-on: ubuntu-latest
     # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
     container: 
-      image: ${{ env.DOCKER_IMAGE }}
+      image: ${{ github.event.inputs.image }}
     steps:
       # We don't use actions/checkout, since we want to control the location of the repository,
       # in order to achieve deterministic builds.
@@ -67,7 +75,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Built using Docker image: **${{ env.DOCKER_IMAGE }}**." >> notes.txt
+          echo "Built using Docker image: **${{ github.event.inputs.image }}**." >> notes.txt
           echo "" >> notes.txt
           echo "## Codehashes (SHA 256):" >> notes.txt
           echo "" >> notes.txt
