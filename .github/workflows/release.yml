@@ -80,7 +80,7 @@ jobs:
           echo "## Codehashes (SHA 256):" >> notes.txt
           echo "" >> notes.txt
 
-          for i in $(find ./assets -type f); do
+          for i in $(find ./assets -type f -name *.wasm); do
             filename=$(basename ${i})
             checksum=($(b2sum -l 256 ${i}))
             echo " - **${filename}**: \`${checksum}\`" >> notes.txt
