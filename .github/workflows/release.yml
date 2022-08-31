@@ -18,6 +18,7 @@ on:
         - elrondnetwork/elrond-sdk-erdpy-rust:frozen-002
         - elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
         - elrondnetwork/elrond-sdk-erdpy-rust:frozen-004
+        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-005
 
 permissions:
   contents: write
