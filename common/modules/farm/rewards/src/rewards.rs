@@ -11,7 +11,7 @@ pub trait RewardsModule:
     + farm_token::FarmTokenModule
     + token_send::TokenSendModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_per_block_rewards(
@@ -31,7 +31,7 @@ pub trait RewardsModule:
 
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards_endpoint(&self) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         self.start_produce_rewards();
     }
 

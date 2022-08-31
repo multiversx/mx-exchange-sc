@@ -29,6 +29,7 @@ pub trait FeeModule:
     + liquidity_pool::LiquidityPoolModule
     + amm::AmmModule
     + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
     + pausable::PausableModule
 {
     #[view(getFeeState)]
@@ -38,14 +39,14 @@ pub trait FeeModule:
 
     #[endpoint(whitelist)]
     fn whitelist_endpoint(&self, address: ManagedAddress) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         let is_new = self.whitelist().insert(address);
         require!(is_new, ERROR_ALREADY_WHITELISTED);
     }
 
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         let is_removed = self.whitelist().remove(&address);
         require!(is_removed, ERROR_NOT_WHITELISTED);
     }
@@ -57,7 +58,7 @@ pub trait FeeModule:
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         require!(first_token != second_token, ERROR_SAME_TOKENS);
         let token_pair = TokenPair {
             first_token,
@@ -73,7 +74,7 @@ pub trait FeeModule:
         first_token: TokenIdentifier,
         second_token: TokenIdentifier,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         let token_pair = TokenPair {
             first_token: first_token.clone(),
             second_token: second_token.clone(),
@@ -97,7 +98,7 @@ pub trait FeeModule:
         fees_collector_address: ManagedAddress,
         fees_collector_cut_percentage: u64,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         require!(
             self.blockchain().is_smart_contract(&fees_collector_address),
             "Invalid fees collector address"
@@ -341,7 +342,7 @@ pub trait FeeModule:
         fee_to_address: ManagedAddress,
         fee_token: TokenIdentifier,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         let is_dest = self
             .destination_map()
             .keys()

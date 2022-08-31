@@ -14,5 +14,5 @@ pub static ERROR_NOT_ENOUGH_SUPPLY: &[u8] = b"Not enough supply";
 pub static ERROR_NOT_A_FARM_TOKEN: &[u8] = b"Not a farm token";
 pub static ERROR_NO_TOKEN_TO_MERGE: &[u8] = b"No token to merge";
 pub static ERROR_PAYMENT_FAILED: &[u8] = b"Payment failed";
-pub static ERROR_PERMISSIONS: &[u8] = b"Permission denied";
+pub static ERROR_PERMISSION_DENIED: &[u8] = b"Permission denied";
 pub static ERROR_PARAMETERS: &[u8] = b"Bad parameters";

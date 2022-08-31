@@ -7,6 +7,7 @@
 elrond_wasm_node::wasm_endpoints! {
     pair
     (
+        addAdmin
         addInitialLiquidity
         addLiquidity
         addToPauseWhitelist
@@ -30,6 +31,7 @@ elrond_wasm_node::wasm_endpoints! {
         getNumAddsByAddress
         getNumRemovesByAddress
         getNumSwapsByAddress
+        getPermissions
         getReserve
         getReservesAndTotalSupply
         getRouterManagedAddress
@@ -44,6 +46,7 @@ elrond_wasm_node::wasm_endpoints! {
         getUnlockEpoch
         getWhitelistedManagedAddresses
         pause
+        removeAdmin
         removeFromPauseWhitelist
         removeLiquidity
         removeLiquidityAndBuyBackAndBurnToken

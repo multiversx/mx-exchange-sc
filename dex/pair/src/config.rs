@@ -6,37 +6,33 @@ use pausable::State;
 use super::errors::*;
 
 pub const MAX_PERCENTAGE: u64 = 100_000;
+pub const MAX_FEE_PERCENTAGE: u64 = 5_000;
 
 #[elrond_wasm::module]
-pub trait ConfigModule: token_send::TokenSendModule + pausable::PausableModule {
+pub trait ConfigModule:
+    token_send::TokenSendModule + permissions_module::PermissionsModule + pausable::PausableModule
+{
     #[endpoint]
     fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.extern_swap_gas_limit().set(&gas_limit);
-    }
-
-    fn require_permissions(&self) {
-        let caller = self.blockchain().get_caller();
-        let owner = self.router_owner_address().get();
-        let router = self.router_address().get();
-        require!(caller == owner || caller == router, ERROR_PERMISSION_DENIED);
     }
 
     #[endpoint(setStateActiveNoSwaps)]
     fn set_state_active_no_swaps(&self) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.state().set(State::PartialActive);
     }
 
     #[endpoint(setFeePercents)]
     fn set_fee_percent(&self, total_fee_percent: u64, special_fee_percent: u64) {
-        self.require_permissions();
+        self.require_caller_has_owner_or_admin_permissions();
         self.set_fee_percents(total_fee_percent, special_fee_percent);
     }
 
     fn set_fee_percents(&self, total_fee_percent: u64, special_fee_percent: u64) {
         require!(
-            total_fee_percent >= special_fee_percent && total_fee_percent < MAX_PERCENTAGE,
+            total_fee_percent >= special_fee_percent && total_fee_percent <= MAX_FEE_PERCENTAGE,
             ERROR_BAD_PERCENTS
         );
         self.total_fee_percent().set(&total_fee_percent);

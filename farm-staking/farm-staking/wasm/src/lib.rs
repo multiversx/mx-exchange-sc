@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         addAddressToWhitelist
+        addAdmin
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -29,6 +30,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getPermissions
         getRewardCapacity
         getRewardPerShare
         getRewardTokenId
@@ -38,6 +40,7 @@ elrond_wasm_node::wasm_endpoints! {
         pause
         registerFarmToken
         removeAddressFromWhitelist
+        removeAdmin
         removeFromPauseWhitelist
         resume
         setMaxApr

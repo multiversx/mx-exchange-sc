@@ -7,7 +7,10 @@ use super::config;
 
 #[elrond_wasm::module]
 pub trait AmmModule:
-    config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+    config::ConfigModule
+    + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
+    + pausable::PausableModule
 {
     fn calculate_k_constant(
         &self,

@@ -17,7 +17,7 @@ pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
 pub trait ConfigModule:
-    token_send::TokenSendModule + pausable::PausableModule + admin_whitelist::AdminWhitelistModule
+    token_send::TokenSendModule + pausable::PausableModule + permissions_module::PermissionsModule
 {
     #[inline]
     fn is_active(&self) -> bool {
@@ -34,7 +34,7 @@ pub trait ConfigModule:
 
     #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: Epoch) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(epochs <= MAX_MINIMUM_FARMING_EPOCHS, ERROR_PARAMETERS);
 
         self.minimum_farming_epochs().set(epochs);
