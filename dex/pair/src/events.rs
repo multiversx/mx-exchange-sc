@@ -70,7 +70,10 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait EventsModule:
-    crate::config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+    crate::config::ConfigModule
+    + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
+    + pausable::PausableModule
 {
     fn emit_swap_event(&self, storage_cache: &StorageCache<Self>, context: SwapContext<Self::Api>) {
         let epoch = self.blockchain().get_block_epoch();

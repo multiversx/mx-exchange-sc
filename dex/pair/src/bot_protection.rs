@@ -16,7 +16,10 @@ pub struct BPConfig {
 
 #[elrond_wasm::module]
 pub trait BPModule:
-    config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+    config::ConfigModule
+    + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
+    + pausable::PausableModule
 {
     fn require_can_proceed_swap(
         &self,
@@ -131,7 +134,7 @@ pub trait BPModule:
         volume_percent: u64,
         max_num_actions_per_address: u64,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.bp_swap_config().set(&BPConfig {
             protect_stop_block,
             volume_percent,
@@ -146,7 +149,7 @@ pub trait BPModule:
         volume_percent: u64,
         max_num_actions_per_address: u64,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.bp_remove_config().set(&BPConfig {
             protect_stop_block,
             volume_percent,
@@ -161,7 +164,7 @@ pub trait BPModule:
         volume_percent: u64,
         max_num_actions_per_address: u64,
     ) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.bp_add_config().set(&BPConfig {
             protect_stop_block,
             volume_percent,

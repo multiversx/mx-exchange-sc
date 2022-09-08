@@ -8,10 +8,6 @@ elrond_wasm_node::wasm_endpoints! {
     proxy_deployer
     (
         deployFarm
-        pauseFarm
-        registerFarmToken
-        resumeFarm
-        setFarmBurnGasLimit
     )
 }
 

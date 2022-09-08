@@ -13,7 +13,7 @@ pub trait CustomRewardsModule:
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_extra_rewards_since_last_allocation(&self) -> BigUint {
@@ -61,7 +61,7 @@ pub trait CustomRewardsModule:
     #[payable("*")]
     #[endpoint(topUpRewards)]
     fn top_up_rewards(&self) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
 
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let reward_token_id = self.reward_token_id().get();
@@ -72,7 +72,7 @@ pub trait CustomRewardsModule:
 
     #[endpoint]
     fn end_produce_rewards(&self) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
 
         self.generate_aggregated_rewards();
         self.produce_rewards_enabled().set(&false);
@@ -80,7 +80,7 @@ pub trait CustomRewardsModule:
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(per_block_amount != 0, "Amount cannot be zero");
 
         self.generate_aggregated_rewards();
@@ -89,7 +89,7 @@ pub trait CustomRewardsModule:
 
     #[endpoint(setMaxApr)]
     fn set_max_apr(&self, max_apr: BigUint) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(max_apr != 0, "Max APR cannot be zero");
 
         self.generate_aggregated_rewards();
@@ -98,7 +98,7 @@ pub trait CustomRewardsModule:
 
     #[endpoint(setMinUnbondEpochs)]
     fn set_min_unbond_epochs_endpoint(&self, min_unbond_epochs: Epoch) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         self.try_set_min_unbond_epochs(min_unbond_epochs);
     }
 
@@ -164,7 +164,7 @@ pub trait CustomRewardsModule:
 
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards(&self) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(
             self.per_block_reward_amount().get() != 0,
             "Cannot produce zero reward amount"

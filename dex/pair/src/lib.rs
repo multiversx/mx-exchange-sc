@@ -21,9 +21,11 @@ use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
 
+use common_errors::ERROR_PERMISSION_DENIED;
 use contexts::base::*;
 use contexts::swap::SwapContext;
 use pausable::State;
+use permissions_module::Permissions;
 
 pub type AddLiquidityResultType<BigUint> =
     MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -48,6 +50,7 @@ pub trait Pair<ContractReader>:
     + bot_protection::BPModule
     + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
+    + permissions_module::PermissionsModule
     + pausable::PausableModule
 {
     #[init]
@@ -59,7 +62,8 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        initial_liquidity_adder: OptionalValue<ManagedAddress>,
+        initial_liquidity_adder: ManagedAddress,
+        admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(first_token_id.is_valid_esdt_identifier(), ERROR_NOT_AN_ESDT);
         require!(
@@ -80,12 +84,24 @@ pub trait Pair<ContractReader>:
         self.router_owner_address().set(&router_owner_address);
         self.first_token_id().set(&first_token_id);
         self.second_token_id().set(&second_token_id);
+        let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
+            Some(initial_liquidity_adder)
+        } else {
+            None
+        };
         self.initial_liquidity_adder()
-            .set(&initial_liquidity_adder.into_option());
+            .set(&initial_liquidity_adder_opt);
 
-        let pause_whitelist = self.pause_whitelist();
-        pause_whitelist.add(&router_address);
-        pause_whitelist.add(&router_owner_address);
+        if admins.is_empty() {
+            // backwards compatibility
+            let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
+            self.add_permissions(router_address, all_permissions);
+            self.add_permissions(router_owner_address, all_permissions);
+        } else {
+            self.add_permissions(router_address, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(router_owner_address, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions_for_all(admins, Permissions::ADMIN);
+        };
     }
 
     #[payable("*")]
@@ -564,7 +580,8 @@ pub trait Pair<ContractReader>:
 
     #[endpoint(setLpTokenIdentifier)]
     fn set_lp_token_identifier(&self, token_identifier: TokenIdentifier) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
+
         require!(
             self.lp_token_identifier().is_empty(),
             ERROR_LP_TOKEN_NOT_ISSUED

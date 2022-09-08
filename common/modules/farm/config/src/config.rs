@@ -16,7 +16,7 @@ pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
-pub trait ConfigModule: pausable::PausableModule + admin_whitelist::AdminWhitelistModule {
+pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -32,7 +32,7 @@ pub trait ConfigModule: pausable::PausableModule + admin_whitelist::AdminWhiteli
 
     #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: Epoch) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(epochs <= MAX_MINIMUM_FARMING_EPOCHS, ERROR_PARAMETERS);
 
         self.minimum_farming_epochs().set(epochs);

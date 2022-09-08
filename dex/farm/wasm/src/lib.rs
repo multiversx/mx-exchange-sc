@@ -8,7 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
-        addAdmins
+        addAdmin
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -16,7 +16,6 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
-        getAdmins
         getBurnGasLimit
         getDivisionSafetyConstant
         getFarmMigrationConfiguration
@@ -29,6 +28,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getPermissions
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
@@ -37,7 +37,7 @@ elrond_wasm_node::wasm_endpoints! {
         migrateFromV1_2Farm
         pause
         registerFarmToken
-        removeAdmins
+        removeAdmin
         removeFromPauseWhitelist
         resume
         setFarmMigrationConfig

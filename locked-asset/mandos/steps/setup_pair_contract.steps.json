@@ -31,7 +31,8 @@
                         "str:special_fee_percent": "100",
                         "str:transfer_exec_gas_limit": "50000000",
                         "str:send_fee_gas_limit": "25,000,000",
-                        "str:extern_swap_gas_limit": "50,000,000"
+                        "str:extern_swap_gas_limit": "50,000,000",
+                        "str:permissions|address:owner": "7"
                     },
                     "code": "file:../../../dex/pair/output/pair.wasm",
                     "owner": "address:owner"
