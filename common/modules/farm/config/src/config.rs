@@ -9,7 +9,7 @@ use pausable::State;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
 #[elrond_wasm::module]
-pub trait ConfigModule: pausable::PausableModule + admin_whitelist::AdminWhitelistModule {
+pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();

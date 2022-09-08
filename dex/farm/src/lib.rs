@@ -32,7 +32,7 @@ pub trait Farm:
     + token_merge_helper::TokenMergeHelperModule
     + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + exit_penalty::ExitPenaltyModule
@@ -57,12 +57,14 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
+        owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
         self.base_farm_init(
             reward_token_id,
             farming_token_id,
             division_safety_constant,
+            owner,
             admins,
         );
 
@@ -267,13 +269,13 @@ pub trait Farm:
 
     #[endpoint(startProduceRewards)]
     fn start_produce_rewards_endpoint(&self) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         self.start_produce_rewards();
     }
 
     #[endpoint]
     fn end_produce_rewards(&self) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
 
         let mut storage = StorageCache::new(self);
 
@@ -283,7 +285,7 @@ pub trait Farm:
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards(&self, per_block_amount: BigUint) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(per_block_amount != 0u64, ERROR_ZERO_AMOUNT);
 
         let mut storage = StorageCache::new(self);

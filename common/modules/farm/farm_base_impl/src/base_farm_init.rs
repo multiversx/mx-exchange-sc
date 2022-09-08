@@ -2,12 +2,13 @@ elrond_wasm::imports!();
 
 use common_errors::{ERROR_NOT_AN_ESDT, ERROR_SAME_TOKEN_IDS, ERROR_ZERO_AMOUNT};
 use pausable::State;
+use permissions_module::Permissions;
 
 #[elrond_wasm::module]
 pub trait BaseFarmInitModule:
     config::ConfigModule
     + farm_token::FarmTokenModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + pausable::PausableModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
@@ -16,7 +17,8 @@ pub trait BaseFarmInitModule:
         reward_token_id: TokenIdentifier,
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
-        mut admins: MultiValueEncoded<ManagedAddress>,
+        owner: ManagedAddress,
+        admins: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
             reward_token_id.is_valid_esdt_identifier(),
@@ -39,12 +41,18 @@ pub trait BaseFarmInitModule:
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
 
-        let caller = self.blockchain().get_caller();
-        self.pause_whitelist().add(&caller);
-
-        if admins.is_empty() {
-            admins.push(caller);
+        if !owner.is_zero() {
+            self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
         }
-        self.add_admins(admins);
+
+        let caller = self.blockchain().get_caller();
+        if admins.is_empty() {
+            // backwards compatibility
+            let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
+            self.add_permissions(caller, all_permissions);
+        } else {
+            self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions_for_all(admins, Permissions::ADMIN);
+        };
     }
 }

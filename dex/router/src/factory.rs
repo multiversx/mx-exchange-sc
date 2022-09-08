@@ -35,6 +35,7 @@ pub trait FactoryModule {
         total_fee_percent: u64,
         special_fee_percent: u64,
         initial_liquidity_adder: &ManagedAddress,
+        admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
         require!(
             !self.pair_template_address().is_empty(),
@@ -51,6 +52,9 @@ pub trait FactoryModule {
 
         if !initial_liquidity_adder.is_zero() {
             arg_buffer.push_arg(initial_liquidity_adder)
+        }
+        for admin in admins {
+            arg_buffer.push_arg(admin);
         }
 
         let (new_address, _) = Self::Api::send_api_impl().deploy_from_source_contract(
@@ -94,6 +98,7 @@ pub trait FactoryModule {
         arg_buffer.push_arg(owner);
         arg_buffer.push_arg(&total_fee_percent.to_be_bytes()[..]);
         arg_buffer.push_arg(&special_fee_percent.to_be_bytes()[..]);
+        arg_buffer.push_arg(ManagedAddress::zero());
 
         Self::Api::send_api_impl().upgrade_from_source_contract(
             pair_address,

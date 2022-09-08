@@ -73,6 +73,7 @@ pub trait Router:
         second_token_id: TokenIdentifier,
         initial_liquidity_adder: ManagedAddress,
         opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
+        mut admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -116,6 +117,8 @@ pub trait Router:
             }
         }
 
+        admins.push(caller.clone());
+
         let address = self.create_pair(
             &first_token_id,
             &second_token_id,
@@ -123,6 +126,7 @@ pub trait Router:
             total_fee_percent_requested,
             special_fee_percent_requested,
             &initial_liquidity_adder,
+            admins,
         );
 
         self.emit_create_pair_event(

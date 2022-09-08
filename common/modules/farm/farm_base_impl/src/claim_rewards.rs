@@ -31,7 +31,7 @@ pub trait BaseClaimRewardsModule:
     + token_merge_helper::TokenMergeHelperModule
     + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::base_farm_validation::BaseFarmValidationModule

@@ -10,7 +10,7 @@ pub trait RewardsModule:
     config::ConfigModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn calculate_per_block_rewards(

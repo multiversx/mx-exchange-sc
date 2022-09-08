@@ -25,14 +25,14 @@ impl<M: ManagedTypeApi> SplitReward<M> {
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
     week_timekeeping::WeekTimekeepingModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + energy_query::EnergyQueryModule
 {
     #[endpoint(setBoostedYieldsRewardsPercentage)]
     fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(percentage <= MAX_PERCENT, "Invalid percentage");
 
         self.boosted_yields_rewards_percentage().set(percentage);

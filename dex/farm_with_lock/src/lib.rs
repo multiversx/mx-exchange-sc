@@ -18,6 +18,7 @@ use config::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT, MAX_PERCENT,
 };
 use pausable::State;
+use permissions_module::Permissions;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -36,7 +37,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + events::EventsModule
     + contexts::ctx_helper::CtxHelper
     + migration_from_v1_2::MigrationModule
@@ -87,7 +88,7 @@ pub trait Farm:
         self.pair_contract_address().set(&pair_contract_address);
 
         let caller = self.blockchain().get_caller();
-        self.pause_whitelist().add(&caller);
+        self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
     }
 
     #[payable("*")]
