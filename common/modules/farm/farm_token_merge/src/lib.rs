@@ -22,7 +22,7 @@ pub const MAX_TOTAL_TOKENS: usize = MAX_ADDITIONAL_TOKENS + 1;
 pub trait FarmTokenMergeModule:
     token_merge_helper::TokenMergeHelperModule
     + farm_token::FarmTokenModule
-    + admin_whitelist::AdminWhitelistModule
+    + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn create_farm_tokens_by_merging<AttributesType, AttributesMergingFunction>(

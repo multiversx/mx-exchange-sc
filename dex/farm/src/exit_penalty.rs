@@ -11,7 +11,7 @@ pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
-pub trait ExitPenaltyModule: admin_whitelist::AdminWhitelistModule {
+pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
     #[only_owner]
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) {
@@ -21,7 +21,7 @@ pub trait ExitPenaltyModule: admin_whitelist::AdminWhitelistModule {
 
     #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: Epoch) {
-        self.require_caller_is_admin();
+        self.require_caller_has_admin_permissions();
         require!(epochs <= MAX_MINIMUM_FARMING_EPOCHS, ERROR_PARAMETERS);
 
         self.minimum_farming_epochs().set(epochs);

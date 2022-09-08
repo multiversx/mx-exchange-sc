@@ -363,7 +363,8 @@ pub mod fuzz_data_tests {
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
-                    OptionalValue::None,
+                    ManagedAddress::<DebugApi>::zero(),
+                    MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
 
                 let lp_token_id = managed_token_id!(lp_token);
@@ -438,6 +439,7 @@ pub mod fuzz_data_tests {
                     farming_token_id,
                     division_safety_constant,
                     pair_address,
+                    ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::new(),
                 );
 

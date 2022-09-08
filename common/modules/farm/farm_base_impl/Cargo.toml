@@ -34,8 +34,8 @@ path = "../../token_merge_helper"
 [dependencies.pausable]
 path = "../../pausable"
 
-[dependencies.admin_whitelist]
-path = "../../admin_whitelist"
+[dependencies.permissions_module]
+path = "../../permissions_module"
 
 [dependencies.common_structs]
 path = "../../../common_structs"

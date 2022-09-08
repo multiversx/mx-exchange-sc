@@ -2,17 +2,20 @@ elrond_wasm::imports!();
 
 #[elrond_wasm::module]
 pub trait LockingWrapperModule:
-    crate::config::ConfigModule + token_send::TokenSendModule + pausable::PausableModule
+    crate::config::ConfigModule
+    + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
+    + pausable::PausableModule
 {
     #[endpoint(setLockingDeadlineEpoch)]
     fn set_locking_deadline_epoch(&self, new_deadline: u64) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.locking_deadline_epoch().set(&new_deadline);
     }
 
     #[endpoint(setLockingScAddress)]
     fn set_locking_sc_address(&self, new_address: ManagedAddress) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         require!(
             self.blockchain().is_smart_contract(&new_address),
             "Invalid SC Address"
@@ -23,7 +26,7 @@ pub trait LockingWrapperModule:
 
     #[endpoint(setUnlockEpoch)]
     fn set_unlock_epoch(&self, new_epoch: u64) {
-        self.require_permissions();
+        self.require_caller_has_owner_permissions();
         self.unlock_epoch().set(&new_epoch);
     }
 

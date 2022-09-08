@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_errors::ERROR_PERMISSIONS;
+use common_errors::ERROR_PERMISSION_DENIED;
 
 #[elrond_wasm::module]
 pub trait WhitelistModule {
@@ -22,7 +22,7 @@ pub trait WhitelistModule {
     }
 
     fn require_whitelisted(&self, address: &ManagedAddress) {
-        require!(self.is_whitelisted(address), ERROR_PERMISSIONS);
+        require!(self.is_whitelisted(address), ERROR_PERMISSION_DENIED);
     }
 
     #[view(isWhitelisted)]

@@ -7,11 +7,15 @@
 elrond_wasm_node::wasm_endpoints! {
     factory
     (
+        callBack
+        computeEnergyForOldLockedTokens
         createAndForward
         createAndForwardCustomPeriod
         getAssetTokenId
         getCacheSize
         getDefaultUnlockPeriod
+        getEnergyAmountForUser
+        getEnergyEntryForUser
         getExtendedAttributesActivationNonce
         getInitEpoch
         getLockedAssetTokenId
@@ -27,5 +31,3 @@ elrond_wasm_node::wasm_endpoints! {
         whitelist
     )
 }
-
-elrond_wasm_node::wasm_empty_callback! {}

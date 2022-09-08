@@ -8,7 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
-        addAdmins
+        addAdmin
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -16,7 +16,6 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
-        getAdmins
         getBurnGasLimit
         getDivisionSafetyConstant
         getFarmTokenId
@@ -27,6 +26,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getPermissions
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
@@ -34,7 +34,7 @@ elrond_wasm_node::wasm_endpoints! {
         mergeFarmTokens
         pause
         registerFarmToken
-        removeAdmins
+        removeAdmin
         removeFromPauseWhitelist
         resume
         setPerBlockRewardAmount

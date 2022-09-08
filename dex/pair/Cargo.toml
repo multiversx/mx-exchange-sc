@@ -8,11 +8,17 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
 [dependencies.token_send]
 path = "../../common/modules/token_send"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"
