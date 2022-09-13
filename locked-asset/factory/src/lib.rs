@@ -19,7 +19,7 @@ const EPOCHS_IN_MONTH: u64 = 30;
 use attr_ex_helper::PRECISION_EX_INCREASE;
 use common_structs::{
     Epoch, LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockPeriod,
-    UnlockScheduleEx,
+    UnlockSchedule, UnlockScheduleEx,
 };
 
 #[elrond_wasm::contract]
@@ -110,24 +110,7 @@ pub trait LockedAssetFactory:
         );
         require!(!unlock_period.unlock_milestones.is_empty(), "Empty arg");
 
-        let month_start_epoch = self.get_month_start_epoch(start_epoch);
-        let attr = LockedAssetTokenAttributesEx {
-            unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
-            is_merged: false,
-        };
-
-        let new_token = self.produce_tokens_and_send(&amount, &attr, &address);
-
-        self.emit_create_and_forward_event(
-            &caller,
-            &address,
-            &new_token.token_identifier,
-            new_token.token_nonce,
-            &new_token.amount,
-            &attr,
-            month_start_epoch,
-        );
-        new_token
+        self.common_create_and_forward(amount, &address, &caller, start_epoch, unlock_period)
     }
 
     #[endpoint(createAndForward)]
@@ -148,7 +131,14 @@ pub trait LockedAssetFactory:
         );
         require!(amount > 0, "Zero input amount");
 
-        self.common_create_and_forward(amount, address, caller, start_epoch)
+        let default_unlock_period = self.default_unlock_period().get();
+        self.common_create_and_forward(
+            amount,
+            &address,
+            &caller,
+            start_epoch,
+            default_unlock_period,
+        )
     }
 
     #[payable("*")]
@@ -206,16 +196,16 @@ pub trait LockedAssetFactory:
 
         self.emit_unlock_assets_event(
             &caller,
-            &token_id,
+            token_id,
             token_nonce,
-            &amount,
-            &output_locked_assets_token_amount.token_identifier,
+            amount,
+            output_locked_assets_token_amount.token_identifier,
             output_locked_assets_token_amount.token_nonce,
-            &output_locked_assets_token_amount.amount,
-            &self.asset_token_id().get(),
-            &unlock_amount,
-            &attributes,
-            &output_locked_asset_attributes,
+            output_locked_assets_token_amount.amount,
+            self.asset_token_id().get(),
+            unlock_amount,
+            attributes,
+            output_locked_asset_attributes,
         );
     }
 
@@ -232,7 +222,14 @@ pub trait LockedAssetFactory:
         self.send()
             .esdt_local_burn(&payment_token, 0, &payment_amount);
 
-        self.common_create_and_forward(payment_amount, caller.clone(), caller, block_epoch)
+        let default_unlock_period = self.default_unlock_period().get();
+        self.common_create_and_forward(
+            payment_amount,
+            &caller,
+            &caller,
+            block_epoch,
+            default_unlock_period,
+        )
     }
 
     #[only_owner]
@@ -251,12 +248,12 @@ pub trait LockedAssetFactory:
     fn common_create_and_forward(
         &self,
         amount: BigUint,
-        address: ManagedAddress,
-        caller: ManagedAddress,
+        address: &ManagedAddress,
+        caller: &ManagedAddress,
         start_epoch: Epoch,
+        unlock_period: UnlockSchedule<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
         let month_start_epoch = self.get_month_start_epoch(start_epoch);
-        let unlock_period = self.default_unlock_period().get();
         let attr = LockedAssetTokenAttributesEx {
             unlock_schedule: self.create_unlock_schedule(month_start_epoch, unlock_period),
             is_merged: false,
@@ -265,14 +262,15 @@ pub trait LockedAssetFactory:
         let new_token = self.produce_tokens_and_send(&amount, &attr, &address);
 
         self.emit_create_and_forward_event(
-            &caller,
-            &address,
-            &new_token.token_identifier,
+            caller,
+            address,
+            new_token.token_identifier.clone(),
             new_token.token_nonce,
-            &new_token.amount,
-            &attr,
+            new_token.amount.clone(),
+            attr,
             start_epoch,
         );
+
         new_token
     }
 
