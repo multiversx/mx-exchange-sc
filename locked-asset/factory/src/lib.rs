@@ -259,7 +259,7 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        let new_token = self.produce_tokens_and_send(&amount, &attr, &address);
+        let new_token = self.produce_tokens_and_send(&amount, &attr, address);
 
         self.emit_create_and_forward_event(
             caller,
