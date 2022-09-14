@@ -94,6 +94,12 @@ pub trait LockedTokenMigrationModule:
                 }
             }
 
+            self.send().esdt_local_burn(
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
+
             total_locked_tokens += payment.amount;
         }
 
