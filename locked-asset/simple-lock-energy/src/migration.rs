@@ -10,6 +10,7 @@ pub trait SimpleLockMigrationModule:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
     + crate::util::UtilModule
+    + crate::energy::EnergyModule
 {
     /// Sets the address for the contract which is expected to perform the migration
     #[only_owner]
@@ -60,11 +61,14 @@ pub trait SimpleLockMigrationModule:
         let mut total_tokens_in_pairs = BigUint::zero();
         let mut total_unlockable_tokens = BigUint::zero();
         let mut output_payments = ManagedVec::new();
+        let mut energy = self.get_updated_energy_entry_for_user(&original_caller, current_epoch);
         for pair in amount_unlock_epoch_pairs {
             let (token_amount, unlock_epoch) = pair.into_tuple();
             total_tokens_in_pairs += &token_amount;
 
             if unlock_epoch > current_epoch {
+                energy.add_after_token_lock(&token_amount, unlock_epoch, current_epoch);
+
                 let original_tokens = EgldOrEsdtTokenPayment::new(
                     EgldOrEsdtTokenIdentifier::esdt(base_asset_token_id.clone()),
                     0,
@@ -91,6 +95,8 @@ pub trait SimpleLockMigrationModule:
         if !output_payments.is_empty() {
             self.send().direct_multi(&original_caller, &output_payments);
         }
+
+        self.user_energy(&original_caller).set(&energy);
 
         output_payments
     }
