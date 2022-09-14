@@ -1,8 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::locked_asset::{EpochAmountPair, MAX_MILESTONES_IN_SCHEDULE};
-use common_structs::{Epoch, UnlockScheduleEx};
+use common_structs::Epoch;
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
 pub struct Energy<M: ManagedTypeApi> {

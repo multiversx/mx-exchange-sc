@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dependencies.elrond-wasm]
 version = "0.34.1"
 

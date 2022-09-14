@@ -2,6 +2,7 @@
 
 elrond_wasm::imports!();
 
+pub mod energy;
 pub mod token_whitelist;
 
 #[elrond_wasm::contract]
