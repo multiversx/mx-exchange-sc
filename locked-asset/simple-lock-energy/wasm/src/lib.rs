@@ -8,6 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     simple_lock_energy
     (
         callBack
+        acceptMigratedTokens
         addLockOptions
         getBaseAssetTokenId
         getEnergyAmountForUser
@@ -18,6 +19,7 @@ elrond_wasm_node::wasm_endpoints! {
         lockTokens
         removeLockOptions
         setLockedTokenId
+        setOldLockedAssetFactoryAddress
         unlockTokens
     )
 }
