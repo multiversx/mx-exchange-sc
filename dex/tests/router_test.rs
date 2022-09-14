@@ -507,7 +507,7 @@ fn user_enable_pair_swaps_through_router_test() {
             0,
             &rust_biguint!(user_lp_tokens_balance),
             |sc| {
-                sc.lock_tokens(
+                sc.lock_tokens_endpoint(
                     current_epoch + MIN_LOCKED_PERIOD_EPOCHS,
                     OptionalValue::None,
                 );

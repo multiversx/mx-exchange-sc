@@ -2,33 +2,28 @@
 
 elrond_wasm::imports!();
 
-pub mod basic_lock_unlock;
-pub mod error_messages;
-pub mod farm_interactions;
-pub mod locked_token;
-pub mod lp_interactions;
-pub mod proxy_farm;
-pub mod proxy_lp;
-pub mod token_attributes;
+pub mod token_whitelist;
 
 #[elrond_wasm::contract]
-pub trait SimpleLock:
-    basic_lock_unlock::BasicLockUnlock
-    + locked_token::LockedTokenModule
+pub trait SimpleLockEnergy:
+    simple_lock::basic_lock_unlock::BasicLockUnlock
+    + simple_lock::locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + proxy_lp::ProxyLpModule
-    + proxy_farm::ProxyFarmModule
-    + lp_interactions::LpInteractionsModule
-    + farm_interactions::FarmInteractionsModule
-    + token_attributes::TokenAttributesModule
+    + simple_lock::token_attributes::TokenAttributesModule
+    + token_whitelist::TokenWhitelistModule
 {
+    /// Args:
+    /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
     #[init]
-    fn init(&self) {}
+    fn init(&self, base_asset_token_id: TokenIdentifier) {
+        self.require_valid_token_id(&base_asset_token_id);
+        self.base_asset_token_id().set(&base_asset_token_id);
+    }
 
-    /// Locks any token (including EGLD) until `unlock_epoch` and receive meta ESDT LOCKED tokens.
+    /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
     ///
-    /// Expected payment: Any token
+    /// Expected payment: A whitelisted token
     ///
     /// Arguments:
     /// - unlock epoch - the epoch from which the LOCKED token holder may call the unlock endpoint
@@ -42,9 +37,11 @@ pub trait SimpleLock:
         unlock_epoch: u64,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        let payment = self.call_value().egld_or_single_esdt();
+        let payment = self.call_value().single_esdt();
+        self.require_is_base_asset_token(&payment.token_identifier);
+
         let dest_address = self.dest_from_optional(opt_destination);
-        self.lock_and_send(&dest_address, payment, unlock_epoch)
+        self.lock_and_send(&dest_address, payment.into(), unlock_epoch)
     }
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
@@ -52,7 +49,7 @@ pub trait SimpleLock:
     /// Expected payment: LOCKED tokens
     ///
     /// Arguments:
-    /// - opt_destination - OPTIONAL: destination address for the unlocked tokens
+    /// - opt_destination - OPTIONAL: destination address for the unlocked tokens. Default is caller.
     ///
     /// Output payments: the originally locked tokens
     #[payable("*")]
