@@ -43,7 +43,7 @@ pub trait FarmDeployModule {
     }
 
     #[only_owner]
-    #[endpoint]
+    #[endpoint(callFarmEndpoint)]
     fn call_farm_endpoint(
         &self,
         farm_address: ManagedAddress,

@@ -7,7 +7,7 @@
 elrond_wasm_node::wasm_endpoints! {
     proxy_deployer
     (
-        call_farm_endpoint
+        callFarmEndpoint
         deployFarm
         getAllDeployedFarms
         getDeployerFarmAddresses
