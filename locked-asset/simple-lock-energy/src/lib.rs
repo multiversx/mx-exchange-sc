@@ -7,6 +7,7 @@ pub mod lock_options;
 pub mod token_whitelist;
 
 use common_structs::Epoch;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 #[elrond_wasm::contract]
 pub trait SimpleLockEnergy:
@@ -56,7 +57,11 @@ pub trait SimpleLockEnergy:
         let unlock_epoch = current_epoch + lock_epochs;
 
         let dest_address = self.dest_from_optional(opt_destination);
-        self.lock_and_send(&dest_address, payment.into(), unlock_epoch)
+        let output_tokens = self.lock_and_send(&dest_address, payment.into(), unlock_epoch);
+
+        self.update_energy_after_lock(&dest_address, &output_tokens.amount, unlock_epoch);
+
+        output_tokens
     }
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
@@ -75,7 +80,19 @@ pub trait SimpleLockEnergy:
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let payment = self.call_value().single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
-        self.unlock_and_send(&dest_address, payment)
+        let attributes: LockedTokenAttributes<Self::Api> = self
+            .locked_token()
+            .get_token_attributes(payment.token_nonce);
+
+        let output_tokens = self.unlock_and_send(&dest_address, payment);
+
+        self.update_energy_after_unlock(
+            &dest_address,
+            &output_tokens.amount,
+            attributes.unlock_epoch,
+        );
+
+        output_tokens
     }
 
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
