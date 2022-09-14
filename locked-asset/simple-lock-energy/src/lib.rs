@@ -48,7 +48,7 @@ pub trait SimpleLockEnergy:
         &self,
         lock_epochs: u64,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let payment = self.call_value().single_esdt();
         self.require_is_base_asset_token(&payment.token_identifier);
 
@@ -61,7 +61,7 @@ pub trait SimpleLockEnergy:
 
         self.update_energy_after_lock(&dest_address, &output_tokens.amount, unlock_epoch);
 
-        output_tokens
+        self.to_esdt_payment(output_tokens)
     }
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
@@ -77,7 +77,7 @@ pub trait SimpleLockEnergy:
     fn unlock_tokens_endpoint(
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment<Self::Api> {
         let payment = self.call_value().single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
         let attributes: LockedTokenAttributes<Self::Api> = self
@@ -92,7 +92,7 @@ pub trait SimpleLockEnergy:
             attributes.unlock_epoch,
         );
 
-        output_tokens
+        self.to_esdt_payment(output_tokens)
     }
 
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
@@ -100,5 +100,16 @@ pub trait SimpleLockEnergy:
             OptionalValue::Some(dest) => dest,
             OptionalValue::None => self.blockchain().get_caller(),
         }
+    }
+
+    fn to_esdt_payment(
+        &self,
+        egld_or_esdt_payment: EgldOrEsdtTokenPayment<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
+        EsdtTokenPayment::new(
+            egld_or_esdt_payment.token_identifier.unwrap_esdt(),
+            egld_or_esdt_payment.token_nonce,
+            egld_or_esdt_payment.amount,
+        )
     }
 }
