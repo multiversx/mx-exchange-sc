@@ -32,7 +32,7 @@ pub trait SimpleLock:
     ///
     /// Arguments:
     /// - unlock epoch - the epoch from which the LOCKED token holder may call the unlock endpoint
-    /// - opt_destination - OPTIONAL: destination address for the LOCKED tokens
+    /// - opt_destination - OPTIONAL: destination address for the LOCKED tokens. Default is caller.
     ///
     /// Output payments: LOCKED tokens (or original payment if current_epoch >= unlock_epoch)
     #[payable("*")]
@@ -44,7 +44,6 @@ pub trait SimpleLock:
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let payment = self.call_value().egld_or_single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
-
         self.lock_and_send(&dest_address, payment, unlock_epoch)
     }
 
@@ -64,7 +63,6 @@ pub trait SimpleLock:
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let payment = self.call_value().single_esdt();
         let dest_address = self.dest_from_optional(opt_destination);
-
         self.unlock_and_send(&dest_address, payment)
     }
 
