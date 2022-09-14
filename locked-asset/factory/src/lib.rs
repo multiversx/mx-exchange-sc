@@ -4,7 +4,6 @@
 
 mod attr_ex_helper;
 mod cache;
-pub mod energy;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
@@ -31,7 +30,6 @@ pub trait LockedAssetFactory:
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
-    + energy::EnergyModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[init]

@@ -5,11 +5,19 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    adder
+    simple_lock_energy
     (
-        add
-        getSum
+        callBack
+        addLockOptions
+        getBaseAssetTokenId
+        getEnergyAmountForUser
+        getEnergyEntryForUser
+        getLockOptions
+        getLockedTokenId
+        issueLockedToken
+        lockTokens
+        removeLockOptions
+        setLockedTokenId
+        unlockTokens
     )
 }
-
-elrond_wasm_node::wasm_empty_callback! {}

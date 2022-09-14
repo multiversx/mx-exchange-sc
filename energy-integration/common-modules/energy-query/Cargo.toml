@@ -10,5 +10,5 @@ path = "src/lib.rs"
 [dependencies.elrond-wasm]
 version = "0.34.0"
 
-[dependencies.factory]
-path = "../../../locked-asset/factory"
+[dependencies.simple-lock-energy]
+path = "../../../locked-asset/simple-lock-energy"
