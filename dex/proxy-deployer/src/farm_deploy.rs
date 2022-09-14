@@ -16,7 +16,7 @@ pub trait FarmDeployModule {
         let owner = self.blockchain().get_owner_address();
         let caller = self.blockchain().get_caller();
         let mut admins_list = MultiValueEncoded::new();
-        admins_list.push(caller);
+        admins_list.push(caller.clone());
 
         let farm_template = self.farm_template_address().get();
         let code_metadata =
@@ -33,7 +33,42 @@ pub trait FarmDeployModule {
             )
             .deploy_from_source(&farm_template, code_metadata);
 
+        self.deployer_farm_addresses(&caller)
+            .update(|farm_addresses| {
+                farm_addresses.push(new_farm_address.clone());
+            });
+        self.deployers_list().insert(caller);
+
         new_farm_address
+    }
+
+    #[only_owner]
+    #[endpoint(callFarmEndpoint)]
+    fn call_farm_endpoint(
+        &self,
+        farm_address: ManagedAddress,
+        function_name: ManagedBuffer,
+        args: MultiValueEncoded<ManagedBuffer>,
+    ) {
+        let gas_left = self.blockchain().get_gas_left();
+        let mut contract_call = self
+            .send()
+            .contract_call::<()>(farm_address, function_name)
+            .with_gas_limit(gas_left);
+
+        for arg in args {
+            contract_call.push_arg_managed_buffer(arg);
+        }
+        contract_call.execute_on_dest_context_ignore_result();
+    }
+
+    #[view(getAllDeployedFarms)]
+    fn get_all_deployed_farms(&self) -> ManagedVec<ManagedAddress> {
+        let mut all_farm_addresses = ManagedVec::new();
+        for deployer in self.deployers_list().iter() {
+            all_farm_addresses.append_vec(self.deployer_farm_addresses(&deployer).get());
+        }
+        all_farm_addresses
     }
 
     #[proxy]
@@ -41,4 +76,14 @@ pub trait FarmDeployModule {
 
     #[storage_mapper("farmTemplateAddress")]
     fn farm_template_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("deployersList")]
+    fn deployers_list(&self) -> UnorderedSetMapper<ManagedAddress>;
+
+    #[view(getDeployerFarmAddresses)]
+    #[storage_mapper("deployerFarmAddresses")]
+    fn deployer_farm_addresses(
+        &self,
+        deployer_address: &ManagedAddress,
+    ) -> SingleValueMapper<ManagedVec<ManagedAddress>>;
 }
