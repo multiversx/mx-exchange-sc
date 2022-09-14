@@ -37,6 +37,8 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardReserve
         getRewardTokenId
         getState
+        getWasResumedByAdminBefore
+        initialResumeContract
         isAdmin
         mergeFarmTokens
         migrateFromV1_2Farm

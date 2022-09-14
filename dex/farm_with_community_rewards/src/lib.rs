@@ -57,6 +57,8 @@ pub trait Farm:
         farming_token_id: TokenIdentifier,
         division_safety_constant: BigUint,
         pair_contract_address: ManagedAddress,
+        owner: ManagedAddress,
+        admins_list: MultiValueEncoded<ManagedAddress>,
     ) {
         require!(
             reward_token_id.is_valid_esdt_identifier(),
@@ -85,9 +87,27 @@ pub trait Farm:
         self.reward_token_id().set(&reward_token_id);
         self.farming_token_id().set(&farming_token_id);
         self.pair_contract_address().set(&pair_contract_address);
-
+        self.was_resumed_by_admin_before().set_if_empty(false);
+        
         let caller = self.blockchain().get_caller();
         self.pause_whitelist().add(&caller);
+        self.pause_whitelist().add(&owner);
+        for address in admins_list {
+            self.admins().insert(address);
+        }
+    }
+
+    #[only_admin]
+    #[endpoint(initialResumeContract)]
+    fn initial_resume_contract(&self) {
+        let was_resumed_mapper = self.was_resumed_by_admin_before();
+        require!(
+            !was_resumed_mapper.get(),
+            "The contract has been previously resumed by the admin."
+        );
+
+        was_resumed_mapper.set(true);
+        self.state().set(State::Active);
     }
 
     #[payable("*")]
@@ -446,4 +466,8 @@ pub trait Farm:
             &attributes.compounded_reward,
         )
     }
+
+    #[view(getWasResumedByAdminBefore)]
+    #[storage_mapper("wasResumedByAdminBefore")]
+    fn was_resumed_by_admin_before(&self) -> SingleValueMapper<bool>;
 }
