@@ -33,7 +33,7 @@ pub trait SimpleLockEnergy:
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         let payment = self.call_value().single_esdt();
-        self.require_token_in_whitelist(&payment.token_identifier);
+        self.require_is_base_asset_token(&payment.token_identifier);
 
         let dest_address = self.dest_from_optional(opt_destination);
         self.lock_and_send(&dest_address, payment.into(), unlock_epoch)

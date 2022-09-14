@@ -1,45 +1,54 @@
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
-pub trait TokenWhitelistModule {
+pub trait TokenWhitelistModule:
+    simple_lock::locked_token::LockedTokenModule
+    + simple_lock::token_attributes::TokenAttributesModule
+    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+{
+    /// Sets the LOCKED token ID. This is required, since we use an already existing token,
+    /// instead of issue-ing a new one.
+    ///
+    /// The SC must already have the following roles before this function can be called:
+    /// - NFTCReate
+    /// - NFTAddQuantity
+    /// - NFTBurn
+    /// - TransferRole
     #[only_owner]
-    #[endpoint(addTokensToWhitelist)]
-    fn add_tokens_to_whitelist(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
-        let mut whitelist = self.token_whitelist();
-        for token_id in tokens {
-            self.require_has_transfer_role_for_token(&token_id);
+    #[endpoint(setLockedTokenId)]
+    fn set_locked_token_id(&self, token_id: TokenIdentifier) {
+        self.require_valid_token_id(&token_id);
+        self.require_has_roles_for_locked_token(&token_id);
 
-            let _ = whitelist.insert(token_id);
-        }
+        self.locked_token().set_token_id(&token_id);
     }
 
-    #[only_owner]
-    #[endpoint(removeTokensFromWhitelist)]
-    fn remove_tokens_from_whitelist(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
-        let mut whitelist = self.token_whitelist();
-        for token_id in tokens {
-            let _ = whitelist.swap_remove(&token_id);
-        }
-    }
-
-    fn require_has_transfer_role_for_token(&self, token_id: &TokenIdentifier) {
-        let roles = self.blockchain().get_esdt_local_roles(token_id);
+    fn require_has_roles_for_locked_token(&self, token_id: &TokenIdentifier) {
+        let actual_roles = self.blockchain().get_esdt_local_roles(token_id);
+        let required_roles = EsdtLocalRoleFlags::NFT_CREATE
+            | EsdtLocalRoleFlags::NFT_ADD_QUANTITY
+            | EsdtLocalRoleFlags::NFT_BURN
+            | EsdtLocalRoleFlags::TRANSFER;
         require!(
-            roles.has_role(&EsdtLocalRole::Transfer),
+            actual_roles.contains(required_roles),
             "SC does not have ESDT transfer role for {}",
             token_id
         );
     }
 
-    fn require_token_in_whitelist(&self, token_id: &TokenIdentifier) {
+    fn require_valid_token_id(&self, token_id: &TokenIdentifier) {
+        require!(token_id.is_valid_esdt_identifier(), "Invalid token ID");
+    }
+
+    fn require_is_base_asset_token(&self, token_id: &TokenIdentifier) {
+        let base_asset_id = self.base_asset_token_id().get();
         require!(
-            self.token_whitelist().contains(token_id),
-            "Token {} is not whitelisted",
-            token_id
+            token_id == &base_asset_id,
+            "May only lock the whitelisted token"
         );
     }
 
-    #[view(getTokenWhitelist)]
-    #[storage_mapper("tokenWhitelist")]
-    fn token_whitelist(&self) -> UnorderedSetMapper<TokenIdentifier>;
+    #[view(getBaseAssetTokenId)]
+    #[storage_mapper("baseAssetTokenId")]
+    fn base_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }
