@@ -1,6 +1,6 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment};
+use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -69,12 +69,17 @@ where
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
             let pair_address = managed_address!(&Address::zero());
+            let owner_address = managed_address!(&owner_addr);
 
+            let mut admins_list = MultiValueEncoded::new();
+            admins_list.push(managed_address!(&owner_addr.clone()));
             sc.init(
                 reward_token_id,
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                owner_address,
+                admins_list,
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
