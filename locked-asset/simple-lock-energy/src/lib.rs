@@ -12,8 +12,13 @@ pub trait SimpleLockEnergy:
     + simple_lock::token_attributes::TokenAttributesModule
     + token_whitelist::TokenWhitelistModule
 {
+    /// Args:
+    /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
     #[init]
-    fn init(&self) {}
+    fn init(&self, base_asset_token_id: TokenIdentifier) {
+        self.require_valid_token_id(&base_asset_token_id);
+        self.base_asset_token_id().set(&base_asset_token_id);
+    }
 
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
