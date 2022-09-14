@@ -73,6 +73,7 @@ pub trait LockedTokenMigrationModule:
 
         let locked_token_id = self.locked_asset_token().get_token_id();
         let last_valid_token_nonce = self.migration_stop_token_nonce().get();
+        require!(last_valid_token_nonce > 0, "Migration not started yet");
 
         let mut total_locked_tokens = BigUint::zero();
         let mut args = MultiValueEncoded::new();
