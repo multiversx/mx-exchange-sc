@@ -28,21 +28,25 @@ pub trait SimpleLockEnergy:
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
-    /// - max_penalty_percentage: The penalty for early unlock of a token locked with max period. 
-    ///     Value between 100 and 10_000, where 100 is 1% and 10_000 is 100%. 
-    ///     Penalty decreases linearly with the locking period. 
+    /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
+    ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
+    ///     whereas one with 1 epoch left, will have min_penalty_percentage.
+    ///     Penalty decreases linearly from max to min, based on the remaining locking period.
+    ///     
+    ///     Both are values between 0 and 10_000, where 10_000 is 100%.
     /// - lock_options: List of epochs. Users may only choose from this list when calling lockTokens
     #[init]
     fn init(
         &self,
         base_asset_token_id: TokenIdentifier,
-        max_penalty_percentage: u64,
+        min_penalty_percentage: u16,
+        max_penalty_percentage: u16,
         lock_options: MultiValueEncoded<Epoch>,
     ) {
         self.require_valid_token_id(&base_asset_token_id);
 
         self.base_asset_token_id().set(&base_asset_token_id);
-        self.set_max_penalty_percentage(max_penalty_percentage);
+        self.set_penalty_percentage(min_penalty_percentage, max_penalty_percentage);
         self.add_lock_options(lock_options);
         self.set_paused(true);
     }

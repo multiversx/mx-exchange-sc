@@ -1,11 +1,28 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use common_structs::Epoch;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-const MIN_PERCENTAGE: u64 = 100; // 1%
-const MAX_PERCENTAGE: u64 = 10_000; // 100%
+const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
+
+#[derive(TopEncode, TopDecode)]
+pub struct PenaltyPercentage {
+    pub min: u16,
+    pub max: u16,
+}
+
+pub mod fees_collector_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait FeesCollectorProxy {
+        #[payable("*")]
+        #[endpoint(depositSwapFees)]
+        fn deposit_swap_fees(&self);
+    }
+}
 
 #[elrond_wasm::module]
 pub trait UnlockWithPenaltyModule:
@@ -20,18 +37,27 @@ pub trait UnlockWithPenaltyModule:
     + crate::lock_options::LockOptionsModule
     + elrond_wasm_modules::pause::PauseModule
 {
-    /// The penalty for early unlock of a token locked with max period.
-    /// Value between 100 and 10_000, where 100 is 1% and 10_000 is 100%.
-    /// Penalty decreases linearly with the locking period.
+    /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
+    ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
+    ///     whereas one with 1 epoch left, will have min_penalty_percentage.
+    ///     Penalty decreases linearly from max to min, based on the remaining locking period.
+    ///     
+    ///     Both are values between 0 and 10_000, where 10_000 is 100%.
     #[only_owner]
-    #[endpoint(setMaxPenaltyPercentage)]
-    fn set_max_penalty_percentage(&self, new_value: u64) {
+    #[endpoint(setPenaltyPercentage)]
+    fn set_penalty_percentage(&self, min_penalty_percentage: u16, max_penalty_percentage: u16) {
+        let is_min_valid = min_penalty_percentage > 0 && min_penalty_percentage <= MAX_PERCENTAGE;
+        let is_max_valid = max_penalty_percentage > 0 && max_penalty_percentage <= MAX_PERCENTAGE;
+        let correct_order = min_penalty_percentage <= max_penalty_percentage;
         require!(
-            (MIN_PERCENTAGE..=MAX_PERCENTAGE).contains(&new_value),
+            is_min_valid && is_max_valid && correct_order,
             "Invalid percentage value"
         );
 
-        self.max_penalty_percentage().set(new_value);
+        self.penalty_percentage().set(&PenaltyPercentage {
+            min: min_penalty_percentage,
+            max: max_penalty_percentage,
+        });
     }
 
     #[payable("*")]
@@ -104,21 +130,32 @@ pub trait UnlockWithPenaltyModule:
     }
 
     /// linear decrease as epochs_to_reduce decreases
-    /// starting from max_penalty_percentage, all the way down to MIN_PERCENTAGE
+    /// starting from max penalty_percentage, all the way down to min
     #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch) -> BigUint {
-        let max_penalty_percentage = self.max_penalty_percentage().get();
+        let penalty_percentage = self.penalty_percentage().get();
+        let min_penalty = penalty_percentage.min as u64;
+        let max_penalty = penalty_percentage.max as u64;
         let max_lock_option = self.max_lock_option().get();
 
-        let penalty_percentage = MIN_PERCENTAGE
-            + (max_penalty_percentage - MIN_PERCENTAGE) * epochs_to_reduce / max_lock_option;
+        let penalty_percentage =
+            min_penalty + (max_penalty - min_penalty) * epochs_to_reduce / max_lock_option;
 
-        token_amount * penalty_percentage / MAX_PERCENTAGE
+        token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
 
     // TODO: Burn x%, and rest send to fees collector
     fn burn_penalty(&self, _amount: &BigUint) {}
 
-    #[storage_mapper("maxPenaltyPercentage")]
-    fn max_penalty_percentage(&self) -> SingleValueMapper<u64>;
+    #[proxy]
+    fn fees_collector_proxy_builder(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> fees_collector_proxy::Proxy<Self::Api>;
+
+    #[storage_mapper("penaltyPercentage")]
+    fn penalty_percentage(&self) -> SingleValueMapper<PenaltyPercentage>;
+
+    #[storage_mapper("feesBurnPercentage")]
+    fn fees_burn_percentage(&self) -> SingleValueMapper<u16>;
 }

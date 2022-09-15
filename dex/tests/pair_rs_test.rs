@@ -1332,7 +1332,7 @@ fn fees_collector_pair_test() {
             |sc| {
                 sc.init();
                 let _ = sc
-                    .known_pair_contracts()
+                    .known_contracts()
                     .insert(managed_address!(&pair_addr));
 
                 let mut tokens = MultiValueEncoded::new();
