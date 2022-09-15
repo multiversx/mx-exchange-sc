@@ -6,6 +6,7 @@ pub mod energy;
 pub mod lock_options;
 pub mod migration;
 pub mod token_whitelist;
+pub mod unlock_with_penalty;
 pub mod util;
 
 use common_structs::Epoch;
@@ -20,8 +21,10 @@ pub trait SimpleLockEnergy:
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
     + lock_options::LockOptionsModule
+    + unlock_with_penalty::UnlockWithPenaltyModule
     + util::UtilModule
     + migration::SimpleLockMigrationModule
+    + elrond_wasm_modules::pause::PauseModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
@@ -32,6 +35,7 @@ pub trait SimpleLockEnergy:
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.add_lock_options(lock_options);
+        self.set_paused(true);
     }
 
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens
@@ -53,6 +57,8 @@ pub trait SimpleLockEnergy:
         lock_epochs: u64,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let payment = self.call_value().single_esdt();
         self.require_is_base_asset_token(&payment.token_identifier);
 
@@ -82,12 +88,16 @@ pub trait SimpleLockEnergy:
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let payment = self.call_value().single_esdt();
-        let dest_address = self.dest_from_optional(opt_destination);
+        self.require_is_new_token(payment.token_nonce);
+
         let attributes: LockedTokenAttributes<Self::Api> = self
             .locked_token()
             .get_token_attributes(payment.token_nonce);
 
+        let dest_address = self.dest_from_optional(opt_destination);
         let output_tokens = self.unlock_and_send(&dest_address, payment);
 
         self.update_energy_after_unlock(
