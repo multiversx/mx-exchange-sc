@@ -26,20 +26,20 @@ pub trait ConfigModule:
         state == State::Active
     }
 
-    #[only_admin]
+    #[only_owner]
     #[endpoint]
     fn set_penalty_percent(&self, percent: u64) {
         require!(percent < MAX_PERCENT, ERROR_PARAMETERS);
         self.penalty_percent().set(&percent);
     }
 
-    #[only_admin]
+    #[only_owner]
     #[endpoint]
     fn set_minimum_farming_epochs(&self, epochs: u8) {
         self.minimum_farming_epochs().set(&epochs);
     }
 
-    #[only_admin]
+    #[only_owner]
     #[endpoint]
     fn set_burn_gas_limit(&self, gas_limit: u64) {
         self.burn_gas_limit().set(&gas_limit);
