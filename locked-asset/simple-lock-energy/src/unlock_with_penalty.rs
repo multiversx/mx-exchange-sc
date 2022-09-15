@@ -103,8 +103,9 @@ pub trait UnlockWithPenaltyModule:
         }
     }
 
-    // linear decrease as epochs_to_reduce decreases
-    // starting from max_penalty_percentage, all the way down to MIN_PERCENTAGE
+    /// linear decrease as epochs_to_reduce decreases
+    /// starting from max_penalty_percentage, all the way down to MIN_PERCENTAGE
+    #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch) -> BigUint {
         let max_penalty_percentage = self.max_penalty_percentage().get();
         let max_lock_option = self.max_lock_option().get();
