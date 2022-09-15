@@ -13,6 +13,7 @@ use elrond_wasm_debug::{
     tx_mock::{TxContextStack, TxInputESDT},
     DebugApi,
 };
+use elrond_wasm_modules::pause::PauseModule;
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
@@ -80,6 +81,7 @@ where
             sc.init(asset_token_id.clone(), default_unlock_period);
 
             sc.locked_asset_token().set_token_id(&asset_token_id);
+            sc.set_paused(false);
         })
         .assert_ok();
 

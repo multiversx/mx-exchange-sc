@@ -11,6 +11,7 @@ use elrond_wasm_debug::{
 
 const SC_WASM_PATH: &'static str = "output/factory.wasm";
 
+use elrond_wasm_modules::pause::PauseModule;
 use factory::{locked_asset::LockedAssetModule, LockedAssetFactory};
 
 const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -39,6 +40,7 @@ fn test_lock_assets() {
             sc.init(asset_token_id, unlock_period);
             sc.locked_asset_token()
                 .set_token_id(&managed_token_id!(LOCKED_ASSET_TOKEN_ID));
+            sc.set_paused(false);
         })
         .assert_ok();
 

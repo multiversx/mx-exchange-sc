@@ -8,26 +8,30 @@ elrond_wasm_node::wasm_endpoints! {
     factory
     (
         callBack
-        computeEnergyForOldLockedTokens
         createAndForward
         createAndForwardCustomPeriod
         getAssetTokenId
         getCacheSize
         getDefaultUnlockPeriod
-        getEnergyAmountForUser
-        getEnergyEntryForUser
         getExtendedAttributesActivationNonce
         getInitEpoch
         getLockedAssetTokenId
+        getMigrationStopTokenNonce
+        getNewContractAddress
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
+        isPaused
         lockAssets
         mergeLockedAssetTokens
+        migrateToNewFactory
+        pause
         registerLockedAssetToken
         removeWhitelist
         setInitEpoch
         setUnlockPeriod
+        startMigration
         unlockAssets
+        unpause
         whitelist
     )
 }

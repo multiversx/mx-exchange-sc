@@ -4,7 +4,9 @@ elrond_wasm::imports!();
 
 pub mod energy;
 pub mod lock_options;
+pub mod migration;
 pub mod token_whitelist;
+pub mod util;
 
 use common_structs::Epoch;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -18,6 +20,8 @@ pub trait SimpleLockEnergy:
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
     + lock_options::LockOptionsModule
+    + util::UtilModule
+    + migration::SimpleLockMigrationModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
@@ -30,7 +34,7 @@ pub trait SimpleLockEnergy:
         self.add_lock_options(lock_options);
     }
 
-    /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens.
+    /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens
     /// on a 1:1 ratio.
     ///
     /// Expected payment: A whitelisted token
@@ -41,7 +45,7 @@ pub trait SimpleLockEnergy:
     ///     which can be seen by querying getLockOptions
     /// - opt_destination - OPTIONAL: destination address for the LOCKED tokens. Default is caller.
     ///
-    /// Output payments: LOCKED tokens
+    /// Output payment: LOCKED tokens
     #[payable("*")]
     #[endpoint(lockTokens)]
     fn lock_tokens_endpoint(
@@ -71,7 +75,7 @@ pub trait SimpleLockEnergy:
     /// Arguments:
     /// - opt_destination - OPTIONAL: destination address for the unlocked tokens. Default is caller.
     ///
-    /// Output payments: the originally locked tokens
+    /// Output payment: the originally locked tokens
     #[payable("*")]
     #[endpoint(unlockTokens)]
     fn unlock_tokens_endpoint(
@@ -93,23 +97,5 @@ pub trait SimpleLockEnergy:
         );
 
         self.to_esdt_payment(output_tokens)
-    }
-
-    fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
-        match opt_destination {
-            OptionalValue::Some(dest) => dest,
-            OptionalValue::None => self.blockchain().get_caller(),
-        }
-    }
-
-    fn to_esdt_payment(
-        &self,
-        egld_or_esdt_payment: EgldOrEsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        EsdtTokenPayment::new(
-            egld_or_esdt_payment.token_identifier.unwrap_esdt(),
-            egld_or_esdt_payment.token_nonce,
-            egld_or_esdt_payment.amount,
-        )
     }
 }

@@ -7,6 +7,7 @@ mod cache;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
+pub mod migration;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -31,6 +32,8 @@ pub trait LockedAssetFactory:
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + migration::LockedTokenMigrationModule
+    + elrond_wasm_modules::pause::PauseModule
 {
     #[init]
     fn init(
@@ -59,6 +62,8 @@ pub trait LockedAssetFactory:
         self.asset_token_id().set(&asset_token_id);
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
+
+        self.set_paused(true);
     }
 
     fn set_extended_attributes_activation_nonce(&self, is_sc_upgrade: bool) {
@@ -101,6 +106,8 @@ pub trait LockedAssetFactory:
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -118,6 +125,8 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
     ) -> EsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -142,6 +151,8 @@ pub trait LockedAssetFactory:
     #[payable("*")]
     #[endpoint(unlockAssets)]
     fn unlock_assets(&self) {
+        self.require_not_paused();
+
         let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let locked_token_id = self.locked_asset_token().get_token_id();
         require!(token_id == locked_token_id, "Bad payment token");
@@ -210,6 +221,8 @@ pub trait LockedAssetFactory:
     #[payable("*")]
     #[endpoint(lockAssets)]
     fn lock_assets(&self) -> EsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
         let caller = self.blockchain().get_caller();
 
