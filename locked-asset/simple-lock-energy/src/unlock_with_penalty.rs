@@ -6,6 +6,7 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
+static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
 
 #[derive(TopEncode, TopDecode)]
 pub struct PenaltyPercentage {
@@ -51,13 +52,34 @@ pub trait UnlockWithPenaltyModule:
         let correct_order = min_penalty_percentage <= max_penalty_percentage;
         require!(
             is_min_valid && is_max_valid && correct_order,
-            "Invalid percentage value"
+            INVALID_PERCENTAGE_ERR_MSG
         );
 
         self.penalty_percentage().set(&PenaltyPercentage {
             min: min_penalty_percentage,
             max: max_penalty_percentage,
         });
+    }
+
+    /// Sets the percentage of fees that are burned. The rest are sent to the fees collector.
+    /// Value between 0 and 10_000. 0 is also accepted.
+    #[only_owner]
+    #[endpoint(setFeesBurnPercentage)]
+    fn set_fees_burn_percentage(&self, percentage: u16) {
+        require!(percentage <= MAX_PERCENTAGE, INVALID_PERCENTAGE_ERR_MSG);
+
+        self.fees_burn_percentage().set(percentage);
+    }
+
+    #[only_owner]
+    #[endpoint(setFeesCollectorAddress)]
+    fn set_fees_collector_address(&self, sc_address: ManagedAddress) {
+        require!(
+            !sc_address.is_zero() && self.blockchain().is_smart_contract(&sc_address),
+            "Invalid SC address"
+        );
+
+        self.fees_collector_address().set(&sc_address);
     }
 
     #[payable("*")]
@@ -94,7 +116,8 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            self.burn_penalty(&penalty_amount);
+            let fees_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
+            self.burn_penalty(fees_token_id, &penalty_amount);
         }
 
         let caller = self.blockchain().get_caller();
@@ -145,7 +168,26 @@ pub trait UnlockWithPenaltyModule:
     }
 
     // TODO: Burn x%, and rest send to fees collector
-    fn burn_penalty(&self, _amount: &BigUint) {}
+    fn burn_penalty(&self, token_id: TokenIdentifier, fees_amount: &BigUint) {
+        let fees_burn_percentage = self.fees_burn_percentage().get();
+        let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;
+        let remaining_amount = fees_amount - &burn_amount;
+
+        if burn_amount > 0 {
+            self.send().esdt_local_burn(&token_id, 0, &burn_amount);
+        }
+        if remaining_amount > 0 {
+            self.send_fees_to_collector(token_id, remaining_amount);
+        }
+    }
+
+    fn send_fees_to_collector(&self, token_id: TokenIdentifier, amount: BigUint) {
+        let sc_address = self.fees_collector_address().get();
+        self.fees_collector_proxy_builder(sc_address)
+            .deposit_swap_fees()
+            .add_esdt_token_transfer(token_id, 0, amount)
+            .execute_on_dest_context_ignore_result();
+    }
 
     #[proxy]
     fn fees_collector_proxy_builder(
@@ -158,4 +200,7 @@ pub trait UnlockWithPenaltyModule:
 
     #[storage_mapper("feesBurnPercentage")]
     fn fees_burn_percentage(&self) -> SingleValueMapper<u16>;
+
+    #[storage_mapper("feesCollectorAddress")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

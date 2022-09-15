@@ -34,6 +34,9 @@ pub trait SimpleLockEnergy:
     ///     Penalty decreases linearly from max to min, based on the remaining locking period.
     ///     
     ///     Both are values between 0 and 10_000, where 10_000 is 100%.
+    /// - fees_burn_percentage: The percentage of fees that are burned.
+    ///     The rest are sent to the fees collector
+    /// - fees_collector_address
     /// - lock_options: List of epochs. Users may only choose from this list when calling lockTokens
     #[init]
     fn init(
@@ -41,12 +44,16 @@ pub trait SimpleLockEnergy:
         base_asset_token_id: TokenIdentifier,
         min_penalty_percentage: u16,
         max_penalty_percentage: u16,
+        fees_burn_percentage: u16,
+        fees_collector_address: ManagedAddress,
         lock_options: MultiValueEncoded<Epoch>,
     ) {
         self.require_valid_token_id(&base_asset_token_id);
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.set_penalty_percentage(min_penalty_percentage, max_penalty_percentage);
+        self.set_fees_burn_percentage(fees_burn_percentage);
+        self.set_fees_collector_address(fees_collector_address);
         self.add_lock_options(lock_options);
         self.set_paused(true);
     }
