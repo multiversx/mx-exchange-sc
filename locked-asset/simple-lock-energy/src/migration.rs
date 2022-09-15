@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_structs::Epoch;
+use common_structs::{Epoch, Nonce};
 
 #[elrond_wasm::module]
 pub trait SimpleLockMigrationModule:
@@ -11,11 +11,51 @@ pub trait SimpleLockMigrationModule:
     + crate::token_whitelist::TokenWhitelistModule
     + crate::util::UtilModule
     + crate::energy::EnergyModule
+    + elrond_wasm_modules::pause::PauseModule
 {
+    /// Sets the LOCKED token ID. This is required, since we use an already existing token,
+    /// instead of issue-ing a new one.
+    ///
+    /// The SC must already have the following roles before this function can be called:
+    /// - NFTCReate
+    /// - NFTAddQuantity
+    /// - NFTBurn
+    /// - TransferRole
+    #[only_owner]
+    #[endpoint(setLockedTokenId)]
+    fn set_locked_token_id(&self, token_id: TokenIdentifier) {
+        self.require_paused();
+        self.require_valid_token_id(&token_id);
+        self.require_has_roles_for_locked_token(&token_id);
+
+        let own_sc_address = self.blockchain().get_sc_address();
+        let last_old_token_nonce = self
+            .blockchain()
+            .get_current_esdt_nft_nonce(&own_sc_address, &token_id);
+        let new_token_start_nonce = last_old_token_nonce + 1;
+
+        self.new_token_start_nonce().set(new_token_start_nonce);
+        self.locked_token().set_token_id(&token_id);
+    }
+
+    fn require_has_roles_for_locked_token(&self, token_id: &TokenIdentifier) {
+        let actual_roles = self.blockchain().get_esdt_local_roles(token_id);
+        let required_roles = EsdtLocalRoleFlags::NFT_CREATE
+            | EsdtLocalRoleFlags::NFT_ADD_QUANTITY
+            | EsdtLocalRoleFlags::NFT_BURN
+            | EsdtLocalRoleFlags::TRANSFER;
+        require!(
+            actual_roles.contains(required_roles),
+            "SC does not have ESDT transfer role for {}",
+            token_id
+        );
+    }
+
     /// Sets the address for the contract which is expected to perform the migration
     #[only_owner]
     #[endpoint(setOldLockedAssetFactoryAddress)]
     fn set_old_locked_asset_factory_address(&self, old_sc_address: ManagedAddress) {
+        self.require_paused();
         require!(
             self.old_locked_asset_factory_address().is_empty(),
             "Migration already started"
@@ -49,6 +89,8 @@ pub trait SimpleLockMigrationModule:
         original_caller: ManagedAddress,
         amount_unlock_epoch_pairs: MultiValueEncoded<MultiValue2<BigUint, Epoch>>,
     ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         self.require_old_sc_address(&caller);
 
@@ -109,6 +151,17 @@ pub trait SimpleLockMigrationModule:
         require!(address == &sc_address, "Invalid SC address");
     }
 
+    fn require_is_new_token(&self, token_nonce: Nonce) {
+        let new_token_start_nonce = self.new_token_start_nonce().get();
+        require!(
+            token_nonce >= new_token_start_nonce,
+            "Old tokens not allowed"
+        );
+    }
+
     #[storage_mapper("oldLockedAssetFactoryAddress")]
     fn old_locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("newTokenStartNonce")]
+    fn new_token_start_nonce(&self) -> SingleValueMapper<Nonce>;
 }
