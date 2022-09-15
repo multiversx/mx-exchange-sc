@@ -12,7 +12,7 @@ pub trait UtilModule {
     fn to_esdt_payment(
         &self,
         egld_or_esdt_payment: EgldOrEsdtTokenPayment<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         EsdtTokenPayment::new(
             egld_or_esdt_payment.token_identifier.unwrap_esdt(),
             egld_or_esdt_payment.token_nonce,

@@ -28,12 +28,21 @@ pub trait SimpleLockEnergy:
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
+    /// - max_penalty_percentage: The penalty for early unlock of a token locked with max period. 
+    ///     Value between 100 and 10_000, where 100 is 1% and 10_000 is 100%. 
+    ///     Penalty decreases linearly with the locking period. 
     /// - lock_options: List of epochs. Users may only choose from this list when calling lockTokens
     #[init]
-    fn init(&self, base_asset_token_id: TokenIdentifier, lock_options: MultiValueEncoded<Epoch>) {
+    fn init(
+        &self,
+        base_asset_token_id: TokenIdentifier,
+        max_penalty_percentage: u64,
+        lock_options: MultiValueEncoded<Epoch>,
+    ) {
         self.require_valid_token_id(&base_asset_token_id);
 
         self.base_asset_token_id().set(&base_asset_token_id);
+        self.set_max_penalty_percentage(max_penalty_percentage);
         self.add_lock_options(lock_options);
         self.set_paused(true);
     }
@@ -56,7 +65,7 @@ pub trait SimpleLockEnergy:
         &self,
         lock_epochs: u64,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let payment = self.call_value().single_esdt();
@@ -87,7 +96,7 @@ pub trait SimpleLockEnergy:
     fn unlock_tokens_endpoint(
         &self,
         opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let payment = self.call_value().single_esdt();
