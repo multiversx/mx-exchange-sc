@@ -27,7 +27,7 @@ pub trait UnlockWithPenaltyModule:
     #[endpoint(setMaxPenaltyPercentage)]
     fn set_max_penalty_percentage(&self, new_value: u64) {
         require!(
-            new_value >= MIN_PERCENTAGE && new_value <= MAX_PERCENTAGE,
+            (MIN_PERCENTAGE..=MAX_PERCENTAGE).contains(&new_value),
             "Invalid percentage value"
         );
 
