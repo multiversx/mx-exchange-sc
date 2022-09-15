@@ -1,11 +1,29 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use common_structs::Epoch;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-const MIN_PERCENTAGE: u64 = 100; // 1%
-const MAX_PERCENTAGE: u64 = 10_000; // 100%
+const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
+static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
+
+#[derive(TopEncode, TopDecode)]
+pub struct PenaltyPercentage {
+    pub min: u16,
+    pub max: u16,
+}
+
+pub mod fees_collector_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait FeesCollectorProxy {
+        #[payable("*")]
+        #[endpoint(depositSwapFees)]
+        fn deposit_swap_fees(&self);
+    }
+}
 
 #[elrond_wasm::module]
 pub trait UnlockWithPenaltyModule:
@@ -20,18 +38,48 @@ pub trait UnlockWithPenaltyModule:
     + crate::lock_options::LockOptionsModule
     + elrond_wasm_modules::pause::PauseModule
 {
-    /// The penalty for early unlock of a token locked with max period.
-    /// Value between 100 and 10_000, where 100 is 1% and 10_000 is 100%.
-    /// Penalty decreases linearly with the locking period.
+    /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
+    ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
+    ///     whereas one with 1 epoch left, will have min_penalty_percentage.
+    ///     Penalty decreases linearly from max to min, based on the remaining locking period.
+    ///     
+    ///     Both are values between 0 and 10_000, where 10_000 is 100%.
     #[only_owner]
-    #[endpoint(setMaxPenaltyPercentage)]
-    fn set_max_penalty_percentage(&self, new_value: u64) {
+    #[endpoint(setPenaltyPercentage)]
+    fn set_penalty_percentage(&self, min_penalty_percentage: u16, max_penalty_percentage: u16) {
+        let is_min_valid = min_penalty_percentage > 0 && min_penalty_percentage <= MAX_PERCENTAGE;
+        let is_max_valid = max_penalty_percentage > 0 && max_penalty_percentage <= MAX_PERCENTAGE;
+        let correct_order = min_penalty_percentage <= max_penalty_percentage;
         require!(
-            (MIN_PERCENTAGE..=MAX_PERCENTAGE).contains(&new_value),
-            "Invalid percentage value"
+            is_min_valid && is_max_valid && correct_order,
+            INVALID_PERCENTAGE_ERR_MSG
         );
 
-        self.max_penalty_percentage().set(new_value);
+        self.penalty_percentage().set(&PenaltyPercentage {
+            min: min_penalty_percentage,
+            max: max_penalty_percentage,
+        });
+    }
+
+    /// Sets the percentage of fees that are burned. The rest are sent to the fees collector.
+    /// Value between 0 and 10_000. 0 is also accepted.
+    #[only_owner]
+    #[endpoint(setFeesBurnPercentage)]
+    fn set_fees_burn_percentage(&self, percentage: u16) {
+        require!(percentage <= MAX_PERCENTAGE, INVALID_PERCENTAGE_ERR_MSG);
+
+        self.fees_burn_percentage().set(percentage);
+    }
+
+    #[only_owner]
+    #[endpoint(setFeesCollectorAddress)]
+    fn set_fees_collector_address(&self, sc_address: ManagedAddress) {
+        require!(
+            !sc_address.is_zero() && self.blockchain().is_smart_contract(&sc_address),
+            "Invalid SC address"
+        );
+
+        self.fees_collector_address().set(&sc_address);
     }
 
     #[payable("*")]
@@ -68,7 +116,8 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            self.burn_penalty(&penalty_amount);
+            let fees_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
+            self.burn_penalty(fees_token_id, &penalty_amount);
         }
 
         let caller = self.blockchain().get_caller();
@@ -104,21 +153,54 @@ pub trait UnlockWithPenaltyModule:
     }
 
     /// linear decrease as epochs_to_reduce decreases
-    /// starting from max_penalty_percentage, all the way down to MIN_PERCENTAGE
+    /// starting from max penalty_percentage, all the way down to min
     #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch) -> BigUint {
-        let max_penalty_percentage = self.max_penalty_percentage().get();
+        let penalty_percentage = self.penalty_percentage().get();
+        let min_penalty = penalty_percentage.min as u64;
+        let max_penalty = penalty_percentage.max as u64;
         let max_lock_option = self.max_lock_option().get();
 
-        let penalty_percentage = MIN_PERCENTAGE
-            + (max_penalty_percentage - MIN_PERCENTAGE) * epochs_to_reduce / max_lock_option;
+        let penalty_percentage =
+            min_penalty + (max_penalty - min_penalty) * epochs_to_reduce / max_lock_option;
 
-        token_amount * penalty_percentage / MAX_PERCENTAGE
+        token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
 
     // TODO: Burn x%, and rest send to fees collector
-    fn burn_penalty(&self, _amount: &BigUint) {}
+    fn burn_penalty(&self, token_id: TokenIdentifier, fees_amount: &BigUint) {
+        let fees_burn_percentage = self.fees_burn_percentage().get();
+        let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;
+        let remaining_amount = fees_amount - &burn_amount;
 
-    #[storage_mapper("maxPenaltyPercentage")]
-    fn max_penalty_percentage(&self) -> SingleValueMapper<u64>;
+        if burn_amount > 0 {
+            self.send().esdt_local_burn(&token_id, 0, &burn_amount);
+        }
+        if remaining_amount > 0 {
+            self.send_fees_to_collector(token_id, remaining_amount);
+        }
+    }
+
+    fn send_fees_to_collector(&self, token_id: TokenIdentifier, amount: BigUint) {
+        let sc_address = self.fees_collector_address().get();
+        self.fees_collector_proxy_builder(sc_address)
+            .deposit_swap_fees()
+            .add_esdt_token_transfer(token_id, 0, amount)
+            .execute_on_dest_context_ignore_result();
+    }
+
+    #[proxy]
+    fn fees_collector_proxy_builder(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> fees_collector_proxy::Proxy<Self::Api>;
+
+    #[storage_mapper("penaltyPercentage")]
+    fn penalty_percentage(&self) -> SingleValueMapper<PenaltyPercentage>;
+
+    #[storage_mapper("feesBurnPercentage")]
+    fn fees_burn_percentage(&self) -> SingleValueMapper<u16>;
+
+    #[storage_mapper("feesCollectorAddress")]
+    fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

@@ -15,15 +15,18 @@ elrond_wasm_node::wasm_endpoints! {
         getEnergyEntryForUser
         getLockOptions
         getLockedTokenId
+        getPenaltyAmount
         isPaused
         issueLockedToken
         lockTokens
         pause
         reduceLockPeriod
         removeLockOptions
+        setFeesBurnPercentage
+        setFeesCollectorAddress
         setLockedTokenId
-        setMaxPenaltyPercentage
         setOldLockedAssetFactoryAddress
+        setPenaltyPercentage
         unlockEarly
         unlockTokens
         unpause
