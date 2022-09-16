@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_structs::{Epoch, Nonce};
+use common_structs::Epoch;
 
 mod simple_lock_energy_proxy {
     elrond_wasm::imports!();
@@ -28,10 +28,7 @@ pub trait LockedTokenMigrationModule:
 {
     /// This endpoint allows migration to the new SC to start, which in turn:
     /// - sets the address of the new factory, which should be a SimpleLockEnergy SC
-    /// - saves the current locked token NFT nonce, to detect old vs new tokens
     /// - pauses locked asset factory
-    ///
-    /// Once started, migration may not be stopped nor started again
     #[only_owner]
     #[endpoint(startMigration)]
     fn start_migration(&self, new_sc_address: ManagedAddress) {
@@ -45,15 +42,6 @@ pub trait LockedTokenMigrationModule:
         );
 
         self.new_contract_address().set(&new_sc_address);
-
-        let locked_token_id = self.locked_asset_token().get_token_id();
-        let own_sc_address = self.blockchain().get_sc_address();
-        let current_locked_token_nonce = self
-            .blockchain()
-            .get_current_esdt_nft_nonce(&own_sc_address, &locked_token_id);
-        self.migration_stop_token_nonce()
-            .set(current_locked_token_nonce);
-
         self.set_paused(true);
     }
 
@@ -72,17 +60,10 @@ pub trait LockedTokenMigrationModule:
         require!(!payments.is_empty(), "No payments");
 
         let locked_token_id = self.locked_asset_token().get_token_id();
-        let last_valid_token_nonce = self.migration_stop_token_nonce().get();
-        require!(last_valid_token_nonce > 0, "Migration not started yet");
-
         let mut total_locked_tokens = BigUint::zero();
         let mut args = MultiValueEncoded::new();
         for payment in &payments {
             require!(payment.token_identifier == locked_token_id, "Invalid token");
-            require!(
-                payment.token_nonce <= last_valid_token_nonce,
-                "Token already migrated"
-            );
 
             let attributes = self.get_attributes_ex(&payment.token_identifier, payment.token_nonce);
             let unlock_amounts = self.get_unlock_amounts_per_milestone(
@@ -131,8 +112,4 @@ pub trait LockedTokenMigrationModule:
     #[view(getNewContractAddress)]
     #[storage_mapper("newContractAddress")]
     fn new_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getMigrationStopTokenNonce)]
-    #[storage_mapper("migrationStopTokenNonce")]
-    fn migration_stop_token_nonce(&self) -> SingleValueMapper<Nonce>;
 }
