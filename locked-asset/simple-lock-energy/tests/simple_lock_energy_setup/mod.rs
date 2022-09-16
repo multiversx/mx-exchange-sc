@@ -11,7 +11,7 @@ use elrond_wasm_debug::{
 };
 use elrond_wasm_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenModule;
-use simple_lock_energy::{lock_options::LockOptionsModule, SimpleLockEnergy};
+use simple_lock_energy::{energy::EnergyModule, lock_options::LockOptionsModule, SimpleLockEnergy};
 
 mod fees_collector_mock;
 use fees_collector_mock::*;
@@ -138,4 +138,33 @@ where
             },
         )
     }
+
+    pub fn unlock(&mut self, caller: &Address, token_nonce: u64, amount: u64) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            caller,
+            &self.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            token_nonce,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.unlock_tokens_endpoint(OptionalValue::Some(managed_address!(caller)));
+            },
+        )
+    }
+
+    pub fn get_user_energy(&mut self, user: &Address) -> num_bigint::BigUint {
+        let mut result = rust_biguint!(0);
+        self.b_mock
+            .execute_query(&self.sc_wrapper, |sc| {
+                let managed_result = sc.get_energy_amount_for_user(managed_address!(user));
+                result = to_rust_biguint(managed_result);
+            })
+            .assert_ok();
+
+        result
+    }
+}
+
+fn to_rust_biguint(managed_biguint: elrond_wasm::types::BigUint<DebugApi>) -> num_bigint::BigUint {
+    num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }
