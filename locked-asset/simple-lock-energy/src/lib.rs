@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 
 pub mod energy;
+pub mod extend_lock;
 pub mod lock_options;
 pub mod migration;
 pub mod token_whitelist;
@@ -22,12 +23,13 @@ pub trait SimpleLockEnergy:
     + energy::EnergyModule
     + lock_options::LockOptionsModule
     + unlock_with_penalty::UnlockWithPenaltyModule
+    + extend_lock::ExtendLockModule
     + util::UtilModule
     + migration::SimpleLockMigrationModule
     + elrond_wasm_modules::pause::PauseModule
 {
     /// Args:
-    /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint. 
+    /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
     ///     NOTE: The SC also needs the ESDTLocalBurn role for this token.
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
     ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
