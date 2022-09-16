@@ -34,7 +34,7 @@ pub trait ExtendLockModule:
         let new_unlock_epoch = current_epoch + new_lock_period;
         require!(
             new_unlock_epoch > attributes.unlock_epoch,
-            "New lock period must be lomger than the current one."
+            "New lock period must be longer than the current one."
         );
 
         let caller = self.blockchain().get_caller();

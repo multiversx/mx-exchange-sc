@@ -283,5 +283,5 @@ fn extend_locking_period_test() {
     // try "extend" to 1 year
     setup
         .extend_locking_period(&first_user, 2, half_balance, LOCK_OPTIONS[0])
-        .assert_user_error("New lock period must be lomger than the current one.");
+        .assert_user_error("New lock period must be longer than the current one.");
 }
