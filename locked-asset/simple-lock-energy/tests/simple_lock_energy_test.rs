@@ -201,7 +201,7 @@ fn reduce_lock_period_test() {
         &rust_biguint!(half_balance),
     );
 
-    let expected_locked_token_balance = rust_biguint!(half_balance) - penalty_amount;
+    let expected_locked_token_balance = rust_biguint!(half_balance) - &penalty_amount;
     let expected_new_unlock_epoch = 1 + LOCK_OPTIONS[0] - half_year_epochs;
     setup.b_mock.check_nft_balance(
         &first_user,
@@ -213,5 +213,17 @@ fn reduce_lock_period_test() {
             original_token_nonce: 0,
             unlock_epoch: expected_new_unlock_epoch,
         }),
+    );
+
+    // check the tokens were half burned, half set to fees collector
+    setup.b_mock.check_esdt_balance(
+        &setup.sc_wrapper.address_ref(),
+        BASE_ASSET_TOKEN_ID,
+        &expected_locked_token_balance,
+    );
+    setup.b_mock.check_esdt_balance(
+        &setup.fees_collector_mock,
+        BASE_ASSET_TOKEN_ID,
+        &(penalty_amount / 2u64),
     );
 }
