@@ -24,9 +24,9 @@ elrond_wasm_node::wasm_endpoints! {
         removeLockOptions
         setFeesBurnPercentage
         setFeesCollectorAddress
-        setLockedTokenId
         setOldLockedAssetFactoryAddress
         setPenaltyPercentage
+        setTransferRoleLockedToken
         unlockEarly
         unlockTokens
         unpause

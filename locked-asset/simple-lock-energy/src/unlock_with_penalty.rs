@@ -98,8 +98,6 @@ pub trait UnlockWithPenaltyModule:
         self.require_not_paused();
 
         let payment = self.call_value().single_esdt();
-        self.require_is_new_token(payment.token_nonce);
-
         let attributes: LockedTokenAttributes<Self::Api> = self
             .locked_token()
             .get_token_attributes(payment.token_nonce);
