@@ -152,10 +152,7 @@ fn unlock_early_test() {
     let half_year_epochs = EPOCHS_IN_YEAR / 2;
     setup.b_mock.set_block_epoch(1 + half_year_epochs + 1);
 
-    let penalty_percentage = MIN_PENALTY_PERCENTAGE as u64
-        + (MAX_PENALTY_PERCENTAGE - MIN_PENALTY_PERCENTAGE) as u64 * half_year_epochs
-            / *LOCK_OPTIONS.last().unwrap();
-
+    let penalty_percentage = 499u64; // 1 + 9_999 * 182 / (10 * 365) ~= 1 + 9_999 / 20
     let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
     let penalty_amount = setup.get_penalty_amount(half_balance, half_year_epochs);
     assert_eq!(penalty_amount, expected_penalty_amount);
@@ -167,4 +164,54 @@ fn unlock_early_test() {
     setup
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
+}
+
+#[test]
+fn reduce_lock_period_test() {
+    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let first_user = setup.first_user.clone();
+    let half_balance = USER_BALANCE / 2;
+
+    setup.b_mock.set_block_epoch(1);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    // reduce half year worth of epochs
+    let half_year_epochs = EPOCHS_IN_YEAR / 2;
+
+    let penalty_percentage = 499u64; // 1 + 9_999 * 182 / (10 * 365) ~= 1 + 9_999 / 20
+    let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
+    let penalty_amount = setup.get_penalty_amount(half_balance, half_year_epochs);
+    assert_eq!(penalty_amount, expected_penalty_amount);
+
+    setup
+        .reduce_lock_period(&first_user, 1, half_balance, half_year_epochs)
+        .assert_ok();
+
+    setup.b_mock.check_esdt_balance(
+        &first_user,
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(half_balance),
+    );
+
+    let expected_locked_token_balance = rust_biguint!(half_balance) - penalty_amount;
+    let expected_new_unlock_epoch = 1 + LOCK_OPTIONS[0] - half_year_epochs;
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        2,
+        &expected_locked_token_balance,
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: expected_new_unlock_epoch,
+        }),
+    );
 }
