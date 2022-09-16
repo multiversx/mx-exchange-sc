@@ -96,7 +96,7 @@ impl<M: ManagedTypeApi> Energy<M> {
         unlock_epoch: Epoch,
         current_epoch: Epoch,
     ) {
-        self.subtract(unlock_epoch, current_epoch, unlock_amount);
+        self.subtract(current_epoch, unlock_epoch, unlock_amount);
         self.total_locked_tokens -= unlock_amount;
     }
 

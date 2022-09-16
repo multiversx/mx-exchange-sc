@@ -164,6 +164,10 @@ fn unlock_early_test() {
     setup
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
+
+    let expected_energy = rust_biguint!(0);
+    let actual_energy = setup.get_user_energy(&first_user);
+    assert_eq!(actual_energy, expected_energy);
 }
 
 #[test]
@@ -226,4 +230,9 @@ fn reduce_lock_period_test() {
         BASE_ASSET_TOKEN_ID,
         &(penalty_amount / 2u64),
     );
+
+    // check new energy amount
+    let expected_energy = rust_biguint!(half_year_epochs + 1) * expected_locked_token_balance;
+    let actual_energy = setup.get_user_energy(&first_user);
+    assert_eq!(actual_energy, expected_energy);
 }
