@@ -236,3 +236,52 @@ fn reduce_lock_period_test() {
     let actual_energy = setup.get_user_energy(&first_user);
     assert_eq!(actual_energy, expected_energy);
 }
+
+#[test]
+fn extend_locking_period_test() {
+    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let first_user = setup.first_user.clone();
+    let half_balance = USER_BALANCE / 2;
+
+    setup.b_mock.set_block_epoch(1);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    // extend to 3 years - unsupported option
+    setup
+        .extend_locking_period(&first_user, 1, half_balance, 3 * EPOCHS_IN_YEAR)
+        .assert_user_error("Invalid lock choice");
+
+    // extend to 5 years
+    setup
+        .extend_locking_period(&first_user, 1, half_balance, LOCK_OPTIONS[1])
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        2,
+        &rust_biguint!(half_balance),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 1 + LOCK_OPTIONS[1],
+        }),
+    );
+
+    let expected_energy = rust_biguint!(LOCK_OPTIONS[1]) * half_balance;
+    let actual_energy = setup.get_user_energy(&first_user);
+    assert_eq!(actual_energy, expected_energy);
+
+    // try "extend" to 1 year
+    setup
+        .extend_locking_period(&first_user, 2, half_balance, LOCK_OPTIONS[0])
+        .assert_user_error("New lock period must be lomger than the current one.");
+}
