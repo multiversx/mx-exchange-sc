@@ -130,3 +130,41 @@ fn lock_ok() {
         &rust_biguint!(half_balance),
     );
 }
+
+#[test]
+fn unlock_early_test() {
+    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let first_user = setup.first_user.clone();
+    let half_balance = USER_BALANCE / 2;
+
+    setup.b_mock.set_block_epoch(1);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    // unlock early after half a year - with half a year remaining
+    let half_year_epochs = EPOCHS_IN_YEAR / 2;
+    setup.b_mock.set_block_epoch(1 + half_year_epochs + 1);
+
+    let penalty_percentage = MIN_PENALTY_PERCENTAGE as u64
+        + (MAX_PENALTY_PERCENTAGE - MIN_PENALTY_PERCENTAGE) as u64 * half_year_epochs
+            / *LOCK_OPTIONS.last().unwrap();
+
+    let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
+    let penalty_amount = setup.get_penalty_amount(half_balance, half_year_epochs);
+    assert_eq!(penalty_amount, expected_penalty_amount);
+
+    setup.unlock_early(&first_user, 1, half_balance).assert_ok();
+
+    let received_token_amount = rust_biguint!(half_balance) - penalty_amount;
+    let expected_balance = received_token_amount + half_balance;
+    setup
+        .b_mock
+        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
+}

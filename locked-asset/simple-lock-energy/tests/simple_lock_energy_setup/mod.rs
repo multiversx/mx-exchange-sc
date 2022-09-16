@@ -4,14 +4,17 @@ use elrond_wasm::{
     types::{Address, EsdtLocalRole, MultiValueEncoded},
 };
 use elrond_wasm_debug::{
-    managed_address, managed_token_id, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     tx_mock::TxResult,
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenModule;
-use simple_lock_energy::{energy::EnergyModule, lock_options::LockOptionsModule, SimpleLockEnergy};
+use simple_lock_energy::{
+    energy::EnergyModule, lock_options::LockOptionsModule,
+    unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
+};
 
 mod fees_collector_mock;
 use fees_collector_mock::*;
@@ -85,6 +88,11 @@ where
 
         b_mock.set_esdt_local_roles(
             sc_wrapper.address_ref(),
+            BASE_ASSET_TOKEN_ID,
+            &[EsdtLocalRole::Burn],
+        );
+        b_mock.set_esdt_local_roles(
+            sc_wrapper.address_ref(),
             LOCKED_TOKEN_ID,
             &[
                 EsdtLocalRole::NftCreate,
@@ -150,6 +158,36 @@ where
                 sc.unlock_tokens_endpoint(OptionalValue::Some(managed_address!(caller)));
             },
         )
+    }
+
+    pub fn unlock_early(&mut self, caller: &Address, token_nonce: u64, amount: u64) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            caller,
+            &self.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            token_nonce,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.unlock_early();
+            },
+        )
+    }
+
+    pub fn get_penalty_amount(
+        &mut self,
+        token_amount: u64,
+        epochs_to_reduce: u64,
+    ) -> num_bigint::BigUint {
+        let mut result = rust_biguint!(0);
+        self.b_mock
+            .execute_query(&self.sc_wrapper, |sc| {
+                let managed_result =
+                    sc.calculate_penalty_amount(&managed_biguint!(token_amount), epochs_to_reduce);
+                result = to_rust_biguint(managed_result);
+            })
+            .assert_ok();
+
+        result
     }
 
     pub fn get_user_energy(&mut self, user: &Address) -> num_bigint::BigUint {

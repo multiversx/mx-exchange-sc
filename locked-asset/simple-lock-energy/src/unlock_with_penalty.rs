@@ -105,7 +105,7 @@ pub trait UnlockWithPenaltyModule:
         let epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
         let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce);
-        let mut unlocked_tokens = self.unlock_tokens(payment);
+        let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
 
         if penalty_amount > 0 {
             unlocked_tokens.amount -= &penalty_amount;

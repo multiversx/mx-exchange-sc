@@ -27,7 +27,8 @@ pub trait SimpleLockEnergy:
     + elrond_wasm_modules::pause::PauseModule
 {
     /// Args:
-    /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
+    /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint. 
+    ///     NOTE: The SC also needs the ESDTLocalBurn role for this token.
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
     ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
     ///     whereas one with 1 epoch left, will have min_penalty_percentage.
