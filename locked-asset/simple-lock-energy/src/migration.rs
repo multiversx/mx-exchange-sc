@@ -11,6 +11,7 @@ pub trait SimpleLockMigrationModule:
     + crate::token_whitelist::TokenWhitelistModule
     + crate::util::UtilModule
     + crate::energy::EnergyModule
+    + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
     #[endpoint(setTransferRoleLockedToken)]
@@ -106,7 +107,7 @@ pub trait SimpleLockMigrationModule:
             self.send().direct_multi(&original_caller, &output_payments);
         }
 
-        self.user_energy(&original_caller).set(&energy);
+        self.set_energy_entry(&original_caller, energy);
 
         output_payments
     }

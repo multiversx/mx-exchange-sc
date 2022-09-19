@@ -120,35 +120,14 @@ impl<M: ManagedTypeApi> Energy<M> {
 }
 
 #[elrond_wasm::module]
-pub trait EnergyModule {
-    fn update_energy_after_lock(
-        &self,
-        user: &ManagedAddress,
-        lock_amount: &BigUint,
-        unlock_epoch: Epoch,
-    ) {
+pub trait EnergyModule: crate::events::EventsModule {
+    fn set_energy_entry(&self, user: &ManagedAddress, new_energy: Energy<Self::Api>) {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_updated_energy_entry_for_user(user, current_epoch);
-        energy.add_after_token_lock(lock_amount, unlock_epoch, current_epoch);
+        let prev_energy = self.get_updated_energy_entry_for_user(user, current_epoch);
 
-        self.user_energy(user).set(&energy);
-    }
+        self.user_energy(user).set(&new_energy);
 
-    fn update_energy_after_unlock(
-        &self,
-        user: &ManagedAddress,
-        old_locked_token_amount: &BigUint,
-        unlock_epoch: Epoch,
-    ) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_updated_energy_entry_for_user(user, current_epoch);
-        if unlock_epoch <= current_epoch {
-            energy.refund_after_token_unlock(old_locked_token_amount, unlock_epoch, current_epoch);
-        } else {
-            energy.deplete_after_early_unlock(old_locked_token_amount, unlock_epoch, current_epoch);
-        }
-
-        self.user_energy(user).set(&energy);
+        self.emit_energy_updated_event(user, prev_energy, new_energy);
     }
 
     fn get_updated_energy_entry_for_user(
@@ -183,7 +162,4 @@ pub trait EnergyModule {
 
     #[storage_mapper("userEnergy")]
     fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
-
-    #[storage_mapper("energyActivationLockedTokenNonceStart")]
-    fn energy_activation_locked_token_nonce_start(&self) -> SingleValueMapper<u64>;
 }

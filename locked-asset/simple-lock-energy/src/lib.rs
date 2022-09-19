@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 
 pub mod energy;
+pub mod events;
 pub mod extend_lock;
 pub mod lock_options;
 pub mod migration;
@@ -26,6 +27,7 @@ pub trait SimpleLockEnergy:
     + extend_lock::ExtendLockModule
     + util::UtilModule
     + migration::SimpleLockMigrationModule
+    + events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
     /// Args:
@@ -92,7 +94,9 @@ pub trait SimpleLockEnergy:
         let dest_address = self.dest_from_optional(opt_destination);
         let output_tokens = self.lock_and_send(&dest_address, payment.into(), unlock_epoch);
 
-        self.update_energy_after_lock(&dest_address, &output_tokens.amount, unlock_epoch);
+        let mut energy = self.get_updated_energy_entry_for_user(&dest_address, current_epoch);
+        energy.add_after_token_lock(&output_tokens.amount, unlock_epoch, current_epoch);
+        self.set_energy_entry(&dest_address, energy);
 
         self.to_esdt_payment(output_tokens)
     }
@@ -121,11 +125,15 @@ pub trait SimpleLockEnergy:
         let dest_address = self.dest_from_optional(opt_destination);
         let output_tokens = self.unlock_and_send(&dest_address, payment);
 
-        self.update_energy_after_unlock(
-            &dest_address,
+        let current_epoch = self.blockchain().get_block_epoch();
+
+        let mut energy = self.get_updated_energy_entry_for_user(&dest_address, current_epoch);
+        energy.refund_after_token_unlock(
             &output_tokens.amount,
             attributes.unlock_epoch,
+            current_epoch,
         );
+        self.set_energy_entry(&dest_address, energy);
 
         self.to_esdt_payment(output_tokens)
     }
