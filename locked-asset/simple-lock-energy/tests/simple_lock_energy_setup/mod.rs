@@ -244,3 +244,7 @@ where
 fn to_rust_biguint(managed_biguint: elrond_wasm::types::BigUint<DebugApi>) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }
+
+pub fn to_start_of_month(unlock_epoch: u64) -> u64 {
+    unlock_epoch - unlock_epoch % 30
+}

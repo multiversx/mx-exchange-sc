@@ -3,6 +3,8 @@ elrond_wasm::derive_imports!();
 
 use common_structs::Epoch;
 
+pub const EPOCHS_PER_MONTH: Epoch = 30;
+
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
     /// Add lock options, as a list of epochs.
@@ -66,6 +68,11 @@ pub trait LockOptionsModule {
             self.lock_options().contains(&lock_epochs),
             "Invalid lock choice"
         );
+    }
+
+    fn lock_epoch_to_start_of_month(&self, lock_option: Epoch) -> Epoch {
+        let extra_days = lock_option % EPOCHS_PER_MONTH;
+        lock_option - extra_days
     }
 
     #[view(getLockOptions)]
