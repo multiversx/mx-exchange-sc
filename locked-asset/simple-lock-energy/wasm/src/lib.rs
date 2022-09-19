@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         acceptMigratedTokens
         addLockOptions
+        extendLockingPeriod
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser

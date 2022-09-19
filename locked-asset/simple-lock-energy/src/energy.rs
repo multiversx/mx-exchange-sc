@@ -90,6 +90,16 @@ impl<M: ManagedTypeApi> Energy<M> {
         self.total_locked_tokens -= unlock_amount;
     }
 
+    pub fn deplete_after_early_unlock(
+        &mut self,
+        unlock_amount: &BigUint<M>,
+        unlock_epoch: Epoch,
+        current_epoch: Epoch,
+    ) {
+        self.subtract(current_epoch, unlock_epoch, unlock_amount);
+        self.total_locked_tokens -= unlock_amount;
+    }
+
     #[inline]
     pub fn get_last_update_epoch(&self) -> Epoch {
         self.last_update_epoch
@@ -132,7 +142,11 @@ pub trait EnergyModule {
     ) {
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_updated_energy_entry_for_user(user, current_epoch);
-        energy.refund_after_token_unlock(old_locked_token_amount, unlock_epoch, current_epoch);
+        if unlock_epoch <= current_epoch {
+            energy.refund_after_token_unlock(old_locked_token_amount, unlock_epoch, current_epoch);
+        } else {
+            energy.deplete_after_early_unlock(old_locked_token_amount, unlock_epoch, current_epoch);
+        }
 
         self.user_energy(user).set(&energy);
     }

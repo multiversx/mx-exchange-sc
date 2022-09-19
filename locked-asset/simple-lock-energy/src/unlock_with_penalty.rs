@@ -82,12 +82,16 @@ pub trait UnlockWithPenaltyModule:
         self.fees_collector_address().set(&sc_address);
     }
 
+    /// Unlock a locked token instantly. This incures a penalty.
+    /// The longer the remaining locking time, the bigger the penalty.
     #[payable("*")]
     #[endpoint(unlockEarly)]
     fn unlock_early(&self) -> EsdtTokenPayment {
         self.reduce_lock_period_common(None)
     }
 
+    /// Reduce the locking period of a locked token. This incures a penalty.
+    /// The longer the reduction, the bigger the penalty.
     #[payable("*")]
     #[endpoint(reduceLockPeriod)]
     fn reduce_lock_period(&self, epochs_to_reduce: Epoch) -> EsdtTokenPayment {
@@ -105,8 +109,11 @@ pub trait UnlockWithPenaltyModule:
         let epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
         let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce);
-        let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
 
+        let caller = self.blockchain().get_caller();
+        self.update_energy_after_unlock(&caller, &payment.amount, attributes.unlock_epoch);
+
+        let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
         if penalty_amount > 0 {
             unlocked_tokens.amount -= &penalty_amount;
             require!(
@@ -118,9 +125,9 @@ pub trait UnlockWithPenaltyModule:
             self.burn_penalty(fees_token_id, &penalty_amount);
         }
 
-        let caller = self.blockchain().get_caller();
         let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
+        self.update_energy_after_lock(&caller, &output_payment.amount, new_unlock_epoch);
 
         self.to_esdt_payment(output_payment)
     }
@@ -150,7 +157,10 @@ pub trait UnlockWithPenaltyModule:
         }
     }
 
-    /// linear decrease as epochs_to_reduce decreases
+    /// Calculates the penalty that would be incurred if token_amount tokens
+    /// were to have their locking period reduce by epochs_to_reduce.
+    ///
+    /// Linear decrease as epochs_to_reduce decreases
     /// starting from max penalty_percentage, all the way down to min
     #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch) -> BigUint {
