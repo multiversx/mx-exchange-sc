@@ -87,7 +87,7 @@ pub trait SimpleLockEnergy:
 
         self.require_is_listed_lock_option(lock_epochs);
         let current_epoch = self.blockchain().get_block_epoch();
-        let unlock_epoch = current_epoch + lock_epochs;
+        let unlock_epoch = self.lock_option_to_start_of_month(current_epoch + lock_epochs);
 
         let dest_address = self.dest_from_optional(opt_destination);
         let output_tokens = self.lock_and_send(&dest_address, payment.into(), unlock_epoch);

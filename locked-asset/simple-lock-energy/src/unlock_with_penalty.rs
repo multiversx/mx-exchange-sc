@@ -4,6 +4,8 @@ elrond_wasm::derive_imports!();
 use common_structs::Epoch;
 use simple_lock::locked_token::LockedTokenAttributes;
 
+use crate::lock_options::EPOCHS_PER_MONTH;
+
 const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
 static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
@@ -92,9 +94,15 @@ pub trait UnlockWithPenaltyModule:
 
     /// Reduce the locking period of a locked token. This incures a penalty.
     /// The longer the reduction, the bigger the penalty.
+    /// epochs_to_reduce must be a multiple of 30 (i.e. 1 month)
     #[payable("*")]
     #[endpoint(reduceLockPeriod)]
     fn reduce_lock_period(&self, epochs_to_reduce: Epoch) -> EsdtTokenPayment {
+        require!(
+            epochs_to_reduce % EPOCHS_PER_MONTH == 0,
+            "May only reduce by multiples of months (30 epochs)"
+        );
+
         self.reduce_lock_period_common(Some(epochs_to_reduce))
     }
 
@@ -125,7 +133,8 @@ pub trait UnlockWithPenaltyModule:
             self.burn_penalty(fees_token_id, &penalty_amount);
         }
 
-        let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
+        let new_unlock_epoch =
+            self.lock_option_to_start_of_month(attributes.unlock_epoch - epochs_to_reduce);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
         self.update_energy_after_lock(&caller, &output_payment.amount, new_unlock_epoch);
 
@@ -145,13 +154,14 @@ pub trait UnlockWithPenaltyModule:
 
         let lock_epochs_remaining = original_unlock_epoch - current_epoch;
         match opt_epochs_to_reduce {
-            Some(val) => {
+            Some(epochs_to_reduce) => {
                 require!(
-                    val >= MIN_EPOCHS_TO_REDUCE && val <= lock_epochs_remaining,
+                    epochs_to_reduce >= MIN_EPOCHS_TO_REDUCE
+                        && epochs_to_reduce <= lock_epochs_remaining,
                     "Invalid epochs to reduce"
                 );
 
-                val
+                epochs_to_reduce
             }
             None => lock_epochs_remaining,
         }
