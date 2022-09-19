@@ -58,8 +58,6 @@ pub trait BasicLockUnlock:
         &self,
         payment: EsdtTokenPayment<Self::Api>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
-
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_same_token(&payment.token_identifier);
 
@@ -71,10 +69,22 @@ pub trait BasicLockUnlock:
             "Cannot unlock yet"
         );
 
+        self.unlock_tokens_unchecked(payment, &attributes)
+    }
+
+    fn unlock_tokens_unchecked(
+        &self,
+        payment: EsdtTokenPayment<Self::Api>,
+        attributes: &LockedTokenAttributes<Self::Api>,
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
+
+        let locked_token_mapper = self.locked_token();
+        locked_token_mapper.require_same_token(&payment.token_identifier);
         locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         EgldOrEsdtTokenPayment::new(
-            attributes.original_token_id,
+            attributes.original_token_id.clone(),
             attributes.original_token_nonce,
             payment.amount,
         )
