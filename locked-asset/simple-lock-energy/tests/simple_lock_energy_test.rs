@@ -290,3 +290,47 @@ fn extend_locking_period_test() {
         .extend_locking_period(&first_user, 2, half_balance, LOCK_OPTIONS[0])
         .assert_user_error("New lock period must be longer than the current one.");
 }
+
+#[test]
+fn test_same_token_nonce() {
+    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let first_user = setup.first_user.clone();
+    let half_balance = USER_BALANCE / 2;
+
+    let mut current_epoch = 1;
+    setup.b_mock.set_block_epoch(current_epoch);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    // lock again after 10 epochs
+    current_epoch += 10;
+    setup.b_mock.set_block_epoch(current_epoch);
+
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(USER_BALANCE),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 360,
+        }),
+    );
+}
