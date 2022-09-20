@@ -14,6 +14,7 @@ pub trait ExtendLockModule:
     + crate::energy::EnergyModule
     + crate::migration::SimpleLockMigrationModule
     + crate::lock_options::LockOptionsModule
+    + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
     /// Extend locking period of a previously locked token.
@@ -38,8 +39,11 @@ pub trait ExtendLockModule:
         );
 
         let caller = self.blockchain().get_caller();
-        self.update_energy_after_unlock(&caller, &payment.amount, attributes.unlock_epoch);
-        self.update_energy_after_lock(&caller, &payment.amount, new_unlock_epoch);
+
+        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
+        energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
+        energy.add_after_token_lock(&payment.amount, new_unlock_epoch, current_epoch);
+        self.set_energy_entry(&caller, energy);
 
         let unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);

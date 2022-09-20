@@ -14,9 +14,12 @@ elrond_wasm_node::wasm_endpoints! {
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
+        getFeesBurnPercentage
+        getFeesCollectorAddress
         getLockOptions
         getLockedTokenId
         getPenaltyAmount
+        getPenaltyPercentage
         isPaused
         issueLockedToken
         lockTokens

@@ -10,7 +10,7 @@ const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
 static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct PenaltyPercentage {
     pub min: u16,
     pub max: u16,
@@ -38,6 +38,7 @@ pub trait UnlockWithPenaltyModule:
     + crate::energy::EnergyModule
     + crate::migration::SimpleLockMigrationModule
     + crate::lock_options::LockOptionsModule
+    + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
@@ -118,8 +119,11 @@ pub trait UnlockWithPenaltyModule:
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
         let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce);
 
+        let current_epoch = self.blockchain().get_block_epoch();
         let caller = self.blockchain().get_caller();
-        self.update_energy_after_unlock(&caller, &payment.amount, attributes.unlock_epoch);
+
+        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
+        energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
         if penalty_amount > 0 {
@@ -136,7 +140,9 @@ pub trait UnlockWithPenaltyModule:
         let new_unlock_epoch =
             self.lock_epoch_to_start_of_month(attributes.unlock_epoch - epochs_to_reduce);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
-        self.update_energy_after_lock(&caller, &output_payment.amount, new_unlock_epoch);
+
+        energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
+        self.set_energy_entry(&caller, energy);
 
         self.to_esdt_payment(output_payment)
     }
@@ -213,12 +219,15 @@ pub trait UnlockWithPenaltyModule:
         sc_address: ManagedAddress,
     ) -> fees_collector_proxy::Proxy<Self::Api>;
 
+    #[view(getPenaltyPercentage)]
     #[storage_mapper("penaltyPercentage")]
     fn penalty_percentage(&self) -> SingleValueMapper<PenaltyPercentage>;
 
+    #[view(getFeesBurnPercentage)]
     #[storage_mapper("feesBurnPercentage")]
     fn fees_burn_percentage(&self) -> SingleValueMapper<u16>;
 
+    #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
     fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
 }
