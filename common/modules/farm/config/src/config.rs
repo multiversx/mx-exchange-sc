@@ -38,9 +38,4 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;
-
-    // TODO: Move, it's only used in farm-with-lock, not in all farms
-    // #[view(getLockedAssetFactoryManagedAddress)]
-    // #[storage_mapper("locked_asset_factory_address")]
-    // fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

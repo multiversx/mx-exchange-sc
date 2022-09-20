@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
+[dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 

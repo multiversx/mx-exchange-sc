@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use token_merge_helper::ValueWeight;
+use token_merge_helper::{ValueWeight, WeightedAverageType};
 
 #[derive(
     ManagedVecItem,
@@ -107,7 +107,7 @@ pub trait FarmTokenMergeModule:
                 weight: x.payment.amount,
             })
         });
-        self.weighted_average_ceil(dataset)
+        self.weighted_average(dataset, WeightedAverageType::Ceil)
     }
 
     fn aggregated_compounded_reward(
