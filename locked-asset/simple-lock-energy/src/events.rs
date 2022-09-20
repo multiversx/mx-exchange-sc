@@ -21,13 +21,22 @@ pub trait EventsModule {
             old_energy_entry,
             new_energy_entry,
         };
-        self.energy_updated_event(user, data);
+        self.energy_updated_event(
+            user,
+            self.blockchain().get_block_nonce(),
+            self.blockchain().get_block_epoch(),
+            self.blockchain().get_block_timestamp(),
+            data,
+        );
     }
 
     #[event("energyUpdated")]
     fn energy_updated_event(
         &self,
-        #[indexed] address: &ManagedAddress,
+        #[indexed] caller: &ManagedAddress,
+        #[indexed] block: u64,
+        #[indexed] epoch: u64,
+        #[indexed] timestamp: u64,
         data: EnergyUpdatedEvent<Self::Api>,
     );
 }
