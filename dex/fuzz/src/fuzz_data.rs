@@ -12,6 +12,7 @@ pub mod fuzz_data_tests {
         testing_framework::*, DebugApi,
     };
     use elrond_wasm_debug::{managed_biguint, HashMap};
+    use farm::exit_penalty::ExitPenaltyModule;
     use pausable::{PausableModule, State};
     use std::cell::Cell;
 
