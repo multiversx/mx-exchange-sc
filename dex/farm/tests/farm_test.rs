@@ -253,6 +253,7 @@ where
                     farming_token_id,
                     division_safety_constant,
                     pair_address,
+                    managed_address!(&owner),
                     MultiValueEncoded::new(),
                 );
 

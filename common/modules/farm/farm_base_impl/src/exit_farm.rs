@@ -67,7 +67,7 @@ pub trait BaseExitFarmModule:
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
         let attributes = &exit_farm_context.farm_token.attributes;
-        let mut reward = calculate_rewards_fn(self, farm_token_amount, &attributes, &storage_cache);
+        let mut reward = calculate_rewards_fn(self, farm_token_amount, attributes, &storage_cache);
         storage_cache.reward_reserve -= &reward;
 
         let prev_compounded_rewards =

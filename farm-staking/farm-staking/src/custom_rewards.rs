@@ -2,8 +2,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::{Epoch, Nonce};
-use config::MAX_PERCENT;
 
+pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
 const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 

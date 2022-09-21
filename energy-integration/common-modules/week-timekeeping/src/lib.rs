@@ -6,7 +6,7 @@ use core::convert::TryInto;
 
 pub use common_types::{Epoch, Week};
 
-pub const EPOCHS_IN_WEEK: Epoch = 1; // TODO: Set to 7, it's 1 for testing purposes
+pub const EPOCHS_IN_WEEK: Epoch = 7;
 pub const FIRST_WEEK: Week = 1;
 static INVALID_WEEK_ERR_MSG: &[u8] = b"Week 0 is not a valid week";
 
