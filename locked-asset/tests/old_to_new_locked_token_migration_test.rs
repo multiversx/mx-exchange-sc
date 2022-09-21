@@ -194,4 +194,10 @@ fn old_to_new_locked_token_migration_test() {
         &rust_biguint!(USER_BALANCE),
         Some(&expected_new_token_attributes),
     );
+
+    b_mock.check_esdt_balance(
+        new_factory.address_ref(),
+        MEX_TOKEN_ID,
+        &rust_biguint!(USER_BALANCE),
+    );
 }
