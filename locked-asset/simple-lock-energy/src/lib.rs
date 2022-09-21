@@ -20,6 +20,10 @@ pub trait SimpleLockEnergy:
     + simple_lock::locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
+    + simple_lock::proxy_lp::ProxyLpModule
+    + simple_lock::proxy_farm::ProxyFarmModule
+    + simple_lock::lp_interactions::LpInteractionsModule
+    + simple_lock::farm_interactions::FarmInteractionsModule
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
     + lock_options::LockOptionsModule
