@@ -9,23 +9,38 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         acceptMigratedTokens
+        addFarmToWhitelist
+        addLiquidityLockedToken
         addLockOptions
+        addLpToWhitelist
+        enterFarmLockedToken
+        exitFarmLockedToken
         extendLockingPeriod
+        farmClaimRewardsLockedToken
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
+        getFarmProxyTokenId
         getFeesBurnPercentage
         getFeesCollectorAddress
+        getKnownFarms
+        getKnownLiquidityPools
         getLockOptions
         getLockedTokenId
+        getLpProxyTokenId
         getPenaltyAmount
         getPenaltyPercentage
         isPaused
+        issueFarmProxyToken
         issueLockedToken
+        issueLpProxyToken
         lockTokens
         pause
         reduceLockPeriod
+        removeFarmFromWhitelist
+        removeLiquidityLockedToken
         removeLockOptions
+        removeLpFromWhitelist
         setFeesBurnPercentage
         setFeesCollectorAddress
         setOldLockedAssetFactoryAddress
