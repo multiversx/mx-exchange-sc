@@ -50,13 +50,13 @@ pub trait BPModule:
             "too many swaps by address"
         );
 
-        let amount_in_percent = &ctx.final_input_amount * PERCENT_MAX / &*reserve_in;
+        let amount_in_percent = &ctx.final_input_amount * PERCENT_MAX / reserve_in;
         require!(
             amount_in_percent < bp_config.volume_percent,
             "swap amount in too large"
         );
 
-        let amount_out_percent = &ctx.final_output_amount * PERCENT_MAX / &*reserve_out;
+        let amount_out_percent = &ctx.final_output_amount * PERCENT_MAX / reserve_out;
         require!(
             amount_out_percent < bp_config.volume_percent,
             "swap amount out too large"

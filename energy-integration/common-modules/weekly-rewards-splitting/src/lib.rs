@@ -71,7 +71,7 @@ pub trait WeeklyRewardsSplittingModule:
             }
 
             let rewards_for_week =
-                self.claim_single(&user, current_week, collect_rewards_fn, &mut claim_progress);
+                self.claim_single(user, current_week, collect_rewards_fn, &mut claim_progress);
             if !rewards_for_week.is_empty() {
                 all_rewards.append_vec(rewards_for_week);
             }
