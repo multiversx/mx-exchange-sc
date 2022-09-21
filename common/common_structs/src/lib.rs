@@ -144,3 +144,17 @@ pub struct LockedAssetTokenAttributesEx<M: ManagedTypeApi> {
     pub unlock_schedule: UnlockScheduleEx<M>,
     pub is_merged: bool,
 }
+
+impl<M: ManagedTypeApi> LockedAssetTokenAttributesEx<M> {
+    pub fn average_unlock_epoch(&self) -> Epoch {
+        let mut weight_total = 0;
+        let mut weighted_sum = BigUint::<M>::zero();
+        for milestone in &self.unlock_schedule.unlock_milestones {
+            weighted_sum += milestone.unlock_percent * milestone.unlock_epoch;
+            weight_total += milestone.unlock_percent;
+        }
+
+        let weighted_average = weighted_sum / weight_total;
+        unsafe { weighted_average.to_u64().unwrap_unchecked() }
+    }
+}

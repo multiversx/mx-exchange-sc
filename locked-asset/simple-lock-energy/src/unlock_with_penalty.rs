@@ -138,7 +138,7 @@ pub trait UnlockWithPenaltyModule:
         }
 
         let new_unlock_epoch =
-            self.lock_epoch_to_start_of_month(attributes.unlock_epoch - epochs_to_reduce);
+            self.unlock_epoch_to_start_of_month(attributes.unlock_epoch - epochs_to_reduce);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
 
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);

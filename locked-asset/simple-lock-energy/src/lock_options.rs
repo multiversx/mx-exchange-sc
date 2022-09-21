@@ -70,9 +70,9 @@ pub trait LockOptionsModule {
         );
     }
 
-    fn lock_epoch_to_start_of_month(&self, lock_option: Epoch) -> Epoch {
-        let extra_days = lock_option % EPOCHS_PER_MONTH;
-        lock_option - extra_days
+    fn unlock_epoch_to_start_of_month(&self, unlock_epoch: Epoch) -> Epoch {
+        let extra_days = unlock_epoch % EPOCHS_PER_MONTH;
+        unlock_epoch - extra_days
     }
 
     #[view(getLockOptions)]

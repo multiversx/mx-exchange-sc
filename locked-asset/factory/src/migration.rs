@@ -37,7 +37,7 @@ pub trait LockedTokenMigrationModule:
             "Migration already started"
         );
         require!(
-            self.blockchain().is_smart_contract(&new_sc_address),
+            !new_sc_address.is_zero() && self.blockchain().is_smart_contract(&new_sc_address),
             "Invalid SC address"
         );
 
@@ -46,6 +46,9 @@ pub trait LockedTokenMigrationModule:
     }
 
     /// Facilitates migrating of old locked tokens to the new contract.
+    /// Each old locked token will be converted into a new locked token,
+    /// with the unlock epoch being a weighted average of the old ones,
+    /// with the weight being the unlock percent.
     ///
     /// Expected input payments: Any number of locked tokens
     ///
@@ -66,15 +69,7 @@ pub trait LockedTokenMigrationModule:
             require!(payment.token_identifier == locked_token_id, "Invalid token");
 
             let attributes = self.get_attributes_ex(&payment.token_identifier, payment.token_nonce);
-            let unlock_amounts = self.get_unlock_amounts_per_milestone(
-                &attributes.unlock_schedule.unlock_milestones,
-                &payment.amount,
-            );
-            for pair in unlock_amounts {
-                if pair.amount > 0 {
-                    args.push((pair.amount, pair.epoch).into());
-                }
-            }
+            let average_unlock_epoch = attributes.average_unlock_epoch();
 
             self.send().esdt_local_burn(
                 &payment.token_identifier,
@@ -82,7 +77,8 @@ pub trait LockedTokenMigrationModule:
                 &payment.amount,
             );
 
-            total_locked_tokens += payment.amount;
+            total_locked_tokens += &payment.amount;
+            args.push((payment.amount, average_unlock_epoch).into());
         }
 
         self.migrate_tokens(total_locked_tokens, args)
@@ -96,6 +92,11 @@ pub trait LockedTokenMigrationModule:
         let original_caller = self.blockchain().get_caller();
         let base_asset_token_id = self.asset_token_id().get();
         let sc_address = self.new_contract_address().get();
+
+        // tokens were previously burned when locked
+        // so we need to mint them again before sending
+        self.send()
+            .esdt_local_mint(&base_asset_token_id, 0, &total_base_asset_amount);
 
         self.simple_lock_energy_proxy_builder(sc_address)
             .accept_migrated_tokens(original_caller, arg_pairs)

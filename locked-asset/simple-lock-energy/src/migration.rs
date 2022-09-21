@@ -9,6 +9,7 @@ pub trait SimpleLockMigrationModule:
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
+    + crate::lock_options::LockOptionsModule
     + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
@@ -24,7 +25,6 @@ pub trait SimpleLockMigrationModule:
     #[only_owner]
     #[endpoint(setOldLockedAssetFactoryAddress)]
     fn set_old_locked_asset_factory_address(&self, old_sc_address: ManagedAddress) {
-        self.require_paused();
         require!(
             self.old_locked_asset_factory_address().is_empty(),
             "Migration already started"
@@ -74,9 +74,10 @@ pub trait SimpleLockMigrationModule:
         let mut output_payments = ManagedVec::new();
         let mut energy = self.get_updated_energy_entry_for_user(&original_caller, current_epoch);
         for pair in amount_unlock_epoch_pairs {
-            let (token_amount, unlock_epoch) = pair.into_tuple();
+            let (token_amount, average_unlock_epoch) = pair.into_tuple();
             total_tokens_in_pairs += &token_amount;
 
+            let unlock_epoch = self.unlock_epoch_to_start_of_month(average_unlock_epoch);
             if unlock_epoch > current_epoch {
                 energy.add_after_token_lock(&token_amount, unlock_epoch, current_epoch);
 
