@@ -138,7 +138,6 @@ pub trait SimpleLockMigrationModule:
         let sc_address = mapper.get();
         require!(address == &sc_address, "Invalid SC address");
     }
-    
 
     fn require_new_token(&self, token_nonce: Nonce) {
         require!(
