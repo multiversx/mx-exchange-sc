@@ -70,6 +70,8 @@ pub trait SimpleLockMigrationModule:
         self.require_is_base_asset_token(&payment.token_identifier);
 
         let locked_token_mapper = self.locked_token();
+        let mut old_nonces_mapper = self.old_token_nonces();
+
         let base_asset_token_id = self.base_asset_token_id().get();
         let current_epoch = self.blockchain().get_block_epoch();
 
@@ -104,6 +106,7 @@ pub trait SimpleLockMigrationModule:
 
                 let new_locked_tokens =
                     locked_token_mapper.nft_create(leftover_locked_amount, &attributes);
+                let _ = old_nonces_mapper.insert(new_locked_tokens.token_nonce);
                 output_payments.push(new_locked_tokens);
             }
         }
