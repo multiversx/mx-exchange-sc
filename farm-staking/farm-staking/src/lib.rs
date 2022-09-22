@@ -8,14 +8,11 @@ pub mod farm_token_merge;
 pub mod whitelist;
 
 use common_structs::Nonce;
-use pausable::State;
-use permissions_module::Permissions;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use crate::farm_token_merge::StakingFarmTokenAttributes;
-use config::{DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS};
 use farm_token_merge::StakingFarmToken;
 
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -43,10 +40,10 @@ pub trait Farm:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    // farm base impl
+    + farm_base_impl::base_farm_init::BaseFarmInitModule
+    + farm_base_impl::base_farm_validation::BaseFarmValidationModule
 {
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
     #[init]
     fn init(
         &self,
@@ -57,48 +54,19 @@ pub trait Farm:
         owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
-        require!(
-            farming_token_id.is_valid_esdt_identifier(),
-            "Farming token ID is not a valid esdt identifier"
-        );
-        require!(
-            division_safety_constant != 0,
-            "Division constant cannot be 0"
-        );
-
-        let farm_token = self.farm_token().get_token_id();
-        require!(
-            farming_token_id != farm_token,
-            "Farming token ID cannot be farm token ID"
-        );
-        require!(max_apr > 0u64, "Invalid max APR percentage");
-
-        self.state().set(&State::Inactive);
-        self.minimum_farming_epochs()
-            .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
-        self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
-        self.division_safety_constant()
-            .set_if_empty(&division_safety_constant);
-
         // farming and reward token are the same
-        self.reward_token_id().set(&farming_token_id);
-        self.farming_token_id().set(&farming_token_id);
+        self.base_farm_init(
+            farming_token_id.clone(),
+            farming_token_id,
+            division_safety_constant,
+            owner,
+            admins
+        );
+
+        require!(max_apr > 0u64, "Invalid max APR percentage");
         self.max_annual_percentage_rewards().set(&max_apr);
+
         self.try_set_min_unbond_epochs(min_unbond_epochs);
-
-        if !owner.is_zero() {
-            self.add_permissions(owner, Permissions::OWNER | Permissions::PAUSE);
-        }
-
-        let caller = self.blockchain().get_caller();
-        if admins.is_empty() {
-            // backwards compatibility
-            let all_permissions = Permissions::OWNER | Permissions::ADMIN | Permissions::PAUSE;
-            self.add_permissions(caller, all_permissions);
-        } else {
-            self.add_permissions(caller, Permissions::OWNER | Permissions::PAUSE);
-            self.add_permissions_for_all(admins, Permissions::ADMIN);
-        };
     }
 
     #[payable("*")]

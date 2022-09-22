@@ -14,7 +14,7 @@ use super::proxy_farm;
 use proxy_farm::WrappedFarmToken;
 
 use factory::locked_asset_token_merge::ProxyTrait as _;
-use farm::farm_token_merge::ProxyTrait as _;
+use farm::ProxyTrait as _;
 
 #[elrond_wasm::module]
 pub trait WrappedFarmTokenMerge:

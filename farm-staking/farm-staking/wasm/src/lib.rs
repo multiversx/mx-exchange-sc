@@ -18,17 +18,12 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         getAccumulatedRewards
         getAnnualPercentageRewards
-        getBurnGasLimit
         getDivisionSafetyConstant
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
         getLastRewardBlockNonce
-        getLockedAssetFactoryManagedAddress
         getMinUnbondEpochs
-        getMinimumFarmingEpoch
-        getPairContractManagedAddress
-        getPenaltyPercent
         getPerBlockRewardAmount
         getPermissions
         getRewardCapacity
@@ -46,9 +41,6 @@ elrond_wasm_node::wasm_endpoints! {
         setMaxApr
         setMinUnbondEpochs
         setPerBlockRewardAmount
-        set_burn_gas_limit
-        set_minimum_farming_epochs
-        set_penalty_percent
         stakeFarm
         stakeFarmThroughProxy
         startProduceRewards
