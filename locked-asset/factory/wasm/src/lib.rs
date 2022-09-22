@@ -16,7 +16,6 @@ elrond_wasm_node::wasm_endpoints! {
         getExtendedAttributesActivationNonce
         getInitEpoch
         getLockedAssetTokenId
-        getMigrationStopTokenNonce
         getNewContractAddress
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts

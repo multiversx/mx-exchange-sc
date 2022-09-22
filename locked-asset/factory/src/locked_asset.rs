@@ -11,30 +11,10 @@ pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
 pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
 
-use core::fmt::Debug;
-
 #[derive(ManagedVecItem)]
 pub struct LockedTokenEx<M: ManagedTypeApi> {
     pub token_amount: EsdtTokenPayment<M>,
     pub attributes: LockedAssetTokenAttributesEx<M>,
-}
-
-#[derive(ManagedVecItem, Clone)]
-pub struct EpochAmountPair<M: ManagedTypeApi> {
-    pub epoch: u64,
-    pub amount: BigUint<M>,
-}
-
-impl<M> Debug for EpochAmountPair<M>
-where
-    M: ManagedTypeApi,
-{
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("EpochAmountPair")
-            .field("epoch", &self.epoch)
-            .field("amount", &self.amount)
-            .finish()
-    }
 }
 
 #[elrond_wasm::module]
@@ -82,36 +62,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
     ) -> BigUint {
         amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones))
             / PERCENTAGE_TOTAL_EX
-    }
-
-    fn get_unlock_amounts_per_milestone(
-        &self,
-        unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
-        total_amount: &BigUint,
-    ) -> ArrayVec<EpochAmountPair<Self::Api>, MAX_MILESTONES_IN_SCHEDULE> {
-        let mut amounts = ArrayVec::new();
-        if unlock_milestones.is_empty() {
-            return amounts;
-        }
-
-        let mut total_tokens_processed = BigUint::zero();
-        let last_milestone_index = unlock_milestones.len() - 1;
-        for (i, milestone) in unlock_milestones.iter().enumerate() {
-            // account for approximation errors
-            let unlock_amount_at_milestone = if i < last_milestone_index {
-                total_amount * milestone.unlock_percent / PERCENTAGE_TOTAL_EX
-            } else {
-                total_amount - &total_tokens_processed
-            };
-
-            total_tokens_processed += &unlock_amount_at_milestone;
-            amounts.push(EpochAmountPair {
-                epoch: milestone.unlock_epoch,
-                amount: unlock_amount_at_milestone,
-            });
-        }
-
-        amounts
     }
 
     fn get_unlock_percent(

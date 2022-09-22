@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
+[dependencies.factory]
+path = "../factory"
+
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
