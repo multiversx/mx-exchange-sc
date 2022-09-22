@@ -74,7 +74,7 @@ where
                 sc.init();
 
                 let _ = sc
-                    .known_pair_contracts()
+                    .known_contracts()
                     .insert(managed_address!(&depositor_address));
 
                 let mut tokens = MultiValueEncoded::new();

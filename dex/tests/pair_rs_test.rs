@@ -962,7 +962,7 @@ fn test_locked_asset() {
             1,
             &rust_biguint!(996),
             |sc| {
-                sc.unlock_tokens(OptionalValue::None);
+                sc.unlock_tokens_endpoint(OptionalValue::None);
             },
         )
         .assert_user_error("Cannot unlock yet");
@@ -979,7 +979,7 @@ fn test_locked_asset() {
             1,
             &rust_biguint!(996),
             |sc| {
-                sc.unlock_tokens(OptionalValue::None);
+                sc.unlock_tokens_endpoint(OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1076,7 +1076,7 @@ fn add_liquidity_through_simple_lock_proxy() {
             0,
             &rust_biguint!(1_000_000),
             |sc| {
-                sc.lock_tokens(10, OptionalValue::None);
+                sc.lock_tokens_endpoint(10, OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1101,7 +1101,7 @@ fn add_liquidity_through_simple_lock_proxy() {
             0,
             &rust_biguint!(2_000_000),
             |sc| {
-                sc.lock_tokens(15, OptionalValue::None);
+                sc.lock_tokens_endpoint(15, OptionalValue::None);
             },
         )
         .assert_ok();
@@ -1332,7 +1332,7 @@ fn fees_collector_pair_test() {
             |sc| {
                 sc.init();
                 let _ = sc
-                    .known_pair_contracts()
+                    .known_contracts()
                     .insert(managed_address!(&pair_addr));
 
                 let mut tokens = MultiValueEncoded::new();

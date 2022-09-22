@@ -3,23 +3,23 @@ elrond_wasm::imports!();
 #[elrond_wasm::module]
 pub trait ConfigModule {
     #[only_owner]
-    #[endpoint(addKnownPairContracts)]
-    fn add_known_pair_contracts(&self, pair_contracts: MultiValueEncoded<ManagedAddress>) {
-        let mut mapper = self.known_pair_contracts();
-        for sc in pair_contracts {
+    #[endpoint(addKnownContracts)]
+    fn add_known_contracts(&self, contracts: MultiValueEncoded<ManagedAddress>) {
+        let mut mapper = self.known_contracts();
+        for sc in contracts {
             require!(
                 self.blockchain().is_smart_contract(&sc),
-                "Invalid pair SC address"
+                "Invalid SC address"
             );
             let _ = mapper.insert(sc);
         }
     }
 
     #[only_owner]
-    #[endpoint(removeKnownPairContracts)]
-    fn remove_known_pair_contracts(&self, pair_contracts: MultiValueEncoded<ManagedAddress>) {
-        let mut mapper = self.known_pair_contracts();
-        for sc in pair_contracts {
+    #[endpoint(removeKnownContracts)]
+    fn remove_known_contracts(&self, contracts: MultiValueEncoded<ManagedAddress>) {
+        let mut mapper = self.known_contracts();
+        for sc in contracts {
             let _ = mapper.swap_remove(&sc);
         }
     }
@@ -47,8 +47,6 @@ pub trait ConfigModule {
         let mut all_tokens_vec = self.all_tokens().get();
         let known_tokens_mapper = self.known_tokens();
         for token in tokens {
-            require!(token.is_valid_esdt_identifier(), "Invalid token ID");
-
             if known_tokens_mapper.contains(&token) {
                 known_tokens_mapper.remove(&token);
 
@@ -67,9 +65,9 @@ pub trait ConfigModule {
         self.all_tokens().get().into()
     }
 
-    #[view(getAllKnownPairContracts)]
-    #[storage_mapper("knownPairContracts")]
-    fn known_pair_contracts(&self) -> UnorderedSetMapper<ManagedAddress>;
+    #[view(getAllKnownContracts)]
+    #[storage_mapper("knownContracts")]
+    fn known_contracts(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[storage_mapper("knownTokens")]
     fn known_tokens(&self) -> WhitelistMapper<Self::Api, TokenIdentifier>;

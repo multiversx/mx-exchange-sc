@@ -50,7 +50,7 @@ pub trait LockingModule {
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
-            .lock_tokens(unlock_epoch, opt_dest)
+            .lock_tokens_endpoint(unlock_epoch, opt_dest)
             .with_egld_or_single_esdt_token_transfer(token_id, 0, amount)
             .execute_on_dest_context()
     }

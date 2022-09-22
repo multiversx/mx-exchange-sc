@@ -15,8 +15,8 @@ pub trait FeesAccumulationModule:
     fn deposit_swap_fees(&self) {
         let caller = self.blockchain().get_caller();
         require!(
-            self.known_pair_contracts().contains(&caller),
-            "Only pair contracts can deposit"
+            self.known_contracts().contains(&caller),
+            "Only known contracts can deposit"
         );
 
         let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
