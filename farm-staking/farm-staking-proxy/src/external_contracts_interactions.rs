@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use core::mem::swap;
 
-use farm::farm_token_merge::ProxyTrait as _;
+use farm::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 
 use crate::result_types::*;

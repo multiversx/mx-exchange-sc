@@ -1,6 +1,8 @@
 use common_structs::FarmTokenAttributes;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded};
+use elrond_wasm::types::{
+    Address, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
+};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -8,22 +10,19 @@ use elrond_wasm_debug::{
 };
 
 type RustBigUint = num_bigint::BigUint;
-use migration_from_v1_2::{FarmTokenAttributesV1_2, MigrationModule};
 
 use config::*;
+use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 
-// const GENERATED_FILE_PREFIX: &'static str = "_generated_";
-// const MANDOS_FILE_EXTENSION: &'static str = ".scen.json";
 const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
 
 const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
 const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
-const OLD_FARM_TOKEN_ID: &[u8] = b"OFARM-abcdef";
 const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 const MIN_FARMING_EPOCHS: u64 = 2;
 const PENALTY_PERCENT: u64 = 10;
@@ -584,114 +583,6 @@ fn test_exit_farm_after_enter_twice() {
         &expected_user_lp_balance,
     );
     check_farm_token_supply(&mut farm_setup, 0);
-}
-
-fn set_migration_config<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>)
-where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-{
-    let owner = farm_setup.owner_address.clone();
-    let own = farm_setup.farm_wrapper.address_ref().clone();
-
-    let b_mock = &mut farm_setup.blockchain_wrapper;
-    b_mock
-        .execute_tx(
-            &farm_setup.user_address,
-            &farm_setup.farm_wrapper,
-            &rust_biguint!(0),
-            |sc| {
-                sc.set_farm_migration_config(
-                    managed_address!(&owner),
-                    managed_token_id!(OLD_FARM_TOKEN_ID),
-                    managed_address!(&own),
-                    managed_address!(&owner),
-                );
-            },
-        )
-        .assert_ok();
-}
-
-fn do_basic_migration<FarmObjBuilder>(farm_setup: &mut FarmSetup<FarmObjBuilder>)
-where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-{
-    let owner = farm_setup.owner_address.clone();
-    let own = farm_setup.farm_wrapper.address_ref().clone();
-
-    let farm_token_roles = [EsdtLocalRole::NftBurn];
-    farm_setup.blockchain_wrapper.set_esdt_local_roles(
-        &own,
-        OLD_FARM_TOKEN_ID,
-        &farm_token_roles[..],
-    );
-
-    let b_mock = &mut farm_setup.blockchain_wrapper;
-    let _ = DebugApi::dummy();
-
-    let nft_balance = rust_biguint!(1_000);
-    let nft_attributes: FarmTokenAttributesV1_2<DebugApi> = FarmTokenAttributesV1_2 {
-        reward_per_share: managed_biguint!(1_000),
-        original_entering_epoch: 10,
-        entering_epoch: 10,
-        apr_multiplier: 0,
-        with_locked_rewards: false,
-        initial_farming_amount: managed_biguint!(1_000),
-        compounded_reward: managed_biguint!(0),
-        current_farm_amount: managed_biguint!(1_000),
-    };
-
-    b_mock.set_nft_balance(&owner, OLD_FARM_TOKEN_ID, 1, &nft_balance, &nft_attributes);
-    b_mock.set_esdt_balance(&owner, LP_TOKEN_ID, &nft_balance);
-    b_mock.set_esdt_balance(&owner, MEX_TOKEN_ID, &nft_balance);
-
-    let payments = vec![TxInputESDT {
-        token_identifier: LP_TOKEN_ID.to_vec(),
-        nonce: 0,
-        value: nft_balance.clone(),
-    }];
-
-    b_mock
-        .execute_esdt_multi_transfer(&owner, &farm_setup.farm_wrapper, &payments, |sc| {
-            let nft_attributes_copy: FarmTokenAttributesV1_2<DebugApi> = FarmTokenAttributesV1_2 {
-                reward_per_share: managed_biguint!(1_000),
-                original_entering_epoch: 10,
-                entering_epoch: 10,
-                apr_multiplier: 0,
-                with_locked_rewards: false,
-                initial_farming_amount: managed_biguint!(1_000),
-                compounded_reward: managed_biguint!(0),
-                current_farm_amount: managed_biguint!(1_000),
-            };
-
-            sc.migrate_from_v1_2_farm(nft_attributes_copy, managed_address!(&owner));
-        })
-        .assert_ok();
-
-    b_mock.check_nft_balance(
-        &farm_setup.owner_address,
-        FARM_TOKEN_ID,
-        1,
-        &nft_balance,
-        Some(&FarmTokenAttributes::<DebugApi> {
-            reward_per_share: managed_biguint!(1_000),
-            original_entering_epoch: 10,
-            entering_epoch: 10,
-            initial_farming_amount: managed_biguint!(1_000),
-            compounded_reward: managed_biguint!(0),
-            current_farm_amount: managed_biguint!(1_000),
-        }),
-    );
-
-    let _ = TxContextStack::static_pop();
-}
-
-#[test]
-fn test_migration() {
-    let mut farm_setup = setup_farm(farm::contract_obj);
-
-    set_migration_config(&mut farm_setup);
-
-    do_basic_migration(&mut farm_setup);
 }
 
 #[test]

@@ -22,9 +22,6 @@ path = "../common/modules/farm/farm_token"
 [dev-dependencies.rewards]
 path = "../common/modules/farm/rewards"
 
-[dev-dependencies.migration_from_v1_2]
-path = "../common/modules/farm/migration_from_v1_2"
-
 [dev-dependencies.locking_module]
 path = "../common/modules/locking_module"
 
@@ -42,9 +39,6 @@ path = "../farm-staking/farm-staking"
 
 [dev-dependencies.farm-staking-proxy]
 path = "../farm-staking/farm-staking-proxy"
-
-[dev-dependencies.farm_with_lock]
-path = "farm_with_lock"
 
 [dev-dependencies.factory]
 path = "../locked-asset/factory"
