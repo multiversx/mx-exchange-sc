@@ -170,7 +170,7 @@ pub trait Router:
         );
 
         self.upgrade_pair(
-            &pair_address,
+            pair_address,
             &first_token_id,
             &second_token_id,
             &self.owner().get(),
