@@ -1,17 +1,25 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use crate::claim_rewards_context::elrond_codec::TopEncode;
 use common_errors::{ERROR_BAD_PAYMENTS, ERROR_EMPTY_PAYMENTS};
-use common_structs::FarmTokenAttributes;
+use common_structs::PaymentAttributesPair;
 use elrond_wasm::contract_base::BlockchainWrapper;
-use farm_token::FarmToken;
 
-pub struct ClaimRewardsContext<M: ManagedTypeApi> {
-    pub first_farm_token: FarmToken<M>,
+pub struct ClaimRewardsContext<M, T>
+where
+    M: ManagedTypeApi,
+    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+{
+    pub first_farm_token: PaymentAttributesPair<M, T>,
     pub additional_payments: ManagedVec<M, EsdtTokenPayment<M>>,
 }
 
-impl<M: ManagedTypeApi + BlockchainApi> ClaimRewardsContext<M> {
+impl<M, T> ClaimRewardsContext<M, T>
+where
+    M: ManagedTypeApi + BlockchainApi,
+    T: Clone + TopEncode + TopDecode + NestedEncode + NestedDecode,
+{
     pub fn new(
         mut payments: ManagedVec<M, EsdtTokenPayment<M>>,
         farm_token_id: &TokenIdentifier<M>,
@@ -36,10 +44,10 @@ impl<M: ManagedTypeApi + BlockchainApi> ClaimRewardsContext<M> {
             farm_token_id,
             first_payment.token_nonce,
         );
-        let first_token_attributes: FarmTokenAttributes<M> = token_data.decode_attributes();
+        let first_token_attributes: T = token_data.decode_attributes();
 
         ClaimRewardsContext {
-            first_farm_token: FarmToken {
+            first_farm_token: PaymentAttributesPair {
                 payment: first_payment,
                 attributes: first_token_attributes,
             },
@@ -48,4 +56,4 @@ impl<M: ManagedTypeApi + BlockchainApi> ClaimRewardsContext<M> {
     }
 }
 
-pub type CompoundRewardsContext<M> = ClaimRewardsContext<M>;
+pub type CompoundRewardsContext<M, T> = ClaimRewardsContext<M, T>;

@@ -34,6 +34,10 @@ pub trait EnergyQueryModule {
     }
 
     fn get_energy_entry(&self, user: ManagedAddress) -> Energy<Self::Api> {
+        if self.energy_factory_address().is_empty() {
+            return Energy::default();
+        }
+
         let sc_address = self.energy_factory_address().get();
         self.energy_factory_proxy(sc_address)
             .get_energy_entry_for_user_view(user)

@@ -4,14 +4,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, Nonce};
+use common_structs::Nonce;
 use elrond_wasm::elrond_codec::TopEncode;
-
-#[derive(ManagedVecItem, Clone)]
-pub struct FarmToken<M: ManagedTypeApi> {
-    pub payment: EsdtTokenPayment<M>,
-    pub attributes: FarmTokenAttributes<M>,
-}
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule:
@@ -67,6 +61,14 @@ pub trait FarmTokenModule:
     fn burn_farm_tokens(&self, token_id: &TokenIdentifier, nonce: Nonce, amount: &BigUint) {
         self.send().esdt_local_burn(token_id, nonce, amount);
         self.farm_token_supply().update(|x| *x -= amount);
+    }
+
+    fn burn_farm_token_payment(&self, payment: &EsdtTokenPayment<Self::Api>) {
+        self.burn_farm_tokens(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
     }
 
     fn get_farm_token_attributes<T: TopDecode>(

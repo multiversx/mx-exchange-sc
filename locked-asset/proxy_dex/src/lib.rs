@@ -25,7 +25,7 @@ pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
     + proxy_farm::ProxyFarmModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge
