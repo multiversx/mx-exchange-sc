@@ -9,7 +9,7 @@ use elrond_wasm_debug::{
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
-use custom_rewards::*;
+use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};

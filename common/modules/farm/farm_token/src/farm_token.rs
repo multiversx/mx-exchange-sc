@@ -4,21 +4,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, Nonce};
+use common_structs::Nonce;
 use elrond_wasm::elrond_codec::TopEncode;
-
-#[derive(ManagedVecItem, Clone)]
-pub struct FarmToken<M: ManagedTypeApi> {
-    pub payment: EsdtTokenPayment<M>,
-    pub attributes: FarmTokenAttributes<M>,
-}
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule:
-    config::ConfigModule
-    + token_send::TokenSendModule
-    + pausable::PausableModule
-    + permissions_module::PermissionsModule
+    permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("EGLD")]
@@ -72,6 +63,14 @@ pub trait FarmTokenModule:
         self.farm_token_supply().update(|x| *x -= amount);
     }
 
+    fn burn_farm_token_payment(&self, payment: &EsdtTokenPayment<Self::Api>) {
+        self.burn_farm_tokens(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
+        );
+    }
+
     fn get_farm_token_attributes<T: TopDecode>(
         &self,
         token_id: &TokenIdentifier,
@@ -89,4 +88,8 @@ pub trait FarmTokenModule:
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
     fn farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+
+    #[view(getFarmTokenSupply)]
+    #[storage_mapper("farm_token_supply")]
+    fn farm_token_supply(&self) -> SingleValueMapper<BigUint>;
 }

@@ -29,7 +29,7 @@ pub trait MigrationModule:
     proxy_farm::ProxyFarmModule
     + proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge

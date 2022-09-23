@@ -6,13 +6,13 @@
             "path": "enter_farm.scen.json"
         },
         {
-            "step": "scCall",
-            "txId": "calculateRewards",
+            "step": "scQuery",
+            "txId": "calculateRewards-1",
             "tx": {
-                "from": "address:user1",
                 "to": "sc:farm_contract",
                 "function": "calculateRewardsForGivenPosition",
                 "arguments": [
+                    "address:user1",
                     "100,000,000",
                     {
                         "1-reward_per_share": "biguint:0",
@@ -22,18 +22,14 @@
                         "5:compounded_reward": "biguint:0",
                         "6-current_farm_amount": "biguint:100,000,000"
                     }
-                ],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
+                ]
             },
             "expect": {
                 "out": [
                     "0"
                 ],
                 "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
+                "message": ""
             }
         },
         {
@@ -63,11 +59,16 @@
                                 }
                             ],
                             "lastNonce": "0"
+                        },
+                        "str:WEGLD-abcdef": {
+                            "roles": [
+                                "ESDTRoleLocalMint"
+                            ]
                         }
                     },
                     "storage": {
                         "str:division_safety_constant": "1,000,000,000,000",
-                        "str:farm_token_id)": "str:FARM-abcdef",
+                        "str:farm_token_id": "str:FARM-abcdef",
                         "str:farm_token_supply": "200,000,000",
                         "str:farming_token_id": "str:LPTOK-abcdef",
                         "str:minimum_farming_epochs": "2",
@@ -85,13 +86,13 @@
             }
         },
         {
-            "step": "scCall",
-            "txId": "calculateRewards",
+            "step": "scQuery",
+            "txId": "calculateRewards-2",
             "tx": {
-                "from": "address:user1",
                 "to": "sc:farm_contract",
                 "function": "calculateRewardsForGivenPosition",
                 "arguments": [
+                    "address:user1",
                     "100,000,000",
                     {
                         "1-reward_per_share": "biguint:0",
@@ -101,18 +102,14 @@
                         "5:compounded_reward": "biguint:0",
                         "6-current_farm_amount": "biguint:100,000,000"
                     }
-                ],
-                "gasLimit": "100,000,000",
-                "gasPrice": "0"
+                ]
             },
             "expect": {
                 "out": [
                     "500"
                 ],
                 "status": "0",
-                "message": "",
-                "gas": "*",
-                "refund": "*"
+                "message": ""
             }
         }
     ]
