@@ -7,19 +7,21 @@ pub const EPOCHS_PER_MONTH: Epoch = 30;
 
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
-    /// Add lock options, as a list of epochs.
+    /// Add lock options, as a list of epochs. Options must be >= 30 epochs (1 month).
     ///
-    /// For example, an option of "5" means the user can choose to lock their tokens
-    /// for 5 epochs.
+    /// For example, an option of "60" means the user can choose to lock their tokens
+    /// for 60 epochs.
     ///
     /// When calling lockTokens, users may only pick one of the whitelisted lock options.
     #[only_owner]
     #[endpoint(addLockOptions)]
     fn add_lock_options(&self, lock_options: MultiValueEncoded<Epoch>) {
+        require!(!lock_options.is_empty(), "No options");
+
         let mut options_mapper = self.lock_options();
         let mut max_added = 0;
         for option in lock_options {
-            require!(option > 0, "Invalid option");
+            require!(option >= EPOCHS_PER_MONTH, "Invalid option");
 
             if option > max_added {
                 max_added = option;
@@ -70,9 +72,9 @@ pub trait LockOptionsModule {
         );
     }
 
-    fn lock_epoch_to_start_of_month(&self, lock_option: Epoch) -> Epoch {
-        let extra_days = lock_option % EPOCHS_PER_MONTH;
-        lock_option - extra_days
+    fn unlock_epoch_to_start_of_month(&self, unlock_epoch: Epoch) -> Epoch {
+        let extra_days = unlock_epoch % EPOCHS_PER_MONTH;
+        unlock_epoch - extra_days
     }
 
     #[view(getLockOptions)]

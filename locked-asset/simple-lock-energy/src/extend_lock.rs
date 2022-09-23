@@ -32,7 +32,7 @@ pub trait ExtendLockModule:
             .get_token_attributes(payment.token_nonce);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let new_unlock_epoch = self.lock_epoch_to_start_of_month(current_epoch + new_lock_period);
+        let new_unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + new_lock_period);
         require!(
             new_unlock_epoch > attributes.unlock_epoch,
             "New lock period must be longer than the current one."

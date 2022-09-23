@@ -20,6 +20,10 @@ pub trait SimpleLockEnergy:
     + simple_lock::locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
+    + simple_lock::proxy_lp::ProxyLpModule
+    + simple_lock::proxy_farm::ProxyFarmModule
+    + simple_lock::lp_interactions::LpInteractionsModule
+    + simple_lock::farm_interactions::FarmInteractionsModule
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
     + lock_options::LockOptionsModule
@@ -89,7 +93,7 @@ pub trait SimpleLockEnergy:
 
         self.require_is_listed_lock_option(lock_epochs);
         let current_epoch = self.blockchain().get_block_epoch();
-        let unlock_epoch = self.lock_epoch_to_start_of_month(current_epoch + lock_epochs);
+        let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
 
         let dest_address = self.dest_from_optional(opt_destination);
         let output_tokens = self.lock_and_send(&dest_address, payment.into(), unlock_epoch);

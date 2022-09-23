@@ -7,9 +7,6 @@ publish = false
 [dependencies.elrond-wasm]
 version = "0.34.0"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "0.34.0"
-
 [dependencies.farm]
 path = "../dex/farm"
 
@@ -25,5 +22,28 @@ path = "distribution"
 [dependencies.factory]
 path = "factory"
 
+[dependencies.simple-lock]
+path = "simple-lock"
+
+[dependencies.simple-lock-energy]
+path = "simple-lock-energy"
+
+[dependencies.fees-collector]
+path = "../energy-integration/fees-collector"
+
+[dependencies.common_structs]
+path = "../common/common_structs"
+
 [dependencies.proxy_dex]
 path = "proxy_dex"
+
+[dev-dependencies.elrond-wasm-modules]
+version = "0.34.0"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
