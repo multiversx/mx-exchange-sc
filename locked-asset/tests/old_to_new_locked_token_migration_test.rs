@@ -6,14 +6,14 @@ use elrond_wasm::{
     types::{EsdtLocalRole, EsdtTokenPayment, ManagedVec, MultiValueEncoded},
 };
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::BlockchainStateWrapper, DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
 use factory::{
     locked_asset::LockedAssetModule, migration::LockedTokenMigrationModule, LockedAssetFactory,
 };
-use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
+use simple_lock::locked_token::LockedTokenModule;
 use simple_lock_energy::{migration::SimpleLockMigrationModule, SimpleLockEnergy};
 
 static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -108,24 +108,25 @@ fn old_to_new_locked_token_migration_test() {
 
     let mut expected_unlock_milestones = ManagedVec::<DebugApi, UnlockMilestoneEx>::new();
     expected_unlock_milestones.push(UnlockMilestoneEx {
-        unlock_percent: 40000,
+        unlock_percent: 40_000,
         unlock_epoch: EPOCHS_IN_YEAR,
     });
     expected_unlock_milestones.push(UnlockMilestoneEx {
-        unlock_percent: 60000,
+        unlock_percent: 60_000,
         unlock_epoch: EPOCHS_IN_YEAR * 3,
     });
+    let expected_attributes = LockedAssetTokenAttributesEx {
+        is_merged: false,
+        unlock_schedule: UnlockScheduleEx {
+            unlock_milestones: expected_unlock_milestones,
+        },
+    };
     b_mock.check_nft_balance(
         &user,
         OLD_LKMEX_TOKEN_ID,
         1,
         &rust_biguint!(USER_BALANCE),
-        Some(&LockedAssetTokenAttributesEx {
-            is_merged: false,
-            unlock_schedule: UnlockScheduleEx {
-                unlock_milestones: expected_unlock_milestones,
-            },
-        }),
+        Some(&expected_attributes),
     );
 
     // setup new factory
@@ -182,22 +183,77 @@ fn old_to_new_locked_token_migration_test() {
         )
         .assert_ok();
 
-    let expected_new_token_attributes = LockedTokenAttributes::<DebugApi> {
-        original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
-        original_token_nonce: 0,
-        unlock_epoch: 780, // (40 * 365 + 60 * 3 * 365) / 100 ~= 803 -> start of month = 780
-    };
+    // attributes are kept the same after migration
     b_mock.check_nft_balance(
         &user,
         NEW_LKMEX_TOKEN_ID,
         1,
         &rust_biguint!(USER_BALANCE),
-        Some(&expected_new_token_attributes),
+        Some(&expected_attributes),
     );
 
     b_mock.check_esdt_balance(
         new_factory.address_ref(),
         MEX_TOKEN_ID,
         &rust_biguint!(USER_BALANCE),
+    );
+
+    // test migrating a token with partial unlockable already
+    b_mock.set_esdt_balance(&user, MEX_TOKEN_ID, &rust_biguint!(USER_BALANCE));
+
+    b_mock
+        .execute_esdt_transfer(
+            &user,
+            &old_factory,
+            MEX_TOKEN_ID,
+            0,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.set_paused(false);
+
+                let _ = sc.lock_assets();
+            },
+        )
+        .assert_ok();
+
+    b_mock.set_block_epoch(EPOCHS_IN_YEAR * 2);
+
+    b_mock
+        .execute_esdt_transfer(
+            &user,
+            &old_factory,
+            OLD_LKMEX_TOKEN_ID,
+            1,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                sc.set_paused(true);
+
+                sc.migrate_to_new_factory();
+            },
+        )
+        .assert_ok();
+
+    let expected_unlocked_balance = rust_biguint!(USER_BALANCE) * 40_000u32 / 100_000u32;
+    b_mock.check_esdt_balance(&user, MEX_TOKEN_ID, &expected_unlocked_balance);
+
+    let mut expected_unlock_milestones = ManagedVec::<DebugApi, UnlockMilestoneEx>::new();
+    expected_unlock_milestones.push(UnlockMilestoneEx {
+        unlock_percent: 60_000,
+        unlock_epoch: EPOCHS_IN_YEAR * 3,
+    });
+    let expected_attributes = LockedAssetTokenAttributesEx {
+        is_merged: false,
+        unlock_schedule: UnlockScheduleEx {
+            unlock_milestones: expected_unlock_milestones,
+        },
+    };
+
+    let expected_locked_balance = rust_biguint!(USER_BALANCE) * 60_000u32 / 100_000u32;
+    b_mock.check_nft_balance(
+        &user,
+        NEW_LKMEX_TOKEN_ID,
+        2,
+        &expected_locked_balance,
+        Some(&expected_attributes),
     );
 }

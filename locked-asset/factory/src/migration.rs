@@ -1,11 +1,11 @@
 elrond_wasm::imports!();
 
-use common_structs::Epoch;
+use common_structs::LockedAssetTokenAttributesEx;
 
 mod simple_lock_energy_proxy {
     elrond_wasm::imports!();
 
-    use common_structs::Epoch;
+    use common_structs::LockedAssetTokenAttributesEx;
 
     #[elrond_wasm::proxy]
     pub trait SimpleLockEnergyProxy {
@@ -14,7 +14,9 @@ mod simple_lock_energy_proxy {
         fn accept_migrated_tokens(
             &self,
             original_caller: ManagedAddress,
-            amount_unlock_epoch_pairs: MultiValueEncoded<MultiValue2<BigUint, Epoch>>,
+            amount_attribute_pairs: MultiValueEncoded<
+                MultiValue2<BigUint, LockedAssetTokenAttributesEx<Self::Api>>,
+            >,
         ) -> ManagedVec<EsdtTokenPayment<Self::Api>>;
     }
 }
@@ -46,9 +48,11 @@ pub trait LockedTokenMigrationModule:
     }
 
     /// Facilitates migrating of old locked tokens to the new contract.
-    /// Each old locked token will be converted into a new locked token,
-    /// with the unlock epoch being a weighted average of the old ones,
-    /// with the weight being the unlock percent.
+    /// Each old locked token will be converted into a new locked token.
+    /// The new token will keep the old token's attributes,
+    /// and will have some restrictions on the actions it can be used for.
+    /// These restrictions can be lifted if the token is fully converted to a new one.
+    /// This can be done through the new factory.
     ///
     /// Expected input payments: Any number of locked tokens
     ///
@@ -69,7 +73,6 @@ pub trait LockedTokenMigrationModule:
             require!(payment.token_identifier == locked_token_id, "Invalid token");
 
             let attributes = self.get_attributes_ex(&payment.token_identifier, payment.token_nonce);
-            let average_unlock_epoch = attributes.average_unlock_epoch();
 
             self.send().esdt_local_burn(
                 &payment.token_identifier,
@@ -78,7 +81,7 @@ pub trait LockedTokenMigrationModule:
             );
 
             total_locked_tokens += &payment.amount;
-            args.push((payment.amount, average_unlock_epoch).into());
+            args.push((payment.amount, attributes).into());
         }
 
         self.migrate_tokens(total_locked_tokens, args)
@@ -87,7 +90,7 @@ pub trait LockedTokenMigrationModule:
     fn migrate_tokens(
         &self,
         total_base_asset_amount: BigUint,
-        arg_pairs: MultiValueEncoded<MultiValue2<BigUint, Epoch>>,
+        arg_pairs: MultiValueEncoded<MultiValue2<BigUint, LockedAssetTokenAttributesEx<Self::Api>>>,
     ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
         let original_caller = self.blockchain().get_caller();
         let base_asset_token_id = self.asset_token_id().get();

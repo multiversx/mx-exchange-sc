@@ -28,6 +28,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLockOptions
         getLockedTokenId
         getLpProxyTokenId
+        getOldTokenNonces
         getPenaltyAmount
         getPenaltyPercentage
         isPaused

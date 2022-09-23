@@ -7,8 +7,8 @@ use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
 
 use super::locked_asset;
 use super::locked_asset::{
-    EpochAmountPair, LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
-    ONE_MILLION, PERCENTAGE_TOTAL_EX,
+    LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE, ONE_MILLION,
+    PERCENTAGE_TOTAL_EX,
 };
 
 #[elrond_wasm::module]
