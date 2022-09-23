@@ -64,7 +64,10 @@ pub trait FeeModule:
             first_token,
             second_token,
         };
-        let is_new = self.trusted_swap_pair().insert(token_pair, pair_address) == None;
+        let is_new = self
+            .trusted_swap_pair()
+            .insert(token_pair, pair_address)
+            .is_none();
         require!(is_new, ERROR_PAIR_ALREADY_TRUSTED);
     }
 
@@ -80,13 +83,16 @@ pub trait FeeModule:
             second_token: second_token.clone(),
         };
 
-        let mut is_removed = self.trusted_swap_pair().remove(&token_pair) != None;
+        let mut is_removed = self.trusted_swap_pair().remove(&token_pair).is_some();
         if !is_removed {
             let token_pair_reversed = TokenPair {
                 first_token: second_token,
                 second_token: first_token,
             };
-            is_removed = self.trusted_swap_pair().remove(&token_pair_reversed) != None;
+            is_removed = self
+                .trusted_swap_pair()
+                .remove(&token_pair_reversed)
+                .is_some();
             require!(is_removed, ERROR_PAIR_NOT_TRUSTED);
         }
     }

@@ -22,8 +22,8 @@ path = "../rewards"
 [dependencies.token_send]
 path = "../../token_send"
 
-[dependencies.token_merge]
-path = "../../token_merge"
+[dependencies.token_merge_helper]
+path = "../../token_merge_helper"
 
 [dependencies.config]
 path = "../config"

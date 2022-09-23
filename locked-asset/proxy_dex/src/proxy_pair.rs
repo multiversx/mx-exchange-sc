@@ -30,7 +30,7 @@ pub struct WrappedLpToken<M: ManagedTypeApi> {
 pub trait ProxyPairModule:
     proxy_common::ProxyCommonModule
     + wrapped_lp_token_merge::WrappedLpTokenMerge
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + events::EventsModule
 {

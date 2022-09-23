@@ -31,9 +31,6 @@ path = "../../common/common_structs"
 [dependencies.farm-staking]
 path = "../../farm-staking/farm-staking"
 
-[dependencies.farm_with_lock]
-path = "../farm_with_lock"
-
 [dependencies.factory]
 path = "../../locked-asset/factory"
 

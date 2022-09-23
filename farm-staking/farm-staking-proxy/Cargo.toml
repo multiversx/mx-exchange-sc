@@ -29,8 +29,8 @@ path = "../../dex/pair"
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
