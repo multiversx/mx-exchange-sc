@@ -3,14 +3,10 @@ members = [
   "dex",
   "dex/farm",
   "dex/farm/meta",
-  "dex/farm_with_lock",
-  "dex/farm_with_lock/meta",
   "dex/pair",
   "dex/pair/meta",
   "dex/router",
   "dex/router/meta",
-  "dex/farm_v1_2_mock",
-  "dex/farm_v1_2_mock/meta",
   "dex/fuzz",
   "dex/governance",
   "dex/governance/meta",
@@ -49,6 +45,4 @@ members = [
 
   "pause-all",
   "pause-all/meta",
-
-  "integration-test-lib",
 ]

@@ -7,6 +7,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 
+use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
 use pair::safe_price::SafePriceModule;
 use pair::*;

@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
+[dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
@@ -20,8 +23,8 @@ path = "../../common/modules/farm/rewards"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"

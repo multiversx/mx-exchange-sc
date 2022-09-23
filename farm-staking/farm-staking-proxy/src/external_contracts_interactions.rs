@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use core::mem::swap;
 
-use farm::farm_token_merge::ProxyTrait as _;
+use farm::ProxyTrait as _;
 use pair::safe_price::ProxyTrait as _;
 
 use crate::result_types::*;
@@ -13,7 +13,7 @@ pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPaym
 
 #[elrond_wasm::module]
 pub trait ExternalContractsInteractionsModule:
-    crate::lp_farm_token::LpFarmTokenModule + token_merge::TokenMergeModule
+    crate::lp_farm_token::LpFarmTokenModule + token_merge_helper::TokenMergeHelperModule
 {
     // lp farm
 

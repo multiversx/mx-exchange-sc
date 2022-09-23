@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::FarmTokenAttributes;
 
 #[elrond_wasm::module]
-pub trait LpFarmTokenModule: token_merge::TokenMergeModule {
+pub trait LpFarmTokenModule: token_merge_helper::TokenMergeHelperModule {
     fn get_lp_tokens_in_farm_position(
         &self,
         farm_token_nonce: u64,

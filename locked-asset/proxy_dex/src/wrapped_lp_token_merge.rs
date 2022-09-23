@@ -11,7 +11,9 @@ use proxy_pair::WrappedLpToken;
 
 #[elrond_wasm::module]
 pub trait WrappedLpTokenMerge:
-    token_merge::TokenMergeModule + token_send::TokenSendModule + proxy_common::ProxyCommonModule
+    token_merge_helper::TokenMergeHelperModule
+    + token_send::TokenSendModule
+    + proxy_common::ProxyCommonModule
 {
     #[payable("*")]
     #[endpoint(mergeWrappedLpTokens)]
