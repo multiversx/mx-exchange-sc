@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use token_merge::ValueWeight;
+use token_merge_helper::{ValueWeight, WeightedAverageType};
 
 #[derive(
     ManagedVecItem,
@@ -31,7 +31,7 @@ pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + config::ConfigModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -107,7 +107,7 @@ pub trait FarmTokenMergeModule:
                 weight: x.payment.amount,
             })
         });
-        self.weighted_average_ceil(dataset)
+        self.weighted_average(dataset, WeightedAverageType::Ceil)
     }
 
     fn aggregated_compounded_reward(

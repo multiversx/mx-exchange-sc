@@ -8,17 +8,20 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
+[dependencies.farm_token_merge]
+path = "../../common/modules/farm/farm_token_merge"
+
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
-
-[dependencies.migration_from_v1_2]
-path = "../../common/modules/farm/migration_from_v1_2"
 
 [dependencies.events]
 path = "../../common/modules/farm/events"
@@ -29,17 +32,14 @@ path = "../../common/modules/farm/contexts"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
-
-[dependencies.factory]
-path = "../../locked-asset/factory"
 
 [dependencies.pair]
 path = "../pair"
@@ -50,6 +50,18 @@ path = "../../common/common_structs"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../energy-integration/common-modules/weekly-rewards-splitting"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
 [dependencies.elrond-wasm]
 version = "0.34.0"
 
@@ -58,3 +70,9 @@ version = "0.34.0"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.energy-factory-mock]
+path = "../../energy-integration/energy-factory-mock"

@@ -1,0 +1,53 @@
+[package]
+name = "farm_base_impl"
+version = "0.0.0"
+authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.config]
+path = "../config"
+
+[dependencies.farm_token]
+path = "../farm_token"
+
+[dependencies.farm_token_merge]
+path = "../farm_token_merge"
+
+[dependencies.rewards]
+path = "../rewards"
+
+[dependencies.events]
+path = "../events"
+
+[dependencies.contexts]
+path = "../contexts"
+
+[dependencies.token_send]
+path = "../../token_send"
+
+[dependencies.token_merge_helper]
+path = "../../token_merge_helper"
+
+[dependencies.pausable]
+path = "../../pausable"
+
+[dependencies.permissions_module]
+path = "../../permissions_module"
+
+[dependencies.common_structs]
+path = "../../../common_structs"
+
+[dependencies.common_errors]
+path = "../../../common_errors"
+
+[dependencies.elrond-wasm]
+version = "0.34.0"
+
+[dependencies.elrond-wasm-modules]
+version = "0.34.0"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.34.0"

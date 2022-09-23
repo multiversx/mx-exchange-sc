@@ -16,14 +16,15 @@ elrond_wasm_node::wasm_endpoints! {
         end_produce_rewards
         enterFarm
         exitFarm
+        getBoostedYieldsRewardsPercenatage
         getBurnGasLimit
+        getCurrentWeek
         getDivisionSafetyConstant
-        getFarmMigrationConfiguration
+        getEnergyFactoryAddress
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
         getLastRewardBlockNonce
-        getLockedAssetFactoryManagedAddress
         getMinimumFarmingEpoch
         getPairContractManagedAddress
         getPenaltyPercent
@@ -34,16 +35,14 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardTokenId
         getState
         mergeFarmTokens
-        migrateFromV1_2Farm
         pause
         registerFarmToken
         removeAdmin
         removeFromPauseWhitelist
         resume
-        setFarmMigrationConfig
-        setFarmTokenSupply
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
         setPerBlockRewardAmount
-        setRpsAndStartRewards
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
