@@ -12,7 +12,6 @@ pub trait ExtendLockModule:
     + crate::token_whitelist::TokenWhitelistModule
     + crate::util::UtilModule
     + crate::energy::EnergyModule
-    + crate::migration::SimpleLockMigrationModule
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
