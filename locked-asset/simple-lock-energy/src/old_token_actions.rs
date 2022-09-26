@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_structs::{Epoch, Nonce, OldLockedTokenAttributes};
+use common_structs::{Epoch, OldLockedTokenAttributes};
 use factory::locked_asset::MAX_MILESTONES_IN_SCHEDULE;
 use simple_lock::error_messages::CANNOT_UNLOCK_YET_ERR_MSG;
 
@@ -19,6 +19,7 @@ pub trait OldTokenActions:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
     + crate::lock_options::LockOptionsModule
+    + crate::old_token_nonces::OldTokenNonces
     + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
@@ -73,17 +74,4 @@ pub trait OldTokenActions:
             unlocked: unlocked_tokens,
         }
     }
-
-    #[inline]
-    fn is_new_token(&self, token_nonce: Nonce) -> bool {
-        !self.old_token_nonces().contains(&token_nonce)
-    }
-
-    fn require_new_token(&self, token_nonce: Nonce) {
-        require!(self.is_new_token(token_nonce), "Only new tokens accepted");
-    }
-
-    #[view(getOldTokenNonces)]
-    #[storage_mapper("oldTokenNonces")]
-    fn old_token_nonces(&self) -> UnorderedSetMapper<Nonce>;
 }

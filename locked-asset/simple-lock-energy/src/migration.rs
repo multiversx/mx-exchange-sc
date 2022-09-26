@@ -12,17 +12,21 @@ pub trait SimpleLockMigrationModule:
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
-    + crate::lock_options::LockOptionsModule
-    + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
-    + crate::old_token_actions::OldTokenActions
+    + crate::old_token_nonces::OldTokenNonces
 {
+    /// Sets the transfer role for the given address. Defaults to own address.
     #[endpoint(setTransferRoleLockedToken)]
-    fn set_transfer_role(&self) {
+    fn set_transfer_role(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
         self.locked_token()
-            .set_local_roles(&[EsdtLocalRole::Transfer], None);
+            .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
     }
 
     /// Sets the address for the contract which is expected to perform the migration

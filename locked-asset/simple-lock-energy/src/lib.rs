@@ -8,6 +8,7 @@ pub mod extend_lock;
 pub mod lock_options;
 pub mod migration;
 pub mod old_token_actions;
+pub mod old_token_nonces;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod util;
@@ -31,6 +32,7 @@ pub trait SimpleLockEnergy:
     + migration::SimpleLockMigrationModule
     + events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
+    + old_token_nonces::OldTokenNonces
     + old_token_actions::OldTokenActions
 {
     /// Args:
