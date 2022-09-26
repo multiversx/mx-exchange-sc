@@ -190,7 +190,6 @@ pub trait UnlockWithPenaltyModule:
         token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
 
-    // TODO: Burn x%, and rest send to fees collector
     fn burn_penalty(&self, token_id: TokenIdentifier, fees_amount: &BigUint) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;

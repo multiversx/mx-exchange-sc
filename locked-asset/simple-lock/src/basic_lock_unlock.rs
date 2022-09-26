@@ -1,6 +1,9 @@
 elrond_wasm::imports!();
 
-use crate::{error_messages::NO_PAYMENT_ERR_MSG, locked_token::LockedTokenAttributes};
+use crate::{
+    error_messages::{CANNOT_UNLOCK_YET_ERR_MSG, NO_PAYMENT_ERR_MSG},
+    locked_token::LockedTokenAttributes,
+};
 
 #[elrond_wasm::module]
 pub trait BasicLockUnlock:
@@ -66,7 +69,7 @@ pub trait BasicLockUnlock:
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             current_epoch >= attributes.unlock_epoch,
-            "Cannot unlock yet"
+            CANNOT_UNLOCK_YET_ERR_MSG
         );
 
         self.unlock_tokens_unchecked(payment, &attributes)

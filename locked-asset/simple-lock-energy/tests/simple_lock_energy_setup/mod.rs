@@ -174,7 +174,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.unlock_tokens_endpoint(OptionalValue::Some(managed_address!(caller)));
+                sc.unlock_tokens_endpoint();
             },
         )
     }

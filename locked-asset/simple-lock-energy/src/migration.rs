@@ -3,7 +3,7 @@ elrond_wasm::imports!();
 use common_structs::LockedAssetTokenAttributesEx;
 use factory::locked_asset::MAX_MILESTONES_IN_SCHEDULE;
 
-static OLD_TOKEN_NAME: &[u8] = b"LegacyLKMEX";
+pub static OLD_TOKEN_NAME: &[u8] = b"LegacyLKMEX";
 
 #[elrond_wasm::module]
 pub trait SimpleLockMigrationModule:
@@ -91,7 +91,8 @@ pub trait SimpleLockMigrationModule:
                 .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_SCHEDULE>(&token_amount);
 
             let mut leftover_locked_amount = BigUint::zero();
-            for epoch_amount_pair in &unlock_amounts_per_epoch {
+            let mut total_unlockable_entries = 0;
+            for epoch_amount_pair in unlock_amounts_per_epoch.pairs {
                 if epoch_amount_pair.epoch > current_epoch {
                     energy.add_after_token_lock(
                         &epoch_amount_pair.amount,
@@ -99,14 +100,15 @@ pub trait SimpleLockMigrationModule:
                         current_epoch,
                     );
 
-                    leftover_locked_amount += &epoch_amount_pair.amount;
+                    leftover_locked_amount += epoch_amount_pair.amount;
                 } else {
-                    total_unlockable_tokens += &epoch_amount_pair.amount;
+                    total_unlockable_tokens += epoch_amount_pair.amount;
+                    total_unlockable_entries += 1;
                 }
             }
 
             if leftover_locked_amount > 0 {
-                attributes.remove_outdated_milestones(current_epoch);
+                attributes.remove_first_milestones(total_unlockable_entries);
 
                 let new_token_nonce = self.get_or_create_nonce_for_attributes(
                     &locked_token_mapper,
