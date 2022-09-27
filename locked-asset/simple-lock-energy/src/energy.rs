@@ -100,6 +100,19 @@ impl<M: ManagedTypeApi> Energy<M> {
         self.total_locked_tokens -= unlock_amount;
     }
 
+    pub fn update_after_unlock_any(
+        &mut self,
+        unlock_amount: &BigUint<M>,
+        unlock_epoch: Epoch,
+        current_epoch: Epoch,
+    ) {
+        if unlock_epoch < current_epoch {
+            self.refund_after_token_unlock(unlock_amount, unlock_epoch, current_epoch);
+        } else {
+            self.deplete_after_early_unlock(unlock_amount, unlock_epoch, current_epoch);
+        }
+    }
+
     #[inline]
     pub fn get_last_update_epoch(&self) -> Epoch {
         self.last_update_epoch

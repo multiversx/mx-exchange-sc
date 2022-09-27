@@ -25,6 +25,7 @@ pub trait ExtendLockModule:
         self.require_not_paused();
         self.require_is_listed_lock_option(new_lock_period);
 
+        // TODO: Check is required token
         let payment = self.call_value().single_esdt();
         let attributes: LockedTokenAttributes<Self::Api> = self
             .locked_token()
@@ -40,7 +41,7 @@ pub trait ExtendLockModule:
         let caller = self.blockchain().get_caller();
 
         let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
-        energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
+        energy.update_after_unlock_any(&payment.amount, attributes.unlock_epoch, current_epoch);
         energy.add_after_token_lock(&payment.amount, new_unlock_epoch, current_epoch);
         self.set_energy_entry(&caller, energy);
 
