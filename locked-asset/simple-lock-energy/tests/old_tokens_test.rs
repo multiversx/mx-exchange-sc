@@ -138,3 +138,97 @@ fn extend_lock_period_old_token_test() {
         actual_energy_after
     );
 }
+
+#[test]
+fn unlock_old_token_test() {
+    let _ = DebugApi::dummy();
+    let rust_zero = rust_biguint!(0);
+    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let first_user = setup.first_user.clone();
+
+    setup.b_mock.set_block_epoch(1);
+
+    setup.b_mock.set_esdt_balance(
+        setup.sc_wrapper.address_ref(),
+        BASE_ASSET_TOKEN_ID,
+        &rust_biguint!(USER_BALANCE),
+    );
+    setup
+        .b_mock
+        .set_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &rust_zero);
+
+    let first_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR);
+    let second_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 5);
+    let mut unlock_milestones = ManagedVec::<DebugApi, UnlockMilestoneEx>::new();
+    unlock_milestones.push(UnlockMilestoneEx {
+        unlock_percent: 40_000,
+        unlock_epoch: first_unlock_epoch,
+    });
+    unlock_milestones.push(UnlockMilestoneEx {
+        unlock_percent: 60_000,
+        unlock_epoch: second_unlock_epoch,
+    });
+    let mut old_token_attributes = LockedAssetTokenAttributesEx {
+        is_merged: false,
+        unlock_schedule: UnlockScheduleEx { unlock_milestones },
+    };
+
+    setup.b_mock.set_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &rust_biguint!(USER_BALANCE),
+        &old_token_attributes,
+    );
+
+    let mut user_energy_amount = managed_biguint!(0);
+    user_energy_amount += managed_biguint!(40_000) * USER_BALANCE * first_unlock_epoch / 100_000u32;
+    user_energy_amount +=
+        managed_biguint!(40_000) * USER_BALANCE * second_unlock_epoch / 100_000u32;
+
+    setup
+        .b_mock
+        .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
+            let _ = sc.old_token_nonces().insert(1u64);
+
+            // create token to update the nonce
+            let _ = sc
+                .locked_token()
+                .nft_create(managed_biguint!(1), &old_token_attributes);
+
+            sc.user_energy(&managed_address!(&first_user))
+                .set(&Energy::new(
+                    BigInt::from(user_energy_amount.clone()),
+                    1,
+                    managed_biguint!(USER_BALANCE),
+                ));
+        })
+        .assert_ok();
+
+    // first_unlock_epoch - 1 epochs pass
+    setup.b_mock.set_block_epoch(first_unlock_epoch);
+    user_energy_amount -=
+        managed_biguint!(40_000) * USER_BALANCE * (first_unlock_epoch - 1) / 100_000u32;
+    user_energy_amount -=
+        managed_biguint!(60_000) * USER_BALANCE * (first_unlock_epoch - 1) / 100_000u32;
+
+    let expected_unlocked_balance = rust_biguint!(40_000) * USER_BALANCE / 100_000u32;
+    let expected_locked_balance = rust_biguint!(60_000) * USER_BALANCE / 100_000u32;
+    setup.unlock(&first_user, 1, USER_BALANCE).assert_ok();
+
+    setup
+        .b_mock
+        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_unlocked_balance);
+
+    old_token_attributes
+        .unlock_schedule
+        .unlock_milestones
+        .remove(0);
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        2,
+        &expected_locked_balance,
+        Some(&old_token_attributes),
+    );
+}
