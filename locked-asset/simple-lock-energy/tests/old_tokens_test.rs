@@ -231,4 +231,7 @@ fn unlock_old_token_test() {
         &expected_locked_balance,
         Some(&old_token_attributes),
     );
+
+    let actual_energy = setup.get_user_energy(&first_user);
+    assert_eq!(actual_energy, to_rust_biguint(user_energy_amount));
 }
