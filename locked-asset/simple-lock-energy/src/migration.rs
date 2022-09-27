@@ -16,6 +16,9 @@ pub trait SimpleLockMigrationModule:
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
     + crate::old_token_nonces::OldTokenNonces
+    + crate::old_token_actions::OldTokenActions
+    + crate::lock_options::LockOptionsModule
+    + crate::util::UtilModule
 {
     /// Sets the transfer role for the given address. Defaults to own address.
     #[endpoint(setTransferRoleLockedToken)]
@@ -77,9 +80,6 @@ pub trait SimpleLockMigrationModule:
         self.require_is_base_asset_token(&payment.token_identifier);
 
         let locked_token_mapper = self.locked_token();
-        let mut old_nonces_mapper = self.old_token_nonces();
-        let token_name = ManagedBuffer::new_from_bytes(OLD_TOKEN_NAME);
-
         let base_asset_token_id = self.base_asset_token_id().get();
         let current_epoch = self.blockchain().get_block_epoch();
 
@@ -114,15 +114,11 @@ pub trait SimpleLockMigrationModule:
             if leftover_locked_amount > 0 {
                 attributes.remove_first_milestones(total_unlockable_entries);
 
-                let new_token_nonce = self.get_or_create_nonce_for_attributes(
+                let new_locked_tokens = self.create_old_token(
                     &locked_token_mapper,
-                    &token_name,
+                    leftover_locked_amount,
                     &attributes,
                 );
-                let _ = old_nonces_mapper.insert(new_token_nonce);
-
-                let new_locked_tokens =
-                    locked_token_mapper.nft_add_quantity(new_token_nonce, leftover_locked_amount);
                 output_payments.push(new_locked_tokens);
             }
         }

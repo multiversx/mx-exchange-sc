@@ -54,13 +54,8 @@ pub trait OldTokenActions:
         let opt_locked = if leftover_locked > 0 {
             attributes.remove_first_milestones(total_unlockable_entries);
 
-            let new_token_nonce = self.get_or_create_nonce_for_attributes(
-                &locked_token_mapper,
-                &ManagedBuffer::new_from_bytes(OLD_TOKEN_NAME),
-                &attributes,
-            );
-            let new_tokens = locked_token_mapper.nft_add_quantity(new_token_nonce, leftover_locked);
-
+            let new_tokens =
+                self.create_old_token(&locked_token_mapper, leftover_locked, &attributes);
             Some(new_tokens)
         } else {
             None
@@ -98,7 +93,7 @@ pub trait OldTokenActions:
             .iter()
             .zip(current_unlock_milestones.iter())
         {
-            if current_milestone.unlock_epoch < new_unlock_epoch {
+            if current_milestone.unlock_epoch <= new_unlock_epoch {
                 aggregated_new_unlock_percent += current_milestone.unlock_percent;
 
                 energy.update_after_unlock_any(
@@ -116,6 +111,11 @@ pub trait OldTokenActions:
             }
         }
 
+        require!(
+            aggregated_new_unlock_percent > 0,
+            "All unlock periods already exceed the requested period"
+        );
+
         let extended_milestone = UnlockMilestoneEx {
             unlock_epoch: new_unlock_epoch,
             unlock_percent: aggregated_new_unlock_percent,
@@ -129,12 +129,23 @@ pub trait OldTokenActions:
             },
             is_merged: attributes.is_merged,
         };
-        let new_token_nonce = self.get_or_create_nonce_for_attributes(
-            &locked_token_mapper,
-            &ManagedBuffer::new_from_bytes(OLD_TOKEN_NAME),
-            &new_attributes,
-        );
 
-        locked_token_mapper.nft_add_quantity(new_token_nonce, payment.amount)
+        self.create_old_token(&locked_token_mapper, payment.amount, &new_attributes)
+    }
+
+    fn create_old_token(
+        &self,
+        locked_token_mapper: &NonFungibleTokenMapper<Self::Api>,
+        amount: BigUint,
+        attributes: &OldLockedTokenAttributes<Self::Api>,
+    ) -> EsdtTokenPayment {
+        let new_token_nonce = self.get_or_create_nonce_for_attributes(
+            locked_token_mapper,
+            &ManagedBuffer::new_from_bytes(OLD_TOKEN_NAME),
+            attributes,
+        );
+        let _ = self.old_token_nonces().insert(new_token_nonce);
+
+        locked_token_mapper.nft_add_quantity(new_token_nonce, amount)
     }
 }
