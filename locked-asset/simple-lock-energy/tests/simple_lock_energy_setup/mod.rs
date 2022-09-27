@@ -161,7 +161,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.extend_locking_period(lock_epochs);
+                sc.extend_locking_period_endpoint(lock_epochs);
             },
         )
     }

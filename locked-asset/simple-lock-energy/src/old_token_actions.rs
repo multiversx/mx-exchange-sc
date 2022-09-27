@@ -79,6 +79,8 @@ pub trait OldTokenActions:
         &self,
         payment: EsdtTokenPayment,
         new_unlock_epoch: Epoch,
+        energy: &mut Energy<Self::Api>,
+        current_epoch: Epoch,
     ) -> EsdtTokenPayment {
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_same_token(&payment.token_identifier);
@@ -88,10 +90,6 @@ pub trait OldTokenActions:
         let current_unlock_milestones = &attributes.unlock_schedule.unlock_milestones;
         let unlock_epoch_amount_pairs = attributes
             .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_SCHEDULE>(&payment.amount);
-
-        let caller = self.blockchain().get_caller();
-        let current_epoch = self.blockchain().get_block_epoch();
-        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
 
         let mut unaffected_milestones = ManagedVec::<Self::Api, UnlockMilestoneEx>::new();
         let mut aggregated_new_unlock_percent = 0;
@@ -137,6 +135,6 @@ pub trait OldTokenActions:
             &new_attributes,
         );
 
-        locked_token_mapper.nft_add_quantity_and_send(&caller, new_token_nonce, payment.amount)
+        locked_token_mapper.nft_add_quantity(new_token_nonce, payment.amount)
     }
 }
