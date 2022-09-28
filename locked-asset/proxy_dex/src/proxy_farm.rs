@@ -425,7 +425,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .enter_farm()
+            .enter_farm_endpoint()
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }
@@ -438,7 +438,7 @@ pub trait ProxyFarmModule:
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm()
+            .exit_farm_endpoint()
             .add_esdt_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
             .execute_on_dest_context()
     }
@@ -458,7 +458,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards()
+            .claim_rewards_endpoint()
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }
@@ -478,7 +478,7 @@ pub trait ProxyFarmModule:
         ));
 
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards()
+            .compound_rewards_endpoint()
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }

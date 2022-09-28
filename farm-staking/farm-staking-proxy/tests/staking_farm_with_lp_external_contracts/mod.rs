@@ -295,7 +295,7 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm();
+            let payment = sc.enter_farm_endpoint();
             assert_eq!(
                 payment.token_identifier,
                 managed_token_id!(LP_FARM_TOKEN_ID)
