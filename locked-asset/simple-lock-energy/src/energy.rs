@@ -70,6 +70,11 @@ impl<M: ManagedTypeApi> Energy<M> {
         self.last_update_epoch = current_epoch;
     }
 
+    pub fn add_energy_raw(&mut self, locked_token_amount: BigUint<M>, energy_amount: BigUint<M>) {
+        self.total_locked_tokens += locked_token_amount;
+        self.amount += BigInt::from(energy_amount);
+    }
+
     pub fn add_after_token_lock(
         &mut self,
         lock_amount: &BigUint<M>,
@@ -113,6 +118,17 @@ impl<M: ManagedTypeApi> Energy<M> {
         }
     }
 
+    pub fn update_after_extend(
+        &mut self,
+        token_amount: &BigUint<M>,
+        old_unlock_epoch: Epoch,
+        new_unlock_epoch: Epoch,
+        current_epoch: Epoch,
+    ) {
+        self.update_after_unlock_any(token_amount, old_unlock_epoch, current_epoch);
+        self.add_after_token_lock(token_amount, new_unlock_epoch, current_epoch);
+    }
+
     #[inline]
     pub fn get_last_update_epoch(&self) -> Epoch {
         self.last_update_epoch
@@ -134,41 +150,43 @@ impl<M: ManagedTypeApi> Energy<M> {
 
 #[elrond_wasm::module]
 pub trait EnergyModule: crate::events::EventsModule {
+    fn update_energy<T, F: FnOnce(&mut Energy<Self::Api>) -> T>(
+        &self,
+        user: &ManagedAddress,
+        update_fn: F,
+    ) -> T {
+        let mut energy = self.get_updated_energy_entry_for_user(user);
+        let result = update_fn(&mut energy);
+        self.set_energy_entry(user, energy);
+
+        result
+    }
+
     fn set_energy_entry(&self, user: &ManagedAddress, new_energy: Energy<Self::Api>) {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let prev_energy = self.get_updated_energy_entry_for_user(user, current_epoch);
+        let prev_energy = self.get_updated_energy_entry_for_user(user);
 
         self.user_energy(user).set(&new_energy);
-
         self.emit_energy_updated_event(user, prev_energy, new_energy);
     }
 
-    fn get_updated_energy_entry_for_user(
-        &self,
-        user: &ManagedAddress,
-        current_epoch: u64,
-    ) -> Energy<Self::Api> {
+    #[view(getEnergyEntryForUser)]
+    fn get_updated_energy_entry_for_user(&self, user: &ManagedAddress) -> Energy<Self::Api> {
         let energy_mapper = self.user_energy(user);
         let mut energy = if !energy_mapper.is_empty() {
             energy_mapper.get()
         } else {
             Energy::default()
         };
+
+        let current_epoch = self.blockchain().get_block_epoch();
         energy.deplete(current_epoch);
 
         energy
     }
 
-    #[view(getEnergyEntryForUser)]
-    fn get_energy_entry_for_user_view(&self, user: &ManagedAddress) -> Energy<Self::Api> {
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.get_updated_energy_entry_for_user(user, current_epoch)
-    }
-
     #[view(getEnergyAmountForUser)]
     fn get_energy_amount_for_user(&self, user: ManagedAddress) -> BigUint {
-        let current_epoch = self.blockchain().get_block_epoch();
-        let energy = self.get_updated_energy_entry_for_user(&user, current_epoch);
+        let energy = self.get_updated_energy_entry_for_user(&user);
 
         energy.get_energy_amount()
     }

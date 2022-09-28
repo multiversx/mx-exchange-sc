@@ -1,119 +1,108 @@
 elrond_wasm::imports!();
 
-use common_structs::LockedAssetTokenAttributesEx;
-
-mod simple_lock_energy_proxy {
-    elrond_wasm::imports!();
-
-    use common_structs::LockedAssetTokenAttributesEx;
-
-    #[elrond_wasm::proxy]
-    pub trait SimpleLockEnergyProxy {
-        #[payable("*")]
-        #[endpoint(acceptMigratedTokens)]
-        fn accept_migrated_tokens(
-            &self,
-            original_caller: ManagedAddress,
-            amount_attribute_pairs: MultiValueEncoded<
-                MultiValue2<BigUint, LockedAssetTokenAttributesEx<Self::Api>>,
-            >,
-        ) -> ManagedVec<EsdtTokenPayment<Self::Api>>;
-    }
-}
-
 #[elrond_wasm::module]
 pub trait LockedTokenMigrationModule:
     crate::locked_asset::LockedAssetModule
     + token_send::TokenSendModule
     + crate::attr_ex_helper::AttrExHelper
-    + elrond_wasm_modules::pause::PauseModule
 {
-    /// This endpoint allows migration to the new SC to start, which in turn:
-    /// - sets the address of the new factory, which should be a SimpleLockEnergy SC
-    /// - pauses locked asset factory
+    /// The new factory will need the burn role for the migrated tokens
     #[only_owner]
-    #[endpoint(startMigration)]
-    fn start_migration(&self, new_sc_address: ManagedAddress) {
-        require!(
-            self.new_contract_address().is_empty(),
-            "Migration already started"
+    #[endpoint(setLockedTokenBurnRoleForAddress)]
+    fn set_locked_token_burn_role_for_address(&self, address: ManagedAddress) {
+        self.locked_asset_token().set_local_roles_for_address(
+            &address,
+            &[EsdtLocalRole::NftBurn],
+            None,
         );
-        require!(
-            !new_sc_address.is_zero() && self.blockchain().is_smart_contract(&new_sc_address),
-            "Invalid SC address"
-        );
-
-        self.new_contract_address().set(&new_sc_address);
-        self.set_paused(true);
     }
 
-    /// Facilitates migrating of old locked tokens to the new contract.
-    /// Each old locked token will be converted into a new locked token.
-    /// The new token will keep the old token's attributes,
-    /// and will have some restrictions on the actions it can be used for.
-    /// These restrictions can be lifted if the token is fully converted to a new one.
-    /// This can be done through the new factory.
+    /// Converts old tokens from the locked asset factory into the new version.
+    /// Additionally, it also updates the user's energy accordingly.
     ///
-    /// Expected input payments: Any number of locked tokens
+    /// Expected payments: old LOCKED tokens
     ///
-    /// Output payments: New version of the locked tokens.
-    /// The new tokens may be used in the new contract, which can be queried via getNewContractAddress
+    /// Output payments: New version of the locked tokens
     #[payable("*")]
-    #[endpoint(migrateToNewFactory)]
-    fn migrate_to_new_factory(&self) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        self.require_paused();
+    #[endpoint(migrateTokens)]
+    fn migrate_tokens(&self) -> PaymentsVec<Self::Api> {
+        self.require_not_paused();
 
         let payments = self.call_value().all_esdt_transfers();
-        require!(!payments.is_empty(), "No payments");
+        require!(!payment.is_empty(), NO_PAYMENT_ERR_MSG);
 
-        let locked_token_id = self.locked_asset_token().get_token_id();
-        let mut total_locked_tokens = BigUint::zero();
-        let mut args = MultiValueEncoded::new();
-        for payment in &payments {
-            require!(payment.token_identifier == locked_token_id, "Invalid token");
+        self.require_is_base_asset_token(&payment.token_identifier);
 
-            let attributes = self.get_attributes_ex(&payment.token_identifier, payment.token_nonce);
+        let locked_token_mapper = self.locked_token();
+        let base_asset_token_id = self.base_asset_token_id().get();
 
-            self.send().esdt_local_burn(
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
+        let current_epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
+        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
 
-            total_locked_tokens += &payment.amount;
-            args.push((payment.amount, attributes).into());
+        let mut total_tokens_in_pairs = BigUint::zero();
+        let mut total_unlockable_tokens = BigUint::zero();
+        let mut output_payments = ManagedVec::new();
+        for pair in amount_attributes_pairs {
+            let (token_amount, mut attributes) = pair.into_tuple();
+            total_tokens_in_pairs += &token_amount;
+
+            let unlock_amounts_per_epoch = attributes
+                .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_SCHEDULE>(&token_amount);
+
+            let mut leftover_locked_amount = BigUint::zero();
+            let mut total_unlockable_entries = 0;
+            for epoch_amount_pair in unlock_amounts_per_epoch.pairs {
+                if epoch_amount_pair.epoch > current_epoch {
+                    energy.add_after_token_lock(
+                        &epoch_amount_pair.amount,
+                        epoch_amount_pair.epoch,
+                        current_epoch,
+                    );
+
+                    leftover_locked_amount += epoch_amount_pair.amount;
+                } else {
+                    total_unlockable_tokens += epoch_amount_pair.amount;
+                    total_unlockable_entries += 1;
+                }
+            }
+
+            if leftover_locked_amount > 0 {
+                attributes.remove_first_milestones(total_unlockable_entries);
+
+                let new_locked_tokens = self.create_old_token(
+                    &locked_token_mapper,
+                    leftover_locked_amount,
+                    &attributes,
+                );
+                output_payments.push(new_locked_tokens);
+            }
         }
 
-        self.migrate_tokens(total_locked_tokens, args)
+        require!(
+            payment.amount == total_tokens_in_pairs,
+            "Total amount mismatch"
+        );
+
+        if total_unlockable_tokens > 0 {
+            let unlockable_tokens_payment =
+                EsdtTokenPayment::new(base_asset_token_id, 0, total_unlockable_tokens);
+            output_payments.push(unlockable_tokens_payment);
+        }
+
+        if !output_payments.is_empty() {
+            self.send().direct_multi(&caller, &output_payments);
+        }
+
+        self.set_energy_entry(&caller, energy);
+
+        output_payments
     }
 
-    fn migrate_tokens(
-        &self,
-        total_base_asset_amount: BigUint,
-        arg_pairs: MultiValueEncoded<MultiValue2<BigUint, LockedAssetTokenAttributesEx<Self::Api>>>,
-    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
-        let original_caller = self.blockchain().get_caller();
-        let base_asset_token_id = self.asset_token_id().get();
-        let sc_address = self.new_contract_address().get();
-
-        // tokens were previously burned when locked
-        // so we need to mint them again before sending
-        self.send()
-            .esdt_local_mint(&base_asset_token_id, 0, &total_base_asset_amount);
-
-        self.simple_lock_energy_proxy_builder(sc_address)
-            .accept_migrated_tokens(original_caller, arg_pairs)
-            .add_esdt_token_transfer(base_asset_token_id, 0, total_base_asset_amount)
-            .execute_on_dest_context()
+    fn require_old_energy_not_updated(&self, user: &ManagedAddress) {
+        require!(
+            !self.user_updated_old_tokens_energy().contains(user),
+            "Already updated energy"
+        );
     }
-
-    #[proxy]
-    fn simple_lock_energy_proxy_builder(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> simple_lock_energy_proxy::Proxy<Self::Api>;
-
-    #[view(getNewContractAddress)]
-    #[storage_mapper("newContractAddress")]
-    fn new_contract_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

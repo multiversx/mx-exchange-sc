@@ -23,4 +23,11 @@ pub trait UtilModule {
     fn require_valid_token_id(&self, token_id: &TokenIdentifier) {
         require!(token_id.is_valid_esdt_identifier(), "Invalid token ID");
     }
+
+    fn require_sc_address(&self, address: &ManagedAddress) {
+        require!(
+            !address.is_zero() && self.blockchain().is_smart_contract(address),
+            "Invalid SC address"
+        );
+    }
 }

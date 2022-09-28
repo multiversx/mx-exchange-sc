@@ -1,156 +1,65 @@
 elrond_wasm::imports!();
 
-use common_structs::LockedAssetTokenAttributesEx;
-use factory::locked_asset::MAX_MILESTONES_IN_SCHEDULE;
-
-pub static OLD_TOKEN_NAME: &[u8] = b"LegacyLKMEX";
+use crate::energy::Energy;
+use common_structs::Epoch;
 
 #[elrond_wasm::module]
 pub trait SimpleLockMigrationModule:
-    simple_lock::basic_lock_unlock::BasicLockUnlock
-    + simple_lock::locked_token::LockedTokenModule
-    + simple_lock::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + crate::token_whitelist::TokenWhitelistModule
-    + crate::energy::EnergyModule
-    + crate::events::EventsModule
-    + elrond_wasm_modules::pause::PauseModule
-    + crate::old_token_nonces::OldTokenNonces
-    + crate::old_token_actions::OldTokenActions
-    + crate::lock_options::LockOptionsModule
-    + crate::util::UtilModule
+    crate::energy::EnergyModule + crate::events::EventsModule + elrond_wasm_modules::pause::PauseModule
 {
-    /// Sets the transfer role for the given address. Defaults to own address.
-    #[endpoint(setTransferRoleLockedToken)]
-    fn set_transfer_role(&self, opt_address: OptionalValue<ManagedAddress>) {
-        let address = match opt_address {
-            OptionalValue::Some(addr) => addr,
-            OptionalValue::None => self.blockchain().get_sc_address(),
-        };
-
-        self.locked_token()
-            .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
-    }
-
-    /// Sets the address for the contract which is expected to perform the migration
-    #[only_owner]
-    #[endpoint(setOldLockedAssetFactoryAddress)]
-    fn set_old_locked_asset_factory_address(&self, old_sc_address: ManagedAddress) {
-        require!(
-            self.old_locked_asset_factory_address().is_empty(),
-            "Migration already started"
-        );
-        require!(
-            self.blockchain().is_smart_contract(&old_sc_address),
-            "Invalid SC address"
-        );
-
-        self.old_locked_asset_factory_address().set(&old_sc_address);
-    }
-
-    /// Converts old tokens from the locked asset factory into the new version.
-    /// Additionally, it also updates the user's energy accordingly.
-    ///
-    /// This endpoint can only be called through the "migrateToNewFactory" endpoint
-    /// from locked asset factory, and may not be called directly
-    ///
-    /// Expect input payment: total base assets locked under the given positions
-    ///
-    /// Expected arguments:
-    /// - original_caller: the caller from the "migrateToNewFactory" call
-    /// - amount_unlock_epoch_pairs: constructed from the original attributes
-    /// by locked asset factory. Each milestone entry will generate a different token
-    ///
-    /// Output payments: New version of the locked tokens
-    #[payable("*")]
-    #[endpoint(acceptMigratedTokens)]
-    fn accept_migrated_tokens(
+    #[endpoint(updateEnergyForOldTokens)]
+    fn update_energy_for_old_tokens(
         &self,
         original_caller: ManagedAddress,
-        amount_attributes_pairs: MultiValueEncoded<
-            MultiValue2<BigUint, LockedAssetTokenAttributesEx<Self::Api>>,
-        >,
-    ) -> ManagedVec<EsdtTokenPayment> {
+        total_locked_tokens: BigUint,
+        energy_amount: BigUint,
+    ) {
         self.require_not_paused();
+        self.require_caller_old_factory();
+        self.require_old_tokens_energy_not_updated(&original_caller);
 
-        let caller = self.blockchain().get_caller();
-        self.require_old_sc_address(&caller);
+        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
+            energy.add_energy_raw(total_locked_tokens, energy_amount);
+        });
 
-        let payment = self.call_value().single_esdt();
-        self.require_is_base_asset_token(&payment.token_identifier);
-
-        let locked_token_mapper = self.locked_token();
-        let base_asset_token_id = self.base_asset_token_id().get();
-        let current_epoch = self.blockchain().get_block_epoch();
-
-        let mut total_tokens_in_pairs = BigUint::zero();
-        let mut total_unlockable_tokens = BigUint::zero();
-        let mut output_payments = ManagedVec::new();
-        let mut energy = self.get_updated_energy_entry_for_user(&original_caller, current_epoch);
-        for pair in amount_attributes_pairs {
-            let (token_amount, mut attributes) = pair.into_tuple();
-            total_tokens_in_pairs += &token_amount;
-
-            let unlock_amounts_per_epoch = attributes
-                .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_SCHEDULE>(&token_amount);
-
-            let mut leftover_locked_amount = BigUint::zero();
-            let mut total_unlockable_entries = 0;
-            for epoch_amount_pair in unlock_amounts_per_epoch.pairs {
-                if epoch_amount_pair.epoch > current_epoch {
-                    energy.add_after_token_lock(
-                        &epoch_amount_pair.amount,
-                        epoch_amount_pair.epoch,
-                        current_epoch,
-                    );
-
-                    leftover_locked_amount += epoch_amount_pair.amount;
-                } else {
-                    total_unlockable_tokens += epoch_amount_pair.amount;
-                    total_unlockable_entries += 1;
-                }
-            }
-
-            if leftover_locked_amount > 0 {
-                attributes.remove_first_milestones(total_unlockable_entries);
-
-                let new_locked_tokens = self.create_old_token(
-                    &locked_token_mapper,
-                    leftover_locked_amount,
-                    &attributes,
-                );
-                output_payments.push(new_locked_tokens);
-            }
-        }
-
-        require!(
-            payment.amount == total_tokens_in_pairs,
-            "Total amount mismatch"
-        );
-
-        if total_unlockable_tokens > 0 {
-            let unlockable_tokens_payment =
-                EsdtTokenPayment::new(base_asset_token_id, 0, total_unlockable_tokens);
-            output_payments.push(unlockable_tokens_payment);
-        }
-
-        if !output_payments.is_empty() {
-            self.send().direct_multi(&original_caller, &output_payments);
-        }
-
-        self.set_energy_entry(&original_caller, energy);
-
-        output_payments
+        self.user_updated_old_tokens_energy().add(&original_caller);
     }
 
-    fn require_old_sc_address(&self, address: &ManagedAddress) {
-        let mapper = self.old_locked_asset_factory_address();
-        require!(!mapper.is_empty(), "old SC address not set");
+    #[endpoint(updateEnergyAfterOldTokenUnlock)]
+    fn update_energy_after_old_token_unlock(
+        &self,
+        original_caller: ManagedAddress,
+        tokens_unlocked: BigUint,
+        actual_unlock_epoch: Epoch,
+    ) {
+        self.require_not_paused();
+        self.require_caller_old_factory();
 
-        let sc_address = mapper.get();
-        require!(address == &sc_address, "Invalid SC address");
+        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
+            let current_epoch = self.blockchain().get_block_epoch();
+            energy.refund_after_token_unlock(&tokens_unlocked, actual_unlock_epoch, current_epoch);
+        });
+    }
+
+    fn require_caller_old_factory(&self) {
+        let caller = self.blockchain().get_caller();
+        let old_factory_address = self.old_locked_asset_factory_address().get();
+        require!(
+            caller == old_factory_address,
+            "May only call this through old factory SC"
+        );
+    }
+
+    fn require_old_tokens_energy_not_updated(&self, address: &ManagedAddress) {
+        require!(
+            !self.user_updated_old_tokens_energy().contains(address),
+            "Energy for old tokens already updated"
+        );
     }
 
     #[storage_mapper("oldLockedAssetFactoryAddress")]
     fn old_locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("userUpdatedOldTokensEnergy")]
+    fn user_updated_old_tokens_energy(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
 }

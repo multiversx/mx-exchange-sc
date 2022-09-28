@@ -35,7 +35,7 @@ pub trait BasicLockUnlock:
             &attributes,
         );
 
-        self.locked_token()
+        locked_token_mapper
             .nft_add_quantity(sft_nonce, payment.amount)
             .into()
     }

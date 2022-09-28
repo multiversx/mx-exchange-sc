@@ -36,7 +36,6 @@ pub trait UnlockWithPenaltyModule:
     + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::lock_options::LockOptionsModule
-    + crate::old_token_nonces::OldTokenNonces
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
@@ -76,11 +75,7 @@ pub trait UnlockWithPenaltyModule:
     #[only_owner]
     #[endpoint(setFeesCollectorAddress)]
     fn set_fees_collector_address(&self, sc_address: ManagedAddress) {
-        require!(
-            !sc_address.is_zero() && self.blockchain().is_smart_contract(&sc_address),
-            "Invalid SC address"
-        );
-
+        self.require_sc_address(&sc_address);
         self.fees_collector_address().set(&sc_address);
     }
 
@@ -109,12 +104,12 @@ pub trait UnlockWithPenaltyModule:
     fn reduce_lock_period_common(&self, opt_epochs_to_reduce: Option<Epoch>) -> EsdtTokenPayment {
         self.require_not_paused();
 
+        let locked_token_mapper = self.locked_token();
         let payment = self.call_value().single_esdt();
-        self.require_new_token(payment.token_nonce);
+        locked_token_mapper.require_same_token(&payment.token_identifier);
 
-        let attributes: LockedTokenAttributes<Self::Api> = self
-            .locked_token()
-            .get_token_attributes(payment.token_nonce);
+        let attributes: LockedTokenAttributes<Self::Api> =
+            locked_token_mapper.get_token_attributes(payment.token_nonce);
 
         let epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
@@ -123,7 +118,7 @@ pub trait UnlockWithPenaltyModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let caller = self.blockchain().get_caller();
 
-        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
+        let mut energy = self.get_updated_energy_entry_for_user(&caller);
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
@@ -138,8 +133,7 @@ pub trait UnlockWithPenaltyModule:
             self.burn_penalty(fees_token_id, &penalty_amount);
         }
 
-        let new_unlock_epoch =
-            self.unlock_epoch_to_start_of_month(attributes.unlock_epoch - epochs_to_reduce);
+        let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
 
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
