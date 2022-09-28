@@ -9,12 +9,12 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         addAdmin
+        addSCAddressToWhitelist
         addToPauseWhitelist
-        add_address_to_whitelist
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
-        end_produce_rewards
+        endProduceRewards
         enterFarm
         exitFarm
         getBoostedYieldsRewardsPercenatage
@@ -37,12 +37,13 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardTokenId
         getState
         getUnlockEpoch
+        isSCAddressWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
         removeAdmin
         removeFromPauseWhitelist
-        remove_address_from_whitelist
+        removeSCAddressFromWhitelist
         resume
         setBoostedYieldsRewardsPercentage
         setEnergyFactoryAddress

@@ -13,7 +13,7 @@ elrond_wasm_node::wasm_endpoints! {
         calculateRewardsForGivenPosition
         claimRewards
         compoundRewards
-        end_produce_rewards
+        endProduceRewards
         enterFarm
         exitFarm
         getBoostedYieldsRewardsPercenatage

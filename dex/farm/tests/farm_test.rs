@@ -361,7 +361,7 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let out_farm_token = sc.enter_farm();
+                    let out_farm_token = sc.enter_farm_endpoint();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -415,7 +415,7 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (out_farm_token, out_reward_token) = sc.claim_rewards().into_tuple();
+                    let (out_farm_token, out_reward_token) = sc.claim_rewards_endpoint().into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -446,7 +446,7 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let _ = sc.exit_farm();
+                    let _ = sc.exit_farm_endpoint();
                 },
             )
             .assert_ok();
