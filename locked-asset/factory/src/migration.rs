@@ -37,6 +37,16 @@ pub trait LockedTokenMigrationModule:
         );
     }
 
+    #[only_owner]
+    #[endpoint(setNewFactoryAddress)]
+    fn set_new_factory_address(&self, sc_address: ManagedAddress) {
+        require!(
+            !sc_address.is_zero() && self.blockchain().is_smart_contract(&sc_address),
+            "Invalid SC address"
+        );
+        self.new_factory_address().set(&sc_address);
+    }
+
     fn update_energy_after_unlock(
         &self,
         caller: ManagedAddress,
