@@ -33,11 +33,10 @@ pub trait UnlockWithPenaltyModule:
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + crate::token_whitelist::TokenWhitelistModule
     + crate::util::UtilModule
     + crate::energy::EnergyModule
-    + crate::migration::SimpleLockMigrationModule
     + crate::lock_options::LockOptionsModule
+    + crate::old_token_nonces::OldTokenNonces
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
@@ -111,6 +110,8 @@ pub trait UnlockWithPenaltyModule:
         self.require_not_paused();
 
         let payment = self.call_value().single_esdt();
+        self.require_new_token(payment.token_nonce);
+
         let attributes: LockedTokenAttributes<Self::Api> = self
             .locked_token()
             .get_token_attributes(payment.token_nonce);
@@ -191,7 +192,6 @@ pub trait UnlockWithPenaltyModule:
         token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
 
-    // TODO: Burn x%, and rest send to fees collector
     fn burn_penalty(&self, token_id: TokenIdentifier, fees_amount: &BigUint) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;

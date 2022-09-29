@@ -1,7 +1,9 @@
 elrond_wasm::imports!();
 
-use common_structs::{LockedAssetTokenAttributesEx, Nonce};
+use common_structs::LockedAssetTokenAttributesEx;
 use factory::locked_asset::MAX_MILESTONES_IN_SCHEDULE;
+
+pub static OLD_TOKEN_NAME: &[u8] = b"LegacyLKMEX";
 
 #[elrond_wasm::module]
 pub trait SimpleLockMigrationModule:
@@ -10,16 +12,24 @@ pub trait SimpleLockMigrationModule:
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
-    + crate::lock_options::LockOptionsModule
-    + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
+    + crate::old_token_nonces::OldTokenNonces
+    + crate::old_token_actions::OldTokenActions
+    + crate::lock_options::LockOptionsModule
+    + crate::util::UtilModule
 {
+    /// Sets the transfer role for the given address. Defaults to own address.
     #[endpoint(setTransferRoleLockedToken)]
-    fn set_transfer_role(&self) {
+    fn set_transfer_role(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
         self.locked_token()
-            .set_local_roles(&[EsdtLocalRole::Transfer], None);
+            .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
     }
 
     /// Sets the address for the contract which is expected to perform the migration
@@ -60,7 +70,7 @@ pub trait SimpleLockMigrationModule:
         amount_attributes_pairs: MultiValueEncoded<
             MultiValue2<BigUint, LockedAssetTokenAttributesEx<Self::Api>>,
         >,
-    ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
+    ) -> ManagedVec<EsdtTokenPayment> {
         self.require_not_paused();
 
         let caller = self.blockchain().get_caller();
@@ -70,8 +80,6 @@ pub trait SimpleLockMigrationModule:
         self.require_is_base_asset_token(&payment.token_identifier);
 
         let locked_token_mapper = self.locked_token();
-        let mut old_nonces_mapper = self.old_token_nonces();
-
         let base_asset_token_id = self.base_asset_token_id().get();
         let current_epoch = self.blockchain().get_block_epoch();
 
@@ -87,7 +95,8 @@ pub trait SimpleLockMigrationModule:
                 .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_SCHEDULE>(&token_amount);
 
             let mut leftover_locked_amount = BigUint::zero();
-            for epoch_amount_pair in &unlock_amounts_per_epoch {
+            let mut total_unlockable_entries = 0;
+            for epoch_amount_pair in unlock_amounts_per_epoch.pairs {
                 if epoch_amount_pair.epoch > current_epoch {
                     energy.add_after_token_lock(
                         &epoch_amount_pair.amount,
@@ -95,18 +104,21 @@ pub trait SimpleLockMigrationModule:
                         current_epoch,
                     );
 
-                    leftover_locked_amount += &epoch_amount_pair.amount;
+                    leftover_locked_amount += epoch_amount_pair.amount;
                 } else {
-                    total_unlockable_tokens += &epoch_amount_pair.amount;
+                    total_unlockable_tokens += epoch_amount_pair.amount;
+                    total_unlockable_entries += 1;
                 }
             }
 
             if leftover_locked_amount > 0 {
-                attributes.remove_outdated_milestones(current_epoch);
+                attributes.remove_first_milestones(total_unlockable_entries);
 
-                let new_locked_tokens =
-                    locked_token_mapper.nft_create(leftover_locked_amount, &attributes);
-                let _ = old_nonces_mapper.insert(new_locked_tokens.token_nonce);
+                let new_locked_tokens = self.create_old_token(
+                    &locked_token_mapper,
+                    leftover_locked_amount,
+                    &attributes,
+                );
                 output_payments.push(new_locked_tokens);
             }
         }
@@ -139,17 +151,6 @@ pub trait SimpleLockMigrationModule:
         require!(address == &sc_address, "Invalid SC address");
     }
 
-    fn require_new_token(&self, token_nonce: Nonce) {
-        require!(
-            !self.old_token_nonces().contains(&token_nonce),
-            "Only new tokens accepted"
-        );
-    }
-
     #[storage_mapper("oldLockedAssetFactoryAddress")]
     fn old_locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getOldTokenNonces)]
-    #[storage_mapper("oldTokenNonces")]
-    fn old_token_nonces(&self) -> UnorderedSetMapper<Nonce>;
 }

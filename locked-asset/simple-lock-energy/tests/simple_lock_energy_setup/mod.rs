@@ -161,7 +161,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.extend_locking_period(lock_epochs);
+                sc.extend_locking_period_endpoint(lock_epochs);
             },
         )
     }
@@ -174,7 +174,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.unlock_tokens_endpoint(OptionalValue::Some(managed_address!(caller)));
+                sc.unlock_tokens_endpoint();
             },
         )
     }
@@ -241,7 +241,9 @@ where
     }
 }
 
-fn to_rust_biguint(managed_biguint: elrond_wasm::types::BigUint<DebugApi>) -> num_bigint::BigUint {
+pub fn to_rust_biguint(
+    managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
+) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }
 

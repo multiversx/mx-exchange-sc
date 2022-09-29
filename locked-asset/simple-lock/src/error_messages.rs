@@ -1,5 +1,6 @@
 pub static NO_PAYMENT_ERR_MSG: &[u8] = b"No payment";
 pub static INVALID_PAYMENTS_ERR_MSG: &[u8] = b"Invalid payments";
+pub static CANNOT_UNLOCK_YET_ERR_MSG: &[u8] = b"Cannot unlock yet";
 pub static ONLY_FUNGIBLE_TOKENS_ALLOWED_ERR_MSG: &[u8] =
     b"Only locked tokens with fungible original tokens allowed";
 pub static INVALID_PAYMENTS_RECEIVED_FROM_LP_ERR_MSG: &[u8] = b"Invalid payments received from LP";

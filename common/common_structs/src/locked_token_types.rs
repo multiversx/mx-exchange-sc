@@ -104,11 +104,11 @@ impl<M: ManagedTypeApi> LockedAssetTokenAttributesEx<M> {
     pub fn get_unlock_amounts_per_milestone<const MAX_MILESTONES_IN_SCHEDULE: usize>(
         &self,
         total_amount: &BigUint<M>,
-    ) -> ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE> {
+    ) -> UnlockEpochAmountPairs<M, MAX_MILESTONES_IN_SCHEDULE> {
         let mut amounts = ArrayVec::new();
         let unlock_milestones = &self.unlock_schedule.unlock_milestones;
         if unlock_milestones.is_empty() {
-            return amounts;
+            return UnlockEpochAmountPairs::new(amounts);
         }
 
         let mut total_tokens_processed = BigUint::zero();
@@ -129,17 +129,41 @@ impl<M: ManagedTypeApi> LockedAssetTokenAttributesEx<M> {
             });
         }
 
-        amounts
+        UnlockEpochAmountPairs::new(amounts)
     }
 
-    pub fn remove_outdated_milestones(&mut self, current_epoch: Epoch) {
+    pub fn remove_first_milestones(&mut self, amount_to_remove: usize) {
         let unlock_milestones = &mut self.unlock_schedule.unlock_milestones;
-        while let Some(milestone) = unlock_milestones.try_get(0) {
-            if milestone.unlock_epoch <= current_epoch {
-                unlock_milestones.remove(0);
-            } else {
-                break;
+        for _ in 0..amount_to_remove {
+            unlock_milestones.remove(0);
+        }
+    }
+}
+
+pub struct UnlockEpochAmountPairs<M: ManagedTypeApi, const MAX_MILESTONES_IN_SCHEDULE: usize> {
+    pub pairs: ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE>,
+}
+
+impl<M: ManagedTypeApi, const MAX_MILESTONES_IN_SCHEDULE: usize>
+    UnlockEpochAmountPairs<M, MAX_MILESTONES_IN_SCHEDULE>
+{
+    pub fn new(pairs: ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE>) -> Self {
+        Self { pairs }
+    }
+
+    pub fn get_unlockable_entries(
+        &self,
+        current_epoch: Epoch,
+    ) -> ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE> {
+        let mut unlockable_entries = ArrayVec::new();
+        for pair in &self.pairs {
+            if pair.epoch <= current_epoch {
+                unsafe {
+                    unlockable_entries.push_unchecked(pair.clone());
+                }
             }
         }
+
+        unlockable_entries
     }
 }

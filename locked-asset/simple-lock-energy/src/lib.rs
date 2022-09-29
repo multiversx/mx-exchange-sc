@@ -7,12 +7,15 @@ pub mod events;
 pub mod extend_lock;
 pub mod lock_options;
 pub mod migration;
+pub mod old_token_actions;
+pub mod old_token_nonces;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod util;
 
 use common_structs::Epoch;
-use simple_lock::locked_token::LockedTokenAttributes;
+use energy::Energy;
+use simple_lock::{error_messages::NO_PAYMENT_ERR_MSG, locked_token::LockedTokenAttributes};
 
 #[elrond_wasm::contract]
 pub trait SimpleLockEnergy:
@@ -20,10 +23,6 @@ pub trait SimpleLockEnergy:
     + simple_lock::locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
-    + simple_lock::proxy_lp::ProxyLpModule
-    + simple_lock::proxy_farm::ProxyFarmModule
-    + simple_lock::lp_interactions::LpInteractionsModule
-    + simple_lock::farm_interactions::FarmInteractionsModule
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
     + lock_options::LockOptionsModule
@@ -33,6 +32,8 @@ pub trait SimpleLockEnergy:
     + migration::SimpleLockMigrationModule
     + events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
+    + old_token_nonces::OldTokenNonces
+    + old_token_actions::OldTokenActions
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
@@ -87,11 +88,11 @@ pub trait SimpleLockEnergy:
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment {
         self.require_not_paused();
+        self.require_is_listed_lock_option(lock_epochs);
 
         let payment = self.call_value().single_esdt();
         self.require_is_base_asset_token(&payment.token_identifier);
 
-        self.require_is_listed_lock_option(lock_epochs);
         let current_epoch = self.blockchain().get_block_epoch();
         let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
 
@@ -107,37 +108,58 @@ pub trait SimpleLockEnergy:
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
     ///
-    /// Expected payment: LOCKED tokens
+    /// Expected payments: LOCKED tokens
     ///
-    /// Arguments:
-    /// - opt_destination - OPTIONAL: destination address for the unlocked tokens. Default is caller.
-    ///
-    /// Output payment: the originally locked tokens
+    /// Output payments: the originally locked tokens and new LOCKED tokens if necessary.
     #[payable("*")]
     #[endpoint(unlockTokens)]
-    fn unlock_tokens_endpoint(
-        &self,
-        opt_destination: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment {
+    fn unlock_tokens_endpoint(&self) -> MultiValueEncoded<EsdtTokenPayment> {
         self.require_not_paused();
 
-        let payment = self.call_value().single_esdt();
+        let payments = self.call_value().all_esdt_transfers();
+        require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
+
+        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
+        let mut output_payments = ManagedVec::new();
+        for payment in &payments {
+            if self.is_new_token(payment.token_nonce) {
+                let unlocked_tokens = self.unlock_new_token(payment, &mut energy, current_epoch);
+                output_payments.push(unlocked_tokens);
+            } else {
+                let pair = self.unlock_old_token(payment, &mut energy, current_epoch);
+                output_payments.push(pair.unlocked);
+
+                if let Some(locked_tokens) = pair.opt_locked {
+                    output_payments.push(locked_tokens);
+                }
+            }
+        }
+
+        self.set_energy_entry(&caller, energy);
+        self.send().direct_multi(&caller, &output_payments);
+
+        output_payments.into()
+    }
+
+    fn unlock_new_token(
+        &self,
+        payment: EsdtTokenPayment,
+        energy: &mut Energy<Self::Api>,
+        current_epoch: Epoch,
+    ) -> EsdtTokenPayment {
         let attributes: LockedTokenAttributes<Self::Api> = self
             .locked_token()
             .get_token_attributes(payment.token_nonce);
 
-        let dest_address = self.dest_from_optional(opt_destination);
-        let output_tokens = self.unlock_and_send(&dest_address, payment);
-
-        let current_epoch = self.blockchain().get_block_epoch();
-
-        let mut energy = self.get_updated_energy_entry_for_user(&dest_address, current_epoch);
+        let output_tokens = self.unlock_tokens(payment);
         energy.refund_after_token_unlock(
             &output_tokens.amount,
             attributes.unlock_epoch,
             current_epoch,
         );
-        self.set_energy_entry(&dest_address, energy);
 
         self.to_esdt_payment(output_tokens)
     }
