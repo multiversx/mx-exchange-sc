@@ -22,35 +22,37 @@ pub trait ExtendLockModule:
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
 {
-    fn lock_and_send_by_token_type(
+    fn lock_by_token_type(
         &self,
         dest_address: &ManagedAddress,
         payment: EsdtTokenPayment,
         unlock_epoch: Epoch,
         current_epoch: Epoch,
     ) -> EsdtTokenPayment {
-        let mut energy = self.get_updated_energy_entry_for_user(dest_address);
-        let locked_tokens = if self.is_base_asset_token(&payment.token_identifier) {
-            self.lock_base_asset(payment, unlock_epoch, current_epoch, &mut energy)
-        } else if self.is_legacy_locked_token(&payment.token_identifier) {
-            self.extend_old_token_period(payment, unlock_epoch, current_epoch, &mut energy)
-        } else {
-            self.locked_token()
-                .require_same_token(&payment.token_identifier);
+        let output_payment = self.update_energy(dest_address, |energy: &mut Energy<Self::Api>| {
+            let payment_clone = payment.clone();
+            if self.is_base_asset_token(&payment.token_identifier) {
+                self.lock_base_asset(payment_clone, unlock_epoch, current_epoch, energy)
+            } else if self.is_legacy_locked_token(&payment.token_identifier) {
+                self.require_address_is_caller(dest_address);
 
-            self.extend_new_token_period(payment, unlock_epoch, current_epoch, &mut energy)
-        };
+                self.extend_old_token_period(payment_clone, unlock_epoch, current_epoch, energy)
+            } else {
+                self.require_address_is_caller(dest_address);
+                self.locked_token()
+                    .require_same_token(&payment.token_identifier);
 
-        self.set_energy_entry(&dest_address, energy);
+                self.extend_new_token_period(payment_clone, unlock_epoch, current_epoch, energy)
+            }
+        });
 
-        self.send().direct_esdt(
-            &dest_address,
-            &locked_tokens.token_identifier,
-            locked_tokens.token_nonce,
-            &locked_tokens.amount,
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &payment.amount,
         );
 
-        locked_tokens
+        output_payment
     }
 
     fn lock_base_asset(
@@ -73,9 +75,13 @@ pub trait ExtendLockModule:
         current_epoch: Epoch,
         energy: &mut Energy<Self::Api>,
     ) -> EsdtTokenPayment {
-        let locked_token_mapper = self.locked_token();
-        let attributes: OldLockedTokenAttributes<Self::Api> =
-            locked_token_mapper.get_token_attributes(payment.token_nonce);
+        let own_sc_address = self.blockchain().get_sc_address();
+        let old_token_data = self.blockchain().get_esdt_token_data(
+            &own_sc_address,
+            &payment.token_identifier,
+            payment.token_nonce,
+        );
+        let attributes: OldLockedTokenAttributes<Self::Api> = old_token_data.decode_attributes();
         let unlock_epoch_amount_pairs = attributes
             .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_OLD_TOKEN_SCHEDULE>(
                 &payment.amount,
@@ -133,5 +139,13 @@ pub trait ExtendLockModule:
         let output_tokens = self.lock_tokens(unlocked_tokens, new_unlock_epoch);
 
         self.to_esdt_payment(output_tokens)
+    }
+
+    fn require_address_is_caller(&self, address: &ManagedAddress) {
+        let caller = self.blockchain().get_caller();
+        require!(
+            address == &caller,
+            "May not use the optional destination argument here"
+        );
     }
 }

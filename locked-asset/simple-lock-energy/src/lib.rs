@@ -15,6 +15,8 @@ pub mod util;
 use common_structs::Epoch;
 use simple_lock::{error_messages::NO_PAYMENT_ERR_MSG, locked_token::LockedTokenAttributes};
 
+use crate::energy::Energy;
+
 #[elrond_wasm::contract]
 pub trait SimpleLockEnergy:
     simple_lock::basic_lock_unlock::BasicLockUnlock
@@ -102,7 +104,17 @@ pub trait SimpleLockEnergy:
         let current_epoch = self.blockchain().get_block_epoch();
         let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
 
-        self.lock_and_send_by_token_type(&dest_address, payment.into(), unlock_epoch, current_epoch)
+        let output_tokens =
+            self.lock_by_token_type(&dest_address, payment, unlock_epoch, current_epoch);
+
+        self.send().direct_esdt(
+            &dest_address,
+            &output_tokens.token_identifier,
+            output_tokens.token_nonce,
+            &output_tokens.amount,
+        );
+
+        output_tokens
     }
 
     /// Unlock tokens, previously locked with the `lockTokens` endpoint
@@ -112,7 +124,7 @@ pub trait SimpleLockEnergy:
     /// Output payments: the originally locked tokens
     #[payable("*")]
     #[endpoint(unlockTokens)]
-    fn unlock_tokens_endpoint(&self) -> MultiValueEncoded<EsdtTokenPayment> {
+    fn unlock_tokens_endpoint(&self) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let payments = self.call_value().all_esdt_transfers();
@@ -122,25 +134,34 @@ pub trait SimpleLockEnergy:
         let caller = self.blockchain().get_caller();
         let locked_token_mapper = self.locked_token();
 
-        let mut energy = self.get_updated_energy_entry_for_user(&caller);
-        let mut output_payments = ManagedVec::new();
-        for payment in &payments {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                locked_token_mapper.get_token_attributes(payment.token_nonce);
+        let base_asset = self.base_asset_token_id().get();
+        let mut output_payment = EsdtTokenPayment::new(base_asset, 0, BigUint::zero());
 
-            let output_tokens = self.unlock_tokens(payment);
-            energy.refund_after_token_unlock(
-                &output_tokens.amount,
-                attributes.unlock_epoch,
-                current_epoch,
-            );
+        self.update_energy(&caller, |energy: &mut Energy<Self::Api>| {
+            for payment in &payments {
+                let attributes: LockedTokenAttributes<Self::Api> =
+                    locked_token_mapper.get_token_attributes(payment.token_nonce);
 
-            output_payments.push(self.to_esdt_payment(output_tokens));
-        }
+                let unlocked_tokens = self.unlock_tokens(payment);
+                energy.refund_after_token_unlock(
+                    &unlocked_tokens.amount,
+                    attributes.unlock_epoch,
+                    current_epoch,
+                );
 
-        self.set_energy_entry(&caller, energy);
-        self.send().direct_multi(&caller, &output_payments);
+                self.merge_payments(&mut output_payment, self.to_esdt_payment(unlocked_tokens));
+            }
+        });
 
-        output_payments.into()
+        self.send()
+            .esdt_local_mint(&output_payment.token_identifier, 0, &output_payment.amount);
+        self.send().direct_esdt(
+            &caller,
+            &output_payment.token_identifier,
+            0,
+            &output_payment.amount,
+        );
+
+        output_payment
     }
 }

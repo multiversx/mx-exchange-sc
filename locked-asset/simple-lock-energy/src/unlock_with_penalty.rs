@@ -111,6 +111,8 @@ pub trait UnlockWithPenaltyModule:
         let attributes: LockedTokenAttributes<Self::Api> =
             locked_token_mapper.get_token_attributes(payment.token_nonce);
 
+        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
         let epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
         let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce);
@@ -122,6 +124,17 @@ pub trait UnlockWithPenaltyModule:
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
+        let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
+        let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
+
+        let amount_to_mint = if new_unlock_epoch == current_epoch {
+            &unlocked_tokens.amount
+        } else {
+            &penalty_amount
+        };
+        self.send()
+            .esdt_local_mint(&unlocked_token_id, 0, amount_to_mint);
+
         if penalty_amount > 0 {
             unlocked_tokens.amount -= &penalty_amount;
             require!(
@@ -129,11 +142,9 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            let fees_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
-            self.burn_penalty(fees_token_id, &penalty_amount);
+            self.burn_penalty(unlocked_token_id.clone(), &penalty_amount);
         }
 
-        let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
 
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);

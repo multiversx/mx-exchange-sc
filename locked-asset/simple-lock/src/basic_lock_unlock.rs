@@ -72,6 +72,8 @@ pub trait BasicLockUnlock:
             CANNOT_UNLOCK_YET_ERR_MSG
         );
 
+        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
         self.unlock_tokens_unchecked(payment, &attributes)
     }
 
@@ -81,10 +83,6 @@ pub trait BasicLockUnlock:
         attributes: &LockedTokenAttributes<Self::Api>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
-
-        let locked_token_mapper = self.locked_token();
-        locked_token_mapper.require_same_token(&payment.token_identifier);
-        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         EgldOrEsdtTokenPayment::new(
             attributes.original_token_id.clone(),
