@@ -3,12 +3,10 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
-use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
+use crate::attr_ex_helper::PRECISION_EX_INCREASE;
 
 pub const ONE_MILLION: u64 = 1_000_000u64;
 pub const TEN_THOUSAND: u64 = 10_000u64;
-pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
-pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
 
 #[derive(ManagedVecItem)]
@@ -18,8 +16,9 @@ pub struct LockedTokenEx<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrExHelper {
-    #[inline]
+pub trait LockedAssetModule:
+    token_send::TokenSendModule + crate::attr_ex_helper::AttrExHelper
+{
     fn create_and_send_locked_assets(
         &self,
         amount: &BigUint,
@@ -52,16 +51,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
     ) -> EsdtTokenPayment<Self::Api> {
         self.locked_asset_token()
             .nft_add_quantity_and_send(address, sft_nonce, amount)
-    }
-
-    fn get_unlock_amount(
-        &self,
-        amount: &BigUint,
-        current_epoch: Epoch,
-        unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
-    ) -> BigUint {
-        amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones))
-            / PERCENTAGE_TOTAL_EX
     }
 
     fn get_unlock_percent(

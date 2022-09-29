@@ -1,43 +1,44 @@
 elrond_wasm::imports!();
 
 use crate::energy::Energy;
-use common_structs::Epoch;
+use common_structs::UnlockEpochAmountPairs;
 
 #[elrond_wasm::module]
 pub trait SimpleLockMigrationModule:
     crate::energy::EnergyModule + crate::events::EventsModule + elrond_wasm_modules::pause::PauseModule
 {
+    #[only_owner]
     #[endpoint(updateEnergyForOldTokens)]
     fn update_energy_for_old_tokens(
         &self,
-        original_caller: ManagedAddress,
+        user: ManagedAddress,
         total_locked_tokens: BigUint,
         energy_amount: BigUint,
     ) {
         self.require_not_paused();
-        self.require_caller_old_factory();
-        self.require_old_tokens_energy_not_updated(&original_caller);
+        self.require_old_tokens_energy_not_updated(&user);
 
-        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
+        self.update_energy(&user, |energy: &mut Energy<Self::Api>| {
             energy.add_energy_raw(total_locked_tokens, energy_amount);
         });
 
-        self.user_updated_old_tokens_energy().add(&original_caller);
+        self.user_updated_old_tokens_energy().add(&user);
     }
 
     #[endpoint(updateEnergyAfterOldTokenUnlock)]
     fn update_energy_after_old_token_unlock(
         &self,
         original_caller: ManagedAddress,
-        tokens_unlocked: BigUint,
-        actual_unlock_epoch: Epoch,
+        epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
         self.require_not_paused();
         self.require_caller_old_factory();
 
         self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
             let current_epoch = self.blockchain().get_block_epoch();
-            energy.refund_after_token_unlock(&tokens_unlocked, actual_unlock_epoch, current_epoch);
+            for pair in epoch_amount_pairs.pairs {
+                energy.refund_after_token_unlock(&pair.amount, pair.epoch, current_epoch);
+            }
         });
     }
 

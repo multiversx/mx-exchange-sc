@@ -5,7 +5,6 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::energy::Energy;
 
-const MAX_MILESTONES_IN_OLD_TOKEN_SCHEDULE: usize = 64;
 static INVALID_EXTEND_PERIOD_ARG_ERR_MSG: &[u8] =
     b"New lock period must be longer than the current one";
 
@@ -82,10 +81,8 @@ pub trait ExtendLockModule:
             payment.token_nonce,
         );
         let attributes: OldLockedTokenAttributes<Self::Api> = old_token_data.decode_attributes();
-        let unlock_epoch_amount_pairs = attributes
-            .get_unlock_amounts_per_milestone::<MAX_MILESTONES_IN_OLD_TOKEN_SCHEDULE>(
-                &payment.amount,
-            );
+        let unlock_epoch_amount_pairs =
+            attributes.get_unlock_amounts_per_epoch(&payment.amount);
 
         for epoch_amount_pair in unlock_epoch_amount_pairs.pairs {
             require!(
