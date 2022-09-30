@@ -1,5 +1,8 @@
 elrond_wasm::imports!();
 
+use common_structs::PaymentsVec;
+use simple_lock::error_messages::NO_PAYMENT_ERR_MSG;
+
 #[elrond_wasm::module]
 pub trait UtilModule {
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
@@ -20,18 +23,11 @@ pub trait UtilModule {
         )
     }
 
-    fn merge_payments(
-        &self,
-        first_payment: &mut EsdtTokenPayment,
-        second_payment: EsdtTokenPayment,
-    ) {
-        require!(
-            first_payment.token_identifier == second_payment.token_identifier
-                && first_payment.token_nonce == second_payment.token_nonce,
-            "Cannot merge payments"
-        );
+    fn get_non_empty_payments(&self) -> PaymentsVec<Self::Api> {
+        let payments = self.call_value().all_esdt_transfers();
+        require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
 
-        first_payment.amount += second_payment.amount;
+        payments
     }
 
     fn require_valid_token_id(&self, token_id: &TokenIdentifier) {
