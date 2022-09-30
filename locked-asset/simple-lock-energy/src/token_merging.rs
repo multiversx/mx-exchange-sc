@@ -69,6 +69,7 @@ pub trait TokenMergingModule:
     + elrond_wasm_modules::pause::PauseModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
+    + crate::lock_options::LockOptionsModule
 {
     #[endpoint(mergeTokens)]
     fn merge_tokens(&self) -> EsdtTokenPayment {
@@ -127,21 +128,17 @@ pub trait TokenMergingModule:
                 output_pair
             });
 
-        let new_token_name = output_amount_attributes
-            .attributes
-            .original_token_id
-            .clone()
-            .into_name();
-        let new_token_nonce = self.get_or_create_nonce_for_attributes(
-            &locked_token_mapper,
-            &new_token_name,
-            &output_amount_attributes.attributes,
+        let normalized_unlock_epoch = self.unlock_epoch_to_start_of_month_upper_estimate(
+            output_amount_attributes.attributes.unlock_epoch,
         );
-
-        locked_token_mapper.nft_add_quantity_and_send(
-            &caller,
-            new_token_nonce,
+        let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
+            output_amount_attributes.attributes.original_token_id,
+            output_amount_attributes.attributes.original_token_nonce,
             output_amount_attributes.token_amount,
-        )
+        );
+        let output_tokens =
+            self.lock_and_send(&caller, simulated_lock_payment, normalized_unlock_epoch);
+
+        self.to_esdt_payment(output_tokens)
     }
 }

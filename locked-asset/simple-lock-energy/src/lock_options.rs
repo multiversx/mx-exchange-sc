@@ -77,6 +77,11 @@ pub trait LockOptionsModule {
         unlock_epoch - extra_days
     }
 
+    fn unlock_epoch_to_start_of_month_upper_estimate(&self, unlock_epoch: Epoch) -> Epoch {
+        let lower_bound_unlock = self.unlock_epoch_to_start_of_month(unlock_epoch);
+        lower_bound_unlock + EPOCHS_PER_MONTH
+    }
+
     #[view(getLockOptions)]
     #[storage_mapper("lockOptions")]
     fn lock_options(&self) -> UnorderedSetMapper<Epoch>;
