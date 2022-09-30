@@ -19,6 +19,7 @@ pub trait ExtendLockModule:
     + crate::energy::EnergyModule
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
+    + crate::migration::SimpleLockMigrationModule
     + elrond_wasm_modules::pause::PauseModule
 {
     fn lock_by_token_type(
@@ -34,6 +35,7 @@ pub trait ExtendLockModule:
                 self.lock_base_asset(payment_clone, unlock_epoch, current_epoch, energy)
             } else if self.is_legacy_locked_token(&payment.token_identifier) {
                 self.require_address_is_caller(dest_address);
+                self.require_old_tokens_energy_was_updated(dest_address);
 
                 self.extend_old_token_period(payment_clone, unlock_epoch, current_epoch, energy)
             } else {
@@ -81,8 +83,7 @@ pub trait ExtendLockModule:
             payment.token_nonce,
         );
         let attributes: OldLockedTokenAttributes<Self::Api> = old_token_data.decode_attributes();
-        let unlock_epoch_amount_pairs =
-            attributes.get_unlock_amounts_per_epoch(&payment.amount);
+        let unlock_epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&payment.amount);
 
         for epoch_amount_pair in unlock_epoch_amount_pairs.pairs {
             require!(

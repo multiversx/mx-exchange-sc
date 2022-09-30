@@ -15,7 +15,6 @@ pub trait SimpleLockMigrationModule:
         total_locked_tokens: BigUint,
         energy_amount: BigUint,
     ) {
-        self.require_not_paused();
         self.require_old_tokens_energy_not_updated(&user);
 
         self.update_energy(&user, |energy: &mut Energy<Self::Api>| {
@@ -31,7 +30,6 @@ pub trait SimpleLockMigrationModule:
         original_caller: ManagedAddress,
         epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
-        self.require_not_paused();
         self.require_caller_old_factory();
 
         self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
@@ -55,6 +53,13 @@ pub trait SimpleLockMigrationModule:
         require!(
             !self.user_updated_old_tokens_energy().contains(address),
             "Energy for old tokens already updated"
+        );
+    }
+
+    fn require_old_tokens_energy_was_updated(&self, address: &ManagedAddress) {
+        require!(
+            self.user_updated_old_tokens_energy().contains(address),
+            "Must have energy updated for old tokens first"
         );
     }
 
