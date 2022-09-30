@@ -3,7 +3,10 @@ mod simple_lock_energy_setup;
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use elrond_wasm::types::{BigInt, ManagedVec};
 use simple_lock::locked_token::LockedTokenAttributes;
-use simple_lock_energy::energy::{Energy, EnergyModule};
+use simple_lock_energy::{
+    energy::{Energy, EnergyModule},
+    migration::SimpleLockMigrationModule,
+};
 use simple_lock_energy_setup::*;
 
 use elrond_wasm_debug::{
@@ -51,12 +54,19 @@ fn extend_lock_period_old_token_test() {
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
-            sc.user_energy(&managed_address!(&first_user))
-                .set(&Energy::new(
-                    BigInt::from(user_energy_amount.clone()),
-                    1,
-                    managed_biguint!(USER_BALANCE),
-                ));
+            sc.update_energy_for_old_tokens(
+                managed_address!(&first_user),
+                managed_biguint!(USER_BALANCE),
+                user_energy_amount.clone(),
+            );
+
+            let expected_energy = Energy::new(
+                BigInt::from(user_energy_amount.clone()),
+                1,
+                managed_biguint!(USER_BALANCE),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();
 
