@@ -142,7 +142,7 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            self.burn_penalty(unlocked_token_id.clone(), &penalty_amount);
+            self.burn_penalty(unlocked_token_id, &penalty_amount);
         }
 
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
