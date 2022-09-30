@@ -58,6 +58,13 @@ pub trait SimpleLockMigrationModule:
         );
     }
 
+    fn require_old_tokens_energy_was_updated(&self, address: &ManagedAddress) {
+        require!(
+            self.user_updated_old_tokens_energy().contains(address),
+            "Must have energy updated for old tokens first"
+        );
+    }
+
     #[storage_mapper("oldLockedAssetFactoryAddress")]
     fn old_locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 
