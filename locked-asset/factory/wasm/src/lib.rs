@@ -16,19 +16,18 @@ elrond_wasm_node::wasm_endpoints! {
         getExtendedAttributesActivationNonce
         getInitEpoch
         getLockedAssetTokenId
-        getNewContractAddress
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
         isPaused
         lockAssets
         mergeLockedAssetTokens
-        migrateToNewFactory
         pause
         registerLockedAssetToken
         removeWhitelist
         setInitEpoch
+        setLockedTokenBurnRoleForAddress
+        setTransferRoleOldLockedToken
         setUnlockPeriod
-        startMigration
         unlockAssets
         unpause
         whitelist

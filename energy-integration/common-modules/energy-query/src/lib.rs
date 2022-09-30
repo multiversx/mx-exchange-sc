@@ -40,7 +40,7 @@ pub trait EnergyQueryModule {
 
         let sc_address = self.energy_factory_address().get();
         self.energy_factory_proxy(sc_address)
-            .get_energy_entry_for_user_view(user)
+            .get_updated_energy_entry_for_user(user)
             .execute_on_dest_context()
     }
 

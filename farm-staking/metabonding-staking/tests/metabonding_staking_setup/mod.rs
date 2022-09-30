@@ -8,6 +8,7 @@ use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
 };
+use elrond_wasm_modules::pause::PauseModule;
 use factory::locked_asset::LockedAssetModule;
 use factory::*;
 use metabonding_staking::MetabondingStaking;
@@ -165,6 +166,8 @@ where
 
                 let locked_asset_token_id = managed_token_id!(LOCKED_ASSET_TOKEN_ID);
                 sc.locked_asset_token().set_token_id(&locked_asset_token_id);
+
+                sc.set_paused(false);
             })
             .assert_ok();
 

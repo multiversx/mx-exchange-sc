@@ -18,7 +18,9 @@ impl<M: ManagedTypeApi> TokenPair<M> {
     }
 }
 
-#[derive(ManagedVecItem, Clone, Debug)]
+#[derive(
+    TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug,
+)]
 pub struct EpochAmountPair<M: ManagedTypeApi> {
     pub epoch: u64,
     pub amount: BigUint<M>,
