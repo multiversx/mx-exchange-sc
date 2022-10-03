@@ -1,7 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
+use crate::{
+    wrapped_farm_attributes::WrappedFarmTokenAttributes,
+    wrapped_lp_attributes::WrappedLpTokenAttributes,
+};
 
 #[derive(TypeAbi, TopEncode)]
 pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {

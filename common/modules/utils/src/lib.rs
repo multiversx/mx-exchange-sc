@@ -1,10 +1,11 @@
+#![no_std]
+
 elrond_wasm::imports!();
 
 use common_structs::PaymentsVec;
-use simple_lock::error_messages::NO_PAYMENT_ERR_MSG;
 
 #[elrond_wasm::module]
-pub trait UtilModule {
+pub trait UtilsModule {
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
         match opt_destination {
             OptionalValue::Some(dest) => dest,
@@ -25,7 +26,7 @@ pub trait UtilModule {
 
     fn get_non_empty_payments(&self) -> PaymentsVec<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
+        require!(!payments.is_empty(), "No payments");
 
         payments
     }

@@ -2,7 +2,23 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
-use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
+
+use crate::{
+    wrapped_farm_attributes::WrappedFarmTokenAttributes,
+    wrapped_lp_attributes::WrappedLpTokenAttributes,
+};
+
+/// common interface for both old and new locked token factory
+pub mod locked_token_factory {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait LockedTokenFactory {
+        #[payable("*")]
+        #[endpoint(mergeTokens)]
+        fn merge_tokens(&self) -> EsdtTokenPayment;
+    }
+}
 
 #[elrond_wasm::module]
 pub trait ProxyCommonModule: token_send::TokenSendModule {
@@ -47,51 +63,35 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
         }
     }
 
-    #[storage_mapper("current_tx_accepted_funds")]
-    fn current_tx_accepted_funds(&self) -> MapMapper<(TokenIdentifier, Nonce), BigUint>;
-
     #[view(getAssetTokenId)]
-    #[storage_mapper("asset_token_id")]
+    #[storage_mapper("assetTokenId")]
     fn asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[view(getLockedAssetTokenId)]
-    #[storage_mapper("locked_asset_token_id")]
-    fn locked_asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    #[view(getLockedTokenIds)]
+    #[storage_mapper("lockedTokenIds")]
+    fn locked_token_ids(&self) -> UnorderedSetMapper<TokenIdentifier>;
+
+    #[storage_mapper("factoryAddressForLockedToken")]
+    fn factory_address_for_locked_token(
+        &self,
+        locked_token_id: &TokenIdentifier,
+    ) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getWrappedLpTokenId)]
-    #[storage_mapper("wrapped_lp_token_id")]
+    #[storage_mapper("wrappedLpTokenId")]
     fn wrapped_lp_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
     #[view(getWrappedFarmTokenId)]
-    #[storage_mapper("wrapped_farm_token_id")]
+    #[storage_mapper("wrappedFarmTokenId")]
     fn wrapped_farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
-    #[storage_mapper("locked_asset_factory_address")]
-    fn locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[storage_mapper("intermediated_farms")]
-    fn intermediated_farms(&self) -> SetMapper<ManagedAddress>;
-
     #[view(getIntermediatedFarms)]
-    fn get_intermediated_farms(&self) -> MultiValueEncoded<ManagedAddress> {
-        let mut result = MultiValueEncoded::new();
-        for pair in self.intermediated_farms().iter() {
-            result.push(pair);
-        }
-        result
-    }
-
-    #[storage_mapper("intermediated_pairs")]
-    fn intermediated_pairs(&self) -> SetMapper<ManagedAddress>;
+    #[storage_mapper("intermediatedFarms")]
+    fn intermediated_farms(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[view(getIntermediatedPairs)]
-    fn get_intermediated_pairs(&self) -> MultiValueEncoded<ManagedAddress> {
-        let mut result = MultiValueEncoded::new();
-        for pair in self.intermediated_pairs().iter() {
-            result.push(pair);
-        }
-        result
-    }
+    #[storage_mapper("intermediatedPairs")]
+    fn intermediated_pairs(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[proxy]
     fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
@@ -100,5 +100,8 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
 
     #[proxy]
-    fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
+    fn locked_token_factory_proxy(
+        &self,
+        to: ManagedAddress,
+    ) -> locked_token_factory::Proxy<Self::Api>;
 }

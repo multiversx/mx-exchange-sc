@@ -33,11 +33,11 @@ pub trait UnlockWithPenaltyModule:
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
+    + utils::UtilsModule
 {
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
     ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
