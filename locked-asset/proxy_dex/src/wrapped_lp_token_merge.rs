@@ -1,13 +1,14 @@
-use common_structs::WrappedLpTokenAttributes;
-
-use super::proxy_common;
-
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use super::proxy_common;
+
+use crate::wrapped_lp_attributes::WrappedLpTokenAttributes;
+
 use super::proxy_pair;
-use factory::locked_asset_token_merge::ProxyTrait as _;
 use proxy_pair::WrappedLpToken;
+
+use crate::proxy_common::locked_token_factory::ProxyTrait as _;
 
 #[elrond_wasm::module]
 pub trait WrappedLpTokenMerge:
@@ -141,8 +142,10 @@ pub trait WrappedLpTokenMerge:
         &self,
         tokens: &ManagedVec<WrappedLpToken<Self::Api>>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let locked_asset_factory_addr = self.locked_asset_factory_address().get();
-        let locked_asset_token = self.locked_asset_token_id().get();
+        let locked_asset_token = self.locked_token_ids().get_by_index(0);
+        let locked_asset_factory_addr = self
+            .factory_address_for_locked_token(&locked_asset_token)
+            .get();
 
         if tokens.len() == 1 {
             let token = tokens.get(0);
@@ -175,8 +178,8 @@ pub trait WrappedLpTokenMerge:
             ));
         }
 
-        self.locked_asset_factory_proxy(locked_asset_factory_addr)
-            .merge_locked_asset_tokens()
+        self.locked_token_factory_proxy(locked_asset_factory_addr)
+            .merge_tokens()
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }

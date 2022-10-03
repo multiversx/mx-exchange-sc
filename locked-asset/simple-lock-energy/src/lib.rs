@@ -11,12 +11,12 @@ pub mod migration;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
-pub mod util;
 
 use common_structs::Epoch;
+use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{energy::Energy, token_merging::Mergeable};
+use crate::energy::Energy;
 
 #[elrond_wasm::contract]
 pub trait SimpleLockEnergy:
@@ -29,12 +29,12 @@ pub trait SimpleLockEnergy:
     + lock_options::LockOptionsModule
     + unlock_with_penalty::UnlockWithPenaltyModule
     + extend_lock::ExtendLockModule
-    + util::UtilModule
     + migration::SimpleLockMigrationModule
     + events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
+    + utils::UtilsModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.

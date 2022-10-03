@@ -17,8 +17,8 @@ pub trait LockedAssetTokenMergeModule:
     + elrond_wasm_modules::pause::PauseModule
 {
     #[payable("*")]
-    #[endpoint(mergeLockedAssetTokens)]
-    fn merge_locked_asset_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    #[endpoint(mergeTokens)]
+    fn merge_tokens(&self) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let caller = self.blockchain().get_caller();

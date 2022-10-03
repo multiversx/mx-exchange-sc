@@ -15,12 +15,12 @@ pub trait ExtendLockModule:
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
-    + crate::util::UtilModule
     + crate::energy::EnergyModule
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
     + crate::migration::SimpleLockMigrationModule
     + elrond_wasm_modules::pause::PauseModule
+    + utils::UtilsModule
 {
     fn lock_by_token_type(
         &self,
