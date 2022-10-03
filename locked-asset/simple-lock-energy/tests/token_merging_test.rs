@@ -71,4 +71,8 @@ fn token_merging_test() {
             unlock_epoch: expected_merged_token_unlock_epoch,
         }),
     );
+
+    let expected_energy = rust_biguint!(500_000) * expected_merged_token_unlock_epoch;
+    let actual_energy = setup.get_user_energy(&first_user);
+    assert_eq!(expected_energy, actual_energy);
 }

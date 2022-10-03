@@ -119,6 +119,11 @@ pub trait TokenMergingModule:
                     output_pair.merge_with(amount_attr_pair);
                 }
 
+                let normalized_unlock_epoch = self.unlock_epoch_to_start_of_month_upper_estimate(
+                    output_pair.attributes.unlock_epoch,
+                );
+                output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
+
                 energy.add_after_token_lock(
                     &output_pair.token_amount,
                     output_pair.attributes.unlock_epoch,
@@ -128,16 +133,16 @@ pub trait TokenMergingModule:
                 output_pair
             });
 
-        let normalized_unlock_epoch = self.unlock_epoch_to_start_of_month_upper_estimate(
-            output_amount_attributes.attributes.unlock_epoch,
-        );
         let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
             output_amount_attributes.attributes.original_token_id,
             output_amount_attributes.attributes.original_token_nonce,
             output_amount_attributes.token_amount,
         );
-        let output_tokens =
-            self.lock_and_send(&caller, simulated_lock_payment, normalized_unlock_epoch);
+        let output_tokens = self.lock_and_send(
+            &caller,
+            simulated_lock_payment,
+            output_amount_attributes.attributes.unlock_epoch,
+        );
 
         self.to_esdt_payment(output_tokens)
     }
