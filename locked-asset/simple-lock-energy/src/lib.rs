@@ -8,14 +8,15 @@ pub mod extend_lock;
 pub mod local_roles;
 pub mod lock_options;
 pub mod migration;
+pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod util;
 
 use common_structs::Epoch;
-use simple_lock::{error_messages::NO_PAYMENT_ERR_MSG, locked_token::LockedTokenAttributes};
+use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::energy::Energy;
+use crate::{energy::Energy, token_merging::Mergeable};
 
 #[elrond_wasm::contract]
 pub trait SimpleLockEnergy:
@@ -33,6 +34,7 @@ pub trait SimpleLockEnergy:
     + events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
     + local_roles::LocalRolesModule
+    + token_merging::TokenMergingModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
@@ -127,9 +129,6 @@ pub trait SimpleLockEnergy:
     fn unlock_tokens_endpoint(&self) -> EsdtTokenPayment {
         self.require_not_paused();
 
-        let payments = self.call_value().all_esdt_transfers();
-        require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
-
         let current_epoch = self.blockchain().get_block_epoch();
         let caller = self.blockchain().get_caller();
         let locked_token_mapper = self.locked_token();
@@ -138,6 +137,9 @@ pub trait SimpleLockEnergy:
         let mut output_payment = EsdtTokenPayment::new(base_asset, 0, BigUint::zero());
 
         self.update_energy(&caller, |energy: &mut Energy<Self::Api>| {
+            let payments = self.get_non_empty_payments();
+            locked_token_mapper.require_all_same_token(&payments);
+
             for payment in &payments {
                 let attributes: LockedTokenAttributes<Self::Api> =
                     locked_token_mapper.get_token_attributes(payment.token_nonce);
@@ -149,7 +151,7 @@ pub trait SimpleLockEnergy:
                     current_epoch,
                 );
 
-                self.merge_payments(&mut output_payment, self.to_esdt_payment(unlocked_tokens));
+                output_payment.merge_with(self.to_esdt_payment(unlocked_tokens));
             }
         });
 
