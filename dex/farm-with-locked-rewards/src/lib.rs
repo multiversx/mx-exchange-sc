@@ -5,7 +5,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes};
+use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use farm::exit_penalty::{
@@ -15,9 +15,9 @@ use farm::exit_penalty::{
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EgldOrEsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EgldOrEsdtTokenPayment<BigUint>>;
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -28,6 +28,7 @@ pub trait Farm:
     + farm_token::FarmTokenModule
     + token_merge_helper::TokenMergeHelperModule
     + farm_token_merge::FarmTokenMergeModule
+    + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + sc_whitelist_module::SCWhitelistModule
@@ -47,7 +48,7 @@ pub trait Farm:
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
-    + energy_query::EnergyQueryModule
+    + energy_query::EnergyQueryModule 
 {
     #[init]
     fn init(
@@ -90,8 +91,16 @@ pub trait Farm:
         self.require_sc_address_whitelisted(&caller);
         let (output_farm_token_payment, rewards_payment) = self.claim_rewards(&caller).into_tuple();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(caller, rewards_payment.token_identifier.clone(), rewards_payment.amount.clone());
-        (output_farm_token_payment, locked_rewards_payment).into()
+        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
+            caller,
+            rewards_payment.token_identifier.clone(),
+            rewards_payment.amount.clone(),
+        );
+        (
+            output_farm_token_payment,
+            self.to_esdt_payment(locked_rewards_payment),
+        )
+            .into()
     }
 
     #[payable("*")]
@@ -111,8 +120,16 @@ pub trait Farm:
         self.require_sc_address_whitelisted(&caller);
         let (farming_token_payment, reward_payment) = self.exit_farm(&caller).into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
-        let locked_rewards_payment = self.send_to_lock_contract_non_zero(caller, reward_payment.token_identifier.clone(), reward_payment.amount.clone());
-        (farming_token_payment, locked_rewards_payment).into()
+        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
+            caller,
+            reward_payment.token_identifier.clone(),
+            reward_payment.amount.clone(),
+        );
+        (
+            farming_token_payment,
+            self.to_esdt_payment(locked_rewards_payment),
+        )
+            .into()
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -127,7 +144,12 @@ pub trait Farm:
         let mut storage_cache = StorageCache::new(self);
         self.generate_aggregated_rewards_with_boosted_yields(&mut storage_cache);
 
-        self.calculate_reward_with_boosted_yields(&user, &farm_token_amount, &attributes, &storage_cache)
+        self.calculate_reward_with_boosted_yields(
+            &user,
+            &farm_token_amount,
+            &attributes,
+            &storage_cache,
+        )
     }
 
     #[payable("*")]
@@ -159,12 +181,11 @@ pub trait Farm:
     }
 
     fn send_to_lock_contract_non_zero(
-        &self, 
-        destination_address: ManagedAddress, 
-        token_identifier: TokenIdentifier, 
-        amount: BigUint
-    ) -> EgldOrEsdtTokenPayment<Self::Api>
-    {
+        &self,
+        destination_address: ManagedAddress,
+        token_identifier: TokenIdentifier,
+        amount: BigUint,
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
         if amount == 0 {
             return EgldOrEsdtTokenPayment::no_payment();
         }

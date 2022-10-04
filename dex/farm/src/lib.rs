@@ -5,8 +5,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub mod exit_penalty;
 pub mod base_functions;
+pub mod exit_penalty;
 
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
@@ -89,8 +89,10 @@ pub trait Farm:
     fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let claim_rewards_result = self.claim_rewards(&caller);
-        self.send_payment_non_zero(&caller, &claim_rewards_result.0.0);
-        self.send_payment_non_zero(&caller, &claim_rewards_result.0.1);
+        let (output_farm_token_payment, rewards_payment) =
+            claim_rewards_result.clone().into_tuple();
+        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&caller, &rewards_payment);
         claim_rewards_result
     }
 
@@ -108,8 +110,9 @@ pub trait Farm:
     fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let exit_farm_result = self.exit_farm(&caller);
-        self.send_payment_non_zero(&caller, &exit_farm_result.0.0);
-        self.send_payment_non_zero(&caller, &exit_farm_result.0.1);
+        let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
+        self.send_payment_non_zero(&caller, &farming_token_payment);
+        self.send_payment_non_zero(&caller, &reward_payment);
         exit_farm_result
     }
 
@@ -125,7 +128,12 @@ pub trait Farm:
         let mut storage_cache = StorageCache::new(self);
         self.generate_aggregated_rewards_with_boosted_yields(&mut storage_cache);
 
-        self.calculate_reward_with_boosted_yields(&user, &farm_token_amount, &attributes, &storage_cache)
+        self.calculate_reward_with_boosted_yields(
+            &user,
+            &farm_token_amount,
+            &attributes,
+            &storage_cache,
+        )
     }
 
     #[payable("*")]
@@ -154,5 +162,4 @@ pub trait Farm:
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards(per_block_amount);
     }
-
 }

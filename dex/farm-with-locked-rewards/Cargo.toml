@@ -41,6 +41,9 @@ path = "../../common/modules/locking_module"
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
@@ -88,3 +91,6 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.energy-factory-mock]
 path = "../../energy-integration/energy-factory-mock"
+
+[dev-dependencies.proxy_dex]
+path = "../../locked-asset/proxy_dex"
