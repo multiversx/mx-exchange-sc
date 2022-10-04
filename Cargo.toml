@@ -10,6 +10,8 @@ members = [
   "dex/fuzz",
   "dex/governance",
   "dex/governance/meta",
+  "dex/lkmex-transfer",
+  "dex/lkmex-transfer/meta",
   "dex/price-discovery",
   "dex/price-discovery/meta",
   "dex/proxy-deployer",
