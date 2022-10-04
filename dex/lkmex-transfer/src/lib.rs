@@ -32,7 +32,7 @@ pub trait LkmexTransfer {
 
         let current_epoch = self.blockchain().get_block_epoch();
         let unlock_transfer_time = self.unlock_transfer_time().get();
-        let (funds, lock_time) = self.locked_funds(&address).get();
+        let (funds, lock_time) = self.locked_funds(address).get();
         require!(
             current_epoch - lock_time > unlock_transfer_time,
             TOKENS_STILL_LOCKED
