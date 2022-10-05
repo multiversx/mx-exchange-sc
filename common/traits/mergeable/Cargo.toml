@@ -1,14 +1,11 @@
 [package]
-name = "utils"
+name = "mergeable"
 version = "0.0.0"
 authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
 edition = "2018"
 
 [lib]
 path = "src/lib.rs"
-
-[dependencies.common_structs]
-path = "../../common_structs"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"

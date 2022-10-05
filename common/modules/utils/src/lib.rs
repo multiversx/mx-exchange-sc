@@ -4,8 +4,6 @@ elrond_wasm::imports!();
 
 use common_structs::PaymentsVec;
 
-static ERR_EMPTY_PAYMENTS: &[u8] = b"No payments";
-
 #[elrond_wasm::module]
 pub trait UtilsModule {
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
@@ -26,33 +24,11 @@ pub trait UtilsModule {
         )
     }
 
-    fn burn_multi_esdt(&self, payments: &PaymentsVec<Self::Api>) {
-        for payment in payments {
-            self.send().esdt_local_burn(
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-        }
-    }
-
     fn get_non_empty_payments(&self) -> PaymentsVec<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
+        require!(!payments.is_empty(), "No payments");
 
         payments
-    }
-
-    fn pop_first_payment(
-        &self,
-        payments: &mut PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
-
-        let first_payment = payments.get(0);
-        payments.remove(0);
-
-        first_payment
     }
 
     fn require_valid_token_id(&self, token_id: &TokenIdentifier) {

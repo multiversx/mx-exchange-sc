@@ -631,8 +631,6 @@ fn test_aggregated_unlock_schedule() {
             let result = sc.aggregated_unlock_schedule(&tokens);
             let result = result.unlock_milestones;
 
-            print!("{:?}", result);
-
             // if de-duplication fails, there will be 13 results (9 unique + 4 duplicates)
             assert_eq!(result.len(), 9);
         })

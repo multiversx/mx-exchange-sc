@@ -13,15 +13,14 @@ path = "../../common/common_structs"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dependencies.itertools]
-version = "0.10.1"
-default-features = false
-
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
+
+[dependencies.simple-lock-energy]
+path = "../simple-lock-energy"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"
@@ -35,6 +34,7 @@ version = "0.34.0"
 [dependencies]
 wee_alloc = "0.4"
 arrayvec = { version = "0.7.1", default-features = false }
+itertools = { version = "0.10.1", default-features = false }
 
 [dev-dependencies]
 num-bigint = "0.4.2"

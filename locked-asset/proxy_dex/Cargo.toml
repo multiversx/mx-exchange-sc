@@ -20,14 +20,14 @@ path = "../../dex/pair"
 [dependencies.farm]
 path = "../../dex/farm"
 
-[dependencies.factory]
-path = "../factory"
-
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
 
 [dependencies.token_send]
 path = "../../common/modules/token_send"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"

@@ -8,47 +8,32 @@ elrond_wasm_node::wasm_endpoints! {
     simple_lock_energy
     (
         callBack
-        acceptMigratedTokens
-        addFarmToWhitelist
-        addLiquidityLockedToken
         addLockOptions
-        addLpToWhitelist
-        enterFarmLockedToken
-        exitFarmLockedToken
-        extendLockingPeriod
-        farmClaimRewardsLockedToken
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
-        getFarmProxyTokenId
         getFeesBurnPercentage
         getFeesCollectorAddress
-        getKnownFarms
-        getKnownLiquidityPools
+        getLegacyLockedTokenId
         getLockOptions
         getLockedTokenId
-        getLpProxyTokenId
-        getOldTokenNonces
         getPenaltyAmount
         getPenaltyPercentage
         isPaused
-        issueFarmProxyToken
         issueLockedToken
-        issueLpProxyToken
         lockTokens
+        mergeTokens
         pause
         reduceLockPeriod
-        removeFarmFromWhitelist
-        removeLiquidityLockedToken
         removeLockOptions
-        removeLpFromWhitelist
         setFeesBurnPercentage
         setFeesCollectorAddress
-        setOldLockedAssetFactoryAddress
         setPenaltyPercentage
         setTransferRoleLockedToken
         unlockEarly
         unlockTokens
         unpause
+        updateEnergyAfterOldTokenUnlock
+        updateEnergyForOldTokens
     )
 }

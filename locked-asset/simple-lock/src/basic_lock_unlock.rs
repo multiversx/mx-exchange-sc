@@ -1,6 +1,9 @@
 elrond_wasm::imports!();
 
-use crate::{error_messages::NO_PAYMENT_ERR_MSG, locked_token::LockedTokenAttributes};
+use crate::{
+    error_messages::{CANNOT_UNLOCK_YET_ERR_MSG, NO_PAYMENT_ERR_MSG},
+    locked_token::LockedTokenAttributes,
+};
 
 #[elrond_wasm::module]
 pub trait BasicLockUnlock:
@@ -32,7 +35,7 @@ pub trait BasicLockUnlock:
             &attributes,
         );
 
-        self.locked_token()
+        locked_token_mapper
             .nft_add_quantity(sft_nonce, payment.amount)
             .into()
     }
@@ -66,8 +69,10 @@ pub trait BasicLockUnlock:
         let current_epoch = self.blockchain().get_block_epoch();
         require!(
             current_epoch >= attributes.unlock_epoch,
-            "Cannot unlock yet"
+            CANNOT_UNLOCK_YET_ERR_MSG
         );
+
+        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         self.unlock_tokens_unchecked(payment, &attributes)
     }
@@ -78,10 +83,6 @@ pub trait BasicLockUnlock:
         attributes: &LockedTokenAttributes<Self::Api>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
-
-        let locked_token_mapper = self.locked_token();
-        locked_token_mapper.require_same_token(&payment.token_identifier);
-        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         EgldOrEsdtTokenPayment::new(
             attributes.original_token_id.clone(),

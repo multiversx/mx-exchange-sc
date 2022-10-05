@@ -12,7 +12,7 @@ use elrond_wasm_debug::{
 use elrond_wasm_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenModule;
 use simple_lock_energy::{
-    energy::EnergyModule, extend_lock::ExtendLockModule, lock_options::LockOptionsModule,
+    energy::EnergyModule, lock_options::LockOptionsModule,
     unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
 };
 
@@ -24,6 +24,7 @@ pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 
 pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
 pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
@@ -69,11 +70,15 @@ where
                     lock_options.push(*option);
                 }
 
+                // fees_collector_mock address used twice, as we don't test migration here
+                // migration is tested in old_to_new_locked_token_migration_test.rs
                 sc.init(
                     managed_token_id!(BASE_ASSET_TOKEN_ID),
+                    managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                     MIN_PENALTY_PERCENTAGE,
                     MAX_PENALTY_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
+                    managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
@@ -89,7 +94,7 @@ where
         b_mock.set_esdt_local_roles(
             sc_wrapper.address_ref(),
             BASE_ASSET_TOKEN_ID,
-            &[EsdtLocalRole::Burn],
+            &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
         );
         b_mock.set_esdt_local_roles(
             sc_wrapper.address_ref(),
@@ -100,6 +105,11 @@ where
                 EsdtLocalRole::NftBurn,
                 EsdtLocalRole::Transfer,
             ],
+        );
+        b_mock.set_esdt_local_roles(
+            sc_wrapper.address_ref(),
+            LEGACY_LOCKED_TOKEN_ID,
+            &[EsdtLocalRole::NftBurn],
         );
 
         b_mock.set_esdt_balance(
@@ -150,6 +160,7 @@ where
     pub fn extend_locking_period(
         &mut self,
         caller: &Address,
+        token_id: &[u8],
         token_nonce: u64,
         amount: u64,
         lock_epochs: u64,
@@ -157,11 +168,11 @@ where
         self.b_mock.execute_esdt_transfer(
             caller,
             &self.sc_wrapper,
-            LOCKED_TOKEN_ID,
+            token_id,
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.extend_locking_period(lock_epochs);
+                sc.lock_tokens_endpoint(lock_epochs, OptionalValue::None);
             },
         )
     }
@@ -174,7 +185,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.unlock_tokens_endpoint(OptionalValue::Some(managed_address!(caller)));
+                sc.unlock_tokens_endpoint();
             },
         )
     }
@@ -241,7 +252,9 @@ where
     }
 }
 
-fn to_rust_biguint(managed_biguint: elrond_wasm::types::BigUint<DebugApi>) -> num_bigint::BigUint {
+pub fn to_rust_biguint(
+    managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
+) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }
 

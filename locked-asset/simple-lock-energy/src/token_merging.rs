@@ -1,40 +1,16 @@
 elrond_wasm::imports!();
 
+use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::energy::Energy;
-
-static CANNOT_MERGE_ERR_MSG: &[u8] = b"Cannot merge";
-
-pub trait Mergeable {
-    fn can_merge_with(&self, other: &Self) -> bool;
-
-    fn merge_with(&mut self, other: Self);
-}
-
-impl<M: ManagedTypeApi> Mergeable for EsdtTokenPayment<M> {
-    fn can_merge_with(&self, other: &Self) -> bool {
-        let same_token_id = self.token_identifier == other.token_identifier;
-        let same_token_nonce = self.token_nonce == other.token_nonce;
-
-        same_token_id && same_token_nonce
-    }
-
-    fn merge_with(&mut self, other: Self) {
-        if !self.can_merge_with(&other) {
-            M::error_api_impl().signal_error(CANNOT_MERGE_ERR_MSG);
-        }
-
-        self.amount += other.amount;
-    }
-}
 
 pub struct LockedAmountAttributesPair<M: ManagedTypeApi> {
     pub token_amount: BigUint<M>,
     pub attributes: LockedTokenAttributes<M>,
 }
 
-impl<M: ManagedTypeApi> Mergeable for LockedAmountAttributesPair<M> {
+impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountAttributesPair<M> {
     fn can_merge_with(&self, other: &Self) -> bool {
         let same_token_id = self.attributes.original_token_id == other.attributes.original_token_id;
         let same_token_nonce =
@@ -44,9 +20,7 @@ impl<M: ManagedTypeApi> Mergeable for LockedAmountAttributesPair<M> {
     }
 
     fn merge_with(&mut self, other: Self) {
-        if !self.can_merge_with(&other) {
-            M::error_api_impl().signal_error(CANNOT_MERGE_ERR_MSG);
-        }
+        self.error_if_not_mergeable(&other);
 
         let first_unlock_epoch_weighted = &self.token_amount * self.attributes.unlock_epoch;
         let second_unlock_epoch_weighted = &other.token_amount * other.attributes.unlock_epoch;
@@ -65,11 +39,11 @@ pub trait TokenMergingModule:
     + simple_lock::locked_token::LockedTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
-    + crate::util::UtilModule
     + elrond_wasm_modules::pause::PauseModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
     + crate::lock_options::LockOptionsModule
+    + utils::UtilsModule
 {
     #[endpoint(mergeTokens)]
     fn merge_tokens(&self) -> EsdtTokenPayment {
@@ -119,6 +93,11 @@ pub trait TokenMergingModule:
                     output_pair.merge_with(amount_attr_pair);
                 }
 
+                let normalized_unlock_epoch = self.unlock_epoch_to_start_of_month_upper_estimate(
+                    output_pair.attributes.unlock_epoch,
+                );
+                output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
+
                 energy.add_after_token_lock(
                     &output_pair.token_amount,
                     output_pair.attributes.unlock_epoch,
@@ -128,16 +107,16 @@ pub trait TokenMergingModule:
                 output_pair
             });
 
-        let normalized_unlock_epoch = self.unlock_epoch_to_start_of_month_upper_estimate(
-            output_amount_attributes.attributes.unlock_epoch,
-        );
         let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
             output_amount_attributes.attributes.original_token_id,
             output_amount_attributes.attributes.original_token_nonce,
             output_amount_attributes.token_amount,
         );
-        let output_tokens =
-            self.lock_and_send(&caller, simulated_lock_payment, normalized_unlock_epoch);
+        let output_tokens = self.lock_and_send(
+            &caller,
+            simulated_lock_payment,
+            output_amount_attributes.attributes.unlock_epoch,
+        );
 
         self.to_esdt_payment(output_tokens)
     }

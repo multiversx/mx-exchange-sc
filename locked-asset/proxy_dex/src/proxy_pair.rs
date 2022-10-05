@@ -5,7 +5,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Nonce, WrappedLpTokenAttributes};
+use crate::wrapped_lp_attributes::WrappedLpTokenAttributes;
+use common_structs::Nonce;
 use itertools::Itertools;
 use pair::config::ProxyTrait as _;
 use pair::ProxyTrait as _;
@@ -37,14 +38,14 @@ pub trait ProxyPairModule:
     #[only_owner]
     #[endpoint(addPairToIntermediate)]
     fn add_pair_to_intermediate(&self, pair_address: ManagedAddress) {
-        self.intermediated_pairs().insert(pair_address);
+        let _ = self.intermediated_pairs().insert(pair_address);
     }
 
     #[only_owner]
     #[endpoint(removeIntermediatedPair)]
     fn remove_intermediated_pair(&self, pair_address: ManagedAddress) {
         self.require_is_intermediated_pair(&pair_address);
-        self.intermediated_pairs().remove(&pair_address);
+        let _ = self.intermediated_pairs().swap_remove(&pair_address);
     }
 
     #[payable("*")]
@@ -81,7 +82,7 @@ pub trait ProxyPairModule:
         let second_token_nonce = payment_1.token_nonce;
         let second_token_amount_desired = payment_1.amount;
         require!(
-            second_token_id == self.locked_asset_token_id().get(),
+            self.locked_token_ids().contains(&second_token_id),
             "second token needs to be locked asset token"
         );
         require!(second_token_nonce != 0, "bad second token nonce");
@@ -201,7 +202,7 @@ pub trait ProxyPairModule:
         let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
         require!(lp_token_id == attributes.lp_token_id, "Bad input address");
 
-        let locked_asset_token_id = self.locked_asset_token_id().get();
+        let locked_asset_token_id = self.locked_token_ids().get_by_index(0);
         let asset_token_id = self.asset_token_id().get();
 
         let tokens_for_position = self

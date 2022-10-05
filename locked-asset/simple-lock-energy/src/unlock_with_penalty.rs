@@ -33,13 +33,11 @@ pub trait UnlockWithPenaltyModule:
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + crate::token_whitelist::TokenWhitelistModule
-    + crate::util::UtilModule
     + crate::energy::EnergyModule
-    + crate::migration::SimpleLockMigrationModule
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
+    + utils::UtilsModule
 {
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
     ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
@@ -77,11 +75,7 @@ pub trait UnlockWithPenaltyModule:
     #[only_owner]
     #[endpoint(setFeesCollectorAddress)]
     fn set_fees_collector_address(&self, sc_address: ManagedAddress) {
-        require!(
-            !sc_address.is_zero() && self.blockchain().is_smart_contract(&sc_address),
-            "Invalid SC address"
-        );
-
+        self.require_sc_address(&sc_address);
         self.fees_collector_address().set(&sc_address);
     }
 
@@ -110,10 +104,14 @@ pub trait UnlockWithPenaltyModule:
     fn reduce_lock_period_common(&self, opt_epochs_to_reduce: Option<Epoch>) -> EsdtTokenPayment {
         self.require_not_paused();
 
+        let locked_token_mapper = self.locked_token();
         let payment = self.call_value().single_esdt();
-        let attributes: LockedTokenAttributes<Self::Api> = self
-            .locked_token()
-            .get_token_attributes(payment.token_nonce);
+        locked_token_mapper.require_same_token(&payment.token_identifier);
+
+        let attributes: LockedTokenAttributes<Self::Api> =
+            locked_token_mapper.get_token_attributes(payment.token_nonce);
+
+        locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         let epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
@@ -122,10 +120,21 @@ pub trait UnlockWithPenaltyModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let caller = self.blockchain().get_caller();
 
-        let mut energy = self.get_updated_energy_entry_for_user(&caller, current_epoch);
+        let mut energy = self.get_updated_energy_entry_for_user(&caller);
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
+        let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
+        let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
+
+        let amount_to_mint = if new_unlock_epoch == current_epoch {
+            &unlocked_tokens.amount
+        } else {
+            &penalty_amount
+        };
+        self.send()
+            .esdt_local_mint(&unlocked_token_id, 0, amount_to_mint);
+
         if penalty_amount > 0 {
             unlocked_tokens.amount -= &penalty_amount;
             require!(
@@ -133,12 +142,9 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            let fees_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
-            self.burn_penalty(fees_token_id, &penalty_amount);
+            self.burn_penalty(unlocked_token_id, &penalty_amount);
         }
 
-        let new_unlock_epoch =
-            self.unlock_epoch_to_start_of_month(attributes.unlock_epoch - epochs_to_reduce);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
 
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
@@ -191,7 +197,6 @@ pub trait UnlockWithPenaltyModule:
         token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
 
-    // TODO: Burn x%, and rest send to fees collector
     fn burn_penalty(&self, token_id: TokenIdentifier, fees_amount: &BigUint) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;

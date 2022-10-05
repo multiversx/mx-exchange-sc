@@ -21,7 +21,7 @@ fn try_lock() {
     // wrong token
     setup
         .lock(&first_user, b"FAKETOKEN-123456", 1_000, LOCK_OPTIONS[0])
-        .assert_user_error("May only lock the whitelisted token");
+        .assert_user_error("Invalid payment token");
 
     // invalid lock option
     setup
@@ -225,7 +225,7 @@ fn reduce_lock_period_test() {
     setup.b_mock.check_esdt_balance(
         &setup.sc_wrapper.address_ref(),
         BASE_ASSET_TOKEN_ID,
-        &expected_locked_token_balance,
+        &rust_biguint!(0),
     );
     setup.b_mock.check_esdt_balance(
         &setup.fees_collector_mock,
@@ -260,15 +260,27 @@ fn extend_locking_period_test() {
 
     // extend to 3 years - unsupported option
     setup
-        .extend_locking_period(&first_user, 1, half_balance, 3 * EPOCHS_IN_YEAR)
+        .extend_locking_period(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            1,
+            half_balance,
+            3 * EPOCHS_IN_YEAR,
+        )
         .assert_user_error("Invalid lock choice");
 
-    // extend to 5 years
+    // extend to 10 years
     setup
-        .extend_locking_period(&first_user, 1, half_balance, LOCK_OPTIONS[1])
+        .extend_locking_period(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            1,
+            half_balance,
+            LOCK_OPTIONS[2],
+        )
         .assert_ok();
 
-    let new_unlock_epoch = to_start_of_month(current_epoch + LOCK_OPTIONS[1]);
+    let new_unlock_epoch = to_start_of_month(current_epoch + LOCK_OPTIONS[2]);
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,
@@ -287,8 +299,14 @@ fn extend_locking_period_test() {
 
     // try "extend" to 1 year
     setup
-        .extend_locking_period(&first_user, 2, half_balance, LOCK_OPTIONS[0])
-        .assert_user_error("New lock period must be longer than the current one.");
+        .extend_locking_period(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            2,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_user_error("New lock period must be longer than the current one");
 }
 
 #[test]

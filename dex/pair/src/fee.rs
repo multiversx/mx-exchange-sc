@@ -97,7 +97,10 @@ pub trait FeeModule:
         }
     }
 
-    /// `fees_collector_cut_percentage` of the total fees are sent to the fees_collector_address SC
+    /// `fees_collector_cut_percentage` of the special fees are sent to the fees_collector_address SC
+    ///
+    /// For example, if special fees is 5%, and fees_collector_cut_percentage is 10%,
+    /// then of the 5%, 10% are reserved, and only the rest are split between other pair contracts.
     #[endpoint(setupFeesCollector)]
     fn setup_fees_collector(
         &self,

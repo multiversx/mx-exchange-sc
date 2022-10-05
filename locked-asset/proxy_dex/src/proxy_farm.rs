@@ -3,7 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Nonce, WrappedFarmTokenAttributes};
+use crate::wrapped_farm_attributes::WrappedFarmTokenAttributes;
+use common_structs::Nonce;
 
 use super::events;
 use super::proxy_common;
@@ -38,14 +39,14 @@ pub trait ProxyFarmModule:
     #[only_owner]
     #[endpoint(addFarmToIntermediate)]
     fn add_farm_to_intermediate(&self, farm_address: ManagedAddress) {
-        self.intermediated_farms().insert(farm_address);
+        let _ = self.intermediated_farms().insert(farm_address);
     }
 
     #[only_owner]
     #[endpoint(removeIntermediatedFarm)]
     fn remove_intermediated_farm(&self, farm_address: ManagedAddress) {
         self.require_is_intermediated_farm(&farm_address);
-        self.intermediated_farms().remove(&farm_address);
+        let _ = self.intermediated_farms().swap_remove(&farm_address);
     }
 
     #[payable("*")]
@@ -74,7 +75,7 @@ pub trait ProxyFarmModule:
             let wrapped_lp_token_attrs =
                 self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
             farming_token_id = wrapped_lp_token_attrs.lp_token_id;
-        } else if token_id == self.locked_asset_token_id().get() {
+        } else if self.locked_token_ids().contains(&token_id) {
             let asset_token_id = self.asset_token_id().get();
             farming_token_id = asset_token_id;
         } else {

@@ -11,11 +11,14 @@ path = "src/lib.rs"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
-[dependencies.factory]
-path = "../factory"
-
 [dependencies.common_structs]
 path = "../../common/common_structs"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
 
 [dependencies.elrond-wasm]
 version = "0.34.1"

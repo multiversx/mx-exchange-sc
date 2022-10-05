@@ -148,25 +148,18 @@ pub trait LockedAssetFactory:
         )
     }
 
+    /// Can be called even if paused.
     #[payable("*")]
     #[endpoint(unlockAssets)]
     fn unlock_assets(&self) {
-        self.require_not_paused();
-
         let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let locked_token_id = self.locked_asset_token().get_token_id();
         require!(token_id == locked_token_id, "Bad payment token");
 
-        let attributes = self.get_attributes_ex(&token_id, token_nonce);
-        let unlock_schedule = &attributes.unlock_schedule;
-
         let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
-        let unlock_amount = self.get_unlock_amount(
-            &amount,
-            month_start_epoch,
-            &unlock_schedule.unlock_milestones,
-        );
-        require!(amount >= unlock_amount, "Cannot unlock more than locked");
+        let attributes = self.get_attributes_ex(&token_id, token_nonce);
+        let amounts_per_epoch = attributes.get_unlock_amounts_per_epoch(&amount);
+        let unlock_amount = amounts_per_epoch.get_total_unlockable_amount(month_start_epoch);
         require!(unlock_amount > 0u64, "Method called too soon");
 
         let caller = self.blockchain().get_caller();
@@ -183,16 +176,14 @@ pub trait LockedAssetFactory:
 
         let locked_remaining = &amount - &unlock_amount;
         if locked_remaining > 0u64 {
-            let new_unlock_milestones = self.create_new_unlock_milestones(
-                month_start_epoch,
-                &unlock_schedule.unlock_milestones,
-            );
-            output_locked_asset_attributes = LockedAssetTokenAttributesEx {
-                unlock_schedule: UnlockScheduleEx {
-                    unlock_milestones: new_unlock_milestones,
-                },
-                is_merged: attributes.is_merged,
-            };
+            output_locked_asset_attributes = attributes.clone();
+            output_locked_asset_attributes
+                .unlock_schedule
+                .clear_unlockable_entries(month_start_epoch);
+            output_locked_asset_attributes
+                .unlock_schedule
+                .reallocate_percentages();
+
             output_locked_assets_token_amount = self.produce_tokens_and_send(
                 &locked_remaining,
                 &output_locked_asset_attributes,
@@ -202,6 +193,10 @@ pub trait LockedAssetFactory:
 
         self.send()
             .esdt_local_burn(&locked_token_id, token_nonce, &amount);
+
+        let unlockable_amounts_per_epoch =
+            amounts_per_epoch.get_unlockable_entries(month_start_epoch);
+        self.update_energy_after_unlock(caller.clone(), unlockable_amounts_per_epoch);
 
         self.emit_unlock_assets_event(
             &caller,

@@ -6,10 +6,7 @@ use common_structs::*;
 use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
 
 use super::locked_asset;
-use super::locked_asset::{
-    LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE, ONE_MILLION,
-    PERCENTAGE_TOTAL_EX,
-};
+use super::locked_asset::{LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, ONE_MILLION};
 
 #[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
@@ -17,10 +14,13 @@ pub trait LockedAssetTokenMergeModule:
     + token_send::TokenSendModule
     + token_merge_helper::TokenMergeHelperModule
     + attr_ex_helper::AttrExHelper
+    + elrond_wasm_modules::pause::PauseModule
 {
     #[payable("*")]
-    #[endpoint(mergeLockedAssetTokens)]
-    fn merge_locked_asset_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    #[endpoint(mergeTokens)]
+    fn merge_tokens(&self) -> EsdtTokenPayment {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         let payments_vec = self.call_value().all_esdt_transfers();
         require!(!payments_vec.is_empty(), "Empty payment vec");
