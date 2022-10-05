@@ -12,7 +12,7 @@ pub const MAX_FEE_PERCENTAGE: u64 = 5_000;
 pub trait ConfigModule:
     token_send::TokenSendModule + permissions_module::PermissionsModule + pausable::PausableModule
 {
-    #[endpoint]
+    #[endpoint(setExternSwapGasLimit)]
     fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
         self.require_caller_has_owner_permissions();
         self.extern_swap_gas_limit().set(&gas_limit);
