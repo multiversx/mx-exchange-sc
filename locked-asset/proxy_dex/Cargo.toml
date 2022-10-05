@@ -29,6 +29,12 @@ path = "../../common/modules/token_send"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../../common/traits/fixed-supply-token"
+
 [dependencies.elrond-wasm]
 version = "0.34.0"
 

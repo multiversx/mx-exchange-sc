@@ -10,39 +10,21 @@ use crate::{
 pub struct AddLiquidityProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     pair_address: ManagedAddress<M>,
-    first_token_id: TokenIdentifier<M>,
-    first_token_nonce: u64,
-    first_token_amount: BigUint<M>,
-    second_token_id: TokenIdentifier<M>,
-    second_token_nonce: u64,
-    second_token_amount: BigUint<M>,
-    wrapped_lp_token_id: TokenIdentifier<M>,
-    wrapped_lp_token_nonce: u64,
-    wrapped_lp_token_amount: BigUint<M>,
+    first_token: EsdtTokenPayment<M>,
+    second_token: EsdtTokenPayment<M>,
+    wrapped_lp_token: EsdtTokenPayment<M>,
     wrapped_lp_attributes: WrappedLpTokenAttributes<M>,
     created_with_merge: bool,
-    block: u64,
-    epoch: u64,
-    timestamp: u64,
 }
 
 #[derive(TypeAbi, TopEncode)]
 pub struct RemoveLiquidityProxyEvent<M: ManagedTypeApi> {
     caller: ManagedAddress<M>,
     pair_address: ManagedAddress<M>,
-    wrapped_lp_token_id: TokenIdentifier<M>,
-    wrapped_lp_token_nonce: u64,
-    wrapped_lp_token_amount: BigUint<M>,
+    wrapped_lp_token: EsdtTokenPayment<M>,
     wrapped_lp_attributes: WrappedLpTokenAttributes<M>,
-    first_token_id: TokenIdentifier<M>,
-    first_token_nonce: u64,
-    first_token_amount: BigUint<M>,
-    second_token_id: TokenIdentifier<M>,
-    second_token_nonce: u64,
-    second_token_amount: BigUint<M>,
-    block: u64,
-    epoch: u64,
-    timestamp: u64,
+    first_token: EsdtTokenPayment<M>,
+    second_token: EsdtTokenPayment<M>,
 }
 
 #[derive(TypeAbi, TopEncode)]
@@ -124,86 +106,60 @@ pub struct CompoundRewardsProxyEvent<M: ManagedTypeApi> {
 pub trait EventsModule {
     fn emit_add_liquidity_proxy_event(
         self,
-        caller: &ManagedAddress,
-        pair_address: &ManagedAddress,
-        first_token_id: &TokenIdentifier,
-        first_token_nonce: u64,
-        first_token_amount: &BigUint,
-        second_token_id: &TokenIdentifier,
-        second_token_nonce: u64,
-        second_token_amount: &BigUint,
-        wrapped_lp_token_id: &TokenIdentifier,
-        wrapped_lp_token_nonce: u64,
-        wrapped_lp_token_amount: &BigUint,
-        wrapped_lp_attributes: &WrappedLpTokenAttributes<Self::Api>,
+        caller: ManagedAddress,
+        pair_address: ManagedAddress,
+        first_token: EsdtTokenPayment,
+        second_token: EsdtTokenPayment,
+        wrapped_lp_token: EsdtTokenPayment,
+        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
+        let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         self.add_liquidity_proxy_event(
-            first_token_id,
-            second_token_id,
-            caller,
-            pair_address,
+            &caller.clone(),
+            &pair_address.clone(),
             epoch,
+            block,
+            timestamp,
             &AddLiquidityProxyEvent {
-                caller: caller.clone(),
-                pair_address: pair_address.clone(),
-                first_token_id: first_token_id.clone(),
-                first_token_nonce,
-                first_token_amount: first_token_amount.clone(),
-                second_token_id: second_token_id.clone(),
-                second_token_nonce,
-                second_token_amount: second_token_amount.clone(),
-                wrapped_lp_token_id: wrapped_lp_token_id.clone(),
-                wrapped_lp_token_nonce,
-                wrapped_lp_token_amount: wrapped_lp_token_amount.clone(),
-                wrapped_lp_attributes: wrapped_lp_attributes.clone(),
+                caller,
+                pair_address,
+                first_token,
+                second_token,
+                wrapped_lp_token,
+                wrapped_lp_attributes,
                 created_with_merge,
-                block: self.blockchain().get_block_nonce(),
-                epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
             },
         )
     }
 
     fn emit_remove_liquidity_proxy_event(
         self,
-        caller: &ManagedAddress,
-        pair_address: &ManagedAddress,
-        wrapped_lp_token_id: &TokenIdentifier,
-        wrapped_lp_token_nonce: u64,
-        wrapped_lp_token_amount: &BigUint,
-        wrapped_lp_attributes: &WrappedLpTokenAttributes<Self::Api>,
-        first_token_id: &TokenIdentifier,
-        first_token_nonce: u64,
-        first_token_amount: &BigUint,
-        second_token_id: &TokenIdentifier,
-        second_token_nonce: u64,
-        second_token_amount: &BigUint,
+        caller: ManagedAddress,
+        pair_address: ManagedAddress,
+        wrapped_lp_token: EsdtTokenPayment,
+        wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api>,
+        first_token: EsdtTokenPayment,
+        second_token: EsdtTokenPayment,
     ) {
         let epoch = self.blockchain().get_block_epoch();
+        let block = self.blockchain().get_block_nonce();
+        let timestamp = self.blockchain().get_block_timestamp();
         self.remove_liquidity_proxy_event(
-            first_token_id,
-            second_token_id,
-            caller,
-            pair_address,
+            &caller.clone(),
+            &pair_address.clone(),
             epoch,
+            block,
+            timestamp,
             &RemoveLiquidityProxyEvent {
-                caller: caller.clone(),
-                pair_address: pair_address.clone(),
-                first_token_id: first_token_id.clone(),
-                first_token_nonce,
-                first_token_amount: first_token_amount.clone(),
-                second_token_id: second_token_id.clone(),
-                second_token_nonce,
-                second_token_amount: second_token_amount.clone(),
-                wrapped_lp_token_id: wrapped_lp_token_id.clone(),
-                wrapped_lp_token_nonce,
-                wrapped_lp_token_amount: wrapped_lp_token_amount.clone(),
-                wrapped_lp_attributes: wrapped_lp_attributes.clone(),
-                block: self.blockchain().get_block_nonce(),
-                epoch,
-                timestamp: self.blockchain().get_block_timestamp(),
+                caller,
+                pair_address,
+                wrapped_lp_token,
+                wrapped_lp_attributes,
+                first_token,
+                second_token,
             },
         )
     }
@@ -373,22 +329,22 @@ pub trait EventsModule {
     #[event("add_liquidity_proxy")]
     fn add_liquidity_proxy_event(
         self,
-        #[indexed] first_token: &TokenIdentifier,
-        #[indexed] second_token: &TokenIdentifier,
         #[indexed] caller: &ManagedAddress,
         #[indexed] pair_address: &ManagedAddress,
         #[indexed] epoch: u64,
+        #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         add_liquidity_proxy_event: &AddLiquidityProxyEvent<Self::Api>,
     );
 
     #[event("remove_liquidity_proxy")]
     fn remove_liquidity_proxy_event(
         self,
-        #[indexed] first_token: &TokenIdentifier,
-        #[indexed] second_token: &TokenIdentifier,
         #[indexed] caller: &ManagedAddress,
         #[indexed] pair_address: &ManagedAddress,
         #[indexed] epoch: u64,
+        #[indexed] block: u64,
+        #[indexed] timestamp: u64,
         remove_liquidity_proxy_event: &RemoveLiquidityProxyEvent<Self::Api>,
     );
 

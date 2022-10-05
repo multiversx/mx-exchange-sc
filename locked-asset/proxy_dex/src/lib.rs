@@ -7,9 +7,11 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod events;
+pub mod pair_interactions;
 pub mod proxy_common;
 pub mod proxy_farm;
 pub mod proxy_pair;
+pub mod sc_whitelist;
 pub mod wrapped_farm_attributes;
 pub mod wrapped_farm_token_merge;
 pub mod wrapped_lp_attributes;
@@ -18,7 +20,9 @@ pub mod wrapped_lp_token_merge;
 #[elrond_wasm::contract]
 pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule
+    + sc_whitelist::ScWhitelistModule
     + proxy_pair::ProxyPairModule
+    + pair_interactions::PairInteractionsModule
     + proxy_farm::ProxyFarmModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
