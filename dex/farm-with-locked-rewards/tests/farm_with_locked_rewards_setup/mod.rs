@@ -28,6 +28,7 @@ use simple_lock_energy::SimpleLockEnergy;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_REWARD_TOKEN_ID: &[u8] = b"LOCKED-123456";
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 const DIV_SAFETY: u64 = 1_000_000_000_000;
@@ -112,9 +113,11 @@ where
 
                 sc.init(
                     managed_token_id!(REWARD_TOKEN_ID),
+                    managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                     MIN_PENALTY_PERCENTAGE,
                     MAX_PENALTY_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
+                    managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
@@ -185,11 +188,18 @@ where
             &farming_token_roles[..],
         );
 
-        let reward_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
+        let reward_mint_token_roles = [EsdtLocalRole::Mint];
         b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             REWARD_TOKEN_ID,
-            &reward_token_roles[..],
+            &reward_mint_token_roles[..],
+        );
+
+        let reward_burn_token_roles = [EsdtLocalRole::Burn];
+        b_mock.set_esdt_local_roles(
+            simple_lock_energy_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &reward_burn_token_roles[..],
         );
 
         let locked_reward_token_roles = [
