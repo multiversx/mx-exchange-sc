@@ -71,8 +71,14 @@ path = "../../energy-integration/common-modules/week-timekeeping"
 [dependencies.weekly-rewards-splitting]
 path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 
+[dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
 [dependencies.simple-lock-energy]
 path = "../../locked-asset/simple-lock-energy"
+
+[dependencies.factory]
+path = "../../locked-asset/factory"
 
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
@@ -91,6 +97,3 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.energy-factory-mock]
 path = "../../energy-integration/energy-factory-mock"
-
-[dev-dependencies.proxy_dex]
-path = "../../locked-asset/proxy_dex"

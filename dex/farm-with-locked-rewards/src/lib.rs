@@ -94,7 +94,7 @@ pub trait Farm:
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
             rewards_payment.token_identifier.clone(),
-            rewards_payment.amount.clone(),
+            rewards_payment.amount,
         );
         (
             output_farm_token_payment,
@@ -123,7 +123,7 @@ pub trait Farm:
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
             reward_payment.token_identifier.clone(),
-            reward_payment.amount.clone(),
+            reward_payment.amount,
         );
         (
             farming_token_payment,
@@ -186,10 +186,10 @@ pub trait Farm:
         token_identifier: TokenIdentifier,
         amount: BigUint,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        if amount == 0 {
-            return EgldOrEsdtTokenPayment::no_payment();
-        }
         let token_id = EgldOrEsdtTokenIdentifier::esdt(token_identifier);
+        if amount == 0 {
+            return EgldOrEsdtTokenPayment::new(token_id, 0, BigUint::zero());
+        }
         self.lock_tokens_and_forward(destination_address, token_id, amount)
     }
 }
