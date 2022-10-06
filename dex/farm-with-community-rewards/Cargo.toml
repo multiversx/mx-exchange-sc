@@ -1,0 +1,90 @@
+[package]
+name = "farm-with-community-rewards"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
+[dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
+
+[dependencies.farm_token_merge]
+path = "../../common/modules/farm/farm_token_merge"
+
+[dependencies.rewards]
+path = "../../common/modules/farm/rewards"
+
+[dependencies.events]
+path = "../../common/modules/farm/events"
+
+[dependencies.contexts]
+path = "../../common/modules/farm/contexts"
+
+[dependencies.token_send]
+path = "../../common/modules/token_send"
+
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
+
+[dependencies.locking_module]
+path = "../../common/modules/locking_module"
+
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
+[dependencies.farm]
+path = "../farm"
+
+[dependencies.pair]
+path = "../pair"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../energy-integration/common-modules/weekly-rewards-splitting"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.elrond-wasm]
+version = "0.34.0"
+
+[dependencies.elrond-wasm-modules]
+version = "0.34.0"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.energy-factory-mock]
+path = "../../energy-integration/energy-factory-mock"
