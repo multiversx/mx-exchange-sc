@@ -30,7 +30,7 @@ pub trait ProxyCommonModule {
     ) -> LockedUnlockedTokenRefPair<'a, Self::Api> {
         let token_mapper = self.locked_token_ids();
         let first_is_locked = token_mapper.contains(&first_payment.token_identifier);
-        let second_is_locked = token_mapper.contains(&first_payment.token_identifier);
+        let second_is_locked = token_mapper.contains(&second_payment.token_identifier);
 
         if first_is_locked {
             require!(!second_is_locked, INVALID_PAYMENTS_ERR_MSG);
