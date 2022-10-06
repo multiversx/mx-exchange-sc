@@ -7,6 +7,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod events;
+pub mod farm_interactions;
 pub mod pair_interactions;
 pub mod proxy_common;
 pub mod proxy_farm;
@@ -24,6 +25,7 @@ pub trait ProxyDexImpl:
     + proxy_pair::ProxyPairModule
     + pair_interactions::PairInteractionsModule
     + proxy_farm::ProxyFarmModule
+    + farm_interactions::FarmInteractionsModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge

@@ -34,19 +34,6 @@ pub trait ProxyFarmModule:
     + crate::events::EventsModule
     + utils::UtilsModule
 {
-    #[only_owner]
-    #[endpoint(addFarmToIntermediate)]
-    fn add_farm_to_intermediate(&self, farm_address: ManagedAddress) {
-        let _ = self.intermediated_farms().insert(farm_address);
-    }
-
-    #[only_owner]
-    #[endpoint(removeIntermediatedFarm)]
-    fn remove_intermediated_farm(&self, farm_address: ManagedAddress) {
-        self.require_is_intermediated_farm(&farm_address);
-        let _ = self.intermediated_farms().swap_remove(&farm_address);
-    }
-
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
     fn enter_farm_proxy_endpoint(
@@ -480,13 +467,6 @@ pub trait ProxyFarmModule:
             .compound_rewards()
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
-    }
-
-    fn require_is_intermediated_farm(&self, address: &ManagedAddress) {
-        require!(
-            self.intermediated_farms().contains(address),
-            "Not an intermediated farm"
-        );
     }
 
     fn require_wrapped_farm_token_id_not_empty(&self) {

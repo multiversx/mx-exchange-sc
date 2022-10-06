@@ -133,10 +133,6 @@ pub trait ProxyCommonModule {
     #[storage_mapper("wrappedFarmTokenId")]
     fn wrapped_farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
-    #[view(getIntermediatedFarms)]
-    #[storage_mapper("intermediatedFarms")]
-    fn intermediated_farms(&self) -> UnorderedSetMapper<ManagedAddress>;
-
     #[proxy]
     fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
 }

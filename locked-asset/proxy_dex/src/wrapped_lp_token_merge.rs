@@ -24,6 +24,8 @@ pub trait WrappedLpTokenMerge:
         let wrapped_token_mapper = self.wrapped_lp_token();
         let wrapped_lp_tokens = WrappedLpToken::new_from_payments(&payments, &wrapped_token_mapper);
 
+        self.burn_multi_esdt(&payments);
+
         let merged_tokens = self.merge_wrapped_lp_tokens(wrapped_lp_tokens).payment;
         self.send_payment_non_zero(&caller, &merged_tokens);
 
