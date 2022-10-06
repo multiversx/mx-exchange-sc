@@ -1,7 +1,7 @@
 [package]
-name = "weekly-rewards-splitting"
+name = "common-events"
 version = "0.0.0"
-authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+authors = [ "you" ]
 edition = "2018"
 
 [lib]
@@ -10,14 +10,11 @@ path = "src/lib.rs"
 [dependencies.elrond-wasm]
 version = "0.34.0"
 
-[dependencies.energy-query]
-path = "../energy-query"
-
 [dependencies.week-timekeeping]
 path = "../week-timekeeping"
 
-[dependencies.common-events]
-path = "../common-events"
-
 [dependencies.common-types]
 path = "../../common-types"
+
+[dependencies.simple-lock-energy]
+path = "../../../locked-asset/simple-lock-energy"

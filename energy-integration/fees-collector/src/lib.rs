@@ -21,6 +21,7 @@ pub trait FeesCollector:
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
     + elrond_wasm_modules::pause::PauseModule
+    + common_events::CommonEventsModule
 {
     #[init]
     fn init(&self) {
