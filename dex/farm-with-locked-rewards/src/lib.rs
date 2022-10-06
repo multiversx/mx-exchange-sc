@@ -78,8 +78,9 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(enterFarm)]
     fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
-        let output_farm_token_payment = self.enter_farm();
         let caller = self.blockchain().get_caller();
+        self.require_sc_address_whitelisted(&caller);
+        let output_farm_token_payment = self.enter_farm();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
