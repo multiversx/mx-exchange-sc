@@ -49,6 +49,7 @@ pub trait Farm:
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + energy_query::EnergyQueryModule
+    + common_events::CommonEventsModule
 {
     #[init]
     fn init(

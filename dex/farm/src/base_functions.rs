@@ -42,6 +42,7 @@ pub trait BaseFunctionsModule:
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + energy_query::EnergyQueryModule
+    + common_events::CommonEventsModule
 {
     fn enter_farm(&self) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
