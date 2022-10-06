@@ -67,7 +67,7 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> WrappedLpToken<M> {
         payments: &PaymentsVec<M>,
         wrapped_token_mapper: &NonFungibleTokenMapper<M>,
     ) -> ManagedVec<M, Self> {
-        wrapped_token_mapper.require_all_same_token(&payments);
+        wrapped_token_mapper.require_all_same_token(payments);
 
         let mut output = ManagedVec::new();
         for payment in payments {

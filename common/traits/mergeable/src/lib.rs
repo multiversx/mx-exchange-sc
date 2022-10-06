@@ -6,7 +6,7 @@ pub static CANNOT_MERGE_ERR_MSG: &[u8] = b"Cannot merge";
 
 pub trait Mergeable<M: ManagedTypeApi> {
     fn error_if_not_mergeable(&self, other: &Self) {
-        if !self.can_merge_with(&other) {
+        if !self.can_merge_with(other) {
             throw_not_mergeable_error::<M>();
         }
     }
