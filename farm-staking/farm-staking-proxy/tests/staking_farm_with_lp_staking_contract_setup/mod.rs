@@ -7,13 +7,13 @@ use elrond_wasm_debug::{
 };
 
 use ::config as farm_staking_config;
-use farm_staking::whitelist::WhitelistModule;
 use farm_staking::*;
 use farm_staking_config::ConfigModule as _;
 
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
 use farm_staking_proxy::*;
+use sc_whitelist_module::SCWhitelistModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 
@@ -93,7 +93,7 @@ pub fn add_proxy_to_whitelist<StakingContractObjBuilder>(
     let rust_zero = rust_biguint!(0u64);
     b_mock
         .execute_tx(owner_addr, staking_farm_builder, &rust_zero, |sc| {
-            sc.add_address_to_whitelist(managed_address!(proxy_address));
+            sc.add_sc_address_to_whitelist(managed_address!(proxy_address));
         })
         .assert_ok();
 }

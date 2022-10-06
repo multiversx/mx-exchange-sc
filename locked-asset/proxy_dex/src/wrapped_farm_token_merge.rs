@@ -217,7 +217,7 @@ pub trait WrappedFarmTokenMerge:
         }
 
         self.farm_contract_proxy(farm_contract.clone())
-            .merge_farm_tokens()
+            .merge_farm_tokens_endpoint()
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }

@@ -9,237 +9,126 @@ use elrond_wasm_debug::{
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
+
+mod fees_collector_mock;
+use fees_collector_mock::*;
+
+use elrond_wasm_modules::pause::PauseModule;
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::{Energy, EnergyQueryModule};
-use farm::Farm;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
+use farm_with_locked_rewards::Farm;
+use locking_module::LockingModule;
 use pausable::{PausableModule, State};
+use sc_whitelist_module::SCWhitelistModule;
+use simple_lock::locked_token::LockedTokenModule;
+use simple_lock_energy::lock_options::LockOptionsModule;
+use simple_lock_energy::SimpleLockEnergy;
 
-static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
-static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
-static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
+pub static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
+pub static LOCKED_REWARD_TOKEN_ID: &[u8] = b"LOCKED-123456";
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
+pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
+pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 const DIV_SAFETY: u64 = 1_000_000_000_000;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
-const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
+pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 
-#[test]
-fn farm_with_no_boost_test() {
-    let _ = DebugApi::dummy();
-    let mut farm_setup = FarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+pub const EPOCHS_IN_YEAR: u64 = 365;
 
-    // first user enter farm
-    let first_farm_token_amount = 100_000_000;
-    let first_user = farm_setup.first_user.clone();
-    farm_setup.enter_farm(&first_user, first_farm_token_amount);
+pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
+pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
+pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
+pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 
-    // second user enter farm
-    let second_farm_token_amount = 50_000_000;
-    let second_user = farm_setup.second_user.clone();
-    farm_setup.enter_farm(&second_user, second_farm_token_amount);
-
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
-    farm_setup.b_mock.set_block_nonce(10);
-
-    let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
-
-    // calculate rewards - first user
-    let first_attributes = FarmTokenAttributes {
-        reward_per_share: managed_biguint!(0),
-        original_entering_epoch: 0,
-        entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(first_farm_token_amount),
-        compounded_reward: managed_biguint!(0),
-        current_farm_amount: managed_biguint!(first_farm_token_amount),
-    };
-    let first_rewards_amt =
-        farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
-    let first_expected_rewards_amt = first_farm_token_amount * 10_000 / total_farm_tokens;
-    assert_eq!(first_rewards_amt, first_expected_rewards_amt);
-
-    // calculate rewards - second user
-    let second_attributes = FarmTokenAttributes {
-        reward_per_share: managed_biguint!(0),
-        original_entering_epoch: 0,
-        entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(second_farm_token_amount),
-        compounded_reward: managed_biguint!(0),
-        current_farm_amount: managed_biguint!(second_farm_token_amount),
-    };
-    let second_rewards_amt =
-        farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
-    let second_expected_rewards_amt = second_farm_token_amount * 10_000 / total_farm_tokens;
-    assert_eq!(second_rewards_amt, second_expected_rewards_amt);
-
-    // first user claim
-    let first_received_reward_amt =
-        farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
-    assert_eq!(first_received_reward_amt, first_expected_rewards_amt);
-
-    farm_setup
-        .b_mock
-        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
-            &first_user,
-            FARM_TOKEN_ID,
-            3,
-            &rust_biguint!(first_farm_token_amount),
-            None,
-        );
-
-    farm_setup.b_mock.check_esdt_balance(
-        &first_user,
-        REWARD_TOKEN_ID,
-        &rust_biguint!(first_received_reward_amt),
-    );
-
-    // second user claim
-    let second_received_reward_amt =
-        farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
-    assert_eq!(second_received_reward_amt, second_expected_rewards_amt);
-
-    farm_setup
-        .b_mock
-        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
-            &second_user,
-            FARM_TOKEN_ID,
-            4,
-            &rust_biguint!(second_farm_token_amount),
-            None,
-        );
-
-    farm_setup.b_mock.check_esdt_balance(
-        &second_user,
-        REWARD_TOKEN_ID,
-        &rust_biguint!(second_received_reward_amt),
-    );
-}
-
-#[test]
-fn farm_with_boosted_yields_test() {
-    let _ = DebugApi::dummy();
-    let mut farm_setup = FarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
-
-    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
-
-    // first user enter farm
-    let first_farm_token_amount = 100_000_000;
-    let first_user = farm_setup.first_user.clone();
-    farm_setup.enter_farm(&first_user, first_farm_token_amount);
-
-    // second user enter farm
-    let second_farm_token_amount = 50_000_000;
-    let second_user = farm_setup.second_user.clone();
-    farm_setup.enter_farm(&second_user, second_farm_token_amount);
-
-    // set user energy
-    farm_setup.b_mock.set_block_epoch(2);
-    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
-    farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
-
-    // users claim rewards to get their energy registered
-    let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
-    let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
-
-    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
-    // 7_500 base farm, 2_500 boosted yields
-    farm_setup.b_mock.set_block_nonce(10);
-
-    // random tx on end of week 1, to cummulate rewards
-    farm_setup.b_mock.set_block_epoch(6);
-    farm_setup.enter_farm(&second_user, 1);
-    farm_setup.exit_farm(&second_user, 5, 1);
-
-    // advance 1 week
-    farm_setup.b_mock.set_block_epoch(10);
-
-    let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
-
-    // first user claim
-    let first_base_farm_amt = first_farm_token_amount * 7_500 / total_farm_tokens;
-    let first_boosted_amt = 1_000 * 2_500 / 5_000; // 1_000 out of 5_000 total energy
-    let first_total = first_base_farm_amt + first_boosted_amt;
-
-    let first_receveived_reward_amt =
-        farm_setup.claim_rewards(&first_user, 3, first_farm_token_amount);
-    assert_eq!(first_receveived_reward_amt, first_total);
-
-    farm_setup
-        .b_mock
-        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
-            &first_user,
-            FARM_TOKEN_ID,
-            6,
-            &rust_biguint!(first_farm_token_amount),
-            None,
-        );
-
-    farm_setup.b_mock.check_esdt_balance(
-        &first_user,
-        REWARD_TOKEN_ID,
-        &rust_biguint!(first_receveived_reward_amt),
-    );
-
-    // second user claim
-    let second_base_farm_amt = second_farm_token_amount * 7_500 / total_farm_tokens;
-    let second_boosted_amt = 4_000 * 2_500 / 5_000; // 4_000 out of 5_000 total energy
-    let second_total = second_base_farm_amt + second_boosted_amt;
-
-    let second_receveived_reward_amt =
-        farm_setup.claim_rewards(&second_user, 4, second_farm_token_amount);
-    assert_eq!(second_receveived_reward_amt, second_total);
-
-    farm_setup
-        .b_mock
-        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
-            &second_user,
-            FARM_TOKEN_ID,
-            7,
-            &rust_biguint!(second_farm_token_amount),
-            None,
-        );
-
-    farm_setup.b_mock.check_esdt_balance(
-        &second_user,
-        REWARD_TOKEN_ID,
-        &rust_biguint!(second_receveived_reward_amt),
-    );
-}
-
-pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
+pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder, SimpleLockEnergyBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    SimpleLockEnergyBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
     pub last_farm_token_nonce: u64,
-    pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub farm_wrapper:
+        ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory_mock::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+    pub simple_lock_energy_wrapper:
+        ContractObjWrapper<simple_lock_energy::ContractObj<DebugApi>, SimpleLockEnergyBuilder>,
 }
 
-impl<FarmObjBuilder, EnergyFactoryBuilder> FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
+impl<FarmObjBuilder, EnergyFactoryBuilder, SimpleLockEnergyBuilder>
+    FarmSetup<FarmObjBuilder, EnergyFactoryBuilder, SimpleLockEnergyBuilder>
 where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
+    FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    SimpleLockEnergyBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder, energy_factory_builder: EnergyFactoryBuilder) -> Self {
+    pub fn new(
+        farm_builder: FarmObjBuilder,
+        energy_factory_builder: EnergyFactoryBuilder,
+        simple_lock_energy_builder: SimpleLockEnergyBuilder,
+    ) -> Self {
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
-        let farm_wrapper =
-            b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, "farm.wasm");
+        let farm_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            farm_builder,
+            "farm-with-locked-rewards.wasm",
+        );
         let energy_factory_wrapper = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner),
             energy_factory_builder,
             "energy_factory.wasm",
         );
+        let simple_lock_energy_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            simple_lock_energy_builder,
+            "simple-lock-energy.wasm",
+        );
+        let fees_collector_mock = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            FeesCollectorMock::new,
+            "fees collector mock",
+        );
+
+        b_mock
+            .execute_tx(&owner, &simple_lock_energy_wrapper, &rust_zero, |sc| {
+                let mut lock_options = MultiValueEncoded::new();
+                for option in LOCK_OPTIONS {
+                    lock_options.push(*option);
+                }
+
+                sc.init(
+                    managed_token_id!(REWARD_TOKEN_ID),
+                    managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                    MIN_PENALTY_PERCENTAGE,
+                    MAX_PENALTY_PERCENTAGE,
+                    FEES_BURN_PERCENTAGE,
+                    managed_address!(fees_collector_mock.address_ref()),
+                    managed_address!(fees_collector_mock.address_ref()),
+                    lock_options,
+                );
+
+                assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
+
+                sc.locked_token()
+                    .set_token_id(&managed_token_id!(LOCKED_REWARD_TOKEN_ID));
+                sc.set_paused(false);
+            })
+            .assert_ok();
 
         b_mock
             .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
@@ -259,6 +148,16 @@ where
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
                 sc.farm_token().set_token_id(&farm_token_id);
+                sc.set_locking_sc_address(managed_address!(
+                    simple_lock_energy_wrapper.address_ref()
+                ));
+                sc.set_unlock_epoch(EPOCHS_IN_YEAR);
+
+                // sc.base_asset_token_id(managed_token_id!(REWARD_TOKEN_ID));
+
+                //TODO - change to proxy deployer
+                sc.add_sc_address_to_whitelist(managed_address!(&first_user));
+                sc.add_sc_address_to_whitelist(managed_address!(&second_user));
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -289,11 +188,30 @@ where
             &farming_token_roles[..],
         );
 
-        let reward_token_roles = [EsdtLocalRole::Mint];
+        let reward_mint_token_roles = [EsdtLocalRole::Mint];
         b_mock.set_esdt_local_roles(
             farm_wrapper.address_ref(),
             REWARD_TOKEN_ID,
-            &reward_token_roles[..],
+            &reward_mint_token_roles[..],
+        );
+
+        let reward_burn_token_roles = [EsdtLocalRole::Burn];
+        b_mock.set_esdt_local_roles(
+            simple_lock_energy_wrapper.address_ref(),
+            REWARD_TOKEN_ID,
+            &reward_burn_token_roles[..],
+        );
+
+        let locked_reward_token_roles = [
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+            EsdtLocalRole::Transfer,
+        ];
+        b_mock.set_esdt_local_roles(
+            simple_lock_energy_wrapper.address_ref(),
+            LOCKED_REWARD_TOKEN_ID,
+            &locked_reward_token_roles[..],
         );
 
         b_mock.set_esdt_balance(
@@ -315,6 +233,7 @@ where
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,
+            simple_lock_energy_wrapper,
         }
     }
 
@@ -415,7 +334,8 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (out_farm_token, out_reward_token) = sc.claim_rewards_endpoint().into_tuple();
+                    let (out_farm_token, out_reward_token) =
+                        sc.claim_rewards_endpoint().into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -423,11 +343,19 @@ where
                     assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
                     assert_eq!(out_farm_token.amount, managed_biguint!(farm_token_amount));
 
-                    assert_eq!(
-                        out_reward_token.token_identifier,
-                        managed_token_id!(REWARD_TOKEN_ID)
-                    );
-                    assert_eq!(out_reward_token.token_nonce, 0);
+                    if out_reward_token.amount > 0 {
+                        assert_eq!(
+                            out_reward_token.token_identifier,
+                            managed_token_id!(LOCKED_REWARD_TOKEN_ID)
+                        );
+                        assert_eq!(out_reward_token.token_nonce, 1);
+                    } else {
+                        assert_eq!(
+                            out_reward_token.token_identifier,
+                            managed_token_id!(REWARD_TOKEN_ID)
+                        );
+                        assert_eq!(out_reward_token.token_nonce, 0);
+                    }
 
                     result = out_reward_token.amount.to_u64().unwrap();
                 },

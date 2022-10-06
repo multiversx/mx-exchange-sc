@@ -5,10 +5,11 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    farm
+    farm_with_locked_rewards
     (
         callBack
         addAdmin
+        addSCAddressToWhitelist
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -25,6 +26,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmTokenSupply
         getFarmingTokenId
         getLastRewardBlockNonce
+        getLockingScAddress
         getMinimumFarmingEpoch
         getPairContractManagedAddress
         getPenaltyPercent
@@ -34,15 +36,20 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardReserve
         getRewardTokenId
         getState
+        getUnlockEpoch
+        isSCAddressWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
         removeAdmin
         removeFromPauseWhitelist
+        removeSCAddressFromWhitelist
         resume
         setBoostedYieldsRewardsPercentage
         setEnergyFactoryAddress
+        setLockingScAddress
         setPerBlockRewardAmount
+        setUnlockEpoch
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent

@@ -5,13 +5,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub mod base_functions;
-pub mod exit_penalty;
-
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
-use exit_penalty::{
+use farm::exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 
@@ -27,15 +24,18 @@ pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
+    + locking_module::LockingModule
     + farm_token::FarmTokenModule
     + token_merge_helper::TokenMergeHelperModule
     + farm_token_merge::FarmTokenMergeModule
+    + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + base_functions::BaseFunctionsModule
-    + exit_penalty::ExitPenaltyModule
+    + farm::base_functions::BaseFunctionsModule
+    + farm::exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::partial_positions::PartialPositionsModule
@@ -48,7 +48,7 @@ pub trait Farm:
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
-    + energy_query::EnergyQueryModule
+    + energy_query::EnergyQueryModule 
 {
     #[init]
     fn init(
@@ -73,16 +73,14 @@ pub trait Farm:
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.first_week_start_epoch().set_if_empty(current_epoch);
     }
 
     #[payable("*")]
     #[endpoint(enterFarm)]
     fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
-        let output_farm_token_payment = self.enter_farm();
         let caller = self.blockchain().get_caller();
+        self.require_sc_address_whitelisted(&caller);
+        let output_farm_token_payment = self.enter_farm();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -91,18 +89,26 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let claim_rewards_result = self.claim_rewards(&caller);
-        let (output_farm_token_payment, rewards_payment) =
-            claim_rewards_result.clone().into_tuple();
+        self.require_sc_address_whitelisted(&caller);
+        let (output_farm_token_payment, rewards_payment) = self.claim_rewards(&caller).into_tuple();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
-        self.send_payment_non_zero(&caller, &rewards_payment);
-        claim_rewards_result
+        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
+            caller,
+            rewards_payment.token_identifier.clone(),
+            rewards_payment.amount,
+        );
+        (
+            output_farm_token_payment,
+            self.to_esdt_payment(locked_rewards_payment),
+        )
+            .into()
     }
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
     fn compound_rewards_endpoint(&self) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
+        self.require_sc_address_whitelisted(&caller);
         let output_farm_token_payment = self.compound_rewards(&caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
@@ -112,11 +118,19 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let exit_farm_result = self.exit_farm(&caller);
-        let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
+        self.require_sc_address_whitelisted(&caller);
+        let (farming_token_payment, reward_payment) = self.exit_farm(&caller).into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
-        self.send_payment_non_zero(&caller, &reward_payment);
-        exit_farm_result
+        let locked_rewards_payment = self.send_to_lock_contract_non_zero(
+            caller,
+            reward_payment.token_identifier.clone(),
+            reward_payment.amount,
+        );
+        (
+            farming_token_payment,
+            self.to_esdt_payment(locked_rewards_payment),
+        )
+            .into()
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -142,8 +156,9 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
-        let new_tokens = self.merge_farm_tokens();
         let caller = self.blockchain().get_caller();
+        self.require_sc_address_whitelisted(&caller);
+        let new_tokens = self.merge_farm_tokens();
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }
@@ -164,5 +179,18 @@ pub trait Farm:
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards(per_block_amount);
+    }
+
+    fn send_to_lock_contract_non_zero(
+        &self,
+        destination_address: ManagedAddress,
+        token_identifier: TokenIdentifier,
+        amount: BigUint,
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        let token_id = EgldOrEsdtTokenIdentifier::esdt(token_identifier);
+        if amount == 0 {
+            return EgldOrEsdtTokenPayment::new(token_id, 0, BigUint::zero());
+        }
+        self.lock_tokens_and_forward(destination_address, token_id, amount)
     }
 }

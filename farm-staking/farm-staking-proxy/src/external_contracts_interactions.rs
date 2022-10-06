@@ -26,7 +26,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .claim_rewards()
+            .claim_rewards_endpoint()
             .add_esdt_token_transfer(
                 lp_farm_token_id.clone(),
                 lp_farm_token_nonce,
@@ -57,7 +57,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm()
+            .exit_farm_endpoint()
             .add_esdt_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context();
         let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
@@ -89,7 +89,7 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens()
+            .merge_farm_tokens_endpoint()
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context()
     }
