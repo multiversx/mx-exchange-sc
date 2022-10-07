@@ -259,14 +259,14 @@ pub trait WeeklyRewardsSplittingModule:
     // user info
 
     #[view(getCurrentClaimProgress)]
-    #[storage_mapper("current_claim_progress")]
+    #[storage_mapper("currentClaimProgress")]
     fn current_claim_progress(
         &self,
         user: &ManagedAddress,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
     #[view(getUserEnergyForWeek)]
-    #[storage_mapper("user_energy_for_week")]
+    #[storage_mapper("userEnergyForWeek")]
     fn user_energy_for_week(
         &self,
         user: &ManagedAddress,
@@ -274,26 +274,26 @@ pub trait WeeklyRewardsSplittingModule:
     ) -> SingleValueMapper<Energy<Self::Api>>;
 
     #[view(getLastActiveWeekForUser)]
-    #[storage_mapper("last_active_week_for_user")]
+    #[storage_mapper("lastActiveWeekForUser")]
     fn last_active_week_for_user(&self, user: &ManagedAddress) -> SingleValueMapper<Week>;
 
     // global info
 
-    #[storage_mapper("last_global_update_week")]
+    #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
 
     #[view(getTotalRewardsForWeek)]
-    #[storage_mapper("total_rewards_for_week")]
+    #[storage_mapper("totalRewardsForWeek")]
     fn total_rewards_for_week(
         &self,
         week: Week,
     ) -> SingleValueMapper<ManagedVec<TokenAmountPair<Self::Api>>>;
 
     #[view(getTotalEnergyForWeek)]
-    #[storage_mapper("total_energy_for_week")]
+    #[storage_mapper("totalEnergyForWeek")]
     fn total_energy_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[view(getTotalLockedTokensForWeek)]
-    #[storage_mapper("total_locked_tokens_for_week")]
+    #[storage_mapper("totalLockedTokensForWeek")]
     fn total_locked_tokens_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 }
