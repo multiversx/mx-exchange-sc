@@ -28,8 +28,8 @@ pub trait FarmBoostedYieldsModule:
     + permissions_module::PermissionsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
-    + common_events::CommonEventsModule
 {
     #[endpoint(setBoostedYieldsRewardsPercentage)]
     fn set_boosted_yields_rewards_percentage(&self, percentage: u64) {

@@ -1,23 +1,11 @@
-#![no_std]
-
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub use common_types::{Epoch, Week};
-use simple_lock_energy::energy::Energy;
+use energy_query::Energy;
 
 #[elrond_wasm::module]
-pub trait CommonEventsModule {
-    fn emit_deposit_swap_fees_event(
-        self,
-        caller: ManagedAddress,
-        current_week: Week,
-        payment_token: TokenIdentifier,
-        payment_amount: BigUint,
-    ) {
-        self.deposit_swap_fees_event(caller, current_week, payment_token, payment_amount);
-    }
-
+pub trait WeeklyRewardsSplittingEventsModule {
     fn emit_claim_multi_event(
         self,
         user: &ManagedAddress,
@@ -45,15 +33,6 @@ pub trait CommonEventsModule {
     ) {
         self.update_global_amounts_event(current_week, total_locked_tokens, total_energy);
     }
-
-    #[event("deposit_swap_fees_event")]
-    fn deposit_swap_fees_event(
-        &self,
-        #[indexed] caller: ManagedAddress,
-        #[indexed] current_week: Week,
-        #[indexed] payment_token: TokenIdentifier,
-        payment_amount: BigUint,
-    );
 
     #[event("claim_multi_event")]
     fn claim_multi_event(

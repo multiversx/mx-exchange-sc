@@ -4,6 +4,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod ongoing_operation;
+pub mod events;
 
 use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
 use energy_query::Energy;
@@ -37,7 +38,7 @@ pub trait WeeklyRewardsSplittingModule:
     energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
     + ongoing_operation::OngoingOperationModule
-    + common_events::CommonEventsModule
+    + events::WeeklyRewardsSplittingEventsModule
 {
     fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
         &self,

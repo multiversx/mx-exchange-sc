@@ -23,9 +23,6 @@ path = "../common-modules/week-timekeeping"
 [dependencies.weekly-rewards-splitting]
 path = "../common-modules/weekly-rewards-splitting"
 
-[dependencies.common-events]
-path = "../common-modules/common-events"
-
 [dependencies.common-types]
 path = "../common-types"
 

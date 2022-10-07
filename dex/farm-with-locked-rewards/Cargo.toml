@@ -71,9 +71,6 @@ path = "../../energy-integration/common-modules/week-timekeeping"
 [dependencies.weekly-rewards-splitting]
 path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 
-[dependencies.common-events]
-path = "../../energy-integration/common-modules/common-events"
-
 [dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
 

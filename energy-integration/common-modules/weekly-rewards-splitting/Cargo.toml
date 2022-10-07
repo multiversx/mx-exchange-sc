@@ -16,8 +16,5 @@ path = "../energy-query"
 [dependencies.week-timekeeping]
 path = "../week-timekeeping"
 
-[dependencies.common-events]
-path = "../common-events"
-
 [dependencies.common-types]
 path = "../../common-types"

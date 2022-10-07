@@ -62,9 +62,6 @@ path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
 
-[dependencies.common-events]
-path = "../../energy-integration/common-modules/common-events"
-
 [dependencies.elrond-wasm]
 version = "0.34.0"
 

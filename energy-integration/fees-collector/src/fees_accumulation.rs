@@ -7,8 +7,8 @@ use week_timekeeping::Week;
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule
+    + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
-    + common_events::CommonEventsModule
 {
     /// Pair SC will deposit the fees through this endpoint
     /// Deposits for current week are accessible starting next week
