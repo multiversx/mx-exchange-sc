@@ -18,12 +18,15 @@ elrond_wasm_node::wasm_endpoints! {
         exitFarm
         getBoostedYieldsRewardsPercenatage
         getBurnGasLimit
+        getCurrentClaimProgress
         getCurrentWeek
         getDivisionSafetyConstant
         getEnergyFactoryAddress
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
+        getFirstWeekStartEpoch
+        getLastActiveWeekForUser
         getLastRewardBlockNonce
         getMinimumFarmingEpoch
         getPairContractManagedAddress
@@ -34,6 +37,10 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardReserve
         getRewardTokenId
         getState
+        getTotalEnergyForWeek
+        getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
+        getUserEnergyForWeek
         mergeFarmTokens
         pause
         registerFarmToken

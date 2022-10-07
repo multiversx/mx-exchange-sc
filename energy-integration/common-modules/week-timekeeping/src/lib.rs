@@ -45,6 +45,7 @@ pub trait WeekTimekeepingModule {
         start_epoch + EPOCHS_IN_WEEK - 1
     }
 
+    #[view(getFirstWeekStartEpoch)]
     #[storage_mapper("firstWeekStartEpoch")]
     fn first_week_start_epoch(&self) -> SingleValueMapper<Epoch>;
 }

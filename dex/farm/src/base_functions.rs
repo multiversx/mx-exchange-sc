@@ -41,6 +41,7 @@ pub trait BaseFunctionsModule:
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
 {
     fn enter_farm(&self) -> EsdtTokenPayment<Self::Api> {

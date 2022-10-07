@@ -7,18 +7,25 @@
 elrond_wasm_node::wasm_endpoints! {
     fees_collector
     (
-        addKnownPairContracts
+        addKnownContracts
         addKnownTokens
         claimRewards
         depositSwapFees
-        getAllKnownPairContracts
+        getAllKnownContracts
         getAllTokens
+        getCurrentClaimProgress
         getCurrentWeek
         getEnergyFactoryAddress
+        getFirstWeekStartEpoch
+        getLastActiveWeekForUser
+        getTotalEnergyForWeek
+        getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
+        getUserEnergyForWeek
         isPaused
         pause
         recomputeEnergy
-        removeKnownPairContracts
+        removeKnownContracts
         removeKnownTokens
         setEnergyFactoryAddress
         unpause
