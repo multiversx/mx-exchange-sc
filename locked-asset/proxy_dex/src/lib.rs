@@ -7,6 +7,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod events;
+pub mod external_merging;
 pub mod farm_interactions;
 pub mod pair_interactions;
 pub mod proxy_common;

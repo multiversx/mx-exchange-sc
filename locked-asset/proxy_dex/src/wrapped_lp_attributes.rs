@@ -4,9 +4,9 @@ elrond_wasm::derive_imports!();
 use common_structs::PaymentsVec;
 use elrond_wasm::api::{CallTypeApi, StorageMapperApi};
 use fixed_supply_token::FixedSupplyToken;
-use mergeable::Mergeable;
+use mergeable::ExternallyMergeable;
 
-use crate::proxy_common::FACTORY_MERGE_TOKENS_ENDPOINT_NAME;
+use crate::external_merging::merge_locked_tokens_through_factory;
 
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
@@ -38,21 +38,13 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for WrappedLpTokenAttributes<M> {
     }
 }
 
-impl<M: ManagedTypeApi> Mergeable<M> for WrappedLpTokenAttributes<M> {
-    /// locked token nonce can differ, since they get merged through another call
-    fn can_merge_with(&self, other: &Self) -> bool {
+impl<M: ManagedTypeApi> ExternallyMergeable<M> for WrappedLpTokenAttributes<M> {
+    fn can_be_merged_externally_with(&self, other: &Self) -> bool {
         let same_lp_token = self.lp_token_id == other.lp_token_id;
         let same_locked_token_id =
             self.locked_tokens.token_identifier == other.locked_tokens.token_identifier;
 
         same_lp_token && same_locked_token_id
-    }
-
-    fn merge_with(&mut self, other: Self) {
-        self.error_if_not_mergeable(&other);
-
-        self.lp_token_amount += other.lp_token_amount;
-        self.locked_tokens.amount += other.locked_tokens.amount;
     }
 }
 
@@ -86,32 +78,40 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> WrappedLpToken<M> {
 }
 
 /// Merges all tokens under a single one, by also merging the locked tokens.
-/// The caller function should handle the minting of the new wrapped LP tokens.
-pub fn merge_wrapped_lp_tokens_through_factory<M: CallTypeApi>(
+pub fn merge_wrapped_lp_tokens<M: CallTypeApi + StorageMapperApi>(
     factory_address: ManagedAddress<M>,
+    wrapped_lp_token_mapper: &NonFungibleTokenMapper<M>,
     mut wrapped_lp_tokens: ManagedVec<M, WrappedLpToken<M>>,
-) -> WrappedLpTokenAttributes<M> {
+) -> WrappedLpToken<M> {
     let first_item = wrapped_lp_tokens.get(0);
     wrapped_lp_tokens.remove(0);
 
-    let mut merged_wrapped_lp_attributes =
-        first_item.attributes.into_part(&first_item.payment.amount);
-    let mut locked_tokens_to_merge = ManagedVec::new();
+    let first_token_attributes = first_item.attributes.into_part(&first_item.payment.amount);
+
+    let mut locked_tokens_to_merge =
+        ManagedVec::from_single_item(first_token_attributes.locked_tokens.clone());
+    let mut total_lp_tokens = first_token_attributes.lp_token_amount.clone();
     for wrapped_lp in &wrapped_lp_tokens {
         let attributes = wrapped_lp.attributes.into_part(&wrapped_lp.payment.amount);
-        locked_tokens_to_merge.push(attributes.locked_tokens.clone());
+        first_token_attributes.error_if_not_externally_mergeable(&attributes);
 
-        merged_wrapped_lp_attributes.merge_with(attributes);
+        total_lp_tokens += attributes.lp_token_amount;
+        locked_tokens_to_merge.push(attributes.locked_tokens);
     }
 
-    let merge_endpoint_name = ManagedBuffer::new_from_bytes(FACTORY_MERGE_TOKENS_ENDPOINT_NAME);
-    let contract_call = ContractCall::<M, EsdtTokenPayment<M>>::new_with_esdt_payment(
-        factory_address,
-        merge_endpoint_name,
-        locked_tokens_to_merge,
-    );
-    let new_locked_tokens = contract_call.execute_on_dest_context();
-    merged_wrapped_lp_attributes.locked_tokens = new_locked_tokens;
+    let new_locked_tokens =
+        merge_locked_tokens_through_factory(factory_address, locked_tokens_to_merge);
+    let new_wrapped_lp_token_attributes = WrappedLpTokenAttributes {
+        lp_token_id: first_token_attributes.lp_token_id,
+        lp_token_amount: total_lp_tokens,
+        locked_tokens: new_locked_tokens,
+    };
+    let new_token_amount = new_wrapped_lp_token_attributes.get_total_supply().clone();
+    let new_tokens =
+        wrapped_lp_token_mapper.nft_create(new_token_amount, &new_wrapped_lp_token_attributes);
 
-    merged_wrapped_lp_attributes
+    WrappedLpToken {
+        payment: new_tokens,
+        attributes: new_wrapped_lp_token_attributes,
+    }
 }

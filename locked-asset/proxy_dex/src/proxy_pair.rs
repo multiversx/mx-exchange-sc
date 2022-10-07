@@ -35,12 +35,8 @@ pub trait ProxyPairModule:
         let second_payment = self.pop_first_payment(&mut payments);
 
         let input_token_refs = self.require_exactly_one_locked(&first_payment, &second_payment);
-        let asset_token_id = self.asset_token_id().get();
-        self.send().esdt_local_mint(
-            &asset_token_id,
-            0,
-            &input_token_refs.locked_token_ref.amount,
-        );
+        let asset_amount = input_token_refs.locked_token_ref.amount.clone();
+        let _ = self.asset_token().mint(asset_amount);
 
         let first_unlocked_token_id =
             self.get_underlying_token(first_payment.token_identifier.clone());
@@ -91,8 +87,7 @@ pub trait ProxyPairModule:
         locked_token_leftover.amount = received_token_refs.base_asset_token_ref.amount.clone();
 
         if locked_token_leftover.amount > 0 {
-            self.send()
-                .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
+            self.asset_token().burn(&locked_token_leftover.amount);
         }
 
         let caller = self.blockchain().get_caller();
@@ -104,8 +99,8 @@ pub trait ProxyPairModule:
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_add_liquidity_proxy_event(
-            caller,
-            pair_address,
+            &caller,
+            &pair_address,
             first_payment,
             second_payment,
             new_wrapped_token.payment.clone(),
@@ -132,9 +127,8 @@ pub trait ProxyPairModule:
         wrapped_lp_mapper.require_same_token(&payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
-        let mut attributes: WrappedLpTokenAttributes<Self::Api> =
-            wrapped_lp_mapper.get_token_attributes(payment.token_nonce);
-        attributes = attributes.into_part(&payment.amount);
+        let attributes: WrappedLpTokenAttributes<Self::Api> =
+            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
 
         let remove_liq_result = self.call_remove_liquidity(
             pair_address.clone(),
@@ -198,8 +192,8 @@ pub trait ProxyPairModule:
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_remove_liquidity_proxy_event(
-            caller,
-            pair_address,
+            &caller,
+            &pair_address,
             payment,
             attributes,
             remove_liq_result.first_token_received,

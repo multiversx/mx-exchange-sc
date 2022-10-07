@@ -1,8 +1,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::wrapped_lp_attributes::{
-    merge_wrapped_lp_tokens_through_factory, WrappedLpToken, WrappedLpTokenAttributes,
+use crate::{
+    proxy_common::{INVALID_PAYMENTS_ERR_MSG, MIN_MERGE_PAYMENTS},
+    wrapped_lp_attributes::{merge_wrapped_lp_tokens, WrappedLpToken, WrappedLpTokenAttributes},
 };
 use fixed_supply_token::FixedSupplyToken;
 
@@ -19,7 +20,11 @@ pub trait WrappedLpTokenMerge:
     #[endpoint(mergeWrappedLpTokens)]
     fn merge_wrapped_lp_tokens_endpoint(&self) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        let payments = self.get_non_empty_payments();
+        let payments = self.call_value().all_esdt_transfers();
+        require!(
+            payments.len() >= MIN_MERGE_PAYMENTS,
+            INVALID_PAYMENTS_ERR_MSG
+        );
 
         let wrapped_token_mapper = self.wrapped_lp_token();
         let wrapped_lp_tokens = WrappedLpToken::new_from_payments(&payments, &wrapped_token_mapper);
@@ -66,16 +71,7 @@ pub trait WrappedLpTokenMerge:
             .factory_address_for_locked_token(&locked_token_id)
             .get();
 
-        let new_lp_token_attributes =
-            merge_wrapped_lp_tokens_through_factory(factory_address, wrapped_lp_tokens);
-        let new_token_amount = new_lp_token_attributes.get_total_supply().clone();
-        let new_tokens = self
-            .wrapped_lp_token()
-            .nft_create(new_token_amount, &new_lp_token_attributes);
-
-        WrappedLpToken {
-            payment: new_tokens,
-            attributes: new_lp_token_attributes,
-        }
+        let wrapped_lp_token_mapper = self.wrapped_lp_token();
+        merge_wrapped_lp_tokens(factory_address, &wrapped_lp_token_mapper, wrapped_lp_tokens)
     }
 }
