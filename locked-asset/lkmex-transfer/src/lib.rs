@@ -63,9 +63,10 @@ pub trait LkmexTransfer {
         if !self.address_last_transfer_epoch(address).is_empty() {
             let current_epoch = self.blockchain().get_block_epoch();
             let address_cooldown_duration = self.address_cooldown_duration().get();
-            let last_cooldown = self.address_last_transfer_epoch(address).get();
+            let last_transfer_epoch = self.address_last_transfer_epoch(address).get();
+            let epochs_since_last_transfer = current_epoch - last_cooldown;
             require!(
-                current_epoch - last_cooldown > address_cooldown_duration,
+                epochs_since_last_transfer > address_cooldown_duration,
                 CALLER_ON_COOLDOWN
             )
         }
