@@ -64,9 +64,10 @@ pub trait LkmexTransfer {
         self.check_address_on_cooldown(&caller);
 
         let payments = self.call_value().all_esdt_transfers();
+        let locked_token_id = self.locked_token().get();
         for payment in payments.iter() {
             require!(
-                payment.token_identifier == self.locked_token().get(),
+                payment.token_identifier == locked_token_id,
                 BAD_LOCKING_TOKEN
             )
         }
