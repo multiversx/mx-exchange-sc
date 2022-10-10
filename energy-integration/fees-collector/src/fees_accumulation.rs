@@ -66,6 +66,7 @@ pub trait FeesAccumulationModule:
         }
     }
 
+    #[view(getAccumulatedFees)]
     #[storage_mapper("accumulatedFees")]
     fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 }

@@ -280,6 +280,7 @@ pub trait WeeklyRewardsSplittingModule:
 
     // global info
 
+    #[view(getLastGlobalUpdateWeek)]
     #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
 

@@ -11,6 +11,7 @@ elrond_wasm_node::wasm_endpoints! {
         addKnownTokens
         claimRewards
         depositSwapFees
+        getAccumulatedFees
         getAllKnownContracts
         getAllTokens
         getCurrentClaimProgress
@@ -18,6 +19,7 @@ elrond_wasm_node::wasm_endpoints! {
         getEnergyFactoryAddress
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
+        getLastGlobalUpdateWeek
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek
