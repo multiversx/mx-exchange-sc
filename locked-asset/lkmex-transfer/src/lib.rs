@@ -33,7 +33,7 @@ pub trait LkmexTransfer {
         self.locked_token().set(token);
     }
 
-    #[endpoint(transfer)]
+    #[endpoint(withdraw)]
     fn withdraw(&self) {
         let caller = self.blockchain().get_caller();
         let funds = self.get_unlocked_funds(&caller);
