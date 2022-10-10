@@ -6,8 +6,10 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use num_traits::ToPrimitive;
-use pair::Pair;
-use proxy_dex::{proxy_pair::ProxyPairModule, wrapped_lp_attributes::WrappedLpTokenAttributes};
+use proxy_dex::{
+    proxy_pair::ProxyPairModule, wrapped_lp_attributes::WrappedLpTokenAttributes,
+    wrapped_lp_token_merge::WrappedLpTokenMerge,
+};
 use proxy_dex_test_setup::*;
 
 #[test]
@@ -170,6 +172,85 @@ fn add_remove_liquidity_proxy_test() {
             },
             lp_token_id: managed_token_id!(LP_TOKEN_ID),
             lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
+}
+
+#[test]
+fn wrapped_lp_token_merge_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm::contract_obj,
+        simple_lock_energy::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let locked_token_amount = rust_biguint!(1_000_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount.clone(),
+        },
+        TxInputESDT {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // add liquidity
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_ok();
+
+    // total available: 499_999_000
+    let first_amount = rust_biguint!(150_000_000);
+    let second_amount = rust_biguint!(250_000_000);
+    let tokens_to_merge = vec![
+        TxInputESDT {
+            token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: first_amount.clone(),
+        },
+        TxInputESDT {
+            token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: second_amount.clone(),
+        },
+    ];
+
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &tokens_to_merge, |sc| {
+            sc.merge_wrapped_lp_tokens_endpoint();
+        })
+        .assert_ok();
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        2,
+        &rust_biguint!(400_000_000),
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 3,
+                amount: managed_biguint!(800_001_600), // out of 1_000_000_000
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(400_000_000),
         }),
     );
 }

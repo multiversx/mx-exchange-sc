@@ -81,6 +81,7 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> WrappedFarmToken<M> {
 /// Merges all wrapped farm tokens under a single one, by also merging the underlying
 /// farm and locked tokens. Treats WrappedLp and LockedToken farms differently.
 pub fn merge_wrapped_farm_tokens<M: CallTypeApi + StorageMapperApi>(
+    original_caller: &ManagedAddress<M>,
     factory_address: ManagedAddress<M>,
     farm_address: ManagedAddress<M>,
     wrapped_lp_token_mapper: &NonFungibleTokenMapper<M>,
@@ -112,15 +113,24 @@ pub fn merge_wrapped_farm_tokens<M: CallTypeApi + StorageMapperApi>(
     {
         let wrapped_lp_tokens =
             WrappedLpToken::new_from_payments(&farming_tokens_to_merge, wrapped_lp_token_mapper);
-        let merged_wrapped_lp_tokens =
-            merge_wrapped_lp_tokens(factory_address, wrapped_lp_token_mapper, wrapped_lp_tokens);
+        let merged_wrapped_lp_tokens = merge_wrapped_lp_tokens(
+            original_caller,
+            factory_address,
+            wrapped_lp_token_mapper,
+            wrapped_lp_tokens,
+        );
 
         merged_wrapped_lp_tokens.payment
     } else {
-        merge_locked_tokens_through_factory(factory_address, farming_tokens_to_merge)
+        merge_locked_tokens_through_factory(
+            original_caller,
+            factory_address,
+            farming_tokens_to_merge,
+        )
     };
 
-    let merged_farm_tokens = merge_farm_tokens_through_farm(farm_address, farm_tokens_to_merge);
+    let merged_farm_tokens =
+        merge_farm_tokens_through_farm(original_caller, farm_address, farm_tokens_to_merge);
     let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
         farm_token: merged_farm_tokens,
         proxy_farming_token: merged_farming_tokens,

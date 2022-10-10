@@ -89,6 +89,7 @@ impl<M: ManagedTypeApi + StorageMapperApi + CallTypeApi> WrappedLpToken<M> {
 
 /// Merges all tokens under a single one, by also merging the locked tokens.
 pub fn merge_wrapped_lp_tokens<M: CallTypeApi + StorageMapperApi>(
+    original_caller: &ManagedAddress<M>,
     factory_address: ManagedAddress<M>,
     wrapped_lp_token_mapper: &NonFungibleTokenMapper<M>,
     mut wrapped_lp_tokens: ManagedVec<M, WrappedLpToken<M>>,
@@ -109,8 +110,11 @@ pub fn merge_wrapped_lp_tokens<M: CallTypeApi + StorageMapperApi>(
         locked_tokens_to_merge.push(attributes.locked_tokens);
     }
 
-    let new_locked_tokens =
-        merge_locked_tokens_through_factory(factory_address, locked_tokens_to_merge);
+    let new_locked_tokens = merge_locked_tokens_through_factory(
+        original_caller,
+        factory_address,
+        locked_tokens_to_merge,
+    );
     let new_wrapped_lp_token_attributes = WrappedLpTokenAttributes {
         lp_token_id: first_token_attributes.lp_token_id,
         lp_token_amount: total_lp_tokens,

@@ -45,12 +45,14 @@ pub trait TokenMergingModule:
     + crate::lock_options::LockOptionsModule
     + utils::UtilsModule
 {
+    // TODO: Only allow original caller arg for whitelisted addresses
+    #[payable("*")]
     #[endpoint(mergeTokens)]
-    fn merge_tokens(&self) -> EsdtTokenPayment {
+    fn merge_tokens(&self, opt_original_caller: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let caller = self.blockchain().get_caller();
+        let caller = self.dest_from_optional(opt_original_caller);
         let locked_token_mapper = self.locked_token();
 
         let mut payments = self.get_non_empty_payments();
