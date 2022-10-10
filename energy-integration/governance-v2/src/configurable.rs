@@ -52,7 +52,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
-    #[endpoint]
+    #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
         self.require_caller_self();
 
