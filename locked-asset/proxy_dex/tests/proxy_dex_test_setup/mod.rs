@@ -1,11 +1,12 @@
 use config::ConfigModule;
 use elrond_wasm::{
     contract_base::{CallableContract, ContractBase},
+    elrond_codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded},
 };
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
@@ -15,13 +16,14 @@ use farm_token::FarmTokenModule;
 use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
-use simple_lock::locked_token::LockedTokenModule;
+use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use simple_lock_energy::{lock_options::LockOptionsModule, SimpleLockEnergy};
 
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
 pub const EPOCHS_IN_YEAR: u64 = 365;
+pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 // Pair
 pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
@@ -83,6 +85,8 @@ where
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
 
+        b_mock.set_block_epoch(1);
+
         let pair_wrapper = setup_pair(&mut b_mock, &owner, pair_builder);
         let farm_wrapper = setup_farm(&mut b_mock, &owner, farm_builder);
         let simple_lock_wrapper = setup_simple_lock(&mut b_mock, &owner, simple_lock_builder);
@@ -93,6 +97,64 @@ where
             pair_wrapper.address_ref(),
             farm_wrapper.address_ref(),
             simple_lock_wrapper.address_ref(),
+        );
+
+        let user_balance = rust_biguint!(USER_BALANCE);
+        b_mock.set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
+        b_mock.set_esdt_balance(&first_user, WEGLD_TOKEN_ID, &user_balance);
+
+        b_mock.set_esdt_balance(&second_user, MEX_TOKEN_ID, &user_balance);
+        b_mock.set_esdt_balance(&second_user, WEGLD_TOKEN_ID, &user_balance);
+
+        // users lock tokens
+        b_mock
+            .execute_esdt_transfer(
+                &first_user,
+                &simple_lock_wrapper,
+                MEX_TOKEN_ID,
+                0,
+                &user_balance,
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[0], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock
+            .execute_esdt_transfer(
+                &second_user,
+                &simple_lock_wrapper,
+                MEX_TOKEN_ID,
+                0,
+                &user_balance,
+                |sc| {
+                    sc.lock_tokens_endpoint(LOCK_OPTIONS[1], OptionalValue::None);
+                },
+            )
+            .assert_ok();
+
+        b_mock.check_nft_balance(
+            &first_user,
+            LOCKED_TOKEN_ID,
+            1,
+            &user_balance,
+            Some(&LockedTokenAttributes::<DebugApi> {
+                original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
+                original_token_nonce: 0,
+                unlock_epoch: 360,
+            }),
+        );
+
+        b_mock.check_nft_balance(
+            &second_user,
+            LOCKED_TOKEN_ID,
+            2,
+            &user_balance,
+            Some(&LockedTokenAttributes::<DebugApi> {
+                original_token_id: managed_token_id_wrapped!(MEX_TOKEN_ID),
+                original_token_nonce: 0,
+                unlock_epoch: 1_800,
+            }),
         );
 
         Self {
@@ -326,6 +388,18 @@ where
             sc.intermediated_farms().insert(managed_address!(farm_addr));
         })
         .assert_ok();
+
+    b_mock.set_esdt_local_roles(
+        proxy_wrapper.address_ref(),
+        MEX_TOKEN_ID,
+        &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
+    );
+
+    b_mock.set_esdt_local_roles(
+        proxy_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[EsdtLocalRole::NftBurn],
+    );
 
     b_mock.set_esdt_local_roles(
         proxy_wrapper.address_ref(),

@@ -8,7 +8,17 @@ use mergeable::ExternallyMergeable;
 
 use crate::external_merging::merge_locked_tokens_through_factory;
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Debug,
+)]
 pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
     pub lp_token_id: TokenIdentifier<M>,
     pub lp_token_amount: BigUint<M>,
