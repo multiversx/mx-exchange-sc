@@ -228,6 +228,8 @@ pub trait GovernanceV2:
             "Not enough gas to execute all proposals"
         );
 
+        self.clear_proposal(proposal_id);
+
         for action in proposal.actions {
             let mut contract_call = self
                 .send()
@@ -244,8 +246,6 @@ pub trait GovernanceV2:
 
             contract_call.transfer_execute();
         }
-
-        self.clear_proposal(proposal_id);
 
         self.proposal_executed_event(proposal_id);
     }
