@@ -222,4 +222,29 @@ pub trait BaseFunctionsModule:
             "May only call this function through VM query"
         );
     }
+
+    fn require_known_proxy_from_optional(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ManagedAddress {
+        match opt_orig_caller {
+            OptionalValue::Some(dest) => {
+                require!(
+                    self.known_proxy_addresses().contains(&dest),
+                    "Only known proxies allowed"
+                );
+                dest
+            },
+            OptionalValue::None => self.blockchain().get_caller(),
+        }
+    }
+
+    #[endpoint(addKnownProxy)]
+    fn add_known_proxy(&self, known_proxy: ManagedAddress) {
+        self.require_caller_has_owner_or_admin_permissions();
+        self.known_proxy_addresses().insert(known_proxy);
+    }
+
+    #[endpoint(removeKnownProxy)]
+    fn remove_known_proxy(&self, known_proxy: ManagedAddress) {
+        self.require_caller_has_owner_or_admin_permissions();
+        self.known_proxy_addresses().swap_remove(&known_proxy);
+    }
 }

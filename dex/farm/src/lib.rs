@@ -82,19 +82,21 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(enterFarm)]
     fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
-        let output_farm_token_payment = self.enter_farm();
         let caller = self.blockchain().get_caller();
+        let output_farm_token_payment = self.enter_farm();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        let claim_rewards_result = self.claim_rewards(&caller);
+    fn claim_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ClaimRewardsResultType<Self::Api> {
+        let orig_caller = self.require_known_proxy_from_optional(opt_orig_caller);
+        let claim_rewards_result = self.claim_rewards(&orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
+
+        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         self.send_payment_non_zero(&caller, &rewards_payment);
         claim_rewards_result
@@ -102,19 +104,22 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(&self) -> CompoundRewardsResultType<Self::Api> {
+    fn compound_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> CompoundRewardsResultType<Self::Api> {
+        let orig_caller = self.require_known_proxy_from_optional(opt_orig_caller);
+        let output_farm_token_payment = self.compound_rewards(&orig_caller);
+
         let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = self.compound_rewards(&caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        let exit_farm_result = self.exit_farm(&caller);
+    fn exit_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ExitFarmResultType<Self::Api> {
+        let orig_caller = self.require_known_proxy_from_optional(opt_orig_caller);
+        let exit_farm_result = self.exit_farm(&orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
+        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &farming_token_payment);
         self.send_payment_non_zero(&caller, &reward_payment);
         exit_farm_result
@@ -142,9 +147,9 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> EsdtTokenPayment<Self::Api> {
+        let caller = self.require_known_proxy_from_optional(opt_orig_caller);
         let new_tokens = self.merge_farm_tokens();
-        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }

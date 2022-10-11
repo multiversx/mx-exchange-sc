@@ -38,4 +38,9 @@ pub trait ConfigModule: pausable::PausableModule + permissions_module::Permissio
     #[view(getDivisionSafetyConstant)]
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<BigUint>;
+
+    #[view(getKnownProxyAddresses)]
+    #[storage_mapper("known_proxy_addresses")]
+    fn known_proxy_addresses(&self) -> UnorderedSetMapper<ManagedAddress>;
+
 }
