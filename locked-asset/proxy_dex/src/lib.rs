@@ -7,6 +7,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod events;
+pub mod external_merging;
+pub mod farm_interactions;
 pub mod pair_interactions;
 pub mod proxy_common;
 pub mod proxy_farm;
@@ -24,6 +26,7 @@ pub trait ProxyDexImpl:
     + proxy_pair::ProxyPairModule
     + pair_interactions::PairInteractionsModule
     + proxy_farm::ProxyFarmModule
+    + farm_interactions::FarmInteractionsModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
@@ -62,6 +65,8 @@ pub trait ProxyDexImpl:
             let is_new = self.locked_token_ids().insert(locked_token_id);
             require!(is_new, "Locked token already assigned to another address");
         }
+
+        self.asset_token().set_token_id(&asset_token_id);
     }
 
     #[only_owner]

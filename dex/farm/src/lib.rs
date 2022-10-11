@@ -16,12 +16,12 @@ use exit_penalty::{
 };
 use farm_base_impl::exit_farm::InternalExitFarmResult;
 
-type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type ClaimRewardsResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
+pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
+pub type ClaimRewardsResultType<M> =
+    MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ExitFarmResultType<M> =
+    MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -254,7 +254,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens(
+        &self,
+        _opt_original_caller: OptionalValue<ManagedAddress>
+    ) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
 
         let attrs = self.get_default_merged_farm_token_attributes(&payments, Option::None);
