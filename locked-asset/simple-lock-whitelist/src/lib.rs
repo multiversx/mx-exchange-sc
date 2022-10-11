@@ -28,6 +28,19 @@ pub trait SimpleLockWhitelist:
         }
     }
 
+    /// Sets the transfer role for the given address. Defaults to own address.
+    #[only_owner]
+    #[endpoint(setTransferRoleLockedToken)]
+    fn set_transfer_role(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
+        self.locked_token()
+            .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
+    }
+
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
     ///
