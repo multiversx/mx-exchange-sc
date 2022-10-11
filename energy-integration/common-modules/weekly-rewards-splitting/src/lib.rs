@@ -265,9 +265,11 @@ pub trait WeeklyRewardsSplittingModule:
         let claim_progress_mapper = self.current_claim_progress(user);
         let is_new_user = claim_progress_mapper.is_empty();
         if is_new_user {
+            let current_week = self.get_current_week();
+            let current_user_energy = self.get_energy_entry(user.clone());
             ClaimProgress {
-                energy: Energy::default(),
-                week: 1,
+                energy: current_user_energy,
+                week: current_week,
             }
         } else {
             claim_progress_mapper.get()
