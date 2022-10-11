@@ -11,7 +11,17 @@ use crate::{
     wrapped_lp_attributes::{merge_wrapped_lp_tokens, WrappedLpToken},
 };
 
-#[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
+#[derive(
+    ManagedVecItem,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    TypeAbi,
+    Clone,
+    PartialEq,
+    Debug,
+)]
 pub struct WrappedFarmTokenAttributes<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
     pub proxy_farming_token: EsdtTokenPayment<M>,

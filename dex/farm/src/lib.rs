@@ -254,7 +254,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens(
+        &self,
+        _opt_original_caller: OptionalValue<ManagedAddress>
+    ) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
 
         let attrs = self.get_default_merged_farm_token_attributes(&payments, Option::None);

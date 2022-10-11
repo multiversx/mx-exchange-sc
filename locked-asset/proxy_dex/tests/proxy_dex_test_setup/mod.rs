@@ -30,7 +30,7 @@ pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 
 // Farm
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
-pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
+pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 
 // Simple Lock
