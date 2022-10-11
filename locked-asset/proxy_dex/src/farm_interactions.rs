@@ -65,7 +65,7 @@ pub trait FarmInteractionsModule {
         farm_token: EsdtTokenPayment,
     ) -> ClaimRewardsFarmResultWrapper<Self::Api> {
         let raw_result: ClaimRewardsResultType<Self::Api> = self
-            .farm_contract_proxy(farm_address.clone())
+            .farm_contract_proxy(farm_address)
             .claim_rewards()
             .add_esdt_token_transfer(
                 farm_token.token_identifier,
