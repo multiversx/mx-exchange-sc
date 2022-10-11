@@ -40,6 +40,7 @@ pub trait ProxyFarmModule:
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
+        let caller = self.blockchain().get_caller();
         let mut payments = self.get_non_empty_payments();
         let proxy_farming_token = self.pop_first_payment(&mut payments);
 
@@ -70,6 +71,7 @@ pub trait ProxyFarmModule:
             self.burn_multi_esdt(&payments);
 
             self.merge_wrapped_farm_tokens_with_virtual_pos(
+                &caller,
                 farm_address.clone(),
                 wrapped_lp_tokens,
                 new_token_attributes,
@@ -85,7 +87,6 @@ pub trait ProxyFarmModule:
             }
         };
 
-        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &new_wrapped_farm_token.payment);
 
         self.emit_enter_farm_proxy_event(

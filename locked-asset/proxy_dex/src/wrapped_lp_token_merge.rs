@@ -31,7 +31,9 @@ pub trait WrappedLpTokenMerge:
 
         self.burn_multi_esdt(&payments);
 
-        let merged_tokens = self.merge_wrapped_lp_tokens(wrapped_lp_tokens).payment;
+        let merged_tokens = self
+            .merge_wrapped_lp_tokens(&caller, wrapped_lp_tokens)
+            .payment;
         self.send_payment_non_zero(&caller, &merged_tokens);
 
         merged_tokens
@@ -39,6 +41,7 @@ pub trait WrappedLpTokenMerge:
 
     fn merge_wrapped_lp_tokens_with_virtual_pos(
         &self,
+        caller: &ManagedAddress,
         wrapped_lp_tokens: ManagedVec<WrappedLpToken<Self::Api>>,
         virtual_pos_attributes: WrappedLpTokenAttributes<Self::Api>,
     ) -> WrappedLpToken<Self::Api> {
@@ -55,11 +58,12 @@ pub trait WrappedLpTokenMerge:
         let mut all_tokens = ManagedVec::from_single_item(virtual_wrapped_token);
         all_tokens.append_vec(wrapped_lp_tokens);
 
-        self.merge_wrapped_lp_tokens(all_tokens)
+        self.merge_wrapped_lp_tokens(caller, all_tokens)
     }
 
     fn merge_wrapped_lp_tokens(
         &self,
+        caller: &ManagedAddress,
         wrapped_lp_tokens: ManagedVec<WrappedLpToken<Self::Api>>,
     ) -> WrappedLpToken<Self::Api> {
         let locked_token_id = wrapped_lp_tokens
@@ -72,6 +76,11 @@ pub trait WrappedLpTokenMerge:
             .get();
 
         let wrapped_lp_token_mapper = self.wrapped_lp_token();
-        merge_wrapped_lp_tokens(factory_address, &wrapped_lp_token_mapper, wrapped_lp_tokens)
+        merge_wrapped_lp_tokens(
+            caller,
+            factory_address,
+            &wrapped_lp_token_mapper,
+            wrapped_lp_tokens,
+        )
     }
 }

@@ -43,3 +43,32 @@ version = "0.34.0"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.34.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dev-dependencies.simple-lock-energy]
+path = "../simple-lock-energy"
+
+[dev-dependencies.simple-lock]
+path = "../simple-lock"
+
+[dev-dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dev-dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
+[dev-dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dev-dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
+
+[dev-dependencies.farm_token_merge]
+path = "../../common/modules/farm/farm_token_merge"
+
+[dev-dependencies.rewards]
+path = "../../common/modules/farm/rewards"

@@ -30,6 +30,7 @@ pub trait ProxyPairModule:
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
+        let caller = self.blockchain().get_caller();
         let mut payments = self.get_non_empty_payments();
         let first_payment = self.pop_first_payment(&mut payments);
         let second_payment = self.pop_first_payment(&mut payments);
@@ -66,7 +67,11 @@ pub trait ProxyPairModule:
 
             self.burn_multi_esdt(&payments);
 
-            self.merge_wrapped_lp_tokens_with_virtual_pos(wrapped_lp_tokens, new_token_attributes)
+            self.merge_wrapped_lp_tokens_with_virtual_pos(
+                &caller,
+                wrapped_lp_tokens,
+                new_token_attributes,
+            )
         } else {
             let new_token_amount = new_token_attributes.get_total_supply().clone();
             let output_wrapped_lp_token =
@@ -90,7 +95,6 @@ pub trait ProxyPairModule:
             self.asset_token().burn(&locked_token_leftover.amount);
         }
 
-        let caller = self.blockchain().get_caller();
         let mut output_payments = ManagedVec::new();
         output_payments.push(new_wrapped_token.payment.clone());
         output_payments.push(locked_token_leftover);

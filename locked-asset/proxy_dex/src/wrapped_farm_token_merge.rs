@@ -37,7 +37,7 @@ pub trait WrappedFarmTokenMerge:
         self.burn_multi_esdt(&payments);
 
         let merged_tokens = self
-            .merge_wrapped_farm_tokens(farm_address, wrapped_farm_tokens)
+            .merge_wrapped_farm_tokens(&caller, farm_address, wrapped_farm_tokens)
             .payment;
         self.send_payment_non_zero(&caller, &merged_tokens);
 
@@ -46,6 +46,7 @@ pub trait WrappedFarmTokenMerge:
 
     fn merge_wrapped_farm_tokens_with_virtual_pos(
         &self,
+        caller: &ManagedAddress,
         farm_address: ManagedAddress,
         wrapped_farm_tokens: ManagedVec<WrappedFarmToken<Self::Api>>,
         virtual_pos_attributes: WrappedFarmTokenAttributes<Self::Api>,
@@ -63,11 +64,12 @@ pub trait WrappedFarmTokenMerge:
         let mut all_tokens = ManagedVec::from_single_item(virtual_wrapped_token);
         all_tokens.append_vec(wrapped_farm_tokens);
 
-        self.merge_wrapped_farm_tokens(farm_address, all_tokens)
+        self.merge_wrapped_farm_tokens(caller, farm_address, all_tokens)
     }
 
     fn merge_wrapped_farm_tokens(
         &self,
+        caller: &ManagedAddress,
         farm_address: ManagedAddress,
         wrapped_farm_tokens: ManagedVec<WrappedFarmToken<Self::Api>>,
     ) -> WrappedFarmToken<Self::Api> {
@@ -84,6 +86,7 @@ pub trait WrappedFarmTokenMerge:
         let wrapped_lp_token_mapper = self.wrapped_lp_token();
         let wrapped_farm_token_mapper = self.wrapped_farm_token();
         merge_wrapped_farm_tokens(
+            caller,
             factory_address,
             farm_address,
             &wrapped_lp_token_mapper,

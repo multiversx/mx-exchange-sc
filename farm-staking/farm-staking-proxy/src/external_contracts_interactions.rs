@@ -89,7 +89,7 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens()
+            .merge_farm_tokens(OptionalValue::<ManagedAddress>::None)
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context()
     }
