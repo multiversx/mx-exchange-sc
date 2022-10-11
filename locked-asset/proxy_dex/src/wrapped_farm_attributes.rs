@@ -29,7 +29,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for WrappedFarmTokenAttributes<M> {
 
         let new_proxy_farming_token_amount =
             self.rule_of_three_non_zero_result(payment_amount, &self.proxy_farming_token.amount);
-        let mut new_proxy_farming_tokens = self.proxy_farming_token.clone();
+        let mut new_proxy_farming_tokens = self.proxy_farming_token;
         new_proxy_farming_tokens.amount = new_proxy_farming_token_amount;
 
         WrappedFarmTokenAttributes {
