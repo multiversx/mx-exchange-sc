@@ -257,6 +257,19 @@ pub trait WeeklyRewardsSplittingModule:
         )
     }
 
+    #[view(getUserEnergyForWeek)]
+    fn get_user_energy_for_week(
+        &self,
+        user: &ManagedAddress,
+        week: Week,
+    ) -> Energy<Self::Api> {
+
+        if self.user_energy_for_week(user, week).is_empty() {
+            return Energy::default();
+        }
+        self.user_energy_for_week(user, week).get()
+    }
+
     // user info
 
     #[view(getCurrentClaimProgress)]
@@ -266,7 +279,7 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
-    #[view(getUserEnergyForWeek)]
+
     #[storage_mapper("userEnergyForWeek")]
     fn user_energy_for_week(
         &self,
