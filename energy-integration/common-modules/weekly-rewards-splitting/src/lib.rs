@@ -279,7 +279,6 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
-
     #[storage_mapper("userEnergyForWeek")]
     fn user_energy_for_week(
         &self,
