@@ -99,7 +99,10 @@ pub trait Pair<ContractReader>:
             self.add_permissions(router_owner_address, all_permissions);
         } else {
             self.add_permissions(router_address, Permissions::OWNER | Permissions::PAUSE);
-            self.add_permissions(router_owner_address, Permissions::OWNER | Permissions::PAUSE);
+            self.add_permissions(
+                router_owner_address,
+                Permissions::OWNER | Permissions::PAUSE,
+            );
             self.add_permissions_for_all(admins, Permissions::ADMIN);
         };
     }

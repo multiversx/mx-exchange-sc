@@ -32,6 +32,7 @@ pub trait Farm:
     + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
+    + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_functions::BaseFunctionsModule
@@ -91,37 +92,60 @@ pub trait Farm:
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ClaimRewardsResultType<Self::Api> {
-        let orig_caller = self.require_known_proxy_from_optional(opt_orig_caller);
+        let caller = self.blockchain().get_caller();
+        let orig_caller = match opt_orig_caller {
+            OptionalValue::Some(opt_caller) => {
+                self.require_sc_address_whitelisted(&caller);
+                opt_caller
+            },
+            OptionalValue::None => caller.clone(),
+        };
+
         let claim_rewards_result = self.claim_rewards(&orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
 
-        let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
-        self.send_payment_non_zero(&caller, &rewards_payment);
+        self.send_payment_non_zero(&orig_caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&orig_caller, &rewards_payment);
         claim_rewards_result
     }
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
     fn compound_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> CompoundRewardsResultType<Self::Api> {
-        let orig_caller = self.require_known_proxy_from_optional(opt_orig_caller);
+        let caller = self.blockchain().get_caller();
+        let orig_caller = match opt_orig_caller {
+            OptionalValue::Some(opt_caller) => {
+                self.require_sc_address_whitelisted(&caller);
+                opt_caller
+            },
+            OptionalValue::None => caller.clone(),
+        };
+
         let output_farm_token_payment = self.compound_rewards(&orig_caller);
 
-        let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        // let caller = self.blockchain().get_caller();
+        self.send_payment_non_zero(&orig_caller, &output_farm_token_payment);
         output_farm_token_payment
     }
 
     #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ExitFarmResultType<Self::Api> {
-        let orig_caller = self.require_known_proxy_from_optional(opt_orig_caller);
+        let caller = self.blockchain().get_caller();
+        let orig_caller = match opt_orig_caller {
+            OptionalValue::Some(opt_caller) => {
+                self.require_sc_address_whitelisted(&caller);
+                opt_caller
+            },
+            OptionalValue::None => caller.clone(),
+        };
         let exit_farm_result = self.exit_farm(&orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
-        let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&caller, &farming_token_payment);
-        self.send_payment_non_zero(&caller, &reward_payment);
+
+        // let caller = self.blockchain().get_caller();
+        self.send_payment_non_zero(&orig_caller, &farming_token_payment);
+        self.send_payment_non_zero(&orig_caller, &reward_payment);
         exit_farm_result
     }
 
@@ -147,8 +171,8 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> EsdtTokenPayment<Self::Api> {
-        let caller = self.require_known_proxy_from_optional(opt_orig_caller);
+    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+        let caller = self.blockchain().get_caller();
         let new_tokens = self.merge_farm_tokens();
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
@@ -171,4 +195,17 @@ pub trait Farm:
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards(per_block_amount);
     }
+
+    #[endpoint(addKnownProxy)]
+    fn add_known_proxy(&self, known_proxy: ManagedAddress) {
+        self.require_caller_has_owner_or_admin_permissions();
+        self.add_sc_address_to_whitelist(known_proxy);
+    }
+
+    #[endpoint(removeKnownProxy)]
+    fn remove_known_proxy(&self, known_proxy: ManagedAddress) {
+        self.require_caller_has_owner_or_admin_permissions();
+        self.remove_sc_address_from_whitelist(known_proxy);
+    }
+
 }

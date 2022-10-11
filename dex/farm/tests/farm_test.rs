@@ -221,7 +221,7 @@ fn farm_known_proxy_test() {
     // second user enter farm
     let second_farm_token_amount = 50_000_000;
     let second_user = farm_setup.second_user.clone();
-    farm_setup.enter_farm(&second_user, second_farm_token_amount);
+    farm_setup.enter_farm(&first_user, second_farm_token_amount);
 
     farm_setup.add_known_proxy(&first_user);
 
@@ -282,10 +282,10 @@ fn farm_known_proxy_test() {
     farm_setup.b_mock.dump_state();
     // first user claims for second user
     let second_received_reward_amt = farm_setup.claim_rewards_known_proxy(
-        &first_user,
+        &second_user,
         2,
         second_farm_token_amount,
-        &second_user,
+        &first_user,
     );
     assert_eq!(second_received_reward_amt, second_expected_rewards_amt);
 
@@ -452,8 +452,7 @@ where
     pub fn add_known_proxy(&mut self, known_proxy: &Address) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.known_proxy_addresses()
-                    .insert(managed_address!(known_proxy));
+                sc.add_known_proxy(managed_address!(known_proxy));
             })
             .assert_ok();
     }
