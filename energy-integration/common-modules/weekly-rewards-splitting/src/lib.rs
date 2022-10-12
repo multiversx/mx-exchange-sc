@@ -179,7 +179,14 @@ pub trait WeeklyRewardsSplittingModule:
             Energy::default()
         };
 
-        let prev_week = current_week - 1;
+        // Update Current/Previous Week
+        if current_week != self.current_active_week().get() {
+            let previous_current_week = self.current_active_week().get();
+            self.last_active_week().set(previous_current_week);
+            self.current_active_week().set(current_week)
+        }
+
+        let prev_week = self.last_active_week().get();
         if last_active_week < prev_week && last_active_week > 0 {
             let inactive_weeks = prev_week - last_active_week;
             let deplete_end_epoch =
@@ -212,8 +219,16 @@ pub trait WeeklyRewardsSplittingModule:
     ) {
         let last_global_update_mapper = self.last_global_update_week();
         let last_global_update_week = last_global_update_mapper.get();
+
+        // Update Current/Previous Week
+        if current_week != self.current_active_week().get() {
+            let previous_current_week = self.current_active_week().get();
+            self.last_active_week().set(previous_current_week);
+            self.current_active_week().set(current_week)
+        }
+
         if last_global_update_week != current_week {
-            let prev_week = current_week - 1;
+            let prev_week = self.last_active_week().get();
             if prev_week > 0 {
                 let total_energy_prev_week = self.total_energy_for_week(prev_week).get();
                 let total_tokens_prev_week = self.total_locked_tokens_for_week(prev_week).get();
@@ -257,16 +272,40 @@ pub trait WeeklyRewardsSplittingModule:
         )
     }
 
+    #[view(getCurrentClaimProgress)]
+    fn get_current_claim_progress(&self, user: &ManagedAddress) -> ClaimProgress<Self::Api> {
+        let claim_progress_mapper = self.current_claim_progress(user);
+        let is_new_user = claim_progress_mapper.is_empty();
+        if is_new_user {
+            let current_week = self.get_current_week();
+            let current_user_energy = self.get_energy_entry(user.clone());
+            ClaimProgress {
+                energy: current_user_energy,
+                week: current_week,
+            }
+        } else {
+            claim_progress_mapper.get()
+        }
+    }
+
+    #[view(getUserEnergyForWeek)]
+    fn get_user_energy_for_week(&self, user: &ManagedAddress, week: Week) -> Energy<Self::Api> {
+        let user_energy_for_week_mapper = self.user_energy_for_week(user, week);
+        if user_energy_for_week_mapper.is_empty() {
+            Energy::default()
+        } else {
+            user_energy_for_week_mapper.get()
+        }
+    }
+
     // user info
 
-    #[view(getCurrentClaimProgress)]
     #[storage_mapper("currentClaimProgress")]
     fn current_claim_progress(
         &self,
         user: &ManagedAddress,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
-    #[view(getUserEnergyForWeek)]
     #[storage_mapper("userEnergyForWeek")]
     fn user_energy_for_week(
         &self,
@@ -283,6 +322,14 @@ pub trait WeeklyRewardsSplittingModule:
     #[view(getLastGlobalUpdateWeek)]
     #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
+
+    #[view(getLastActiveWeek)]
+    #[storage_mapper("lastActiveWeek")]
+    fn last_active_week(&self) -> SingleValueMapper<Week>;
+
+    #[view(getCurrentActiveWeek)]
+    #[storage_mapper("currentActiveWeek")]
+    fn current_active_week(&self) -> SingleValueMapper<Week>;
 
     #[view(getTotalRewardsForWeek)]
     #[storage_mapper("totalRewardsForWeek")]
