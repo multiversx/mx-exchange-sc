@@ -93,20 +93,14 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let orig_caller = match opt_orig_caller {
-            OptionalValue::Some(opt_caller) => {
-                self.require_sc_address_whitelisted(&caller);
-                opt_caller
-            },
-            OptionalValue::None => caller.clone(),
-        };
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let claim_rewards_result = self.claim_rewards(&orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
 
-        self.send_payment_non_zero(&orig_caller, &output_farm_token_payment);
-        self.send_payment_non_zero(&orig_caller, &rewards_payment);
+        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&caller, &rewards_payment);
         claim_rewards_result
     }
 
@@ -114,18 +108,10 @@ pub trait Farm:
     #[endpoint(compoundRewards)]
     fn compound_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let orig_caller = match opt_orig_caller {
-            OptionalValue::Some(opt_caller) => {
-                self.require_sc_address_whitelisted(&caller);
-                opt_caller
-            },
-            OptionalValue::None => caller.clone(),
-        };
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let output_farm_token_payment = self.compound_rewards(&orig_caller);
-
-        // let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&orig_caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
 
@@ -133,19 +119,13 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let orig_caller = match opt_orig_caller {
-            OptionalValue::Some(opt_caller) => {
-                self.require_sc_address_whitelisted(&caller);
-                opt_caller
-            },
-            OptionalValue::None => caller.clone(),
-        };
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
+
         let exit_farm_result = self.exit_farm(&orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
 
-        // let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&orig_caller, &farming_token_payment);
-        self.send_payment_non_zero(&orig_caller, &reward_payment);
+        self.send_payment_non_zero(&caller, &farming_token_payment);
+        self.send_payment_non_zero(&caller, &reward_payment);
         exit_farm_result
     }
 
@@ -196,16 +176,14 @@ pub trait Farm:
         self.set_per_block_rewards(per_block_amount);
     }
 
-    #[endpoint(addKnownProxy)]
-    fn add_known_proxy(&self, known_proxy: ManagedAddress) {
-        self.require_caller_has_owner_or_admin_permissions();
-        self.add_sc_address_to_whitelist(known_proxy);
-    }
-
-    #[endpoint(removeKnownProxy)]
-    fn remove_known_proxy(&self, known_proxy: ManagedAddress) {
-        self.require_caller_has_owner_or_admin_permissions();
-        self.remove_sc_address_from_whitelist(known_proxy);
+    fn get_orig_caller_from_opt(&self, caller: &ManagedAddress, opt_orig_caller: OptionalValue<ManagedAddress>) -> ManagedAddress {
+        match opt_orig_caller {
+            OptionalValue::Some(opt_caller) => {
+                self.require_sc_address_whitelisted(caller);
+                opt_caller
+            },
+            OptionalValue::None => caller.clone(),
+        }
     }
 
 }

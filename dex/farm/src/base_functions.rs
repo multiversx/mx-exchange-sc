@@ -223,26 +223,4 @@ pub trait BaseFunctionsModule:
         );
     }
 
-    // fn require_known_proxy_from_optional(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ManagedAddress {
-    //     let caller = self.blockchain().get_caller();
-    //     match opt_orig_caller {
-    //         OptionalValue::Some(orig_caller) => {
-    //             self.require_sc_address_whitelisted(&caller);
-    //             orig_caller
-    //         },
-    //         OptionalValue::None => caller,
-    //     }
-    // }
-
-    // #[endpoint(addKnownProxy)]
-    // fn add_known_proxy(&self, known_proxy: ManagedAddress) {
-    //     self.require_caller_has_owner_or_admin_permissions();
-    //     self.known_proxy_addresses().insert(known_proxy);
-    // }
-
-    // #[endpoint(removeKnownProxy)]
-    // fn remove_known_proxy(&self, known_proxy: ManagedAddress) {
-    //     self.require_caller_has_owner_or_admin_permissions();
-    //     self.known_proxy_addresses().swap_remove(&known_proxy);
-    // }
 }

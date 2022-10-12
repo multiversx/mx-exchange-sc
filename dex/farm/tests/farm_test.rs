@@ -17,6 +17,7 @@ use farm::Farm;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
+use sc_whitelist_module::SCWhitelistModule;
 
 static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
 static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
@@ -292,7 +293,7 @@ fn farm_known_proxy_test() {
     farm_setup
         .b_mock
         .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
-            &second_user,
+            &first_user,
             FARM_TOKEN_ID,
             4,
             &rust_biguint!(second_farm_token_amount),
@@ -300,9 +301,9 @@ fn farm_known_proxy_test() {
         );
 
     farm_setup.b_mock.check_esdt_balance(
-        &second_user,
+        &first_user,
         REWARD_TOKEN_ID,
-        &rust_biguint!(second_received_reward_amt),
+        &rust_biguint!(second_received_reward_amt + first_received_reward_amt),
     );
 }
 
@@ -452,7 +453,7 @@ where
     pub fn add_known_proxy(&mut self, known_proxy: &Address) {
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
-                sc.add_known_proxy(managed_address!(known_proxy));
+                sc.add_sc_address_to_whitelist(managed_address!(known_proxy));
             })
             .assert_ok();
     }
