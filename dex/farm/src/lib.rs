@@ -15,12 +15,10 @@ use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 
-type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type ClaimRewardsResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
+pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
+pub type ClaimRewardsResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ExitFarmResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:

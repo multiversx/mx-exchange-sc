@@ -8,9 +8,6 @@ elrond_wasm::derive_imports!();
 use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
 
-type AddLiquidityProxyOutput<M> =
-    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
-
 #[elrond_wasm::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
@@ -29,21 +26,18 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> AddLiquidityProxyOutput<Self::Api> {
+    ) -> MultiValueEncoded<EsdtTokenPayment> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
+        let caller = self.blockchain().get_caller();
         let mut payments = self.get_non_empty_payments();
         let first_payment = self.pop_first_payment(&mut payments);
         let second_payment = self.pop_first_payment(&mut payments);
 
         let input_token_refs = self.require_exactly_one_locked(&first_payment, &second_payment);
-        let asset_token_id = self.asset_token_id().get();
-        self.send().esdt_local_mint(
-            &asset_token_id,
-            0,
-            &input_token_refs.locked_token_ref.amount,
-        );
+        let asset_amount = input_token_refs.locked_token_ref.amount.clone();
+        let _ = self.asset_token().mint(asset_amount);
 
         let first_unlocked_token_id =
             self.get_underlying_token(first_payment.token_identifier.clone());
@@ -64,25 +58,30 @@ pub trait ProxyPairModule:
             lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
             lp_token_amount: add_liq_result.lp_tokens_received.amount.clone(),
         };
+
+        let wrapped_lp_mapper = self.wrapped_lp_token();
         let token_merge_requested = !payments.is_empty();
-        let new_merged_attributes = if token_merge_requested {
-            let wrapped_lp_mapper = self.wrapped_lp_token();
+        let new_wrapped_token = if token_merge_requested {
             let wrapped_lp_tokens =
                 WrappedLpToken::new_from_payments(&payments, &wrapped_lp_mapper);
 
-            self.merge_wrapped_lp_tokens_with_virtual_pos(wrapped_lp_tokens, new_token_attributes)
-                .attributes
-        } else {
-            new_token_attributes
-        };
+            self.burn_multi_esdt(&payments);
 
-        let caller = self.blockchain().get_caller();
-        let new_token_amount = new_merged_attributes.get_total_supply().clone();
-        let output_wrapped_lp_token = self.wrapped_lp_token().nft_create_and_send(
-            &caller,
-            new_token_amount,
-            &new_merged_attributes,
-        );
+            self.merge_wrapped_lp_tokens_with_virtual_pos(
+                &caller,
+                wrapped_lp_tokens,
+                new_token_attributes,
+            )
+        } else {
+            let new_token_amount = new_token_attributes.get_total_supply().clone();
+            let output_wrapped_lp_token =
+                wrapped_lp_mapper.nft_create(new_token_amount, &new_token_attributes);
+
+            WrappedLpToken {
+                payment: output_wrapped_lp_token,
+                attributes: new_token_attributes,
+            }
+        };
 
         let received_token_refs = self.require_exactly_one_base_asset(
             &add_liq_result.first_token_leftover,
@@ -92,30 +91,28 @@ pub trait ProxyPairModule:
         let mut locked_token_leftover = input_token_refs.locked_token_ref.clone();
         locked_token_leftover.amount = received_token_refs.base_asset_token_ref.amount.clone();
 
-        self.send_payment_non_zero(&caller, &locked_token_leftover);
-        self.send_payment_non_zero(&caller, &other_token_leftover);
-
         if locked_token_leftover.amount > 0 {
-            self.send()
-                .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
+            self.asset_token().burn(&locked_token_leftover.amount);
         }
 
+        let mut output_payments = ManagedVec::new();
+        output_payments.push(new_wrapped_token.payment.clone());
+        output_payments.push(locked_token_leftover);
+        output_payments.push(other_token_leftover);
+
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
+
         self.emit_add_liquidity_proxy_event(
-            caller,
-            pair_address,
+            &caller,
+            &pair_address,
             first_payment,
             second_payment,
-            output_wrapped_lp_token.clone(),
-            new_merged_attributes,
+            new_wrapped_token.payment.clone(),
+            new_wrapped_token.attributes,
             token_merge_requested,
         );
 
-        (
-            output_wrapped_lp_token,
-            locked_token_leftover,
-            other_token_leftover,
-        )
-            .into()
+        output_payments.into()
     }
 
     #[payable("*")]
@@ -134,9 +131,8 @@ pub trait ProxyPairModule:
         wrapped_lp_mapper.require_same_token(&payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
-        let mut attributes: WrappedLpTokenAttributes<Self::Api> =
-            wrapped_lp_mapper.get_token_attributes(payment.token_nonce);
-        attributes = attributes.into_part(&payment.amount);
+        let attributes: WrappedLpTokenAttributes<Self::Api> =
+            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_lp_mapper);
 
         let remove_liq_result = self.call_remove_liquidity(
             pair_address.clone(),
@@ -200,8 +196,8 @@ pub trait ProxyPairModule:
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_remove_liquidity_proxy_event(
-            caller,
-            pair_address,
+            &caller,
+            &pair_address,
             payment,
             attributes,
             remove_liq_result.first_token_received,
