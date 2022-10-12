@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub mod events;
 pub mod ongoing_operation;
 
 use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
@@ -10,7 +11,7 @@ use energy_query::Energy;
 use ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
-#[derive(TopEncode, TopDecode, PartialEq, Debug)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,
@@ -37,6 +38,7 @@ pub trait WeeklyRewardsSplittingModule:
     energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
     + ongoing_operation::OngoingOperationModule
+    + events::WeeklyRewardsSplittingEventsModule
 {
     fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
         &self,
@@ -80,6 +82,13 @@ pub trait WeeklyRewardsSplittingModule:
         });
 
         claim_progress_mapper.set(&claim_progress);
+
+        self.emit_claim_multi_event(
+            user,
+            claim_progress.week,
+            &claim_progress.energy,
+            &all_rewards,
+        );
 
         all_rewards
     }
@@ -190,6 +199,8 @@ pub trait WeeklyRewardsSplittingModule:
             &prev_energy,
             current_energy,
         );
+
+        self.emit_update_user_energy_event(user, current_week, current_energy);
     }
 
     fn update_global_amounts_for_current_week(
@@ -199,7 +210,8 @@ pub trait WeeklyRewardsSplittingModule:
         prev_user_energy: &Energy<Self::Api>,
         current_user_energy: &Energy<Self::Api>,
     ) {
-        let last_global_update_week = self.last_global_update_week().get();
+        let last_global_update_mapper = self.last_global_update_week();
+        let last_global_update_week = last_global_update_mapper.get();
         if last_global_update_week != current_week {
             let prev_week = current_week - 1;
             if prev_week > 0 {
@@ -218,24 +230,66 @@ pub trait WeeklyRewardsSplittingModule:
                     .set(&total_tokens_prev_week);
             }
 
-            self.last_global_update_week().set(current_week);
+            last_global_update_mapper.set(current_week);
         }
 
-        self.total_locked_tokens_for_week(current_week)
-            .update(|total_locked| {
-                *total_locked -= prev_user_energy.get_total_locked_tokens();
-                *total_locked += current_user_energy.get_total_locked_tokens();
-            });
-        self.total_energy_for_week(current_week)
-            .update(|total_energy| {
-                // revert the 7 * tokens removed in global decrease step
-                if user_last_active_week != current_week {
-                    *total_energy += prev_user_energy.get_total_locked_tokens() * EPOCHS_IN_WEEK;
-                }
+        let total_locked_tokens_mapper = self.total_locked_tokens_for_week(current_week);
+        total_locked_tokens_mapper.update(|total_locked| {
+            *total_locked -= prev_user_energy.get_total_locked_tokens();
+            *total_locked += current_user_energy.get_total_locked_tokens();
+        });
 
-                *total_energy -= prev_user_energy.get_energy_amount();
-                *total_energy += current_user_energy.get_energy_amount();
-            });
+        let total_energy_mapper = self.total_energy_for_week(current_week);
+        total_energy_mapper.update(|total_energy| {
+            // revert the 7 * tokens removed in global decrease step
+            if user_last_active_week != current_week {
+                *total_energy += prev_user_energy.get_total_locked_tokens() * EPOCHS_IN_WEEK;
+            }
+
+            *total_energy -= prev_user_energy.get_energy_amount();
+            *total_energy += current_user_energy.get_energy_amount();
+        });
+
+        self.emit_update_global_amounts_event(
+            last_global_update_mapper.get(),
+            &total_locked_tokens_mapper.get(),
+            &total_energy_mapper.get(),
+        )
+    }
+
+    #[view(getCurrentClaimProgress)]
+    fn get_current_claim_progress(
+        &self,
+        user: &ManagedAddress,
+    ) -> ClaimProgress<Self::Api> {
+        let claim_progress_mapper = self.current_claim_progress(user);
+        let is_new_user = claim_progress_mapper.is_empty();
+        if is_new_user {
+            let current_week = self.get_current_week();
+            let current_user_energy = self.get_energy_entry(user.clone());
+            ClaimProgress {
+                energy: current_user_energy,
+                week: current_week,
+            }
+        } else {
+            claim_progress_mapper.get()
+        }
+    }
+
+    #[view(getUserEnergyForWeek)]
+    fn get_user_energy_for_week(
+        &self,
+        user: &ManagedAddress,
+        week: Week,
+    ) -> Energy<Self::Api> {
+
+        let user_energy_for_week_mapper = self.user_energy_for_week(user, week);
+        if user_energy_for_week_mapper.is_empty() {
+            Energy::default()
+        } else {
+            user_energy_for_week_mapper.get()
+        }
+
     }
 
     // user info
@@ -253,23 +307,28 @@ pub trait WeeklyRewardsSplittingModule:
         week: Week,
     ) -> SingleValueMapper<Energy<Self::Api>>;
 
+    #[view(getLastActiveWeekForUser)]
     #[storage_mapper("lastActiveWeekForUser")]
     fn last_active_week_for_user(&self, user: &ManagedAddress) -> SingleValueMapper<Week>;
 
     // global info
 
+    #[view(getLastGlobalUpdateWeek)]
     #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
 
+    #[view(getTotalRewardsForWeek)]
     #[storage_mapper("totalRewardsForWeek")]
     fn total_rewards_for_week(
         &self,
         week: Week,
     ) -> SingleValueMapper<ManagedVec<TokenAmountPair<Self::Api>>>;
 
+    #[view(getTotalEnergyForWeek)]
     #[storage_mapper("totalEnergyForWeek")]
     fn total_energy_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[view(getTotalLockedTokensForWeek)]
     #[storage_mapper("totalLockedTokensForWeek")]
     fn total_locked_tokens_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 }

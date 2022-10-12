@@ -10,13 +10,16 @@ use weekly_rewards_splitting::ongoing_operation::{
 elrond_wasm::imports!();
 
 pub mod config;
+pub mod events;
 pub mod fees_accumulation;
 
 #[elrond_wasm::contract]
 pub trait FeesCollector:
     config::ConfigModule
+    + events::FeesCollectorEventsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + fees_accumulation::FeesAccumulationModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule

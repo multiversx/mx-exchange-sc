@@ -37,6 +37,9 @@ path = "../common/common_structs"
 [dependencies.proxy_dex]
 path = "proxy_dex"
 
+[dependencies.lkmex-transfer]
+path = "lkmex-transfer"
+
 [dev-dependencies.elrond-wasm-modules]
 version = "0.34.0"
 

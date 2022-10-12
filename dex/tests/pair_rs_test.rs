@@ -1331,9 +1331,7 @@ fn fees_collector_pair_test() {
             &rust_biguint!(0),
             |sc| {
                 sc.init();
-                let _ = sc
-                    .known_contracts()
-                    .insert(managed_address!(&pair_addr));
+                let _ = sc.known_contracts().insert(managed_address!(&pair_addr));
 
                 let mut tokens = MultiValueEncoded::new();
                 tokens.push(managed_token_id!(WEGLD_TOKEN_ID));

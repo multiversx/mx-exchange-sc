@@ -8,8 +8,8 @@ elrond_wasm_node::wasm_endpoints! {
     farm_staking
     (
         callBack
-        addAddressToWhitelist
         addAdmin
+        addSCAddressToWhitelist
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -30,13 +30,13 @@ elrond_wasm_node::wasm_endpoints! {
         getRewardPerShare
         getRewardTokenId
         getState
-        isWhitelisted
+        isSCAddressWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
-        removeAddressFromWhitelist
         removeAdmin
         removeFromPauseWhitelist
+        removeSCAddressFromWhitelist
         resume
         setMaxApr
         setMinUnbondEpochs

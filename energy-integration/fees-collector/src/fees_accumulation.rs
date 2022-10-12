@@ -6,7 +6,9 @@ use week_timekeeping::Week;
 
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
-    crate::config::ConfigModule + week_timekeeping::WeekTimekeepingModule
+    crate::config::ConfigModule
+    + crate::events::FeesCollectorEventsModule
+    + week_timekeeping::WeekTimekeepingModule
 {
     /// Pair SC will deposit the fees through this endpoint
     /// Deposits for current week are accessible starting next week
@@ -27,7 +29,9 @@ pub trait FeesAccumulationModule:
 
         let current_week = self.get_current_week();
         self.accumulated_fees(current_week, &payment_token)
-            .update(|amt| *amt += payment_amount);
+            .update(|amt| *amt += &payment_amount);
+
+        self.emit_deposit_swap_fees_event(caller, current_week, payment_token, payment_amount);
     }
 
     fn collect_accumulated_fees_for_week(
@@ -62,6 +66,7 @@ pub trait FeesAccumulationModule:
         }
     }
 
+    #[view(getAccumulatedFees)]
     #[storage_mapper("accumulatedFees")]
     fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
 }

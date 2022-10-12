@@ -30,7 +30,7 @@ pub trait FarmInteractionsModule {
     ) -> EnterFarmResultWrapper<Self::Api> {
         let result: EnterFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .enter_farm()
+            .enter_farm_endpoint()
             .add_esdt_token_transfer(farming_token_id, 0, farming_token_amount)
             .execute_on_dest_context();
 
@@ -42,9 +42,10 @@ pub trait FarmInteractionsModule {
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
     ) -> ExitFarmResultWrapper<Self::Api> {
+        let original_caller = self.blockchain().get_caller();
         let raw_result: ExitFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .exit_farm()
+            .exit_farm_endpoint(original_caller)
             .add_esdt_token_transfer(
                 farm_token.token_identifier,
                 farm_token.token_nonce,
@@ -64,9 +65,10 @@ pub trait FarmInteractionsModule {
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
     ) -> ClaimRewardsFarmResultWrapper<Self::Api> {
+        let original_caller = self.blockchain().get_caller();
         let raw_result: ClaimRewardsResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .claim_rewards()
+            .claim_rewards_endpoint(original_caller)
             .add_esdt_token_transfer(
                 farm_token.token_identifier,
                 farm_token.token_nonce,
@@ -86,9 +88,10 @@ pub trait FarmInteractionsModule {
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
     ) -> CompoundRewardsFarmResultWrapper<Self::Api> {
+        let original_caller = self.blockchain().get_caller();
         let new_farm_token = self
             .farm_contract_proxy(farm_address)
-            .compound_rewards()
+            .compound_rewards_endpoint(original_caller)
             .add_esdt_token_transfer(
                 farm_token.token_identifier,
                 farm_token.token_nonce,

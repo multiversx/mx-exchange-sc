@@ -16,6 +16,7 @@ use farm_token::FarmTokenModule;
 use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
+use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use simple_lock_energy::{lock_options::LockOptionsModule, SimpleLockEnergy};
 
@@ -98,6 +99,12 @@ where
             farm_wrapper.address_ref(),
             simple_lock_wrapper.address_ref(),
         );
+
+        b_mock
+            .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
+            })
+            .assert_ok();
 
         let user_balance = rust_biguint!(USER_BALANCE);
         b_mock.set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);

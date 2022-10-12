@@ -72,3 +72,6 @@ path = "../../common/modules/farm/farm_token_merge"
 
 [dev-dependencies.rewards]
 path = "../../common/modules/farm/rewards"
+
+[dev-dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
