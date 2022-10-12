@@ -1,4 +1,4 @@
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Energy};
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{
     Address, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
@@ -185,14 +185,17 @@ fn enter_farm<FarmObjBuilder>(
     });
 
     b_mock.add_mandos_sc_call(sc_call, Some(tx_expect));
+    let zero_energy = Energy::default();
 
     let expected_attributes = FarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
+        original_user: managed_address!(&farm_setup.user_address),
         original_entering_epoch: expected_original_entering_epoch,
         entering_epoch: expected_entering_epoch,
         initial_farming_amount: managed_biguint!(expected_initial_farming_amount),
         compounded_reward: managed_biguint!(expected_compounded_reward),
         current_farm_amount: managed_biguint!(expected_total_out_amount),
+        energy: zero_energy
     };
     b_mock.check_nft_balance(
         &farm_setup.user_address,
@@ -300,13 +303,16 @@ fn claim_rewards<FarmObjBuilder>(
         .assert_ok();
 
     let _ = DebugApi::dummy();
+    let zero_energy = Energy::default();
     let expected_attributes = FarmTokenAttributes::<DebugApi> {
         reward_per_share: managed_biguint!(expected_reward_per_share),
+        original_user: managed_address!(&farm_setup.user_address),
         original_entering_epoch: 0,
         entering_epoch: 0,
         initial_farming_amount: managed_biguint!(farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_token_amount),
+        energy: zero_energy,
     };
 
     b_mock.check_nft_balance(

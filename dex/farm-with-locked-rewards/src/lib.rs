@@ -81,7 +81,7 @@ pub trait Farm:
     fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.enter_farm();
+        let output_farm_token_payment = self.enter_farm(&caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -159,7 +159,7 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let new_tokens = self.merge_farm_tokens();
+        let new_tokens = self.merge_farm_tokens(&caller);
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }

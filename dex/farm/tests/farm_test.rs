@@ -43,15 +43,18 @@ fn farm_with_no_boost_test() {
     farm_setup.b_mock.set_block_nonce(10);
 
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
+    let zero_energy = Energy::default();
 
     // calculate rewards - first user
     let first_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
+        original_user: managed_address!(&first_user),
         original_entering_epoch: 0,
         entering_epoch: 0,
         initial_farming_amount: managed_biguint!(first_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
+        energy: zero_energy.clone()
     };
     let first_rewards_amt =
         farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
@@ -61,11 +64,13 @@ fn farm_with_no_boost_test() {
     // calculate rewards - second user
     let second_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
+        original_user: managed_address!(&second_user),
         original_entering_epoch: 0,
         entering_epoch: 0,
         initial_farming_amount: managed_biguint!(second_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
+        energy: zero_energy
     };
     let second_rewards_amt =
         farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
