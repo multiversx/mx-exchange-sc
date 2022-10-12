@@ -3,8 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub mod ongoing_operation;
 pub mod events;
+pub mod ongoing_operation;
 
 use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
 use energy_query::Energy;

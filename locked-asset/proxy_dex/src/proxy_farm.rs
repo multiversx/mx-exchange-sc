@@ -438,8 +438,9 @@ pub trait ProxyFarmModule:
         farm_token_nonce: Nonce,
         amount: &BigUint,
     ) -> ExitFarmResultType<Self::Api> {
+        let orig_caller = self.blockchain().get_caller();
         self.farm_contract_proxy(farm_address.clone())
-            .exit_farm_endpoint()
+            .exit_farm_endpoint(orig_caller)
             .add_esdt_token_transfer(farm_token_id.clone(), farm_token_nonce, amount.clone())
             .execute_on_dest_context()
     }
@@ -458,8 +459,9 @@ pub trait ProxyFarmModule:
             amount.clone(),
         ));
 
+        let orig_caller = self.blockchain().get_caller();
         self.farm_contract_proxy(farm_address.clone())
-            .claim_rewards_endpoint()
+            .claim_rewards_endpoint(orig_caller)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }
@@ -478,8 +480,9 @@ pub trait ProxyFarmModule:
             amount.clone(),
         ));
 
+        let orig_caller = self.blockchain().get_caller();
         self.farm_contract_proxy(farm_address.clone())
-            .compound_rewards_endpoint()
+            .compound_rewards_endpoint(orig_caller)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context()
     }

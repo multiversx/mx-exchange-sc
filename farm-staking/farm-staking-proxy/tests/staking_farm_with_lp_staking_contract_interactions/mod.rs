@@ -1,6 +1,6 @@
 use elrond_wasm::types::Address;
 use elrond_wasm_debug::{
-    managed_biguint, rust_biguint,
+    managed_address, managed_biguint, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     tx_mock::TxInputESDT,
     DebugApi,
@@ -10,6 +10,7 @@ use farm_staking::UnbondSftAttributes;
 use farm_staking::*;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
+use sc_whitelist_module::SCWhitelistModule;
 
 use crate::{
     constants::*,
@@ -95,6 +96,12 @@ where
             &mut b_mock,
             &staking_farm_wrapper,
         );
+
+        b_mock
+            .execute_tx(&owner_addr, &lp_farm_wrapper, &rust_zero, |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
+            })
+            .assert_ok();
 
         FarmStakingSetup {
             owner_addr,
