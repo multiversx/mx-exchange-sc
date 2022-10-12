@@ -11,7 +11,7 @@ use common_errors::{
 };
 use common_structs::{
     mergeable_token_traits::*, DefaultFarmPaymentAttributesPair, FarmTokenAttributes,
-    PaymentAttributesPair,
+    PaymentAttributesPair, Energy,
 };
 use token_merge_helper::{ValueWeight, WeightedAverageType};
 
@@ -27,6 +27,8 @@ pub trait FarmTokenMergeModule:
 {
     fn create_farm_tokens_by_merging<AttributesType, AttributesMergingFunction>(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         virtual_position: PaymentAttributesPair<Self::Api, AttributesType>,
         additional_farm_tokens: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         attributes_merging_fn: AttributesMergingFunction,
@@ -40,13 +42,15 @@ pub trait FarmTokenMergeModule:
             + CurrentFarmAmountGetter<Self::Api>,
         AttributesMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             &ManagedVec<EsdtTokenPayment<Self::Api>>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
     {
         let farm_token_id = virtual_position.payment.token_identifier.clone();
         let merged_attributes =
-            attributes_merging_fn(self, additional_farm_tokens, Some(virtual_position));
+            attributes_merging_fn(self, original_user, energy, additional_farm_tokens, Some(virtual_position));
 
         self.burn_farm_tokens_from_payments(additional_farm_tokens);
 
@@ -61,6 +65,8 @@ pub trait FarmTokenMergeModule:
 
     fn get_default_merged_farm_token_attributes(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
         virtual_position: Option<DefaultFarmPaymentAttributesPair<Self::Api>>,
     ) -> FarmTokenAttributes<Self::Api> {
@@ -84,7 +90,7 @@ pub trait FarmTokenMergeModule:
                 ERROR_NOT_A_FARM_TOKEN
             );
 
-            let attributes =
+            let attributes: FarmTokenAttributes<Self::Api> =
                 self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
             unsafe {
                 tokens.push_unchecked(PaymentAttributesPair {
@@ -107,11 +113,13 @@ pub trait FarmTokenMergeModule:
         let current_epoch = self.blockchain().get_block_epoch();
         FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
+            original_user: original_user.clone(),
             entering_epoch: current_epoch,
             original_entering_epoch: current_epoch,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
+            energy
         }
     }
 

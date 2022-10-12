@@ -44,9 +44,12 @@ pub trait BaseFunctionsModule:
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
 {
-    fn enter_farm(&self) -> EsdtTokenPayment<Self::Api> {
+    fn enter_farm(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
+        let energy = self.get_energy_entry(caller.clone());
         let base_enter_farm_result = self.enter_farm_base(
+            caller,
+            energy,
             payments,
             Self::generate_aggregated_rewards_with_boosted_yields,
             Self::default_create_enter_farm_virtual_position,
@@ -73,7 +76,10 @@ pub trait BaseFunctionsModule:
             };
 
         let payments = self.call_value().all_esdt_transfers();
+        let energy = self.get_energy_entry(caller.clone());
         let base_claim_rewards_result = self.claim_rewards_base(
+            caller,
+            energy,
             payments,
             Self::generate_aggregated_rewards_with_boosted_yields,
             calculate_reward_fn,
@@ -103,7 +109,10 @@ pub trait BaseFunctionsModule:
             };
 
         let payments = self.call_value().all_esdt_transfers();
+        let energy = self.get_energy_entry(caller.clone());
         let base_compound_rewards_result = self.compound_rewards_base(
+            caller,
+            energy,
             payments,
             Self::generate_aggregated_rewards_with_boosted_yields,
             calculate_reward_fn,
@@ -152,10 +161,11 @@ pub trait BaseFunctionsModule:
         (farming_token_payment, reward_payment).into()
     }
 
-    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-
-        let attrs = self.get_default_merged_farm_token_attributes(&payments, Option::None);
+        let energy = self.get_energy_entry(caller.clone());
+        let attrs =
+            self.get_default_merged_farm_token_attributes(caller, energy, &payments, Option::None);
         let farm_token_id = self.farm_token().get_token_id();
         self.burn_farm_tokens_from_payments(&payments);
 

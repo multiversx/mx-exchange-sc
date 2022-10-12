@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use crate::{
     CompoundedRewardAmountGetter, CurrentFarmAmountGetter, Epoch, InitialFarmingAmountGetter,
-    RewardPerShareGetter,
+    RewardPerShareGetter, Energy,
 };
 
 #[derive(
@@ -19,11 +19,13 @@ use crate::{
 )]
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
+    pub original_user: ManagedAddress<M>,
     pub original_entering_epoch: Epoch,
     pub entering_epoch: Epoch,
     pub initial_farming_amount: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
+    pub energy: Energy<M>,
 }
 
 impl<M: ManagedTypeApi> RewardPerShareGetter<M> for FarmTokenAttributes<M> {

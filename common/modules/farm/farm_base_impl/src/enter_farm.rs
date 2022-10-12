@@ -3,7 +3,7 @@ elrond_wasm::imports!();
 use crate::elrond_codec::TopEncode;
 use common_structs::{
     mergeable_token_traits::CurrentFarmAmountGetter, FarmTokenAttributes, PaymentAttributesPair,
-    PaymentsVec,
+    PaymentsVec, Energy,
 };
 use contexts::{
     enter_farm_context::EnterFarmContext,
@@ -43,6 +43,8 @@ pub trait BaseEnterFarmModule:
         TokenMergingFunction,
     >(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: PaymentsVec<Self::Api>,
         generate_rewards_fn: GenerateAggregattedRewardsFunction,
         virtual_pos_create_fn: VirtualPositionCreatorFunction,
@@ -59,17 +61,23 @@ pub trait BaseEnterFarmModule:
         GenerateAggregattedRewardsFunction: Fn(&Self, &mut StorageCache<Self>),
         VirtualPositionCreatorFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             &EsdtTokenPayment<Self::Api>,
             &StorageCache<Self>,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             &PaymentsVec<Self::Api>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             PaymentAttributesPair<Self::Api, AttributesType>,
             &PaymentsVec<Self::Api>,
             AttributesMergingFunction,
@@ -87,11 +95,15 @@ pub trait BaseEnterFarmModule:
 
         let virtual_position = virtual_pos_create_fn(
             self,
+            original_user,
+            energy.clone(),
             &enter_farm_context.farming_token_payment,
             &storage_cache,
         );
         let new_farm_token = token_merge_fn(
             self,
+            original_user,
+            energy,
             virtual_position,
             &enter_farm_context.additional_farm_tokens,
             attributes_merge_fn,
@@ -118,17 +130,21 @@ pub trait BaseEnterFarmModule:
 
     fn default_create_enter_farm_virtual_position(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         first_payment: &EsdtTokenPayment<Self::Api>,
         storage_cache: &StorageCache<Self>,
     ) -> PaymentAttributesPair<Self::Api, FarmTokenAttributes<Self::Api>> {
         let block_epoch = self.blockchain().get_block_epoch();
         let attributes = FarmTokenAttributes {
             reward_per_share: storage_cache.reward_per_share.clone(),
+            original_user: original_user.clone(),
             entering_epoch: block_epoch,
             original_entering_epoch: block_epoch,
             initial_farming_amount: first_payment.amount.clone(),
             compounded_reward: BigUint::zero(),
             current_farm_amount: first_payment.amount.clone(),
+            energy
         };
         let payment = EsdtTokenPayment::new(
             storage_cache.farm_token_id.clone(),

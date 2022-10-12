@@ -3,7 +3,7 @@ elrond_wasm::imports!();
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::energy::Energy;
+use common_structs::Energy;
 
 pub struct LockedAmountAttributesPair<M: ManagedTypeApi> {
     pub token_amount: BigUint<M>,

@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use crate::energy::Energy;
+use common_structs::Energy;
 use common_structs::UnlockEpochAmountPairs;
 
 #[elrond_wasm::module]

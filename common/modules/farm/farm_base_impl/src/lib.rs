@@ -14,7 +14,7 @@ pub mod exit_farm;
 pub mod partial_positions;
 
 use claim_rewards::InternalClaimRewardsResult;
-use common_structs::{FarmTokenAttributes, PaymentsVec};
+use common_structs::{FarmTokenAttributes, PaymentsVec, Energy};
 use compound_rewards::InternalCompoundRewardsResult;
 use contexts::storage_cache::StorageCache;
 use enter_farm::InternalEnterFarmResult;
@@ -49,9 +49,13 @@ pub trait FarmBaseImpl:
 {
     fn default_enter_farm_impl(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: PaymentsVec<Self::Api>,
     ) -> InternalEnterFarmResult<Self, FarmTokenAttributes<Self::Api>> {
         self.enter_farm_base(
+            original_user,
+            energy,
             payments,
             Self::default_generate_aggregated_rewards,
             Self::default_create_enter_farm_virtual_position,
@@ -62,9 +66,13 @@ pub trait FarmBaseImpl:
 
     fn default_claim_rewards_impl(
         &self,
+        caller: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: PaymentsVec<Self::Api>,
     ) -> InternalClaimRewardsResult<Self, FarmTokenAttributes<Self::Api>> {
         self.claim_rewards_base(
+            caller,
+            energy,
             payments,
             Self::default_generate_aggregated_rewards,
             Self::default_calculate_reward,
@@ -78,9 +86,13 @@ pub trait FarmBaseImpl:
     // How to fix: Don't mint tokens, and allow caller to do what they wish with token/attributes
     fn default_compound_rewards_impl(
         &self,
+        caller: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: PaymentsVec<Self::Api>,
     ) -> InternalCompoundRewardsResult<Self, FarmTokenAttributes<Self::Api>> {
         self.compound_rewards_base(
+            caller,
+            energy,
             payments,
             Self::default_generate_aggregated_rewards,
             Self::default_calculate_reward,

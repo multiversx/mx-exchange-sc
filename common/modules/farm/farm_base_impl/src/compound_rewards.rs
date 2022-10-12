@@ -3,7 +3,7 @@ elrond_wasm::imports!();
 use crate::elrond_codec::TopEncode;
 use common_errors::ERROR_DIFFERENT_TOKEN_IDS;
 use common_structs::{
-    DefaultFarmPaymentAttributesPair, FarmTokenAttributes, PaymentAttributesPair, PaymentsVec,
+    DefaultFarmPaymentAttributesPair, FarmTokenAttributes, PaymentAttributesPair, PaymentsVec, Energy,
 };
 use contexts::{
     claim_rewards_context::CompoundRewardsContext,
@@ -45,6 +45,8 @@ pub trait BaseCompoundRewardsModule:
         TokenMergingFunction,
     >(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: PaymentsVec<Self::Api>,
         generate_rewards_fn: GenerateAggregattedRewardsFunction,
         calculate_rewards_fn: CalculateRewardsFunction,
@@ -59,6 +61,7 @@ pub trait BaseCompoundRewardsModule:
             Fn(&Self, &BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
         VirtualPositionCreatorFunction: Fn(
             &Self,
+            Energy<Self::Api>,
             &PaymentAttributesPair<Self::Api, AttributesType>,
             &StorageCache<Self>,
             &BigUint,
@@ -66,11 +69,15 @@ pub trait BaseCompoundRewardsModule:
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             &PaymentsVec<Self::Api>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             PaymentAttributesPair<Self::Api, AttributesType>,
             &PaymentsVec<Self::Api>,
             AttributesMergingFunction,
@@ -98,12 +105,15 @@ pub trait BaseCompoundRewardsModule:
 
         let virtual_position = virtual_pos_create_fn(
             self,
+            energy.clone(),
             &compound_rewards_context.first_farm_token,
             &storage_cache,
             &reward,
         );
         let new_farm_token = token_merge_fn(
             self,
+            original_user,
+            energy,
             virtual_position,
             &compound_rewards_context.additional_payments,
             attributes_merge_fn,
@@ -129,6 +139,7 @@ pub trait BaseCompoundRewardsModule:
 
     fn default_create_compound_rewards_virtual_position(
         &self,
+        energy: Energy<Self::Api>,
         first_token: &DefaultFarmPaymentAttributesPair<Self::Api>,
         storage_cache: &StorageCache<Self>,
         reward: &BigUint,
@@ -151,11 +162,13 @@ pub trait BaseCompoundRewardsModule:
         let virtual_position_current_farm_amount = &farm_token_amount + reward;
         let virtual_position_attributes = FarmTokenAttributes {
             reward_per_share: storage_cache.reward_per_share.clone(),
+            original_user: first_token.attributes.original_user.clone(),
             entering_epoch: block_epoch,
             original_entering_epoch: block_epoch,
             initial_farming_amount,
             compounded_reward: virtual_position_compounded_reward,
             current_farm_amount: virtual_position_current_farm_amount,
+            energy,
         };
 
         PaymentAttributesPair {

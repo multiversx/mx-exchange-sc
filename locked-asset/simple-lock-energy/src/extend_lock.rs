@@ -3,7 +3,7 @@ elrond_wasm::imports!();
 use common_structs::{Epoch, OldLockedTokenAttributes};
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::energy::Energy;
+use common_structs::Energy;
 
 static INVALID_EXTEND_PERIOD_ARG_ERR_MSG: &[u8] =
     b"New lock period must be longer than the current one";

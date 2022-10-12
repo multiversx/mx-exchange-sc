@@ -3,7 +3,7 @@ elrond_wasm::imports!();
 use crate::elrond_codec::TopEncode;
 use common_structs::{
     mergeable_token_traits::RewardPerShareGetter, DefaultFarmPaymentAttributesPair,
-    FarmTokenAttributes, PaymentAttributesPair, PaymentsVec,
+    FarmTokenAttributes, PaymentAttributesPair, PaymentsVec, Energy,
 };
 use contexts::{
     claim_rewards_context::ClaimRewardsContext,
@@ -46,6 +46,8 @@ pub trait BaseClaimRewardsModule:
         TokenMergingFunction,
     >(
         &self,
+        original_user: &ManagedAddress,
+        energy: Energy<Self::Api>,
         payments: PaymentsVec<Self::Api>,
         generate_rewards_fn: GenerateAggregattedRewardsFunction,
         calculate_rewards_fn: CalculateRewardsFunction,
@@ -60,17 +62,22 @@ pub trait BaseClaimRewardsModule:
             Fn(&Self, &BigUint, &AttributesType, &StorageCache<Self>) -> BigUint,
         VirtualPositionCreatorFunction: Fn(
             &Self,
+            Energy<Self::Api>,
             &PaymentAttributesPair<Self::Api, AttributesType>,
             &StorageCache<Self>,
         )
             -> PaymentAttributesPair<Self::Api, AttributesType>,
         AttributesMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             &PaymentsVec<Self::Api>,
             Option<PaymentAttributesPair<Self::Api, AttributesType>>,
         ) -> AttributesType,
         TokenMergingFunction: Fn(
             &Self,
+            &ManagedAddress,
+            Energy<Self::Api>,
             PaymentAttributesPair<Self::Api, AttributesType>,
             &PaymentsVec<Self::Api>,
             AttributesMergingFunction,
@@ -93,11 +100,14 @@ pub trait BaseClaimRewardsModule:
 
         let virtual_position = virtual_pos_create_fn(
             self,
+            energy.clone(),
             &claim_rewards_context.first_farm_token,
             &storage_cache,
         );
         let new_farm_token = token_merge_fn(
             self,
+            original_user,
+            energy,
             virtual_position,
             &claim_rewards_context.additional_payments,
             attributes_merge_fn,
@@ -131,6 +141,7 @@ pub trait BaseClaimRewardsModule:
 
     fn default_create_claim_rewards_virtual_position(
         &self,
+        energy: Energy<Self::Api>,
         first_token: &DefaultFarmPaymentAttributesPair<Self::Api>,
         storage_cache: &StorageCache<Self>,
     ) -> DefaultFarmPaymentAttributesPair<Self::Api> {
@@ -147,11 +158,13 @@ pub trait BaseClaimRewardsModule:
         );
         let virtual_position_attributes = FarmTokenAttributes {
             reward_per_share: storage_cache.reward_per_share.clone(),
+            original_user: first_token.attributes.original_user.clone(),
             entering_epoch: first_token.attributes.entering_epoch,
             original_entering_epoch: first_token.attributes.original_entering_epoch,
             initial_farming_amount,
             compounded_reward: new_compound_reward_amount,
             current_farm_amount: farm_token_amount,
+            energy
         };
 
         PaymentAttributesPair {

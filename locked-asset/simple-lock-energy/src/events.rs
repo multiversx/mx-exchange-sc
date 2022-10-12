@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::energy::Energy;
+use common_structs::Energy;
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct EnergyUpdatedEvent<M: ManagedTypeApi> {
