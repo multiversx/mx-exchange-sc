@@ -11,7 +11,15 @@ pub type TokenAmountPairsVec<M> = ManagedVec<M, TokenAmountPair<M>>;
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
 
 #[derive(
-    TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, PartialEq, Debug, Clone,
+    TypeAbi,
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    ManagedVecItem,
+    PartialEq,
+    Debug,
+    Clone,
 )]
 pub struct TokenAmountPair<M: ManagedTypeApi> {
     pub token: TokenIdentifier<M>,

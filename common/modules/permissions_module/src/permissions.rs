@@ -31,4 +31,8 @@ impl TopDecode for Permissions {
     }
 }
 
-impl TypeAbi for Permissions {}
+impl TypeAbi for Permissions {
+    fn type_name() -> elrond_wasm::abi::TypeName {
+        core::any::type_name::<u32>().into()
+    }
+}

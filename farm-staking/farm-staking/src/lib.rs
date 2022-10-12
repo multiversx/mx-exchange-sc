@@ -5,7 +5,6 @@
 
 pub mod custom_rewards;
 pub mod farm_token_merge;
-pub mod whitelist;
 
 use common_structs::Nonce;
 
@@ -36,7 +35,7 @@ pub trait Farm:
     + token_merge_helper::TokenMergeHelperModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
-    + whitelist::WhitelistModule
+    + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -76,7 +75,7 @@ pub trait Farm:
         staked_token_amount: BigUint,
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
+        self.require_sc_address_whitelisted(&caller);
 
         let staked_token_id = self.farming_token_id().get();
         let staked_token_simulated_payment =
@@ -155,7 +154,7 @@ pub trait Farm:
     #[endpoint(unstakeFarmThroughProxy)]
     fn unstake_farm_through_proxy(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
+        self.require_sc_address_whitelisted(&caller);
 
         let payments = self.call_value().all_esdt_transfers();
         require!(payments.len() == 2, "Invalid payments amount");
@@ -315,7 +314,7 @@ pub trait Farm:
         require!(!self.farm_token().is_empty(), "No farm token");
 
         let caller = self.blockchain().get_caller();
-        self.require_whitelisted(&caller);
+        self.require_sc_address_whitelisted(&caller);
 
         let (payment_token_id, token_nonce, old_farming_amount) =
             self.call_value().single_esdt().into_tuple();

@@ -1,0 +1,65 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
+#![no_std]
+
+elrond_wasm_node::wasm_endpoints! {
+    farm_with_locked_rewards
+    (
+        callBack
+        addAdmin
+        addSCAddressToWhitelist
+        addToPauseWhitelist
+        calculateRewardsForGivenPosition
+        claimRewards
+        compoundRewards
+        endProduceRewards
+        enterFarm
+        exitFarm
+        getBoostedYieldsRewardsPercenatage
+        getBurnGasLimit
+        getCurrentClaimProgress
+        getCurrentWeek
+        getDivisionSafetyConstant
+        getEnergyFactoryAddress
+        getFarmTokenId
+        getFarmTokenSupply
+        getFarmingTokenId
+        getFirstWeekStartEpoch
+        getLastActiveWeekForUser
+        getLastRewardBlockNonce
+        getLockingScAddress
+        getMinimumFarmingEpoch
+        getPairContractManagedAddress
+        getPenaltyPercent
+        getPerBlockRewardAmount
+        getPermissions
+        getRewardPerShare
+        getRewardReserve
+        getRewardTokenId
+        getState
+        getTotalEnergyForWeek
+        getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
+        getUnlockEpoch
+        getUserEnergyForWeek
+        isSCAddressWhitelisted
+        mergeFarmTokens
+        pause
+        registerFarmToken
+        removeAdmin
+        removeFromPauseWhitelist
+        removeSCAddressFromWhitelist
+        resume
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
+        setLockingScAddress
+        setPerBlockRewardAmount
+        setUnlockEpoch
+        set_burn_gas_limit
+        set_minimum_farming_epochs
+        set_penalty_percent
+        startProduceRewards
+    )
+}

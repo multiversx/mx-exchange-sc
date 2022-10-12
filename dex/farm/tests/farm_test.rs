@@ -1,5 +1,6 @@
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
@@ -9,19 +10,21 @@ use elrond_wasm_debug::{
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
+
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::{Energy, EnergyQueryModule};
 use farm::Farm;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
+use sc_whitelist_module::SCWhitelistModule;
 
 static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
 static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
 static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 const DIV_SAFETY: u64 = 1_000_000_000_000;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
-const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
+const FARMING_TOKEN_BALANCE: u64 = 200_000_000;
 const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 
 #[test]
@@ -206,6 +209,104 @@ fn farm_with_boosted_yields_test() {
     );
 }
 
+#[test]
+fn farm_known_proxy_test() {
+    let _ = DebugApi::dummy();
+    let mut farm_setup = FarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+
+    // first user enter farm
+    let first_farm_token_amount = 100_000_000;
+    let first_user = farm_setup.first_user.clone();
+    farm_setup.enter_farm(&first_user, first_farm_token_amount);
+
+    // second user enter farm
+    let second_farm_token_amount = 50_000_000;
+    let second_user = farm_setup.second_user.clone();
+    farm_setup.enter_farm(&first_user, second_farm_token_amount);
+
+    farm_setup.add_known_proxy(&first_user);
+
+    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    farm_setup.b_mock.set_block_nonce(10);
+
+    let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
+
+    // calculate rewards - first user
+    let first_attributes = FarmTokenAttributes {
+        reward_per_share: managed_biguint!(0),
+        original_entering_epoch: 0,
+        entering_epoch: 0,
+        initial_farming_amount: managed_biguint!(first_farm_token_amount),
+        compounded_reward: managed_biguint!(0),
+        current_farm_amount: managed_biguint!(first_farm_token_amount),
+    };
+    let first_rewards_amt =
+        farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
+    let first_expected_rewards_amt = first_farm_token_amount * 10_000 / total_farm_tokens;
+    assert_eq!(first_rewards_amt, first_expected_rewards_amt);
+
+    // calculate rewards - second user
+    let second_attributes = FarmTokenAttributes {
+        reward_per_share: managed_biguint!(0),
+        original_entering_epoch: 0,
+        entering_epoch: 0,
+        initial_farming_amount: managed_biguint!(second_farm_token_amount),
+        compounded_reward: managed_biguint!(0),
+        current_farm_amount: managed_biguint!(second_farm_token_amount),
+    };
+    let second_rewards_amt =
+        farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
+    let second_expected_rewards_amt = second_farm_token_amount * 10_000 / total_farm_tokens;
+    assert_eq!(second_rewards_amt, second_expected_rewards_amt);
+
+    // first user claim
+    let first_received_reward_amt =
+        farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
+    assert_eq!(first_received_reward_amt, first_expected_rewards_amt);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &first_user,
+            FARM_TOKEN_ID,
+            3,
+            &rust_biguint!(first_farm_token_amount),
+            None,
+        );
+
+    farm_setup.b_mock.check_esdt_balance(
+        &first_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(first_received_reward_amt),
+    );
+
+    farm_setup.b_mock.dump_state();
+    // first user claims for second user
+    let second_received_reward_amt = farm_setup.claim_rewards_known_proxy(
+        &second_user,
+        2,
+        second_farm_token_amount,
+        &first_user,
+    );
+    assert_eq!(second_received_reward_amt, second_expected_rewards_amt);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &first_user,
+            FARM_TOKEN_ID,
+            4,
+            &rust_biguint!(second_farm_token_amount),
+            None,
+        );
+
+    farm_setup.b_mock.check_esdt_balance(
+        &first_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(second_received_reward_amt + first_received_reward_amt),
+    );
+}
+
 pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
@@ -349,6 +450,14 @@ where
             .assert_ok();
     }
 
+    pub fn add_known_proxy(&mut self, known_proxy: &Address) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(known_proxy));
+            })
+            .assert_ok();
+    }
+
     pub fn enter_farm(&mut self, user: &Address, farming_token_amount: u64) {
         self.last_farm_token_nonce += 1;
 
@@ -361,7 +470,7 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let out_farm_token = sc.enter_farm();
+                    let out_farm_token = sc.enter_farm_endpoint();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -415,7 +524,51 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (out_farm_token, out_reward_token) = sc.claim_rewards().into_tuple();
+                    let (out_farm_token, out_reward_token) =
+                        sc.claim_rewards_endpoint(OptionalValue::None).into_tuple();
+                    assert_eq!(
+                        out_farm_token.token_identifier,
+                        managed_token_id!(FARM_TOKEN_ID)
+                    );
+                    assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                    assert_eq!(out_farm_token.amount, managed_biguint!(farm_token_amount));
+
+                    assert_eq!(
+                        out_reward_token.token_identifier,
+                        managed_token_id!(REWARD_TOKEN_ID)
+                    );
+                    assert_eq!(out_reward_token.token_nonce, 0);
+
+                    result = out_reward_token.amount.to_u64().unwrap();
+                },
+            )
+            .assert_ok();
+
+        result
+    }
+
+    pub fn claim_rewards_known_proxy(
+        &mut self,
+        user: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+        known_proxy: &Address,
+    ) -> u64 {
+        self.last_farm_token_nonce += 1;
+
+        let expected_farm_token_nonce = self.last_farm_token_nonce;
+        let mut result = 0;
+        self.b_mock
+            .execute_esdt_transfer(
+                known_proxy,
+                &self.farm_wrapper,
+                FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let (out_farm_token, out_reward_token) = sc
+                        .claim_rewards_endpoint(OptionalValue::Some(managed_address!(user)))
+                        .into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -446,7 +599,28 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let _ = sc.exit_farm();
+                    let _ = sc.exit_farm_endpoint(OptionalValue::None);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn exit_farm_known_proxy(
+        &mut self,
+        user: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+        known_proxy: &Address,
+    ) {
+        self.b_mock
+            .execute_esdt_transfer(
+                known_proxy,
+                &self.farm_wrapper,
+                FARM_TOKEN_ID,
+                farm_token_nonce,
+                &rust_biguint!(farm_token_amount),
+                |sc| {
+                    let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
                 },
             )
             .assert_ok();

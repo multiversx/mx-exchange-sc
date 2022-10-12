@@ -1,5 +1,6 @@
 use std::ops::Mul;
 
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::{
@@ -162,7 +163,7 @@ fn enter_farm<FarmObjBuilder>(
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock
         .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm();
+            let payment = sc.enter_farm_endpoint();
             assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
             check_biguint_eq(
                 payment.amount,
@@ -208,7 +209,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &farm_out_amount.clone(),
             |sc| {
-                let multi_result = sc.exit_farm();
+                let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -243,7 +244,7 @@ fn reward_per_block_rate_change<FarmObjBuilder>(
             &farm_setup.farm_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.set_per_block_rewards(to_managed_biguint(new_rate));
+                sc.set_per_block_rewards_endpoint(to_managed_biguint(new_rate));
             },
         )
         .assert_ok();
