@@ -26,8 +26,6 @@ pub trait Farm:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + token_merge_helper::TokenMergeHelperModule
-    + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + sc_whitelist_module::SCWhitelistModule
@@ -37,7 +35,6 @@ pub trait Farm:
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
-    + farm_base_impl::partial_positions::PartialPositionsModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
@@ -49,6 +46,7 @@ pub trait Farm:
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
+    + utils::UtilsModule
 {
     #[init]
     fn init(

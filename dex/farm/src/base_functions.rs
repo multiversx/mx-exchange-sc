@@ -7,7 +7,7 @@ use common_errors::ERROR_ZERO_AMOUNT;
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
-use farm_base_impl::exit_farm::InternalExitFarmResult;
+use farm_base_impl::{base_traits_impl::FarmContract, exit_farm::InternalExitFarmResult};
 
 use crate::exit_penalty;
 
@@ -22,8 +22,6 @@ pub trait BaseFunctionsModule:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + token_merge_helper::TokenMergeHelperModule
-    + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
@@ -31,7 +29,6 @@ pub trait BaseFunctionsModule:
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
-    + farm_base_impl::partial_positions::PartialPositionsModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
@@ -43,6 +40,7 @@ pub trait BaseFunctionsModule:
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
+    + utils::UtilsModule
 {
     fn enter_farm(&self) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
@@ -223,4 +221,49 @@ pub trait BaseFunctionsModule:
         );
     }
 
+}
+
+impl<T> FarmContract for T
+where
+    T: BaseFunctionsModule,
+{
+    type AttributesType = FarmTokenAttributes<Self::Api>;
+
+    fn generate_aggregated_rewards(&self, storage_cache: &mut StorageCache<Self>) {
+        let total_reward =
+            self.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
+
+        if total_reward > 0u64 {
+            storage_cache.reward_reserve += &total_reward;
+            let split_rewards = self.take_reward_slice(total_reward);
+
+            if storage_cache.farm_token_supply != 0u64 {
+                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                    / &storage_cache.farm_token_supply;
+                storage_cache.reward_per_share += &increase;
+            }
+        }
+    }
+
+    fn calculate_rewards(
+        &self,
+        farm_token_amount: &BigUint<Self::Api>,
+        token_attributes: &Self::AttributesType,
+        storage_cache: &StorageCache<Self>,
+    ) -> BigUint<Self::Api> {
+        let token_rps = token_attributes.get_reward_per_share();
+        let base_farm_reward = if &storage_cache.reward_per_share > token_rps {
+            let rps_diff = &storage_cache.reward_per_share - token_rps;
+            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
+        } else {
+            BigUint::zero()
+        };
+
+        // TODO: Handle calls through proxy
+        let caller = self.blockchain().get_caller();
+        let boosted_yield_rewards =
+            self.claim_boosted_yields_rewards(&caller, &storage_cache.reward_token_id);
+
+        base_farm_reward + boosted_yield_rewards
+    }
 }

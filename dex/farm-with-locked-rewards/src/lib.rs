@@ -26,8 +26,6 @@ pub trait Farm:
     + token_send::TokenSendModule
     + locking_module::LockingModule
     + farm_token::FarmTokenModule
-    + token_merge_helper::TokenMergeHelperModule
-    + farm_token_merge::FarmTokenMergeModule
     + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

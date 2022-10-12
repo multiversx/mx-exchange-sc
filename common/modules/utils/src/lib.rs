@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 
 use common_structs::PaymentsVec;
+use fixed_supply_token::FixedSupplyToken;
 
 static ERR_EMPTY_PAYMENTS: &[u8] = b"No payments";
 
@@ -53,6 +54,15 @@ pub trait UtilsModule {
         payments.remove(0);
 
         first_payment
+    }
+
+    fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
+        &self,
+        payment: &EsdtTokenPayment,
+        mapper: &NonFungibleTokenMapper<Self::Api>,
+    ) -> T {
+        let attr: T = mapper.get_token_attributes(payment.token_nonce);
+        attr.into_part(&payment.amount)
     }
 
     fn require_valid_token_id(&self, token_id: &TokenIdentifier) {

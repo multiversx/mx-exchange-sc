@@ -7,8 +7,11 @@ edition = "2018"
 [lib]
 path = "src/lib.rs"
 
+[dependencies.elrond-wasm]
+version = "0.34.0"
+
 [dependencies.common_structs]
 path = "../../common_structs"
 
-[dependencies.elrond-wasm]
-version = "0.34.0"
+[dependencies.fixed-supply-token]
+path = "../../traits/fixed-supply-token"

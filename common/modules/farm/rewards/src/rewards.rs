@@ -28,7 +28,7 @@ pub trait RewardsModule:
         per_block_reward * block_nonce_diff
     }
 
-    fn mint_per_block_rewards<MintFunction: Fn(&TokenIdentifier, &BigUint)>(
+    fn mint_per_block_rewards<MintFunction: Fn(&Self, &TokenIdentifier, &BigUint)>(
         &self,
         token_id: &TokenIdentifier,
         mint_function: MintFunction,
@@ -38,7 +38,7 @@ pub trait RewardsModule:
         if current_block_nonce > last_reward_nonce {
             let to_mint = self.calculate_per_block_rewards(current_block_nonce, last_reward_nonce);
             if to_mint != 0 {
-                mint_function(token_id, &to_mint);
+                mint_function(self, token_id, &to_mint);
             }
 
             self.last_reward_block_nonce().set(current_block_nonce);

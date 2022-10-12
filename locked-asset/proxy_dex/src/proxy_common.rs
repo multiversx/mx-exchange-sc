@@ -105,15 +105,6 @@ pub trait ProxyCommonModule {
         }
     }
 
-    fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
-        &self,
-        payment: &EsdtTokenPayment,
-        mapper: &NonFungibleTokenMapper<Self::Api>,
-    ) -> T {
-        let attr: T = mapper.get_token_attributes(payment.token_nonce);
-        attr.into_part(&payment.amount)
-    }
-
     #[view(getAssetTokenId)]
     #[storage_mapper("assetTokenId")]
     fn asset_token(&self) -> FungibleTokenMapper<Self::Api>;

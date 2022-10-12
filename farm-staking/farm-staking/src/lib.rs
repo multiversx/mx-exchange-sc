@@ -32,9 +32,7 @@ pub trait Farm:
     custom_rewards::CustomRewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
-    + token_merge_helper::TokenMergeHelperModule
     + farm_token::FarmTokenModule
-    + farm_token_merge::FarmTokenMergeModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
