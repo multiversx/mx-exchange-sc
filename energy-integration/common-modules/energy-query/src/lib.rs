@@ -4,7 +4,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub use simple_lock_energy::energy::Energy;
-use simple_lock_energy::energy::ProxyTrait as _;
+
+static USER_ENERGY_STORAGE_KEY: &[u8] = b"userEnergy";
 
 #[elrond_wasm::module]
 pub trait EnergyQueryModule {
@@ -20,10 +21,8 @@ pub trait EnergyQueryModule {
     }
 
     fn get_energy_amount(&self, user: ManagedAddress) -> BigUint {
-        let sc_address = self.energy_factory_address().get();
-        self.energy_factory_proxy(sc_address)
-            .get_energy_amount_for_user(user)
-            .execute_on_dest_context()
+        let user_energy = self.get_energy_entry(user);
+        user_energy.get_energy_amount()
     }
 
     fn get_energy_amount_non_zero(&self, user: ManagedAddress) -> BigUint {
@@ -37,11 +36,29 @@ pub trait EnergyQueryModule {
         if self.energy_factory_address().is_empty() {
             return Energy::default();
         }
+        let energy_factory_address = self.energy_factory_address().get();
 
-        let sc_address = self.energy_factory_address().get();
-        self.energy_factory_proxy(sc_address)
-            .get_updated_energy_entry_for_user(user)
-            .execute_on_dest_context()
+        let mut key_buffer = ManagedBuffer::new_from_bytes(USER_ENERGY_STORAGE_KEY);
+        key_buffer.append(user.as_managed_buffer());
+        let energy_buffer: ManagedBuffer = self.read_storage_from_energy_factory(&energy_factory_address, key_buffer);
+        if energy_buffer.is_empty() {
+            Energy::default()
+        }
+        else {
+            let mut user_energy: Energy<Self::Api> = Energy::top_decode(energy_buffer).unwrap_or_default();
+            let current_epoch = self.blockchain().get_block_epoch();
+            user_energy.deplete(current_epoch);
+            user_energy
+        }
+    }
+
+    fn read_storage_from_energy_factory<T: TopDecode>(
+        &self,
+        energy_factory_address: &ManagedAddress,
+        key_buffer: ManagedBuffer,
+    ) -> T {
+        self.storage_raw()
+            .read_from_address(energy_factory_address, key_buffer)
     }
 
     #[proxy]

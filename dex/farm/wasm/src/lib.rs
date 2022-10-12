@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         addAdmin
+        addSCAddressToWhitelist
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
@@ -27,6 +28,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmingTokenId
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
+        getLastGlobalUpdateWeek
         getLastRewardBlockNonce
         getMinimumFarmingEpoch
         getPairContractManagedAddress
@@ -41,11 +43,13 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek
         getUserEnergyForWeek
+        isSCAddressWhitelisted
         mergeFarmTokens
         pause
         registerFarmToken
         removeAdmin
         removeFromPauseWhitelist
+        removeSCAddressFromWhitelist
         resume
         setBoostedYieldsRewardsPercentage
         setEnergyFactoryAddress
