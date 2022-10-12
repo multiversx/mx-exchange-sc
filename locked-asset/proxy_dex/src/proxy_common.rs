@@ -8,20 +8,81 @@ use crate::{
     wrapped_lp_attributes::WrappedLpTokenAttributes,
 };
 
-/// common interface for both old and new locked token factory
-pub mod locked_token_factory {
-    elrond_wasm::imports!();
+pub static FACTORY_MERGE_TOKENS_ENDPOINT_NAME: &[u8] = b"mergeTokens";
+pub static INVALID_PAYMENTS_ERR_MSG: &[u8] = b"Invalid payments";
 
-    #[elrond_wasm::proxy]
-    pub trait LockedTokenFactory {
-        #[payable("*")]
-        #[endpoint(mergeTokens)]
-        fn merge_tokens(&self) -> EsdtTokenPayment;
-    }
+pub struct LockedUnlockedTokenRefPair<'a, M: ManagedTypeApi> {
+    pub locked_token_ref: &'a EsdtTokenPayment<M>,
+    pub unlocked_token_ref: &'a EsdtTokenPayment<M>,
+}
+
+pub struct BaseAssetOtherTokenRefPair<'a, M: ManagedTypeApi> {
+    pub base_asset_token_ref: &'a EsdtTokenPayment<M>,
+    pub other_token_ref: &'a EsdtTokenPayment<M>,
 }
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule: token_send::TokenSendModule {
+pub trait ProxyCommonModule {
+    fn require_exactly_one_locked<'a>(
+        &self,
+        first_payment: &'a EsdtTokenPayment,
+        second_payment: &'a EsdtTokenPayment,
+    ) -> LockedUnlockedTokenRefPair<'a, Self::Api> {
+        let token_mapper = self.locked_token_ids();
+        let first_is_locked = token_mapper.contains(&first_payment.token_identifier);
+        let second_is_locked = token_mapper.contains(&second_payment.token_identifier);
+
+        if first_is_locked {
+            require!(!second_is_locked, INVALID_PAYMENTS_ERR_MSG);
+
+            LockedUnlockedTokenRefPair {
+                locked_token_ref: first_payment,
+                unlocked_token_ref: second_payment,
+            }
+        } else {
+            require!(second_is_locked, INVALID_PAYMENTS_ERR_MSG);
+
+            LockedUnlockedTokenRefPair {
+                locked_token_ref: second_payment,
+                unlocked_token_ref: first_payment,
+            }
+        }
+    }
+
+    fn require_exactly_one_base_asset<'a>(
+        &self,
+        first_payment: &'a EsdtTokenPayment,
+        second_payment: &'a EsdtTokenPayment,
+    ) -> BaseAssetOtherTokenRefPair<'a, Self::Api> {
+        let base_asset_token_id = self.asset_token_id().get();
+        let is_first_token = first_payment.token_identifier == base_asset_token_id;
+        let is_second_token = second_payment.token_identifier == base_asset_token_id;
+
+        if is_first_token {
+            require!(!is_second_token, INVALID_PAYMENTS_ERR_MSG);
+
+            BaseAssetOtherTokenRefPair {
+                base_asset_token_ref: first_payment,
+                other_token_ref: second_payment,
+            }
+        } else {
+            require!(is_second_token, INVALID_PAYMENTS_ERR_MSG);
+
+            BaseAssetOtherTokenRefPair {
+                base_asset_token_ref: second_payment,
+                other_token_ref: first_payment,
+            }
+        }
+    }
+
+    fn get_underlying_token(&self, token_id: TokenIdentifier) -> TokenIdentifier {
+        if self.locked_token_ids().contains(&token_id) {
+            self.asset_token_id().get()
+        } else {
+            token_id
+        }
+    }
+
     fn get_wrapped_lp_token_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -50,19 +111,6 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
         token_info.decode_attributes()
     }
 
-    fn burn_payment_tokens(
-        &self,
-        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
-    ) {
-        for payment in payments {
-            self.send().esdt_local_burn(
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-        }
-    }
-
     #[view(getAssetTokenId)]
     #[storage_mapper("assetTokenId")]
     fn asset_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
@@ -89,19 +137,6 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     #[storage_mapper("intermediatedFarms")]
     fn intermediated_farms(&self) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[view(getIntermediatedPairs)]
-    #[storage_mapper("intermediatedPairs")]
-    fn intermediated_pairs(&self) -> UnorderedSetMapper<ManagedAddress>;
-
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
     #[proxy]
     fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
-
-    #[proxy]
-    fn locked_token_factory_proxy(
-        &self,
-        to: ManagedAddress,
-    ) -> locked_token_factory::Proxy<Self::Api>;
 }

@@ -5,49 +5,23 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::wrapped_lp_attributes::WrappedLpTokenAttributes;
-use common_structs::Nonce;
-use itertools::Itertools;
-use pair::config::ProxyTrait as _;
-use pair::ProxyTrait as _;
+use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
+use fixed_supply_token::FixedSupplyToken;
 
-use super::events;
-use super::proxy_common;
-use super::wrapped_lp_token_merge;
-
-type AddLiquidityResultType<BigUint> =
-    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-
-type RemoveLiquidityResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-
-#[derive(ManagedVecItem, Clone)]
-pub struct WrappedLpToken<M: ManagedTypeApi> {
-    pub token: EsdtTokenPayment<M>,
-    pub attributes: WrappedLpTokenAttributes<M>,
-}
+type AddLiquidityProxyOutput<M> =
+    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
 #[elrond_wasm::module]
 pub trait ProxyPairModule:
-    proxy_common::ProxyCommonModule
-    + wrapped_lp_token_merge::WrappedLpTokenMerge
+    crate::proxy_common::ProxyCommonModule
+    + crate::sc_whitelist::ScWhitelistModule
+    + crate::pair_interactions::PairInteractionsModule
+    + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
-    + events::EventsModule
+    + crate::events::EventsModule
+    + utils::UtilsModule
 {
-    #[only_owner]
-    #[endpoint(addPairToIntermediate)]
-    fn add_pair_to_intermediate(&self, pair_address: ManagedAddress) {
-        let _ = self.intermediated_pairs().insert(pair_address);
-    }
-
-    #[only_owner]
-    #[endpoint(removeIntermediatedPair)]
-    fn remove_intermediated_pair(&self, pair_address: ManagedAddress) {
-        self.require_is_intermediated_pair(&pair_address);
-        let _ = self.intermediated_pairs().swap_remove(&pair_address);
-    }
-
     #[payable("*")]
     #[endpoint(addLiquidityProxy)]
     fn add_liquidity_proxy(
@@ -55,126 +29,91 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> AddLiquidityResultType<Self::Api> {
+    ) -> AddLiquidityProxyOutput<Self::Api> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
 
-        let payments_vec = self.call_value().all_esdt_transfers();
-        let mut payments_iter = payments_vec.iter();
-        let (payment_0, payment_1) = payments_iter
-            .next_tuple()
-            .unwrap_or_else(|| sc_panic!("bad payment len"));
+        let mut payments = self.get_non_empty_payments();
+        let first_payment = self.pop_first_payment(&mut payments);
+        let second_payment = self.pop_first_payment(&mut payments);
 
-        let first_token_id = payment_0.token_identifier.clone();
-        let first_token_nonce = payment_0.token_nonce;
-        let first_token_amount_desired = payment_0.amount;
-        require!(first_token_nonce == 0, "bad first token nonce");
-        require!(
-            first_token_amount_desired > 0u32,
-            "first payment amount zero"
-        );
-        require!(
-            first_token_amount_desired >= first_token_amount_min,
-            "bad first token min"
-        );
-
-        let second_token_id = payment_1.token_identifier.clone();
-        let second_token_nonce = payment_1.token_nonce;
-        let second_token_amount_desired = payment_1.amount;
-        require!(
-            self.locked_token_ids().contains(&second_token_id),
-            "second token needs to be locked asset token"
-        );
-        require!(second_token_nonce != 0, "bad second token nonce");
-        require!(
-            second_token_amount_desired > 0u32,
-            "second payment amount zero"
-        );
-        require!(
-            second_token_amount_desired >= second_token_amount_min,
-            "bad second token min"
-        );
-
+        let input_token_refs = self.require_exactly_one_locked(&first_payment, &second_payment);
         let asset_token_id = self.asset_token_id().get();
-        self.send()
-            .esdt_local_mint(&asset_token_id, 0, &second_token_amount_desired);
-
-        let result = self.actual_add_liquidity(
-            &pair_address,
-            &first_token_id,
-            &first_token_amount_desired,
-            &first_token_amount_min,
+        self.send().esdt_local_mint(
             &asset_token_id,
-            &second_token_amount_desired,
-            &second_token_amount_min,
+            0,
+            &input_token_refs.locked_token_ref.amount,
         );
 
-        let result_tuple = result.0;
-        let lp_received = result_tuple.0;
-        let first_token_used = result_tuple.1;
-        let second_token_used = result_tuple.2;
-        require!(
-            lp_received.amount > 0u32,
-            "LP token amount should be greater than 0"
+        let first_unlocked_token_id =
+            self.get_underlying_token(first_payment.token_identifier.clone());
+        let second_unlocked_token_id =
+            self.get_underlying_token(second_payment.token_identifier.clone());
+        let add_liq_result = self.call_add_liquidity(
+            pair_address.clone(),
+            first_unlocked_token_id,
+            first_payment.amount.clone(),
+            first_token_amount_min,
+            second_unlocked_token_id,
+            second_payment.amount.clone(),
+            second_token_amount_min,
         );
-        require!(
-            first_token_used.amount <= first_token_amount_desired,
-            "Used more first tokens than provided"
-        );
-        require!(
-            second_token_used.amount <= second_token_amount_desired,
-            "Used more second tokens than provided"
-        );
+
+        let new_token_attributes = WrappedLpTokenAttributes {
+            locked_tokens: input_token_refs.locked_token_ref.clone(),
+            lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
+            lp_token_amount: add_liq_result.lp_tokens_received.amount.clone(),
+        };
+        let token_merge_requested = !payments.is_empty();
+        let new_merged_attributes = if token_merge_requested {
+            let wrapped_lp_mapper = self.wrapped_lp_token();
+            let wrapped_lp_tokens =
+                WrappedLpToken::new_from_payments(&payments, &wrapped_lp_mapper);
+
+            self.merge_wrapped_lp_tokens_with_virtual_pos(wrapped_lp_tokens, new_token_attributes)
+                .attributes
+        } else {
+            new_token_attributes
+        };
 
         let caller = self.blockchain().get_caller();
-        let (new_wrapped_lp_token, created_with_merge) = self.create_by_merging_and_send(
-            &lp_received.token_identifier,
-            &lp_received.amount,
-            &second_token_used.amount,
-            second_token_nonce,
+        let new_token_amount = new_merged_attributes.get_total_supply().clone();
+        let output_wrapped_lp_token = self.wrapped_lp_token().nft_create_and_send(
             &caller,
-            payments_iter,
+            new_token_amount,
+            &new_merged_attributes,
         );
 
-        let mut surplus_payments = ManagedVec::new();
-        surplus_payments.push(EsdtTokenPayment::new(
-            first_token_id.clone(),
-            0,
-            &first_token_amount_desired - &first_token_used.amount,
-        ));
-        surplus_payments.push(EsdtTokenPayment::new(
-            second_token_id.clone(),
-            second_token_nonce,
-            &second_token_amount_desired - &second_token_used.amount,
-        ));
-        self.send_multiple_tokens_if_not_zero(&caller, &surplus_payments);
+        let received_token_refs = self.require_exactly_one_base_asset(
+            &add_liq_result.first_token_leftover,
+            &add_liq_result.second_token_leftover,
+        );
+        let other_token_leftover = received_token_refs.other_token_ref.clone();
+        let mut locked_token_leftover = input_token_refs.locked_token_ref.clone();
+        locked_token_leftover.amount = received_token_refs.base_asset_token_ref.amount.clone();
 
-        if second_token_amount_desired > second_token_used.amount {
-            let unused_minted_assets = &second_token_amount_desired - &second_token_used.amount;
+        self.send_payment_non_zero(&caller, &locked_token_leftover);
+        self.send_payment_non_zero(&caller, &other_token_leftover);
+
+        if locked_token_leftover.amount > 0 {
             self.send()
-                .esdt_local_burn(&asset_token_id, 0, &unused_minted_assets);
+                .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
         }
 
         self.emit_add_liquidity_proxy_event(
-            &caller,
-            &pair_address,
-            &first_token_id,
-            first_token_nonce,
-            &first_token_used.amount,
-            &second_token_id,
-            first_token_nonce,
-            &second_token_used.amount,
-            &new_wrapped_lp_token.token.token_identifier,
-            new_wrapped_lp_token.token.token_nonce,
-            &new_wrapped_lp_token.token.amount,
-            &new_wrapped_lp_token.attributes,
-            created_with_merge,
+            caller,
+            pair_address,
+            first_payment,
+            second_payment,
+            output_wrapped_lp_token.clone(),
+            new_merged_attributes,
+            token_merge_requested,
         );
 
         (
-            new_wrapped_lp_token.token,
-            surplus_payments.get(0),
-            surplus_payments.get(1),
+            output_wrapped_lp_token,
+            locked_token_leftover,
+            other_token_leftover,
         )
             .into()
     }
@@ -186,192 +125,90 @@ pub trait ProxyPairModule:
         pair_address: ManagedAddress,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
-    ) -> RemoveLiquidityResultType<Self::Api> {
-        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
-
+    ) -> MultiValueEncoded<EsdtTokenPayment> {
         self.require_is_intermediated_pair(&pair_address);
         self.require_wrapped_lp_token_id_not_empty();
-        require!(token_nonce != 0, "Can only be called with an SFT");
-        require!(amount != 0, "Payment amount cannot be zero");
 
-        let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
-        require!(token_id == wrapped_lp_token_id, "Wrong input token");
+        let payment = self.call_value().single_esdt();
+        let wrapped_lp_mapper = self.wrapped_lp_token();
+        wrapped_lp_mapper.require_same_token(&payment.token_identifier);
 
         let caller = self.blockchain().get_caller();
-        let lp_token_id = self.ask_for_lp_token_id(&pair_address);
-        let attributes = self.get_wrapped_lp_token_attributes(&token_id, token_nonce);
-        require!(lp_token_id == attributes.lp_token_id, "Bad input address");
+        let mut attributes: WrappedLpTokenAttributes<Self::Api> =
+            wrapped_lp_mapper.get_token_attributes(payment.token_nonce);
+        attributes = attributes.into_part(&payment.amount);
 
-        let locked_asset_token_id = self.locked_token_ids().get_by_index(0);
-        let asset_token_id = self.asset_token_id().get();
-
-        let tokens_for_position = self
-            .actual_remove_liquidity(
-                &pair_address,
-                &lp_token_id,
-                &amount,
-                &first_token_amount_min,
-                &second_token_amount_min,
-            )
-            .into_tuple();
-
-        let fungible_token_id: TokenIdentifier;
-        let fungible_token_amount: BigUint;
-        let assets_received: BigUint;
-        let locked_assets_invested = self.rule_of_three_non_zero_result(
-            &amount,
-            &attributes.lp_token_total_amount,
-            &attributes.locked_assets_invested,
+        let remove_liq_result = self.call_remove_liquidity(
+            pair_address.clone(),
+            attributes.lp_token_id.clone(),
+            attributes.lp_token_amount.clone(),
+            first_token_amount_min,
+            second_token_amount_min,
+        );
+        let received_token_refs = self.require_exactly_one_base_asset(
+            &remove_liq_result.first_token_received,
+            &remove_liq_result.second_token_received,
         );
 
-        if tokens_for_position.1.token_identifier == asset_token_id {
-            assets_received = tokens_for_position.1.amount.clone();
-            fungible_token_id = tokens_for_position.0.token_identifier.clone();
-            fungible_token_amount = tokens_for_position.0.amount.clone();
-        } else {
-            sc_panic!("Bad tokens received from pair SC");
-        }
+        let mut output_payments = ManagedVec::new();
 
-        //Send back the tokens removed from pair sc.
-        self.send()
-            .direct_esdt(&caller, &fungible_token_id, 0, &fungible_token_amount);
-        let locked_assets_to_send =
-            core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.send().direct_esdt(
-            &caller,
-            &locked_asset_token_id,
-            attributes.locked_assets_nonce,
-            &locked_assets_to_send,
-        );
+        let base_asset_amount_received = &received_token_refs.base_asset_token_ref.amount.clone();
+        let locked_token_amount_available = &attributes.locked_tokens.amount;
+        if base_asset_amount_received > locked_token_amount_available {
+            let asset_token_id = received_token_refs
+                .base_asset_token_ref
+                .token_identifier
+                .clone();
+            let unlocked_amount = base_asset_amount_received - locked_token_amount_available;
+            let unlocked_tokens = EsdtTokenPayment::new(asset_token_id.clone(), 0, unlocked_amount);
 
-        //Do cleanup
-        if assets_received > locked_assets_invested {
-            let difference = assets_received - locked_assets_invested;
+            // burn base asset, as we only need to send the locked tokens
             self.send()
-                .direct_esdt(&caller, &asset_token_id, 0, &difference);
-        } else if assets_received < locked_assets_invested {
-            let difference = locked_assets_invested - assets_received;
-            self.send().esdt_local_burn(
-                &locked_asset_token_id,
-                attributes.locked_assets_nonce,
-                &difference,
-            );
+                .esdt_local_burn(&asset_token_id, 0, &attributes.locked_tokens.amount);
+
+            output_payments.push(unlocked_tokens);
+            output_payments.push(attributes.locked_tokens.clone());
+        } else {
+            let extra_locked_tokens = locked_token_amount_available - base_asset_amount_received;
+            if extra_locked_tokens > 0 {
+                self.send().esdt_local_burn(
+                    &attributes.locked_tokens.token_identifier,
+                    attributes.locked_tokens.token_nonce,
+                    &extra_locked_tokens,
+                );
+            }
+
+            let mut locked_tokens_out = attributes.locked_tokens.clone();
+            locked_tokens_out.amount = base_asset_amount_received.clone();
+
+            // burn base asset, as we only need to send the locked tokens
+            let asset_token_id = received_token_refs
+                .base_asset_token_ref
+                .token_identifier
+                .clone();
+            self.send()
+                .esdt_local_burn(&asset_token_id, 0, &locked_tokens_out.amount);
+
+            output_payments.push(locked_tokens_out);
         }
 
-        self.send()
-            .esdt_local_burn(&asset_token_id, 0, &locked_assets_to_send);
-        self.send()
-            .esdt_local_burn(&wrapped_lp_token_id, token_nonce, &amount);
+        let other_tokens = received_token_refs.other_token_ref.clone();
+        output_payments.push(other_tokens);
+
+        wrapped_lp_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
+        self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
 
         self.emit_remove_liquidity_proxy_event(
-            &caller,
-            &pair_address,
-            &token_id,
-            token_nonce,
-            &amount,
-            &attributes,
-            &tokens_for_position.0.token_identifier,
-            0,
-            &tokens_for_position.0.amount,
-            &tokens_for_position.1.token_identifier,
-            0,
-            &tokens_for_position.1.amount,
-        );
-
-        tokens_for_position.into()
-    }
-
-    fn actual_add_liquidity(
-        &self,
-        pair_address: &ManagedAddress,
-        first_token_id: &TokenIdentifier,
-        first_token_amount_desired: &BigUint,
-        first_token_amount_min: &BigUint,
-        second_token_id: &TokenIdentifier,
-        second_token_amount_desired: &BigUint,
-        second_token_amount_min: &BigUint,
-    ) -> AddLiquidityResultType<Self::Api> {
-        let mut all_token_payments = ManagedVec::new();
-
-        let first_payment = EsdtTokenPayment::new(
-            first_token_id.clone(),
-            0,
-            first_token_amount_desired.clone(),
-        );
-        all_token_payments.push(first_payment);
-
-        let second_payment = EsdtTokenPayment::new(
-            second_token_id.clone(),
-            0,
-            second_token_amount_desired.clone(),
-        );
-        all_token_payments.push(second_payment);
-
-        self.pair_contract_proxy(pair_address.clone())
-            .add_liquidity(
-                first_token_amount_min.clone(),
-                second_token_amount_min.clone(),
-            )
-            .with_multi_token_transfer(all_token_payments)
-            .execute_on_dest_context()
-    }
-
-    fn actual_remove_liquidity(
-        &self,
-        pair_address: &ManagedAddress,
-        lp_token_id: &TokenIdentifier,
-        liquidity: &BigUint,
-        first_token_amount_min: &BigUint,
-        second_token_amount_min: &BigUint,
-    ) -> RemoveLiquidityResultType<Self::Api> {
-        self.pair_contract_proxy(pair_address.clone())
-            .remove_liquidity(
-                first_token_amount_min.clone(),
-                second_token_amount_min.clone(),
-            )
-            .add_esdt_token_transfer(lp_token_id.clone(), 0, liquidity.clone())
-            .execute_on_dest_context()
-    }
-
-    fn ask_for_lp_token_id(&self, pair_address: &ManagedAddress) -> TokenIdentifier {
-        self.pair_contract_proxy(pair_address.clone())
-            .get_lp_token_identifier()
-            .execute_on_dest_context()
-    }
-
-    fn create_by_merging_and_send(
-        &self,
-        lp_token_id: &TokenIdentifier,
-        lp_token_amount: &BigUint,
-        locked_tokens_consumed: &BigUint,
-        locked_tokens_nonce: Nonce,
-        caller: &ManagedAddress,
-        additional_payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
-    ) -> (WrappedLpToken<Self::Api>, bool) {
-        self.merge_wrapped_lp_tokens_and_send(
             caller,
-            additional_payments,
-            Option::Some(WrappedLpToken {
-                token: EsdtTokenPayment::new(
-                    self.wrapped_lp_token().get_token_id(),
-                    0,
-                    lp_token_amount.clone(),
-                ),
-                attributes: WrappedLpTokenAttributes {
-                    lp_token_id: lp_token_id.clone(),
-                    lp_token_total_amount: lp_token_amount.clone(),
-                    locked_assets_invested: locked_tokens_consumed.clone(),
-                    locked_assets_nonce: locked_tokens_nonce,
-                },
-            }),
-        )
-    }
-
-    fn require_is_intermediated_pair(&self, address: &ManagedAddress) {
-        require!(
-            self.intermediated_pairs().contains(address),
-            "Not an intermediated pair"
+            pair_address,
+            payment,
+            attributes,
+            remove_liq_result.first_token_received,
+            remove_liq_result.second_token_received,
         );
+
+        output_payments.into()
     }
 
     fn require_wrapped_lp_token_id_not_empty(&self) {
