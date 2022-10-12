@@ -1,4 +1,5 @@
 use common_structs::{FarmTokenAttributes, Energy};
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{
     Address, EsdtLocalRole, EsdtTokenPayment, ManagedAddress, MultiValueEncoded,
@@ -227,7 +228,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.exit_farm_endpoint();
+                let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 
@@ -281,7 +282,7 @@ fn claim_rewards<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.claim_rewards_endpoint();
+                let multi_result = sc.claim_rewards_endpoint(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 

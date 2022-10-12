@@ -232,4 +232,5 @@ pub trait BaseFunctionsModule:
             "May only call this function through VM query"
         );
     }
+
 }

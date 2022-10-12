@@ -13,9 +13,9 @@ use farm_staking_config::ConfigModule as _;
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
 use farm_staking_proxy::*;
-use sc_whitelist_module::SCWhitelistModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
+use sc_whitelist_module::SCWhitelistModule;
 
 use crate::constants::*;
 

@@ -1,5 +1,6 @@
 use std::ops::Mul;
 
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::{
@@ -208,7 +209,7 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &farm_out_amount.clone(),
             |sc| {
-                let multi_result = sc.exit_farm_endpoint();
+                let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
 
                 let (first_result, second_result) = multi_result.into_tuple();
 

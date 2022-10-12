@@ -29,7 +29,6 @@
 //     elrond_wasm_debug::mandos_go("mandos/claim_rewards_proxy_after_mint_rewards.scen.json");
 // }
 // */
-
 // #[test]
 // fn clear_unclaimable_assets_go() {
 //     elrond_wasm_debug::mandos_go("mandos/clear_unclaimable_assets.scen.json");
@@ -73,7 +72,6 @@
 //     elrond_wasm_debug::mandos_go("mandos/exit_farm_proxy_after_mint_rewards.scen.json");
 // }
 // */
-
 // #[test]
 // fn exit_mex_farm_proxy_after_mint_rewards_go() {
 //     elrond_wasm_debug::mandos_go("mandos/exit_mex_farm_proxy_after_mint_rewards.scen.json");
@@ -138,4 +136,3 @@
 // fn unlock_assets_basic_go() {
 //     elrond_wasm_debug::mandos_go("mandos/unlock_assets_basic.scen.json");
 // }
-
