@@ -299,9 +299,6 @@ pub trait WeeklyRewardsSplittingModule:
     #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
 
-<<<<<<< HEAD
-    //#[view(getTotalRewardsForWeek)]
-=======
     #[view(getLastGlobalActiveWeek)]
     #[storage_mapper("lastGlobalActiveWeek")]
     fn last_global_active_week(&self) -> SingleValueMapper<Week>;
@@ -311,7 +308,6 @@ pub trait WeeklyRewardsSplittingModule:
     fn current_global_active_week(&self) -> SingleValueMapper<Week>;
 
     #[view(getTotalRewardsForWeek)]
->>>>>>> feat/dex_v2
     #[storage_mapper("totalRewardsForWeek")]
     fn total_rewards_for_week(
         &self,
