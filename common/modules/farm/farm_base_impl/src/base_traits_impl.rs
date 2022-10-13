@@ -10,38 +10,42 @@ use mergeable::Mergeable;
 pub trait AllBaseFarmImplTraits =
     rewards::RewardsModule
         + config::ConfigModule
-        + token_send::TokenSendModule
         + farm_token::FarmTokenModule
-        + pausable::PausableModule
         + permissions_module::PermissionsModule
+        + pausable::PausableModule
         + events::EventsModule
-        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-        + crate::base_farm_init::BaseFarmInitModule
-        + crate::base_farm_validation::BaseFarmValidationModule
-        + crate::enter_farm::BaseEnterFarmModule
-        + crate::claim_rewards::BaseClaimRewardsModule
-        + crate::compound_rewards::BaseCompoundRewardsModule
-        + crate::exit_farm::BaseExitFarmModule;
+        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
 
-pub trait FarmContract: AllBaseFarmImplTraits {
+pub trait FarmContract {
+    type FarmSc: AllBaseFarmImplTraits;
+    // type Api: VMApi = <Self::FarmSc as ContractBase>::Api;
+
     type AttributesType: 'static
         + Clone
         + TopEncode
         + TopDecode
         + NestedEncode
         + NestedDecode
-        + Mergeable<Self::Api>
-        + FixedSupplyToken<Self::Api>
-        + FarmToken<Self::Api> = FarmTokenAttributes<Self::Api>;
+        + Mergeable<<Self::FarmSc as ContractBase>::Api>
+        + FixedSupplyToken<<Self::FarmSc as ContractBase>::Api>
+        + FarmToken<<Self::FarmSc as ContractBase>::Api> =
+        FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 
     #[inline]
-    fn mint_rewards(&self, token_id: &TokenIdentifier<Self::Api>, amount: &BigUint<Self::Api>) {
-        self.send().esdt_local_mint(token_id, 0, amount);
+    fn mint_rewards(
+        sc: &Self::FarmSc,
+        token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
+        amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) {
+        sc.send().esdt_local_mint(token_id, 0, amount);
     }
 
-    fn generate_aggregated_rewards(&self, storage_cache: &mut StorageCache<Self>) {
+    fn generate_aggregated_rewards(
+        sc: &Self::FarmSc,
+        storage_cache: &mut StorageCache<Self::FarmSc>,
+    ) {
         let total_reward =
-            self.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
+            sc.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
 
@@ -54,11 +58,12 @@ pub trait FarmContract: AllBaseFarmImplTraits {
     }
 
     fn calculate_rewards(
-        &self,
-        farm_token_amount: &BigUint<Self::Api>,
+        _sc: &Self::FarmSc,
+        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
-        storage_cache: &StorageCache<Self>,
-    ) -> BigUint<Self::Api> {
+        storage_cache: &StorageCache<Self::FarmSc>,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let token_rps = token_attributes.get_reward_per_share();
         if &storage_cache.reward_per_share > token_rps {
             let rps_diff = &storage_cache.reward_per_share - token_rps;
@@ -69,11 +74,12 @@ pub trait FarmContract: AllBaseFarmImplTraits {
     }
 
     fn create_enter_farm_initial_attributes(
-        &self,
-        farming_token_amount: BigUint<Self::Api>,
-        current_reward_per_share: BigUint<Self::Api>,
+        sc: &Self::FarmSc,
+        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
+        current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
-        let current_epoch = self.blockchain().get_block_epoch();
+        let current_epoch = sc.blockchain().get_block_epoch();
         let attributes = FarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             entering_epoch: current_epoch,
@@ -83,16 +89,27 @@ pub trait FarmContract: AllBaseFarmImplTraits {
             current_farm_amount: farming_token_amount,
         };
 
-        transmute_or_panic::<Self::Api, _, _>(&attributes)
+        transmute_or_panic::<
+            <Self::FarmSc as ContractBase>::Api,
+            FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
+            Self::AttributesType,
+        >(&attributes)
+        .clone()
     }
 
     fn create_claim_rewards_initial_attributes(
-        &self,
+        _sc: &Self::FarmSc,
+        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
-        current_reward_per_share: BigUint<Self::Api>,
+        current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
-        let initial_attributes: FarmTokenAttributes<Self::Api> =
-            transmute_or_panic::<Self::Api, _, _>(&first_token_attributes);
+        let initial_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+            transmute_or_panic::<
+                <Self::FarmSc as ContractBase>::Api,
+                Self::AttributesType,
+                FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
+            >(&first_token_attributes)
+            .clone();
 
         let net_current_farm_amount = initial_attributes.get_total_supply().clone();
         let new_attributes = FarmTokenAttributes {
@@ -104,19 +121,30 @@ pub trait FarmContract: AllBaseFarmImplTraits {
             current_farm_amount: net_current_farm_amount,
         };
 
-        transmute_or_panic::<Self::Api, _, _>(&new_attributes)
+        transmute_or_panic::<
+            <Self::FarmSc as ContractBase>::Api,
+            FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
+            Self::AttributesType,
+        >(&new_attributes)
+        .clone()
     }
 
     fn create_compound_rewards_initial_attributes(
-        &self,
+        sc: &Self::FarmSc,
+        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
-        current_reward_per_share: BigUint<Self::Api>,
-        reward: &BigUint<Self::Api>,
+        current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
+        reward: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
-        let initial_attributes: FarmTokenAttributes<Self::Api> =
-            transmute_or_panic::<Self::Api, _, _>(&first_token_attributes);
+        let initial_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
+            transmute_or_panic::<
+                <Self::FarmSc as ContractBase>::Api,
+                Self::AttributesType,
+                FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
+            >(&first_token_attributes)
+            .clone();
 
-        let current_epoch = self.blockchain().get_block_epoch();
+        let current_epoch = sc.blockchain().get_block_epoch();
         let new_pos_compounded_reward = initial_attributes.compounded_reward + reward;
         let new_pos_current_farm_amount = initial_attributes.current_farm_amount + reward;
         let new_attributes = FarmTokenAttributes {
@@ -128,15 +156,20 @@ pub trait FarmContract: AllBaseFarmImplTraits {
             current_farm_amount: new_pos_current_farm_amount,
         };
 
-        transmute_or_panic::<Self::Api, _, _>(&new_attributes)
+        transmute_or_panic::<
+            <Self::FarmSc as ContractBase>::Api,
+            FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
+            Self::AttributesType,
+        >(&new_attributes)
+        .clone()
     }
 }
 
 pub fn transmute_or_panic<M: ManagedTypeApi, FromType: 'static, ToType: 'static>(
     attr: &FromType,
-) -> ToType {
+) -> &ToType {
     if TypeId::of::<FromType>() == TypeId::of::<ToType>() {
-        unsafe { core::mem::transmute_copy::<FromType, ToType>(attr) }
+        unsafe { core::mem::transmute::<&FromType, &ToType>(attr) }
     } else {
         M::error_api_impl()
             .signal_error(b"Must implement trait methods for custom attributes type");

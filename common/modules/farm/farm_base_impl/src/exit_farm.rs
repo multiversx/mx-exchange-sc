@@ -32,22 +32,21 @@ pub trait BaseExitFarmModule:
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
 {
-    fn exit_farm_base(
+    fn exit_farm_base<FC: FarmContract<FarmSc = Self>>(
         &self,
+        caller: ManagedAddress,
         payment: EsdtTokenPayment<Self::Api>,
-    ) -> InternalExitFarmResult<Self, Self::AttributesType>
-    where
-        Self: FarmContract,
-    {
+    ) -> InternalExitFarmResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
-        let exit_farm_context = ExitFarmContext::<Self::Api, Self::AttributesType>::new(
+        let exit_farm_context = ExitFarmContext::<Self::Api, FC::AttributesType>::new(
             payment,
             &storage_cache.farm_token_id,
             self.blockchain(),
         );
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
-        self.generate_aggregated_rewards(&mut storage_cache);
+        FC::generate_aggregated_rewards(self, &mut storage_cache);
+        // wrapper.sc_ref.generate_aggregated_rewards(&mut storage_cache)
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
         let token_attributes = exit_farm_context
@@ -56,8 +55,13 @@ pub trait BaseExitFarmModule:
             .clone()
             .into_part(farm_token_amount);
 
-        let mut reward =
-            self.calculate_rewards(farm_token_amount, &token_attributes, &storage_cache);
+        let mut reward = FC::calculate_rewards(
+            self,
+            caller,
+            farm_token_amount,
+            &token_attributes,
+            &storage_cache,
+        );
         storage_cache.reward_reserve -= &reward;
         reward += token_attributes.get_compounded_rewards();
 
@@ -75,6 +79,8 @@ pub trait BaseExitFarmModule:
             farm_token_payment.token_nonce,
             &farm_token_payment.amount,
         );
+
+        storage_cache.farm_token_supply -= &farming_token_payment.amount;
 
         InternalExitFarmResult {
             context: exit_farm_context,

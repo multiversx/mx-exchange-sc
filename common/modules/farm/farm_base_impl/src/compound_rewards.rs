@@ -34,20 +34,17 @@ pub trait BaseCompoundRewardsModule:
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
 {
-    fn compound_rewards_base(
+    fn compound_rewards_base<FC: FarmContract<FarmSc = Self>>(
         &self,
+        caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
-    ) -> InternalCompoundRewardsResult<Self, Self::AttributesType>
-    where
-        Self: FarmContract,
-    {
+    ) -> InternalCompoundRewardsResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
-        let compound_rewards_context =
-            CompoundRewardsContext::<Self::Api, Self::AttributesType>::new(
-                payments,
-                &storage_cache.farm_token_id,
-                self.blockchain(),
-            );
+        let compound_rewards_context = CompoundRewardsContext::<Self::Api, FC::AttributesType>::new(
+            payments,
+            &storage_cache.farm_token_id,
+            self.blockchain(),
+        );
 
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         require!(
@@ -55,7 +52,7 @@ pub trait BaseCompoundRewardsModule:
             ERROR_DIFFERENT_TOKEN_IDS
         );
 
-        self.generate_aggregated_rewards(&mut storage_cache);
+        FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &compound_rewards_context.first_farm_token.payment.amount;
         let token_attributes = compound_rewards_context
@@ -64,17 +61,26 @@ pub trait BaseCompoundRewardsModule:
             .clone()
             .into_part(farm_token_amount);
 
-        let reward = self.calculate_rewards(farm_token_amount, &token_attributes, &storage_cache);
+        let reward = FC::calculate_rewards(
+            self,
+            caller.clone(),
+            farm_token_amount,
+            &token_attributes,
+            &storage_cache,
+        );
         storage_cache.reward_reserve -= &reward;
+        storage_cache.farm_token_supply += &reward;
 
         let farm_token_mapper = self.farm_token();
-        let mut output_attributes = self.create_compound_rewards_initial_attributes(
+        let mut output_attributes = FC::create_compound_rewards_initial_attributes(
+            self,
+            caller,
             token_attributes,
             storage_cache.reward_per_share.clone(),
             &reward,
         );
         for payment in &compound_rewards_context.additional_payments {
-            let attributes: Self::AttributesType =
+            let attributes: FC::AttributesType =
                 self.get_attributes_as_part_of_fixed_supply(&payment, &farm_token_mapper);
             output_attributes.merge_with(attributes);
         }

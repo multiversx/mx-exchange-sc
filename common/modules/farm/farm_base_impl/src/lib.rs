@@ -15,8 +15,6 @@ pub mod compound_rewards;
 pub mod enter_farm;
 pub mod exit_farm;
 
-use base_traits_impl::FarmContract;
-
 pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
 pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
 pub type ClaimRewardsResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -41,5 +39,3 @@ pub trait FarmBaseImpl:
     + utils::UtilsModule
 {
 }
-
-impl<T> FarmContract for T where T: FarmBaseImpl {}

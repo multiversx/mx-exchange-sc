@@ -8,12 +8,14 @@ elrond_wasm::derive_imports!();
 pub mod base_functions;
 pub mod exit_penalty;
 
+use base_functions::Wrapper;
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
+use farm_base_impl::base_traits_impl::FarmContract;
 
 pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
 pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
@@ -78,9 +80,11 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
+    fn enter_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = self.enter_farm();
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
+        
+        let output_farm_token_payment = self.enter_farm(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -91,7 +95,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let claim_rewards_result = self.claim_rewards(&orig_caller);
+        let claim_rewards_result = self.claim_rewards(orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
 
@@ -106,7 +110,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.compound_rewards(&orig_caller);
+        let output_farm_token_payment = self.compound_rewards(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -117,7 +121,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let exit_farm_result = self.exit_farm(&orig_caller);
+        let exit_farm_result = self.exit_farm(orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
 
         self.send_payment_non_zero(&caller, &farming_token_payment);
@@ -135,10 +139,11 @@ pub trait Farm:
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards_with_boosted_yields(&mut storage_cache);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        self.calculate_reward_with_boosted_yields(
-            &user,
+        Wrapper::<Self>::calculate_rewards(
+            self,
+            user,
             &farm_token_amount,
             &attributes,
             &storage_cache,
