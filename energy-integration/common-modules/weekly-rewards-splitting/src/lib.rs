@@ -179,11 +179,11 @@ pub trait WeeklyRewardsSplittingModule:
             Energy::default()
         };
 
-        // Update Current/Previous Week
-        if current_week != self.current_active_week().get() {
-            let previous_current_week = self.current_active_week().get();
+        let current_global_active_week_mapper = self.current_active_week();
+        if current_week != current_global_active_week_mapper.get() {
+            let previous_current_week = current_global_active_week_mapper.get();
             self.last_active_week().set(previous_current_week);
-            self.current_active_week().set(current_week)
+            current_global_active_week_mapper.set(current_week)
         }
 
         let prev_week = self.last_active_week().get();
@@ -220,11 +220,11 @@ pub trait WeeklyRewardsSplittingModule:
         let last_global_update_mapper = self.last_global_update_week();
         let last_global_update_week = last_global_update_mapper.get();
 
-        // Update Current/Previous Week
-        if current_week != self.current_active_week().get() {
-            let previous_current_week = self.current_active_week().get();
+        let current_global_active_week_mapper = self.current_active_week();
+        if current_week != current_global_active_week_mapper.get() {
+            let previous_current_week = current_global_active_week_mapper.get();
             self.last_active_week().set(previous_current_week);
-            self.current_active_week().set(current_week)
+            current_global_active_week_mapper.set(current_week)
         }
 
         if last_global_update_week != current_week {
