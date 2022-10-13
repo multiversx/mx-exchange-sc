@@ -40,12 +40,13 @@ pub trait EnergyQueryModule {
 
         let mut key_buffer = ManagedBuffer::new_from_bytes(USER_ENERGY_STORAGE_KEY);
         key_buffer.append(user.as_managed_buffer());
-        let energy_buffer: ManagedBuffer = self.read_storage_from_energy_factory(&energy_factory_address, key_buffer);
+        let energy_buffer: ManagedBuffer =
+            self.read_storage_from_energy_factory(&energy_factory_address, key_buffer);
         if energy_buffer.is_empty() {
             Energy::default()
-        }
-        else {
-            let mut user_energy: Energy<Self::Api> = Energy::top_decode(energy_buffer).unwrap_or_default();
+        } else {
+            let mut user_energy: Energy<Self::Api> =
+                Energy::top_decode(energy_buffer).unwrap_or_default();
             let current_epoch = self.blockchain().get_block_epoch();
             user_energy.deplete(current_epoch);
             user_energy

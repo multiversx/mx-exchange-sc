@@ -40,7 +40,7 @@ pub trait FeesCollector:
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
-        
+
         rewards
     }
 

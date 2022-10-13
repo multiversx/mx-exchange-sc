@@ -179,7 +179,14 @@ pub trait WeeklyRewardsSplittingModule:
             Energy::default()
         };
 
-        let prev_week = current_week - 1;
+        let current_global_active_week_mapper = self.current_global_active_week();
+        if current_week != current_global_active_week_mapper.get() {
+            let previous_current_week = current_global_active_week_mapper.get();
+            self.last_global_active_week().set(previous_current_week);
+            current_global_active_week_mapper.set(current_week)
+        }
+
+        let prev_week = self.last_global_active_week().get();
         if last_active_week < prev_week && last_active_week > 0 {
             let inactive_weeks = prev_week - last_active_week;
             let deplete_end_epoch =
@@ -212,8 +219,16 @@ pub trait WeeklyRewardsSplittingModule:
     ) {
         let last_global_update_mapper = self.last_global_update_week();
         let last_global_update_week = last_global_update_mapper.get();
+
+        let current_global_active_week_mapper = self.current_global_active_week();
+        if current_week != current_global_active_week_mapper.get() {
+            let previous_current_week = current_global_active_week_mapper.get();
+            self.last_global_active_week().set(previous_current_week);
+            current_global_active_week_mapper.set(current_week)
+        }
+
         if last_global_update_week != current_week {
-            let prev_week = current_week - 1;
+            let prev_week = self.last_global_active_week().get();
             if prev_week > 0 {
                 let total_energy_prev_week = self.total_energy_for_week(prev_week).get();
                 let total_tokens_prev_week = self.total_locked_tokens_for_week(prev_week).get();
@@ -283,6 +298,14 @@ pub trait WeeklyRewardsSplittingModule:
     #[view(getLastGlobalUpdateWeek)]
     #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
+
+    #[view(getLastGlobalActiveWeek)]
+    #[storage_mapper("lastGlobalActiveWeek")]
+    fn last_global_active_week(&self) -> SingleValueMapper<Week>;
+
+    #[view(getCurrentGlobalActiveWeek)]
+    #[storage_mapper("currentGlobalActiveWeek")]
+    fn current_global_active_week(&self) -> SingleValueMapper<Week>;
 
     #[view(getTotalRewardsForWeek)]
     #[storage_mapper("totalRewardsForWeek")]
