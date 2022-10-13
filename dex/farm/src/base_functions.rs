@@ -13,6 +13,8 @@ use farm_base_impl::{
     base_traits_impl::{FarmContract},
     exit_farm::InternalExitFarmResult,
 };
+use fixed_supply_token::FixedSupplyToken;
+use mergeable::Mergeable;
 
 use crate::exit_penalty;
 
@@ -46,7 +48,6 @@ pub trait BaseFunctionsModule:
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
-    // + farm_base_impl::base_traits_impl::FarmContract
 {
     fn enter_farm(&self, caller: ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
@@ -103,22 +104,28 @@ pub trait BaseFunctionsModule:
     }
 
     fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
-        // let payments = self.call_value().all_esdt_transfers();
+        let mut payments = self.get_non_empty_payments();
+        let first_payment = self.pop_first_payment(&mut payments);
 
-        // let attrs = self.get_default_merged_farm_token_attributes(&payments, Option::None);
-        // let farm_token_id = self.farm_token().get_token_id();
-        // self.burn_farm_tokens_from_payments(&payments);
+        let token_mapper = self.farm_token();
+        let mut output_attributes: FarmTokenAttributes<Self::Api> = self.get_attributes_as_part_of_fixed_supply(&first_payment, &token_mapper);
+        token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
-        // self.mint_farm_tokens(farm_token_id, attrs.current_farm_amount.clone(), &attrs)
+        for payment in &payments {
+            let attributes: FarmTokenAttributes<Self::Api> = self.get_attributes_as_part_of_fixed_supply(&payment, &token_mapper);
+            output_attributes.merge_with(attributes);
+        }
 
-        todo!();
+        self.burn_multi_esdt(&payments);
+        
+        let new_token_amount = output_attributes.get_total_supply().clone();
+        token_mapper.nft_create(new_token_amount, &output_attributes)
     }
 
     fn end_produce_rewards(&self) {
         let mut storage = StorageCache::new(self);
         Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage);
 
-        //self.generate_aggregated_rewards_with_boosted_yields(&mut storage);
         self.produce_rewards_enabled().set(false);
     }
 
@@ -128,7 +135,6 @@ pub trait BaseFunctionsModule:
         let mut storage = StorageCache::new(self);
         Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage);
         
-        // self.generate_aggregated_rewards(&mut storage);
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
@@ -202,56 +208,3 @@ where
         base_farm_reward + boosted_yield_rewards
     }
 }
-
-// impl<A> FarmContract for ContractObj<A>
-// where
-//     A: elrond_wasm::api::VMApi,
-//     ContractObj<A>: BaseFunctionsModule
-//         + farm_boosted_yields::FarmBoostedYieldsModule
-//         + week_timekeeping::WeekTimekeepingModule
-//         + weekly_rewards_splitting::WeeklyRewardsSplittingModule
-//         + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
-//         + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
-//         + energy_query::EnergyQueryModule
-//         + utils::UtilsModule,
-// {
-//     type AttributesType = FarmTokenAttributes<Self::Api>;
-
-//     fn generate_aggregated_rewards(&self, storage_cache: &mut StorageCache<Self>) {
-//         let total_reward =
-//             self.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
-
-//         if total_reward > 0u64 {
-//             storage_cache.reward_reserve += &total_reward;
-//             let split_rewards = self.take_reward_slice(total_reward);
-
-//             if storage_cache.farm_token_supply != 0u64 {
-//                 let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
-//                     / &storage_cache.farm_token_supply;
-//                 storage_cache.reward_per_share += &increase;
-//             }
-//         }
-//     }
-
-//     fn calculate_rewards(
-//         &self,
-//         farm_token_amount: &BigUint<Self::Api>,
-//         token_attributes: &Self::AttributesType,
-//         storage_cache: &StorageCache<Self>,
-//     ) -> BigUint<Self::Api> {
-//         let token_rps = token_attributes.get_reward_per_share();
-//         let base_farm_reward = if &storage_cache.reward_per_share > token_rps {
-//             let rps_diff = &storage_cache.reward_per_share - token_rps;
-//             farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
-//         } else {
-//             BigUint::zero()
-//         };
-
-//         // TODO: Handle calls through proxy
-//         let caller = self.blockchain().get_caller();
-//         let boosted_yield_rewards =
-//             self.claim_boosted_yields_rewards(&caller, &storage_cache.reward_token_id);
-
-//         base_farm_reward + boosted_yield_rewards
-//     }
-// }
