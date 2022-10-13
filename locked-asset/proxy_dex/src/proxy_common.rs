@@ -1,5 +1,4 @@
 use common_structs::Nonce;
-use fixed_supply_token::FixedSupplyToken;
 
 use crate::wrapped_lp_attributes::WrappedLpTokenAttributes;
 

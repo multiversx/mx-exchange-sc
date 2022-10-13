@@ -37,6 +37,8 @@ pub trait Farm:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + farm_token_merge::FarmTokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     // farm base impl
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
