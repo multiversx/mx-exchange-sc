@@ -147,11 +147,15 @@ fn farm_with_boosted_yields_no_proxy_test() {
 
     // random tx on end of week 1, to cummulate rewards
     farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.enter_farm(&second_user, 1);
     farm_setup.exit_farm(&second_user, 5, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);
+    farm_setup.set_user_energy(&first_user, 1_000, 10, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 10, 1);
 
     let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
 
