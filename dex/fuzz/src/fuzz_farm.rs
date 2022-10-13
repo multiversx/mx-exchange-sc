@@ -88,7 +88,7 @@ pub mod fuzz_farm_test {
             &farm_setup.farm_wrapper,
             &payments,
             |sc| {
-                sc.enter_farm_endpoint();
+                sc.enter_farm_endpoint(OptionalValue::None);
             },
         );
 
