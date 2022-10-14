@@ -163,6 +163,8 @@ pub trait BaseFunctionsModule:
 
     fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
+
+        self.check_mergeable_farm_tokens(payments.clone());
         let energy = self.get_energy_entry(caller.clone());
         let attrs =
             self.get_default_merged_farm_token_attributes(caller, energy, &payments, Option::None);

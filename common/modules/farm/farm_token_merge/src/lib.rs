@@ -63,6 +63,28 @@ pub trait FarmTokenMergeModule:
         }
     }
 
+    fn check_mergeable_farm_tokens(&self, mut payments: ManagedVec<EsdtTokenPayment<Self::Api>>) {
+        require!(
+            !payments.is_empty() || payments.len() != 0,
+            ERROR_NO_TOKEN_TO_MERGE
+        );
+        require!(
+            payments.len() <= MAX_ADDITIONAL_TOKENS,
+            ERROR_TOO_MANY_ADDITIONAL_PAYMENTS
+        );
+        let first_token_payment = payments.get(0);
+        payments.remove(0);
+        let first_token_attributes: FarmTokenAttributes<Self::Api> = self.get_farm_token_attributes(&first_token_payment.token_identifier, first_token_payment.token_nonce);
+
+        for payment in &payments {
+            let attributes: FarmTokenAttributes<Self::Api> = self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
+
+            let same_energy = first_token_attributes.energy == attributes.energy;
+            let same_user = first_token_attributes.original_user == attributes.original_user;
+            require!(same_energy && same_user, ERROR_NOT_MERGEABLE);
+        }
+    }
+
     fn get_default_merged_farm_token_attributes(
         &self,
         original_user: &ManagedAddress,
@@ -83,10 +105,6 @@ pub trait FarmTokenMergeModule:
             ArrayVec::<DefaultFarmPaymentAttributesPair<Self::Api>, MAX_TOTAL_TOKENS>::new();
         let farm_token_id = self.farm_token().get_token_id();
 
-        let first_token_payment = payments.clone().get(0);
-        let first_token_attributes: FarmTokenAttributes<Self::Api> =
-            self.get_farm_token_attributes(&first_token_payment.token_identifier, first_token_payment.token_nonce);
-
         for payment in payments {
             require!(payment.amount != 0u64, ERROR_ZERO_AMOUNT);
             require!(
@@ -97,9 +115,6 @@ pub trait FarmTokenMergeModule:
             let attributes: FarmTokenAttributes<Self::Api> =
                 self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
 
-            let same_energy = first_token_attributes.energy.get_energy_amount() == attributes.energy.get_energy_amount();
-            let same_user = first_token_attributes.original_user == attributes.original_user;
-            require!(same_energy && same_user, ERROR_NOT_MERGEABLE);
             unsafe {
                 tokens.push_unchecked(PaymentAttributesPair {
                     payment,
