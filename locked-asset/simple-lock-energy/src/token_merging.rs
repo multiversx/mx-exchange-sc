@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use mergeable::Mergeable;
+use mergeable::{weighted_average, Mergeable};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::energy::Energy;
@@ -22,11 +22,12 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountAttributesPair<M> {
     fn merge_with(&mut self, other: Self) {
         self.error_if_not_mergeable(&other);
 
-        let first_unlock_epoch_weighted = &self.token_amount * self.attributes.unlock_epoch;
-        let second_unlock_epoch_weighted = &other.token_amount * other.attributes.unlock_epoch;
-        let total_weight = &self.token_amount + &other.token_amount;
-        let new_unlock_epoch =
-            (first_unlock_epoch_weighted + second_unlock_epoch_weighted) / total_weight;
+        let new_unlock_epoch = weighted_average(
+            &BigUint::from(self.attributes.unlock_epoch),
+            &self.token_amount,
+            &BigUint::from(other.attributes.unlock_epoch),
+            &other.token_amount,
+        );
 
         self.token_amount += other.token_amount;
         self.attributes.unlock_epoch = unsafe { new_unlock_epoch.to_u64().unwrap_unchecked() };

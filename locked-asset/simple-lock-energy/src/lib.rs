@@ -11,6 +11,7 @@ pub mod migration;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
+pub mod virtual_lock;
 
 use common_structs::Epoch;
 use mergeable::Mergeable;
@@ -35,6 +36,8 @@ pub trait SimpleLockEnergy:
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
     + utils::UtilsModule
+    + virtual_lock::VirtualLockModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
@@ -95,7 +98,7 @@ pub trait SimpleLockEnergy:
     #[endpoint(lockTokens)]
     fn lock_tokens_endpoint(
         &self,
-        lock_epochs: u64,
+        lock_epochs: Epoch,
         opt_destination: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment {
         self.require_not_paused();

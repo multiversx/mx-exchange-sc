@@ -17,6 +17,9 @@ path = "../../common/common_structs"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
 [dependencies.mergeable]
 path = "../../common/traits/mergeable"
 
