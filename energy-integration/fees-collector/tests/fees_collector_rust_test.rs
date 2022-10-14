@@ -210,7 +210,6 @@ fn claim_after_dex_inactive_test() {
     fc_setup.advance_week();
     fc_setup.advance_week();
 
-
     // deposit rewards week 2
     fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
