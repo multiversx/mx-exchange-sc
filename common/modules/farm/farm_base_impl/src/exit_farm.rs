@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
-use common_structs::FarmToken;
+use common_structs::{FarmToken, Nonce};
 use contexts::{
     exit_farm_context::ExitFarmContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
@@ -48,6 +48,7 @@ pub trait BaseExitFarmModule:
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
+        let farm_token_nonce: Nonce = exit_farm_context.farm_token.payment.token_nonce;
         let token_attributes = exit_farm_context
             .farm_token
             .attributes
@@ -57,6 +58,7 @@ pub trait BaseExitFarmModule:
         let mut reward = FC::calculate_rewards(
             self,
             caller,
+            farm_token_nonce,
             farm_token_amount,
             &token_attributes,
             &storage_cache,

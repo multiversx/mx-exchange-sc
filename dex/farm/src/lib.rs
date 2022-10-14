@@ -9,7 +9,7 @@ pub mod base_functions;
 pub mod exit_penalty;
 
 use base_functions::Wrapper;
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
 
 use exit_penalty::{
@@ -144,6 +144,7 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         user: ManagedAddress,
+        farm_token_nonce: Nonce,
         farm_token_amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
@@ -155,6 +156,7 @@ pub trait Farm:
         Wrapper::<Self>::calculate_rewards(
             self,
             user,
+            farm_token_nonce,
             &farm_token_amount,
             &attributes,
             &storage_cache,

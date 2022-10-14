@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_types::{TokenAmountPair, TokenAmountPairsVec};
+use common_types::{Nonce, TokenAmountPair, TokenAmountPairsVec};
 use week_timekeeping::Week;
 
 const MAX_PERCENT: u64 = 10_000;
@@ -76,11 +76,18 @@ pub trait FarmBoostedYieldsModule:
     fn claim_boosted_yields_rewards(
         &self,
         user: &ManagedAddress,
+        farm_token_nonce: Nonce,
+        farm_token_position_amount: &BigUint,
+        farm_token_total_supply: &BigUint,
         reward_token_id: &TokenIdentifier,
     ) -> BigUint {
-        let rewards = self.claim_multi(user, |sc_ref: &Self, week: Week| {
-            Self::collect_rewards(sc_ref, week, reward_token_id)
-        });
+        let rewards = self.claim_multi(
+            user,
+            farm_token_nonce,
+            farm_token_position_amount,
+            farm_token_total_supply,
+            |sc_ref: &Self, week: Week| Self::collect_rewards(sc_ref, week, reward_token_id),
+        );
 
         let mut total = BigUint::zero();
         for rew in &rewards {

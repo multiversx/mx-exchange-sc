@@ -6,7 +6,7 @@ elrond_wasm::derive_imports!();
 pub mod events;
 pub mod ongoing_operation;
 
-use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
+use common_types::{Nonce, PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
 use energy_query::Energy;
 use ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
@@ -43,6 +43,9 @@ pub trait WeeklyRewardsSplittingModule:
     fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
         &self,
         user: &ManagedAddress,
+        nonce: Nonce,
+        farm_token_position_amount: &BigUint,
+        farm_token_total_supply: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
@@ -50,7 +53,7 @@ pub trait WeeklyRewardsSplittingModule:
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
-        let claim_progress_mapper = self.current_claim_progress(user);
+        let claim_progress_mapper = self.current_claim_progress(user, nonce);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
@@ -72,8 +75,14 @@ pub trait WeeklyRewardsSplittingModule:
                 return STOP_OP;
             }
 
-            let rewards_for_week =
-                self.claim_single(user, current_week, collect_rewards_fn, &mut claim_progress);
+            let rewards_for_week = self.claim_single(
+                user,
+                current_week,
+                farm_token_position_amount,
+                farm_token_total_supply,
+                collect_rewards_fn,
+                &mut claim_progress,
+            );
             if !rewards_for_week.is_empty() {
                 all_rewards.append_vec(rewards_for_week);
             }
@@ -97,6 +106,8 @@ pub trait WeeklyRewardsSplittingModule:
         &self,
         user: &ManagedAddress,
         current_week: Week,
+        farm_token_position_amount: &BigUint,
+        farm_token_total_supply: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
@@ -104,7 +115,9 @@ pub trait WeeklyRewardsSplittingModule:
             self.collect_and_get_rewards_for_week(claim_progress.week, collect_rewards_fn);
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
-            claim_progress.energy.get_energy_amount(),
+            farm_token_position_amount,
+            farm_token_total_supply,
+            &claim_progress.energy.get_energy_amount(),
             &total_rewards,
         );
 
@@ -146,17 +159,21 @@ pub trait WeeklyRewardsSplittingModule:
     fn get_user_rewards_for_week(
         &self,
         week: Week,
-        energy_amount: BigUint,
+        farm_token_position_amount: &BigUint,
+        farm_token_total_supply: &BigUint,
+        energy_amount: &BigUint,
         total_rewards: &TokenAmountPairsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let mut user_rewards = ManagedVec::new();
-        if energy_amount == 0 {
+        if energy_amount == &0 {
             return user_rewards;
         }
 
         let total_energy = self.total_energy_for_week(week).get();
         for weekly_reward in total_rewards {
-            let reward_amount = weekly_reward.amount * &energy_amount / &total_energy;
+            let reward_amount = weekly_reward.amount * energy_amount * farm_token_position_amount
+                / &total_energy
+                / farm_token_total_supply;
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, reward_amount));
             }
@@ -279,6 +296,7 @@ pub trait WeeklyRewardsSplittingModule:
     fn current_claim_progress(
         &self,
         user: &ManagedAddress,
+        nonce: Nonce,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
     #[view(getUserEnergyForWeek)]

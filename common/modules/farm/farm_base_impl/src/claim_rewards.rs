@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
-use common_structs::{PaymentAttributesPair, PaymentsVec};
+use common_structs::{PaymentAttributesPair, PaymentsVec, Nonce};
 use contexts::{
     claim_rewards_context::ClaimRewardsContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
@@ -50,6 +50,7 @@ pub trait BaseClaimRewardsModule:
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &claim_rewards_context.first_farm_token.payment.amount;
+        let farm_token_nonce: Nonce = claim_rewards_context.first_farm_token.payment.token_nonce;
         let token_attributes = claim_rewards_context
             .first_farm_token
             .attributes
@@ -59,6 +60,7 @@ pub trait BaseClaimRewardsModule:
         let reward = FC::calculate_rewards(
             self,
             caller.clone(),
+            farm_token_nonce,
             farm_token_amount,
             &token_attributes,
             &storage_cache,

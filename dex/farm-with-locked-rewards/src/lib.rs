@@ -5,7 +5,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
 
 use farm::{
@@ -139,6 +139,7 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         user: ManagedAddress,
+        farm_token_nonce: Nonce,
         farm_token_amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
@@ -150,6 +151,7 @@ pub trait Farm:
         Wrapper::<Self>::calculate_rewards(
             self,
             user,
+            farm_token_nonce,
             &farm_token_amount,
             &attributes,
             &storage_cache,

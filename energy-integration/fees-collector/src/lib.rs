@@ -1,7 +1,7 @@
 #![no_std]
 #![feature(generic_associated_types)]
 
-use common_types::PaymentsVec;
+use common_types::{Nonce, PaymentsVec};
 use energy_query::Energy;
 use weekly_rewards_splitting::ongoing_operation::{
     CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
@@ -36,7 +36,15 @@ pub trait FeesCollector:
         require!(self.not_paused(), "Cannot claim while paused");
 
         let caller = self.blockchain().get_caller();
-        let rewards = self.claim_multi(&caller, Self::collect_accumulated_fees_for_week);
+        let fees_collector_nonce = 0u64;
+        let fees_collector_token_amount = BigUint::from(1u64);
+        let rewards = self.claim_multi(
+            &caller,
+            fees_collector_nonce,
+            &fees_collector_token_amount,
+            &fees_collector_token_amount,
+            Self::collect_accumulated_fees_for_week,
+        );
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
@@ -60,6 +68,7 @@ pub trait FeesCollector:
 
         let current_week = self.get_current_week();
         let current_epoch = self.blockchain().get_block_epoch();
+        let fees_collector_nonce = 0u64;
 
         let mut iter = arg_pairs.into_iter().enumerate();
         let mut last_processed_index = 0;
@@ -72,11 +81,12 @@ pub trait FeesCollector:
                 let energy_entry = Energy::new(BigInt::from(energy), current_epoch, total_locked);
                 self.update_user_energy_for_current_week(&user, current_week, &energy_entry);
 
-                self.current_claim_progress(&user).update(|claim_progress| {
-                    if claim_progress.week == current_week {
-                        claim_progress.energy = energy_entry;
-                    }
-                });
+                self.current_claim_progress(&user, fees_collector_nonce)
+                    .update(|claim_progress| {
+                        if claim_progress.week == current_week {
+                            claim_progress.energy = energy_entry;
+                        }
+                    });
 
                 last_processed_index = index;
 
