@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::vec_init_then_push)]
-#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();

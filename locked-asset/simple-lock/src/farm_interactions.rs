@@ -66,12 +66,13 @@ pub trait FarmInteractionsModule {
             );
         }
 
-        let new_farm_tokens: EnterFarmResultType<Self::Api> =
-            contract_call.execute_on_dest_context();
+        let new_farm_tokens: ManagedBuffer = contract_call.execute_on_dest_context();
 
-        EnterFarmResultWrapper {
-            farm_tokens: new_farm_tokens,
-        }
+        sc_panic!("new farm tokens {}", new_farm_tokens);
+
+        // EnterFarmResultWrapper {
+        //     farm_tokens: new_farm_tokens,
+        // }
     }
 
     fn call_farm_exit(

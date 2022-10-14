@@ -34,7 +34,7 @@ fn lock_whitelist_test() {
 
             sc.init(whitelist);
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
         })
         .assert_ok();
 
