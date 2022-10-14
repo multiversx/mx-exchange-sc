@@ -153,14 +153,6 @@ pub struct Wrapper<T: BaseFunctionsModule> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: BaseFunctionsModule> Wrapper<T> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: PhantomData::<T>,
-        }
-    }
-}
-
 impl<T> FarmContract for Wrapper<T>
 where
     T: BaseFunctionsModule,
