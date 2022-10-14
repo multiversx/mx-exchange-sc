@@ -38,8 +38,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
 
         let new_initial_farming_amount =
             self.rule_of_three_non_zero_result(payment_amount, &self.initial_farming_amount);
-        let new_compounded_reward =
-            self.rule_of_three_non_zero_result(payment_amount, &self.compounded_reward);
+        let new_compounded_reward = self.rule_of_three(payment_amount, &self.compounded_reward);
         let new_current_farm_amount = payment_amount.clone();
 
         FarmTokenAttributes {
