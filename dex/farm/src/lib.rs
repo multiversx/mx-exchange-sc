@@ -41,7 +41,6 @@ pub trait Farm:
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    // farm boosted yields
     + farm_boosted_yields::FarmBoostedYieldsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
@@ -80,10 +79,13 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> EnterFarmResultType<Self::Api> {
+    fn enter_farm_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        
+
         let output_farm_token_payment = self.enter_farm(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
@@ -91,7 +93,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ClaimRewardsResultType<Self::Api> {
+    fn claim_rewards_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -106,7 +111,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> CompoundRewardsResultType<Self::Api> {
+    fn compound_rewards_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -117,7 +125,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ExitFarmResultType<Self::Api> {
+    fn exit_farm_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
@@ -177,14 +188,17 @@ pub trait Farm:
         self.set_per_block_rewards(per_block_amount);
     }
 
-    fn get_orig_caller_from_opt(&self, caller: &ManagedAddress, opt_orig_caller: OptionalValue<ManagedAddress>) -> ManagedAddress {
+    fn get_orig_caller_from_opt(
+        &self,
+        caller: &ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ManagedAddress {
         match opt_orig_caller {
             OptionalValue::Some(opt_caller) => {
                 self.require_sc_address_whitelisted(caller);
                 opt_caller
-            },
+            }
             OptionalValue::None => caller.clone(),
         }
     }
-
 }

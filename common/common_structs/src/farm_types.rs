@@ -36,7 +36,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
             return self;
         }
 
-        let new_rps = self.rule_of_three_non_zero_result(payment_amount, &self.reward_per_share);
+        // let new_rps = self.rule_of_three_non_zero_result(payment_amount, &self.reward_per_share);
         let new_initial_farming_amount =
             self.rule_of_three_non_zero_result(payment_amount, &self.initial_farming_amount);
         let new_compounded_reward =
@@ -44,7 +44,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
         let new_current_farm_amount = payment_amount.clone();
 
         FarmTokenAttributes {
-            reward_per_share: new_rps,
+            reward_per_share: self.reward_per_share,
             original_entering_epoch: self.original_entering_epoch,
             entering_epoch: self.entering_epoch,
             initial_farming_amount: new_initial_farming_amount,
@@ -63,7 +63,7 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
 
     fn merge_with(&mut self, other: Self) {
         let first_supply = self.get_total_supply();
-        let second_supply = self.get_total_supply();
+        let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average(
             &self.reward_per_share,
             first_supply,
