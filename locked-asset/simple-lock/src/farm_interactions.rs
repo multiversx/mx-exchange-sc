@@ -66,13 +66,11 @@ pub trait FarmInteractionsModule {
             );
         }
 
-        let new_farm_tokens: ManagedBuffer = contract_call.execute_on_dest_context();
+        let new_farm_tokens = contract_call.execute_on_dest_context();
 
-        sc_panic!("new farm tokens {}", new_farm_tokens);
-
-        // EnterFarmResultWrapper {
-        //     farm_tokens: new_farm_tokens,
-        // }
+        EnterFarmResultWrapper {
+            farm_tokens: new_farm_tokens,
+        }
     }
 
     fn call_farm_exit(
