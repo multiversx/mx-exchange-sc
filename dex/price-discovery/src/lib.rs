@@ -20,7 +20,7 @@ const MAX_TOKEN_DECIMALS: u32 = 18;
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + events::EventsModule
-    + locking_module::LockingModule
+    + locking_module::locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
