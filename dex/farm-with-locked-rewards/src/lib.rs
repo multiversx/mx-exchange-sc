@@ -44,7 +44,6 @@ pub trait Farm:
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    // farm boosted yields
     + farm_boosted_yields::FarmBoostedYieldsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
@@ -92,7 +91,8 @@ pub trait Farm:
     fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (output_farm_token_payment, rewards_payment) = self.claim_rewards(caller.clone()).into_tuple();
+        let (output_farm_token_payment, rewards_payment) =
+            self.claim_rewards(caller.clone()).into_tuple();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
