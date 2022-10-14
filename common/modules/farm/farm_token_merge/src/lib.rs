@@ -7,7 +7,7 @@ elrond_wasm::derive_imports!();
 use crate::elrond_codec::TopEncode;
 use common_errors::{
     ERROR_NOT_A_FARM_TOKEN, ERROR_NO_TOKEN_TO_MERGE, ERROR_TOO_MANY_ADDITIONAL_PAYMENTS,
-    ERROR_ZERO_AMOUNT,
+    ERROR_ZERO_AMOUNT, ERROR_NOT_MERGEABLE,
 };
 use common_structs::{
     mergeable_token_traits::*, DefaultFarmPaymentAttributesPair, FarmTokenAttributes,
@@ -83,6 +83,10 @@ pub trait FarmTokenMergeModule:
             ArrayVec::<DefaultFarmPaymentAttributesPair<Self::Api>, MAX_TOTAL_TOKENS>::new();
         let farm_token_id = self.farm_token().get_token_id();
 
+        let first_token_payment = payments.clone().get(0);
+        let first_token_attributes: FarmTokenAttributes<Self::Api> =
+            self.get_farm_token_attributes(&first_token_payment.token_identifier, first_token_payment.token_nonce);
+
         for payment in payments {
             require!(payment.amount != 0u64, ERROR_ZERO_AMOUNT);
             require!(
@@ -92,6 +96,10 @@ pub trait FarmTokenMergeModule:
 
             let attributes: FarmTokenAttributes<Self::Api> =
                 self.get_farm_token_attributes(&payment.token_identifier, payment.token_nonce);
+
+            let same_energy = first_token_attributes.energy.get_energy_amount() == attributes.energy.get_energy_amount();
+            let same_user = first_token_attributes.original_user == attributes.original_user;
+            require!(same_energy && same_user, ERROR_NOT_MERGEABLE);
             unsafe {
                 tokens.push_unchecked(PaymentAttributesPair {
                     payment,
