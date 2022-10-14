@@ -163,7 +163,7 @@ fn enter_farm<FarmObjBuilder>(
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock
         .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm_endpoint();
+            let payment = sc.enter_farm_endpoint(OptionalValue::None);
             assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
             check_biguint_eq(
                 payment.amount,
