@@ -158,11 +158,11 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+    #[endpoint(mergeFarmTokensWithEnergy)]
+    fn merge_farm_tokens_with_energy_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let new_tokens = self.merge_farm_tokens(&caller);
+        let new_tokens = self.merge_farm_tokens_with_energy(&caller);
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }

@@ -112,7 +112,7 @@ pub trait BaseFunctionsModule:
         (farming_token_payment, reward_payment).into()
     }
 
-    fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens_with_energy(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let mut payments = self.get_non_empty_payments();
         let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
         let first_payment = self.pop_first_payment(&mut payments);
@@ -140,6 +140,27 @@ pub trait BaseFunctionsModule:
         );
 
         merged_token_payment
+    }
+
+    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+        let mut payments = self.get_non_empty_payments();
+        let first_payment = self.pop_first_payment(&mut payments);
+
+        let token_mapper = self.farm_token();
+        let mut output_attributes: FarmTokenAttributes<Self::Api> =
+            self.get_attributes_as_part_of_fixed_supply(&first_payment, &token_mapper);
+        token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
+
+        for payment in &payments {
+            let attributes: FarmTokenAttributes<Self::Api> =
+                self.get_attributes_as_part_of_fixed_supply(&payment, &token_mapper);
+            output_attributes.merge_with(attributes);
+        }
+
+        self.burn_multi_esdt(&payments);
+
+        let new_token_amount = output_attributes.get_total_supply().clone();
+        token_mapper.nft_create(new_token_amount, &output_attributes)
     }
 
     fn end_produce_rewards(&self) {
