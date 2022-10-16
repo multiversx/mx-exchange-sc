@@ -86,7 +86,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.enter_farm(orig_caller);
+        let output_farm_token_payment = self.enter_farm(&orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -100,7 +100,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let claim_rewards_result = self.claim_rewards(orig_caller);
+        let claim_rewards_result = self.claim_rewards(&orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
 
@@ -118,7 +118,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.compound_rewards(orig_caller);
+        let output_farm_token_payment = self.compound_rewards(&orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -132,7 +132,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let exit_farm_result = self.exit_farm(orig_caller);
+        let exit_farm_result = self.exit_farm(&orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
 
         self.send_payment_non_zero(&caller, &farming_token_payment);
@@ -167,7 +167,7 @@ pub trait Farm:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let new_tokens = self.merge_farm_tokens();
+        let new_tokens = self.merge_farm_tokens(&caller);
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }

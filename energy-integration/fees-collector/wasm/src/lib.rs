@@ -26,6 +26,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek
         getUserEnergyForWeek
+        getUserTotalFarmTokens
         isPaused
         pause
         recomputeEnergy

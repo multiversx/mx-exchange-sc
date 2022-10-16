@@ -45,7 +45,7 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         nonce: Nonce,
         farm_token_position_amount: &BigUint,
-        farm_token_total_supply: &BigUint,
+        user_total_farm_tokens: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
@@ -79,7 +79,7 @@ pub trait WeeklyRewardsSplittingModule:
                 user,
                 current_week,
                 farm_token_position_amount,
-                farm_token_total_supply,
+                user_total_farm_tokens,
                 collect_rewards_fn,
                 &mut claim_progress,
             );
@@ -107,7 +107,7 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         current_week: Week,
         farm_token_position_amount: &BigUint,
-        farm_token_total_supply: &BigUint,
+        user_total_farm_tokens: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
@@ -116,7 +116,7 @@ pub trait WeeklyRewardsSplittingModule:
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
             farm_token_position_amount,
-            farm_token_total_supply,
+            user_total_farm_tokens,
             &claim_progress.energy.get_energy_amount(),
             &total_rewards,
         );
@@ -160,7 +160,7 @@ pub trait WeeklyRewardsSplittingModule:
         &self,
         week: Week,
         farm_token_position_amount: &BigUint,
-        farm_token_total_supply: &BigUint,
+        user_total_farm_tokens: &BigUint,
         energy_amount: &BigUint,
         total_rewards: &TokenAmountPairsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
@@ -173,7 +173,7 @@ pub trait WeeklyRewardsSplittingModule:
         for weekly_reward in total_rewards {
             let reward_amount = weekly_reward.amount * energy_amount * farm_token_position_amount
                 / &total_energy
-                / farm_token_total_supply;
+                / user_total_farm_tokens;
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, reward_amount));
             }
@@ -289,6 +289,86 @@ pub trait WeeklyRewardsSplittingModule:
         )
     }
 
+    // Clears the claim progress for all the additional payment tokens
+    // in order to be able to merge the users claim progress under a single token nonce
+    fn clear_payments_claim_progress(
+        &self,
+        user: &ManagedAddress,
+        all_payments: &PaymentsVec<Self::Api>,
+    ) -> Nonce {
+        require!(!all_payments.is_empty(), "Empty payments");
+        if all_payments.len() > 1 {
+            let mut additional_payments = all_payments.clone();
+            let first_payment = additional_payments.get(0);
+            additional_payments.remove(0);
+            let first_payment_claim_week = self
+                .current_claim_progress(user, first_payment.token_nonce)
+                .get()
+                .week;
+            for payment in additional_payments.iter() {
+                let current_claim_mapper = self.current_claim_progress(user, payment.token_nonce);
+                let payment_claim_week = current_claim_mapper.get().week;
+                require!(
+                    first_payment_claim_week == payment_claim_week,
+                    "The claim week of the sent tokens do not match"
+                );
+                current_claim_mapper.clear();
+            }
+        }
+        return all_payments.get(0).token_nonce;
+    }
+
+    fn update_user_claim_progress(
+        &self,
+        user: &ManagedAddress,
+        old_nonce: OptionalValue<Nonce>,
+        new_nonce: Nonce,
+    ) {
+        match old_nonce {
+            OptionalValue::Some(old_nonce) => {
+                let old_claim_progress_mapper = self.current_claim_progress(user, old_nonce);
+                if old_claim_progress_mapper.is_empty() {
+                    let new_claim_progress = self.new_claim_progress_for_user(user);
+                    self.current_claim_progress(user, new_nonce)
+                        .set(new_claim_progress);
+                } else {
+                    self.current_claim_progress(user, new_nonce)
+                        .set(old_claim_progress_mapper.get());
+                    old_claim_progress_mapper.clear();
+                }
+            }
+            OptionalValue::None => {
+                let new_claim_progress = self.new_claim_progress_for_user(user);
+                self.current_claim_progress(user, new_nonce)
+                    .set(new_claim_progress);
+            }
+        }
+    }
+
+    fn new_claim_progress_for_user(&self, user: &ManagedAddress) -> ClaimProgress<Self::Api> {
+        let current_week = self.get_current_week();
+        let current_user_energy = self.get_energy_entry(user.clone());
+        self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
+        ClaimProgress {
+            energy: current_user_energy,
+            week: current_week,
+        }
+    }
+
+    fn increase_user_total_farm_tokens(&self, user: &ManagedAddress, amount: &BigUint) {
+        self.user_total_farm_tokens(user).update(|x| *x += amount);
+    }
+
+    fn decrease_user_total_farm_tokens(&self, user: &ManagedAddress, amount: &BigUint) {
+        let user_farm_tokens_mapper = self.user_total_farm_tokens(user);
+        let user_total_farm_tokens = user_farm_tokens_mapper.get();
+        if &user_total_farm_tokens > amount {
+            user_farm_tokens_mapper.update(|x| *x -= amount);
+        } else {
+            user_farm_tokens_mapper.clear();
+        }
+    }
+
     // user info
 
     #[view(getCurrentClaimProgress)]
@@ -306,6 +386,10 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         week: Week,
     ) -> SingleValueMapper<Energy<Self::Api>>;
+
+    #[view(getUserTotalFarmTokens)]
+    #[storage_mapper("userTotalFarmTokens")]
+    fn user_total_farm_tokens(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
     #[view(getLastActiveWeekForUser)]
     #[storage_mapper("lastActiveWeekForUser")]

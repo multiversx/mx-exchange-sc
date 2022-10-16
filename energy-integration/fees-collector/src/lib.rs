@@ -1,7 +1,7 @@
 #![no_std]
 #![feature(generic_associated_types)]
 
-use common_types::{Nonce, PaymentsVec};
+use common_types::PaymentsVec;
 use energy_query::Energy;
 use weekly_rewards_splitting::ongoing_operation::{
     CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,

@@ -78,14 +78,14 @@ pub trait FarmBoostedYieldsModule:
         user: &ManagedAddress,
         farm_token_nonce: Nonce,
         farm_token_position_amount: &BigUint,
-        farm_token_total_supply: &BigUint,
         reward_token_id: &TokenIdentifier,
     ) -> BigUint {
+        let user_total_farm_tokens = self.user_total_farm_tokens(&user).get();
         let rewards = self.claim_multi(
             user,
             farm_token_nonce,
             farm_token_position_amount,
-            farm_token_total_supply,
+            &user_total_farm_tokens,
             |sc_ref: &Self, week: Week| Self::collect_rewards(sc_ref, week, reward_token_id),
         );
 

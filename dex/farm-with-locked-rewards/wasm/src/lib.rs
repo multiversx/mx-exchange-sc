@@ -47,6 +47,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalRewardsForWeek
         getUnlockEpoch
         getUserEnergyForWeek
+        getUserTotalFarmTokens
         isSCAddressWhitelisted
         mergeFarmTokens
         pause

@@ -34,11 +34,13 @@ fn farm_with_no_boost_test() {
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
+    let first_farm_token_nonce = 1u64;
     let first_user = farm_setup.first_user.clone();
     farm_setup.enter_farm(&first_user, first_farm_token_amount);
 
     // second user enter farm
     let second_farm_token_amount = 50_000_000;
+    let second_farm_token_nonce = 2u64;
     let second_user = farm_setup.second_user.clone();
     farm_setup.enter_farm(&second_user, second_farm_token_amount);
 
@@ -56,8 +58,12 @@ fn farm_with_no_boost_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
     };
-    let first_rewards_amt =
-        farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
+    let first_rewards_amt = farm_setup.calculate_rewards(
+        &first_user,
+        first_farm_token_nonce,
+        first_farm_token_amount,
+        first_attributes,
+    );
     let first_expected_rewards_amt = first_farm_token_amount * 10_000 / total_farm_tokens;
     assert_eq!(first_rewards_amt, first_expected_rewards_amt);
 
@@ -70,14 +76,18 @@ fn farm_with_no_boost_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
     };
-    let second_rewards_amt =
-        farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
+    let second_rewards_amt = farm_setup.calculate_rewards(
+        &second_user,
+        second_farm_token_nonce,
+        second_farm_token_amount,
+        second_attributes,
+    );
     let second_expected_rewards_amt = second_farm_token_amount * 10_000 / total_farm_tokens;
     assert_eq!(second_rewards_amt, second_expected_rewards_amt);
 
     // first user claim
     let first_received_reward_amt =
-        farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
+        farm_setup.claim_rewards(&first_user, first_farm_token_nonce, first_farm_token_amount);
     assert_eq!(first_received_reward_amt, first_expected_rewards_amt);
 
     farm_setup
@@ -97,8 +107,11 @@ fn farm_with_no_boost_test() {
     );
 
     // second user claim
-    let second_received_reward_amt =
-        farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
+    let second_received_reward_amt = farm_setup.claim_rewards(
+        &second_user,
+        second_farm_token_nonce,
+        second_farm_token_amount,
+    );
     assert_eq!(second_received_reward_amt, second_expected_rewards_amt);
 
     farm_setup
@@ -124,21 +137,19 @@ fn farm_with_boosted_yields_test() {
     let mut farm_setup = FarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.b_mock.set_block_epoch(2);
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
     let first_user = farm_setup.first_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
     farm_setup.enter_farm(&first_user, first_farm_token_amount);
 
     // second user enter farm
     let second_farm_token_amount = 50_000_000;
     let second_user = farm_setup.second_user.clone();
-    farm_setup.enter_farm(&second_user, second_farm_token_amount);
-
-    // set user energy
-    farm_setup.b_mock.set_block_epoch(2);
-    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
     farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
+    farm_setup.enter_farm(&second_user, second_farm_token_amount);
 
     // users claim rewards to get their energy registered
     let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
@@ -220,11 +231,13 @@ fn farm_known_proxy_test() {
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
+    let first_farm_token_nonce = 1u64;
     let first_user = farm_setup.first_user.clone();
     farm_setup.enter_farm(&first_user, first_farm_token_amount);
 
     // second user enter farm
     let second_farm_token_amount = 50_000_000;
+    let second_farm_token_nonce = 2u64;
     let second_user = farm_setup.second_user.clone();
     farm_setup.enter_farm(&first_user, second_farm_token_amount);
 
@@ -244,8 +257,12 @@ fn farm_known_proxy_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
     };
-    let first_rewards_amt =
-        farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
+    let first_rewards_amt = farm_setup.calculate_rewards(
+        &first_user,
+        first_farm_token_nonce,
+        first_farm_token_amount,
+        first_attributes,
+    );
     let first_expected_rewards_amt = first_farm_token_amount * 10_000 / total_farm_tokens;
     assert_eq!(first_rewards_amt, first_expected_rewards_amt);
 
@@ -258,8 +275,12 @@ fn farm_known_proxy_test() {
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
     };
-    let second_rewards_amt =
-        farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
+    let second_rewards_amt = farm_setup.calculate_rewards(
+        &second_user,
+        second_farm_token_nonce,
+        second_farm_token_amount,
+        second_attributes,
+    );
     let second_expected_rewards_amt = second_farm_token_amount * 10_000 / total_farm_tokens;
     assert_eq!(second_rewards_amt, second_expected_rewards_amt);
 
@@ -492,6 +513,7 @@ where
     pub fn calculate_rewards(
         &mut self,
         user: &Address,
+        farm_token_nonce: u64,
         farm_token_amount: u64,
         attributes: FarmTokenAttributes<DebugApi>,
     ) -> u64 {
@@ -500,6 +522,7 @@ where
             .execute_query(&self.farm_wrapper, |sc| {
                 let result_managed = sc.calculate_rewards_for_given_position(
                     managed_address!(user),
+                    farm_token_nonce,
                     managed_biguint!(farm_token_amount),
                     attributes,
                 );

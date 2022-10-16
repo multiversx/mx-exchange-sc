@@ -298,6 +298,7 @@ where
     pub fn calculate_rewards(
         &mut self,
         user: &Address,
+        farm_token_nonce: u64,
         farm_token_amount: u64,
         attributes: FarmTokenAttributes<DebugApi>,
     ) -> u64 {
@@ -306,6 +307,7 @@ where
             .execute_query(&self.farm_wrapper, |sc| {
                 let result_managed = sc.calculate_rewards_for_given_position(
                     managed_address!(user),
+                    farm_token_nonce,
                     managed_biguint!(farm_token_amount),
                     attributes,
                 );

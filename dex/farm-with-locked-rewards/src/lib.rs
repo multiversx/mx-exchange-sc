@@ -81,7 +81,7 @@ pub trait Farm:
     fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.enter_farm(caller.clone());
+        let output_farm_token_payment = self.enter_farm(&caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -91,8 +91,7 @@ pub trait Farm:
     fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (output_farm_token_payment, rewards_payment) =
-            self.claim_rewards(caller.clone()).into_tuple();
+        let (output_farm_token_payment, rewards_payment) = self.claim_rewards(&caller).into_tuple();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
@@ -111,7 +110,7 @@ pub trait Farm:
     fn compound_rewards_endpoint(&self) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.compound_rewards(caller.clone());
+        let output_farm_token_payment = self.compound_rewards(&caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -121,7 +120,7 @@ pub trait Farm:
     fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (farming_token_payment, reward_payment) = self.exit_farm(caller.clone()).into_tuple();
+        let (farming_token_payment, reward_payment) = self.exit_farm(&caller).into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
@@ -163,7 +162,7 @@ pub trait Farm:
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let new_tokens = self.merge_farm_tokens();
+        let new_tokens = self.merge_farm_tokens(&caller);
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }

@@ -45,33 +45,57 @@ pub trait BaseFunctionsModule:
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
 {
-    fn enter_farm(&self, caller: ManagedAddress) -> EsdtTokenPayment<Self::Api> {
+    fn enter_farm(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let base_enter_farm_result = self.enter_farm_base::<Wrapper<Self>>(caller, payments);
-
+        let base_enter_farm_result =
+            self.enter_farm_base::<Wrapper<Self>>(caller.clone(), payments);
+        self.update_user_claim_progress(
+            caller,
+            OptionalValue::None,
+            base_enter_farm_result.new_farm_token.payment.token_nonce,
+        );
+        self.increase_user_total_farm_tokens(
+            caller,
+            &base_enter_farm_result.new_farm_token.payment.amount,
+        );
         base_enter_farm_result.new_farm_token.payment
     }
 
-    fn claim_rewards(&self, caller: ManagedAddress) -> ClaimRewardsResultType<Self::Api> {
+    fn claim_rewards(&self, caller: &ManagedAddress) -> ClaimRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let base_claim_rewards_result = self.claim_rewards_base::<Wrapper<Self>>(caller, payments);
-
+        let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
+        let base_claim_rewards_result =
+            self.claim_rewards_base::<Wrapper<Self>>(caller.clone(), payments);
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment;
         let rewards_payment = base_claim_rewards_result.rewards;
+        self.update_user_claim_progress(
+            caller,
+            OptionalValue::Some(first_payment_nonce),
+            output_farm_token_payment.token_nonce,
+        );
         (output_farm_token_payment, rewards_payment).into()
     }
 
-    fn compound_rewards(&self, caller: ManagedAddress) -> EsdtTokenPayment<Self::Api> {
+    fn compound_rewards(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
+        let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
         let base_compound_rewards_result =
-            self.compound_rewards_base::<Wrapper<Self>>(caller, payments);
+            self.compound_rewards_base::<Wrapper<Self>>(caller.clone(), payments);
+        self.update_user_claim_progress(
+            caller,
+            OptionalValue::Some(first_payment_nonce),
+            base_compound_rewards_result
+                .new_farm_token
+                .payment
+                .token_nonce,
+        );
         base_compound_rewards_result.new_farm_token.payment
     }
 
-    fn exit_farm(&self, caller: ManagedAddress) -> ExitFarmResultType<Self::Api> {
+    fn exit_farm(&self, caller: &ManagedAddress) -> ExitFarmResultType<Self::Api> {
         let payment = self.call_value().single_esdt();
         let base_exit_farm_result: InternalExitFarmResult<Self, FarmTokenAttributes<Self::Api>> =
-            self.exit_farm_base::<Wrapper<Self>>(caller, payment);
+            self.exit_farm_base::<Wrapper<Self>>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
         let reward_payment = base_exit_farm_result.reward_payment;
@@ -84,12 +108,13 @@ pub trait BaseFunctionsModule:
                 &base_exit_farm_result.storage_cache.reward_token_id,
             );
         }
-
+        self.decrease_user_total_farm_tokens(caller, &farming_token_payment.amount);
         (farming_token_payment, reward_payment).into()
     }
 
-    fn merge_farm_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let mut payments = self.get_non_empty_payments();
+        let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
         let first_payment = self.pop_first_payment(&mut payments);
 
         let token_mapper = self.farm_token();
@@ -106,7 +131,15 @@ pub trait BaseFunctionsModule:
         self.burn_multi_esdt(&payments);
 
         let new_token_amount = output_attributes.get_total_supply().clone();
-        token_mapper.nft_create(new_token_amount, &output_attributes)
+        let merged_token_payment = token_mapper.nft_create(new_token_amount, &output_attributes);
+
+        self.update_user_claim_progress(
+            caller,
+            OptionalValue::Some(first_payment_nonce),
+            merged_token_payment.token_nonce,
+        );
+
+        merged_token_payment
     }
 
     fn end_produce_rewards(&self) {
@@ -185,7 +218,6 @@ where
             &caller,
             farm_token_nonce,
             farm_token_amount,
-            &storage_cache.farm_token_supply,
             &storage_cache.reward_token_id,
         );
 
