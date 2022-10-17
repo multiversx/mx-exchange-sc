@@ -80,12 +80,11 @@ pub trait FarmBoostedYieldsModule:
         farm_token_position_amount: &BigUint,
         reward_token_id: &TokenIdentifier,
     ) -> BigUint {
-        let user_total_farm_tokens = self.user_total_farm_tokens(&user).get();
         let rewards = self.claim_multi(
             user,
             farm_token_nonce,
             farm_token_position_amount,
-            &user_total_farm_tokens,
+            farm_token_position_amount,
             |sc_ref: &Self, week: Week| Self::collect_rewards(sc_ref, week, reward_token_id),
         );
 

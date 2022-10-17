@@ -54,10 +54,6 @@ pub trait BaseFunctionsModule:
             OptionalValue::None,
             base_enter_farm_result.new_farm_token.payment.token_nonce,
         );
-        self.increase_user_total_farm_tokens(
-            caller,
-            &base_enter_farm_result.new_farm_token.payment.amount,
-        );
         base_enter_farm_result.new_farm_token.payment
     }
 
@@ -108,7 +104,6 @@ pub trait BaseFunctionsModule:
                 &base_exit_farm_result.storage_cache.reward_token_id,
             );
         }
-        self.decrease_user_total_farm_tokens(caller, &farming_token_payment.amount);
         (farming_token_payment, reward_payment).into()
     }
 

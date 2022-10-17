@@ -45,7 +45,7 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         nonce: Nonce,
         farm_token_position_amount: &BigUint,
-        user_total_farm_tokens: &BigUint,
+        total_farm_tokens: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
@@ -79,7 +79,7 @@ pub trait WeeklyRewardsSplittingModule:
                 user,
                 current_week,
                 farm_token_position_amount,
-                user_total_farm_tokens,
+                total_farm_tokens,
                 collect_rewards_fn,
                 &mut claim_progress,
             );
@@ -107,7 +107,7 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         current_week: Week,
         farm_token_position_amount: &BigUint,
-        user_total_farm_tokens: &BigUint,
+        total_farm_tokens: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
@@ -116,7 +116,7 @@ pub trait WeeklyRewardsSplittingModule:
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
             farm_token_position_amount,
-            user_total_farm_tokens,
+            total_farm_tokens,
             &claim_progress.energy.get_energy_amount(),
             &total_rewards,
         );
@@ -156,11 +156,12 @@ pub trait WeeklyRewardsSplittingModule:
         }
     }
 
+    // !!! TODO  - update user boosted rewards formula
     fn get_user_rewards_for_week(
         &self,
         week: Week,
-        farm_token_position_amount: &BigUint,
-        user_total_farm_tokens: &BigUint,
+        _farm_token_position_amount: &BigUint,
+        _user_total_farm_tokens: &BigUint,
         energy_amount: &BigUint,
         total_rewards: &TokenAmountPairsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
@@ -171,9 +172,7 @@ pub trait WeeklyRewardsSplittingModule:
 
         let total_energy = self.total_energy_for_week(week).get();
         for weekly_reward in total_rewards {
-            let reward_amount = weekly_reward.amount * energy_amount * farm_token_position_amount
-                / &total_energy
-                / user_total_farm_tokens;
+            let reward_amount = weekly_reward.amount * energy_amount / &total_energy;
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, reward_amount));
             }
@@ -355,20 +354,6 @@ pub trait WeeklyRewardsSplittingModule:
         }
     }
 
-    fn increase_user_total_farm_tokens(&self, user: &ManagedAddress, amount: &BigUint) {
-        self.user_total_farm_tokens(user).update(|x| *x += amount);
-    }
-
-    fn decrease_user_total_farm_tokens(&self, user: &ManagedAddress, amount: &BigUint) {
-        let user_farm_tokens_mapper = self.user_total_farm_tokens(user);
-        let user_total_farm_tokens = user_farm_tokens_mapper.get();
-        if &user_total_farm_tokens > amount {
-            user_farm_tokens_mapper.update(|x| *x -= amount);
-        } else {
-            user_farm_tokens_mapper.clear();
-        }
-    }
-
     // user info
 
     #[view(getCurrentClaimProgress)]
@@ -386,10 +371,6 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         week: Week,
     ) -> SingleValueMapper<Energy<Self::Api>>;
-
-    #[view(getUserTotalFarmTokens)]
-    #[storage_mapper("userTotalFarmTokens")]
-    fn user_total_farm_tokens(&self, user: &ManagedAddress) -> SingleValueMapper<BigUint>;
 
     #[view(getLastActiveWeekForUser)]
     #[storage_mapper("lastActiveWeekForUser")]
