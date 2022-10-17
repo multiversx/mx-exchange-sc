@@ -74,7 +74,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token().set_token_id(&farm_token_id);
+            sc.farm_token().set_token_id(farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -628,11 +628,11 @@ fn test_farm_through_simple_lock() {
         .execute_tx(&farm_setup.owner_address, &lock_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             sc.lp_proxy_token()
-                .set_token_id(&managed_token_id!(LOCKED_LP_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_LP_TOKEN_ID));
             sc.farm_proxy_token()
-                .set_token_id(&managed_token_id!(FARM_PROXY_TOKEN_ID));
+                .set_token_id(managed_token_id!(FARM_PROXY_TOKEN_ID));
             sc.add_farm_to_whitelist(managed_address!(&farm_addr), managed_token_id!(LP_TOKEN_ID));
         })
         .assert_ok();

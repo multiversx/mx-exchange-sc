@@ -165,7 +165,7 @@ where
                 sc.init(asset_token_id, unlocked_percents.into());
 
                 let locked_asset_token_id = managed_token_id!(LOCKED_ASSET_TOKEN_ID);
-                sc.locked_asset_token().set_token_id(&locked_asset_token_id);
+                sc.locked_asset_token().set_token_id(locked_asset_token_id);
 
                 sc.set_paused(false);
             })

@@ -883,7 +883,7 @@ fn test_locked_asset() {
         .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
         })
         .assert_ok();
 
@@ -1024,7 +1024,7 @@ fn add_liquidity_through_simple_lock_proxy() {
         .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             sc.add_lp_to_whitelist(
                 managed_address!(&lp_address),
                 managed_token_id!(WEGLD_TOKEN_ID),
@@ -1049,7 +1049,7 @@ fn add_liquidity_through_simple_lock_proxy() {
         .execute_tx(&locking_owner, &locking_sc_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.lp_proxy_token()
-                .set_token_id(&managed_token_id!(LP_PROXY_TOKEN_ID));
+                .set_token_id(managed_token_id!(LP_PROXY_TOKEN_ID));
         })
         .assert_ok();
 
@@ -1331,9 +1331,7 @@ fn fees_collector_pair_test() {
             &rust_biguint!(0),
             |sc| {
                 sc.init();
-                let _ = sc
-                    .known_contracts()
-                    .insert(managed_address!(&pair_addr));
+                let _ = sc.known_contracts().insert(managed_address!(&pair_addr));
 
                 let mut tokens = MultiValueEncoded::new();
                 tokens.push(managed_token_id!(WEGLD_TOKEN_ID));

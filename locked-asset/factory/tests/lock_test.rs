@@ -39,7 +39,7 @@ fn test_lock_assets() {
             });
             sc.init(asset_token_id, unlock_period);
             sc.locked_asset_token()
-                .set_token_id(&managed_token_id!(LOCKED_ASSET_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_ASSET_TOKEN_ID));
             sc.set_paused(false);
         })
         .assert_ok();

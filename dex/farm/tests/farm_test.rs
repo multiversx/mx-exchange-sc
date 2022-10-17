@@ -258,7 +258,7 @@ where
                 );
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-                sc.farm_token().set_token_id(&farm_token_id);
+                sc.farm_token().set_token_id(farm_token_id);
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -415,7 +415,8 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let (out_farm_token, out_reward_token) = sc.claim_rewards_endpoint().into_tuple();
+                    let (out_farm_token, out_reward_token) =
+                        sc.claim_rewards_endpoint().into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)

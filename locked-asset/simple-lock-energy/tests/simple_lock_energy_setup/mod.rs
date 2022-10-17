@@ -86,7 +86,7 @@ where
                 assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
                 sc.locked_token()
-                    .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                    .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
                 sc.set_paused(false);
             })
             .assert_ok();
