@@ -100,9 +100,15 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
         let payments = self.call_value().all_esdt_transfers();
+        let first_payment_nonce = self.clear_payments_claim_progress(&original_caller, &payments);
         let base_claim_rewards_result =
             self.claim_rewards_base::<NoMintWrapper<Self>>(original_caller.clone(), payments);
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
+        self.update_user_claim_progress(
+            &original_caller,
+            OptionalValue::Some(first_payment_nonce),
+            output_farm_token_payment.token_nonce,
+        );
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
         let rewards_payment = base_claim_rewards_result.rewards;
