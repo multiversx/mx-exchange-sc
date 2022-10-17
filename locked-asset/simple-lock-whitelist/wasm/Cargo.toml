@@ -1,0 +1,31 @@
+[package]
+name = "simple-lock-whitelist-wasm"
+version = "0.0.0"
+authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = [ "cdylib",]
+
+[workspace]
+members = [ ".",]
+
+[dev-dependencies]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+
+[dependencies.simple-lock-whitelist]
+path = ".."
+
+[dependencies.elrond-wasm-node]
+version = "0.34.0"
+
+[dependencies.elrond-wasm-output]
+version = "0.34.0"
+features = [ "wasm-output-mode",]

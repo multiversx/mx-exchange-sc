@@ -1,7 +1,7 @@
 [package]
-name = "simple-lock-energy"
+name = "simple-lock-whitelist"
 version = "0.0.0"
-authors = [ "you",]
+authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
 edition = "2018"
 publish = false
 
@@ -11,26 +11,17 @@ path = "src/lib.rs"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
-[dependencies.common_structs]
-path = "../../common/common_structs"
-
 [dependencies.utils]
 path = "../../common/modules/utils"
 
-[dependencies.sc_whitelist_module]
-path = "../../common/modules/sc_whitelist_module"
-
-[dependencies.mergeable]
-path = "../../common/traits/mergeable"
-
 [dependencies.elrond-wasm]
-version = "0.34.1"
+version = "0.34.0"
 
 [dependencies.elrond-wasm-modules]
-version = "0.34.1"
+version = "0.34.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.34.1"
+version = "0.34.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

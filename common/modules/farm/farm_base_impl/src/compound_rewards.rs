@@ -8,7 +8,6 @@ use contexts::{
     storage_cache::{FarmContracTraitBounds, StorageCache},
 };
 use fixed_supply_token::FixedSupplyToken;
-use mergeable::Mergeable;
 
 pub struct InternalCompoundRewardsResult<'a, C, T>
 where
@@ -74,26 +73,18 @@ pub trait BaseCompoundRewardsModule:
         storage_cache.farm_token_supply += &reward;
 
         let farm_token_mapper = self.farm_token();
-        let mut output_attributes = FC::create_compound_rewards_initial_attributes(
+        let base_attributes = FC::create_compound_rewards_initial_attributes(
             self,
             caller,
             token_attributes,
             storage_cache.reward_per_share.clone(),
             &reward,
         );
-        for payment in &compound_rewards_context.additional_payments {
-            let attributes: FC::AttributesType =
-                self.get_attributes_as_part_of_fixed_supply(&payment, &farm_token_mapper);
-            output_attributes.merge_with(attributes);
-        }
-
-        let new_farm_token_amount = output_attributes.get_total_supply().clone();
-        let new_farm_token_payment =
-            farm_token_mapper.nft_create(new_farm_token_amount, &output_attributes);
-        let new_farm_token = PaymentAttributesPair {
-            payment: new_farm_token_payment,
-            attributes: output_attributes,
-        };
+        let new_farm_token = self.merge_and_create_token(
+            base_attributes,
+            &compound_rewards_context.additional_payments,
+            &farm_token_mapper,
+        );
 
         let first_farm_token = &compound_rewards_context.first_farm_token.payment;
         farm_token_mapper.nft_burn(first_farm_token.token_nonce, &first_farm_token.amount);
