@@ -22,7 +22,7 @@
                 },
                 "sc:farm": {
                     "nonce": "0",
-                    "code": "file:./farm.wasm",
+                    "code": "file:./old-farm.wasm",
                     "esdt": {
                         "str:ASHEGLDF-1234": {
                             "roles": [
