@@ -630,7 +630,11 @@ fn test_farm_through_simple_lock() {
                 .set_token_id(managed_token_id!(LOCKED_LP_TOKEN_ID));
             sc.farm_proxy_token()
                 .set_token_id(managed_token_id!(FARM_PROXY_TOKEN_ID));
-            sc.add_farm_to_whitelist(managed_address!(&farm_addr), managed_token_id!(LP_TOKEN_ID));
+            sc.add_farm_to_whitelist(
+                managed_address!(&farm_addr),
+                managed_token_id!(LP_TOKEN_ID),
+                FarmType::SimpleFarm,
+            );
         })
         .assert_ok();
 
@@ -723,7 +727,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let claim_result = sc.farm_claim_rewards_locked_token();
+                let claim_result = sc.farm_claim_rewards_locked_token(FarmType::SimpleFarm);
                 let (new_proxy_token, reward_tokens) = claim_result.into_tuple();
                 assert_eq!(
                     new_proxy_token.token_identifier,
@@ -774,7 +778,7 @@ fn test_farm_through_simple_lock() {
             2,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token();
+                let exit_farm_result = sc.exit_farm_locked_token(FarmType::SimpleFarm);
                 let (locked_tokens, reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
@@ -966,7 +970,7 @@ fn test_farm_through_simple_lock() {
             7,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token();
+                let exit_farm_result = sc.exit_farm_locked_token(FarmType::SimpleFarm);
                 let (locked_tokens, _reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
