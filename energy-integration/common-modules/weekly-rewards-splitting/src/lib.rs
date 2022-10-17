@@ -300,15 +300,17 @@ pub trait WeeklyRewardsSplittingModule:
             let mut additional_payments = all_payments.clone();
             let first_payment = additional_payments.get(0);
             additional_payments.remove(0);
-            let first_claim_progress = self.get_claim_progress_or_default(user, first_payment.token_nonce);
+            let first_claim_progress =
+                self.get_claim_progress_or_default(user, first_payment.token_nonce);
             let first_payment_claim_week = first_claim_progress.week;
             for payment in additional_payments.iter() {
-                let payment_claim_progress = self.get_claim_progress_and_clear(user, payment.token_nonce);
+                let payment_claim_progress =
+                    self.get_claim_progress_and_clear(user, payment.token_nonce);
                 let payment_claim_week = payment_claim_progress.week;
                 require!(
                     first_payment_claim_week == payment_claim_week,
                     "The claim week of the sent tokens do not match"
-                );       
+                );
             }
         }
         return all_payments.get(0).token_nonce;
@@ -347,12 +349,11 @@ pub trait WeeklyRewardsSplittingModule:
         token_nonce: Nonce,
     ) -> ClaimProgress<Self::Api> {
         let current_claim_mapper = self.current_claim_progress(user, token_nonce);
-        let claim_progress;
-        if current_claim_mapper.is_empty() {
-            claim_progress = self.new_claim_progress_for_user(user);
+        let claim_progress: ClaimProgress<Self::Api> = if current_claim_mapper.is_empty() {
+            self.new_claim_progress_for_user(user)
         } else {
-            claim_progress = current_claim_mapper.get();
-        }
+            current_claim_mapper.get()
+        };
 
         claim_progress
     }
