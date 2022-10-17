@@ -17,9 +17,6 @@ path = "../../common/modules/farm/config"
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
-[dependencies.farm_token_merge]
-path = "../../common/modules/farm/farm_token_merge"
-
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 
@@ -53,9 +50,6 @@ path = "../../common/modules/sc_whitelist_module"
 [dependencies.farm]
 path = "../farm"
 
-[dependencies.pair]
-path = "../pair"
-
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
@@ -71,14 +65,8 @@ path = "../../energy-integration/common-modules/week-timekeeping"
 [dependencies.weekly-rewards-splitting]
 path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 
-[dependencies.simple-lock]
-path = "../../locked-asset/simple-lock"
-
 [dependencies.simple-lock-energy]
 path = "../../locked-asset/simple-lock-energy"
-
-[dependencies.factory]
-path = "../../locked-asset/factory"
 
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
@@ -98,3 +86,6 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.energy-factory-mock]
 path = "../../energy-integration/energy-factory-mock"
+
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"

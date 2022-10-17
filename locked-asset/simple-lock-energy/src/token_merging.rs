@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use mergeable::Mergeable;
+use mergeable::{weighted_average, Mergeable};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::energy::Energy;
@@ -22,11 +22,12 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountAttributesPair<M> {
     fn merge_with(&mut self, other: Self) {
         self.error_if_not_mergeable(&other);
 
-        let first_unlock_epoch_weighted = &self.token_amount * self.attributes.unlock_epoch;
-        let second_unlock_epoch_weighted = &other.token_amount * other.attributes.unlock_epoch;
-        let total_weight = &self.token_amount + &other.token_amount;
-        let new_unlock_epoch =
-            (first_unlock_epoch_weighted + second_unlock_epoch_weighted) / total_weight;
+        let new_unlock_epoch = weighted_average(
+            &BigUint::from(self.attributes.unlock_epoch),
+            &self.token_amount,
+            &BigUint::from(other.attributes.unlock_epoch),
+            &other.token_amount,
+        );
 
         self.token_amount += other.token_amount;
         self.attributes.unlock_epoch = unsafe { new_unlock_epoch.to_u64().unwrap_unchecked() };
@@ -45,12 +46,15 @@ pub trait TokenMergingModule:
     + crate::lock_options::LockOptionsModule
     + utils::UtilsModule
 {
+    // TODO: Only allow original caller arg for whitelisted addresses
+    #[payable("*")]
     #[endpoint(mergeTokens)]
-    fn merge_tokens(&self) -> EsdtTokenPayment {
+    fn merge_tokens(&self, opt_original_caller: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let current_epoch = self.blockchain().get_block_epoch();
-        let caller = self.blockchain().get_caller();
+        let actual_caller = self.blockchain().get_caller();
+        let original_caller = self.dest_from_optional(opt_original_caller);
         let locked_token_mapper = self.locked_token();
 
         let mut payments = self.get_non_empty_payments();
@@ -60,7 +64,7 @@ pub trait TokenMergingModule:
         payments.remove(0);
 
         let output_amount_attributes =
-            self.update_energy(&caller, |energy: &mut Energy<Self::Api>| {
+            self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
                 let first_token_attributes: LockedTokenAttributes<Self::Api> =
                     locked_token_mapper.get_token_attributes(first_payment.token_nonce);
                 energy.update_after_unlock_any(
@@ -113,7 +117,7 @@ pub trait TokenMergingModule:
             output_amount_attributes.token_amount,
         );
         let output_tokens = self.lock_and_send(
-            &caller,
+            &actual_caller,
             simulated_lock_payment,
             output_amount_attributes.attributes.unlock_epoch,
         );

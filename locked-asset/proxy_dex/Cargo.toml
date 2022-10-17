@@ -29,6 +29,12 @@ path = "../../common/modules/token_send"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../../common/traits/fixed-supply-token"
+
 [dependencies.elrond-wasm]
 version = "0.36.0"
 features = ["esdt-token-payment-legacy-decode",]
@@ -38,3 +44,32 @@ version = "0.36.0"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.36.0"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dev-dependencies.simple-lock-energy]
+path = "../simple-lock-energy"
+
+[dev-dependencies.simple-lock]
+path = "../simple-lock"
+
+[dev-dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dev-dependencies.farm_base_impl]
+path = "../../common/modules/farm/farm_base_impl"
+
+[dev-dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dev-dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
+
+[dev-dependencies.rewards]
+path = "../../common/modules/farm/rewards"
+
+[dev-dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"

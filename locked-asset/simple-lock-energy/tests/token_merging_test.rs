@@ -1,5 +1,6 @@
 mod simple_lock_energy_setup;
 
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use simple_lock::locked_token::LockedTokenAttributes;
 use simple_lock_energy::token_merging::TokenMergingModule;
@@ -50,7 +51,7 @@ fn token_merging_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.sc_wrapper, &payments[..], |sc| {
-            let _ = sc.merge_tokens();
+            let _ = sc.merge_tokens(OptionalValue::None);
         })
         .assert_ok();
 

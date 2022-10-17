@@ -37,8 +37,8 @@ impl<'a, C: FarmContracTraitBounds> StorageCache<'a, C> {
 impl<'a, C: FarmContracTraitBounds> Drop for StorageCache<'a, C> {
     fn drop(&mut self) {
         // commit changes to storage for the mutable fields
-        // farm_token_supply is not saved here, as it's managed by the farm_token module
         self.sc_ref.reward_reserve().set(&self.reward_reserve);
         self.sc_ref.reward_per_share().set(&self.reward_per_share);
+        self.sc_ref.farm_token_supply().set(&self.farm_token_supply);
     }
 }

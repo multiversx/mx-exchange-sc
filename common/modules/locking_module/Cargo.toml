@@ -5,7 +5,7 @@ authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
 edition = "2018"
 
 [lib]
-path = "src/locking_module.rs"
+path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
 version = "0.36.0"
@@ -13,3 +13,6 @@ features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.simple-lock]
 path = "../../../locked-asset/simple-lock"
+
+[dependencies.simple-lock-energy]
+path = "../../../locked-asset/simple-lock-energy"

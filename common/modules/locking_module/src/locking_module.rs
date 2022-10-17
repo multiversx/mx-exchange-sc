@@ -1,5 +1,3 @@
-#![no_std]
-
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
@@ -18,7 +16,7 @@ pub trait LockingModule {
     #[only_owner]
     #[endpoint(setUnlockEpoch)]
     fn set_unlock_epoch(&self, new_epoch: u64) {
-        self.unlock_epoch().set(&new_epoch);
+        self.unlock_epoch().set(new_epoch);
     }
 
     #[inline]

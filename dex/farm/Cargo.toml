@@ -17,9 +17,6 @@ path = "../../common/modules/farm/config"
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
-[dependencies.farm_token_merge]
-path = "../../common/modules/farm/farm_token_merge"
-
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 
@@ -32,6 +29,9 @@ path = "../../common/modules/farm/contexts"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
 
@@ -41,6 +41,9 @@ path = "../../common/modules/pausable"
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
 [dependencies.pair]
 path = "../pair"
 
@@ -49,6 +52,12 @@ path = "../../common/common_structs"
 
 [dependencies.common_errors]
 path = "../../common/common_errors"
+
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../../common/traits/fixed-supply-token"
 
 [dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"

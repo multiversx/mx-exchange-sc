@@ -10,3 +10,9 @@ path = "src/lib.rs"
 [dependencies.elrond-wasm]
 version = "0.36.0"
 features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.mergeable]
+path = "../traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../traits/fixed-supply-token"

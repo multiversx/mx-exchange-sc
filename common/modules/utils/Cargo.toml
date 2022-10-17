@@ -7,9 +7,15 @@ edition = "2018"
 [lib]
 path = "src/lib.rs"
 
-[dependencies.common_structs]
-path = "../../common_structs"
-
 [dependencies.elrond-wasm]
 version = "0.36.0"
 features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.common_structs]
+path = "../../common_structs"
+
+[dependencies.fixed-supply-token]
+path = "../../traits/fixed-supply-token"
+
+[dependencies.mergeable]
+path = "../../traits/mergeable"

@@ -36,7 +36,9 @@ pub trait FeesCollector:
 
         let caller = self.blockchain().get_caller();
         let rewards = self.claim_multi(&caller, Self::collect_accumulated_fees_for_week);
-        self.send().direct_multi(&caller, &rewards);
+        if !rewards.is_empty() {
+            self.send().direct_multi(&caller, &rewards);
+        }
 
         rewards
     }
