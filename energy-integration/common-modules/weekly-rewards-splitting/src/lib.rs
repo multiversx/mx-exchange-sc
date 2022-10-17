@@ -422,7 +422,7 @@ pub trait WeeklyRewardsSplittingModule:
     #[storage_mapper("currentGlobalActiveWeek")]
     fn current_global_active_week(&self) -> SingleValueMapper<Week>;
 
-    #[view(getTotalRewardsForWeek)]
+    // #[view(getTotalRewardsForWeek)]
     #[storage_mapper("totalRewardsForWeek")]
     fn total_rewards_for_week(
         &self,
