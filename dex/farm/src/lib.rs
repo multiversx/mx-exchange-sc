@@ -86,7 +86,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.enter_farm(orig_caller);
+        let output_farm_token_payment = self.enter_farm::<Wrapper<Self>>(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -100,7 +100,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let claim_rewards_result = self.claim_rewards(orig_caller);
+        let claim_rewards_result = self.claim_rewards::<Wrapper<Self>>(orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
 
@@ -118,7 +118,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.compound_rewards(orig_caller);
+        let output_farm_token_payment = self.compound_rewards::<Wrapper<Self>>(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -132,7 +132,7 @@ pub trait Farm:
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let exit_farm_result = self.exit_farm(orig_caller);
+        let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
 
         self.send_payment_non_zero(&caller, &farming_token_payment);
@@ -179,13 +179,13 @@ pub trait Farm:
     #[endpoint(endProduceRewards)]
     fn end_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
-        self.end_produce_rewards();
+        self.end_produce_rewards::<Wrapper<Self>>();
     }
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-        self.set_per_block_rewards(per_block_amount);
+        self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
     }
 
     fn get_orig_caller_from_opt(

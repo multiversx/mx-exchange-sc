@@ -45,7 +45,6 @@ elrond_wasm_node::wasm_endpoints! {
         getState
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
-        getTotalRewardsForWeek
         getUserEnergyForWeek
         isSCAddressWhitelisted
         mergeFarmTokens
