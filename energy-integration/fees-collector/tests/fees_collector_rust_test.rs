@@ -193,6 +193,7 @@ fn claim_after_dex_inactive_test() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
@@ -291,7 +292,7 @@ fn claim_after_dex_inactive_test() {
                 managed_biguint!(50),
             );
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user))
+                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
