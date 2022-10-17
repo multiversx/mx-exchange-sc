@@ -74,7 +74,7 @@ pub trait UtilsModule {
         mapper: &NonFungibleTokenMapper<Self::Api>,
     ) -> T {
         for payment in payments {
-            let attributes: T = self.get_attributes_as_part_of_fixed_supply(&payment, &mapper);
+            let attributes: T = self.get_attributes_as_part_of_fixed_supply(&payment, mapper);
             base_attributes.merge_with(attributes);
         }
 
