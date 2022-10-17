@@ -5,11 +5,13 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use core::marker::PhantomData;
+
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use farm::{
-    base_functions::Wrapper,
+    base_functions::{BaseFunctionsModule, Wrapper},
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
@@ -28,7 +30,7 @@ pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
-    + locking_module::LockingModule
+    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + farm_token::FarmTokenModule
     + utils::UtilsModule
     + pausable::PausableModule
@@ -95,15 +97,12 @@ pub trait Farm:
             self.claim_rewards(caller.clone()).into_tuple();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            caller,
-            rewards_payment.token_identifier.clone(),
+            rewards_payment.token_identifier,
             rewards_payment.amount,
+            caller,
         );
-        (
-            output_farm_token_payment,
-            self.to_esdt_payment(locked_rewards_payment),
-        )
-            .into()
+
+        (output_farm_token_payment, locked_rewards_payment).into()
     }
 
     #[payable("*")]
@@ -124,15 +123,12 @@ pub trait Farm:
         let (farming_token_payment, reward_payment) = self.exit_farm(caller.clone()).into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            caller,
-            reward_payment.token_identifier.clone(),
+            reward_payment.token_identifier,
             reward_payment.amount,
+            caller,
         );
-        (
-            farming_token_payment,
-            self.to_esdt_payment(locked_rewards_payment),
-        )
-            .into()
+
+        (farming_token_payment, locked_rewards_payment).into()
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -145,9 +141,9 @@ pub trait Farm:
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
+        NoMintWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        Wrapper::<Self>::calculate_rewards(
+        NoMintWrapper::<Self>::calculate_rewards(
             self,
             user,
             &farm_token_amount,
@@ -186,14 +182,56 @@ pub trait Farm:
 
     fn send_to_lock_contract_non_zero(
         &self,
-        destination_address: ManagedAddress,
-        token_identifier: TokenIdentifier,
+        token_id: TokenIdentifier,
         amount: BigUint,
-    ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        let token_id = EgldOrEsdtTokenIdentifier::esdt(token_identifier);
+        destination_address: ManagedAddress,
+    ) -> EsdtTokenPayment {
         if amount == 0 {
-            return EgldOrEsdtTokenPayment::new(token_id, 0, BigUint::zero());
+            return EsdtTokenPayment::new(token_id, 0, amount);
         }
-        self.lock_tokens_and_forward(destination_address, token_id, amount)
+
+        self.lock_virtual(token_id, amount, destination_address)
+    }
+}
+
+pub struct NoMintWrapper<T: BaseFunctionsModule> {
+    _phantom: PhantomData<T>,
+}
+
+impl<T> FarmContract for NoMintWrapper<T>
+where
+    T: BaseFunctionsModule,
+{
+    type FarmSc = T;
+    type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
+
+    fn mint_rewards(
+        _sc: &Self::FarmSc,
+        _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
+        _amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+    ) {
+    }
+
+    fn generate_aggregated_rewards(
+        sc: &Self::FarmSc,
+        storage_cache: &mut StorageCache<Self::FarmSc>,
+    ) {
+        Wrapper::<T>::generate_aggregated_rewards(sc, storage_cache);
+    }
+
+    fn calculate_rewards(
+        sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        token_attributes: &Self::AttributesType,
+        storage_cache: &StorageCache<Self::FarmSc>,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        Wrapper::<T>::calculate_rewards(
+            sc,
+            caller,
+            farm_token_amount,
+            token_attributes,
+            storage_cache,
+        )
     }
 }

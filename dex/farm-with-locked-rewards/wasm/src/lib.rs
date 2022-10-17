@@ -32,6 +32,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLastGlobalActiveWeek
         getLastGlobalUpdateWeek
         getLastRewardBlockNonce
+        getLockEpochs
         getLockingScAddress
         getMinimumFarmingEpoch
         getPairContractManagedAddress
@@ -45,7 +46,6 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek
-        getUnlockEpoch
         getUserEnergyForWeek
         isSCAddressWhitelisted
         mergeFarmTokens
@@ -57,9 +57,9 @@ elrond_wasm_node::wasm_endpoints! {
         resume
         setBoostedYieldsRewardsPercentage
         setEnergyFactoryAddress
+        setLockEpochs
         setLockingScAddress
         setPerBlockRewardAmount
-        setUnlockEpoch
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent

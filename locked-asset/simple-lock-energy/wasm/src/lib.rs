@@ -9,6 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         callBack
         addLockOptions
+        addSCAddressToWhitelist
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
@@ -20,12 +21,15 @@ elrond_wasm_node::wasm_endpoints! {
         getPenaltyAmount
         getPenaltyPercentage
         isPaused
+        isSCAddressWhitelisted
         issueLockedToken
         lockTokens
+        lockVirtual
         mergeTokens
         pause
         reduceLockPeriod
         removeLockOptions
+        removeSCAddressFromWhitelist
         setFeesBurnPercentage
         setFeesCollectorAddress
         setPenaltyPercentage

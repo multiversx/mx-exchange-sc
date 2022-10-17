@@ -19,7 +19,7 @@ use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm;
-use locking_module::LockingModule;
+use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
@@ -151,7 +151,7 @@ where
                 sc.set_locking_sc_address(managed_address!(
                     simple_lock_energy_wrapper.address_ref()
                 ));
-                sc.set_unlock_epoch(EPOCHS_IN_YEAR);
+                sc.set_lock_epochs(EPOCHS_IN_YEAR);
 
                 // sc.base_asset_token_id(managed_token_id!(REWARD_TOKEN_ID));
 
@@ -224,6 +224,13 @@ where
             FARMING_TOKEN_ID,
             &rust_biguint!(FARMING_TOKEN_BALANCE),
         );
+
+        b_mock
+            .execute_tx(&owner, &simple_lock_energy_wrapper, &rust_zero, |sc| {
+                sc.sc_whitelist_addresses()
+                    .add(&managed_address!(farm_wrapper.address_ref()));
+            })
+            .assert_ok();
 
         FarmSetup {
             b_mock,
