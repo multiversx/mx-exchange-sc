@@ -65,10 +65,10 @@ impl<M: ManagedTypeApi> ExternallyMergeable<M> for EsdtTokenPayment<M> {
 
 pub fn weighted_average<M: ManagedTypeApi>(
     first_value: &BigUint<M>,
-    first_weigth: &BigUint<M>,
+    first_weight: &BigUint<M>,
     second_value: &BigUint<M>,
-    second_weigth: &BigUint<M>,
+    second_weight: &BigUint<M>,
 ) -> BigUint<M> {
-    let weigth_sum = first_weigth + second_weigth;
-    (first_value * first_weigth + second_value * second_weigth) / weigth_sum
+    let weight_sum = first_weight + second_weight;
+    (first_value * first_weight + second_value * second_weight) / weight_sum
 }
