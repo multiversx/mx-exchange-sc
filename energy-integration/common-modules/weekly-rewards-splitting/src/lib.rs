@@ -349,13 +349,14 @@ pub trait WeeklyRewardsSplittingModule:
         token_nonce: Nonce,
     ) -> ClaimProgress<Self::Api> {
         let current_claim_mapper = self.current_claim_progress(user, token_nonce);
-        let claim_progress: ClaimProgress<Self::Api> = if current_claim_mapper.is_empty() {
-            self.new_claim_progress_for_user(user)
-        } else {
-            current_claim_mapper.get()
-        };
+         let claim_progress;
+         if current_claim_mapper.is_empty() {
+             claim_progress = self.new_claim_progress_for_user(user);
+         } else {
+             claim_progress = current_claim_mapper.get();
+         }
 
-        claim_progress
+         claim_progress
     }
 
     fn get_claim_progress_and_clear(
