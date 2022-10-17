@@ -214,6 +214,15 @@ fn claim_after_dex_inactive_test() {
     // advance to week 4 (active week)
     fc_setup.advance_week();
 
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            // Current week = 1; previous week = 0;
+            assert_eq!(sc.current_global_active_week().get(), 1);
+            assert_eq!(sc.last_global_active_week().get(), 0);
+        })
+        .assert_ok();
+
     // deposit rewards week 4
     fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
