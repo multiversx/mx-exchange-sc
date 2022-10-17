@@ -15,3 +15,6 @@ path = "../../common_structs"
 
 [dependencies.fixed-supply-token]
 path = "../../traits/fixed-supply-token"
+
+[dependencies.mergeable]
+path = "../../traits/mergeable"
