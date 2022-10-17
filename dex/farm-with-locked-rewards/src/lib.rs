@@ -222,6 +222,7 @@ where
     fn calculate_rewards(
         sc: &Self::FarmSc,
         caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
@@ -229,6 +230,7 @@ where
         Wrapper::<T>::calculate_rewards(
             sc,
             caller,
+            farm_token_nonce,
             farm_token_amount,
             token_attributes,
             storage_cache,
