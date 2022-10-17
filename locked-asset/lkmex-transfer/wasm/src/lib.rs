@@ -8,7 +8,7 @@ elrond_wasm_node::wasm_endpoints! {
     lkmex_transfer
     (
         lockFunds
-        transfer
+        withdraw
     )
 }
 

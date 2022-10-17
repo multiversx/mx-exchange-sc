@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 
 use common_types::PaymentsVec;
 use energy_query::Energy;

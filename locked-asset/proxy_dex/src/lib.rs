@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 

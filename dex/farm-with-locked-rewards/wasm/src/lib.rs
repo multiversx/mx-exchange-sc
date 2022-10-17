@@ -28,6 +28,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFarmingTokenId
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
+        getLastGlobalUpdateWeek
         getLastRewardBlockNonce
         getLockingScAddress
         getMinimumFarmingEpoch
