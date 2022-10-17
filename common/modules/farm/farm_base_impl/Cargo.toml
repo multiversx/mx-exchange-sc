@@ -13,9 +13,6 @@ path = "../config"
 [dependencies.farm_token]
 path = "../farm_token"
 
-[dependencies.farm_token_merge]
-path = "../farm_token_merge"
-
 [dependencies.rewards]
 path = "../rewards"
 
@@ -37,11 +34,20 @@ path = "../../pausable"
 [dependencies.permissions_module]
 path = "../../permissions_module"
 
+[dependencies.utils]
+path = "../../utils"
+
 [dependencies.common_structs]
 path = "../../../common_structs"
 
 [dependencies.common_errors]
 path = "../../../common_errors"
+
+[dependencies.mergeable]
+path = "../../../traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../../../traits/fixed-supply-token"
 
 [dependencies.elrond-wasm]
 version = "0.34.0"

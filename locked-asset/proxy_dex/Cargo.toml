@@ -67,9 +67,6 @@ path = "../../common/modules/farm/config"
 [dev-dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
-[dev-dependencies.farm_token_merge]
-path = "../../common/modules/farm/farm_token_merge"
-
 [dev-dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 

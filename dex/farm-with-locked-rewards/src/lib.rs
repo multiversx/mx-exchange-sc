@@ -8,9 +8,13 @@ elrond_wasm::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
-use farm::exit_penalty::{
-    DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
+use farm::{
+    base_functions::Wrapper,
+    exit_penalty::{
+        DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
+    },
 };
+use farm_base_impl::base_traits_impl::FarmContract;
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -26,8 +30,6 @@ pub trait Farm:
     + token_send::TokenSendModule
     + locking_module::LockingModule
     + farm_token::FarmTokenModule
-    + token_merge_helper::TokenMergeHelperModule
-    + farm_token_merge::FarmTokenMergeModule
     + utils::UtilsModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
@@ -38,12 +40,10 @@ pub trait Farm:
     + farm::exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
-    + farm_base_impl::partial_positions::PartialPositionsModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    // farm boosted yields
     + farm_boosted_yields::FarmBoostedYieldsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
@@ -81,7 +81,7 @@ pub trait Farm:
     fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.enter_farm();
+        let output_farm_token_payment = self.enter_farm(caller.clone());
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -91,7 +91,8 @@ pub trait Farm:
     fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (output_farm_token_payment, rewards_payment) = self.claim_rewards(&caller).into_tuple();
+        let (output_farm_token_payment, rewards_payment) =
+            self.claim_rewards(caller.clone()).into_tuple();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
@@ -110,7 +111,7 @@ pub trait Farm:
     fn compound_rewards_endpoint(&self) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.compound_rewards(&caller);
+        let output_farm_token_payment = self.compound_rewards(caller.clone());
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
@@ -120,7 +121,7 @@ pub trait Farm:
     fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (farming_token_payment, reward_payment) = self.exit_farm(&caller).into_tuple();
+        let (farming_token_payment, reward_payment) = self.exit_farm(caller.clone()).into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             caller,
@@ -144,10 +145,11 @@ pub trait Farm:
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards_with_boosted_yields(&mut storage_cache);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        self.calculate_reward_with_boosted_yields(
-            &user,
+        Wrapper::<Self>::calculate_rewards(
+            self,
+            user,
             &farm_token_amount,
             &attributes,
             &storage_cache,

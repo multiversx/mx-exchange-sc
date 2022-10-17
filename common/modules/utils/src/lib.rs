@@ -2,7 +2,10 @@
 
 elrond_wasm::imports!();
 
-use common_structs::PaymentsVec;
+use common_structs::{PaymentAttributesPair, PaymentsVec};
+use elrond_wasm::elrond_codec::TopEncode;
+use fixed_supply_token::FixedSupplyToken;
+use mergeable::Mergeable;
 
 static ERR_EMPTY_PAYMENTS: &[u8] = b"No payments";
 
@@ -53,6 +56,53 @@ pub trait UtilsModule {
         payments.remove(0);
 
         first_payment
+    }
+
+    fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
+        &self,
+        payment: &EsdtTokenPayment,
+        mapper: &NonFungibleTokenMapper<Self::Api>,
+    ) -> T {
+        let attr: T = mapper.get_token_attributes(payment.token_nonce);
+        attr.into_part(&payment.amount)
+    }
+
+    fn merge_from_payments<T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode>(
+        &self,
+        mut base_attributes: T,
+        payments: &PaymentsVec<Self::Api>,
+        mapper: &NonFungibleTokenMapper<Self::Api>,
+    ) -> T {
+        for payment in payments {
+            let attributes: T = self.get_attributes_as_part_of_fixed_supply(&payment, mapper);
+            base_attributes.merge_with(attributes);
+        }
+
+        base_attributes
+    }
+
+    fn merge_and_create_token<
+        T: FixedSupplyToken<Self::Api>
+            + Mergeable<Self::Api>
+            + Clone
+            + TopEncode
+            + TopDecode
+            + NestedEncode
+            + NestedDecode,
+    >(
+        &self,
+        base_attributes: T,
+        payments: &PaymentsVec<Self::Api>,
+        mapper: &NonFungibleTokenMapper<Self::Api>,
+    ) -> PaymentAttributesPair<Self::Api, T> {
+        let output_attributes = self.merge_from_payments(base_attributes, payments, mapper);
+        let new_token_amount = output_attributes.get_total_supply().clone();
+        let new_token_payment = mapper.nft_create(new_token_amount, &output_attributes);
+
+        PaymentAttributesPair {
+            payment: new_token_payment,
+            attributes: output_attributes,
+        }
     }
 
     fn require_valid_token_id(&self, token_id: &TokenIdentifier) {

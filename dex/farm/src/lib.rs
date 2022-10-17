@@ -8,12 +8,14 @@ elrond_wasm::derive_imports!();
 pub mod base_functions;
 pub mod exit_penalty;
 
+use base_functions::Wrapper;
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
+use farm_base_impl::base_traits_impl::FarmContract;
 
 pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
 pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
@@ -26,8 +28,6 @@ pub trait Farm:
     + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
-    + token_merge_helper::TokenMergeHelperModule
-    + farm_token_merge::FarmTokenMergeModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + sc_whitelist_module::SCWhitelistModule
@@ -37,18 +37,17 @@ pub trait Farm:
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
-    + farm_base_impl::partial_positions::PartialPositionsModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    // farm boosted yields
     + farm_boosted_yields::FarmBoostedYieldsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
+    + utils::UtilsModule
 {
     #[init]
     fn init(
@@ -80,20 +79,28 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
+    fn enter_farm_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let output_farm_token_payment = self.enter_farm();
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
+
+        let output_farm_token_payment = self.enter_farm(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ClaimRewardsResultType<Self::Api> {
+    fn claim_rewards_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let claim_rewards_result = self.claim_rewards(&orig_caller);
+        let claim_rewards_result = self.claim_rewards(orig_caller);
         let (output_farm_token_payment, rewards_payment) =
             claim_rewards_result.clone().into_tuple();
 
@@ -104,22 +111,28 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> CompoundRewardsResultType<Self::Api> {
+    fn compound_rewards_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment = self.compound_rewards(&orig_caller);
+        let output_farm_token_payment = self.compound_rewards(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
         output_farm_token_payment
     }
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm_endpoint(&self, opt_orig_caller: OptionalValue<ManagedAddress>) -> ExitFarmResultType<Self::Api> {
+    fn exit_farm_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let exit_farm_result = self.exit_farm(&orig_caller);
+        let exit_farm_result = self.exit_farm(orig_caller);
         let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
 
         self.send_payment_non_zero(&caller, &farming_token_payment);
@@ -137,10 +150,11 @@ pub trait Farm:
         self.require_queried();
 
         let mut storage_cache = StorageCache::new(self);
-        self.generate_aggregated_rewards_with_boosted_yields(&mut storage_cache);
+        Wrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
 
-        self.calculate_reward_with_boosted_yields(
-            &user,
+        Wrapper::<Self>::calculate_rewards(
+            self,
+            user,
             &farm_token_amount,
             &attributes,
             &storage_cache,
@@ -174,14 +188,17 @@ pub trait Farm:
         self.set_per_block_rewards(per_block_amount);
     }
 
-    fn get_orig_caller_from_opt(&self, caller: &ManagedAddress, opt_orig_caller: OptionalValue<ManagedAddress>) -> ManagedAddress {
+    fn get_orig_caller_from_opt(
+        &self,
+        caller: &ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ManagedAddress {
         match opt_orig_caller {
             OptionalValue::Some(opt_caller) => {
                 self.require_sc_address_whitelisted(caller);
                 opt_caller
-            },
+            }
             OptionalValue::None => caller.clone(),
         }
     }
-
 }

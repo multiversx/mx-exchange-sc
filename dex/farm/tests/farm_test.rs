@@ -474,7 +474,7 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let out_farm_token = sc.enter_farm_endpoint();
+                    let out_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)

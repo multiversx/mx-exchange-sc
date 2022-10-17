@@ -32,13 +32,13 @@ pub trait Farm:
     custom_rewards::CustomRewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
-    + token_merge_helper::TokenMergeHelperModule
     + farm_token::FarmTokenModule
-    + farm_token_merge::FarmTokenMergeModule
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + farm_token_merge::FarmTokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     // farm base impl
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule

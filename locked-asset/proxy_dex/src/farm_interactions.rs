@@ -28,9 +28,10 @@ pub trait FarmInteractionsModule {
         farming_token_id: TokenIdentifier,
         farming_token_amount: BigUint,
     ) -> EnterFarmResultWrapper<Self::Api> {
+        let original_caller = self.blockchain().get_caller();
         let result: EnterFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .enter_farm_endpoint()
+            .enter_farm_endpoint(original_caller)
             .add_esdt_token_transfer(farming_token_id, 0, farming_token_amount)
             .execute_on_dest_context();
 
