@@ -687,7 +687,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let enter_farm_result = sc.enter_farm_locked_token();
+                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
                 assert_eq!(
                     enter_farm_result.token_identifier,
                     managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -821,7 +821,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(500_000_000),
             |sc| {
-                let enter_farm_result = sc.enter_farm_locked_token();
+                let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
                 assert_eq!(
                     enter_farm_result.token_identifier,
                     managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -860,7 +860,7 @@ fn test_farm_through_simple_lock() {
     ];
     b_mock
         .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
-            let enter_farm_result = sc.enter_farm_locked_token();
+            let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
             assert_eq!(
                 enter_farm_result.token_identifier,
                 managed_token_id!(FARM_PROXY_TOKEN_ID)
@@ -892,7 +892,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(50_000_000),
             |sc| {
-                sc.enter_farm_locked_token();
+                sc.enter_farm_locked_token(FarmType::SimpleFarm);
             },
         )
         .assert_ok();
@@ -904,7 +904,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(50_000_000),
             |sc| {
-                sc.enter_farm_locked_token();
+                sc.enter_farm_locked_token(FarmType::SimpleFarm);
             },
         )
         .assert_ok();
@@ -933,7 +933,7 @@ fn test_farm_through_simple_lock() {
     ];
     b_mock
         .execute_esdt_multi_transfer(&user_addr, &lock_wrapper, &payments, |sc| {
-            let enter_farm_result = sc.enter_farm_locked_token();
+            let enter_farm_result = sc.enter_farm_locked_token(FarmType::SimpleFarm);
             assert_eq!(
                 enter_farm_result.token_identifier,
                 managed_token_id!(FARM_PROXY_TOKEN_ID)

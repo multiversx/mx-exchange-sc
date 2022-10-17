@@ -122,8 +122,8 @@
                     "storage": {
                         "str:tokenWhitelist": ["str:ASH-123456"],
                         "str:knownFarms": ["sc:farm_old", "sc:farm"],
-                        "str:farmAddressForToken|nested:str:ASHEGLD-123456": ["sc:farm_old"],
-                        "str:farmAddressForToken|nested:str:ASHUSDC-123456": ["sc:farm"],
+                        "str:farmAddressForToken|nested:str:ASHEGLD-123456|u8:0": ["sc:farm_old"],
+                        "str:farmAddressForToken|nested:str:ASHUSDC-123456|u8:0": ["sc:farm"],
                         "str:lpProxyTokenId": "str:LKLP-123456",
                         "str:farmProxyTokenId": "str:LKFARM-123456"
                     }
@@ -192,6 +192,7 @@
                     }
                 ],
                 "function": "enterFarmLockedToken",
+                "arguments": ["0"],
                 "gasLimit": "25,000,000"
             },
             "expect": {
@@ -216,6 +217,7 @@
                     }
                 ],
                 "function": "enterFarmLockedToken",
+                "arguments": ["0"],
                 "gasLimit": "25,000,000"
             },
             "expect": {
@@ -247,6 +249,7 @@
                     }
                 ],
                 "function": "exitFarmLockedToken",
+                "arguments": ["0"],
                 "gasLimit": "30,000,000"
             },
             "expect": {
@@ -273,6 +276,7 @@
                     }
                 ],
                 "function": "exitFarmLockedToken",
+                "arguments": ["0"],
                 "gasLimit": "30,000,000"
             },
             "expect": {
