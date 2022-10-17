@@ -67,18 +67,17 @@ pub trait UtilsModule {
         attr.into_part(&payment.amount)
     }
 
-    fn merge_from_payments<T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode>(
+    fn merge_from_payments_and_burn<T: FixedSupplyToken<Self::Api> + Mergeable<Self::Api> + TopDecode>(
         &self,
-        payments: &mut PaymentsVec<Self::Api>,
+        mut payments: PaymentsVec<Self::Api>,
         mapper: &NonFungibleTokenMapper<Self::Api>,
     ) -> T {
-        let first_payment = self.pop_first_payment(payments);
+        let first_payment = self.pop_first_payment(&mut payments);
         let base_attributes: T =
             self.get_attributes_as_part_of_fixed_supply(&first_payment, &mapper);
             mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
         let output_attributes = self.merge_attributes_from_payments(base_attributes, &payments, &mapper);
-
         self.burn_multi_esdt(&payments);
 
         output_attributes

@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
-use common_structs::{PaymentAttributesPair, PaymentsVec, Nonce};
+use common_structs::{PaymentAttributesPair, PaymentsVec};
 use contexts::{
     claim_rewards_context::ClaimRewardsContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},

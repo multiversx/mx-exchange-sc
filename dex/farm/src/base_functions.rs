@@ -107,10 +107,10 @@ pub trait BaseFunctionsModule:
     }
 
     fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
-        let mut payments = self.get_non_empty_payments();
+        let payments = self.get_non_empty_payments();
         let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
         let token_mapper = self.farm_token();
-        let output_attributes: FarmTokenAttributes<Self::Api> = self.merge_from_payments(&mut payments, &token_mapper);
+        let output_attributes: FarmTokenAttributes<Self::Api> = self.merge_from_payments_and_burn(payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply().clone();
         let merged_token_payment = token_mapper.nft_create(new_token_amount, &output_attributes);
 

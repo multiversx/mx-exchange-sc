@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
 use common_errors::ERROR_DIFFERENT_TOKEN_IDS;
-use common_structs::{PaymentAttributesPair, PaymentsVec, Nonce};
+use common_structs::{PaymentAttributesPair, PaymentsVec};
 use contexts::{
     claim_rewards_context::CompoundRewardsContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
