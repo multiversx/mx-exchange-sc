@@ -66,7 +66,13 @@ pub trait FarmInteractionsModule {
             );
         }
 
-        let new_farm_tokens = contract_call.execute_on_dest_context();
+        let result: MultiValueEncoded<ManagedBuffer> = contract_call.execute_on_dest_context();
+        let raw = result.into_vec_of_buffers();
+        require!(raw.len() > 0, "at least one result expected from enterFarm");
+
+        let last_elem = raw.get(raw.len() - 1);
+        let new_farm_tokens: EnterFarmResultType<Self::Api> =
+            self.serializer().top_decode_from_managed_buffer(&last_elem);
 
         EnterFarmResultWrapper {
             farm_tokens: new_farm_tokens,
@@ -80,13 +86,22 @@ pub trait FarmInteractionsModule {
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
-        let exit_farm_result: ExitFarmResultType<Self::Api> = self
+        let result: MultiValueEncoded<ManagedBuffer> = self
             .farm_proxy(farm_address)
             .exit_farm()
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
-        let (initial_farming_tokens, reward_tokens) = exit_farm_result.into_tuple();
+        let raw = result.into_vec_of_buffers();
+        require!(raw.len() > 0, "at least one result expected from enterFarm");
+
+        let initial_farming_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
+        let reward_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
+
         ExitFarmResultWrapper {
             initial_farming_tokens,
             reward_tokens,
@@ -100,17 +115,37 @@ pub trait FarmInteractionsModule {
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
     ) -> FarmClaimRewardsResultWrapper<Self::Api> {
-        let farm_claim_rewards_result: ClaimRewardsResultType<Self::Api> = self
+        let result: MultiValueEncoded<ManagedBuffer> = self
             .farm_proxy(farm_address)
             .claim_rewards()
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
-        let (new_farm_tokens, reward_tokens) = farm_claim_rewards_result.into_tuple();
+        let raw = result.into_vec_of_buffers();
+        require!(raw.len() > 0, "at least one result expected from enterFarm");
+
+        let new_farm_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
+        let reward_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
+
         FarmClaimRewardsResultWrapper {
             new_farm_tokens,
             reward_tokens,
         }
+    }
+
+    fn execute_on_dest_context_multiple_results(
+        &self,
+        contract_call: ContractCall<Self::Api, EnterFarmResultType<Self::Api>>,
+    ) -> EsdtTokenPayment {
+        let result: MultiValueEncoded<ManagedBuffer> = contract_call.execute_on_dest_context();
+        let raw = result.into_vec_of_buffers();
+        require!(raw.len() > 0, "at least one result expected from enterFarm");
+        let last_elem = raw.get(raw.len() - 1);
+        self.serializer().top_decode_from_managed_buffer(&last_elem)
     }
 
     #[proxy]
