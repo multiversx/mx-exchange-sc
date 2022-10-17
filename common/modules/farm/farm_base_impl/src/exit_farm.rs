@@ -48,7 +48,7 @@ pub trait BaseExitFarmModule:
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;
-        let farm_token_nonce: Nonce = exit_farm_context.farm_token.payment.token_nonce;
+        let farm_token_nonce = exit_farm_context.farm_token.payment.token_nonce;
         let token_attributes = exit_farm_context
             .farm_token
             .attributes

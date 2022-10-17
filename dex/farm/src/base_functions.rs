@@ -11,7 +11,6 @@ use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::{base_traits_impl::FarmContract, exit_farm::InternalExitFarmResult};
 use fixed_supply_token::FixedSupplyToken;
-use mergeable::Mergeable;
 
 use crate::exit_penalty;
 
@@ -110,21 +109,8 @@ pub trait BaseFunctionsModule:
     fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
         let mut payments = self.get_non_empty_payments();
         let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
-        let first_payment = self.pop_first_payment(&mut payments);
-
         let token_mapper = self.farm_token();
-        let mut output_attributes: FarmTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&first_payment, &token_mapper);
-        token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
-
-        for payment in &payments {
-            let attributes: FarmTokenAttributes<Self::Api> =
-                self.get_attributes_as_part_of_fixed_supply(&payment, &token_mapper);
-            output_attributes.merge_with(attributes);
-        }
-
-        self.burn_multi_esdt(&payments);
-
+        let output_attributes: FarmTokenAttributes<Self::Api> = self.merge_from_payments(&mut payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply().clone();
         let merged_token_payment = token_mapper.nft_create(new_token_amount, &output_attributes);
 
