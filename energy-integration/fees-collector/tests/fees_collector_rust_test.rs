@@ -10,7 +10,9 @@ use elrond_wasm_modules::pause::PauseModule;
 use energy_query::Energy;
 use fees_collector::{fees_accumulation::FeesAccumulationModule, FeesCollector};
 use fees_collector_test_setup::*;
-use weekly_rewards_splitting::{ClaimProgress, WeeklyRewardsSplittingModule};
+use weekly_rewards_splitting::{
+    global_info::WeeklyRewardsGlobalInfo, ClaimProgress, WeeklyRewardsSplittingModule,
+};
 
 #[test]
 fn setup_test() {
@@ -214,15 +216,6 @@ fn claim_after_dex_inactive_test() {
     // advance to week 4 (active week)
     fc_setup.advance_week();
 
-    fc_setup
-        .b_mock
-        .execute_query(&fc_setup.fc_wrapper, |sc| {
-            // Current week = 1; previous week = 0;
-            assert_eq!(sc.current_global_active_week().get(), 1);
-            assert_eq!(sc.last_global_active_week().get(), 0);
-        })
-        .assert_ok();
-
     // deposit rewards week 4
     fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
     fc_setup
@@ -235,15 +228,6 @@ fn claim_after_dex_inactive_test() {
     // users claims in week 4
     fc_setup.claim(&first_user).assert_ok();
     fc_setup.claim(&second_user).assert_ok();
-
-    fc_setup
-        .b_mock
-        .execute_query(&fc_setup.fc_wrapper, |sc| {
-            // Current week = 4; previous week = 1;
-            assert_eq!(sc.current_global_active_week().get(), 4);
-            assert_eq!(sc.last_global_active_week().get(), 1);
-        })
-        .assert_ok();
 
     let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 3_000u32 / 12_000u32;
     let first_user_expected_second_token_amt =
