@@ -24,10 +24,6 @@ pub mod fees_collector_proxy {
         #[payable("*")]
         #[endpoint(depositSwapFees)]
         fn deposit_swap_fees(&self);
-
-        #[payable("*")]
-        #[endpoint(depositPenaltyFees)]
-        fn deposit_penalty_fees(&self);
     }
 }
 
@@ -249,7 +245,7 @@ pub trait UnlockWithPenaltyModule:
         self.fees_from_penalty_unlocking().clear();
 
         self.fees_collector_proxy_builder(sc_address)
-            .deposit_penalty_fees()
+            .deposit_swap_fees()
             .add_esdt_token_transfer(
                 locked_token_id,
                 nonce_amount_pair.nonce,

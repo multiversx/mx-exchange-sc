@@ -21,17 +21,22 @@ pub trait FeesAccumulationModule:
             "Only known contracts can deposit"
         );
 
-        let (payment_token, payment_amount) = self.call_value().single_fungible_esdt();
+        let payment = self.call_value().single_esdt();
         require!(
-            self.known_tokens().contains(&payment_token),
+            self.known_tokens().contains(&payment.token_identifier),
             "Invalid payment token"
         );
 
         let current_week = self.get_current_week();
-        self.accumulated_fees(current_week, &payment_token)
-            .update(|amt| *amt += &payment_amount);
+        self.accumulated_fees(current_week, &payment.token_identifier)
+            .update(|amt| *amt += &payment.amount);
 
-        self.emit_deposit_swap_fees_event(caller, current_week, payment_token, payment_amount);
+        self.emit_deposit_swap_fees_event(
+            caller,
+            current_week,
+            payment.token_identifier,
+            payment.amount,
+        );
     }
 
     fn collect_accumulated_fees_for_week(

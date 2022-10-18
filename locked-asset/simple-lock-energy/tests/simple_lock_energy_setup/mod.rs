@@ -222,6 +222,24 @@ where
         )
     }
 
+    pub fn send_fees_to_collector(
+        &mut self,
+        caller: &Address,
+        token_nonce: u64,
+        amount: u64,
+    ) -> TxResult {
+        self.b_mock.execute_esdt_transfer(
+            caller,
+            &self.sc_wrapper,
+            LOCKED_TOKEN_ID,
+            token_nonce,
+            &rust_biguint!(amount),
+            |sc| {
+                sc.send_fees_to_collector();
+            },
+        )
+    }
+
     pub fn get_penalty_amount(
         &mut self,
         token_amount: u64,
