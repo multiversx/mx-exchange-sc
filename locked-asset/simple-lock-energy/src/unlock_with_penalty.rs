@@ -212,7 +212,6 @@ pub trait UnlockWithPenaltyModule:
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;
         let remaining_amount = fees_amount - &burn_amount;
-        let locked_token_mapper = self.locked_token();
 
         if burn_amount > 0 {
             self.send()
@@ -268,6 +267,7 @@ pub trait UnlockWithPenaltyModule:
             new_locked_tokens.amount,
         ));
     }
+
 
     #[payable("*")]
     #[endpoint(sendFeesToCollector)]

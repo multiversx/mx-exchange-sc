@@ -89,7 +89,6 @@ pub trait WeeklyRewardsSplittingModule:
             claim_progress.week = current_week;
             claim_progress.energy = current_user_energy;
         }
-
         claim_progress_mapper.set(&claim_progress);
 
         self.emit_claim_multi_event(
@@ -206,6 +205,7 @@ pub trait WeeklyRewardsSplittingModule:
     fn current_claim_progress(
         &self,
         user: &ManagedAddress,
+        nonce: Nonce,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
     #[view(getUserEnergyForWeek)]
