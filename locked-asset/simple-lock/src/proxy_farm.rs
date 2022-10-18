@@ -13,6 +13,7 @@ pub enum FarmType {
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
+    pub farm_type: FarmType,
     pub farm_token_id: TokenIdentifier<M>,
     pub farm_token_nonce: u64,
     pub farming_token_id: TokenIdentifier<M>,
@@ -137,8 +138,9 @@ pub trait ProxyFarmModule:
                 proxy_farm_attributes.farming_token_id == lp_proxy_token_attributes.lp_token_id;
             let same_farming_nonce =
                 proxy_farm_attributes.farming_token_locked_nonce == proxy_lp_payment.token_nonce;
+            let same_farm_type = proxy_farm_attributes.farm_type == farm_type;
             require!(
-                same_farming_token && same_farming_nonce,
+                same_farming_token && same_farming_nonce && same_farm_type,
                 INVALID_PAYMENTS_ERR_MSG
             );
 
@@ -161,6 +163,7 @@ pub trait ProxyFarmModule:
         );
         let farm_tokens = enter_farm_result.farm_tokens;
         let proxy_farm_token_attributes = FarmProxyTokenAttributes {
+            farm_type,
             farm_token_id: farm_tokens.token_identifier,
             farm_token_nonce: farm_tokens.token_nonce,
             farming_token_id: lp_proxy_token_attributes.lp_token_id,
@@ -185,16 +188,15 @@ pub trait ProxyFarmModule:
     /// - farm reward tokens
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
-    fn exit_farm_locked_token(
-        &self,
-        farm_type: FarmType,
-    ) -> ExitFarmThroughProxyResultType<Self::Api> {
+    fn exit_farm_locked_token(&self) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
 
-        let farm_address =
-            self.try_get_farm_address(&farm_proxy_token_attributes.farming_token_id, farm_type);
+        let farm_address = self.try_get_farm_address(
+            &farm_proxy_token_attributes.farming_token_id,
+            farm_proxy_token_attributes.farm_type,
+        );
         let exit_farm_result = self.call_farm_exit(
             farm_address,
             farm_proxy_token_attributes.farm_token_id,
@@ -245,16 +247,15 @@ pub trait ProxyFarmModule:
     /// - farm reward tokens
     #[payable("*")]
     #[endpoint(farmClaimRewardsLockedToken)]
-    fn farm_claim_rewards_locked_token(
-        &self,
-        farm_type: FarmType,
-    ) -> FarmClaimRewardsThroughProxyResultType<Self::Api> {
+    fn farm_claim_rewards_locked_token(&self) -> FarmClaimRewardsThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let mut farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
 
-        let farm_address =
-            self.try_get_farm_address(&farm_proxy_token_attributes.farming_token_id, farm_type);
+        let farm_address = self.try_get_farm_address(
+            &farm_proxy_token_attributes.farming_token_id,
+            farm_proxy_token_attributes.farm_type,
+        );
         let claim_rewards_result = self.call_farm_claim_rewards(
             farm_address,
             farm_proxy_token_attributes.farm_token_id.clone(),

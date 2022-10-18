@@ -249,7 +249,6 @@
                     }
                 ],
                 "function": "exitFarmLockedToken",
-                "arguments": ["0"],
                 "gasLimit": "30,000,000"
             },
             "expect": {
@@ -276,7 +275,6 @@
                     }
                 ],
                 "function": "exitFarmLockedToken",
-                "arguments": ["0"],
                 "gasLimit": "30,000,000"
             },
             "expect": {
