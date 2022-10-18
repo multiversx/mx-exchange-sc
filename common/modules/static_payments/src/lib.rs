@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::redundant_clone)]
 
 elrond_wasm::imports!();
 
