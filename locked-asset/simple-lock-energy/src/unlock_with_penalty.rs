@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Epoch;
+use common_structs::{Epoch, Nonce};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::lock_options::{EPOCHS_PER_YEAR};
@@ -24,7 +24,11 @@ pub mod fees_collector_proxy {
         #[payable("*")]
         #[endpoint(depositSwapFees)]
         fn deposit_swap_fees(&self);
-    }
+
+        #[payable("*")]
+        #[endpoint(depositPenaltyFees)]
+        fn deposit_penalty_fees(&self);
+
 }
 
 #[elrond_wasm::module]
@@ -142,7 +146,7 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            self.burn_penalty(unlocked_token_id, &penalty_amount);
+            self.burn_penalty(unlocked_token_id, &payment.token_nonce, &penalty_amount);
         }
 
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
@@ -197,24 +201,48 @@ pub trait UnlockWithPenaltyModule:
         token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
 
-    fn burn_penalty(&self, token_id: TokenIdentifier, fees_amount: &BigUint) {
+    fn burn_penalty(&self, token_id: TokenIdentifier, token_nonce: Nonce, fees_amount: &BigUint) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PERCENTAGE as u64;
         let remaining_amount = fees_amount - &burn_amount;
+        let locked_token_mapper = self.locked_token();
 
         if burn_amount > 0 {
             self.send().esdt_local_burn(&token_id, 0, &burn_amount);
         }
         if remaining_amount > 0 {
-            self.send_fees_to_collector(token_id, remaining_amount);
+            // self.send_fees_to_collector(token_id, remaining_amount);
+            if self.fees_from_penalty_unlocking().is_empty() {
+                self.fees_from_penalty_unlocking()
+                    .set(token_nonce, remaining_amount);
+            } else {
+                let (existing_nonce, existing_amount) = self.fees_from_penalty_unlocking().get();
+                let new_token_attributes: LockedTokenAttributes<Self::Api> =
+                    locked_token_mapper.get_token_attributes(token_nonce);
+                let new_amount = existing_amount + remaining_amount;
+
+                locked_token_mapper.nft_burn(existing_nonce, existing_amount);
+                locked_token_mapper.nft_burn(token_nonce, remaining_amount);
+
+                let new_token_payment =
+                    locked_token_mapper.nft_create(new_amount, new_token_attributes);
+                self.fees_from_penalty_unlocking()
+                    .set(new_token_payment.token_nonce, new_token_payment.amount);
+            }
         }
     }
 
+    #[payable("*")]
+    #[endpoint(sendFeesToCollector)]
     fn send_fees_to_collector(&self, token_id: TokenIdentifier, amount: BigUint) {
         let sc_address = self.fees_collector_address().get();
-        self.fees_collector_proxy_builder(sc_address)
-            .deposit_swap_fees()
-            .add_esdt_token_transfer(token_id, 0, amount)
+        let locked_token_id = self.locked_token().get_token_id();
+        let (nonce, amount) = self.fees_from_penalty_unlocking().get();
+
+        let fees_amount = self
+            .fees_collector_proxy_builder(sc_address)
+            .deposit_penalty_fees()
+            .add_esdt_token_transfer(locked_token_id, nonce, amount)
             .execute_on_dest_context_ignore_result();
     }
 
@@ -235,4 +263,8 @@ pub trait UnlockWithPenaltyModule:
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
     fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[view(getFeesFromPenaltyUnlocking)]
+    #[storage_mapper("fees_from_penalty_unlocking")]
+    fn fees_from_penalty_unlocking(&self) -> SingleValueMapper<Nonce, BigUint>;
 }
