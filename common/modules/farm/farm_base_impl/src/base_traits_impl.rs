@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes};
 use contexts::storage_cache::StorageCache;
-use core::any::TypeId;
+use core::{any::TypeId, marker::PhantomData};
 use elrond_wasm::elrond_codec::TopEncode;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
@@ -17,7 +17,6 @@ pub trait AllBaseFarmImplTraits =
 
 pub trait FarmContract {
     type FarmSc: AllBaseFarmImplTraits;
-    // type Api: VMApi = <Self::FarmSc as ContractBase>::Api;
 
     type AttributesType: 'static
         + Clone
@@ -173,4 +172,19 @@ pub fn transmute_or_panic<M: ManagedTypeApi, FromType: 'static, ToType: 'static>
         M::error_api_impl()
             .signal_error(b"Must implement trait methods for custom attributes type");
     }
+}
+
+pub struct DefaultFarmWrapper<T>
+where
+    T: AllBaseFarmImplTraits,
+{
+    _phantom: PhantomData<T>,
+}
+
+impl<T> FarmContract for DefaultFarmWrapper<T>
+where
+    T: AllBaseFarmImplTraits,
+{
+    type FarmSc = T;
+    type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 }
