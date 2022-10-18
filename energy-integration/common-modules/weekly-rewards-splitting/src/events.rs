@@ -6,6 +6,7 @@ use energy_query::Energy;
 
 #[elrond_wasm::module]
 pub trait WeeklyRewardsSplittingEventsModule {
+    #[inline]
     fn emit_claim_multi_event(
         self,
         user: &ManagedAddress,
@@ -16,6 +17,7 @@ pub trait WeeklyRewardsSplittingEventsModule {
         self.claim_multi_event(user, current_week, energy, all_payments);
     }
 
+    #[inline]
     fn emit_update_user_energy_event(
         self,
         user: &ManagedAddress,
@@ -25,6 +27,7 @@ pub trait WeeklyRewardsSplittingEventsModule {
         self.update_user_energy_event(user, current_week, energy);
     }
 
+    #[inline]
     fn emit_update_global_amounts_event(
         self,
         current_week: Week,

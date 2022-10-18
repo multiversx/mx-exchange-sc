@@ -46,6 +46,7 @@ pub trait WeeklyRewardsSplittingModule:
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(user.clone());
+        let current_energy_amount = current_user_energy.get_energy_amount();
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
@@ -53,22 +54,35 @@ pub trait WeeklyRewardsSplittingModule:
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
-                energy: current_user_energy,
+                energy: current_user_energy.clone(),
                 week: current_week,
             }
         } else {
             claim_progress_mapper.get()
         };
 
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut calculated_energy_for_current_epoch = claim_progress.energy.clone();
+        calculated_energy_for_current_epoch.deplete(current_epoch);
+
         let mut all_rewards = ManagedVec::new();
-        let total_weeks_to_claim = current_week - claim_progress.week;
-        let weeks_to_claim = core::cmp::min(total_weeks_to_claim, MAX_CLAIM_PER_TX);
-        for _ in 0..weeks_to_claim {
-            let rewards_for_week =
-                self.claim_single(user, current_week, collect_rewards_fn, &mut claim_progress);
-            if !rewards_for_week.is_empty() {
-                all_rewards.append_vec(rewards_for_week);
+        if current_energy_amount >= calculated_energy_for_current_epoch.get_energy_amount() {
+            let total_weeks_to_claim = current_week - claim_progress.week;
+            let weeks_to_claim = core::cmp::min(total_weeks_to_claim, MAX_CLAIM_PER_TX);
+            for _ in 0..weeks_to_claim {
+                let rewards_for_week =
+                    self.claim_single(user, current_week, collect_rewards_fn, &mut claim_progress);
+                if !rewards_for_week.is_empty() {
+                    all_rewards.append_vec(rewards_for_week);
+                }
             }
+        } else {
+            // for the case when a user locks, enters the weekly rewards, and then unlocks.
+            // Then, they wait for a long period, and start claiming,
+            // getting rewards they shouldn't have access to.
+            // In this case, they receive no rewards, and their progress is reset
+            claim_progress.week = current_week;
+            claim_progress.energy = current_user_energy;
         }
 
         claim_progress_mapper.set(&claim_progress);
