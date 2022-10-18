@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    - main
+    - feat/dex_v2
   pull_request:
 
 permissions:
@@ -19,8 +21,8 @@ jobs:
     name: Contracts
     uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@v1
     with:
-      rust-toolchain: nightly-2022-03-01
-      vmtools-version: v1.4.43
+      rust-toolchain: nightly-2022-10-16
+      vmtools-version: v1.4.60
       extra-build-args: --ignore-eei-checks
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
