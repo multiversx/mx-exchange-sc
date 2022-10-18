@@ -57,7 +57,7 @@ pub trait BaseClaimRewardsModule:
 
         let reward = FC::calculate_rewards(
             self,
-            caller.clone(),
+            &caller,
             farm_token_amount,
             &token_attributes,
             &storage_cache,

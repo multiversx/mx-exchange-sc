@@ -218,20 +218,20 @@ where
 
     fn calculate_rewards(
         sc: &Self::FarmSc,
-        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let base_farm_reward = DefaultFarmWrapper::<T>::calculate_rewards(
             sc,
-            caller.clone(),
+            caller,
             farm_token_amount,
             token_attributes,
             storage_cache,
         );
         let boosted_yield_rewards =
-            sc.claim_boosted_yields_rewards(&caller, &storage_cache.reward_token_id);
+            sc.claim_boosted_yields_rewards(caller, &storage_cache.reward_token_id);
 
         base_farm_reward + boosted_yield_rewards
     }
