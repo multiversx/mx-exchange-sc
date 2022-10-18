@@ -531,7 +531,7 @@ fn claim_inactive_week_test() {
         .assert_ok();
 
     // decrease user energy
-    fc_setup.set_energy(&first_user, 50, 2_500);
+    fc_setup.set_energy(&first_user, 50, 2_650);
 
     // only first user claims in second week
     fc_setup.claim(&first_user).assert_ok();
@@ -555,15 +555,15 @@ fn claim_inactive_week_test() {
     fc_setup
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
-            // 12_000 - 700 + 350 - 3_000 + 2_500
-            // = 11_300 + 350 - 500
-            // = 11_150
-            assert_eq!(sc.total_energy_for_week(2).get(), 11_150);
+            // 12_000 - 700 + 350 - 3_000 + 2_650
+            // = 11_300 + 350 - 350
+            // = 11_300
+            assert_eq!(sc.total_energy_for_week(2).get(), 11_300);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 100);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
             let first_user_energy = Energy::new(
-                BigInt::from(managed_biguint!(2_500)),
+                BigInt::from(managed_biguint!(2_650)),
                 current_epoch,
                 managed_biguint!(50),
             );
@@ -586,10 +586,10 @@ fn claim_inactive_week_test() {
 
     // energy week 2 for second user will be 9_000 - 7 * 50 = 9_000 - 350 = 8_650
     let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 12_000u32
-        + rust_biguint!(USER_BALANCE) * 8_650u32 / 11_150u32;
+        + rust_biguint!(USER_BALANCE) * 8_650u32 / 11_300u32;
     let second_user_expected_second_token_amt = rust_biguint!(USER_BALANCE / 2) * 9_000u32
         / 12_000u32
-        + rust_biguint!(USER_BALANCE / 2) * 8_650u32 / 11_150u32;
+        + rust_biguint!(USER_BALANCE / 2) * 8_650u32 / 11_300u32;
 
     fc_setup.b_mock.check_esdt_balance(
         &second_user,
@@ -662,6 +662,73 @@ fn owner_update_energy_test() {
                 ClaimProgress {
                     energy: first_user_energy,
                     week: 1
+                }
+            );
+        })
+        .assert_ok();
+}
+
+#[test]
+fn try_claim_after_unlock() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 50, 3_000);
+    fc_setup.set_energy(&second_user, 50, 9_000);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // user claim first week - users only get registered for week 2, without receiving rewards
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // advance week
+    fc_setup.advance_week();
+
+    // deposit rewards week 2
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // decrease user energy
+    fc_setup.set_energy(&first_user, 50, 1_000);
+
+    // only first user claims in second week
+    fc_setup.claim(&first_user).assert_ok();
+
+    // no rewards are received, as energy decreased from the calculated amount
+    fc_setup
+        .b_mock
+        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_zero);
+    fc_setup
+        .b_mock
+        .check_esdt_balance(&first_user, SECOND_TOKEN_ID, &rust_zero);
+
+    let current_epoch = fc_setup.current_epoch;
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            let first_user_energy = Energy::new(
+                BigInt::from(managed_biguint!(1_000)),
+                current_epoch,
+                managed_biguint!(50),
+            );
+            assert_eq!(
+                sc.current_claim_progress(&managed_address!(&first_user))
+                    .get(),
+                ClaimProgress {
+                    energy: first_user_energy,
+                    week: 2
                 }
             );
         })
