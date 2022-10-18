@@ -15,6 +15,20 @@ impl<M: ManagedTypeApi> TokenPair<M> {
     }
 }
 
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+pub struct NonceAmountPair<M: ManagedTypeApi> {
+    pub nonce: u64,
+    pub amount: BigUint<M>,
+}
+
+impl<M: ManagedTypeApi> NonceAmountPair<M> {
+    #[inline]
+    pub fn new(nonce: u64, amount: BigUint<M>) -> Self {
+        NonceAmountPair { nonce, amount }
+    }
+}   
+
+
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug,
 )]
