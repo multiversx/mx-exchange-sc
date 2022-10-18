@@ -6,10 +6,10 @@ elrond_wasm::derive_imports!();
 use core::marker::PhantomData;
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
+use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
-use farm_base_impl::base_traits_impl::FarmContract;
+use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
 use crate::exit_penalty;
@@ -227,26 +227,20 @@ where
 
     fn calculate_rewards(
         sc: &Self::FarmSc,
-        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farm_token_nonce: Nonce,
+        caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let token_rps = token_attributes.get_reward_per_share();
-        let base_farm_reward = if &storage_cache.reward_per_share > token_rps {
-            let rps_diff = &storage_cache.reward_per_share - token_rps;
-            farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
-        } else {
-            BigUint::zero()
-        };
-
-        let boosted_yield_rewards = sc.claim_boosted_yields_rewards(
-            &caller,
-            farm_token_nonce,
+        let base_farm_reward = DefaultFarmWrapper::<T>::calculate_rewards(
+            sc,
+            caller,
             farm_token_amount,
-            &storage_cache.reward_token_id,
+            token_attributes,
+            storage_cache,
         );
+        let boosted_yield_rewards =
+            sc.claim_boosted_yields_rewards(caller, &storage_cache.reward_token_id);
 
         base_farm_reward + boosted_yield_rewards
     }

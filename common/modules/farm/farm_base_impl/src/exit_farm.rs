@@ -57,8 +57,7 @@ pub trait BaseExitFarmModule:
 
         let mut reward = FC::calculate_rewards(
             self,
-            caller,
-            farm_token_nonce,
+            &caller,
             farm_token_amount,
             &token_attributes,
             &storage_cache,
