@@ -187,7 +187,7 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint(mergeFarmTokensWithEnergy)]
+    #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         let new_tokens = self.merge_farm_tokens(&caller);
