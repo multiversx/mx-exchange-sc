@@ -43,8 +43,6 @@ pub trait WeeklyRewardsSplittingModule:
         &self,
         user: &ManagedAddress,
         nonce: Nonce,
-        farm_token_position_amount: &BigUint,
-        total_farm_tokens: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
@@ -104,8 +102,6 @@ pub trait WeeklyRewardsSplittingModule:
         &self,
         user: &ManagedAddress,
         current_week: Week,
-        farm_token_position_amount: &BigUint,
-        total_farm_tokens: &BigUint,
         collect_rewards_fn: CollectRewardsFn,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
@@ -113,8 +109,6 @@ pub trait WeeklyRewardsSplittingModule:
             self.collect_and_get_rewards_for_week(claim_progress.week, collect_rewards_fn);
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
-            farm_token_position_amount,
-            total_farm_tokens,
             &claim_progress.energy.get_energy_amount(),
             &total_rewards,
         );
@@ -158,8 +152,6 @@ pub trait WeeklyRewardsSplittingModule:
     fn get_user_rewards_for_week(
         &self,
         week: Week,
-        _farm_token_position_amount: &BigUint,
-        _user_total_farm_tokens: &BigUint,
         energy_amount: &BigUint,
         total_rewards: &TokenAmountPairsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {

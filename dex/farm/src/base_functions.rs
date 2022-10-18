@@ -241,7 +241,7 @@ where
             storage_cache,
         );
         let boosted_yield_rewards =
-            sc.claim_boosted_yields_rewards(caller, farm_token_nonce, farm_token_amount,  &storage_cache.reward_token_id);
+            sc.claim_boosted_yields_rewards(caller, farm_token_nonce,  &storage_cache.reward_token_id);
 
         base_farm_reward + boosted_yield_rewards
     }

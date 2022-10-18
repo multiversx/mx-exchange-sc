@@ -37,12 +37,9 @@ pub trait FeesCollector:
 
         let caller = self.blockchain().get_caller();
         let fees_collector_nonce = 0u64;
-        let fees_collector_token_amount = BigUint::from(1u64);
         let rewards = self.claim_multi(
             &caller,
             fees_collector_nonce,
-            &fees_collector_token_amount,
-            &fees_collector_token_amount,
             Self::collect_accumulated_fees_for_week,
         );
         if !rewards.is_empty() {
