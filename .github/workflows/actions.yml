@@ -1,7 +1,9 @@
 name: CI
 
 on:
-  workflow_dispatch:
+  push:
+    - main
+    - feat/dex_v2
   pull_request:
 
 permissions:
