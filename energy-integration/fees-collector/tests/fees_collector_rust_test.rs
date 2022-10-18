@@ -34,7 +34,6 @@ fn claim_first_week_test() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 500, 1_000);
     fc_setup.set_energy(&second_user, 500, 3_000);
@@ -97,7 +96,7 @@ fn claim_first_week_test() {
             assert_eq!(sc.last_global_update_week().get(), 1);
 
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -105,7 +104,7 @@ fn claim_first_week_test() {
                 }
             );
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&second_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&second_user))
                     .get(),
                 ClaimProgress {
                     energy: second_user_energy,
@@ -164,7 +163,7 @@ fn claim_first_week_test() {
             assert_eq!(sc.last_global_update_week().get(), 1);
 
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -172,7 +171,7 @@ fn claim_first_week_test() {
                 }
             );
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&second_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&second_user))
                     .get(),
                 ClaimProgress {
                     energy: second_user_energy,
@@ -193,7 +192,6 @@ fn claim_after_dex_inactive_test() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
@@ -292,7 +290,7 @@ fn claim_after_dex_inactive_test() {
                 managed_biguint!(50),
             );
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -313,7 +311,6 @@ fn claim_second_week_test() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 500, 1_000);
     fc_setup.set_energy(&second_user, 500, 9_000);
@@ -416,7 +413,7 @@ fn claim_second_week_test() {
             assert_eq!(sc.last_global_update_week().get(), 2);
 
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -472,7 +469,7 @@ fn claim_second_week_test() {
             assert_eq!(sc.last_global_update_week().get(), 2);
 
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -511,7 +508,6 @@ fn claim_inactive_week_test() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
@@ -572,7 +568,7 @@ fn claim_inactive_week_test() {
                 managed_biguint!(50),
             );
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -617,7 +613,6 @@ fn owner_update_energy_test() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
@@ -662,7 +657,7 @@ fn owner_update_energy_test() {
             assert_eq!(sc.last_global_update_week().get(), 1);
 
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,
@@ -683,7 +678,6 @@ fn try_claim_after_unlock() {
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let fees_collector_nonce = 0u64;
 
     fc_setup.set_energy(&first_user, 50, 3_000);
     fc_setup.set_energy(&second_user, 50, 9_000);
@@ -730,7 +724,7 @@ fn try_claim_after_unlock() {
                 managed_biguint!(50),
             );
             assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user), fees_collector_nonce)
+                sc.current_claim_progress(&managed_address!(&first_user))
                     .get(),
                 ClaimProgress {
                     energy: first_user_energy,

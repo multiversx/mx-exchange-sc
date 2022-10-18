@@ -38,6 +38,7 @@ pub trait Farm:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm::base_functions::BaseFunctionsModule
+    + farm::claim_progress::ClaimProgressModule
     + farm::exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule

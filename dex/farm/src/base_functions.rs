@@ -12,6 +12,7 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
+use crate::claim_progress;
 use crate::exit_penalty;
 
 type ClaimRewardsResultType<BigUint> =
@@ -29,6 +30,7 @@ pub trait BaseFunctionsModule:
     + permissions_module::PermissionsModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + claim_progress::ClaimProgressModule
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
