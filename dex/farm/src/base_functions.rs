@@ -40,7 +40,6 @@ pub trait BaseFunctionsModule:
     + farm_boosted_yields::FarmBoostedYieldsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
-    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
