@@ -3,12 +3,12 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub const MAX_CLAIM_PER_TX: usize = 4;
+
 pub mod events;
-pub mod ongoing_operation;
 
 use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
 use energy_query::Energy;
-use ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
@@ -37,7 +37,6 @@ impl<M: ManagedTypeApi> ClaimProgress<M> {
 pub trait WeeklyRewardsSplittingModule:
     energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
-    + ongoing_operation::OngoingOperationModule
     + events::WeeklyRewardsSplittingEventsModule
 {
     fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
@@ -61,25 +60,16 @@ pub trait WeeklyRewardsSplittingModule:
             claim_progress_mapper.get()
         };
 
-        // Gas costs will increase the more weeks are claimed,
-        // as the all_rewards vec will be more expensive to serialize and return
         let mut all_rewards = ManagedVec::new();
         let total_weeks_to_claim = current_week - claim_progress.week;
-        let gas_for_return_data =
-            (total_weeks_to_claim as u64 + 1) * DEFAULT_MIN_GAS_TO_SAVE_PROGRESS;
-        let _ = self.run_while_it_has_gas(gas_for_return_data, || {
-            if claim_progress.week == current_week {
-                return STOP_OP;
-            }
-
+        let weeks_to_claim = core::cmp::min(total_weeks_to_claim, MAX_CLAIM_PER_TX);
+        for _ in 0..weeks_to_claim {
             let rewards_for_week =
                 self.claim_single(user, current_week, collect_rewards_fn, &mut claim_progress);
             if !rewards_for_week.is_empty() {
                 all_rewards.append_vec(rewards_for_week);
             }
-
-            CONTINUE_OP
-        });
+        }
 
         claim_progress_mapper.set(&claim_progress);
 

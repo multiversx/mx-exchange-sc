@@ -1,29 +1,29 @@
 #![no_std]
 #![feature(generic_associated_types)]
 
+elrond_wasm::imports!();
+
 use common_types::PaymentsVec;
 use energy_query::Energy;
-use weekly_rewards_splitting::ongoing_operation::{
-    CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
-};
 
-elrond_wasm::imports!();
+use crate::ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
 
 pub mod config;
 pub mod events;
 pub mod fees_accumulation;
+pub mod ongoing_operation;
 
 #[elrond_wasm::contract]
 pub trait FeesCollector:
     config::ConfigModule
     + events::FeesCollectorEventsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
-    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + fees_accumulation::FeesAccumulationModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
     + elrond_wasm_modules::pause::PauseModule
+    + ongoing_operation::OngoingOperationModule
 {
     #[init]
     fn init(&self) {
