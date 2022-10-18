@@ -152,6 +152,7 @@ pub trait Farm:
         Wrapper::<Self>::calculate_rewards(
             self,
             &user,
+            farm_token_nonce,
             &farm_token_amount,
             &attributes,
             &storage_cache,

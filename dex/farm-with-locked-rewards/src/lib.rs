@@ -179,6 +179,7 @@ pub trait Farm:
         NoMintWrapper::<Self>::calculate_rewards(
             self,
             &user,
+            farm_token_nonce,
             &farm_token_amount,
             &attributes,
             &storage_cache,
@@ -254,6 +255,7 @@ where
     fn calculate_rewards(
         sc: &Self::FarmSc,
         caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,

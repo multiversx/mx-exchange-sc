@@ -65,6 +65,7 @@ pub trait BaseCompoundRewardsModule:
         let reward = FC::calculate_rewards(
             self,
             &caller,
+            farm_token_nonce,
             farm_token_amount,
             &token_attributes,
             &storage_cache,

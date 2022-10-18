@@ -47,7 +47,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalLockedTokensForWeek
         getUserEnergyForWeek
         isSCAddressWhitelisted
-        mergeFarmTokensWithEnergy
+        mergeFarmTokens
         pause
         registerFarmToken
         removeAdmin
