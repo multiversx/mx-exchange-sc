@@ -30,7 +30,7 @@ pub mod fees_collector_proxy {
         #[payable("*")]
         #[endpoint(depositPenaltyFees)]
         fn deposit_penalty_fees(&self);
-
+    }
 }
 
 #[elrond_wasm::module]
