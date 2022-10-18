@@ -243,6 +243,10 @@ pub trait UnlockWithPenaltyModule:
         let sc_address = self.fees_collector_address().get();
         let locked_token_id = self.locked_token().get_token_id();
         let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
+        let locked_token_mapper = self.locked_token();
+
+        locked_token_mapper.nft_burn(nonce_amount_pair.nonce, &nonce_amount_pair.amount);
+        self.fees_from_penalty_unlocking().clear();
 
         self.fees_collector_proxy_builder(sc_address)
             .deposit_penalty_fees()

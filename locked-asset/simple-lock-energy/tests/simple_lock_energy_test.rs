@@ -220,16 +220,18 @@ fn reduce_lock_period_test() {
         }),
     );
 
-    // check the tokens were half burned, half set to fees collector
+    //check the tokens were half burned, half saved into the Energy contract
     setup.b_mock.check_esdt_balance(
         &setup.sc_wrapper.address_ref(),
         BASE_ASSET_TOKEN_ID,
-        &rust_biguint!(0),
+        &(penalty_amount / 2u64),
     );
+
+    //at this point, the fee collector should not receive any tokens
     setup.b_mock.check_esdt_balance(
         &setup.fees_collector_mock,
         BASE_ASSET_TOKEN_ID,
-        &(penalty_amount / 2u64),
+        &rust_biguint!(0),
     );
 
     // check new energy amount

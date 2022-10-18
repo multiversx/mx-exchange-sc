@@ -26,8 +26,7 @@ impl<M: ManagedTypeApi> NonceAmountPair<M> {
     pub fn new(nonce: u64, amount: BigUint<M>) -> Self {
         NonceAmountPair { nonce, amount }
     }
-}   
-
+}
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug,
