@@ -708,6 +708,7 @@ fn test_farm_through_simple_lock() {
         1,
         &rust_biguint!(1_000_000_000),
         Some(&FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 1,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
@@ -727,7 +728,7 @@ fn test_farm_through_simple_lock() {
             1,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let claim_result = sc.farm_claim_rewards_locked_token(FarmType::SimpleFarm);
+                let claim_result = sc.farm_claim_rewards_locked_token();
                 let (new_proxy_token, reward_tokens) = claim_result.into_tuple();
                 assert_eq!(
                     new_proxy_token.token_identifier,
@@ -755,6 +756,7 @@ fn test_farm_through_simple_lock() {
         2,
         &rust_biguint!(1_000_000_000),
         Some(&FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 2,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
@@ -778,7 +780,7 @@ fn test_farm_through_simple_lock() {
             2,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token(FarmType::SimpleFarm);
+                let exit_farm_result = sc.exit_farm_locked_token();
                 let (locked_tokens, reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
@@ -842,6 +844,7 @@ fn test_farm_through_simple_lock() {
         3,
         &rust_biguint!(500_000_000),
         Some(&FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 3,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
@@ -880,6 +883,7 @@ fn test_farm_through_simple_lock() {
         4,
         &rust_biguint!(800_000_000),
         Some(&FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 4,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
@@ -953,6 +957,7 @@ fn test_farm_through_simple_lock() {
         7,
         &rust_biguint!(1_000_000_000),
         Some(&FarmProxyTokenAttributes::<DebugApi> {
+            farm_type: FarmType::SimpleFarm,
             farm_token_id: managed_token_id!(FARM_TOKEN_ID),
             farm_token_nonce: 7,
             farming_token_id: managed_token_id!(LP_TOKEN_ID),
@@ -970,7 +975,7 @@ fn test_farm_through_simple_lock() {
             7,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token(FarmType::SimpleFarm);
+                let exit_farm_result = sc.exit_farm_locked_token();
                 let (locked_tokens, _reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
