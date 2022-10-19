@@ -68,7 +68,10 @@ pub trait FarmInteractionsModule {
 
         let result: MultiValueEncoded<ManagedBuffer> = contract_call.execute_on_dest_context();
         let raw = result.into_vec_of_buffers();
-        require!(raw.len() > 0, "at least one result expected from enterFarm");
+        require!(
+            !raw.is_empty(),
+            "at least one result expected from enterFarm"
+        );
 
         let last_elem = raw.get(raw.len() - 1);
         let new_farm_tokens: EnterFarmResultType<Self::Api> =
@@ -93,7 +96,10 @@ pub trait FarmInteractionsModule {
             .execute_on_dest_context();
 
         let raw = result.into_vec_of_buffers();
-        require!(raw.len() > 0, "at least one result expected from enterFarm");
+        require!(
+            !raw.is_empty(),
+            "at least one result expected from exitFarm"
+        );
 
         let initial_farming_tokens = self
             .serializer()
@@ -122,7 +128,10 @@ pub trait FarmInteractionsModule {
             .execute_on_dest_context();
 
         let raw = result.into_vec_of_buffers();
-        require!(raw.len() > 0, "at least one result expected from enterFarm");
+        require!(
+            !raw.is_empty(),
+            "at least one result expected from claim rewards"
+        );
 
         let new_farm_tokens = self
             .serializer()
@@ -143,7 +152,10 @@ pub trait FarmInteractionsModule {
     ) -> EsdtTokenPayment {
         let result: MultiValueEncoded<ManagedBuffer> = contract_call.execute_on_dest_context();
         let raw = result.into_vec_of_buffers();
-        require!(raw.len() > 0, "at least one result expected from enterFarm");
+        require!(
+            !raw.is_empty(),
+            "at least one result expected from enterFarm"
+        );
         let last_elem = raw.get(raw.len() - 1);
         self.serializer().top_decode_from_managed_buffer(&last_elem)
     }
