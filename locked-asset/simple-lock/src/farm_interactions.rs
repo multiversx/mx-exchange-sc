@@ -146,20 +146,6 @@ pub trait FarmInteractionsModule {
         }
     }
 
-    fn execute_on_dest_context_multiple_results(
-        &self,
-        contract_call: ContractCall<Self::Api, EnterFarmResultType<Self::Api>>,
-    ) -> EsdtTokenPayment {
-        let result: MultiValueEncoded<ManagedBuffer> = contract_call.execute_on_dest_context();
-        let raw = result.into_vec_of_buffers();
-        require!(
-            !raw.is_empty(),
-            "at least one result expected from enterFarm"
-        );
-        let last_elem = raw.get(raw.len() - 1);
-        self.serializer().top_decode_from_managed_buffer(&last_elem)
-    }
-
     #[proxy]
     fn farm_proxy(&self, sc_address: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
 }
