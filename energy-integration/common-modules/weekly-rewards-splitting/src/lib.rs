@@ -11,7 +11,7 @@ pub mod events;
 pub mod global_info;
 
 use base_impl::WeeklyRewardsSplittingTraitsModule;
-use common_types::{Nonce, PaymentsVec};
+use common_types::PaymentsVec;
 use energy_query::Energy;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
@@ -138,16 +138,17 @@ pub trait WeeklyRewardsSplittingModule:
         &self,
         week: Week,
         energy_amount: &BigUint,
-        total_rewards: &TokenAmountPairsVec<Self::Api>,
+        total_rewards: &PaymentsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
+        let biguint_zero = BigUint::zero();
         let mut user_rewards = ManagedVec::new();
-        if energy_amount == 0 {
+        if energy_amount == &biguint_zero {
             return user_rewards;
         }
 
         let total_energy = self.total_energy_for_week(week).get();
         for weekly_reward in total_rewards {
-            let reward_amount = weekly_reward.amount * &energy_amount / &total_energy;
+            let reward_amount = weekly_reward.amount * energy_amount / &total_energy;
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(
                     weekly_reward.token_identifier,

@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use core::marker::PhantomData;
 
-use common_types::{Nonce, TokenAmountPair, TokenAmountPairsVec};
+use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
@@ -121,13 +121,13 @@ where
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
-    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let reward_token_id = module.reward_token_id().get();
         let rewards_mapper = module.accumulated_rewards_for_week(week);
         let total_rewards = rewards_mapper.get();
         rewards_mapper.clear();
 
-        ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id, total_rewards))
+        ManagedVec::from_single_item(EsdtTokenPayment::new(reward_token_id, 0, total_rewards))
     }
 
     fn get_claim_progress_mapper(
