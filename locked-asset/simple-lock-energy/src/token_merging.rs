@@ -1,5 +1,6 @@
 elrond_wasm::imports!();
 
+use common_structs::PaymentsVec;
 use mergeable::{weighted_average, Mergeable};
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -49,15 +50,41 @@ pub trait TokenMergingModule:
     // TODO: Only allow original caller arg for whitelisted addresses
     #[payable("*")]
     #[endpoint(mergeTokens)]
-    fn merge_tokens(&self, opt_original_caller: OptionalValue<ManagedAddress>) -> EsdtTokenPayment {
+    fn merge_tokens_endpoint(
+        &self,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> EsdtTokenPayment {
         self.require_not_paused();
 
-        let current_epoch = self.blockchain().get_block_epoch();
         let actual_caller = self.blockchain().get_caller();
-        let original_caller = self.dest_from_optional(opt_original_caller);
-        let locked_token_mapper = self.locked_token();
 
-        let mut payments = self.get_non_empty_payments();
+        let payments = self.get_non_empty_payments();
+
+        let output_amount_attributes = self.merge_tokens(payments, opt_original_caller);
+
+        let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
+            output_amount_attributes.attributes.original_token_id,
+            output_amount_attributes.attributes.original_token_nonce,
+            output_amount_attributes.token_amount,
+        );
+        let output_tokens = self.lock_and_send(
+            &actual_caller,
+            simulated_lock_payment,
+            output_amount_attributes.attributes.unlock_epoch,
+        );
+
+        self.to_esdt_payment(output_tokens)
+    }
+
+    fn merge_tokens(
+        self,
+        mut payments: PaymentsVec<Self::Api>,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> LockedAmountAttributesPair<Self::Api> {
+        let locked_token_mapper = self.locked_token();
+        let original_caller = self.dest_from_optional(opt_original_caller);
+        let current_epoch = self.blockchain().get_block_epoch();
+
         locked_token_mapper.require_all_same_token(&payments);
 
         let first_payment = payments.get(0);
@@ -110,18 +137,6 @@ pub trait TokenMergingModule:
 
                 output_pair
             });
-
-        let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
-            output_amount_attributes.attributes.original_token_id,
-            output_amount_attributes.attributes.original_token_nonce,
-            output_amount_attributes.token_amount,
-        );
-        let output_tokens = self.lock_and_send(
-            &actual_caller,
-            simulated_lock_payment,
-            output_amount_attributes.attributes.unlock_epoch,
-        );
-
-        self.to_esdt_payment(output_tokens)
+        output_amount_attributes
     }
 }

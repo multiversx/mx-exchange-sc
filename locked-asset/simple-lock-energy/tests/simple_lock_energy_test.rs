@@ -278,12 +278,12 @@ fn multiple_early_unlocks_same_week_test() {
     setup.b_mock.check_nft_balance(
         &setup.sc_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
-        1,
+        2,
         &(expected_penalty_amount + 2u64),
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
             original_token_nonce: 0,
-            unlock_epoch: 360,
+            unlock_epoch: 390,
         }),
     );
 }

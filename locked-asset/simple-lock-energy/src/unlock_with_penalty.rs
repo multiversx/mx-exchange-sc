@@ -1,11 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Epoch, Nonce, NonceAmountPair, Week};
-use mergeable::Mergeable;
+use common_structs::{Epoch, Nonce, NonceAmountPair, PaymentsVec, Week};
+
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{lock_options::EPOCHS_PER_MONTH, token_merging::LockedAmountAttributesPair};
+use crate::{lock_options::EPOCHS_PER_MONTH, token_merging};
 
 const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
@@ -39,6 +39,7 @@ pub trait UnlockWithPenaltyModule:
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
+    + token_merging::TokenMergingModule
     + utils::UtilsModule
 {
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
@@ -218,55 +219,44 @@ pub trait UnlockWithPenaltyModule:
                 self.fees_from_penalty_unlocking()
                     .set(NonceAmountPair::new(token_nonce, remaining_amount));
             } else {
-                self.merge_fees_from_penalty(token_nonce, &remaining_amount)
+                self.merge_fees_from_penalty(token_nonce, remaining_amount)
             }
         }
 
-        // Send fees to FeeCollector SC
-        let current_epoch = self.blockchain().get_block_epoch();
-        let last_week_fee_sent_to_collector = self.last_week_fee_sent_to_collector().get();
-        if current_epoch >= last_week_fee_sent_to_collector + EPOCHS_PER_WEEK {
-            self.send_fees_to_collector();
-            self.last_week_fee_sent_to_collector().set(current_epoch);
-        }
+        // Only once per week
+        self.send_fees_to_collector();
     }
 
     /// Merges new fees with existing fees and saves in storage
-    fn merge_fees_from_penalty(&self, token_nonce: Nonce, new_fee_amount: &BigUint) {
+    fn merge_fees_from_penalty(&self, token_nonce: Nonce, new_fee_amount: BigUint) {
         let locked_token_mapper = self.locked_token();
         let existing_nonce_amount_pair = self.fees_from_penalty_unlocking().get();
-        let existing_token_attributes: LockedTokenAttributes<Self::Api> =
-            locked_token_mapper.get_token_attributes(existing_nonce_amount_pair.nonce);
-
-        let mut output_pair = LockedAmountAttributesPair {
-            token_amount: existing_nonce_amount_pair.amount.clone(),
-            attributes: existing_token_attributes,
-        };
-
-        locked_token_mapper.nft_burn(
+        let mut payments = PaymentsVec::new();
+        payments.push(EsdtTokenPayment::new(
+            locked_token_mapper.get_token_id(),
+            token_nonce,
+            new_fee_amount,
+        ));
+        payments.push(EsdtTokenPayment::new(
+            locked_token_mapper.get_token_id(),
             existing_nonce_amount_pair.nonce,
-            &existing_nonce_amount_pair.amount,
-        );
+            existing_nonce_amount_pair.amount,
+        ));
 
-        let new_token_attributes: LockedTokenAttributes<Self::Api> =
-            locked_token_mapper.get_token_attributes(token_nonce);
-        let new_pair = LockedAmountAttributesPair {
-            token_amount: new_fee_amount.clone(),
-            attributes: new_token_attributes,
-        };
-
-        locked_token_mapper.nft_burn(token_nonce, &new_fee_amount);
-
-        output_pair.merge_with(new_pair);
+        let new_locked_amount_attributes = self.merge_tokens(payments, OptionalValue::None);
 
         let sft_nonce = self.get_or_create_nonce_for_attributes(
             &locked_token_mapper,
-            &output_pair.attributes.original_token_id.clone().into_name(),
-            &output_pair.attributes,
+            &new_locked_amount_attributes
+                .attributes
+                .original_token_id
+                .clone()
+                .into_name(),
+            &new_locked_amount_attributes.attributes,
         );
 
-        let new_locked_tokens =
-            locked_token_mapper.nft_add_quantity(sft_nonce, output_pair.token_amount.clone());
+        let new_locked_tokens = locked_token_mapper
+            .nft_add_quantity(sft_nonce, new_locked_amount_attributes.token_amount.clone());
 
         self.fees_from_penalty_unlocking().set(NonceAmountPair::new(
             new_locked_tokens.token_nonce,
@@ -277,19 +267,27 @@ pub trait UnlockWithPenaltyModule:
     #[payable("*")]
     #[endpoint(sendFeesToCollector)]
     fn send_fees_to_collector(&self) {
-        let sc_address = self.fees_collector_address().get();
-        let locked_token_id = self.locked_token().get_token_id();
-        let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
+        // Send fees to FeeCollector SC
+        let current_epoch = self.blockchain().get_block_epoch();
+        let last_week_fee_sent_to_collector = self.last_week_fee_sent_to_collector().get();
 
-        self.fees_from_penalty_unlocking().clear();
-        self.fees_collector_proxy_builder(sc_address)
-            .deposit_swap_fees()
-            .add_esdt_token_transfer(
-                locked_token_id,
-                nonce_amount_pair.nonce,
-                nonce_amount_pair.amount,
-            )
-            .execute_on_dest_context_ignore_result();
+        if current_epoch >= last_week_fee_sent_to_collector + EPOCHS_PER_WEEK {
+            let sc_address = self.fees_collector_address().get();
+            let locked_token_id = self.locked_token().get_token_id();
+            let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
+
+            self.fees_from_penalty_unlocking().clear();
+            self.fees_collector_proxy_builder(sc_address)
+                .deposit_swap_fees()
+                .add_esdt_token_transfer(
+                    locked_token_id,
+                    nonce_amount_pair.nonce,
+                    nonce_amount_pair.amount,
+                )
+                .execute_on_dest_context_ignore_result();
+
+            self.last_week_fee_sent_to_collector().set(current_epoch);
+        }
     }
 
     #[proxy]
