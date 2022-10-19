@@ -7,6 +7,7 @@ pub const MAX_CLAIM_PER_TX: usize = 4;
 
 pub mod events;
 pub mod global_info;
+pub mod locked_token_buckets;
 
 use common_types::{PaymentsVec, TokenAmountPairsVec};
 use energy_query::Energy;
@@ -40,6 +41,7 @@ pub trait WeeklyRewardsSplittingModule:
     + week_timekeeping::WeekTimekeepingModule
     + events::WeeklyRewardsSplittingEventsModule
     + global_info::WeeklyRewardsGlobalInfo
+    + locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
 {
     fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
         &self,
