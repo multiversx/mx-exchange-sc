@@ -123,6 +123,7 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
                     if bucket_id >= first_bucket_id {
                         Some(bucket_id)
                     } else {
+                        // bucket was already shifted out
                         None
                     }
                 } else {
