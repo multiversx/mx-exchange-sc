@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    - main
-    - feat/dex_v2
+    branches: [ main, feat/* ]
   pull_request:
+    branches: [ main, feat/* ]
 
 permissions:
   actions: write
