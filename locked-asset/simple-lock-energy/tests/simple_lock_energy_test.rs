@@ -147,15 +147,15 @@ fn unlock_early_test() {
         .assert_ok();
 
     // unlock early after half a year - with half a year remaining
-    // unlock epoch = 360, so epochs remaining after half year (1 + 365 / 2 = 183)
-    // = 360 - 183 = 177
+    // unlock epoch = 360, so epochs remaining after half year (1 + 360 / 2 = 181)
+    // = 360 - 181 = 179
     let half_year_epochs = EPOCHS_IN_YEAR / 2;
     current_epoch += half_year_epochs;
     setup.b_mock.set_block_epoch(current_epoch);
 
-    let penalty_percentage = 485u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
+    let penalty_percentage = 498u64; // 1 + 9_999 * 179 / (10 * 360) ~= 1 + 500 = 501
     let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
-    let penalty_amount = setup.get_penalty_amount(half_balance, 177);
+    let penalty_amount = setup.get_penalty_amount(half_balance, 179);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     setup.unlock_early(&first_user, 1, half_balance).assert_ok();
@@ -185,20 +185,19 @@ fn reduce_lock_period_test() {
             &first_user,
             BASE_ASSET_TOKEN_ID,
             half_balance,
-            LOCK_OPTIONS[0],
+            LOCK_OPTIONS[1],
         )
         .assert_ok();
 
-    // reduce half year worth of epochs, 180 ~= 6 months
-    let half_year_epochs = 180;
+    // reduce full year worth of epochs
 
-    let penalty_percentage = 494u64; // 1 + 9_999 * 180 / (10 * 365) ~= 1 + 493 = 494
+    let penalty_percentage = 1000u64; // 1 + 9_999 * 360 / (10 * 365) ~= 1 + 986 = 987
     let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
-    let penalty_amount = setup.get_penalty_amount(half_balance, half_year_epochs);
+    let penalty_amount = setup.get_penalty_amount(half_balance, EPOCHS_IN_YEAR);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     setup
-        .reduce_lock_period(&first_user, 1, half_balance, half_year_epochs)
+        .reduce_lock_period(&first_user, 1, half_balance, EPOCHS_IN_YEAR)
         .assert_ok();
 
     setup.b_mock.check_esdt_balance(
@@ -208,7 +207,7 @@ fn reduce_lock_period_test() {
     );
 
     let expected_locked_token_balance = rust_biguint!(half_balance) - &penalty_amount;
-    let expected_new_unlock_epoch = to_start_of_month(360 - half_year_epochs);
+    let expected_new_unlock_epoch = EPOCHS_IN_YEAR * 4; // from 5 initial years - 1 year = 4 years
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,

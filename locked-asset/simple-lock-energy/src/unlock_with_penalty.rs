@@ -4,7 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::Epoch;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::lock_options::EPOCHS_PER_MONTH;
+use crate::lock_options::{EPOCHS_PER_YEAR};
 
 const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
@@ -94,8 +94,8 @@ pub trait UnlockWithPenaltyModule:
     #[endpoint(reduceLockPeriod)]
     fn reduce_lock_period(&self, epochs_to_reduce: Epoch) -> EsdtTokenPayment {
         require!(
-            epochs_to_reduce % EPOCHS_PER_MONTH == 0,
-            "May only reduce by multiples of months (30 epochs)"
+            epochs_to_reduce % EPOCHS_PER_YEAR == 0,
+            "May only reduce by multiples of 12 months (360 epochs)"
         );
 
         self.reduce_lock_period_common(Some(epochs_to_reduce))

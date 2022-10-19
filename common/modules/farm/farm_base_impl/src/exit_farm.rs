@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
-use common_structs::{FarmToken};
+use common_structs::FarmToken;
 use contexts::{
     exit_farm_context::ExitFarmContext,
     storage_cache::{FarmContracTraitBounds, StorageCache},
