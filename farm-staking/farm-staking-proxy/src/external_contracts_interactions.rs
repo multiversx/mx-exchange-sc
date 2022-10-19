@@ -80,6 +80,7 @@ pub trait ExternalContractsInteractionsModule:
 
     fn merge_lp_farm_tokens(
         &self,
+        caller: ManagedAddress,
         base_lp_token: EsdtTokenPayment<Self::Api>,
         mut additional_lp_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
     ) -> EsdtTokenPayment<Self::Api> {
@@ -91,7 +92,7 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens_endpoint()
+            .merge_farm_tokens_endpoint(OptionalValue::Some(caller))
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context()
     }

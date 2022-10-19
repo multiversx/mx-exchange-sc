@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes};
+use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
 use core::{any::TypeId, marker::PhantomData};
 use elrond_wasm::elrond_codec::TopEncode;
@@ -58,6 +58,7 @@ pub trait FarmContract {
     fn calculate_rewards(
         _sc: &Self::FarmSc,
         _caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        _farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,

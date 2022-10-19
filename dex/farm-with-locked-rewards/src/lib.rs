@@ -5,10 +5,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::marker::PhantomData;
-
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
+use core::marker::PhantomData;
 
 use farm::{
     base_functions::{BaseFunctionsModule, Wrapper},
@@ -39,6 +38,7 @@ pub trait Farm:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm::base_functions::BaseFunctionsModule
+    + farm::claim_progress::ClaimProgressModule
     + farm::exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -87,7 +87,6 @@ pub trait Farm:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-
         let output_farm_token_payment = self.enter_farm::<NoMintWrapper<Self>>(original_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
@@ -102,12 +101,16 @@ pub trait Farm:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-
         let payments = self.call_value().all_esdt_transfers();
+        let first_payment_nonce = self.clear_payments_claim_progress(&original_caller, &payments);
         let base_claim_rewards_result =
             self.claim_rewards_base::<NoMintWrapper<Self>>(original_caller.clone(), payments);
-
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
+        self.update_user_claim_progress(
+            &original_caller,
+            Some(first_payment_nonce),
+            output_farm_token_payment.token_nonce,
+        );
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
         let rewards_payment = base_claim_rewards_result.rewards;
@@ -137,7 +140,6 @@ pub trait Farm:
     ) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-
         let output_farm_token_payment =
             self.compound_rewards::<NoMintWrapper<Self>>(original_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
@@ -150,7 +152,6 @@ pub trait Farm:
     fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-
         let (farming_token_payment, reward_payment) = self
             .exit_farm::<NoMintWrapper<Self>>(caller.clone())
             .into_tuple();
@@ -168,6 +169,7 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         user: ManagedAddress,
+        farm_token_nonce: Nonce,
         farm_token_amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
@@ -179,6 +181,7 @@ pub trait Farm:
         NoMintWrapper::<Self>::calculate_rewards(
             self,
             &user,
+            farm_token_nonce,
             &farm_token_amount,
             &attributes,
             &storage_cache,
@@ -189,8 +192,7 @@ pub trait Farm:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
-        let new_tokens = self.merge_farm_tokens();
+        let new_tokens = self.merge_farm_tokens(&caller);
         self.send_payment_non_zero(&caller, &new_tokens);
         new_tokens
     }
@@ -255,6 +257,7 @@ where
     fn calculate_rewards(
         sc: &Self::FarmSc,
         caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
@@ -262,6 +265,7 @@ where
         Wrapper::<T>::calculate_rewards(
             sc,
             caller,
+            farm_token_nonce,
             farm_token_amount,
             token_attributes,
             storage_cache,
