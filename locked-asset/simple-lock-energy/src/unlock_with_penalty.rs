@@ -5,7 +5,7 @@ use common_structs::{Epoch, Nonce, NonceAmountPair, PaymentsVec, Week};
 
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{lock_options::{EPOCHS_PER_YEAR}, token_merging};
+use crate::{lock_options::EPOCHS_PER_YEAR, token_merging};
 
 const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
