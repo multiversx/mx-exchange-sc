@@ -117,8 +117,11 @@ pub trait FarmStakingProxy:
             .received_staking_farm_token;
 
         let caller = self.blockchain().get_caller();
-        let merged_lp_farm_tokens =
-            self.merge_lp_farm_tokens(caller.clone(), lp_farm_token_payment, additional_lp_farm_tokens);
+        let merged_lp_farm_tokens = self.merge_lp_farm_tokens(
+            caller.clone(),
+            lp_farm_token_payment,
+            additional_lp_farm_tokens,
+        );
 
         self.create_and_send_dual_yield_tokens(
             &caller,

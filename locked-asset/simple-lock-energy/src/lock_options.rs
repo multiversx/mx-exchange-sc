@@ -22,7 +22,7 @@ pub trait LockOptionsModule {
         let mut options_mapper = self.lock_options();
         let mut max_added = 0;
         for option in lock_options {
-            require!(option >= EPOCHS_PER_MONTH, "Invalid option");
+            require!(option >= EPOCHS_PER_YEAR, "Invalid option");
 
             if option > max_added {
                 max_added = option;
