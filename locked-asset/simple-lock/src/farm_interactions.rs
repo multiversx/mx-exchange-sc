@@ -96,10 +96,7 @@ pub trait FarmInteractionsModule {
             .execute_on_dest_context();
 
         let raw = result.into_vec_of_buffers();
-        require!(
-            !raw.is_empty(),
-            "at least one result expected from exitFarm"
-        );
+        require!(raw.len() > 1, "at least 2 results expected from exitFarm");
 
         let initial_farming_tokens = self
             .serializer()
@@ -129,8 +126,8 @@ pub trait FarmInteractionsModule {
 
         let raw = result.into_vec_of_buffers();
         require!(
-            !raw.is_empty(),
-            "at least one result expected from claim rewards"
+            raw.len() > 1,
+            "at least 2 results expected from claim rewards"
         );
 
         let new_farm_tokens = self
