@@ -358,7 +358,7 @@ pub trait LockedAssetFactory:
     #[only_owner]
     #[endpoint(setInitEpoch)]
     fn set_init_epoch(&self, init_epoch: Epoch) {
-        self.init_epoch().set(&init_epoch);
+        self.init_epoch().set(init_epoch);
     }
 
     #[view(getInitEpoch)]

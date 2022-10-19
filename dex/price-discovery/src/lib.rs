@@ -95,7 +95,7 @@ pub trait PriceDiscovery:
         self.unlock_epoch().set(unlock_epoch);
 
         let price_precision = 10u64.pow(launched_token_decimals);
-        self.price_precision().set(&price_precision);
+        self.price_precision().set(price_precision);
         self.min_launched_token_price()
             .set(&min_launched_token_price);
 
