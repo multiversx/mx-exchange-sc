@@ -8,6 +8,7 @@ use crate::{events, ClaimProgress};
 pub trait AllBaseWeeklyRewardsSplittingImplTraits = crate::WeeklyRewardsSplittingModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
+    + crate::global_info::WeeklyRewardsGlobalInfo
     + events::WeeklyRewardsSplittingEventsModule;
 
 pub trait WeeklyRewardsSplittingTraitsModule {

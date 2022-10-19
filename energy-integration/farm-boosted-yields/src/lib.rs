@@ -33,6 +33,7 @@ pub trait FarmBoostedYieldsModule:
     + permissions_module::PermissionsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + energy_query::EnergyQueryModule
 {
     #[endpoint(setBoostedYieldsRewardsPercentage)]

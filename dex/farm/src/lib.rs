@@ -47,6 +47,7 @@ pub trait Farm:
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
 {
