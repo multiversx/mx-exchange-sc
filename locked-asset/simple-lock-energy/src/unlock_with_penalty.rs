@@ -268,7 +268,6 @@ pub trait UnlockWithPenaltyModule:
         ));
     }
 
-
     #[payable("*")]
     #[endpoint(sendFeesToCollector)]
     fn send_fees_to_collector(&self) {
