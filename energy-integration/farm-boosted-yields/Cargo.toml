@@ -13,6 +13,9 @@ version = "0.34.0"
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
 [dependencies.permissions_module]
 path = "../../common/modules/permissions_module"
 

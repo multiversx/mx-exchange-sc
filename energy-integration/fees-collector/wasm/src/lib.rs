@@ -24,7 +24,6 @@ elrond_wasm_node::wasm_endpoints! {
         getLastGlobalUpdateWeek
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
-        getTotalRewardsForWeek
         getUserEnergyForWeek
         isPaused
         pause

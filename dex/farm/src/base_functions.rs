@@ -12,6 +12,7 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
+use crate::claim_progress;
 use crate::exit_penalty;
 
 type ClaimRewardsResultType<BigUint> =
@@ -29,6 +30,7 @@ pub trait BaseFunctionsModule:
     + permissions_module::PermissionsModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + claim_progress::ClaimProgressModule
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -51,7 +53,7 @@ pub trait BaseFunctionsModule:
         let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
         self.update_user_claim_progress(
             &caller,
-            OptionalValue::None,
+            None,
             base_enter_farm_result.new_farm_token.payment.token_nonce,
         );
         self.emit_enter_farm_event(
@@ -76,7 +78,7 @@ pub trait BaseFunctionsModule:
         let rewards_payment = base_claim_rewards_result.rewards;
         self.update_user_claim_progress(
             &caller,
-            OptionalValue::Some(first_payment_nonce),
+            Some(first_payment_nonce),
             output_farm_token_payment.token_nonce,
         );
 
@@ -104,7 +106,7 @@ pub trait BaseFunctionsModule:
         let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment.clone();
         self.update_user_claim_progress(
             &caller,
-            OptionalValue::Some(first_payment_nonce),
+            Some(first_payment_nonce),
             output_farm_token_payment.token_nonce,
         );
         self.emit_compound_rewards_event(
@@ -162,7 +164,7 @@ pub trait BaseFunctionsModule:
         let merged_token_payment = token_mapper.nft_create(new_token_amount, &output_attributes);
         self.update_user_claim_progress(
             caller,
-            OptionalValue::Some(first_payment_nonce),
+            Some(first_payment_nonce),
             merged_token_payment.token_nonce,
         );
         merged_token_payment
@@ -240,8 +242,7 @@ where
             token_attributes,
             storage_cache,
         );
-        let boosted_yield_rewards =
-            sc.claim_boosted_yields_rewards(caller, farm_token_nonce,  &storage_cache.reward_token_id);
+        let boosted_yield_rewards = sc.claim_boosted_yields_rewards(caller, farm_token_nonce);
 
         base_farm_reward + boosted_yield_rewards
     }

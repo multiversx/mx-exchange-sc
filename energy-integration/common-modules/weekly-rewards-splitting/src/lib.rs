@@ -1,13 +1,16 @@
 #![no_std]
+#![feature(trait_alias)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub const MAX_CLAIM_PER_TX: usize = 4;
 
+pub mod base_impl;
 pub mod events;
 
-use common_types::{Nonce, PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
+use base_impl::WeeklyRewardsSplittingTraitsModule;
+use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
 use energy_query::Energy;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
@@ -39,11 +42,10 @@ pub trait WeeklyRewardsSplittingModule:
     + week_timekeeping::WeekTimekeepingModule
     + events::WeeklyRewardsSplittingEventsModule
 {
-    fn claim_multi<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api> + Copy>(
+    fn claim_multi<WRSM: WeeklyRewardsSplittingTraitsModule<WeeklyRewardsSplittingMod = Self>>(
         &self,
+        wrapper: &WRSM,
         user: &ManagedAddress,
-        nonce: Nonce,
-        collect_rewards_fn: CollectRewardsFn,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(user.clone());
@@ -51,7 +53,7 @@ pub trait WeeklyRewardsSplittingModule:
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
-        let claim_progress_mapper = self.current_claim_progress(user, nonce);
+        let claim_progress_mapper = WRSM::get_claim_progress_mapper(wrapper, self, user);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
@@ -72,7 +74,7 @@ pub trait WeeklyRewardsSplittingModule:
             let weeks_to_claim = core::cmp::min(total_weeks_to_claim, MAX_CLAIM_PER_TX);
             for _ in 0..weeks_to_claim {
                 let rewards_for_week =
-                    self.claim_single(user, current_week, collect_rewards_fn, &mut claim_progress);
+                    self.claim_single(wrapper, user, current_week, &mut claim_progress);
                 if !rewards_for_week.is_empty() {
                     all_rewards.append_vec(rewards_for_week);
                 }
@@ -98,15 +100,14 @@ pub trait WeeklyRewardsSplittingModule:
         all_rewards
     }
 
-    fn claim_single<CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api>>(
+    fn claim_single<WRSM: WeeklyRewardsSplittingTraitsModule<WeeklyRewardsSplittingMod = Self>>(
         &self,
+        wrapper: &WRSM,
         user: &ManagedAddress,
         current_week: Week,
-        collect_rewards_fn: CollectRewardsFn,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
-        let total_rewards =
-            self.collect_and_get_rewards_for_week(claim_progress.week, collect_rewards_fn);
+        let total_rewards = wrapper.collect_and_get_rewards_for_week(self, claim_progress.week);
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
             &claim_progress.energy.get_energy_amount(),
@@ -128,24 +129,6 @@ pub trait WeeklyRewardsSplittingModule:
         claim_progress.advance_week(opt_next_week_energy);
 
         user_rewards
-    }
-
-    fn collect_and_get_rewards_for_week<
-        CollectRewardsFn: Fn(&Self, Week) -> TokenAmountPairsVec<Self::Api>,
-    >(
-        &self,
-        week: Week,
-        collect_rewards_fn: CollectRewardsFn,
-    ) -> TokenAmountPairsVec<Self::Api> {
-        let total_rewards_mapper = self.total_rewards_for_week(week);
-        if total_rewards_mapper.is_empty() {
-            let total_rewards = collect_rewards_fn(self, week);
-            total_rewards_mapper.set(&total_rewards);
-
-            total_rewards
-        } else {
-            total_rewards_mapper.get()
-        }
     }
 
     // !!! TODO  - update user boosted rewards formula
@@ -278,104 +261,6 @@ pub trait WeeklyRewardsSplittingModule:
         )
     }
 
-    // Clears the claim progress for all the additional payment tokens
-    // in order to be able to merge the users claim progress under a single token nonce
-    fn clear_payments_claim_progress(
-        &self,
-        user: &ManagedAddress,
-        all_payments: &PaymentsVec<Self::Api>,
-    ) -> Nonce {
-        require!(!all_payments.is_empty(), "Empty payments");
-        if all_payments.len() > 1 {
-            let mut additional_payments = all_payments.clone();
-            let first_payment = additional_payments.get(0);
-            additional_payments.remove(0);
-            let first_claim_progress =
-                self.get_claim_progress_or_default(user, first_payment.token_nonce);
-            let first_payment_claim_week = first_claim_progress.week;
-            for payment in additional_payments.iter() {
-                let payment_claim_progress =
-                    self.get_claim_progress_and_clear(user, payment.token_nonce);
-                let payment_claim_week = payment_claim_progress.week;
-                require!(
-                    first_payment_claim_week == payment_claim_week,
-                    "The claim week of the sent tokens do not match"
-                );
-            }
-        }
-        return all_payments.get(0).token_nonce;
-    }
-
-    fn update_user_claim_progress(
-        &self,
-        user: &ManagedAddress,
-        old_nonce: OptionalValue<Nonce>,
-        new_nonce: Nonce,
-    ) {
-        match old_nonce {
-            OptionalValue::Some(old_nonce) => {
-                let old_claim_progress_mapper = self.current_claim_progress(user, old_nonce);
-                if old_claim_progress_mapper.is_empty() {
-                    let new_claim_progress = self.new_claim_progress_for_user(user);
-                    self.current_claim_progress(user, new_nonce)
-                        .set(new_claim_progress);
-                } else {
-                    self.current_claim_progress(user, new_nonce)
-                        .set(old_claim_progress_mapper.get());
-                    old_claim_progress_mapper.clear();
-                }
-            }
-            OptionalValue::None => {
-                let new_claim_progress = self.new_claim_progress_for_user(user);
-                self.current_claim_progress(user, new_nonce)
-                    .set(new_claim_progress);
-            }
-        }
-    }
-
-    fn get_claim_progress_or_default(
-        &self,
-        user: &ManagedAddress,
-        token_nonce: Nonce,
-    ) -> ClaimProgress<Self::Api> {
-        let current_claim_mapper = self.current_claim_progress(user, token_nonce);
-         let claim_progress;
-         if current_claim_mapper.is_empty() {
-             claim_progress = self.new_claim_progress_for_user(user);
-         } else {
-             claim_progress = current_claim_mapper.get();
-         }
-
-         claim_progress
-    }
-
-    fn get_claim_progress_and_clear(
-        &self,
-        user: &ManagedAddress,
-        token_nonce: Nonce,
-    ) -> ClaimProgress<Self::Api> {
-        let current_claim_mapper = self.current_claim_progress(user, token_nonce);
-        let claim_progress;
-        if current_claim_mapper.is_empty() {
-            claim_progress = self.new_claim_progress_for_user(user);
-        } else {
-            claim_progress = current_claim_mapper.get();
-            current_claim_mapper.clear();
-        }
-
-        claim_progress
-    }
-
-    fn new_claim_progress_for_user(&self, user: &ManagedAddress) -> ClaimProgress<Self::Api> {
-        let current_week = self.get_current_week();
-        let current_user_energy = self.get_energy_entry(user.clone());
-        self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
-        ClaimProgress {
-            energy: current_user_energy,
-            week: current_week,
-        }
-    }
-
     // user info
 
     #[view(getCurrentClaimProgress)]
@@ -383,7 +268,6 @@ pub trait WeeklyRewardsSplittingModule:
     fn current_claim_progress(
         &self,
         user: &ManagedAddress,
-        nonce: Nonce,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
     #[view(getUserEnergyForWeek)]

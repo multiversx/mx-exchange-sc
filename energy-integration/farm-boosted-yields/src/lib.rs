@@ -3,8 +3,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use core::marker::PhantomData;
+
 use common_types::{Nonce, TokenAmountPair, TokenAmountPairsVec};
 use week_timekeeping::Week;
+use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
 const MAX_PERCENT: u64 = 10_000;
 
@@ -24,7 +27,9 @@ impl<M: ManagedTypeApi> SplitReward<M> {
 
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
-    week_timekeeping::WeekTimekeepingModule
+    config::ConfigModule
+    + week_timekeeping::WeekTimekeepingModule
+    + pausable::PausableModule
     + permissions_module::PermissionsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -60,29 +65,13 @@ pub trait FarmBoostedYieldsModule:
         SplitReward::new(base_farm_amount, boosted_yields_cut)
     }
 
-    fn collect_rewards(
-        &self,
-        week: Week,
-        reward_token_id: &TokenIdentifier,
-    ) -> TokenAmountPairsVec<Self::Api> {
-        let rewards_mapper = self.accumulated_rewards_for_week(week);
-        let total_rewards = rewards_mapper.get();
-        rewards_mapper.clear();
-
-        ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id.clone(), total_rewards))
-    }
-
     fn claim_boosted_yields_rewards(
         &self,
         user: &ManagedAddress,
         farm_token_nonce: Nonce,
-        reward_token_id: &TokenIdentifier,
     ) -> BigUint {
-        let rewards = self.claim_multi(
-            user,
-            farm_token_nonce,
-            |sc_ref: &Self, week: Week| Self::collect_rewards(sc_ref, week, reward_token_id),
-        );
+        let wrapper = FarmBoostedYieldsWrapper::new(farm_token_nonce);
+        let rewards = self.claim_multi(&wrapper, user);
 
         let mut total = BigUint::zero();
         for rew in &rewards {
@@ -98,4 +87,57 @@ pub trait FarmBoostedYieldsModule:
 
     #[storage_mapper("accumulatedRewardsForWeek")]
     fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("farmClaimProgress")]
+    fn farm_claim_progress(
+        &self,
+        user: &ManagedAddress,
+        token_nonce: Nonce,
+    ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
+}
+
+pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
+    pub current_farm_token_nonce: Nonce,
+    pub phantom: PhantomData<T>,
+}
+
+impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
+    pub fn new(current_farm_token_nonce: Nonce) -> FarmBoostedYieldsWrapper<T> {
+        FarmBoostedYieldsWrapper {
+            current_farm_token_nonce,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> WeeklyRewardsSplittingTraitsModule for FarmBoostedYieldsWrapper<T>
+where
+    T: FarmBoostedYieldsModule,
+{
+    type WeeklyRewardsSplittingMod = T;
+
+    fn collect_rewards_for_week(
+        &self,
+        module: &Self::WeeklyRewardsSplittingMod,
+        week: Week,
+    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+        let reward_token_id = module.reward_token_id().get();
+        let rewards_mapper = module.accumulated_rewards_for_week(week);
+        let total_rewards = rewards_mapper.get();
+        rewards_mapper.clear();
+
+        ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id, total_rewards))
+    }
+
+    fn get_claim_progress_mapper(
+        &self,
+        module: &Self::WeeklyRewardsSplittingMod,
+        user: &ManagedAddress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+    ) -> SingleValueMapper<
+        <Self::WeeklyRewardsSplittingMod as ContractBase>::Api,
+        ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+    > {
+        let token_nonce = self.current_farm_token_nonce;
+        module.farm_claim_progress(user, token_nonce)
+    }
 }
