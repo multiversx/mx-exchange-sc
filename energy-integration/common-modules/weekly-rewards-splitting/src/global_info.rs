@@ -68,7 +68,7 @@ pub trait WeeklyRewardsGlobalInfo: crate::events::WeeklyRewardsSplittingEventsMo
     #[storage_mapper("lastGlobalUpdateWeek")]
     fn last_global_update_week(&self) -> SingleValueMapper<Week>;
 
-    // #[view(getTotalRewardsForWeek)]
+    #[view(getTotalRewardsForWeek)]
     #[storage_mapper("totalRewardsForWeek")]
     fn total_rewards_for_week(
         &self,

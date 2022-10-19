@@ -4,6 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::Epoch;
 
 pub const EPOCHS_PER_MONTH: Epoch = 30;
+pub const EPOCHS_PER_YEAR: Epoch = 360;
 
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
@@ -21,7 +22,7 @@ pub trait LockOptionsModule {
         let mut options_mapper = self.lock_options();
         let mut max_added = 0;
         for option in lock_options {
-            require!(option >= EPOCHS_PER_MONTH, "Invalid option");
+            require!(option >= EPOCHS_PER_YEAR, "Invalid option");
 
             if option > max_added {
                 max_added = option;

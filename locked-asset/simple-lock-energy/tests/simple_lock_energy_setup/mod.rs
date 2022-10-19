@@ -19,7 +19,7 @@ use simple_lock_energy::{
 mod fees_collector_mock;
 use fees_collector_mock::*;
 
-pub const EPOCHS_IN_YEAR: u64 = 365;
+pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";

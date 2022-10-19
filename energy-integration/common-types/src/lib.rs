@@ -6,6 +6,7 @@ elrond_wasm::derive_imports!();
 
 pub type Week = usize;
 pub type Epoch = u64;
+pub type Nonce = u64;
 
 pub type TokenAmountPairsVec<M> = ManagedVec<M, TokenAmountPair<M>>;
 pub type PaymentsVec<M> = ManagedVec<M, EsdtTokenPayment<M>>;
