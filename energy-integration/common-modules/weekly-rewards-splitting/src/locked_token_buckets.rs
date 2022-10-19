@@ -15,8 +15,6 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         self.next_bucket_shift_epoch().set(next_shift_epoch);
     }
 
-    fn add_new_tokens_to_buckets(&self) {}
-
     fn shift_buckets_and_get_removed_token_amount(&self) -> BigUint {
         let next_update_mapper = self.next_bucket_shift_epoch();
         let first_bucket_id_mapper = self.first_bucket_id();
@@ -48,6 +46,39 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
     fn epoch_to_start_of_month(&self, epoch: Epoch) -> Epoch {
         let extra_days = epoch % EPOCHS_PER_MONTH;
         epoch - extra_days
+    }
+
+    fn add_new_tokens_to_buckets(&self, energy: &Energy<Self::Api>) {
+        let opt_bucket_id = self.get_bucket_id_for_current_energy(energy);
+        if let Some(bucket_id) = opt_bucket_id {
+            self.locked_tokens_in_bucket(bucket_id)
+                .update(|total| *total += energy.get_total_locked_tokens());
+        }
+    }
+
+    fn reallocate_bucket_after_energy_update(
+        &self,
+        prev_energy: &Energy<Self::Api>,
+        current_energy: &Energy<Self::Api>,
+    ) {
+        let last_update_epoch = current_energy.get_last_update_epoch();
+        let mut natural_depleted_energy = prev_energy.clone();
+        natural_depleted_energy.deplete(last_update_epoch);
+        if current_energy == &natural_depleted_energy {
+            return;
+        }
+
+        let opt_bucket_for_prev_energy = self.get_bucket_id_for_previous_energy(prev_energy);
+        if let Some(prev_bucket_id) = opt_bucket_for_prev_energy {
+            self.locked_tokens_in_bucket(prev_bucket_id)
+                .update(|total| *total -= prev_energy.get_total_locked_tokens());
+        }
+
+        let opt_bucket_for_current_energy = self.get_bucket_id_for_current_energy(current_energy);
+        if let Some(new_bucket_id) = opt_bucket_for_current_energy {
+            self.locked_tokens_in_bucket(new_bucket_id)
+                .update(|total| *total += current_energy.get_total_locked_tokens());
+        }
     }
 
     fn get_bucket_id_for_current_energy(&self, energy: &Energy<Self::Api>) -> Option<BucketId> {
@@ -83,15 +114,13 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
                     return Some(current_bucket_id);
                 }
 
-                // rounded up
-                let shift_epochs_missed =
-                    (previous_shift_epoch - last_energy_update_epoch + EPOCHS_PER_MONTH - 1)
-                        / EPOCHS_PER_MONTH;
-                if shift_epochs_missed >= current_bucket_id {
-                    return None;
-                } else {
+                let epoch_diff = previous_shift_epoch - last_energy_update_epoch;
+                let shift_epochs_missed = epoch_diff.div_ceil(EPOCHS_PER_MONTH);
+                if current_bucket_id >= shift_epochs_missed {
                     // for each shift missed, it means the user is currently in one bucket to the left
                     Some(current_bucket_id - shift_epochs_missed)
+                } else {
+                    None
                 }
             }
             None => None,

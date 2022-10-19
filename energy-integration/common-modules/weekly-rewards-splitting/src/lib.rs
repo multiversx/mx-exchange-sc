@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(trait_alias)]
+#![feature(int_roundings)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();

@@ -15,6 +15,7 @@ pub trait ClaimProgressModule:
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
 {
     // Clears the claim progress for all the additional payment tokens
     // in order to be able to merge the users claim progress under a single token nonce
