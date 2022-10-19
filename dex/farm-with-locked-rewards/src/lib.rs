@@ -49,7 +49,6 @@ pub trait Farm:
     + farm_boosted_yields::FarmBoostedYieldsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
-    + weekly_rewards_splitting::ongoing_operation::OngoingOperationModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + energy_query::EnergyQueryModule
 {
@@ -80,26 +79,49 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(enterFarm)]
-    fn enter_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
+    fn enter_farm_endpoint(
+        &self,
+        original_caller: ManagedAddress,
+    ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.enter_farm(caller.clone());
+
+        let output_farm_token_payment = self.enter_farm::<NoMintWrapper<Self>>(original_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
+
         output_farm_token_payment
     }
 
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards_endpoint(&self) -> ClaimRewardsResultType<Self::Api> {
+    fn claim_rewards_endpoint(
+        &self,
+        original_caller: ManagedAddress,
+    ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (output_farm_token_payment, rewards_payment) =
-            self.claim_rewards(caller.clone()).into_tuple();
+
+        let payments = self.call_value().all_esdt_transfers();
+        let base_claim_rewards_result =
+            self.claim_rewards_base::<NoMintWrapper<Self>>(original_caller.clone(), payments);
+
+        let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
+
+        let rewards_payment = base_claim_rewards_result.rewards;
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards_payment.token_identifier,
             rewards_payment.amount,
             caller,
+        );
+
+        self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
+            &original_caller,
+            base_claim_rewards_result.context,
+            base_claim_rewards_result.new_farm_token,
+            locked_rewards_payment.clone(),
+            base_claim_rewards_result.created_with_merge,
+            base_claim_rewards_result.storage_cache,
         );
 
         (output_farm_token_payment, locked_rewards_payment).into()
@@ -107,11 +129,17 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(&self) -> CompoundRewardsResultType<Self::Api> {
+    fn compound_rewards_endpoint(
+        &self,
+        original_caller: ManagedAddress,
+    ) -> CompoundRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.compound_rewards(caller.clone());
+
+        let output_farm_token_payment =
+            self.compound_rewards::<NoMintWrapper<Self>>(original_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
+
         output_farm_token_payment
     }
 
@@ -120,7 +148,10 @@ pub trait Farm:
     fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (farming_token_payment, reward_payment) = self.exit_farm(caller.clone()).into_tuple();
+
+        let (farming_token_payment, reward_payment) = self
+            .exit_farm::<NoMintWrapper<Self>>(caller.clone())
+            .into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             reward_payment.token_identifier,
@@ -145,7 +176,7 @@ pub trait Farm:
 
         NoMintWrapper::<Self>::calculate_rewards(
             self,
-            user,
+            &user,
             &farm_token_amount,
             &attributes,
             &storage_cache,
@@ -171,13 +202,13 @@ pub trait Farm:
     #[endpoint(endProduceRewards)]
     fn end_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
-        self.end_produce_rewards();
+        self.end_produce_rewards::<NoMintWrapper<Self>>();
     }
 
     #[endpoint(setPerBlockRewardAmount)]
     fn set_per_block_rewards_endpoint(&self, per_block_amount: BigUint) {
         self.require_caller_has_admin_permissions();
-        self.set_per_block_rewards(per_block_amount);
+        self.set_per_block_rewards::<NoMintWrapper<Self>>(per_block_amount);
     }
 
     fn send_to_lock_contract_non_zero(
@@ -221,7 +252,7 @@ where
 
     fn calculate_rewards(
         sc: &Self::FarmSc,
-        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,

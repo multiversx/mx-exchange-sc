@@ -17,6 +17,7 @@ where
     pub context: CompoundRewardsContext<C::Api, T>,
     pub storage_cache: StorageCache<'a, C>,
     pub new_farm_token: PaymentAttributesPair<C::Api, T>,
+    pub compounded_rewards: BigUint<C::Api>,
     pub created_with_merge: bool,
 }
 
@@ -62,7 +63,7 @@ pub trait BaseCompoundRewardsModule:
 
         let reward = FC::calculate_rewards(
             self,
-            caller.clone(),
+            &caller,
             farm_token_amount,
             &token_attributes,
             &storage_cache,
@@ -92,6 +93,7 @@ pub trait BaseCompoundRewardsModule:
             created_with_merge: !compound_rewards_context.additional_payments.is_empty(),
             context: compound_rewards_context,
             new_farm_token,
+            compounded_rewards: reward,
             storage_cache,
         }
     }
