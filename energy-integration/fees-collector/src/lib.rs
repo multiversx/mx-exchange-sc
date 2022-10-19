@@ -3,8 +3,10 @@
 
 elrond_wasm::imports!();
 
-use common_types::PaymentsVec;
+use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec, Week};
+use core::marker::PhantomData;
 use energy_query::Energy;
+use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
 use crate::ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
 
@@ -34,9 +36,9 @@ pub trait FeesCollector:
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
-
         let caller = self.blockchain().get_caller();
-        let rewards = self.claim_multi(&caller, Self::collect_accumulated_fees_for_week);
+        let wrapper = FeesCollectorWrapper::new();
+        let rewards = self.claim_multi(&wrapper, &caller);
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
@@ -91,5 +93,47 @@ pub trait FeesCollector:
                 (run_result, OptionalValue::Some(last_processed_index)).into()
             }
         }
+    }
+}
+
+pub struct FeesCollectorWrapper<T: FeesCollector> {
+    phantom: PhantomData<T>,
+}
+
+impl<T: FeesCollector> Default for FeesCollectorWrapper<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T: FeesCollector> FeesCollectorWrapper<T> {
+    pub fn new() -> FeesCollectorWrapper<T> {
+        FeesCollectorWrapper {
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> WeeklyRewardsSplittingTraitsModule for FeesCollectorWrapper<T>
+where
+    T: FeesCollector,
+{
+    type WeeklyRewardsSplittingMod = T;
+
+    fn collect_rewards_for_week(
+        &self,
+        module: &Self::WeeklyRewardsSplittingMod,
+        week: Week,
+    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+        let mut results = ManagedVec::new();
+        let all_tokens = module.all_tokens().get();
+        for token in &all_tokens {
+            let opt_accumulated_fees = module.get_and_clear_acccumulated_fees(week, &token);
+            if let Some(accumulated_fees) = opt_accumulated_fees {
+                results.push(TokenAmountPair::new(token, accumulated_fees));
+            }
+        }
+
+        results
     }
 }

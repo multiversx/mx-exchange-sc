@@ -55,6 +55,7 @@ pub trait BaseCompoundRewardsModule:
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &compound_rewards_context.first_farm_token.payment.amount;
+        let farm_token_nonce = compound_rewards_context.first_farm_token.payment.token_nonce;
         let token_attributes = compound_rewards_context
             .first_farm_token
             .attributes
@@ -64,6 +65,7 @@ pub trait BaseCompoundRewardsModule:
         let reward = FC::calculate_rewards(
             self,
             &caller,
+            farm_token_nonce,
             farm_token_amount,
             &token_attributes,
             &storage_cache,
