@@ -118,7 +118,13 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
                 let shift_epochs_missed = epoch_diff.div_ceil(EPOCHS_PER_MONTH);
                 if current_bucket_id >= shift_epochs_missed {
                     // for each shift missed, it means the user is currently in one bucket to the left
-                    Some(current_bucket_id - shift_epochs_missed)
+                    let bucket_id = current_bucket_id - shift_epochs_missed;
+                    let first_bucket_id = self.first_bucket_id().get();
+                    if bucket_id >= first_bucket_id {
+                        Some(bucket_id)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
