@@ -53,7 +53,7 @@ pub trait WeeklyRewardsSplittingModule:
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
-        let claim_progress_mapper = WRSM::get_current_claim_progress(wrapper, &self, user);
+        let claim_progress_mapper = WRSM::get_current_claim_progress(wrapper, self, user);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {

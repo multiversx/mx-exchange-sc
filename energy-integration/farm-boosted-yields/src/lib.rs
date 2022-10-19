@@ -72,7 +72,7 @@ pub trait FarmBoostedYieldsModule:
         _reward_token_id: &TokenIdentifier,
     ) -> BigUint {
         let wrapper = FarmBoostedYieldsWrapper::new(farm_token_nonce);
-        let rewards = self.claim_multi::<FarmBoostedYieldsWrapper<Self>>(&wrapper, &user);
+        let rewards = self.claim_multi::<FarmBoostedYieldsWrapper<Self>>(&wrapper, user);
 
         let mut total = BigUint::zero();
         for rew in &rewards {

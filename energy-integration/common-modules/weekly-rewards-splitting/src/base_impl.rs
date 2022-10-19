@@ -20,7 +20,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
     ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let total_rewards_mapper = module.total_rewards_for_week(week);
         if total_rewards_mapper.is_empty() {
-            let total_rewards = Self::collect_rewards_for_week(&self, module, week);
+            let total_rewards = Self::collect_rewards_for_week(self, module, week);
             total_rewards_mapper.set(&total_rewards);
 
             total_rewards

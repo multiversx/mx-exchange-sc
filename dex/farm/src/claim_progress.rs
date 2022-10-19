@@ -74,13 +74,11 @@ pub trait ClaimProgressModule:
         token_nonce: Nonce,
     ) -> ClaimProgress<Self::Api> {
         let current_claim_mapper = self.farm_claim_progress(user, token_nonce);
-        let claim_progress = if current_claim_mapper.is_empty() {
+        if current_claim_mapper.is_empty() {
             self.new_claim_progress_for_user(user)
         } else {
             current_claim_mapper.get()
-        };
-
-        claim_progress
+        }
     }
 
     fn get_claim_progress_and_clear(

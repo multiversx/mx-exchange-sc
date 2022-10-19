@@ -100,6 +100,12 @@ pub struct FeesCollectorWrapper<T: FeesCollector> {
     phantom: PhantomData<T>,
 }
 
+impl<T: FeesCollector> Default for FeesCollectorWrapper<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: FeesCollector> FeesCollectorWrapper<T> {
     pub fn new() -> FeesCollectorWrapper<T> {
         FeesCollectorWrapper {
