@@ -6,8 +6,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::{FarmTokenAttributes, Nonce};
-use core::marker::PhantomData;
 use contexts::storage_cache::StorageCache;
+use core::marker::PhantomData;
 
 use farm::{
     base_functions::{BaseFunctionsModule, Wrapper},
@@ -106,7 +106,7 @@ pub trait Farm:
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.update_user_claim_progress(
             &original_caller,
-            OptionalValue::Some(first_payment_nonce),
+            Some(first_payment_nonce),
             output_farm_token_payment.token_nonce,
         );
         self.send_payment_non_zero(&caller, &output_farm_token_payment);

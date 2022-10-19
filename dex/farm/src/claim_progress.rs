@@ -7,6 +7,8 @@ use weekly_rewards_splitting::ClaimProgress;
 #[elrond_wasm::module]
 pub trait ClaimProgressModule:
     farm_boosted_yields::FarmBoostedYieldsModule
+    + config::ConfigModule
+    + pausable::PausableModule
     + permissions_module::PermissionsModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
@@ -27,14 +29,11 @@ pub trait ClaimProgressModule:
             additional_payments.remove(0);
             let first_claim_progress =
                 self.get_claim_progress_or_default(user, first_payment.token_nonce);
-            let first_payment_claim_week = first_claim_progress.week;
-            let first_payment_energy = first_claim_progress.energy;
             for payment in additional_payments.iter() {
                 let payment_claim_progress =
                     self.get_claim_progress_and_clear(user, payment.token_nonce);
                 require!(
-                    first_payment_claim_week == payment_claim_progress.week
-                        && first_payment_energy == payment_claim_progress.energy,
+                    first_claim_progress.eq(&payment_claim_progress),
                     ERROR_DIFFERENT_ATTRIBUTES_FOR_MERGE
                 );
             }
@@ -45,11 +44,11 @@ pub trait ClaimProgressModule:
     fn update_user_claim_progress(
         &self,
         user: &ManagedAddress,
-        old_nonce: OptionalValue<Nonce>,
+        old_nonce: Option<Nonce>,
         new_nonce: Nonce,
     ) {
         match old_nonce {
-            OptionalValue::Some(old_nonce) => {
+            Some(old_nonce) => {
                 let old_claim_progress_mapper = self.farm_claim_progress(user, old_nonce);
                 if old_claim_progress_mapper.is_empty() {
                     let new_claim_progress = self.new_claim_progress_for_user(user);
@@ -61,7 +60,7 @@ pub trait ClaimProgressModule:
                     old_claim_progress_mapper.clear();
                 }
             }
-            OptionalValue::None => {
+            None => {
                 let new_claim_progress = self.new_claim_progress_for_user(user);
                 self.farm_claim_progress(user, new_nonce)
                     .set(new_claim_progress);
@@ -75,12 +74,11 @@ pub trait ClaimProgressModule:
         token_nonce: Nonce,
     ) -> ClaimProgress<Self::Api> {
         let current_claim_mapper = self.farm_claim_progress(user, token_nonce);
-        let claim_progress;
-        if current_claim_mapper.is_empty() {
-            claim_progress = self.new_claim_progress_for_user(user);
+        let claim_progress = if current_claim_mapper.is_empty() {
+            self.new_claim_progress_for_user(user)
         } else {
-            claim_progress = current_claim_mapper.get();
-        }
+            current_claim_mapper.get()
+        };
 
         claim_progress
     }

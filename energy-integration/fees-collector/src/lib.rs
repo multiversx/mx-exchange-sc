@@ -3,8 +3,8 @@
 
 elrond_wasm::imports!();
 
-use core::marker::PhantomData;
 use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec, Week};
+use core::marker::PhantomData;
 use energy_query::Energy;
 use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
@@ -36,9 +36,9 @@ pub trait FeesCollector:
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
-
         let caller = self.blockchain().get_caller();
-        let rewards = self.claim_multi::<FeesCollectorWrapper<Self>>(&caller);
+        let wrapper = FeesCollectorWrapper::new();
+        let rewards = self.claim_multi::<FeesCollectorWrapper<Self>>(&wrapper, &caller);
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }
@@ -97,7 +97,15 @@ pub trait FeesCollector:
 }
 
 pub struct FeesCollectorWrapper<T: FeesCollector> {
-    _phantom: PhantomData<T>,
+    phantom: PhantomData<T>,
+}
+
+impl<T: FeesCollector> FeesCollectorWrapper<T> {
+    pub fn new() -> FeesCollectorWrapper<T> {
+        FeesCollectorWrapper {
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl<T> WeeklyRewardsSplittingTraitsModule for FeesCollectorWrapper<T>
@@ -107,6 +115,7 @@ where
     type WeeklyRewardsSplittingMod = T;
 
     fn collect_rewards_for_week(
+        &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
@@ -120,9 +129,5 @@ where
         }
 
         results
-    }
-
-    fn get_current_farm_token_nonce(&self) -> u64 {
-        0u64
     }
 }
