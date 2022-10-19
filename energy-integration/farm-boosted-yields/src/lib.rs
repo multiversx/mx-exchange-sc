@@ -69,10 +69,9 @@ pub trait FarmBoostedYieldsModule:
         &self,
         user: &ManagedAddress,
         farm_token_nonce: Nonce,
-        _reward_token_id: &TokenIdentifier,
     ) -> BigUint {
         let wrapper = FarmBoostedYieldsWrapper::new(farm_token_nonce);
-        let rewards = self.claim_multi::<FarmBoostedYieldsWrapper<Self>>(&wrapper, user);
+        let rewards = self.claim_multi(&wrapper, user);
 
         let mut total = BigUint::zero();
         for rew in &rewards {
@@ -130,7 +129,7 @@ where
         ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id, total_rewards))
     }
 
-    fn get_current_claim_progress(
+    fn get_claim_progress_mapper(
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         user: &ManagedAddress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,

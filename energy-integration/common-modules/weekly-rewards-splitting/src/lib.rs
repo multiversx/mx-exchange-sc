@@ -53,7 +53,7 @@ pub trait WeeklyRewardsSplittingModule:
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
-        let claim_progress_mapper = WRSM::get_current_claim_progress(wrapper, self, user);
+        let claim_progress_mapper = WRSM::get_claim_progress_mapper(wrapper, self, user);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
@@ -74,7 +74,7 @@ pub trait WeeklyRewardsSplittingModule:
             let weeks_to_claim = core::cmp::min(total_weeks_to_claim, MAX_CLAIM_PER_TX);
             for _ in 0..weeks_to_claim {
                 let rewards_for_week =
-                    self.claim_single::<WRSM>(wrapper, user, current_week, &mut claim_progress);
+                    self.claim_single(wrapper, user, current_week, &mut claim_progress);
                 if !rewards_for_week.is_empty() {
                     all_rewards.append_vec(rewards_for_week);
                 }
@@ -107,8 +107,7 @@ pub trait WeeklyRewardsSplittingModule:
         current_week: Week,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
-        let total_rewards =
-            WRSM::collect_and_get_rewards_for_week_base(wrapper, self, claim_progress.week);
+        let total_rewards = wrapper.collect_and_get_rewards_for_week(self, claim_progress.week);
         let user_rewards = self.get_user_rewards_for_week(
             claim_progress.week,
             &claim_progress.energy.get_energy_amount(),

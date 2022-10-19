@@ -38,7 +38,7 @@ pub trait FeesCollector:
         require!(self.not_paused(), "Cannot claim while paused");
         let caller = self.blockchain().get_caller();
         let wrapper = FeesCollectorWrapper::new();
-        let rewards = self.claim_multi::<FeesCollectorWrapper<Self>>(&wrapper, &caller);
+        let rewards = self.claim_multi(&wrapper, &caller);
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
         }

@@ -242,11 +242,7 @@ where
             token_attributes,
             storage_cache,
         );
-        let boosted_yield_rewards = sc.claim_boosted_yields_rewards(
-            caller,
-            farm_token_nonce,
-            &storage_cache.reward_token_id,
-        );
+        let boosted_yield_rewards = sc.claim_boosted_yields_rewards(caller, farm_token_nonce);
 
         base_farm_reward + boosted_yield_rewards
     }

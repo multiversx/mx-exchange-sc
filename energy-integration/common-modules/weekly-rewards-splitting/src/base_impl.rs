@@ -13,14 +13,14 @@ pub trait AllBaseWeeklyRewardsSplittingImplTraits = crate::WeeklyRewardsSplittin
 pub trait WeeklyRewardsSplittingTraitsModule {
     type WeeklyRewardsSplittingMod: AllBaseWeeklyRewardsSplittingImplTraits;
 
-    fn collect_and_get_rewards_for_week_base(
+    fn collect_and_get_rewards_for_week(
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let total_rewards_mapper = module.total_rewards_for_week(week);
         if total_rewards_mapper.is_empty() {
-            let total_rewards = Self::collect_rewards_for_week(self, module, week);
+            let total_rewards = self.collect_rewards_for_week(module, week);
             total_rewards_mapper.set(&total_rewards);
 
             total_rewards
@@ -35,7 +35,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
         week: Week,
     ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>;
 
-    fn get_current_claim_progress(
+    fn get_claim_progress_mapper(
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         user: &ManagedAddress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
