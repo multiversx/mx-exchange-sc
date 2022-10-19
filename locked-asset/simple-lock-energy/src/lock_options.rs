@@ -4,6 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::Epoch;
 
 pub const EPOCHS_PER_MONTH: Epoch = 30;
+pub const EPOCHS_PER_YEAR: Epoch = 360;
 
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
