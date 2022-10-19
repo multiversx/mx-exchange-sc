@@ -89,6 +89,7 @@ pub trait WeeklyRewardsSplittingModule:
             claim_progress.week = current_week;
             claim_progress.energy = current_user_energy;
         }
+
         claim_progress_mapper.set(&claim_progress);
 
         self.emit_claim_multi_event(
@@ -140,13 +141,13 @@ pub trait WeeklyRewardsSplittingModule:
         total_rewards: &TokenAmountPairsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let mut user_rewards = ManagedVec::new();
-        if energy_amount == &0 {
+        if energy_amount == 0 {
             return user_rewards;
         }
 
         let total_energy = self.total_energy_for_week(week).get();
         for weekly_reward in total_rewards {
-            let reward_amount = weekly_reward.amount * energy_amount / &total_energy;
+            let reward_amount = weekly_reward.amount * &energy_amount / &total_energy;
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(weekly_reward.token_identifier, 0, reward_amount));
             }
@@ -200,7 +201,6 @@ pub trait WeeklyRewardsSplittingModule:
     fn current_claim_progress(
         &self,
         user: &ManagedAddress,
-        nonce: Nonce,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 
     #[view(getUserEnergyForWeek)]

@@ -53,7 +53,7 @@ pub trait FeesAccumulationModule:
         for token in &all_tokens {
             let opt_accumulated_fees = self.get_and_clear_acccumulated_fees(week, &token);
             if let Some(accumulated_fees) = opt_accumulated_fees {
-                results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
+                results.push(EsdtTokenPayment::new(token.clone(), 0, accumulated_fees));
             }
 
             let opt_accumulated_locked_fees = self.get_and_clear_acccumulated_locked_fees(week, &token);
