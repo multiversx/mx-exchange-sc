@@ -197,9 +197,9 @@ fn multiple_early_unlocks_same_week_test() {
     current_epoch += half_year_epochs;
     setup.b_mock.set_block_epoch(current_epoch);
 
-    let mut penalty_percentage = 485u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
+    let mut penalty_percentage = 498u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
     let mut expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
-    let mut penalty_amount = setup.get_penalty_amount(sixth_balance, 177);
+    let mut penalty_amount = setup.get_penalty_amount(sixth_balance, 179);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     // Unlock early 1/3 of the LockedTokens
@@ -231,9 +231,9 @@ fn multiple_early_unlocks_same_week_test() {
         .unlock_early(&first_user, 1, sixth_balance)
         .assert_ok();
 
-    penalty_percentage = 485u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
+    penalty_percentage = 498u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
     expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
-    penalty_amount = setup.get_penalty_amount(sixth_balance, 177);
+    penalty_amount = setup.get_penalty_amount(sixth_balance, 179);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     let received_token_amount_2 = rust_biguint!(sixth_balance) - penalty_amount;
@@ -261,9 +261,9 @@ fn multiple_early_unlocks_same_week_test() {
         .unlock_early(&first_user, 1, sixth_balance)
         .assert_ok();
 
-    penalty_percentage = 485u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
+    penalty_percentage = 498u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
     expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
-    penalty_amount = setup.get_penalty_amount(sixth_balance, 177);
+    penalty_amount = setup.get_penalty_amount(sixth_balance, 179);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     let received_token_amount_3 = rust_biguint!(sixth_balance) - penalty_amount;
@@ -314,9 +314,9 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
     current_epoch += half_year_epochs;
     setup.b_mock.set_block_epoch(current_epoch);
 
-    let mut penalty_percentage = 485u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
+    let mut penalty_percentage = 498u64; // 1 + 9_999 * 177 / (10 * 365) ~= 1 + 484 = 485
     let expected_penalty_amount = rust_biguint!(quarter_balance) * penalty_percentage / 10_000u64;
-    let mut penalty_amount = setup.get_penalty_amount(quarter_balance, 177);
+    let mut penalty_amount = setup.get_penalty_amount(quarter_balance, 179);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     // Unlock early half of the LockedTokens
@@ -350,9 +350,9 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
         .unlock_early(&first_user, 1, quarter_balance)
         .assert_ok();
 
-    penalty_percentage = 466u64; // 1 + 9_999 * 170 / (10 * 365) ~= 1 + 465 = 466
+    penalty_percentage = 478u64; // 1 + 9_999 * 172 / (10 * 360) ~= 1 + 465 = 466
     let expected_penalty_amount_2 = rust_biguint!(quarter_balance) * penalty_percentage / 10_000u64;
-    penalty_amount = setup.get_penalty_amount(quarter_balance, 170);
+    penalty_amount = setup.get_penalty_amount(quarter_balance, 172);
     assert_eq!(penalty_amount, expected_penalty_amount_2);
 
     let received_token_amount_2 = rust_biguint!(quarter_balance) - penalty_amount;
@@ -432,7 +432,7 @@ fn reduce_lock_period_test() {
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
             original_token_nonce: 0,
-            unlock_epoch: 360,
+            unlock_epoch: 1800,
         }),
     );
 
