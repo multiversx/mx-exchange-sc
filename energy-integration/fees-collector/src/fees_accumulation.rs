@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-
 use week_timekeeping::Week;
 
 #[elrond_wasm::module]
@@ -56,7 +55,8 @@ pub trait FeesAccumulationModule:
                 results.push(EsdtTokenPayment::new(token.clone(), 0, accumulated_fees));
             }
 
-            let opt_accumulated_locked_fees = self.get_and_clear_acccumulated_locked_fees(week, &token);
+            let opt_accumulated_locked_fees =
+                self.get_and_clear_acccumulated_locked_fees(week, &token);
             if let Some(accumulated_locked_fees) = opt_accumulated_locked_fees {
                 results.append_vec(accumulated_locked_fees);
             }

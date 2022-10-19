@@ -130,8 +130,11 @@ pub trait UnlockWithPenaltyModule:
         let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
 
         if new_unlock_epoch == current_epoch {
-            self.send()
-            .esdt_local_mint(&unlocked_token_id, 0, &unlocked_tokens.amount);
+            self.send().esdt_local_mint(
+                &unlocked_token_id,
+                0,
+                &(&unlocked_tokens.amount - &penalty_amount),
+            );
         }
 
         if penalty_amount > 0 {
@@ -141,7 +144,11 @@ pub trait UnlockWithPenaltyModule:
                 "No tokens remaining after penalty is applied"
             );
 
-            self.burn_penalty(locked_token_mapper.get_token_id(), payment.token_nonce, &penalty_amount);
+            self.burn_penalty(
+                locked_token_mapper.get_token_id(),
+                payment.token_nonce,
+                &penalty_amount,
+            );
         }
 
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
@@ -202,7 +209,8 @@ pub trait UnlockWithPenaltyModule:
         let remaining_amount = fees_amount - &burn_amount;
 
         if burn_amount > 0 {
-            self.send().esdt_local_burn(&token_id, 0, &burn_amount);
+            self.send()
+                .esdt_local_burn(&token_id, token_nonce, &burn_amount);
         }
         if remaining_amount > 0 {
             if self.fees_from_penalty_unlocking().is_empty() {
@@ -219,6 +227,7 @@ pub trait UnlockWithPenaltyModule:
         let last_week_fee_sent_to_collector = self.last_week_fee_sent_to_collector().get();
         if current_epoch >= last_week_fee_sent_to_collector + EPOCHS_PER_WEEK {
             self.send_fees_to_collector();
+            self.last_week_fee_sent_to_collector().set(current_epoch);
         }
     }
 
@@ -227,7 +236,8 @@ pub trait UnlockWithPenaltyModule:
         let locked_token_mapper = self.locked_token();
         let existing_nonce_amount_pair = self.fees_from_penalty_unlocking().get();
         let existing_token_attributes: LockedTokenAttributes<Self::Api> =
-        locked_token_mapper.get_token_attributes(existing_nonce_amount_pair.nonce);
+            locked_token_mapper.get_token_attributes(existing_nonce_amount_pair.nonce);
+
         let mut output_pair = LockedAmountAttributesPair {
             token_amount: existing_nonce_amount_pair.amount.clone(),
             attributes: existing_token_attributes,
@@ -239,7 +249,7 @@ pub trait UnlockWithPenaltyModule:
         );
 
         let new_token_attributes: LockedTokenAttributes<Self::Api> =
-        locked_token_mapper.get_token_attributes(token_nonce);
+            locked_token_mapper.get_token_attributes(token_nonce);
         let new_pair = LockedAmountAttributesPair {
             token_amount: new_fee_amount.clone(),
             attributes: new_token_attributes,
@@ -247,15 +257,22 @@ pub trait UnlockWithPenaltyModule:
 
         locked_token_mapper.nft_burn(token_nonce, &new_fee_amount);
 
-
         output_pair.merge_with(new_pair);
 
+        let sft_nonce = self.get_or_create_nonce_for_attributes(
+            &locked_token_mapper,
+            &output_pair.attributes.original_token_id.clone().into_name(),
+            &output_pair.attributes,
+        );
+
+        let new_locked_tokens =
+            locked_token_mapper.nft_add_quantity(sft_nonce, output_pair.token_amount.clone());
+
         self.fees_from_penalty_unlocking().set(NonceAmountPair::new(
-            output_pair.attributes.original_token_nonce,
-            output_pair.token_amount,
+            new_locked_tokens.token_nonce,
+            new_locked_tokens.amount,
         ));
     }
-
 
     #[payable("*")]
     #[endpoint(sendFeesToCollector)]
@@ -263,11 +280,8 @@ pub trait UnlockWithPenaltyModule:
         let sc_address = self.fees_collector_address().get();
         let locked_token_id = self.locked_token().get_token_id();
         let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
-        let locked_token_mapper = self.locked_token();
 
-        locked_token_mapper.nft_burn(nonce_amount_pair.nonce, &nonce_amount_pair.amount);
         self.fees_from_penalty_unlocking().clear();
-
         self.fees_collector_proxy_builder(sc_address)
             .deposit_swap_fees()
             .add_esdt_token_transfer(
@@ -303,5 +317,4 @@ pub trait UnlockWithPenaltyModule:
     #[view(getLastWeekFeeSentToCollector)]
     #[storage_mapper("lastWeekFeeSentToCollector")]
     fn last_week_fee_sent_to_collector(&self) -> SingleValueMapper<Week>;
-
 }

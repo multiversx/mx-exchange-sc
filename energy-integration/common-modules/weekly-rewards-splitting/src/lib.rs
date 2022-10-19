@@ -149,7 +149,11 @@ pub trait WeeklyRewardsSplittingModule:
         for weekly_reward in total_rewards {
             let reward_amount = weekly_reward.amount * &energy_amount / &total_energy;
             if reward_amount > 0 {
-                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token_identifier, 0, reward_amount));
+                user_rewards.push(EsdtTokenPayment::new(
+                    weekly_reward.token_identifier,
+                    0,
+                    reward_amount,
+                ));
             }
         }
 
