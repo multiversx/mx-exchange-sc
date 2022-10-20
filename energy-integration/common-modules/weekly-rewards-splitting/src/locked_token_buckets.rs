@@ -88,9 +88,9 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
             return None;
         }
 
-        // round up
-        let months_to_full_expire =
-            div_ceil(&epochs_to_full_expire, &BigUint::from(EPOCHS_PER_MONTH));
+        // round exact values down
+        // i.e. 30, 60, etc.
+        let months_to_full_expire = (epochs_to_full_expire - 1u32) / EPOCHS_PER_MONTH;
         let first_bucket_id = self.first_bucket_id().get();
         let bucket_id = months_to_full_expire + first_bucket_id;
 
@@ -112,18 +112,14 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
                 }
 
                 let epoch_diff = previous_shift_epoch - last_energy_update_epoch;
-                let shift_epochs_missed = epoch_diff.div_ceil(EPOCHS_PER_MONTH);
-                if current_bucket_id >= shift_epochs_missed {
-                    // for each shift missed, it means the user is currently in one bucket to the left
-                    let bucket_id = current_bucket_id - shift_epochs_missed;
-                    let first_bucket_id = self.first_bucket_id().get();
-                    if bucket_id >= first_bucket_id {
-                        Some(bucket_id)
-                    } else {
-                        // bucket was already shifted out
-                        None
-                    }
+                let shifts_missed = epoch_diff.div_ceil(EPOCHS_PER_MONTH);
+
+                let first_bucket_id = self.first_bucket_id().get();
+                let bucket_diff = current_bucket_id - first_bucket_id;
+                if bucket_diff >= shifts_missed {
+                    Some(current_bucket_id)
                 } else {
+                    // was shifted out already
                     None
                 }
             }
@@ -139,8 +135,4 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
 
     #[storage_mapper("lockedTokensInBucket")]
     fn locked_tokens_in_bucket(&self, bucket_id: BucketId) -> SingleValueMapper<BigUint>;
-}
-
-fn div_ceil<M: ManagedTypeApi>(first: &BigUint<M>, second: &BigUint<M>) -> BigUint<M> {
-    (first + second - 1u32) / second
 }
