@@ -69,7 +69,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token().set_token_id(&farm_token_id);
+            sc.farm_token().set_token_id(farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));

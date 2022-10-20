@@ -1,0 +1,605 @@
+{
+    "name": "Simple lock whitelist",
+    "comment": "",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:ASHEGLD-123456": {
+                            "balance": "1000000000000000000"
+                        },
+                        "str:ASHUSDC-123456": {
+                            "balance": "1000000000000000000"
+                        },
+                        "str:LKLP-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "1000000000000000000",
+                                    "attributes": "nested:str:ASHEGLD-123456|nested:str:ASH-1234|u64:0|nested:str:WEGLD-123456|u64:0",
+                                    "creator": "sc:simple_lock"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "1000000000000000000",
+                                    "attributes": "nested:str:ASHUSDC-123456|nested:str:ASH-1234|u64:0|nested:str:USDC-123456|u64:0",
+                                    "creator": "sc:simple_lock"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "sc:farm_old": {
+                    "nonce": "0",
+                    "code": "file:./old-farm.wasm",
+                    "esdt": {
+                        "str:ASHEGLDF-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:state": "1",
+                        "str:farming_token_id": "str:ASHEGLD-123456",
+                        "str:reward_token_id": "str:MEX-123456",
+                        "str:farm_token_id": "str:ASHEGLDF-123456",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:per_block_reward_amount": "1000000000000000000",
+                        "str:produce_rewards_enabled": "0x01"
+                    },
+                    "owner": "address:owner"
+                },
+                "sc:farm-locked-rewards_old": {
+                    "nonce": "0",
+                    "code": "file:./old-farm_locked_rewards.wasm",
+                    "esdt": {
+                        "str:ASHEGLDFL-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:state": "1",
+                        "str:farming_token_id": "str:ASHEGLD-123456",
+                        "str:reward_token_id": "str:MEX-123456",
+                        "str:farm_token_id": "str:ASHEGLDFL-123456",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:per_block_reward_amount": "1000000000000000000",
+                        "str:produce_rewards_enabled": "0x01",
+                        "str:penalty_percent": "u64:0",
+                        "str:minimum_farming_epochs": "u8:0",
+                        "str:locked_asset_factory_address": "sc:factory",
+                        "str:transfer_exec_gas_limit": "50000000"
+                    },
+                    "owner": "address:owner"
+                },
+                "sc:farm": {
+                    "nonce": "0",
+                    "code": "file:../../../dex/farm/output/farm.wasm",
+                    "esdt": {
+                        "str:ASHUSDCF-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:state": "1",
+                        "str:farming_token_id": "str:ASHUSDC-123456",
+                        "str:reward_token_id": "str:MEX-123456",
+                        "str:farm_token_id": "str:ASHUSDCF-abcdef",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:per_block_reward_amount": "1000000000000000000",
+                        "str:produce_rewards_enabled": "0x01",
+                        "str:boostedYieldsRewardsPercentage": "0x00"
+                    },
+                    "owner": "address:owner"
+                },
+                "sc:simple_lock": {
+                    "nonce": "0",
+                    "code": "file:../output/simple-lock-whitelist.wasm",
+                    "owner": "address:owner",
+                    "esdt": {
+                        "str:LKASH-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:LKLP-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:LKFARM-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:ASHEGLD-123456": "1000000000000000000",
+                        "str:ASHUSDC-123456": "1000000000000000000"
+                    },
+                    "storage": {
+                        "str:tokenWhitelist": ["str:ASH-123456"],
+                        "str:knownFarms": ["sc:farm_old", "sc:farm-locked-rewards_old", "sc:farm"],
+                        "str:farmAddressForToken|nested:str:ASHEGLD-123456|u8:0": ["sc:farm_old"],
+                        "str:farmAddressForToken|nested:str:ASHEGLD-123456|u8:1": ["sc:farm-locked-rewards_old"],
+                        "str:farmAddressForToken|nested:str:ASHUSDC-123456|u8:0": ["sc:farm"],
+                        "str:lpProxyTokenId": "str:LKLP-123456",
+                        "str:farmProxyTokenId": "str:LKFARM-123456"
+                    }
+                },
+                "sc:factory": {
+                    "nonce": "0",
+                    "code": "file:./factory_old.wasm",
+                    "owner": "address:owner",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:init_epoch": "u64:1",
+                        "str:extended_attributes_activation_nonce": "u64:10",
+                        "str:asset_token_id": "str:MEX-123456",
+                        "str:locked_asset_token_id": "str:LKMEX-abcdef",
+                        "str:default_unlock_period": "0x00000002000000000000001b32000000000000002c32",
+                        "str:transfer_exec_gas_limit": "50000000"
+                    }
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "factory-whitelist-farm",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:factory",
+                "egldValue": "0",
+                "function": "whitelist",
+                "arguments": ["sc:farm-locked-rewards_old"],
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": []
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "enter-old-farm_locked_rewards-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm-locked-rewards_old",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:ASHEGLD-123456",
+                        "value": "1000000000000000000"
+                    }
+                ],
+                "function": "enterFarm",
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": [
+                    "1",
+                    "0x020000001041534845474c44464c2d3132333435360000000000000001000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "enter-farm-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:ASHUSDC-123456",
+                        "value": "1000000000000000000"
+                    }
+                ],
+                "function": "enterFarm",
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": [
+                    "0x0000000f41534855534443462d6162636465660000000000000001000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "setState",
+            "comment": "increase block nonce",
+            "currentBlockInfo": {
+                "blockNonce": "2"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "exit-old-farm_locked_rewards-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:farm-locked-rewards_old",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:ASHEGLDFL-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "1"
+                    }
+                ],
+                "function": "exitFarm",
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": [
+                    "1",
+                    "0x020000000c4c4b4d45582d6162636465660000000000000001000000081bc16d674ec80000",
+                    "0x000000000e41534845474c442d3132333435360000000000000000000000080de0b6b3a7640000",
+                    "0x020000000c4c4b4d45582d6162636465660000000000000001000000081bc16d674ec80000"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "enter-old-farm-locked-token-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:simple_lock",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKLP-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "1"
+                    }
+                ],
+                "function": "enterFarmLockedToken",
+                "arguments": ["0"],
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": [
+                    "0x0000000d4c4b4641524d2d3132333435360000000000000001000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "enter-farm-locked-token-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:simple_lock",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKLP-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "2"
+                    }
+                ],
+                "function": "enterFarmLockedToken",
+                "arguments": ["0"],
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": [
+                    "0x0000000d4c4b4641524d2d3132333435360000000000000002000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "setState",
+            "comment": "increase block nonce",
+            "currentBlockInfo": {
+                "blockNonce": "3"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "exit-old-farm-locked-token-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:simple_lock",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKFARM-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "1"
+                    }
+                ],
+                "function": "exitFarmLockedToken",
+                "gasLimit": "30,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "refund": "*",
+                "out": [
+                    "0x0000000b4c4b4c502d3132333435360000000000000001000000080de0b6b3a7640000",
+                    "0x0000000a4d45582d3132333435360000000000000000000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "exit-farm-locked-token-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:simple_lock",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKFARM-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "2"
+                    }
+                ],
+                "function": "exitFarmLockedToken",
+                "gasLimit": "30,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "refund": "*",
+                "out": [
+                    "0x0000000b4c4b4c502d3132333435360000000000000002000000080de0b6b3a7640000",
+                    "0x0000000a4d45582d31323334353600000000000000000000000806f05b59d3b20000"
+                ]
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "enter-old-farm_locked_rewards-locked-token-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:simple_lock",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKLP-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "1"
+                    }
+                ],
+                "function": "enterFarmLockedToken",
+                "arguments": ["1"],
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": [
+                    "0x0000000d4c4b4641524d2d3132333435360000000000000003000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "9",
+                    "balance": "0",
+                    "esdt": {
+                        "str:ASHEGLD-123456": {
+                            "lastNonce": "0",
+                            "balance": "1000000000000000000"
+                        },
+                        "str:ASHUSDC-123456": {
+                            "lastNonce": "0"
+                        },
+                        "str:ASHUSDCF-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "1000000000000000000",
+                                    "creator": "sc:farm",
+                                    "uri": [
+                                        "str:"
+                                    ],
+                                    "attributes": "0x0000000000000000000000000000000000000000000000080de0b6b3a764000000000000000000080de0b6b3a7640000"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:LKLP-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "2",
+                                    "balance": "1000000000000000000",
+                                    "creator": "sc:simple_lock",
+                                    "attributes": "nested:str:ASHUSDC-123456|nested:str:ASH-1234|u64:0|nested:str:USDC-123456|u64:0"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:MEX-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "1500000000000000000"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:LKFARM-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "3",
+                                    "balance": "1000000000000000000",
+                                    "creator": "sc:simple_lock",
+                                    "attributes": "u8:1|nested:str:ASHEGLDFL-123456|u64:2|nested:str:ASHEGLD-123456|u64:1"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "2000000000000000000",
+                                    "creator": "sc:factory",
+                                    "uri": [
+                                        "str:"
+                                    ],
+                                    "attributes": "0x00000002000000000000000c000000000000c350000000000000001d000000000000c35000"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        }
+                    }
+                },
+                "+": ""
+            }
+        },
+        {
+            "step": "setState",
+            "comment": "increase block nonce",
+            "currentBlockInfo": {
+                "blockNonce": "4"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "exit-old-farm_locked_rewards-locked-token-tx",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:simple_lock",
+                "egldValue": "0",
+                "esdtValue": [
+                    {
+                        "tokenIdentifier": "str:LKFARM-123456",
+                        "value": "1000000000000000000",
+                        "nonce": "3"
+                    }
+                ],
+                "function": "exitFarmLockedToken",
+                "gasLimit": "30,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "refund": "*",
+                "out": [
+                    "0x0000000b4c4b4c502d3132333435360000000000000001000000080de0b6b3a7640000",
+                    "0x0000000c4c4b4d45582d6162636465660000000000000001000000080de0b6b3a7640000"
+                ]
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "10",
+                    "balance": "0",
+                    "esdt": {
+                        "str:ASHEGLD-123456": {
+                            "lastNonce": "0",
+                            "balance": "1000000000000000000"
+                        },
+                        "str:ASHUSDC-123456": {
+                            "lastNonce": "0"
+                        },
+                        "str:ASHUSDCF-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "1000000000000000000",
+                                    "creator": "sc:farm",
+                                    "uri": [
+                                        "str:"
+                                    ],
+                                    "attributes": "0x0000000000000000000000000000000000000000000000080de0b6b3a764000000000000000000080de0b6b3a7640000"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:LKLP-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "1000000000000000000",
+                                    "creator": "sc:simple_lock",
+                                    "attributes": "nested:str:ASHEGLD-123456|nested:str:ASH-1234|u64:0|nested:str:WEGLD-123456|u64:0"
+                                },
+                                {
+                                    "nonce": "2",
+                                    "balance": "1000000000000000000",
+                                    "creator": "sc:simple_lock",
+                                    "attributes": "nested:str:ASHUSDC-123456|nested:str:ASH-1234|u64:0|nested:str:USDC-123456|u64:0"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:MEX-123456": {
+                            "instances": [
+                                {
+                                    "nonce": "0",
+                                    "balance": "1500000000000000000"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        },
+                        "str:LKMEX-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "1",
+                                    "balance": "3000000000000000000",
+                                    "creator": "sc:factory",
+                                    "uri": [
+                                        "str:"
+                                    ],
+                                    "attributes": "0x00000002000000000000000c000000000000c350000000000000001d000000000000c35000"
+                                }
+                            ],
+                            "lastNonce": "0"
+                        }
+                    }
+                },
+                "+": ""
+            }
+        }
+    ]
+}

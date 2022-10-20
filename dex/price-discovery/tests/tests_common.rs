@@ -124,7 +124,7 @@ where
         .execute_tx(&owner_address, &locking_sc_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
         })
         .assert_ok();
 
@@ -158,7 +158,7 @@ where
             );
 
             sc.redeem_token()
-                .set_token_id(&managed_token_id!(REDEEM_TOKEN_ID));
+                .set_token_id(managed_token_id!(REDEEM_TOKEN_ID));
         })
         .assert_ok();
 

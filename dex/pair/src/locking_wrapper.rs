@@ -10,7 +10,7 @@ pub trait LockingWrapperModule:
     #[endpoint(setLockingDeadlineEpoch)]
     fn set_locking_deadline_epoch(&self, new_deadline: u64) {
         self.require_caller_has_owner_permissions();
-        self.locking_deadline_epoch().set(&new_deadline);
+        self.locking_deadline_epoch().set(new_deadline);
     }
 
     #[endpoint(setLockingScAddress)]
@@ -27,7 +27,7 @@ pub trait LockingWrapperModule:
     #[endpoint(setUnlockEpoch)]
     fn set_unlock_epoch(&self, new_epoch: u64) {
         self.require_caller_has_owner_permissions();
-        self.unlock_epoch().set(&new_epoch);
+        self.unlock_epoch().set(new_epoch);
     }
 
     #[inline]

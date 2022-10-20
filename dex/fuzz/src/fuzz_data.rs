@@ -445,7 +445,7 @@ pub mod fuzz_data_tests {
                 );
 
                 let farm_token_id = managed_token_id!(farm_token);
-                sc.farm_token().set_token_id(&farm_token_id);
+                sc.farm_token().set_token_id(farm_token_id);
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
@@ -549,7 +549,7 @@ pub mod fuzz_data_tests {
                 ]));
                 sc.init(asset_token_id, default_unlock_period);
                 sc.set_init_epoch(FACTORY_LOCK_NONCE);
-                sc.locked_asset_token().set_token_id(&locked_asset_token_id);
+                sc.locked_asset_token().set_token_id(locked_asset_token_id);
             })
             .assert_ok();
 
@@ -651,7 +651,7 @@ pub mod fuzz_data_tests {
             .execute_tx(owner_addr, &locking_sc_wrapper, &rust_zero, |sc| {
                 sc.init();
                 sc.locked_token()
-                    .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                    .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             })
             .assert_ok();
 
@@ -685,7 +685,7 @@ pub mod fuzz_data_tests {
                 );
 
                 sc.redeem_token()
-                    .set_token_id(&managed_token_id!(DISC_REDEEM_TOKEN_ID));
+                    .set_token_id(managed_token_id!(DISC_REDEEM_TOKEN_ID));
             })
             .assert_ok();
 

@@ -20,12 +20,13 @@ elrond_wasm_node::wasm_endpoints! {
         getWhitelistedContracts
         isPaused
         lockAssets
-        mergeLockedAssetTokens
+        mergeTokens
         pause
         registerLockedAssetToken
         removeWhitelist
         setInitEpoch
         setLockedTokenBurnRoleForAddress
+        setNewFactoryAddress
         setTransferRoleOldLockedToken
         setUnlockPeriod
         unlockAssets

@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![feature(exact_size_is_empty)]
 
 mod attr_ex_helper;
@@ -359,7 +358,7 @@ pub trait LockedAssetFactory:
     #[only_owner]
     #[endpoint(setInitEpoch)]
     fn set_init_epoch(&self, init_epoch: Epoch) {
-        self.init_epoch().set(&init_epoch);
+        self.init_epoch().set(init_epoch);
     }
 
     #[view(getInitEpoch)]

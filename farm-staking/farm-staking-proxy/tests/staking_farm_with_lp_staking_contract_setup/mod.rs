@@ -47,7 +47,7 @@ where
             );
 
             sc.farm_token()
-                .set_token_id(&managed_token_id!(STAKING_FARM_TOKEN_ID));
+                .set_token_id(managed_token_id!(STAKING_FARM_TOKEN_ID));
 
             sc.state().set(&State::Active);
             sc.produce_rewards_enabled().set(&true);
@@ -126,7 +126,7 @@ where
             );
 
             sc.dual_yield_token()
-                .set_token_id(&managed_token_id!(DUAL_YIELD_TOKEN_ID));
+                .set_token_id(managed_token_id!(DUAL_YIELD_TOKEN_ID));
         })
         .assert_ok();
 

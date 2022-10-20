@@ -112,7 +112,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
         require!(new_value != 0, "Voting delay in blocks can't be set to 0");
 
-        self.voting_delay_in_blocks().set(&new_value);
+        self.voting_delay_in_blocks().set(new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
@@ -121,7 +121,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
             "Voting period (in blocks) can't be set to 0"
         );
 
-        self.voting_period_in_blocks().set(&new_value);
+        self.voting_period_in_blocks().set(new_value);
     }
 
     fn try_change_lock_time_after_voting_ends_in_blocks(&self, new_value: u64) {
@@ -130,7 +130,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
             "Lock time after voting ends (in blocks) can't be set to 0"
         );
 
-        self.lock_time_after_voting_ends_in_blocks().set(&new_value);
+        self.lock_time_after_voting_ends_in_blocks().set(new_value);
     }
 
     #[view(getMinEnergyForPropose)]

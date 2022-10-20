@@ -9,10 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         getEnergyAmountForUser
         getEnergyEntryForUser
-<<<<<<< HEAD
         setUserEnergy
-=======
->>>>>>> farm-refactor-2
     )
 }
 

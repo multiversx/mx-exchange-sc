@@ -123,7 +123,7 @@ pub trait GovernanceV2:
         let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
 
         let current_block = self.blockchain().get_block_nonce();
-        self.proposal_start_block(proposal_id).set(&current_block);
+        self.proposal_start_block(proposal_id).set(current_block);
 
         self.proposal_created_event(proposal_id, &proposer, current_block, &proposal);
 
@@ -193,7 +193,7 @@ pub trait GovernanceV2:
         );
 
         let current_block = self.blockchain().get_block_nonce();
-        self.proposal_queue_block(proposal_id).set(&current_block);
+        self.proposal_queue_block(proposal_id).set(current_block);
 
         self.proposal_queued_event(proposal_id, current_block);
     }

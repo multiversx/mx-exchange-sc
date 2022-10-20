@@ -9,10 +9,10 @@ elrond_wasm_node::wasm_endpoints! {
     (
         cancel
         changeLockTimeAfterVotingEndsInBlocks
+        changeMinEnergyForProposal
         changeQuorum
         changeVotingDelayInBlocks
         changeVotingPeriodInBlocks
-        change_min_energy_for_propose
         depositTokensForProposal
         downvote
         execute
