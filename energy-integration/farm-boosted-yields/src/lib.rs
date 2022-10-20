@@ -223,14 +223,16 @@ where
 
             // computed user rewards
             // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y)
+            let boosted_rewards_by_energy =
+                &weekly_reward.amount * &factors.user_rewards_energy_const * energy_amount
+                    / total_energy;
+            let boosted_rewards_by_tokens =
+                &weekly_reward.amount * &factors.user_rewards_farm_const * &self.user_farm_amount
+                    / &self.total_farm_supply;
+            let constants_base =
+                &factors.user_rewards_energy_const + &factors.user_rewards_farm_const;
             let boosted_reward_amount =
-                ((&weekly_reward.amount * &factors.user_rewards_energy_const * energy_amount
-                    / total_energy)
-                    + (&weekly_reward.amount
-                        * &factors.user_rewards_farm_const
-                        * &self.user_farm_amount
-                        / &self.total_farm_supply))
-                    / (&factors.user_rewards_energy_const + &factors.user_rewards_farm_const);
+                (boosted_rewards_by_energy + boosted_rewards_by_tokens) / constants_base;
 
             // min between normalized rewards and computed rewards
             let user_reward = if normalized_user_base_rewards < boosted_reward_amount {
