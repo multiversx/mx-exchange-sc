@@ -243,11 +243,13 @@ where
             token_attributes,
             storage_cache,
         );
+        let total_rewards_per_block = sc.per_block_reward_amount().get();
         let boosted_yield_rewards = sc.claim_boosted_yields_rewards(
             caller,
             farm_token_nonce,
             farm_token_amount,
             &storage_cache.farm_token_supply,
+            &total_rewards_per_block,
         );
 
         base_farm_reward + boosted_yield_rewards

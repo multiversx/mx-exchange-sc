@@ -3,13 +3,14 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::{cmp, marker::PhantomData};
+use core::marker::PhantomData;
 
 use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
 const MAX_PERCENT: u64 = 10_000;
+const BLOCKS_PER_WEEK: u64 = 100_800u64;
 
 pub struct SplitReward<M: ManagedTypeApi> {
     pub base_farm: BigUint<M>,
@@ -112,11 +113,13 @@ pub trait FarmBoostedYieldsModule:
         farm_token_nonce: Nonce,
         farm_token_amount: &BigUint,
         farm_token_supply: &BigUint,
+        total_rewards_per_block: &BigUint,
     ) -> BigUint {
         let wrapper = FarmBoostedYieldsWrapper::new(
             farm_token_nonce,
             farm_token_amount.clone(),
             farm_token_supply.clone(),
+            total_rewards_per_block.clone(),
         );
         let rewards = self.claim_multi(&wrapper, user);
 
@@ -135,6 +138,9 @@ pub trait FarmBoostedYieldsModule:
     #[storage_mapper("accumulatedRewardsForWeek")]
     fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("undistributedBoostedRewards")]
+    fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
+
     #[storage_mapper("boostedYieldsFactors")]
     fn boosted_yields_factors(&self) -> SingleValueMapper<BoostedYieldsFactors<Self::Api>>;
 
@@ -150,6 +156,7 @@ pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
     pub current_farm_token_nonce: Nonce,
     pub user_farm_amount: BigUint<<T as ContractBase>::Api>,
     pub total_farm_supply: BigUint<<T as ContractBase>::Api>,
+    pub total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
     pub phantom: PhantomData<T>,
 }
 
@@ -158,11 +165,13 @@ impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
         current_farm_token_nonce: Nonce,
         user_farm_amount: BigUint<<T as ContractBase>::Api>,
         total_farm_supply: BigUint<<T as ContractBase>::Api>,
+        total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
     ) -> FarmBoostedYieldsWrapper<T> {
         FarmBoostedYieldsWrapper {
             current_farm_token_nonce,
             user_farm_amount,
             total_farm_supply,
+            total_rewards_per_block,
             phantom: PhantomData,
         }
     }
@@ -205,21 +214,41 @@ where
             return user_rewards;
         }
 
-        // TODO
         for weekly_reward in total_rewards {
-            // boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y)
-            let boosted_reward_amount = weekly_reward.amount
-                * ((&factors.user_rewards_energy_const * energy_amount / total_energy)
-                    + (&factors.user_rewards_farm_const * &self.user_farm_amount
-                        / &self.total_farm_supply))
-                / (&factors.user_rewards_energy_const + &factors.user_rewards_farm_const);
+            // normalized user rewards
+            let user_base_rewards_per_block =
+                &self.total_rewards_per_block * &self.user_farm_amount / &self.total_farm_supply;
+            let normalized_user_base_rewards =
+                &factors.user_rewards_base_const * &user_base_rewards_per_block * BLOCKS_PER_WEEK;
 
-            let normalized_user_base_rewards = BigUint::zero();
-            let user_base_rewards =
-                &factors.user_rewards_base_const * &normalized_user_base_rewards;
-            let user_reward = cmp::min(user_base_rewards, boosted_reward_amount);
+            // computed user rewards
+            // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y)
+            let boosted_reward_amount =
+                ((&weekly_reward.amount * &factors.user_rewards_energy_const * energy_amount
+                    / total_energy)
+                    + (&weekly_reward.amount
+                        * &factors.user_rewards_farm_const
+                        * &self.user_farm_amount
+                        / &self.total_farm_supply))
+                    / (&factors.user_rewards_energy_const + &factors.user_rewards_farm_const);
+
+            // min between normalized rewards and computed rewards
+            let user_reward = if normalized_user_base_rewards < boosted_reward_amount {
+                let undistributed_amount = &normalized_user_base_rewards - &boosted_reward_amount;
+                module
+                    .undistributed_boosted_rewards()
+                    .update(|total_amount| *total_amount += undistributed_amount);
+                normalized_user_base_rewards
+            } else {
+                boosted_reward_amount
+            };
+
             if user_reward > 0 {
-                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token_identifier, 0, user_reward));
+                user_rewards.push(EsdtTokenPayment::new(
+                    weekly_reward.token_identifier,
+                    0,
+                    user_reward,
+                ));
             }
         }
 
