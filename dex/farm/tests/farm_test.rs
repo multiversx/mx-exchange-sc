@@ -114,6 +114,7 @@ fn farm_with_boosted_yields_test() {
     let mut farm_setup = FarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
     farm_setup.b_mock.set_block_epoch(2);
 
     // first user enter farm
@@ -152,7 +153,7 @@ fn farm_with_boosted_yields_test() {
 
     // first user claim
     let first_base_farm_amt = first_farm_token_amount * 7_500 / total_farm_tokens;
-    let first_boosted_amt = 1_000 * 2_500 / 5_000; // 1_000 out of 5_000 total energy
+    let first_boosted_amt = 966; // 1000 energy & 100_000_000 farm tokens
     let first_total = first_base_farm_amt + first_boosted_amt;
 
     let first_receveived_reward_amt =
@@ -177,7 +178,7 @@ fn farm_with_boosted_yields_test() {
 
     // second user claim
     let second_base_farm_amt = second_farm_token_amount * 7_500 / total_farm_tokens;
-    let second_boosted_amt = 4_000 * 2_500 / 5_000; // 4_000 out of 5_000 total energy
+    let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_total = second_base_farm_amt + second_boosted_amt;
 
     let second_receveived_reward_amt =
