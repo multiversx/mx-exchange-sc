@@ -3,9 +3,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::marker::PhantomData;
+use core::{cmp, marker::PhantomData};
 
-use common_types::{Nonce, TokenAmountPair, TokenAmountPairsVec};
+use common_types::{Nonce, PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
@@ -25,6 +25,15 @@ impl<M: ManagedTypeApi> SplitReward<M> {
     }
 }
 
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
+pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
+    pub user_rewards_base_const: BigUint<M>,
+    pub user_rewards_energy_const: BigUint<M>,
+    pub user_rewards_farm_const: BigUint<M>,
+    pub min_energy_amount: BigUint<M>,
+    pub min_farm_amount: BigUint<M>,
+}
+
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
     config::ConfigModule
@@ -42,6 +51,37 @@ pub trait FarmBoostedYieldsModule:
         require!(percentage <= MAX_PERCENT, "Invalid percentage");
 
         self.boosted_yields_rewards_percentage().set(percentage);
+    }
+
+    #[endpoint(setBoostedYieldsFactors)]
+    fn set_boosted_yields_factors(
+        &self,
+        user_rewards_base_const: BigUint,
+        user_rewards_energy_const: BigUint,
+        user_rewards_farm_const: BigUint,
+        min_energy_amount: BigUint,
+        min_farm_amount: BigUint,
+    ) {
+        self.require_caller_has_admin_permissions();
+        let biguint_zero = BigUint::zero();
+        require!(
+            user_rewards_base_const > biguint_zero
+                && user_rewards_energy_const > biguint_zero
+                && user_rewards_farm_const > biguint_zero
+                && min_energy_amount > biguint_zero
+                && min_farm_amount > biguint_zero,
+            "Values must be greater than 0"
+        );
+
+        let factors = BoostedYieldsFactors {
+            user_rewards_base_const,
+            user_rewards_energy_const,
+            user_rewards_farm_const,
+            min_energy_amount,
+            min_farm_amount,
+        };
+
+        self.boosted_yields_factors().set(factors);
     }
 
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
@@ -70,8 +110,14 @@ pub trait FarmBoostedYieldsModule:
         &self,
         user: &ManagedAddress,
         farm_token_nonce: Nonce,
+        farm_token_amount: &BigUint,
+        farm_token_supply: &BigUint,
     ) -> BigUint {
-        let wrapper = FarmBoostedYieldsWrapper::new(farm_token_nonce);
+        let wrapper = FarmBoostedYieldsWrapper::new(
+            farm_token_nonce,
+            farm_token_amount.clone(),
+            farm_token_supply.clone(),
+        );
         let rewards = self.claim_multi(&wrapper, user);
 
         let mut total = BigUint::zero();
@@ -89,6 +135,9 @@ pub trait FarmBoostedYieldsModule:
     #[storage_mapper("accumulatedRewardsForWeek")]
     fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[storage_mapper("boostedYieldsFactors")]
+    fn boosted_yields_factors(&self) -> SingleValueMapper<BoostedYieldsFactors<Self::Api>>;
+
     #[storage_mapper("farmClaimProgress")]
     fn farm_claim_progress(
         &self,
@@ -99,13 +148,21 @@ pub trait FarmBoostedYieldsModule:
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
     pub current_farm_token_nonce: Nonce,
+    pub user_farm_amount: BigUint<<T as ContractBase>::Api>,
+    pub total_farm_supply: BigUint<<T as ContractBase>::Api>,
     pub phantom: PhantomData<T>,
 }
 
 impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
-    pub fn new(current_farm_token_nonce: Nonce) -> FarmBoostedYieldsWrapper<T> {
+    pub fn new(
+        current_farm_token_nonce: Nonce,
+        user_farm_amount: BigUint<<T as ContractBase>::Api>,
+        total_farm_supply: BigUint<<T as ContractBase>::Api>,
+    ) -> FarmBoostedYieldsWrapper<T> {
         FarmBoostedYieldsWrapper {
             current_farm_token_nonce,
+            user_farm_amount,
+            total_farm_supply,
             phantom: PhantomData,
         }
     }
@@ -128,6 +185,45 @@ where
         rewards_mapper.clear();
 
         ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id, total_rewards))
+    }
+
+    // User rewards formula = user_base_rewards +
+    // min(base_const * user_base_rewards, boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y))
+    fn get_user_rewards_for_week(
+        &self,
+        module: &Self::WeeklyRewardsSplittingMod,
+        energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        total_rewards: &TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+        let mut user_rewards = ManagedVec::new();
+        let factors = module.boosted_yields_factors().get();
+        if energy_amount == &0
+            || energy_amount < &factors.min_energy_amount
+            || self.user_farm_amount < factors.min_farm_amount
+        {
+            return user_rewards;
+        }
+
+        // TODO
+        for weekly_reward in total_rewards {
+            // boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y)
+            let boosted_reward_amount = weekly_reward.amount
+                * ((&factors.user_rewards_energy_const * energy_amount / total_energy)
+                    + (&factors.user_rewards_farm_const * &self.user_farm_amount
+                        / &self.total_farm_supply))
+                / (&factors.user_rewards_energy_const + &factors.user_rewards_farm_const);
+
+            let normalized_user_base_rewards = BigUint::zero();
+            let user_base_rewards =
+                &factors.user_rewards_base_const * &normalized_user_base_rewards;
+            let user_reward = cmp::min(user_base_rewards, boosted_reward_amount);
+            if user_reward > 0 {
+                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, user_reward));
+            }
+        }
+
+        user_rewards
     }
 
     fn get_claim_progress_mapper(

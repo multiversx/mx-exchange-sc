@@ -51,6 +51,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeFromPauseWhitelist
         removeSCAddressFromWhitelist
         resume
+        setBoostedYieldsFactors
         setBoostedYieldsRewardsPercentage
         setEnergyFactoryAddress
         setPerBlockRewardAmount

@@ -15,15 +15,14 @@ elrond_wasm_node::wasm_endpoints! {
         getAllKnownContracts
         getAllTokens
         getCurrentClaimProgress
-        getCurrentGlobalActiveWeek
         getCurrentWeek
         getEnergyFactoryAddress
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
-        getLastGlobalActiveWeek
         getLastGlobalUpdateWeek
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
         getUserEnergyForWeek
         isPaused
         pause
