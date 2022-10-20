@@ -196,8 +196,6 @@ where
         ManagedVec::from_single_item(EsdtTokenPayment::new(reward_token_id, 0, total_rewards))
     }
 
-    // User rewards formula = user_base_rewards +
-    // min(base_const * user_base_rewards, boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y))
     fn get_user_rewards_for_week(
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
@@ -207,22 +205,21 @@ where
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
         let factors = module.boosted_yields_factors().get();
-        if energy_amount == &0
-            || energy_amount < &factors.min_energy_amount
+        if energy_amount <= &factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {
             return user_rewards;
         }
 
-        for weekly_reward in total_rewards {
-            // normalized user rewards
-            let user_base_rewards_per_block =
-                &self.total_rewards_per_block * &self.user_farm_amount / &self.total_farm_supply;
-            let normalized_user_base_rewards =
-                &factors.user_rewards_base_const * &user_base_rewards_per_block * BLOCKS_PER_WEEK;
+        // user base rewards per week
+        let user_base_rewards_per_block =
+            &self.total_rewards_per_block * &self.user_farm_amount / &self.total_farm_supply;
+        let user_rewards_for_week =
+            &factors.user_rewards_base_const * &user_base_rewards_per_block * BLOCKS_PER_WEEK;
 
-            // computed user rewards
-            // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (X+Y)
+        // computed user rewards
+        // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
+        for weekly_reward in total_rewards {
             let boosted_rewards_by_energy =
                 &weekly_reward.amount * &factors.user_rewards_energy_const * energy_amount
                     / total_energy;
@@ -234,13 +231,13 @@ where
             let boosted_reward_amount =
                 (boosted_rewards_by_energy + boosted_rewards_by_tokens) / constants_base;
 
-            // min between normalized rewards and computed rewards
-            let user_reward = if normalized_user_base_rewards < boosted_reward_amount {
-                let undistributed_amount = &normalized_user_base_rewards - &boosted_reward_amount;
+            // min between base rewards per week and computed rewards
+            let user_reward = if user_rewards_for_week < boosted_reward_amount {
+                let undistributed_amount = &user_rewards_for_week - &boosted_reward_amount;
                 module
                     .undistributed_boosted_rewards()
                     .update(|total_amount| *total_amount += undistributed_amount);
-                normalized_user_base_rewards
+                user_rewards_for_week.clone()
             } else {
                 boosted_reward_amount
             };
