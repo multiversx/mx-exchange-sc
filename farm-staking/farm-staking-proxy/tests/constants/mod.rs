@@ -32,6 +32,11 @@ pub const MAX_APR: u64 = 5_000; // 50%
 pub const UNBOND_EPOCHS: u64 = 10;
 pub const STAKING_FARM_PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 pub const REWARD_CAPACITY: u64 = 1_000_000_000_000;
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 // Proxy constants
 

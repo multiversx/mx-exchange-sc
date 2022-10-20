@@ -53,3 +53,6 @@ path = "../../common/modules/farm/farm_token"
 
 [dev-dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
+
+[dev-dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
