@@ -90,53 +90,50 @@ pub trait TokenMergingModule:
         let first_payment = payments.get(0);
         payments.remove(0);
 
-        let output_amount_attributes =
-            self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
-                let first_token_attributes: LockedTokenAttributes<Self::Api> =
-                    locked_token_mapper.get_token_attributes(first_payment.token_nonce);
+        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
+            let first_token_attributes: LockedTokenAttributes<Self::Api> =
+                locked_token_mapper.get_token_attributes(first_payment.token_nonce);
+            energy.update_after_unlock_any(
+                &first_payment.amount,
+                first_token_attributes.unlock_epoch,
+                current_epoch,
+            );
+
+            locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
+
+            let mut output_pair = LockedAmountAttributesPair {
+                token_amount: first_payment.amount,
+                attributes: first_token_attributes,
+            };
+            for payment in &payments {
+                let attributes: LockedTokenAttributes<Self::Api> =
+                    locked_token_mapper.get_token_attributes(payment.token_nonce);
                 energy.update_after_unlock_any(
-                    &first_payment.amount,
-                    first_token_attributes.unlock_epoch,
+                    &payment.amount,
+                    attributes.unlock_epoch,
                     current_epoch,
                 );
 
-                locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
+                locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
-                let mut output_pair = LockedAmountAttributesPair {
-                    token_amount: first_payment.amount,
-                    attributes: first_token_attributes,
+                let amount_attr_pair = LockedAmountAttributesPair {
+                    token_amount: payment.amount,
+                    attributes,
                 };
-                for payment in &payments {
-                    let attributes: LockedTokenAttributes<Self::Api> =
-                        locked_token_mapper.get_token_attributes(payment.token_nonce);
-                    energy.update_after_unlock_any(
-                        &payment.amount,
-                        attributes.unlock_epoch,
-                        current_epoch,
-                    );
+                output_pair.merge_with(amount_attr_pair);
+            }
 
-                    locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+            let normalized_unlock_epoch = self
+                .unlock_epoch_to_start_of_month_upper_estimate(output_pair.attributes.unlock_epoch);
+            output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
 
-                    let amount_attr_pair = LockedAmountAttributesPair {
-                        token_amount: payment.amount,
-                        attributes,
-                    };
-                    output_pair.merge_with(amount_attr_pair);
-                }
+            energy.add_after_token_lock(
+                &output_pair.token_amount,
+                output_pair.attributes.unlock_epoch,
+                current_epoch,
+            );
 
-                let normalized_unlock_epoch = self.unlock_epoch_to_start_of_month_upper_estimate(
-                    output_pair.attributes.unlock_epoch,
-                );
-                output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
-
-                energy.add_after_token_lock(
-                    &output_pair.token_amount,
-                    output_pair.attributes.unlock_epoch,
-                    current_epoch,
-                );
-
-                output_pair
-            });
-        output_amount_attributes
+            output_pair
+        })
     }
 }

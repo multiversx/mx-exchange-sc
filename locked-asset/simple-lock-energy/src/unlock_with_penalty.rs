@@ -26,10 +26,6 @@ pub mod fees_collector_proxy {
         #[payable("*")]
         #[endpoint(depositSwapFees)]
         fn deposit_swap_fees(&self);
-
-        #[payable("*")]
-        #[endpoint(depositPenaltyFees)]
-        fn deposit_penalty_fees(&self);
     }
 }
 
@@ -260,7 +256,7 @@ pub trait UnlockWithPenaltyModule:
         );
 
         let new_locked_tokens = locked_token_mapper
-            .nft_add_quantity(sft_nonce, new_locked_amount_attributes.token_amount.clone());
+            .nft_add_quantity(sft_nonce, new_locked_amount_attributes.token_amount);
 
         self.fees_from_penalty_unlocking().set(NonceAmountPair::new(
             new_locked_tokens.token_nonce,
@@ -268,7 +264,6 @@ pub trait UnlockWithPenaltyModule:
         ));
     }
 
-    #[payable("*")]
     #[endpoint(sendFeesToCollector)]
     fn send_fees_to_collector(&self) {
         // Send fees to FeeCollector SC
