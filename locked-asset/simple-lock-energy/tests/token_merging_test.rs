@@ -51,7 +51,7 @@ fn token_merging_test() {
     setup
         .b_mock
         .execute_esdt_multi_transfer(&first_user, &setup.sc_wrapper, &payments[..], |sc| {
-            let _ = sc.merge_tokens(OptionalValue::None);
+            let _ = sc.merge_tokens_endpoint(OptionalValue::None);
         })
         .assert_ok();
 
