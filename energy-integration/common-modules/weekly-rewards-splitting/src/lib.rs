@@ -140,9 +140,8 @@ pub trait WeeklyRewardsSplittingModule:
         energy_amount: &BigUint,
         total_rewards: &PaymentsVec<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
-        let biguint_zero = BigUint::zero();
         let mut user_rewards = ManagedVec::new();
-        if energy_amount == &biguint_zero {
+        if energy_amount == &0 {
             return user_rewards;
         }
 

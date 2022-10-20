@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Epoch, Nonce, NonceAmountPair, PaymentsVec, Week};
+use common_structs::{Epoch, Nonce, NonceAmountPair, PaymentsVec};
 
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -268,25 +268,28 @@ pub trait UnlockWithPenaltyModule:
     fn send_fees_to_collector(&self) {
         // Send fees to FeeCollector SC
         let current_epoch = self.blockchain().get_block_epoch();
-        let last_week_fee_sent_to_collector = self.last_week_fee_sent_to_collector().get();
+        let last_week_fee_sent_to_collector = self.last_epoch_fee_sent_to_collector().get();
+        let next_send_epoch = last_week_fee_sent_to_collector as u64 + EPOCHS_PER_WEEK;
 
-        if current_epoch >= last_week_fee_sent_to_collector + EPOCHS_PER_WEEK {
-            let sc_address = self.fees_collector_address().get();
-            let locked_token_id = self.locked_token().get_token_id();
-            let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
-
-            self.fees_from_penalty_unlocking().clear();
-            self.fees_collector_proxy_builder(sc_address)
-                .deposit_swap_fees()
-                .add_esdt_token_transfer(
-                    locked_token_id,
-                    nonce_amount_pair.nonce,
-                    nonce_amount_pair.amount,
-                )
-                .execute_on_dest_context_ignore_result();
-
-            self.last_week_fee_sent_to_collector().set(current_epoch);
+        if current_epoch < next_send_epoch {
+            return;
         }
+        
+        let sc_address = self.fees_collector_address().get();
+        let locked_token_id = self.locked_token().get_token_id();
+        let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
+
+        self.fees_from_penalty_unlocking().clear();
+        self.fees_collector_proxy_builder(sc_address)
+            .deposit_swap_fees()
+            .add_esdt_token_transfer(
+                locked_token_id,
+                nonce_amount_pair.nonce,
+                nonce_amount_pair.amount,
+            )
+            .execute_on_dest_context_ignore_result();
+
+        self.last_epoch_fee_sent_to_collector().set(current_epoch);
     }
 
     #[proxy]
@@ -311,7 +314,7 @@ pub trait UnlockWithPenaltyModule:
     #[storage_mapper("feesFromPenaltyUnlocking")]
     fn fees_from_penalty_unlocking(&self) -> SingleValueMapper<NonceAmountPair<Self::Api>>;
 
-    #[view(getLastWeekFeeSentToCollector)]
-    #[storage_mapper("lastWeekFeeSentToCollector")]
-    fn last_week_fee_sent_to_collector(&self) -> SingleValueMapper<Week>;
+    #[view(getLastEpochFeeSentToCollector)]
+    #[storage_mapper("lastEpochFeeSentToCollector")]
+    fn last_epoch_fee_sent_to_collector(&self) -> SingleValueMapper<Epoch>;
 }
