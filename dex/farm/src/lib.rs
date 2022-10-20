@@ -78,6 +78,8 @@ pub trait Farm:
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
+
+        self.init_next_bucket_shift_epoch();
     }
 
     #[payable("*")]

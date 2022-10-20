@@ -6,6 +6,11 @@ use energy_query::Energy;
 pub type BucketId = u64;
 pub const EPOCHS_PER_MONTH: Epoch = 30;
 
+pub struct BucketPair {
+    pub opt_prev_bucket: Option<BucketId>,
+    pub opt_current_bucket: Option<BucketId>,
+}
+
 #[elrond_wasm::module]
 pub trait WeeklyRewardsLockedTokenBucketsModule {
     fn init_next_bucket_shift_epoch(&self) {
@@ -48,36 +53,26 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         epoch - extra_days
     }
 
-    fn add_new_tokens_to_buckets(&self, energy: &Energy<Self::Api>) {
-        let opt_bucket_id = self.get_bucket_id_for_current_energy(energy);
-        if let Some(bucket_id) = opt_bucket_id {
-            self.locked_tokens_in_bucket(bucket_id)
-                .update(|total| *total += energy.get_total_locked_tokens());
-        }
-    }
-
     fn reallocate_bucket_after_energy_update(
         &self,
         prev_energy: &Energy<Self::Api>,
         current_energy: &Energy<Self::Api>,
-    ) {
-        let last_update_epoch = current_energy.get_last_update_epoch();
-        let mut natural_depleted_energy = prev_energy.clone();
-        natural_depleted_energy.deplete(last_update_epoch);
-        if current_energy == &natural_depleted_energy {
-            return;
-        }
-
+    ) -> BucketPair {
         let opt_bucket_for_prev_energy = self.get_bucket_id_for_previous_energy(prev_energy);
-        if let Some(prev_bucket_id) = opt_bucket_for_prev_energy {
-            self.locked_tokens_in_bucket(prev_bucket_id)
+        if let Some(prev_bucket_id) = &opt_bucket_for_prev_energy {
+            self.locked_tokens_in_bucket(*prev_bucket_id)
                 .update(|total| *total -= prev_energy.get_total_locked_tokens());
         }
 
         let opt_bucket_for_current_energy = self.get_bucket_id_for_current_energy(current_energy);
-        if let Some(new_bucket_id) = opt_bucket_for_current_energy {
-            self.locked_tokens_in_bucket(new_bucket_id)
+        if let Some(new_bucket_id) = &opt_bucket_for_current_energy {
+            self.locked_tokens_in_bucket(*new_bucket_id)
                 .update(|total| *total += current_energy.get_total_locked_tokens());
+        }
+
+        BucketPair {
+            opt_prev_bucket: opt_bucket_for_prev_energy,
+            opt_current_bucket: opt_bucket_for_current_energy,
         }
     }
 
@@ -93,7 +88,9 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
             return None;
         }
 
-        let months_to_full_expire = epochs_to_full_expire / EPOCHS_PER_MONTH;
+        // round up
+        let months_to_full_expire =
+            div_ceil(&epochs_to_full_expire, &BigUint::from(EPOCHS_PER_MONTH));
         let first_bucket_id = self.first_bucket_id().get();
         let bucket_id = months_to_full_expire + first_bucket_id;
 
@@ -142,4 +139,8 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
 
     #[storage_mapper("lockedTokensInBucket")]
     fn locked_tokens_in_bucket(&self, bucket_id: BucketId) -> SingleValueMapper<BigUint>;
+}
+
+fn div_ceil<M: ManagedTypeApi>(first: &BigUint<M>, second: &BigUint<M>) -> BigUint<M> {
+    (first + second - 1u32) / second
 }
