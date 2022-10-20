@@ -62,7 +62,7 @@ pub trait BPModule:
             "swap amount out too large"
         );
 
-        self.num_swaps_by_address(&caller).set(&(num_swaps + 1));
+        self.num_swaps_by_address(&caller).set(num_swaps + 1);
     }
 
     fn require_can_proceed_remove(&self, lp_token_supply: &BigUint, liquidity_removed: &BigUint) {

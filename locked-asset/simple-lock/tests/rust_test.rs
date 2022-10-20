@@ -30,7 +30,7 @@ fn lock_unlock_test() {
         .execute_tx(&owner_addr, &sc_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
         })
         .assert_ok();
 

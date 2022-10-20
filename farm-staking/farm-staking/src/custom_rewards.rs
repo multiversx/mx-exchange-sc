@@ -31,7 +31,7 @@ pub trait CustomRewardsModule:
             let block_nonce_diff = current_block_nonce - last_reward_nonce;
             let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
 
-            self.last_reward_block_nonce().set(&current_block_nonce);
+            self.last_reward_block_nonce().set(current_block_nonce);
 
             core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
         } else {
@@ -75,7 +75,7 @@ pub trait CustomRewardsModule:
         self.require_caller_has_admin_permissions();
 
         self.generate_aggregated_rewards();
-        self.produce_rewards_enabled().set(&false);
+        self.produce_rewards_enabled().set(false);
     }
 
     #[endpoint(setPerBlockRewardAmount)]
@@ -174,8 +174,8 @@ pub trait CustomRewardsModule:
             "Producing rewards is already enabled"
         );
         let current_nonce = self.blockchain().get_block_nonce();
-        self.produce_rewards_enabled().set(&true);
-        self.last_reward_block_nonce().set(&current_nonce);
+        self.produce_rewards_enabled().set(true);
+        self.last_reward_block_nonce().set(current_nonce);
     }
 
     #[inline(always)]

@@ -100,11 +100,7 @@ pub trait ExtendLockModule:
         }
 
         let base_asset = EgldOrEsdtTokenIdentifier::esdt(self.base_asset_token_id().get());
-        let original_unlocked_tokens = EgldOrEsdtTokenPayment {
-            token_identifier: base_asset,
-            token_nonce: 0,
-            amount: payment.amount,
-        };
+        let original_unlocked_tokens = EgldOrEsdtTokenPayment::new(base_asset, 0, payment.amount);
         let new_locked_tokens = self.lock_tokens(original_unlocked_tokens, new_unlock_epoch);
 
         self.to_esdt_payment(new_locked_tokens)

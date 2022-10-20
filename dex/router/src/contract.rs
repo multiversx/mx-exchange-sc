@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -385,7 +384,7 @@ pub trait Router:
     #[only_owner]
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) {
-        self.pair_creation_enabled().set(&enabled);
+        self.pair_creation_enabled().set(enabled);
     }
 
     #[view(getPairCreationEnabled)]

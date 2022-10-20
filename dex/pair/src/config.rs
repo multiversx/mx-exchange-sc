@@ -15,7 +15,7 @@ pub trait ConfigModule:
     #[endpoint(setExternSwapGasLimit)]
     fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
         self.require_caller_has_owner_permissions();
-        self.extern_swap_gas_limit().set(&gas_limit);
+        self.extern_swap_gas_limit().set(gas_limit);
     }
 
     #[endpoint(setStateActiveNoSwaps)]
@@ -35,8 +35,8 @@ pub trait ConfigModule:
             total_fee_percent >= special_fee_percent && total_fee_percent <= MAX_FEE_PERCENTAGE,
             ERROR_BAD_PERCENTS
         );
-        self.total_fee_percent().set(&total_fee_percent);
-        self.special_fee_percent().set(&special_fee_percent);
+        self.total_fee_percent().set(total_fee_percent);
+        self.special_fee_percent().set(special_fee_percent);
     }
 
     #[view(getLpTokenIdentifier)]

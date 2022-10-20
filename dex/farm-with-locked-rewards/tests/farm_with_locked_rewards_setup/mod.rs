@@ -125,7 +125,7 @@ where
                 assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
                 sc.locked_token()
-                    .set_token_id(&managed_token_id!(LOCKED_REWARD_TOKEN_ID));
+                    .set_token_id(managed_token_id!(LOCKED_REWARD_TOKEN_ID));
                 sc.set_paused(false);
             })
             .assert_ok();
@@ -147,7 +147,7 @@ where
                 );
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-                sc.farm_token().set_token_id(&farm_token_id);
+                sc.farm_token().set_token_id(farm_token_id);
                 sc.set_locking_sc_address(managed_address!(
                     simple_lock_energy_wrapper.address_ref()
                 ));

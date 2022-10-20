@@ -10,7 +10,7 @@ pub trait GlobalOperationModule {
             !self.global_op_is_ongoing().get(),
             "Global operation already ongoing"
         );
-        self.global_op_is_ongoing().set(&true);
+        self.global_op_is_ongoing().set(true);
     }
 
     #[only_owner]
@@ -20,7 +20,7 @@ pub trait GlobalOperationModule {
             self.global_op_is_ongoing().get(),
             "Global operation not ongoing"
         );
-        self.global_op_is_ongoing().set(&false);
+        self.global_op_is_ongoing().set(false);
     }
 
     #[storage_mapper("global_operation_ongoing")]

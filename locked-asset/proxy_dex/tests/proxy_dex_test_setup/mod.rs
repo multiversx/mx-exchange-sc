@@ -250,7 +250,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token().set_token_id(&farm_token_id);
+            sc.farm_token().set_token_id(farm_token_id);
 
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -327,7 +327,7 @@ where
             assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             sc.set_paused(false);
         })
         .assert_ok();
@@ -387,9 +387,9 @@ where
             );
 
             sc.wrapped_lp_token()
-                .set_token_id(&managed_token_id!(WRAPPED_LP_TOKEN_ID));
+                .set_token_id(managed_token_id!(WRAPPED_LP_TOKEN_ID));
             sc.wrapped_farm_token()
-                .set_token_id(&managed_token_id!(WRAPPED_FARM_TOKEN_ID));
+                .set_token_id(managed_token_id!(WRAPPED_FARM_TOKEN_ID));
 
             sc.intermediated_pairs().insert(managed_address!(pair_addr));
             sc.intermediated_farms().insert(managed_address!(farm_addr));

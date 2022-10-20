@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(clippy::type_complexity)]
-#![feature(generic_associated_types)]
 
 use proposal::ProposalCreationArgs;
 

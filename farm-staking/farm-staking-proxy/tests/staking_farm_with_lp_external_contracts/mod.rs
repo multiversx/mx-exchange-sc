@@ -227,7 +227,7 @@ where
             );
 
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
-            sc.farm_token().set_token_id(&farm_token_id);
+            sc.farm_token().set_token_id(farm_token_id);
 
             sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
             sc.penalty_percent().set(&PENALTY_PERCENT);

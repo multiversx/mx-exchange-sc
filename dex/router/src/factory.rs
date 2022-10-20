@@ -27,7 +27,7 @@ pub trait FactoryModule {
         }
 
         self.temporary_owner_period()
-            .set_if_empty(&TEMPORARY_OWNER_PERIOD_BLOCKS);
+            .set_if_empty(TEMPORARY_OWNER_PERIOD_BLOCKS);
     }
 
     fn create_pair(
@@ -202,7 +202,7 @@ pub trait FactoryModule {
     #[only_owner]
     #[endpoint(setTemporaryOwnerPeriod)]
     fn set_temporary_owner_period(&self, period_blocks: u64) {
-        self.temporary_owner_period().set(&period_blocks);
+        self.temporary_owner_period().set(period_blocks);
     }
 
     #[only_owner]

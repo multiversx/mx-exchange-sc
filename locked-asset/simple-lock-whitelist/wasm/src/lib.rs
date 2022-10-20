@@ -28,6 +28,8 @@ elrond_wasm_node::wasm_endpoints! {
         removeLiquidityLockedToken
         removeLpFromWhitelist
         setTransferRoleLockedToken
+        setTransferRoleProxyFarmToken
+        setTransferRoleProxyLpToken
         unlockTokens
     )
 }

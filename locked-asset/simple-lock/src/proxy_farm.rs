@@ -3,8 +3,17 @@ elrond_wasm::derive_imports!();
 
 use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
 
+#[derive(
+    TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
+)]
+pub enum FarmType {
+    SimpleFarm,
+    FarmWithLockedRewards,
+}
+
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
+    pub farm_type: FarmType,
     pub farm_token_id: TokenIdentifier<M>,
     pub farm_token_nonce: u64,
     pub farming_token_id: TokenIdentifier<M>,
@@ -57,13 +66,14 @@ pub trait ProxyFarmModule:
         &self,
         farm_address: ManagedAddress,
         farming_token_id: TokenIdentifier,
+        farm_type: FarmType,
     ) {
         require!(
             self.blockchain().is_smart_contract(&farm_address),
             INVALID_SC_ADDRESS_ERR_MSG
         );
 
-        self.farm_address_for_token(&farming_token_id)
+        self.farm_address_for_token(&farming_token_id, farm_type)
             .set(&farm_address);
 
         let is_new_farm = self.known_farms().insert(farm_address);
@@ -76,11 +86,12 @@ pub trait ProxyFarmModule:
         &self,
         farm_address: ManagedAddress,
         farming_token_id: TokenIdentifier,
+        farm_type: FarmType,
     ) {
         let was_removed = self.known_farms().swap_remove(&farm_address);
         require!(was_removed, "Farm address now known");
 
-        let mapper_by_token = self.farm_address_for_token(&farming_token_id);
+        let mapper_by_token = self.farm_address_for_token(&farming_token_id, farm_type);
         require!(
             mapper_by_token.get() == farm_address,
             "Farm address does not match the given token and farm type"
@@ -101,7 +112,10 @@ pub trait ProxyFarmModule:
     /// - FARM_PROXY token, which can later be used to further interact with the specific farm
     #[payable("*")]
     #[endpoint(enterFarmLockedToken)]
-    fn enter_farm_locked_token(&self) -> EnterFarmThroughProxyResultType<Self::Api> {
+    fn enter_farm_locked_token(
+        &self,
+        farm_type: FarmType,
+    ) -> EnterFarmThroughProxyResultType<Self::Api> {
         let payments: ManagedVec<EsdtTokenPayment<Self::Api>> =
             self.call_value().all_esdt_transfers();
         require!(!payments.is_empty(), NO_PAYMENT_ERR_MSG);
@@ -124,8 +138,9 @@ pub trait ProxyFarmModule:
                 proxy_farm_attributes.farming_token_id == lp_proxy_token_attributes.lp_token_id;
             let same_farming_nonce =
                 proxy_farm_attributes.farming_token_locked_nonce == proxy_lp_payment.token_nonce;
+            let same_farm_type = proxy_farm_attributes.farm_type == farm_type;
             require!(
-                same_farming_token && same_farming_nonce,
+                same_farming_token && same_farming_nonce && same_farm_type,
                 INVALID_PAYMENTS_ERR_MSG
             );
 
@@ -138,7 +153,8 @@ pub trait ProxyFarmModule:
             ));
         }
 
-        let farm_address = self.try_get_farm_address(&lp_proxy_token_attributes.lp_token_id);
+        let farm_address =
+            self.try_get_farm_address(&lp_proxy_token_attributes.lp_token_id, farm_type);
         let enter_farm_result = self.call_farm_enter(
             farm_address,
             lp_proxy_token_attributes.lp_token_id.clone(),
@@ -147,6 +163,7 @@ pub trait ProxyFarmModule:
         );
         let farm_tokens = enter_farm_result.farm_tokens;
         let proxy_farm_token_attributes = FarmProxyTokenAttributes {
+            farm_type,
             farm_token_id: farm_tokens.token_identifier,
             farm_token_nonce: farm_tokens.token_nonce,
             farming_token_id: lp_proxy_token_attributes.lp_token_id,
@@ -176,7 +193,10 @@ pub trait ProxyFarmModule:
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
 
-        let farm_address = self.try_get_farm_address(&farm_proxy_token_attributes.farming_token_id);
+        let farm_address = self.try_get_farm_address(
+            &farm_proxy_token_attributes.farming_token_id,
+            farm_proxy_token_attributes.farm_type,
+        );
         let exit_farm_result = self.call_farm_exit(
             farm_address,
             farm_proxy_token_attributes.farm_token_id,
@@ -232,7 +252,10 @@ pub trait ProxyFarmModule:
         let mut farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
 
-        let farm_address = self.try_get_farm_address(&farm_proxy_token_attributes.farming_token_id);
+        let farm_address = self.try_get_farm_address(
+            &farm_proxy_token_attributes.farming_token_id,
+            farm_proxy_token_attributes.farm_type,
+        );
         let claim_rewards_result = self.call_farm_claim_rewards(
             farm_address,
             farm_proxy_token_attributes.farm_token_id.clone(),
@@ -267,8 +290,12 @@ pub trait ProxyFarmModule:
         (new_proxy_token_payment, claim_rewards_result.reward_tokens).into()
     }
 
-    fn try_get_farm_address(&self, farming_token_id: &TokenIdentifier) -> ManagedAddress {
-        let mapper = self.farm_address_for_token(farming_token_id);
+    fn try_get_farm_address(
+        &self,
+        farming_token_id: &TokenIdentifier,
+        farm_type: FarmType,
+    ) -> ManagedAddress {
+        let mapper = self.farm_address_for_token(farming_token_id, farm_type);
         require!(
             !mapper.is_empty(),
             "No farm address for the specified token and type pair",
@@ -302,6 +329,7 @@ pub trait ProxyFarmModule:
     fn farm_address_for_token(
         &self,
         farming_token_id: &TokenIdentifier,
+        farm_type: FarmType,
     ) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getFarmProxyTokenId)]

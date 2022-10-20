@@ -401,7 +401,7 @@ fn user_enable_pair_swaps_through_router_test() {
     b_mock
         .execute_tx(&owner, &simple_lock_wrapper, &rust_zero, |sc| {
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
         })
         .assert_ok();
 
