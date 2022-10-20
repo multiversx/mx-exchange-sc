@@ -749,6 +749,10 @@ fn locked_token_buckets_shifting_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.first_bucket_id().get(), 0);
             assert_eq!(sc.next_bucket_shift_epoch().get(), 30);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(1).get(),
+                managed_biguint!(100)
+            );
 
             // first user energy lasts for 3_000 / 50 = 60 epochs => (60 - 1) / 30 => bucket offset 1
             // second user energy lasts for 9_000 / 50 = 180 epochs => (180 - 1) / 30 => bucket offset 5
@@ -795,6 +799,10 @@ fn locked_token_buckets_shifting_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.first_bucket_id().get(), 1);
             assert_eq!(sc.next_bucket_shift_epoch().get(), 60);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(7).get(),
+                managed_biguint!(100)
+            );
 
             // first user energy lasts for 1_250 / 50 = 25 => bucket offset 0
             assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
@@ -815,6 +823,10 @@ fn locked_token_buckets_shifting_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.first_bucket_id().get(), 1);
             assert_eq!(sc.next_bucket_shift_epoch().get(), 60);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(7).get(),
+                managed_biguint!(150)
+            );
 
             // second user energy lasts for 10_000 / 100 = 100 => bucket offset 3
             assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
