@@ -268,8 +268,8 @@ pub trait UnlockWithPenaltyModule:
     fn send_fees_to_collector(&self) {
         // Send fees to FeeCollector SC
         let current_epoch = self.blockchain().get_block_epoch();
-        let last_week_fee_sent_to_collector = self.last_epoch_fee_sent_to_collector().get();
-        let next_send_epoch = last_week_fee_sent_to_collector as u64 + EPOCHS_PER_WEEK;
+        let last_epoch_fee_sent_to_collector = self.last_epoch_fee_sent_to_collector().get();
+        let next_send_epoch = last_epoch_fee_sent_to_collector + EPOCHS_PER_WEEK;
 
         if current_epoch < next_send_epoch {
             return;
