@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use core::{cmp, marker::PhantomData};
 
-use common_types::{Nonce, PaymentsVec, TokenAmountPair, TokenAmountPairsVec};
+use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
@@ -194,7 +194,7 @@ where
         module: &Self::WeeklyRewardsSplittingMod,
         energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-        total_rewards: &TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        total_rewards: &PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
         let factors = module.boosted_yields_factors().get();
@@ -219,7 +219,7 @@ where
                 &factors.user_rewards_base_const * &normalized_user_base_rewards;
             let user_reward = cmp::min(user_base_rewards, boosted_reward_amount);
             if user_reward > 0 {
-                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, user_reward));
+                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token_identifier, 0, user_reward));
             }
         }
 

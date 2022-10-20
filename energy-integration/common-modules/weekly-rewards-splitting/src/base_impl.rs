@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_types::{PaymentsVec, TokenAmountPairsVec};
+use common_types::{PaymentsVec};
 use week_timekeeping::Week;
 
 use crate::{events, ClaimProgress};
@@ -35,7 +35,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
         _module: &Self::WeeklyRewardsSplittingMod,
         energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-        total_rewards: &TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
+        total_rewards: &PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
         if energy_amount == &0 {
@@ -45,7 +45,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
         for weekly_reward in total_rewards {
             let reward_amount = weekly_reward.amount * energy_amount / total_energy;
             if reward_amount > 0 {
-                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token, 0, reward_amount));
+                user_rewards.push(EsdtTokenPayment::new(weekly_reward.token_identifier, 0, reward_amount));
             }
         }
 
