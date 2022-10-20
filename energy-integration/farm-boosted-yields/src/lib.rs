@@ -178,13 +178,13 @@ where
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
-    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let reward_token_id = module.reward_token_id().get();
         let rewards_mapper = module.accumulated_rewards_for_week(week);
         let total_rewards = rewards_mapper.get();
         rewards_mapper.clear();
 
-        ManagedVec::from_single_item(TokenAmountPair::new(reward_token_id, total_rewards))
+        ManagedVec::from_single_item(EsdtTokenPayment::new(reward_token_id, 0, total_rewards))
     }
 
     // User rewards formula = user_base_rewards +

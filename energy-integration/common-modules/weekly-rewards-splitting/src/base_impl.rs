@@ -18,7 +18,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
-    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let total_rewards_mapper = module.total_rewards_for_week(week);
         if total_rewards_mapper.is_empty() {
             let total_rewards = self.collect_rewards_for_week(module, week);
@@ -56,7 +56,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
-    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>;
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>;
 
     fn get_claim_progress_mapper(
         &self,
