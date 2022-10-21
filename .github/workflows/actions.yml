@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, feat/* ]
+    branches: [ main, feat/*, actually-implementing-buckets ]
   pull_request:
-    branches: [ main, feat/* ]
+    branches: [ main, feat/*, actually-implementing-buckets ]
 
 permissions:
   actions: write
