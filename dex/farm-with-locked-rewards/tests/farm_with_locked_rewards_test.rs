@@ -173,8 +173,9 @@ fn farm_with_boosted_yields_no_proxy_test() {
 
     // Boosted yields rewards formula
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // 2500 * (3 * 1_000 / 5_000 + 2 * 100_000_000 / 150_000_000) / (3 + 2)
-    // 2500 * (0.6 + 1.(3)) / (5) = 966
+    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
+    // (2500 * 3 * 1_000 / 5_000 + 2500 * 2 * 100_000_000 / 150_000_000) / (3 + 2)
+    // (1500 + 3333) / (5) = 966
     let first_boosted_amt = 966; // 1000 energy & 100_000_000 farm tokens
     let first_total = first_base_farm_amt + first_boosted_amt;
 
@@ -207,8 +208,9 @@ fn farm_with_boosted_yields_no_proxy_test() {
     
     // Boosted yields rewards formula
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-    // 2500 * (3 * 4000 / 5_000 + 2 * 50_000_000 / 150_000_000) / (3 + 2)
-    // 2500 * (2.4 + 0.(6)) / (5) = 1533
+    // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
+    // (2500 * 3 * 4000 / 5_000 + 2500 * 2 * 50_000_000 / 150_000_000) / (3 + 2)
+    // (6000 + 1666) / (5) = 1533
     let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_total = second_base_farm_amt + second_boosted_amt;
 
