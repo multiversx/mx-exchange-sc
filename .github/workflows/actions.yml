@@ -19,7 +19,7 @@ permissions:
 jobs:
   contracts:
     name: Contracts
-    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@v1
+    uses: ElrondNetwork/elrond-actions/.github/workflows/contracts.yml@634134e3b708be36049d6cc8b3151069a496863d
     with:
       rust-toolchain: nightly-2022-10-16
       vmtools-version: v1.4.60
