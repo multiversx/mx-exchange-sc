@@ -18,9 +18,7 @@ pub trait PausableModule: permissions_module::PermissionsModule {
     fn add_to_pause_whitelist(&self, address_list: MultiValueEncoded<ManagedAddress>) {
         self.require_caller_has_owner_permissions();
 
-        for address in address_list {
-            self.add_permissions(address, Permissions::PAUSE);
-        }
+        self.add_permissions_for_all(address_list, Permissions::PAUSE);
     }
 
     #[endpoint(removeFromPauseWhitelist)]
