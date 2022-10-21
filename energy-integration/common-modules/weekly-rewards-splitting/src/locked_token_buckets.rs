@@ -58,7 +58,8 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         prev_energy: &Energy<Self::Api>,
         current_energy: &Energy<Self::Api>,
     ) -> BucketPair {
-        let opt_bucket_for_prev_energy = self.get_bucket_id_for_previous_energy(prev_energy);
+        let opt_bucket_for_prev_energy =
+            self.get_bucket_id_for_previous_energy(prev_energy.clone());
         if let Some(prev_bucket_id) = &opt_bucket_for_prev_energy {
             self.locked_tokens_in_bucket(*prev_bucket_id)
                 .update(|total| *total -= prev_energy.get_total_locked_tokens());
@@ -88,11 +89,27 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
             return None;
         }
 
-        // round exact values down
-        // i.e. 30, 60, etc.
-        let months_to_full_expire = (epochs_to_full_expire - 1u32) / EPOCHS_PER_MONTH;
+        let current_epoch = self.blockchain().get_block_epoch();
+        let next_bucket_shift_epoch = self.next_bucket_shift_epoch().get();
+        // something went wrong, global shift should always be called before
+        require!(
+            current_epoch < next_bucket_shift_epoch,
+            "Invalid global state"
+        );
+
         let first_bucket_id = self.first_bucket_id().get();
-        let bucket_id = months_to_full_expire + first_bucket_id;
+        let epochs_to_next_bucket_shift = next_bucket_shift_epoch - current_epoch;
+        if epochs_to_full_expire <= epochs_to_next_bucket_shift {
+            return Some(first_bucket_id);
+        }
+
+        let second_bucket_id = first_bucket_id + 1;
+        if epochs_to_full_expire <= EPOCHS_PER_MONTH {
+            return Some(second_bucket_id);
+        }
+
+        let months_to_full_expire = epochs_to_full_expire / EPOCHS_PER_MONTH;
+        let bucket_id = months_to_full_expire + second_bucket_id;
 
         // For a max period of 4 years, months_to_full_expire is max 4 * 12 = 48.
         // first_bucket_id will be incremented once per month.
@@ -100,21 +117,31 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         unsafe { Some(bucket_id.to_u64().unwrap_unchecked()) }
     }
 
-    fn get_bucket_id_for_previous_energy(&self, energy: &Energy<Self::Api>) -> Option<BucketId> {
-        let opt_current_bucket_id = self.get_bucket_id_for_current_energy(energy);
+    fn get_bucket_id_for_previous_energy(&self, mut energy: Energy<Self::Api>) -> Option<BucketId> {
+        let opt_current_bucket_id = self.get_bucket_id_for_current_energy(&energy);
         match opt_current_bucket_id {
             Some(current_bucket_id) => {
                 let last_energy_update_epoch = energy.get_last_update_epoch();
                 let next_shift_epoch = self.next_bucket_shift_epoch().get();
                 let previous_shift_epoch = next_shift_epoch - EPOCHS_PER_MONTH;
+                let first_bucket_id = self.first_bucket_id().get();
                 if last_energy_update_epoch >= previous_shift_epoch {
-                    return Some(current_bucket_id);
+                    if current_bucket_id == first_bucket_id + 1 {
+                        // must check again with the depleted value instead
+                        // otherwise, there are cases where energy was assigned to first bucket at enter
+                        // but due to `epochs_to_next_bucket_shift`, it would be assigned to second bucket now
+                        let current_epoch = self.blockchain().get_block_epoch();
+                        energy.deplete(current_epoch);
+
+                        return self.get_bucket_id_for_current_energy(&energy);
+                    } else {
+                        return Some(current_bucket_id);
+                    }
                 }
 
                 let epoch_diff = previous_shift_epoch - last_energy_update_epoch;
                 let shifts_missed = epoch_diff.div_ceil(EPOCHS_PER_MONTH);
 
-                let first_bucket_id = self.first_bucket_id().get();
                 let bucket_diff = current_bucket_id - first_bucket_id;
                 if bucket_diff >= shifts_missed {
                     Some(current_bucket_id)
