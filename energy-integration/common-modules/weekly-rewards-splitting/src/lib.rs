@@ -171,19 +171,11 @@ pub trait WeeklyRewardsSplittingModule:
     ) {
         let last_active_mapper = self.last_active_week_for_user(user);
         let last_active_week = last_active_mapper.get();
-        let mut prev_energy = if last_active_week > 0 {
+        let prev_energy = if last_active_week > 0 {
             self.user_energy_for_week(user, last_active_week).get()
         } else {
             Energy::default()
         };
-
-        let prev_week = current_week - 1;
-        if last_active_week < prev_week && last_active_week > 0 {
-            let inactive_weeks = prev_week - last_active_week;
-            let deplete_end_epoch =
-                prev_energy.get_last_update_epoch() + inactive_weeks as u64 * EPOCHS_IN_WEEK;
-            prev_energy.deplete(deplete_end_epoch);
-        }
 
         if last_active_week != current_week {
             last_active_mapper.set(current_week);

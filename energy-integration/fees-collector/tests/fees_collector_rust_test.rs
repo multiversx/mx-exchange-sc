@@ -266,7 +266,16 @@ fn claim_after_dex_inactive_test() {
     fc_setup
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
-            assert_eq!(sc.total_energy_for_week(4).get(), 10_450);
+            // for 4 weeks inactive => global update
+            // total -= 4 * 300 => 12_000 - 300 => 11_700
+            //
+            // second user update:
+            // total -= 9_000 = 2_700 += 7_950 = 10_650
+            //
+            // first user update:
+            // total -= 3_000 = 7_650 += 2_500
+
+            assert_eq!(sc.total_energy_for_week(4).get(), 10_450); // 9_050
             assert_eq!(sc.total_locked_tokens_for_week(4).get(), 100);
             assert_eq!(sc.last_global_update_week().get(), 4);
 
@@ -544,7 +553,7 @@ fn claim_inactive_week_test() {
             // 12_000 - 700 + 350 - 3_000 + 2_650
             // = 11_300 + 350 - 350
             // = 11_300
-            assert_eq!(sc.total_energy_for_week(2).get(), 11_300);
+            assert_eq!(sc.total_energy_for_week(2).get(), 11_300); // 11_650
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 100);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -748,7 +757,6 @@ fn locked_token_buckets_shifting_test() {
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.first_bucket_id().get(), 0);
-            assert_eq!(sc.next_bucket_shift_epoch().get(), 30);
             assert_eq!(
                 sc.total_locked_tokens_for_week(1).get(),
                 managed_biguint!(100)
@@ -798,7 +806,6 @@ fn locked_token_buckets_shifting_test() {
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.first_bucket_id().get(), 1);
-            assert_eq!(sc.next_bucket_shift_epoch().get(), 60);
             assert_eq!(
                 sc.total_locked_tokens_for_week(7).get(),
                 managed_biguint!(100)
@@ -822,7 +829,6 @@ fn locked_token_buckets_shifting_test() {
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             assert_eq!(sc.first_bucket_id().get(), 1);
-            assert_eq!(sc.next_bucket_shift_epoch().get(), 60);
             assert_eq!(
                 sc.total_locked_tokens_for_week(7).get(),
                 managed_biguint!(150)

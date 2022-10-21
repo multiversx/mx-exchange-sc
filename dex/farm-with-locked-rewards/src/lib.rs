@@ -77,8 +77,6 @@ pub trait Farm:
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
-
-        self.init_next_bucket_shift_epoch();
     }
 
     #[payable("*")]
