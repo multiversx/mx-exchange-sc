@@ -129,6 +129,7 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> ExitFarmResultType<Self::Api> {
         let payment = self.call_value().single_esdt();
+        let payment_nonce = payment.token_nonce;
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
@@ -143,6 +144,7 @@ pub trait BaseFunctionsModule:
             );
         }
 
+        self.clear_claim_progress(&caller, payment_nonce);
         self.emit_exit_farm_event(
             &caller,
             base_exit_farm_result.context,
