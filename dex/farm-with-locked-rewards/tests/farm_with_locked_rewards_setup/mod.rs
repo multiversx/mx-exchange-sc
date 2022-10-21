@@ -38,8 +38,9 @@ pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
 
 pub const EPOCHS_IN_YEAR: u64 = 365;
 
-pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
-pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
+pub const FIRST_THRESHOLD_PERCENTAGE: u16 = 4_000;
+pub const SECOND_THRESHOLD_PERCENTAGE: u16 = 6_000;
+pub const THIRD_THRESHOLD_PERCENTAGE: u16 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 
@@ -114,8 +115,9 @@ where
                 sc.init(
                     managed_token_id!(REWARD_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    MIN_PENALTY_PERCENTAGE,
-                    MAX_PENALTY_PERCENTAGE,
+                    FIRST_THRESHOLD_PERCENTAGE,
+                    SECOND_THRESHOLD_PERCENTAGE,
+                    THIRD_THRESHOLD_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),

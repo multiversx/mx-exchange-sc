@@ -14,8 +14,9 @@ static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct PenaltyPercentage {
-    pub min: u16,
-    pub max: u16,
+    pub first_threshold: u16,
+    pub second_threshold: u16,
+    pub third_threshold: u16,
 }
 
 pub mod fees_collector_proxy {
@@ -50,18 +51,20 @@ pub trait UnlockWithPenaltyModule:
     ///     Both are values between 0 and 10_000, where 10_000 is 100%.
     #[only_owner]
     #[endpoint(setPenaltyPercentage)]
-    fn set_penalty_percentage(&self, min_penalty_percentage: u16, max_penalty_percentage: u16) {
-        let is_min_valid = min_penalty_percentage > 0 && min_penalty_percentage <= MAX_PERCENTAGE;
-        let is_max_valid = max_penalty_percentage > 0 && max_penalty_percentage <= MAX_PERCENTAGE;
-        let correct_order = min_penalty_percentage <= max_penalty_percentage;
+    fn set_penalty_percentage(&self, first_threshold_penalty_percentage: u16, second_threshold_penalty_percentage: u16, third_threshold_penalty_percentage: u16) {
+        let is_first_threshold_valid = first_threshold_penalty_percentage > 0 && first_threshold_penalty_percentage < second_threshold_penalty_percentage;
+        let is_second_threshold_valid = second_threshold_penalty_percentage < third_threshold_penalty_percentage;
+        let is_third_threshold_valid = third_threshold_penalty_percentage < MAX_PERCENTAGE;
+
         require!(
-            is_min_valid && is_max_valid && correct_order,
+            is_first_threshold_valid && is_second_threshold_valid && is_third_threshold_valid,
             INVALID_PERCENTAGE_ERR_MSG
         );
 
         self.penalty_percentage().set(&PenaltyPercentage {
-            min: min_penalty_percentage,
-            max: max_penalty_percentage,
+            first_threshold: first_threshold_penalty_percentage,
+            second_threshold: second_threshold_penalty_percentage,
+            third_threshold: third_threshold_penalty_percentage,
         });
     }
 
@@ -116,7 +119,7 @@ pub trait UnlockWithPenaltyModule:
 
         let epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
-        let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce);
+        let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce, attributes.unlock_epoch);
 
         locked_token_mapper.nft_burn(payment.token_nonce, &(&payment.amount - &penalty_amount));
 
@@ -130,7 +133,7 @@ pub trait UnlockWithPenaltyModule:
         let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
         let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
 
-        if new_unlock_epoch == current_epoch {
+        if new_unlock_epoch <= current_epoch {
             self.send().esdt_local_mint(
                 &unlocked_token_id,
                 0,
@@ -179,27 +182,40 @@ pub trait UnlockWithPenaltyModule:
                         && epochs_to_reduce <= lock_epochs_remaining,
                     "Invalid epochs to reduce"
                 );
-
                 epochs_to_reduce
             }
-            None => lock_epochs_remaining,
+            None => EPOCHS_PER_YEAR,
         }
     }
 
     /// Calculates the penalty that would be incurred if token_amount tokens
     /// were to have their locking period reduce by epochs_to_reduce.
-    ///
-    /// Linear decrease as epochs_to_reduce decreases
-    /// starting from max penalty_percentage, all the way down to min
     #[view(getPenaltyAmount)]
-    fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch) -> BigUint {
+    fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch, current_unlock_epoch: Epoch) -> BigUint {
         let penalty_percentage = self.penalty_percentage().get();
-        let min_penalty = penalty_percentage.min as u64;
-        let max_penalty = penalty_percentage.max as u64;
-        let max_lock_option = self.max_lock_option().get();
+        let first_threshold_penalty = penalty_percentage.first_threshold as u64;
+        let second_threshold_penalty = penalty_percentage.second_threshold as u64;
+        let third_threshold_penalty = penalty_percentage.third_threshold as u64;
+        let max_percentage = MAX_PERCENTAGE as u64;
 
-        let penalty_percentage =
-            min_penalty + (max_penalty - min_penalty) * epochs_to_reduce / max_lock_option;
+        let current_epoch_fee = match current_unlock_epoch / EPOCHS_PER_YEAR {
+            0 => first_threshold_penalty,
+            1 => second_threshold_penalty,
+            _ => third_threshold_penalty,
+        };
+
+        let target_epoch_fee = match epochs_to_reduce / EPOCHS_PER_YEAR {
+            0 => first_threshold_penalty,
+            1 => second_threshold_penalty,
+            _ => third_threshold_penalty,
+        };
+
+        if current_epoch_fee == first_threshold_penalty || current_epoch_fee == target_epoch_fee {
+            return token_amount * first_threshold_penalty / MAX_PERCENTAGE as u64
+        }
+
+        sc_print!("current_epoch_fee = {}, target_epoch_fee = {}", current_epoch_fee ,target_epoch_fee);
+        let penalty_percentage = (current_epoch_fee - target_epoch_fee) * MAX_PERCENTAGE as u64 / (max_percentage -  target_epoch_fee);
 
         token_amount * penalty_percentage / MAX_PERCENTAGE as u64
     }
