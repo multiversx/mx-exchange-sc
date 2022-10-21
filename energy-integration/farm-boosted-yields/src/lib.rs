@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use core::marker::PhantomData;
-
 use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
@@ -157,7 +155,6 @@ pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
     pub user_farm_amount: BigUint<<T as ContractBase>::Api>,
     pub total_farm_supply: BigUint<<T as ContractBase>::Api>,
     pub total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
-    pub phantom: PhantomData<T>,
 }
 
 impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
@@ -172,7 +169,6 @@ impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
             user_farm_amount,
             total_farm_supply,
             total_rewards_per_block,
-            phantom: PhantomData,
         }
     }
 }
@@ -199,9 +195,9 @@ where
     fn get_user_rewards_for_week(
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
+        week: Week,
         energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-        total_rewards: &PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
         let factors = module.boosted_yields_factors().get();
@@ -211,6 +207,8 @@ where
             return user_rewards;
         }
 
+        let total_rewards = self.collect_and_get_rewards_for_week(module, week);
+
         // user base rewards per week
         let user_base_rewards_per_block =
             &self.total_rewards_per_block * &self.user_farm_amount / &self.total_farm_supply;
@@ -219,7 +217,7 @@ where
 
         // computed user rewards
         // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
-        for weekly_reward in total_rewards {
+        for weekly_reward in &total_rewards {
             let boosted_rewards_by_energy =
                 &weekly_reward.amount * &factors.user_rewards_energy_const * energy_amount
                     / total_energy;
