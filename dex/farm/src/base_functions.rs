@@ -144,7 +144,8 @@ pub trait BaseFunctionsModule:
             );
         }
 
-        self.clear_claim_progress(&caller, payment_nonce);
+        self.farm_claim_progress(&caller, payment_nonce).clear();
+
         self.emit_exit_farm_event(
             &caller,
             base_exit_farm_result.context,

@@ -98,13 +98,6 @@ pub trait ClaimProgressModule:
         }
     }
 
-    fn clear_claim_progress(&self, user: &ManagedAddress, token_nonce: Nonce) {
-        let current_claim_mapper = self.farm_claim_progress(user, token_nonce);
-        if !current_claim_mapper.is_empty() {
-            current_claim_mapper.clear()
-        }
-    }
-
     fn new_claim_progress_for_user(&self, user: &ManagedAddress) -> ClaimProgress<Self::Api> {
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(user.clone());
