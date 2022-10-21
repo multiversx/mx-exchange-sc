@@ -109,11 +109,12 @@ pub trait WeeklyRewardsSplittingModule:
         current_week: Week,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
-        let total_rewards = wrapper.collect_and_get_rewards_for_week(self, claim_progress.week);
-        let user_rewards = self.get_user_rewards_for_week(
+        let total_energy = self.total_energy_for_week(claim_progress.week).get();
+        let user_rewards = wrapper.get_user_rewards_for_week(
+            self,
             claim_progress.week,
             &claim_progress.energy.get_energy_amount(),
-            &total_rewards,
+            &total_energy,
         );
 
         let next_week = claim_progress.week + 1;
@@ -129,33 +130,6 @@ pub trait WeeklyRewardsSplittingModule:
             None
         };
         claim_progress.advance_week(opt_next_week_energy);
-
-        user_rewards
-    }
-
-    // !!! TODO  - update user boosted rewards formula
-    fn get_user_rewards_for_week(
-        &self,
-        week: Week,
-        energy_amount: &BigUint,
-        total_rewards: &PaymentsVec<Self::Api>,
-    ) -> PaymentsVec<Self::Api> {
-        let mut user_rewards = ManagedVec::new();
-        if energy_amount == &0 {
-            return user_rewards;
-        }
-
-        let total_energy = self.total_energy_for_week(week).get();
-        for weekly_reward in total_rewards {
-            let reward_amount = weekly_reward.amount * energy_amount / &total_energy;
-            if reward_amount > 0 {
-                user_rewards.push(EsdtTokenPayment::new(
-                    weekly_reward.token_identifier,
-                    0,
-                    reward_amount,
-                ));
-            }
-        }
 
         user_rewards
     }

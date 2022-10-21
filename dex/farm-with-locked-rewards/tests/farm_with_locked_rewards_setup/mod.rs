@@ -35,6 +35,11 @@ const DIV_SAFETY: u64 = 1_000_000_000_000;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 pub const EPOCHS_IN_YEAR: u64 = 365;
 
@@ -271,6 +276,20 @@ where
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_rewards_percentage(percentage);
+            })
+            .assert_ok();
+    }
+
+    pub fn set_boosted_yields_factors(&mut self) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.set_boosted_yields_factors(
+                    managed_biguint!(USER_REWARDS_BASE_CONST),
+                    managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                    managed_biguint!(USER_REWARDS_FARM_CONST),
+                    managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                    managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+                );
             })
             .assert_ok();
     }

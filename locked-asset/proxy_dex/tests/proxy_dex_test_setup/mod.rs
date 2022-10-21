@@ -12,6 +12,7 @@ use elrond_wasm_debug::{
 };
 use elrond_wasm_modules::pause::PauseModule;
 use farm::Farm;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
 use pausable::{PausableModule, State};
@@ -33,6 +34,11 @@ pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 // Simple Lock
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
@@ -257,6 +263,14 @@ where
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
+
+            sc.set_boosted_yields_factors(
+                managed_biguint!(USER_REWARDS_BASE_CONST),
+                managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                managed_biguint!(USER_REWARDS_FARM_CONST),
+                managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+            );
         })
         .assert_ok();
 
