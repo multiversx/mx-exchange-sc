@@ -25,6 +25,7 @@ elrond_wasm_node::wasm_endpoints! {
         getEnergyFactoryAddress
         getFarmTokenId
         getFarmTokenSupply
+        getFarmTokenSupplyForEnergyUsers
         getFarmingTokenId
         getFirstWeekStartEpoch
         getLastActiveWeekForUser

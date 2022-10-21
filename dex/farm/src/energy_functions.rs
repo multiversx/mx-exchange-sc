@@ -4,8 +4,10 @@ use common_errors::{ERROR_DIFFERENT_ATTRIBUTES_FOR_MERGE, ERROR_EMPTY_PAYMENTS};
 use common_structs::{Nonce, PaymentsVec};
 use weekly_rewards_splitting::ClaimProgress;
 
+pub const MIN_ENERGY_TO_UPDATE_FARM_SUPPLY: u64 = 1000;
+
 #[elrond_wasm::module]
-pub trait ClaimProgressModule:
+pub trait EnergyFunctionsModule:
     farm_boosted_yields::FarmBoostedYieldsModule
     + config::ConfigModule
     + pausable::PausableModule
@@ -107,4 +109,21 @@ pub trait ClaimProgressModule:
             week: current_week,
         }
     }
+
+    fn increase_farm_supply_for_energy_users(&self, user: &ManagedAddress, token_amount: &BigUint) {
+        let user_energy = self.get_energy_amount(user.clone());
+        if user_energy >= MIN_ENERGY_TO_UPDATE_FARM_SUPPLY {
+            self.farm_token_supply_for_energy_users()
+                .update(|total_supply| *total_supply += token_amount);
+        }
+    }
+
+    fn decrease_farm_supply_for_energy_users(&self, token_amount: &BigUint) {
+        self.farm_token_supply_for_energy_users()
+            .update(|total_supply| *total_supply -= token_amount);
+    }
+
+    #[view(getFarmTokenSupplyForEnergyUsers)]
+    #[storage_mapper("farmTokenSupplyForEnergyUsers")]
+    fn farm_token_supply_for_energy_users(&self) -> SingleValueMapper<BigUint>;
 }

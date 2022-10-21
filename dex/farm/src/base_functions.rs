@@ -12,7 +12,7 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
-use crate::claim_progress;
+use crate::energy_functions;
 use crate::exit_penalty;
 
 type ClaimRewardsResultType<BigUint> =
@@ -30,7 +30,7 @@ pub trait BaseFunctionsModule:
     + permissions_module::PermissionsModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + claim_progress::ClaimProgressModule
+    + energy_functions::EnergyFunctionsModule
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -56,6 +56,10 @@ pub trait BaseFunctionsModule:
             &caller,
             None,
             base_enter_farm_result.new_farm_token.payment.token_nonce,
+        );
+        self.increase_farm_supply_for_energy_users(
+            &caller,
+            &base_enter_farm_result.new_farm_token.payment.amount,
         );
         self.emit_enter_farm_event(
             &caller,
@@ -110,6 +114,10 @@ pub trait BaseFunctionsModule:
             Some(first_payment_nonce),
             output_farm_token_payment.token_nonce,
         );
+        self.increase_farm_supply_for_energy_users(
+            &caller,
+            &base_compound_rewards_result.compounded_rewards,
+        );
         self.emit_compound_rewards_event(
             &caller,
             base_compound_rewards_result.context,
@@ -142,6 +150,8 @@ pub trait BaseFunctionsModule:
                 &base_exit_farm_result.storage_cache.reward_token_id,
             );
         }
+
+        self.decrease_farm_supply_for_energy_users(&farming_token_payment.amount);
 
         self.emit_exit_farm_event(
             &caller,
@@ -244,11 +254,12 @@ where
             storage_cache,
         );
         let total_rewards_per_block = sc.per_block_reward_amount().get();
+        let farm_token_supply_for_energy_users = sc.farm_token_supply_for_energy_users().get();
         let boosted_yield_rewards = sc.claim_boosted_yields_rewards(
             caller,
             farm_token_nonce,
             farm_token_amount,
-            &storage_cache.farm_token_supply,
+            &farm_token_supply_for_energy_users,
             &total_rewards_per_block,
         );
 

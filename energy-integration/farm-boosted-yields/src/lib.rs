@@ -112,13 +112,13 @@ pub trait FarmBoostedYieldsModule:
         user: &ManagedAddress,
         farm_token_nonce: Nonce,
         farm_token_amount: &BigUint,
-        farm_token_supply: &BigUint,
+        farm_token_supply_for_energy_users: &BigUint,
         total_rewards_per_block: &BigUint,
     ) -> BigUint {
         let wrapper = FarmBoostedYieldsWrapper::new(
             farm_token_nonce,
             farm_token_amount.clone(),
-            farm_token_supply.clone(),
+            farm_token_supply_for_energy_users.clone(),
             total_rewards_per_block.clone(),
         );
         let rewards = self.claim_multi(&wrapper, user);
@@ -155,7 +155,7 @@ pub trait FarmBoostedYieldsModule:
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
     pub current_farm_token_nonce: Nonce,
     pub user_farm_amount: BigUint<<T as ContractBase>::Api>,
-    pub total_farm_supply: BigUint<<T as ContractBase>::Api>,
+    pub farm_token_supply_for_energy_users: BigUint<<T as ContractBase>::Api>,
     pub total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
     pub phantom: PhantomData<T>,
 }
@@ -164,13 +164,13 @@ impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
     pub fn new(
         current_farm_token_nonce: Nonce,
         user_farm_amount: BigUint<<T as ContractBase>::Api>,
-        total_farm_supply: BigUint<<T as ContractBase>::Api>,
+        farm_token_supply_for_energy_users: BigUint<<T as ContractBase>::Api>,
         total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
     ) -> FarmBoostedYieldsWrapper<T> {
         FarmBoostedYieldsWrapper {
             current_farm_token_nonce,
             user_farm_amount,
-            total_farm_supply,
+            farm_token_supply_for_energy_users,
             total_rewards_per_block,
             phantom: PhantomData,
         }
@@ -213,7 +213,7 @@ where
 
         // user base rewards per week
         let user_base_rewards_per_block =
-            &self.total_rewards_per_block * &self.user_farm_amount / &self.total_farm_supply;
+            &self.total_rewards_per_block * &self.user_farm_amount / &self.farm_token_supply_for_energy_users;
         let user_rewards_for_week =
             &factors.user_rewards_base_const * &user_base_rewards_per_block * BLOCKS_PER_WEEK;
 
@@ -225,7 +225,7 @@ where
                     / total_energy;
             let boosted_rewards_by_tokens =
                 &weekly_reward.amount * &factors.user_rewards_farm_const * &self.user_farm_amount
-                    / &self.total_farm_supply;
+                    / &self.farm_token_supply_for_energy_users;
             let constants_base =
                 &factors.user_rewards_energy_const + &factors.user_rewards_farm_const;
             let boosted_reward_amount =
