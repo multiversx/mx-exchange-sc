@@ -73,7 +73,11 @@ pub trait SimpleLockEnergy:
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.legacy_locked_token_id().set(&legacy_token_id);
-        self.set_penalty_percentage(first_threshold_penalty_percentage, second_threshold_penalty_percentage, third_threshold_penalty_percentage);
+        self.set_penalty_percentage(
+            first_threshold_penalty_percentage,
+            second_threshold_penalty_percentage,
+            third_threshold_penalty_percentage,
+        );
         self.set_fees_burn_percentage(fees_burn_percentage);
         self.set_fees_collector_address(fees_collector_address);
         self.old_locked_asset_factory_address()

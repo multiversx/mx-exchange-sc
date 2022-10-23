@@ -15,24 +15,24 @@ fn token_merging_test() {
     let first_user = setup.first_user.clone();
 
     let first_token_amount = 400_000;
-    let first_token_unlock_epoch = to_start_of_month(LOCK_OPTIONS[0]);
+    let first_token_unlock_epoch = to_start_of_month(LOCK_OPTIONS[1]);
     setup
         .lock(
             &first_user,
             BASE_ASSET_TOKEN_ID,
             first_token_amount,
-            LOCK_OPTIONS[0],
+            LOCK_OPTIONS[1],
         )
         .assert_ok();
 
     let second_token_amount = 100_000;
-    let second_token_unlock_epoch = to_start_of_month(LOCK_OPTIONS[1]);
+    let second_token_unlock_epoch = to_start_of_month(LOCK_OPTIONS[2]);
     setup
         .lock(
             &first_user,
             BASE_ASSET_TOKEN_ID,
             second_token_amount,
-            LOCK_OPTIONS[1],
+            LOCK_OPTIONS[2],
         )
         .assert_ok();
 

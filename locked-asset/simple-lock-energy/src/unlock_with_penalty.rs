@@ -122,7 +122,7 @@ pub trait UnlockWithPenaltyModule:
 
         let target_epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
-        sc_print!("target_epochs_to_reduce = {}, &payment.amount = {}, attributes.unlock_epoch = {}", target_epochs_to_reduce, &payment.amount, attributes.unlock_epoch);
+
         let penalty_amount = self.calculate_penalty_amount(
             &payment.amount,
             target_epochs_to_reduce,
@@ -135,17 +135,14 @@ pub trait UnlockWithPenaltyModule:
         let caller = self.blockchain().get_caller();
 
         let mut energy = self.get_updated_energy_entry_for_user(&caller);
-        sc_print!("energy = {} , attributes.unlock_epoch = {}, current_epoch = {}", self.get_energy_amount_for_user(caller.clone()), attributes.unlock_epoch, current_epoch);
 
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
         self.set_energy_entry(&caller, energy.clone());
-        sc_print!("energy = {}", self.get_energy_amount_for_user(caller.clone()));
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment.clone(), &attributes);
         let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
         let new_unlock_epoch = current_epoch + target_epochs_to_reduce;
 
-        sc_print!("new_unlock_epoch = {}, current_epoch = {}", new_unlock_epoch, current_epoch);
         if target_epochs_to_reduce == 0u64 {
             self.send().esdt_local_mint(
                 &unlocked_token_id,
@@ -168,14 +165,11 @@ pub trait UnlockWithPenaltyModule:
             );
         }
 
-        sc_print!("unlocked_tokens = {}", unlocked_tokens.amount);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
 
-        sc_print!("energy = {}", self.get_energy_amount_for_user(caller.clone()));
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
 
         self.set_energy_entry(&caller, energy);
-        sc_print!("energy = {}", self.get_energy_amount_for_user(caller.clone()));
 
         self.to_esdt_payment(output_payment)
     }
@@ -223,6 +217,7 @@ pub trait UnlockWithPenaltyModule:
             );
 
         (penalty_percentage_full_unlock_current_epoch - penalty_percentage_full_unlock_target_epoch)
+            * MAX_PERCENTAGE as u64
             / (MAX_PERCENTAGE as u64 - penalty_percentage_full_unlock_target_epoch)
     }
 
@@ -238,8 +233,11 @@ pub trait UnlockWithPenaltyModule:
         match current_unlock_epoch / (EPOCHS_PER_YEAR + 1u64) {
             0 => first_threshold_penalty * current_unlock_epoch / EPOCHS_PER_YEAR,
             1 => {
+                // value between 0 and 360
+                let normalized_current_epoch_unlock = current_unlock_epoch - EPOCHS_PER_YEAR;
                 first_threshold_penalty
-                    + (second_threshold_penalty - first_threshold_penalty) * current_unlock_epoch
+                    + (second_threshold_penalty - first_threshold_penalty)
+                        * normalized_current_epoch_unlock
                         / EPOCHS_PER_YEAR
             }
             2 | 3 => {
@@ -248,7 +246,7 @@ pub trait UnlockWithPenaltyModule:
                         / 2
                         * EPOCHS_PER_YEAR
             }
-            _ => sc_panic!("Invalid unlock choice")
+            _ => sc_panic!("Invalid unlock choice"),
         }
     }
 
@@ -280,12 +278,6 @@ pub trait UnlockWithPenaltyModule:
             )
         };
 
-        sc_print!(
-            "partial_unlock = {} , penalty_percentage_unlock = {}",
-            full_unlock,
-            penalty_percentage_unlock
-        );
-
         token_amount * penalty_percentage_unlock / MAX_PERCENTAGE as u64
     }
 
@@ -302,9 +294,9 @@ pub trait UnlockWithPenaltyModule:
             if self.fees_from_penalty_unlocking().is_empty() {
                 // First fee deposit of the week
                 self.fees_from_penalty_unlocking()
-                    .set(NonceAmountPair::new(token_nonce, remaining_amount));
+                    .set(NonceAmountPair::new(token_nonce, remaining_amount.clone()));
             } else {
-                self.merge_fees_from_penalty(token_nonce, remaining_amount)
+                self.merge_fees_from_penalty(token_nonce, remaining_amount.clone())
             }
         }
 

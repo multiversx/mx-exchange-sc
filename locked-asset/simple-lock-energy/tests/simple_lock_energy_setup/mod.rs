@@ -31,7 +31,12 @@ pub const FIRST_THRESHOLD_PERCENTAGE: u16 = 4_000;
 pub const SECOND_THRESHOLD_PERCENTAGE: u16 = 6_000;
 pub const THIRD_THRESHOLD_PERCENTAGE: u16 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
-pub static LOCK_OPTIONS: &[u64] = &[0 * EPOCHS_IN_YEAR, EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
+pub static LOCK_OPTIONS: &[u64] = &[
+    0 * EPOCHS_IN_YEAR,
+    EPOCHS_IN_YEAR,
+    2 * EPOCHS_IN_YEAR,
+    4 * EPOCHS_IN_YEAR,
+]; // 1, 2 or 4 years
 
 pub struct SimpleLockEnergySetup<ScBuilder>
 where
@@ -234,8 +239,11 @@ where
         let mut result = rust_biguint!(0);
         self.b_mock
             .execute_query(&self.sc_wrapper, |sc| {
-                let managed_result =
-                    sc.calculate_penalty_amount(&managed_biguint!(token_amount), epochs_to_reduce, current_unlock_epoch);
+                let managed_result = sc.calculate_penalty_amount(
+                    &managed_biguint!(token_amount),
+                    epochs_to_reduce,
+                    current_unlock_epoch,
+                );
                 result = to_rust_biguint(managed_result);
             })
             .assert_ok();
