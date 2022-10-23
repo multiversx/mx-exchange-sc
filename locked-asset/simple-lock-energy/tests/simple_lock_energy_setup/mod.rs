@@ -31,7 +31,7 @@ pub const FIRST_THRESHOLD_PERCENTAGE: u16 = 4_000;
 pub const SECOND_THRESHOLD_PERCENTAGE: u16 = 6_000;
 pub const THIRD_THRESHOLD_PERCENTAGE: u16 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
-pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
+pub static LOCK_OPTIONS: &[u64] = &[0 * EPOCHS_IN_YEAR, EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
 
 pub struct SimpleLockEnergySetup<ScBuilder>
 where
@@ -221,24 +221,6 @@ where
             &rust_biguint!(amount),
             |sc| {
                 sc.reduce_lock_period(epochs_to_reduce);
-            },
-        )
-    }
-
-    pub fn send_fees_to_collector(
-        &mut self,
-        caller: &Address,
-        token_nonce: u64,
-        amount: u64,
-    ) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
-            caller,
-            &self.sc_wrapper,
-            LOCKED_TOKEN_ID,
-            token_nonce,
-            &rust_biguint!(amount),
-            |sc| {
-                sc.send_fees_to_collector();
             },
         )
     }

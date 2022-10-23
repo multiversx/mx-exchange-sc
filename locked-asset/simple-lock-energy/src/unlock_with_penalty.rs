@@ -51,9 +51,16 @@ pub trait UnlockWithPenaltyModule:
     ///     Both are values between 0 and 10_000, where 10_000 is 100%.
     #[only_owner]
     #[endpoint(setPenaltyPercentage)]
-    fn set_penalty_percentage(&self, first_threshold_penalty_percentage: u16, second_threshold_penalty_percentage: u16, third_threshold_penalty_percentage: u16) {
-        let is_first_threshold_valid = first_threshold_penalty_percentage > 0 && first_threshold_penalty_percentage < second_threshold_penalty_percentage;
-        let is_second_threshold_valid = second_threshold_penalty_percentage < third_threshold_penalty_percentage;
+    fn set_penalty_percentage(
+        &self,
+        first_threshold_penalty_percentage: u16,
+        second_threshold_penalty_percentage: u16,
+        third_threshold_penalty_percentage: u16,
+    ) {
+        let is_first_threshold_valid = first_threshold_penalty_percentage > 0
+            && first_threshold_penalty_percentage < second_threshold_penalty_percentage;
+        let is_second_threshold_valid =
+            second_threshold_penalty_percentage < third_threshold_penalty_percentage;
         let is_third_threshold_valid = third_threshold_penalty_percentage < MAX_PERCENTAGE;
 
         require!(
@@ -98,13 +105,9 @@ pub trait UnlockWithPenaltyModule:
     /// epochs_to_reduce must be a multiple of 30 (i.e. 1 month)
     #[payable("*")]
     #[endpoint(reduceLockPeriod)]
-    fn reduce_lock_period(&self, epochs_to_reduce: Epoch) -> EsdtTokenPayment {
-        require!(
-            epochs_to_reduce % EPOCHS_PER_YEAR == 0,
-            "May only reduce by multiples of 12 months (360 epochs)"
-        );
-
-        self.reduce_lock_period_common(Some(epochs_to_reduce))
+    fn reduce_lock_period(&self, target_epoch_to_reduce: Epoch) -> EsdtTokenPayment {
+        self.require_is_listed_lock_option(target_epoch_to_reduce);
+        self.reduce_lock_period_common(Some(target_epoch_to_reduce))
     }
 
     fn reduce_lock_period_common(&self, opt_epochs_to_reduce: Option<Epoch>) -> EsdtTokenPayment {
@@ -117,9 +120,14 @@ pub trait UnlockWithPenaltyModule:
         let attributes: LockedTokenAttributes<Self::Api> =
             locked_token_mapper.get_token_attributes(payment.token_nonce);
 
-        let epochs_to_reduce =
+        let target_epochs_to_reduce =
             self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
-        let penalty_amount = self.calculate_penalty_amount(&payment.amount, epochs_to_reduce, attributes.unlock_epoch);
+        sc_print!("target_epochs_to_reduce = {}, &payment.amount = {}, attributes.unlock_epoch = {}", target_epochs_to_reduce, &payment.amount, attributes.unlock_epoch);
+        let penalty_amount = self.calculate_penalty_amount(
+            &payment.amount,
+            target_epochs_to_reduce,
+            attributes.unlock_epoch,
+        );
 
         locked_token_mapper.nft_burn(payment.token_nonce, &(&payment.amount - &penalty_amount));
 
@@ -127,13 +135,18 @@ pub trait UnlockWithPenaltyModule:
         let caller = self.blockchain().get_caller();
 
         let mut energy = self.get_updated_energy_entry_for_user(&caller);
+        sc_print!("energy = {} , attributes.unlock_epoch = {}, current_epoch = {}", self.get_energy_amount_for_user(caller.clone()), attributes.unlock_epoch, current_epoch);
+
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
+        self.set_energy_entry(&caller, energy.clone());
+        sc_print!("energy = {}", self.get_energy_amount_for_user(caller.clone()));
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment.clone(), &attributes);
         let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
-        let new_unlock_epoch = attributes.unlock_epoch - epochs_to_reduce;
+        let new_unlock_epoch = current_epoch + target_epochs_to_reduce;
 
-        if new_unlock_epoch <= current_epoch {
+        sc_print!("new_unlock_epoch = {}, current_epoch = {}", new_unlock_epoch, current_epoch);
+        if target_epochs_to_reduce == 0u64 {
             self.send().esdt_local_mint(
                 &unlocked_token_id,
                 0,
@@ -155,10 +168,14 @@ pub trait UnlockWithPenaltyModule:
             );
         }
 
+        sc_print!("unlocked_tokens = {}", unlocked_tokens.amount);
         let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
 
+        sc_print!("energy = {}", self.get_energy_amount_for_user(caller.clone()));
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
+
         self.set_energy_entry(&caller, energy);
+        sc_print!("energy = {}", self.get_energy_amount_for_user(caller.clone()));
 
         self.to_esdt_payment(output_payment)
     }
@@ -184,40 +201,92 @@ pub trait UnlockWithPenaltyModule:
                 );
                 epochs_to_reduce
             }
-            None => EPOCHS_PER_YEAR,
+            None => 0u64,
+        }
+    }
+
+    fn calculate_penalty_percentage_partial_unlock(
+        &self,
+        target_epoch_to_reduce: Epoch,
+        current_unlock_epoch: Epoch,
+        penalty_percentage_struct: PenaltyPercentage,
+    ) -> u64 {
+        let penalty_percentage_full_unlock_current_epoch = self
+            .calculate_penalty_percentage_full_unlock(
+                current_unlock_epoch,
+                &penalty_percentage_struct,
+            );
+        let penalty_percentage_full_unlock_target_epoch = self
+            .calculate_penalty_percentage_full_unlock(
+                target_epoch_to_reduce,
+                &penalty_percentage_struct,
+            );
+
+        (penalty_percentage_full_unlock_current_epoch - penalty_percentage_full_unlock_target_epoch)
+            / (MAX_PERCENTAGE as u64 - penalty_percentage_full_unlock_target_epoch)
+    }
+
+    fn calculate_penalty_percentage_full_unlock(
+        &self,
+        current_unlock_epoch: Epoch,
+        penalty_percentage_struct: &PenaltyPercentage,
+    ) -> u64 {
+        let first_threshold_penalty = penalty_percentage_struct.first_threshold as u64;
+        let second_threshold_penalty = penalty_percentage_struct.second_threshold as u64;
+        let third_threshold_penalty = penalty_percentage_struct.third_threshold as u64;
+
+        match current_unlock_epoch / (EPOCHS_PER_YEAR + 1u64) {
+            0 => first_threshold_penalty * current_unlock_epoch / EPOCHS_PER_YEAR,
+            1 => {
+                first_threshold_penalty
+                    + (second_threshold_penalty - first_threshold_penalty) * current_unlock_epoch
+                        / EPOCHS_PER_YEAR
+            }
+            2 | 3 => {
+                second_threshold_penalty
+                    + (third_threshold_penalty - second_threshold_penalty) * current_unlock_epoch
+                        / 2
+                        * EPOCHS_PER_YEAR
+            }
+            _ => sc_panic!("Invalid unlock choice")
         }
     }
 
     /// Calculates the penalty that would be incurred if token_amount tokens
     /// were to have their locking period reduce by epochs_to_reduce.
     #[view(getPenaltyAmount)]
-    fn calculate_penalty_amount(&self, token_amount: &BigUint, epochs_to_reduce: Epoch, current_unlock_epoch: Epoch) -> BigUint {
-        let penalty_percentage = self.penalty_percentage().get();
-        let first_threshold_penalty = penalty_percentage.first_threshold as u64;
-        let second_threshold_penalty = penalty_percentage.second_threshold as u64;
-        let third_threshold_penalty = penalty_percentage.third_threshold as u64;
-        let max_percentage = MAX_PERCENTAGE as u64;
+    fn calculate_penalty_amount(
+        &self,
+        token_amount: &BigUint,
+        target_epoch_to_reduce: Epoch,
+        current_unlock_epoch: Epoch,
+    ) -> BigUint {
+        self.require_is_listed_lock_option(target_epoch_to_reduce);
+        let current_epoch = self.blockchain().get_block_epoch();
+        let lock_epochs_remaining = current_unlock_epoch - current_epoch;
+        let penalty_percentage_struct = self.penalty_percentage().get();
+        let full_unlock = target_epoch_to_reduce == 0;
 
-        let current_epoch_fee = match current_unlock_epoch / EPOCHS_PER_YEAR {
-            0 => first_threshold_penalty,
-            1 => second_threshold_penalty,
-            _ => third_threshold_penalty,
+        let penalty_percentage_unlock = if full_unlock {
+            self.calculate_penalty_percentage_full_unlock(
+                lock_epochs_remaining,
+                &penalty_percentage_struct,
+            )
+        } else {
+            self.calculate_penalty_percentage_partial_unlock(
+                target_epoch_to_reduce,
+                lock_epochs_remaining,
+                penalty_percentage_struct,
+            )
         };
 
-        let target_epoch_fee = match epochs_to_reduce / EPOCHS_PER_YEAR {
-            0 => first_threshold_penalty,
-            1 => second_threshold_penalty,
-            _ => third_threshold_penalty,
-        };
+        sc_print!(
+            "partial_unlock = {} , penalty_percentage_unlock = {}",
+            full_unlock,
+            penalty_percentage_unlock
+        );
 
-        if current_epoch_fee == first_threshold_penalty || current_epoch_fee == target_epoch_fee {
-            return token_amount * first_threshold_penalty / MAX_PERCENTAGE as u64
-        }
-
-        sc_print!("current_epoch_fee = {}, target_epoch_fee = {}", current_epoch_fee ,target_epoch_fee);
-        let penalty_percentage = (current_epoch_fee - target_epoch_fee) * MAX_PERCENTAGE as u64 / (max_percentage -  target_epoch_fee);
-
-        token_amount * penalty_percentage / MAX_PERCENTAGE as u64
+        token_amount * penalty_percentage_unlock / MAX_PERCENTAGE as u64
     }
 
     fn burn_penalty(&self, token_id: TokenIdentifier, token_nonce: Nonce, fees_amount: &BigUint) {
@@ -290,7 +359,7 @@ pub trait UnlockWithPenaltyModule:
         if current_epoch < next_send_epoch {
             return;
         }
-        
+
         let sc_address = self.fees_collector_address().get();
         let locked_token_id = self.locked_token().get_token_id();
         let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
