@@ -12,6 +12,7 @@ pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod virtual_lock;
+pub mod penalty;
 
 use common_structs::Epoch;
 use mergeable::Mergeable;
@@ -35,6 +36,7 @@ pub trait SimpleLockEnergy:
     + elrond_wasm_modules::pause::PauseModule
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
+    + penalty::LocalPenaltyModule
     + utils::UtilsModule
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule

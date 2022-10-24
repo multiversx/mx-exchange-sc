@@ -5,19 +5,12 @@ use common_structs::{Epoch, Nonce, NonceAmountPair, PaymentsVec};
 
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{lock_options::EPOCHS_PER_YEAR, token_merging};
+use crate::{token_merging, penalty::{self, PenaltyPercentage}};
 
 const MAX_PERCENTAGE: u16 = 10_000; // 100%
 const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
 const EPOCHS_PER_WEEK: Epoch = 7;
 static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
-
-#[derive(TypeAbi, TopEncode, TopDecode)]
-pub struct PenaltyPercentage {
-    pub first_threshold: u16,
-    pub second_threshold: u16,
-    pub third_threshold: u16,
-}
 
 pub mod fees_collector_proxy {
     elrond_wasm::imports!();
@@ -41,6 +34,7 @@ pub trait UnlockWithPenaltyModule:
     + crate::events::EventsModule
     + elrond_wasm_modules::pause::PauseModule
     + token_merging::TokenMergingModule
+    + penalty::LocalPenaltyModule
     + utils::UtilsModule
 {
     /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
@@ -220,37 +214,6 @@ pub trait UnlockWithPenaltyModule:
             / (MAX_PERCENTAGE as u64 - penalty_percentage_full_unlock_target_epoch)
     }
 
-    fn calculate_penalty_percentage_full_unlock(
-        &self,
-        lock_epochs_remaining: Epoch,
-        penalty_percentage_struct: &PenaltyPercentage,
-    ) -> u64 {
-        let first_threshold_penalty = penalty_percentage_struct.first_threshold as u64;
-        let second_threshold_penalty = penalty_percentage_struct.second_threshold as u64;
-        let third_threshold_penalty = penalty_percentage_struct.third_threshold as u64;
-
-        match lock_epochs_remaining / (EPOCHS_PER_YEAR + 1u64) {
-            0 => first_threshold_penalty * lock_epochs_remaining / EPOCHS_PER_YEAR,
-            1 => {
-                // value between 0 and 360
-                let normalized_current_epoch_unlock = lock_epochs_remaining - EPOCHS_PER_YEAR;
-                first_threshold_penalty
-                    + (second_threshold_penalty - first_threshold_penalty)
-                        * normalized_current_epoch_unlock
-                        / EPOCHS_PER_YEAR
-            }
-            2 | 3 => {
-                // value between 721 and 1440 epochs (years 3,4) normalized to 0 - 720
-                let normalized_current_epoch_unlock = lock_epochs_remaining - (2 * EPOCHS_PER_YEAR);
-                second_threshold_penalty
-                    + (third_threshold_penalty - second_threshold_penalty)
-                        * normalized_current_epoch_unlock
-                        / (2 * EPOCHS_PER_YEAR)
-            }
-            _ => sc_panic!("Invalid unlock choice"),
-        }
-    }
-
     /// Calculates the penalty that would be incurred if token_amount tokens
     /// were to have their locking period reduce by epochs_to_reduce.
     /// target_epoch_to_reduce is one of 0, 360, 720, 1080 (0, 1, 2, 3 years)
@@ -376,10 +339,6 @@ pub trait UnlockWithPenaltyModule:
         &self,
         sc_address: ManagedAddress,
     ) -> fees_collector_proxy::Proxy<Self::Api>;
-
-    #[view(getPenaltyPercentage)]
-    #[storage_mapper("penaltyPercentage")]
-    fn penalty_percentage(&self) -> SingleValueMapper<PenaltyPercentage>;
 
     #[view(getFeesBurnPercentage)]
     #[storage_mapper("feesBurnPercentage")]
