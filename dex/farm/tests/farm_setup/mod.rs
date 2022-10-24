@@ -366,4 +366,44 @@ where
             )
             .assert_ok();
     }
+
+    pub fn check_error_collect_undistributed_boosted_rewards(&mut self, expected_message: &str) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            })
+            .assert_error(4, expected_message)
+    }
+
+    pub fn collect_undistributed_boosted_rewards(&mut self) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            })
+            .assert_ok();
+    }
+
+    pub fn check_remaining_boosted_rewards_to_distribute(
+        &mut self,
+        week: u64,
+        expected_amount: u64,
+    ) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let result_managed = sc
+                    .remaining_boosted_rewards_to_distribute(week as usize)
+                    .get();
+                assert_eq!(result_managed, managed_biguint!(expected_amount));
+            })
+            .assert_ok();
+    }
+
+    pub fn check_undistributed_boosted_rewards(&mut self, expected_amount: u64) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let result_managed = sc.undistributed_boosted_rewards().get();
+                assert_eq!(result_managed, managed_biguint!(expected_amount));
+            })
+            .assert_ok();
+    }
 }

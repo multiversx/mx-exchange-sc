@@ -3,9 +3,13 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use core::cmp;
+
 use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
-use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
+use weekly_rewards_splitting::{
+    base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress, USER_MAX_CLAIM_WEEKS,
+};
 
 const MAX_PERCENT: u64 = 10_000;
 const BLOCKS_PER_WEEK: u64 = 100_800u64;
@@ -83,6 +87,31 @@ pub trait FarmBoostedYieldsModule:
         self.boosted_yields_factors().set(factors);
     }
 
+    #[endpoint(collectUndistributedBoostedRewards)]
+    fn collect_undistributed_boosted_rewards(&self) {
+        self.require_caller_has_admin_permissions();
+        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1usize;
+        let current_week = self.get_current_week();
+        require!(
+            current_week > collect_rewards_offset,
+            "Current week must be higher than the week offset"
+        );
+        let last_collect_week_mapper = self.last_undistributed_boosted_rewards_collect_week();
+        let first_collect_week = last_collect_week_mapper.get() + 1usize;
+        let last_collect_week = current_week - collect_rewards_offset;
+        if first_collect_week <= last_collect_week {
+            for week in first_collect_week..=last_collect_week {
+                let rewards_to_distribute_mapper =
+                    self.remaining_boosted_rewards_to_distribute(week);
+                let rewards_to_distribute = rewards_to_distribute_mapper.get();
+                self.undistributed_boosted_rewards()
+                    .update(|total_amount| *total_amount += rewards_to_distribute);
+                rewards_to_distribute_mapper.clear();
+            }
+            last_collect_week_mapper.set(last_collect_week);
+        }
+    }
+
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {
         let percentage = self.boosted_yields_rewards_percentage().get();
         if percentage == 0 {
@@ -136,6 +165,14 @@ pub trait FarmBoostedYieldsModule:
     #[storage_mapper("accumulatedRewardsForWeek")]
     fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[view(getRemainingBoostedRewardsToDistribute)]
+    #[storage_mapper("remainingBoostedRewardsToDistribute")]
+    fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
+
+    #[storage_mapper("lastUndistributedBoostedRewardsCollectWeek")]
+    fn last_undistributed_boosted_rewards_collect_week(&self) -> SingleValueMapper<Week>;
+
+    #[view(getUndistributedBoostedRewards)]
     #[storage_mapper("undistributedBoostedRewards")]
     fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
 
@@ -188,6 +225,11 @@ where
         let rewards_mapper = module.accumulated_rewards_for_week(week);
         let total_rewards = rewards_mapper.get();
         rewards_mapper.clear();
+        if total_rewards > 0 {
+            module
+                .remaining_boosted_rewards_to_distribute(week)
+                .update(|amount| *amount += &total_rewards);
+        }
 
         ManagedVec::from_single_item(EsdtTokenPayment::new(reward_token_id, 0, total_rewards))
     }
@@ -230,17 +272,13 @@ where
                 (boosted_rewards_by_energy + boosted_rewards_by_tokens) / constants_base;
 
             // min between base rewards per week and computed rewards
-            let user_reward = if user_rewards_for_week < boosted_reward_amount {
-                let undistributed_amount = &user_rewards_for_week - &boosted_reward_amount;
-                module
-                    .undistributed_boosted_rewards()
-                    .update(|total_amount| *total_amount += undistributed_amount);
-                user_rewards_for_week.clone()
-            } else {
-                boosted_reward_amount
-            };
+            let user_reward = cmp::min(user_rewards_for_week.clone(), boosted_reward_amount);
 
             if user_reward > 0 {
+                module
+                    .remaining_boosted_rewards_to_distribute(week)
+                    .update(|amount| *amount -= &user_reward);
+
                 user_rewards.push(EsdtTokenPayment::new(
                     weekly_reward.token_identifier,
                     0,
