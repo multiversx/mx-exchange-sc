@@ -241,10 +241,10 @@ pub trait UnlockWithPenaltyModule:
                         / EPOCHS_PER_YEAR
             }
             2 | 3 => {
+                let normalized_current_epoch_unlock = current_unlock_epoch - (2 * EPOCHS_PER_YEAR);
                 second_threshold_penalty
-                    + (third_threshold_penalty - second_threshold_penalty) * current_unlock_epoch
-                        / 2
-                        * EPOCHS_PER_YEAR
+                    + (third_threshold_penalty - second_threshold_penalty) * normalized_current_epoch_unlock
+                        / (2 * EPOCHS_PER_YEAR)
             }
             _ => sc_panic!("Invalid unlock choice"),
         }
