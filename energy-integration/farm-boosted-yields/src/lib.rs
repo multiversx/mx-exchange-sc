@@ -163,12 +163,14 @@ pub trait FarmBoostedYieldsModule:
     #[storage_mapper("accumulatedRewardsForWeek")]
     fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 
+    #[view(getRemainingBoostedRewardsToDistribute)]
     #[storage_mapper("remainingBoostedRewardsToDistribute")]
     fn remaining_boosted_rewards_to_distribute(&self, week: Week) -> SingleValueMapper<BigUint>;
 
     #[storage_mapper("lastUndistributedBoostedRewardsCollectWeek")]
     fn last_undistributed_boosted_rewards_collect_week(&self) -> SingleValueMapper<Week>;
 
+    #[view(getUndistributedBoostedRewards)]
     #[storage_mapper("undistributedBoostedRewards")]
     fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
 
