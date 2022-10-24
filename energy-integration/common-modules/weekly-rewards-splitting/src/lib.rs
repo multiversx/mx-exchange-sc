@@ -4,7 +4,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub const MAX_CLAIM_PER_TX: usize = 4;
+pub const USER_MAX_CLAIM_WEEKS: usize = 4;
 
 pub mod base_impl;
 pub mod events;
@@ -73,7 +73,7 @@ pub trait WeeklyRewardsSplittingModule:
         let mut all_rewards = ManagedVec::new();
         if current_energy_amount >= calculated_energy_for_current_epoch.get_energy_amount() {
             let total_weeks_to_claim = current_week - claim_progress.week;
-            let weeks_to_claim = core::cmp::min(total_weeks_to_claim, MAX_CLAIM_PER_TX);
+            let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
             for _ in 0..weeks_to_claim {
                 let rewards_for_week =
                     self.claim_single(wrapper, user, current_week, &mut claim_progress);

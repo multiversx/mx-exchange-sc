@@ -38,6 +38,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPenaltyPercent
         getPerBlockRewardAmount
         getPermissions
+        getRemainingBoostedRewardsToDistribute
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
@@ -45,6 +46,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek
+        getUndistributedBoostedRewards
         getUserEnergyForWeek
         isSCAddressWhitelisted
         mergeFarmTokens

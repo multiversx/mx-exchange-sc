@@ -7,11 +7,12 @@ use core::cmp;
 
 use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
-use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
+use weekly_rewards_splitting::{
+    base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress, USER_MAX_CLAIM_WEEKS,
+};
 
 const MAX_PERCENT: u64 = 10_000;
 const BLOCKS_PER_WEEK: u64 = 100_800u64;
-pub const COLLECT_UNDISTRIBUTED_BOOSTED_REWARDS_WEEK_OFFSET: usize = 4;
 
 pub struct SplitReward<M: ManagedTypeApi> {
     pub base_farm: BigUint<M>,
@@ -89,14 +90,15 @@ pub trait FarmBoostedYieldsModule:
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) {
         self.require_caller_has_admin_permissions();
+        let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1usize;
         let current_week = self.get_current_week();
         require!(
-            current_week > COLLECT_UNDISTRIBUTED_BOOSTED_REWARDS_WEEK_OFFSET,
+            current_week > collect_rewards_offset,
             "Current week must be higher than the week offset"
         );
         let last_collect_week_mapper = self.last_undistributed_boosted_rewards_collect_week();
         let first_collect_week = last_collect_week_mapper.get() + 1usize;
-        let last_collect_week = current_week - COLLECT_UNDISTRIBUTED_BOOSTED_REWARDS_WEEK_OFFSET;
+        let last_collect_week = current_week - collect_rewards_offset;
         if first_collect_week <= last_collect_week {
             for week in first_collect_week..=last_collect_week {
                 let rewards_to_distribute_mapper =

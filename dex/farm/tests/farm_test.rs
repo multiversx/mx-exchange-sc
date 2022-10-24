@@ -516,8 +516,8 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
         "Current week must be higher than the week offset",
     );
 
-    // advance to week 5
-    farm_setup.b_mock.set_block_epoch(30);
+    // advance to week 6
+    farm_setup.b_mock.set_block_epoch(36);
 
     farm_setup.collect_undistributed_boosted_rewards();
     farm_setup.check_undistributed_boosted_rewards(1);
@@ -525,8 +525,8 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 1);
     farm_setup.check_remaining_boosted_rewards_to_distribute(3, 2);
 
-    // advance to week 7
-    farm_setup.b_mock.set_block_epoch(43);
+    // advance to week 8
+    farm_setup.b_mock.set_block_epoch(50);
 
     farm_setup.collect_undistributed_boosted_rewards();
     farm_setup.check_undistributed_boosted_rewards(4);
