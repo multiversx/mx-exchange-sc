@@ -56,11 +56,11 @@ fn token_merging_test() {
         .assert_ok();
 
     assert_eq!(first_token_unlock_epoch, 360);
-    assert_eq!(second_token_unlock_epoch, 1800);
+    assert_eq!(second_token_unlock_epoch, 720);
 
-    // (400_000 * 360 + 100_000 * 1800) / 500_000 = 648
-    // -> start of month (upper) = 660
-    let expected_merged_token_unlock_epoch = 660;
+    // (400_000 * 360 + 100_000 * 720) / 500_000 = 432
+    // -> start of month (upper) = 450
+    let expected_merged_token_unlock_epoch = 450;
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,

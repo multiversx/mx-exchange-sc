@@ -44,8 +44,9 @@ pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
-pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
-pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
+pub const FIRST_THRESHOLD_PERCENTAGE: u16 = 4_000;
+pub const SECOND_THRESHOLD_PERCENTAGE: u16 = 6_000;
+pub const THIRD_THRESHOLD_PERCENTAGE: u16 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 10_000; // 100%
 
 // Proxy
@@ -330,8 +331,9 @@ where
             sc.init(
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                MIN_PENALTY_PERCENTAGE,
-                MAX_PENALTY_PERCENTAGE,
+                FIRST_THRESHOLD_PERCENTAGE,
+                SECOND_THRESHOLD_PERCENTAGE,
+                THIRD_THRESHOLD_PERCENTAGE,
                 FEES_BURN_PERCENTAGE,
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),
