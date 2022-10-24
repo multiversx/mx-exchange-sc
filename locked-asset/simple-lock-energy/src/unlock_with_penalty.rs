@@ -102,7 +102,7 @@ pub trait UnlockWithPenaltyModule:
 
     /// Reduce the locking period of a locked token. This incures a penalty.
     /// The longer the reduction, the bigger the penalty.
-    /// epochs_to_reduce must be a multiple of 30 (i.e. 1 month)
+    /// epochs_to_reduce must be a multiple of 360 (i.e. 1 year)
     #[payable("*")]
     #[endpoint(reduceLockPeriod)]
     fn reduce_lock_period(&self, target_epoch_to_reduce: Epoch) -> EsdtTokenPayment {
@@ -137,7 +137,6 @@ pub trait UnlockWithPenaltyModule:
         let mut energy = self.get_updated_energy_entry_for_user(&caller);
 
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
-        self.set_energy_entry(&caller, energy.clone());
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment.clone(), &attributes);
         let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
@@ -202,12 +201,12 @@ pub trait UnlockWithPenaltyModule:
     fn calculate_penalty_percentage_partial_unlock(
         &self,
         target_epoch_to_reduce: Epoch,
-        current_unlock_epoch: Epoch,
+        lock_epochs_remaining: Epoch,
         penalty_percentage_struct: PenaltyPercentage,
     ) -> u64 {
         let penalty_percentage_full_unlock_current_epoch = self
             .calculate_penalty_percentage_full_unlock(
-                current_unlock_epoch,
+                lock_epochs_remaining,
                 &penalty_percentage_struct,
             );
         let penalty_percentage_full_unlock_target_epoch = self
@@ -223,27 +222,29 @@ pub trait UnlockWithPenaltyModule:
 
     fn calculate_penalty_percentage_full_unlock(
         &self,
-        current_unlock_epoch: Epoch,
+        lock_epochs_remaining: Epoch,
         penalty_percentage_struct: &PenaltyPercentage,
     ) -> u64 {
         let first_threshold_penalty = penalty_percentage_struct.first_threshold as u64;
         let second_threshold_penalty = penalty_percentage_struct.second_threshold as u64;
         let third_threshold_penalty = penalty_percentage_struct.third_threshold as u64;
 
-        match current_unlock_epoch / (EPOCHS_PER_YEAR + 1u64) {
-            0 => first_threshold_penalty * current_unlock_epoch / EPOCHS_PER_YEAR,
+        match lock_epochs_remaining / (EPOCHS_PER_YEAR + 1u64) {
+            0 => first_threshold_penalty * lock_epochs_remaining / EPOCHS_PER_YEAR,
             1 => {
                 // value between 0 and 360
-                let normalized_current_epoch_unlock = current_unlock_epoch - EPOCHS_PER_YEAR;
+                let normalized_current_epoch_unlock = lock_epochs_remaining - EPOCHS_PER_YEAR;
                 first_threshold_penalty
                     + (second_threshold_penalty - first_threshold_penalty)
                         * normalized_current_epoch_unlock
                         / EPOCHS_PER_YEAR
             }
             2 | 3 => {
-                let normalized_current_epoch_unlock = current_unlock_epoch - (2 * EPOCHS_PER_YEAR);
+                // value between 721 and 1440 epochs (years 3,4) normalized to 0 - 720
+                let normalized_current_epoch_unlock = lock_epochs_remaining - (2 * EPOCHS_PER_YEAR);
                 second_threshold_penalty
-                    + (third_threshold_penalty - second_threshold_penalty) * normalized_current_epoch_unlock
+                    + (third_threshold_penalty - second_threshold_penalty)
+                        * normalized_current_epoch_unlock
                         / (2 * EPOCHS_PER_YEAR)
             }
             _ => sc_panic!("Invalid unlock choice"),
@@ -252,6 +253,7 @@ pub trait UnlockWithPenaltyModule:
 
     /// Calculates the penalty that would be incurred if token_amount tokens
     /// were to have their locking period reduce by epochs_to_reduce.
+    /// target_epoch_to_reduce is one of 0, 360, 720, 1080 (0, 1, 2, 3 years)
     #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(
         &self,
@@ -259,7 +261,7 @@ pub trait UnlockWithPenaltyModule:
         target_epoch_to_reduce: Epoch,
         current_unlock_epoch: Epoch,
     ) -> BigUint {
-        self.require_is_listed_lock_option(target_epoch_to_reduce);
+        self.require_is_listed_unlock_option(target_epoch_to_reduce);
         let current_epoch = self.blockchain().get_block_epoch();
         let lock_epochs_remaining = current_unlock_epoch - current_epoch;
         let penalty_percentage_struct = self.penalty_percentage().get();
@@ -294,9 +296,9 @@ pub trait UnlockWithPenaltyModule:
             if self.fees_from_penalty_unlocking().is_empty() {
                 // First fee deposit of the week
                 self.fees_from_penalty_unlocking()
-                    .set(NonceAmountPair::new(token_nonce, remaining_amount.clone()));
+                    .set(NonceAmountPair::new(token_nonce, remaining_amount));
             } else {
-                self.merge_fees_from_penalty(token_nonce, remaining_amount.clone())
+                self.merge_fees_from_penalty(token_nonce, remaining_amount)
             }
         }
 

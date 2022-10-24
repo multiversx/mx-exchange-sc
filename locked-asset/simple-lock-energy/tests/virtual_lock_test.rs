@@ -23,7 +23,7 @@ fn virtual_lock_test() {
             sc.lock_virtual(
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_biguint!(1_000),
-                LOCK_OPTIONS[1],
+                LOCK_OPTIONS[0],
                 managed_address!(&second_user),
             );
         })
@@ -36,7 +36,7 @@ fn virtual_lock_test() {
             sc.lock_virtual(
                 managed_token_id!(b"RANDTOK-123456"),
                 managed_biguint!(1_000),
-                LOCK_OPTIONS[1],
+                LOCK_OPTIONS[0],
                 managed_address!(&second_user),
             );
         })
@@ -52,7 +52,7 @@ fn virtual_lock_test() {
             sc.lock_virtual(
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_biguint!(1_000),
-                LOCK_OPTIONS[1],
+                LOCK_OPTIONS[0],
                 managed_address!(&second_user),
             );
         })
