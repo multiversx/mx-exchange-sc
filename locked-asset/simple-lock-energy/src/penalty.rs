@@ -7,9 +7,9 @@ elrond_wasm::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode)]
 pub struct PenaltyPercentage {
-    pub first_threshold: u16,
-    pub second_threshold: u16,
-    pub third_threshold: u16,
+    pub first_threshold: u64,
+    pub second_threshold: u64,
+    pub third_threshold: u64,
 }
 
 #[elrond_wasm::module]
@@ -19,9 +19,9 @@ pub trait LocalPenaltyModule {
         lock_epochs_remaining: Epoch,
         penalty_percentage_struct: &PenaltyPercentage,
     ) -> u64 {
-        let first_threshold_penalty = penalty_percentage_struct.first_threshold as u64;
-        let second_threshold_penalty = penalty_percentage_struct.second_threshold as u64;
-        let third_threshold_penalty = penalty_percentage_struct.third_threshold as u64;
+        let first_threshold_penalty = penalty_percentage_struct.first_threshold;
+        let second_threshold_penalty = penalty_percentage_struct.second_threshold;
+        let third_threshold_penalty = penalty_percentage_struct.third_threshold;
 
         match lock_epochs_remaining / (EPOCHS_PER_YEAR + 1u64) {
             0 => first_threshold_penalty * lock_epochs_remaining / EPOCHS_PER_YEAR,
@@ -45,8 +45,11 @@ pub trait LocalPenaltyModule {
         }
     }
 
-    fn calculate_epoch_from_penalty_percentage(self, penalty_percentage: u64) -> Epoch {
-        let penalty_percentage_struct = self.penalty_percentage().get();
+    fn calculate_epoch_from_penalty_percentage(
+        self,
+        penalty_percentage: u64,
+        penalty_percentage_struct: &PenaltyPercentage,
+    ) -> Epoch {
         let first_threshold_penalty = penalty_percentage_struct.first_threshold as u64;
         let second_threshold_penalty = penalty_percentage_struct.second_threshold as u64;
         let third_threshold_penalty = penalty_percentage_struct.third_threshold as u64;

@@ -139,8 +139,11 @@ pub trait TokenMergingModule:
                     attributes,
                 };
                 output_pair.merge_with(amount_attr_pair.clone());
-                output_pair.attributes.unlock_epoch =
-                    self.calculate_epoch_from_penalty_percentage(amount_attr_pair.token_unlock_fee);
+                let penalty_percentage_struct = self.penalty_percentage().get();
+                output_pair.attributes.unlock_epoch = self.calculate_epoch_from_penalty_percentage(
+                    amount_attr_pair.token_unlock_fee,
+                    &penalty_percentage_struct,
+                );
             }
 
             let normalized_unlock_epoch = self

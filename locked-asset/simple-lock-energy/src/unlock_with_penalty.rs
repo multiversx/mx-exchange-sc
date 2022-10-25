@@ -50,15 +50,15 @@ pub trait UnlockWithPenaltyModule:
     #[endpoint(setPenaltyPercentage)]
     fn set_penalty_percentage(
         &self,
-        first_threshold_penalty_percentage: u16,
-        second_threshold_penalty_percentage: u16,
-        third_threshold_penalty_percentage: u16,
+        first_threshold_penalty_percentage: u64,
+        second_threshold_penalty_percentage: u64,
+        third_threshold_penalty_percentage: u64,
     ) {
         let is_first_threshold_valid = first_threshold_penalty_percentage > 0
             && first_threshold_penalty_percentage < second_threshold_penalty_percentage;
         let is_second_threshold_valid =
             second_threshold_penalty_percentage < third_threshold_penalty_percentage;
-        let is_third_threshold_valid = third_threshold_penalty_percentage < MAX_PERCENTAGE;
+        let is_third_threshold_valid = third_threshold_penalty_percentage < MAX_PERCENTAGE as u64;
 
         require!(
             is_first_threshold_valid && is_second_threshold_valid && is_third_threshold_valid,
