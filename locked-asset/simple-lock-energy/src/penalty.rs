@@ -26,7 +26,6 @@ pub trait LocalPenaltyModule {
         match lock_epochs_remaining / (EPOCHS_PER_YEAR + 1u64) {
             0 => first_threshold_penalty * lock_epochs_remaining / EPOCHS_PER_YEAR,
             1 => {
-                // value between 0 and 360
                 let normalized_current_epoch_unlock = lock_epochs_remaining - EPOCHS_PER_YEAR;
                 first_threshold_penalty
                     + (second_threshold_penalty - first_threshold_penalty)
@@ -34,7 +33,6 @@ pub trait LocalPenaltyModule {
                         / EPOCHS_PER_YEAR
             }
             2 | 3 => {
-                // value between 721 and 1440 epochs (years 3,4) normalized to 0 - 720
                 let normalized_current_epoch_unlock = lock_epochs_remaining - (2 * EPOCHS_PER_YEAR);
                 second_threshold_penalty
                     + (third_threshold_penalty - second_threshold_penalty)
@@ -50,9 +48,9 @@ pub trait LocalPenaltyModule {
         penalty_percentage: u64,
         penalty_percentage_struct: &PenaltyPercentage,
     ) -> Epoch {
-        let first_threshold_penalty = penalty_percentage_struct.first_threshold as u64;
-        let second_threshold_penalty = penalty_percentage_struct.second_threshold as u64;
-        let third_threshold_penalty = penalty_percentage_struct.third_threshold as u64;
+        let first_threshold_penalty = penalty_percentage_struct.first_threshold;
+        let second_threshold_penalty = penalty_percentage_struct.second_threshold;
+        let third_threshold_penalty = penalty_percentage_struct.third_threshold;
 
         require!(
             penalty_percentage < third_threshold_penalty,
@@ -62,12 +60,12 @@ pub trait LocalPenaltyModule {
         if penalty_percentage > second_threshold_penalty {
             // year 2-4
             2 * EPOCHS_PER_YEAR
-                + (2 * EPOCHS_PER_YEAR * penalty_percentage - second_threshold_penalty)
+                + (2 * EPOCHS_PER_YEAR * (penalty_percentage - second_threshold_penalty))
                     / (third_threshold_penalty - second_threshold_penalty)
         } else if penalty_percentage > first_threshold_penalty {
             // year 1-2
             EPOCHS_PER_YEAR
-                + (EPOCHS_PER_YEAR * penalty_percentage - first_threshold_penalty)
+                + (EPOCHS_PER_YEAR * (penalty_percentage - first_threshold_penalty))
                     / (second_threshold_penalty - first_threshold_penalty)
         } else if penalty_percentage > 0u64 {
             // year 0-1

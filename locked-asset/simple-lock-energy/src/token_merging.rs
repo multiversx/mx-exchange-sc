@@ -37,7 +37,6 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
 
         self.token_amount += other.token_amount;
         self.token_unlock_fee = unsafe { unlock_fee.to_u64().unwrap_unchecked() };
-        // self.attributes.unlock_epoch = unsafe { new_unlock_epoch.to_u64().unwrap_unchecked() };
     }
 }
 
