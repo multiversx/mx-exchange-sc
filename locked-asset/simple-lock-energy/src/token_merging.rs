@@ -4,7 +4,10 @@ use common_structs::PaymentsVec;
 use mergeable::{weighted_average, Mergeable};
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{energy::Energy, penalty::{self}};
+use crate::{
+    energy::Energy,
+    penalty::{self},
+};
 
 #[derive(Clone)]
 pub struct LockedAmountWeightAttributesPair<M: ManagedTypeApi> {
@@ -109,7 +112,10 @@ pub trait TokenMergingModule:
             let lock_epochs_remaining = first_token_attributes.unlock_epoch - current_epoch;
             let mut output_pair = LockedAmountWeightAttributesPair {
                 token_amount: first_payment.amount,
-                token_unlock_fee: self.calculate_penalty_percentage_full_unlock(lock_epochs_remaining, &penalty_percentage_struct),
+                token_unlock_fee: self.calculate_penalty_percentage_full_unlock(
+                    lock_epochs_remaining,
+                    &penalty_percentage_struct,
+                ),
                 attributes: first_token_attributes,
             };
             for payment in &payments {
@@ -126,12 +132,15 @@ pub trait TokenMergingModule:
                 let lock_epochs_remaining = attributes.unlock_epoch - current_epoch;
                 let amount_attr_pair = LockedAmountWeightAttributesPair {
                     token_amount: payment.amount,
-                    token_unlock_fee: self.calculate_penalty_percentage_full_unlock(lock_epochs_remaining, &penalty_percentage_struct),
+                    token_unlock_fee: self.calculate_penalty_percentage_full_unlock(
+                        lock_epochs_remaining,
+                        &penalty_percentage_struct,
+                    ),
                     attributes,
                 };
                 output_pair.merge_with(amount_attr_pair.clone());
-                output_pair.attributes.unlock_epoch = self.calculate_epoch_from_penalty_percentage(amount_attr_pair.token_unlock_fee);
-
+                output_pair.attributes.unlock_epoch =
+                    self.calculate_epoch_from_penalty_percentage(amount_attr_pair.token_unlock_fee);
             }
 
             let normalized_unlock_epoch = self

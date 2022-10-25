@@ -8,11 +8,11 @@ pub mod extend_lock;
 pub mod local_roles;
 pub mod lock_options;
 pub mod migration;
+pub mod penalty;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod virtual_lock;
-pub mod penalty;
 
 use common_structs::Epoch;
 use mergeable::Mergeable;

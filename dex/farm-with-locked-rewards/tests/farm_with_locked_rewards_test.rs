@@ -205,7 +205,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
 
     // second user claim
     let second_base_farm_amt = second_farm_token_amount * 7_500 / total_farm_tokens;
-    
+
     // Boosted yields rewards formula
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
