@@ -350,12 +350,12 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
     setup.b_mock.check_nft_balance(
         &setup.fees_collector_mock,
         LOCKED_TOKEN_ID,
-        2,
+        1,
         &((&expected_penalty_amount + &expected_penalty_amount_2) / 2u64),
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
             original_token_nonce: 0,
-            unlock_epoch: 390,
+            unlock_epoch: 360,
         }),
     );
 }
@@ -377,7 +377,6 @@ fn reduce_lock_period_test() {
             LOCK_OPTIONS[1],
         )
         .assert_ok();
-
 
     let penalty_percentage = 3_333u64; // (6_000 - 4_000) / (10_000 - 4_000) = 3_333
     let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;

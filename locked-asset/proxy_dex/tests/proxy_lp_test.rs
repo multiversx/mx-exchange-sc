@@ -246,7 +246,7 @@ fn wrapped_lp_token_merge_test() {
         Some(&WrappedLpTokenAttributes::<DebugApi> {
             locked_tokens: EsdtTokenPayment {
                 token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
-                token_nonce: 3,
+                token_nonce: 1,
                 amount: managed_biguint!(800_001_600), // out of 1_000_000_000
             },
             lp_token_id: managed_token_id!(LP_TOKEN_ID),
