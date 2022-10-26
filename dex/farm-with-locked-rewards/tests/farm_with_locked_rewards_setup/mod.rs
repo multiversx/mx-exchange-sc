@@ -35,11 +35,17 @@ const DIV_SAFETY: u64 = 1_000_000_000_000;
 const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 const FARMING_TOKEN_BALANCE: u64 = 100_000_000;
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 pub const EPOCHS_IN_YEAR: u64 = 365;
 
-pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
-pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
+pub const FIRST_THRESHOLD_PERCENTAGE: u64 = 4_000;
+pub const SECOND_THRESHOLD_PERCENTAGE: u64 = 6_000;
+pub const THIRD_THRESHOLD_PERCENTAGE: u64 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 
@@ -114,8 +120,9 @@ where
                 sc.init(
                     managed_token_id!(REWARD_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    MIN_PENALTY_PERCENTAGE,
-                    MAX_PENALTY_PERCENTAGE,
+                    FIRST_THRESHOLD_PERCENTAGE,
+                    SECOND_THRESHOLD_PERCENTAGE,
+                    THIRD_THRESHOLD_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
@@ -271,6 +278,20 @@ where
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_rewards_percentage(percentage);
+            })
+            .assert_ok();
+    }
+
+    pub fn set_boosted_yields_factors(&mut self) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.set_boosted_yields_factors(
+                    managed_biguint!(USER_REWARDS_BASE_CONST),
+                    managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                    managed_biguint!(USER_REWARDS_FARM_CONST),
+                    managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                    managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+                );
             })
             .assert_ok();
     }

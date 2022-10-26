@@ -2,7 +2,7 @@
 
 elrond_wasm::imports!();
 
-use common_types::{PaymentsVec, TokenAmountPair, TokenAmountPairsVec, Week};
+use common_types::{PaymentsVec, Week};
 use core::marker::PhantomData;
 use energy_query::Energy;
 use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
@@ -125,13 +125,13 @@ where
         &self,
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
-    ) -> TokenAmountPairsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+    ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut results = ManagedVec::new();
         let all_tokens = module.all_tokens().get();
         for token in &all_tokens {
             let opt_accumulated_fees = module.get_and_clear_acccumulated_fees(week, &token);
             if let Some(accumulated_fees) = opt_accumulated_fees {
-                results.push(TokenAmountPair::new(token, accumulated_fees));
+                results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
             }
         }
 

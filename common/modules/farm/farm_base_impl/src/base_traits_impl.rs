@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
-use core::{any::TypeId, marker::PhantomData};
+use core::marker::PhantomData;
 use elrond_wasm::elrond_codec::TopEncode;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
@@ -26,7 +26,9 @@ pub trait FarmContract {
         + NestedDecode
         + Mergeable<<Self::FarmSc as ContractBase>::Api>
         + FixedSupplyToken<<Self::FarmSc as ContractBase>::Api>
-        + FarmToken<<Self::FarmSc as ContractBase>::Api> =
+        + FarmToken<<Self::FarmSc as ContractBase>::Api>
+        + From<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>>
+        + Into<FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>> =
         FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 
     #[inline]
@@ -88,12 +90,7 @@ pub trait FarmContract {
             current_farm_amount: farming_token_amount,
         };
 
-        transmute_or_panic::<
-            <Self::FarmSc as ContractBase>::Api,
-            FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
-            Self::AttributesType,
-        >(&attributes)
-        .clone()
+        attributes.into()
     }
 
     fn create_claim_rewards_initial_attributes(
@@ -103,12 +100,7 @@ pub trait FarmContract {
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
         let initial_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
-            transmute_or_panic::<
-                <Self::FarmSc as ContractBase>::Api,
-                Self::AttributesType,
-                FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
-            >(&first_token_attributes)
-            .clone();
+            first_token_attributes.into();
 
         let net_current_farm_amount = initial_attributes.get_total_supply().clone();
         let new_attributes = FarmTokenAttributes {
@@ -120,12 +112,7 @@ pub trait FarmContract {
             current_farm_amount: net_current_farm_amount,
         };
 
-        transmute_or_panic::<
-            <Self::FarmSc as ContractBase>::Api,
-            FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
-            Self::AttributesType,
-        >(&new_attributes)
-        .clone()
+        new_attributes.into()
     }
 
     fn create_compound_rewards_initial_attributes(
@@ -136,12 +123,7 @@ pub trait FarmContract {
         reward: &BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
         let initial_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
-            transmute_or_panic::<
-                <Self::FarmSc as ContractBase>::Api,
-                Self::AttributesType,
-                FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
-            >(&first_token_attributes)
-            .clone();
+            first_token_attributes.into();
 
         let current_epoch = sc.blockchain().get_block_epoch();
         let new_pos_compounded_reward = initial_attributes.compounded_reward + reward;
@@ -155,23 +137,7 @@ pub trait FarmContract {
             current_farm_amount: new_pos_current_farm_amount,
         };
 
-        transmute_or_panic::<
-            <Self::FarmSc as ContractBase>::Api,
-            FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>,
-            Self::AttributesType,
-        >(&new_attributes)
-        .clone()
-    }
-}
-
-pub fn transmute_or_panic<M: ManagedTypeApi, FromType: 'static, ToType: 'static>(
-    attr: &FromType,
-) -> &ToType {
-    if TypeId::of::<FromType>() == TypeId::of::<ToType>() {
-        unsafe { core::mem::transmute::<&FromType, &ToType>(attr) }
-    } else {
-        M::error_api_impl()
-            .signal_error(b"Must implement trait methods for custom attributes type");
+        new_attributes.into()
     }
 }
 

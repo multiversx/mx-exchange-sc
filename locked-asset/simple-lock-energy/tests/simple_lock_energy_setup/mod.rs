@@ -20,16 +20,18 @@ mod fees_collector_mock;
 use fees_collector_mock::*;
 
 pub const EPOCHS_IN_YEAR: u64 = 360;
+pub const EPOCHS_IN_WEEK: u64 = 7;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 
-pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
-pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
+pub const FIRST_THRESHOLD_PERCENTAGE: u64 = 4_000;
+pub const SECOND_THRESHOLD_PERCENTAGE: u64 = 6_000;
+pub const THIRD_THRESHOLD_PERCENTAGE: u64 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
-pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
+pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
 
 pub struct SimpleLockEnergySetup<ScBuilder>
 where
@@ -75,8 +77,9 @@ where
                 sc.init(
                     managed_token_id!(BASE_ASSET_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    MIN_PENALTY_PERCENTAGE,
-                    MAX_PENALTY_PERCENTAGE,
+                    FIRST_THRESHOLD_PERCENTAGE,
+                    SECOND_THRESHOLD_PERCENTAGE,
+                    THIRD_THRESHOLD_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
@@ -226,12 +229,16 @@ where
         &mut self,
         token_amount: u64,
         epochs_to_reduce: u64,
+        current_unlock_epoch: u64,
     ) -> num_bigint::BigUint {
         let mut result = rust_biguint!(0);
         self.b_mock
             .execute_query(&self.sc_wrapper, |sc| {
-                let managed_result =
-                    sc.calculate_penalty_amount(&managed_biguint!(token_amount), epochs_to_reduce);
+                let managed_result = sc.calculate_penalty_amount(
+                    &managed_biguint!(token_amount),
+                    epochs_to_reduce,
+                    current_unlock_epoch,
+                );
                 result = to_rust_biguint(managed_result);
             })
             .assert_ok();

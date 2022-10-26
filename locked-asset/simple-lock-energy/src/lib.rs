@@ -8,6 +8,7 @@ pub mod extend_lock;
 pub mod local_roles;
 pub mod lock_options;
 pub mod migration;
+pub mod penalty;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
@@ -35,6 +36,7 @@ pub trait SimpleLockEnergy:
     + elrond_wasm_modules::pause::PauseModule
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
+    + penalty::LocalPenaltyModule
     + utils::UtilsModule
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
@@ -59,8 +61,9 @@ pub trait SimpleLockEnergy:
         &self,
         base_asset_token_id: TokenIdentifier,
         legacy_token_id: TokenIdentifier,
-        min_penalty_percentage: u16,
-        max_penalty_percentage: u16,
+        first_threshold_penalty_percentage: u64,
+        second_threshold_penalty_percentage: u64,
+        third_threshold_penalty_percentage: u64,
         fees_burn_percentage: u16,
         fees_collector_address: ManagedAddress,
         old_locked_asset_factory_address: ManagedAddress,
@@ -72,7 +75,11 @@ pub trait SimpleLockEnergy:
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.legacy_locked_token_id().set(&legacy_token_id);
-        self.set_penalty_percentage(min_penalty_percentage, max_penalty_percentage);
+        self.set_penalty_percentage(
+            first_threshold_penalty_percentage,
+            second_threshold_penalty_percentage,
+            third_threshold_penalty_percentage,
+        );
         self.set_fees_burn_percentage(fees_burn_percentage);
         self.set_fees_collector_address(fees_collector_address);
         self.old_locked_asset_factory_address()

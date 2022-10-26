@@ -130,6 +130,7 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> ExitFarmResultType<Self::Api> {
         let payment = self.call_value().single_esdt();
+        let payment_nonce = payment.token_nonce;
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
@@ -143,6 +144,8 @@ pub trait BaseFunctionsModule:
                 &base_exit_farm_result.storage_cache.reward_token_id,
             );
         }
+
+        self.farm_claim_progress(&caller, payment_nonce).clear();
 
         self.emit_exit_farm_event(
             &caller,
@@ -244,7 +247,14 @@ where
             token_attributes,
             storage_cache,
         );
-        let boosted_yield_rewards = sc.claim_boosted_yields_rewards(caller, farm_token_nonce);
+        let total_rewards_per_block = sc.per_block_reward_amount().get();
+        let boosted_yield_rewards = sc.claim_boosted_yields_rewards(
+            caller,
+            farm_token_nonce,
+            farm_token_amount,
+            &storage_cache.farm_token_supply,
+            &total_rewards_per_block,
+        );
 
         base_farm_reward + boosted_yield_rewards
     }

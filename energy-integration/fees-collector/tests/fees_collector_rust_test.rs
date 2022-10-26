@@ -1,9 +1,8 @@
 mod fees_collector_test_setup;
 
-use common_types::TokenAmountPair;
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
-    types::{BigInt, ManagedVec, MultiValueEncoded, OperationCompletionStatus},
+    types::{BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded, OperationCompletionStatus},
 };
 use elrond_wasm_debug::{managed_address, managed_biguint, managed_token_id, rust_biguint};
 use elrond_wasm_modules::pause::PauseModule;
@@ -332,15 +331,16 @@ fn claim_second_week_test() {
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
-            expected_total_rewards.push(TokenAmountPair {
-                token: managed_token_id!(FIRST_TOKEN_ID),
-                amount: managed_biguint!(USER_BALANCE),
-            });
-            expected_total_rewards.push(TokenAmountPair {
-                token: managed_token_id!(SECOND_TOKEN_ID),
-                amount: managed_biguint!(USER_BALANCE / 2),
-            });
-
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
         .assert_ok();
@@ -377,14 +377,16 @@ fn claim_second_week_test() {
             );
 
             let mut expected_total_rewards = ManagedVec::new();
-            expected_total_rewards.push(TokenAmountPair {
-                token: managed_token_id!(FIRST_TOKEN_ID),
-                amount: managed_biguint!(USER_BALANCE),
-            });
-            expected_total_rewards.push(TokenAmountPair {
-                token: managed_token_id!(SECOND_TOKEN_ID),
-                amount: managed_biguint!(USER_BALANCE / 2),
-            });
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
             // first user's new energy is added to week 2
@@ -440,14 +442,16 @@ fn claim_second_week_test() {
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
-            expected_total_rewards.push(TokenAmountPair {
-                token: managed_token_id!(FIRST_TOKEN_ID),
-                amount: managed_biguint!(USER_BALANCE),
-            });
-            expected_total_rewards.push(TokenAmountPair {
-                token: managed_token_id!(SECOND_TOKEN_ID),
-                amount: managed_biguint!(USER_BALANCE / 2),
-            });
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
             // first user's new energy is added to week 2

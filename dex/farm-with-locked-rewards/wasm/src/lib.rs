@@ -13,6 +13,7 @@ elrond_wasm_node::wasm_endpoints! {
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
+        collectUndistributedBoostedRewards
         compoundRewards
         endProduceRewards
         enterFarm
@@ -37,6 +38,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPenaltyPercent
         getPerBlockRewardAmount
         getPermissions
+        getRemainingBoostedRewardsToDistribute
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
@@ -44,6 +46,7 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek
+        getUndistributedBoostedRewards
         getUserEnergyForWeek
         isSCAddressWhitelisted
         mergeFarmTokens
@@ -53,6 +56,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeFromPauseWhitelist
         removeSCAddressFromWhitelist
         resume
+        setBoostedYieldsFactors
         setBoostedYieldsRewardsPercentage
         setEnergyFactoryAddress
         setLockEpochs

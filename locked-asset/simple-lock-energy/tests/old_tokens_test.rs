@@ -22,7 +22,7 @@ fn extend_lock_period_old_token_test() {
     setup.b_mock.set_block_epoch(1);
 
     let first_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR);
-    let second_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 5);
+    let second_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 2);
     let mut unlock_milestones = ManagedVec::<DebugApi, UnlockMilestoneEx>::new();
     unlock_milestones.push(UnlockMilestoneEx {
         unlock_percent: 40_000,
@@ -70,18 +70,18 @@ fn extend_lock_period_old_token_test() {
         })
         .assert_ok();
 
-    // extend to 10 years
+    // extend to 4 years
     setup
         .extend_locking_period(
             &first_user,
             LEGACY_LOCKED_TOKEN_ID,
             1,
             USER_BALANCE,
-            EPOCHS_IN_YEAR * 10,
+            EPOCHS_IN_YEAR * 4,
         )
         .assert_ok();
 
-    let new_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 10);
+    let new_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 4);
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,

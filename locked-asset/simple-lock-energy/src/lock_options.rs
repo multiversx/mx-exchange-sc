@@ -8,10 +8,10 @@ pub const EPOCHS_PER_YEAR: Epoch = 360;
 
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
-    /// Add lock options, as a list of epochs. Options must be >= 30 epochs (1 month).
+    /// Add lock options, as a list of epochs. Options must be >= 360 epochs (1 year).
     ///
-    /// For example, an option of "60" means the user can choose to lock their tokens
-    /// for 60 epochs.
+    /// For example, an option of "360" means the user can choose to lock their tokens
+    /// for 360 epochs.
     ///
     /// When calling lockTokens, users may only pick one of the whitelisted lock options.
     #[only_owner]
@@ -70,6 +70,13 @@ pub trait LockOptionsModule {
         require!(
             self.lock_options().contains(&lock_epochs),
             "Invalid lock choice"
+        );
+    }
+
+    fn require_is_listed_unlock_option(&self, unlock_epochs: Epoch) {
+        require!(
+            self.lock_options().contains(&unlock_epochs) || unlock_epochs == 0u64,
+            "Invalid unlock choice"
         );
     }
 

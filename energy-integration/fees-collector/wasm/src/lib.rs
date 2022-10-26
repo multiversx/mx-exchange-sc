@@ -12,18 +12,18 @@ elrond_wasm_node::wasm_endpoints! {
         claimRewards
         depositSwapFees
         getAccumulatedFees
+        getAccumulatedLockedFees
         getAllKnownContracts
         getAllTokens
         getCurrentClaimProgress
-        getCurrentGlobalActiveWeek
         getCurrentWeek
         getEnergyFactoryAddress
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
-        getLastGlobalActiveWeek
         getLastGlobalUpdateWeek
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
         getUserEnergyForWeek
         isPaused
         pause

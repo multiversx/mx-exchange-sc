@@ -9,10 +9,10 @@ elrond_wasm::derive_imports!();
 pub mod config;
 pub mod errors;
 mod events;
-mod weight;
 pub mod proposal;
 mod validation;
 pub mod vote;
+mod weight;
 
 use crate::errors::*;
 use crate::proposal::*;

@@ -12,6 +12,7 @@ use elrond_wasm_debug::{
 };
 use elrond_wasm_modules::pause::PauseModule;
 use farm::Farm;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
 use pausable::{PausableModule, State};
@@ -33,13 +34,19 @@ pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 // Simple Lock
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
-pub const MIN_PENALTY_PERCENTAGE: u16 = 1; // 0.01%
-pub const MAX_PENALTY_PERCENTAGE: u16 = 10_000; // 100%
+pub const FIRST_THRESHOLD_PERCENTAGE: u64 = 4_000;
+pub const SECOND_THRESHOLD_PERCENTAGE: u64 = 6_000;
+pub const THIRD_THRESHOLD_PERCENTAGE: u64 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 10_000; // 100%
 
 // Proxy
@@ -257,6 +264,14 @@ where
 
             sc.state().set(State::Active);
             sc.produce_rewards_enabled().set(true);
+
+            sc.set_boosted_yields_factors(
+                managed_biguint!(USER_REWARDS_BASE_CONST),
+                managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                managed_biguint!(USER_REWARDS_FARM_CONST),
+                managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+            );
         })
         .assert_ok();
 
@@ -316,8 +331,9 @@ where
             sc.init(
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                MIN_PENALTY_PERCENTAGE,
-                MAX_PENALTY_PERCENTAGE,
+                FIRST_THRESHOLD_PERCENTAGE,
+                SECOND_THRESHOLD_PERCENTAGE,
+                THIRD_THRESHOLD_PERCENTAGE,
                 FEES_BURN_PERCENTAGE,
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),

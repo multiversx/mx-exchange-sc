@@ -26,6 +26,11 @@ pub const DIV_SAFETY: u64 = 1_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 pub const FARMING_TOKEN_BALANCE: u64 = 200_000_000;
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
+pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
@@ -166,6 +171,20 @@ where
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_rewards_percentage(percentage);
+            })
+            .assert_ok();
+    }
+
+    pub fn set_boosted_yields_factors(&mut self) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.set_boosted_yields_factors(
+                    managed_biguint!(USER_REWARDS_BASE_CONST),
+                    managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                    managed_biguint!(USER_REWARDS_FARM_CONST),
+                    managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                    managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+                );
             })
             .assert_ok();
     }
@@ -345,6 +364,46 @@ where
                     let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn check_error_collect_undistributed_boosted_rewards(&mut self, expected_message: &str) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            })
+            .assert_error(4, expected_message)
+    }
+
+    pub fn collect_undistributed_boosted_rewards(&mut self) {
+        self.b_mock
+            .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
+                sc.collect_undistributed_boosted_rewards();
+            })
+            .assert_ok();
+    }
+
+    pub fn check_remaining_boosted_rewards_to_distribute(
+        &mut self,
+        week: u64,
+        expected_amount: u64,
+    ) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let result_managed = sc
+                    .remaining_boosted_rewards_to_distribute(week as usize)
+                    .get();
+                assert_eq!(result_managed, managed_biguint!(expected_amount));
+            })
+            .assert_ok();
+    }
+
+    pub fn check_undistributed_boosted_rewards(&mut self, expected_amount: u64) {
+        self.b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let result_managed = sc.undistributed_boosted_rewards().get();
+                assert_eq!(result_managed, managed_biguint!(expected_amount));
+            })
             .assert_ok();
     }
 }

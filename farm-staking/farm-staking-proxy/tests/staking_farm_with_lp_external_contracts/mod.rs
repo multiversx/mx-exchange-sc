@@ -16,6 +16,7 @@ use pausable::{PausableModule, State};
 
 use ::config as farm_config;
 use farm::*;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_config::ConfigModule as _;
 use farm_token::FarmTokenModule;
 
@@ -238,6 +239,18 @@ where
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
                 .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_tx(&owner_addr, &farm_wrapper, &rust_biguint!(0), |sc| {
+            sc.set_boosted_yields_factors(
+                managed_biguint!(USER_REWARDS_BASE_CONST),
+                managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                managed_biguint!(USER_REWARDS_FARM_CONST),
+                managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+            );
         })
         .assert_ok();
 
