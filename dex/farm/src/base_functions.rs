@@ -144,8 +144,7 @@ pub trait BaseFunctionsModule:
         let output_attributes: FarmTokenAttributes<Self::Api> =
             self.merge_from_payments_and_burn(payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply().clone();
-        let merged_token_payment = token_mapper.nft_create(new_token_amount, &output_attributes);
-        merged_token_payment
+        token_mapper.nft_create(new_token_amount, &output_attributes)
     }
 
     fn check_claim_progress_for_merge(&self, caller: &ManagedAddress) {
