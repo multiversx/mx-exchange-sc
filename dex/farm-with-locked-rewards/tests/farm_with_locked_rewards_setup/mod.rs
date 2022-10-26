@@ -59,6 +59,7 @@ where
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
+    pub third_user: Address,
     pub last_farm_token_nonce: u64,
     pub farm_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
@@ -85,6 +86,7 @@ where
         let owner = b_mock.create_user_account(&rust_zero);
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
+        let third_user = b_mock.create_user_account(&rust_zero);
         let farm_wrapper = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner),
@@ -165,6 +167,7 @@ where
                 //TODO - change to proxy deployer
                 sc.add_sc_address_to_whitelist(managed_address!(&first_user));
                 sc.add_sc_address_to_whitelist(managed_address!(&second_user));
+                sc.add_sc_address_to_whitelist(managed_address!(&third_user));
 
                 sc.per_block_reward_amount()
                     .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
@@ -231,6 +234,11 @@ where
             FARMING_TOKEN_ID,
             &rust_biguint!(FARMING_TOKEN_BALANCE),
         );
+        b_mock.set_esdt_balance(
+            &third_user,
+            FARMING_TOKEN_ID,
+            &rust_biguint!(FARMING_TOKEN_BALANCE),
+        );
 
         b_mock
             .execute_tx(&owner, &simple_lock_energy_wrapper, &rust_zero, |sc| {
@@ -244,6 +252,7 @@ where
             owner,
             first_user,
             second_user,
+            third_user,
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,

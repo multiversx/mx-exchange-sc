@@ -8,7 +8,7 @@ use core::cmp;
 use common_types::{Nonce, PaymentsVec};
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{
-    base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress, USER_MAX_CLAIM_WEEKS,
+    base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
 };
 
 const MAX_PERCENT: u64 = 10_000;
@@ -178,13 +178,6 @@ pub trait FarmBoostedYieldsModule:
 
     #[storage_mapper("boostedYieldsFactors")]
     fn boosted_yields_factors(&self) -> SingleValueMapper<BoostedYieldsFactors<Self::Api>>;
-
-    #[storage_mapper("farmClaimProgress")]
-    fn farm_claim_progress(
-        &self,
-        user: &ManagedAddress,
-        token_nonce: Nonce,
-    ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
@@ -288,17 +281,5 @@ where
         }
 
         user_rewards
-    }
-
-    fn get_claim_progress_mapper(
-        &self,
-        module: &Self::WeeklyRewardsSplittingMod,
-        user: &ManagedAddress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-    ) -> SingleValueMapper<
-        <Self::WeeklyRewardsSplittingMod as ContractBase>::Api,
-        ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
-    > {
-        let token_nonce = self.current_farm_token_nonce;
-        module.farm_claim_progress(user, token_nonce)
     }
 }
