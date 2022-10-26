@@ -9,6 +9,7 @@ pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
+    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct ClaimRewardsFarmResultWrapper<M: ManagedTypeApi> {
@@ -42,22 +43,24 @@ pub trait FarmInteractionsModule {
         &self,
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
+        exit_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
         let raw_result: ExitFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .exit_farm_endpoint(original_caller)
+            .exit_farm_endpoint(exit_amount, original_caller)
             .add_esdt_token_transfer(
                 farm_token.token_identifier,
                 farm_token.token_nonce,
                 farm_token.amount,
             )
             .execute_on_dest_context();
-        let (farming_tokens, reward_tokens) = raw_result.into_tuple();
+        let (farming_tokens, reward_tokens, remaining_farm_tokens) = raw_result.into_tuple();
 
         ExitFarmResultWrapper {
             farming_tokens,
             reward_tokens,
+            remaining_farm_tokens,
         }
     }
 

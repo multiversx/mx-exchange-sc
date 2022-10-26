@@ -20,7 +20,8 @@ use farm_base_impl::base_traits_impl::FarmContract;
 pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
 pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
 pub type ClaimRewardsResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
-pub type ExitFarmResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ExitFarmResultType<M> =
+    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -124,15 +125,18 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
         &self,
+        exit_amount: BigUint,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller);
-        let (farming_token_payment, reward_payment) = exit_farm_result.clone().into_tuple();
+        let exit_farm_result = self.exit_farm::<Wrapper<Self>>(orig_caller, exit_amount);
+        let (farming_token_payment, reward_payment, remaining_farm_payment) =
+            exit_farm_result.clone().into_tuple();
 
         self.send_payment_non_zero(&caller, &farming_token_payment);
         self.send_payment_non_zero(&caller, &reward_payment);
+        self.send_payment_non_zero(&caller, &remaining_farm_payment);
         exit_farm_result
     }
 

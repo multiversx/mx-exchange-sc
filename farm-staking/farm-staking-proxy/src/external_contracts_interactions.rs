@@ -59,7 +59,7 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
-            .exit_farm_endpoint(orig_caller)
+            .exit_farm_endpoint(lp_farm_token_amount.clone(), orig_caller)
             .add_esdt_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context();
         let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();

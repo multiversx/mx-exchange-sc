@@ -188,7 +188,10 @@ pub trait ProxyFarmModule:
     /// - farm reward tokens
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
-    fn exit_farm_locked_token(&self) -> ExitFarmThroughProxyResultType<Self::Api> {
+    fn exit_farm_locked_token(
+        &self,
+        exit_amount: BigUint,
+    ) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
@@ -202,6 +205,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
+            exit_amount,
         );
         require!(
             exit_farm_result.initial_farming_tokens.token_identifier

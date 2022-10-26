@@ -17,7 +17,7 @@ use crate::exit_penalty;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::module]
 pub trait BaseFunctionsModule:
@@ -108,8 +108,22 @@ pub trait BaseFunctionsModule:
     >(
         &self,
         caller: ManagedAddress,
+        exit_amount: BigUint,
     ) -> ExitFarmResultType<Self::Api> {
-        let payment = self.call_value().single_esdt();
+        let mut payment = self.call_value().single_esdt();
+
+        require!(
+            payment.amount >= exit_amount,
+            "Exit amount is bigger than the payment amount"
+        );
+        let remaining_farm_payment = EsdtTokenPayment::new(
+            payment.token_identifier.clone(),
+            payment.token_nonce,
+            &payment.amount - &exit_amount,
+        );
+
+        payment.amount = exit_amount;
+
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
@@ -124,7 +138,9 @@ pub trait BaseFunctionsModule:
             );
         }
 
-        self.current_claim_progress(&caller).clear();
+        if remaining_farm_payment.amount == 0 {
+            self.current_claim_progress(&caller).clear();
+        }
 
         self.emit_exit_farm_event(
             &caller,
@@ -134,7 +150,12 @@ pub trait BaseFunctionsModule:
             base_exit_farm_result.storage_cache,
         );
 
-        (farming_token_payment, reward_payment).into()
+        (
+            farming_token_payment,
+            reward_payment,
+            remaining_farm_payment,
+        )
+            .into()
     }
 
     fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {

@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
@@ -14,6 +14,7 @@ pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub initial_farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
+    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct FarmClaimRewardsResultWrapper<M: ManagedTypeApi> {
@@ -37,7 +38,7 @@ mod farm_proxy {
 
         #[payable("*")]
         #[endpoint(exitFarm)]
-        fn exit_farm(&self) -> ExitFarmResultType<Self::Api>;
+        fn exit_farm(&self, exit_amount: BigUint) -> ExitFarmResultType<Self::Api>;
 
         #[payable("*")]
         #[endpoint(claimRewards)]
@@ -88,26 +89,31 @@ pub trait FarmInteractionsModule {
         farm_token: TokenIdentifier,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
+        exit_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let result: MultiValueEncoded<ManagedBuffer> = self
             .farm_proxy(farm_address)
-            .exit_farm()
+            .exit_farm(exit_amount)
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
         let raw = result.into_vec_of_buffers();
-        require!(raw.len() > 1, "at least 2 results expected from exitFarm");
+        require!(raw.len() > 2, "at least 3 results expected from exitFarm");
 
         let initial_farming_tokens = self
             .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 3));
         let reward_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
+        let remaining_farm_tokens = self
             .serializer()
             .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
 
         ExitFarmResultWrapper {
             initial_farming_tokens,
             reward_tokens,
+            remaining_farm_tokens,
         }
     }
 

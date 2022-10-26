@@ -141,13 +141,14 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm_endpoint(&self) -> ExitFarmResultType<Self::Api> {
+    fn exit_farm_endpoint(&self, exit_amount: BigUint) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (farming_token_payment, reward_payment) = self
-            .exit_farm::<NoMintWrapper<Self>>(caller.clone())
+        let (farming_token_payment, reward_payment, remaining_farm_payment) = self
+            .exit_farm::<NoMintWrapper<Self>>(caller.clone(), exit_amount)
             .into_tuple();
         self.send_payment_non_zero(&caller, &farming_token_payment);
+        self.send_payment_non_zero(&caller, &remaining_farm_payment);
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             reward_payment.token_identifier,
             reward_payment.amount,

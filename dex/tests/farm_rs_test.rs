@@ -242,9 +242,11 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &rust_biguint!(farm_token_amount),
             |sc| {
-                let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
+                let multi_result =
+                    sc.exit_farm_endpoint(managed_biguint!(farm_token_amount), OptionalValue::None);
 
-                let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result, remaining_farm_amount) =
+                    multi_result.into_tuple();
 
                 assert_eq!(
                     first_result.token_identifier,
@@ -259,6 +261,7 @@ fn exit_farm<FarmObjBuilder>(
                 );
                 assert_eq!(second_result.token_nonce, 0);
                 assert_eq!(second_result.amount, managed_biguint!(expected_mex_out));
+                assert_eq!(remaining_farm_amount.amount, managed_biguint!(0));
             },
         )
         .assert_ok();
@@ -797,7 +800,7 @@ fn test_farm_through_simple_lock() {
             2,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token();
+                let exit_farm_result = sc.exit_farm_locked_token(managed_biguint!(1_000_000_000));
                 let (locked_tokens, reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(
@@ -992,7 +995,7 @@ fn test_farm_through_simple_lock() {
             7,
             &rust_biguint!(1_000_000_000),
             |sc| {
-                let exit_farm_result = sc.exit_farm_locked_token();
+                let exit_farm_result = sc.exit_farm_locked_token(managed_biguint!(1_000_000_000));
                 let (locked_tokens, _reward_tokens) = exit_farm_result.into_tuple();
 
                 assert_eq!(

@@ -379,7 +379,13 @@ where
         result
     }
 
-    pub fn exit_farm(&mut self, user: &Address, farm_token_nonce: u64, farm_token_amount: u64) {
+    pub fn exit_farm(
+        &mut self,
+        user: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+        exit_farm_amount: u64,
+    ) {
         self.b_mock
             .execute_esdt_transfer(
                 user,
@@ -388,7 +394,10 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint(OptionalValue::None);
+                    let _ = sc.exit_farm_endpoint(
+                        managed_biguint!(exit_farm_amount),
+                        OptionalValue::None,
+                    );
                 },
             )
             .assert_ok();
@@ -399,6 +408,7 @@ where
         user: &Address,
         farm_token_nonce: u64,
         farm_token_amount: u64,
+        exit_farm_amount: u64,
         known_proxy: &Address,
     ) {
         self.b_mock
@@ -409,7 +419,10 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint(OptionalValue::Some(managed_address!(user)));
+                    let _ = sc.exit_farm_endpoint(
+                        managed_biguint!(exit_farm_amount),
+                        OptionalValue::Some(managed_address!(user)),
+                    );
                 },
             )
             .assert_ok();

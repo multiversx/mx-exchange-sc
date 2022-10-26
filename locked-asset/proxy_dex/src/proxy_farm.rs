@@ -16,7 +16,8 @@ pub struct FarmingFarmTokenPair<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
 }
 
-pub type ExitFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ExitFarmProxyResultType<M> =
+    MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
 #[elrond_wasm::module]
@@ -147,7 +148,11 @@ pub trait ProxyFarmModule:
 
     #[payable("*")]
     #[endpoint(exitFarmProxy)]
-    fn exit_farm_proxy(&self, farm_address: ManagedAddress) -> ExitFarmProxyResultType<Self::Api> {
+    fn exit_farm_proxy(
+        &self,
+        exit_amount: BigUint,
+        farm_address: ManagedAddress,
+    ) -> ExitFarmProxyResultType<Self::Api> {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
@@ -161,6 +166,7 @@ pub trait ProxyFarmModule:
         let exit_result = self.call_exit_farm(
             farm_address.clone(),
             wrapped_farm_attributes.farm_token.clone(),
+            exit_amount,
         );
 
         wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
@@ -170,6 +176,7 @@ pub trait ProxyFarmModule:
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &initial_proxy_farming_tokens);
         self.send_payment_non_zero(&caller, &exit_result.reward_tokens);
+        self.send_payment_non_zero(&caller, &exit_result.remaining_farm_tokens);
 
         self.emit_exit_farm_proxy_event(
             &caller,
@@ -179,7 +186,12 @@ pub trait ProxyFarmModule:
             exit_result.reward_tokens.clone(),
         );
 
-        (initial_proxy_farming_tokens, exit_result.reward_tokens).into()
+        (
+            initial_proxy_farming_tokens,
+            exit_result.reward_tokens,
+            exit_result.remaining_farm_tokens,
+        )
+            .into()
     }
 
     #[payable("*")]
