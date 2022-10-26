@@ -65,16 +65,16 @@ pub trait WeeklyRewardsGlobalInfo:
             .get();
 
         let week_diff = current_week - last_global_update_week;
-        let energy_deplete = &total_tokens_prev_week * EPOCHS_IN_WEEK * week_diff as u64;
+        let total_tokens_with_no_energy =
+            self.shift_buckets_and_get_removed_token_amount(week_diff);
+        let total_tokens_for_current_week = total_tokens_prev_week - total_tokens_with_no_energy;
+
+        let energy_deplete = &total_tokens_for_current_week * EPOCHS_IN_WEEK * week_diff as u64;
         let energy_for_current_week = if total_energy_prev_week >= energy_deplete {
             total_energy_prev_week - energy_deplete
         } else {
             BigUint::zero()
         };
-
-        let total_tokens_with_no_energy =
-            self.shift_buckets_and_get_removed_token_amount(week_diff);
-        let total_tokens_for_current_week = total_tokens_prev_week - total_tokens_with_no_energy;
 
         self.total_energy_for_week(current_week)
             .set(&energy_for_current_week);

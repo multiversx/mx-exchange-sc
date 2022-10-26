@@ -400,10 +400,13 @@ fn claim_second_week_test() {
             );
 
             // 10_000 total prev week
-            // - 7 * 1_000 global decrease (-7_000)
-            // + 7 * 500 - 1_000 + 2_000 (+4_500) (for first user -> global refund + energy update)
-            // = 10_000 - 7_000 + 4_500 = 7_500
-            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
+            // first user's tokens get removed, as they expired
+            // so we only decrease by second user's 500 tokens worth of energy
+            //
+            // - 7 * 500 global decrease (-3_500)
+            // + 2_000 (first user's new energy)
+            // = 8_500
+            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -459,7 +462,7 @@ fn claim_second_week_test() {
                 first_user_energy
             );
 
-            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
+            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -762,15 +765,20 @@ fn locked_token_buckets_shifting_test() {
                 managed_biguint!(100)
             );
 
-            // first user energy lasts for 3_000 / 50 = 60 epochs => (60 - 1) / 30 => bucket offset 1
-            // second user energy lasts for 9_000 / 50 = 180 epochs => (180 - 1) / 30 => bucket offset 5
-            assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(1).get(), managed_biguint!(50));
-            assert_eq!(sc.locked_tokens_in_bucket(2).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(3).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(4).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(5).get(), managed_biguint!(50));
-            assert_eq!(sc.locked_tokens_in_bucket(6).get(), managed_biguint!(0));
+            // first user energy lasts for 3_000 / 50 = 60 epochs => 60 / 7 weeks to expire
+            // => bucket offset 8
+            //
+            // second user energy lasts for 9_000 / 50 = 180 epochs => 180 / 7 weeks to expire
+            // => bucket offset 25
+            for i in 0..8 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(8).get(), managed_biguint!(50));
+
+            for i in 9..25 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(25).get(), managed_biguint!(50));
         })
         .assert_ok();
 
@@ -805,21 +813,27 @@ fn locked_token_buckets_shifting_test() {
     fc_setup
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
-            assert_eq!(sc.first_bucket_id().get(), 1);
+            // 6 weeks have passed, so we must shift 6 times (first bucket ID was 0 initially)
+            assert_eq!(sc.first_bucket_id().get(), 6);
             assert_eq!(
                 sc.total_locked_tokens_for_week(7).get(),
                 managed_biguint!(100)
             );
 
-            // first user energy lasts for 1_250 / 50 = 25 => bucket offset 0
-            assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
-            // buckets shifted to the left, so first bucket is now "1"
-            assert_eq!(sc.locked_tokens_in_bucket(1).get(), managed_biguint!(50));
-            assert_eq!(sc.locked_tokens_in_bucket(2).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(3).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(4).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(5).get(), managed_biguint!(50));
-            assert_eq!(sc.locked_tokens_in_bucket(6).get(), managed_biguint!(0));
+            // first user energy lasts for 1_250 / 50 = 25 epochs => 3 weeks => offset 3
+            // => bucket ID 6 + 3 = 9
+            // second user did not update, so they remain in bucket 25
+
+            // buckets shift 6 to the left
+            for i in 6..8 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(9).get(), managed_biguint!(50));
+
+            for i in 10..25 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(25).get(), managed_biguint!(50));
         })
         .assert_ok();
 
@@ -828,21 +842,28 @@ fn locked_token_buckets_shifting_test() {
     fc_setup
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
-            assert_eq!(sc.first_bucket_id().get(), 1);
+            assert_eq!(sc.first_bucket_id().get(), 6);
             assert_eq!(
                 sc.total_locked_tokens_for_week(7).get(),
                 managed_biguint!(150)
             );
 
-            // second user energy lasts for 10_000 / 100 = 100 => bucket offset 3
-            assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
-            // buckets shifted to the left, so first bucket is now "1"
-            assert_eq!(sc.locked_tokens_in_bucket(1).get(), managed_biguint!(50));
-            assert_eq!(sc.locked_tokens_in_bucket(2).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(3).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(4).get(), managed_biguint!(100));
-            assert_eq!(sc.locked_tokens_in_bucket(5).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(6).get(), managed_biguint!(0));
+            // second user energy lasts for 10_000 / 100 = 100 => 14 weeks => offset 14
+            // => bucket ID = 6 + 14 = 20
+
+            for i in 6..8 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(9).get(), managed_biguint!(50));
+
+            for i in 10..20 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(20).get(), managed_biguint!(100));
+
+            for i in 21..25 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
         })
         .assert_ok();
 }
