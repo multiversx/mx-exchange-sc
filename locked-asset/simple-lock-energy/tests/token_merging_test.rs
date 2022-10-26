@@ -59,9 +59,8 @@ fn token_merging_test() {
     assert_eq!(second_token_unlock_epoch, 720);
 
     // (400_000 * 360 + 100_000 * 720) / 500_000 = 432
-    // (400_000 * 4_000 + 100_000 * 6_000) / 10_000 = 4_400 (This is the fee)
     // -> start of month (upper) = 450
-    let expected_merged_token_unlock_epoch = 750;
+    let expected_merged_token_unlock_epoch = 450;
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,
