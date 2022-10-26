@@ -30,9 +30,9 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
 
         let unlock_fee: BigUint<M> = weighted_average(
             &BigUint::from(self.token_unlock_fee_percent),
-            &self.token_amount.clone(),
+            &self.token_amount,
             &BigUint::from(other.token_unlock_fee_percent),
-            &other.token_amount.clone(),
+            &other.token_amount,
         );
 
         self.token_amount += other.token_amount;
