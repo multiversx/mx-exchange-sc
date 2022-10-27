@@ -161,7 +161,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
     farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
     farm_setup.set_user_energy(&third_user, 1, 6, 1);
     farm_setup.enter_farm(&third_user, 1);
-    farm_setup.exit_farm(&third_user, 5, 1);
+    farm_setup.exit_farm(&third_user, 5, 1, 1);
 
     // advance 1 week
     farm_setup.b_mock.set_block_epoch(10);

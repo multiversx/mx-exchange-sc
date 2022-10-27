@@ -257,7 +257,11 @@ where
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
                     let received_tokens = sc
-                        .unstake_farm_tokens(managed_biguint!(1), managed_biguint!(1))
+                        .unstake_farm_tokens(
+                            managed_biguint!(1),
+                            managed_biguint!(1),
+                            managed_biguint!(dual_yield_token_amount),
+                        )
                         .to_vec();
                     let mut vec_index = 0;
 

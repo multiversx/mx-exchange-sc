@@ -163,10 +163,14 @@ fn enter_farm<FarmObjBuilder>(
     let b_mock = &mut farm_setup.blockchain_wrapper;
     b_mock
         .execute_esdt_multi_transfer(&caller, &farm_setup.farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm_endpoint(OptionalValue::None);
-            assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
+            let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
+            let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
+            assert_eq!(
+                out_farm_token.token_identifier,
+                managed_token_id!(FARM_TOKEN_ID)
+            );
             check_biguint_eq(
-                payment.amount,
+                out_farm_token.amount,
                 expected_total_out_amount,
                 "Enter farm, farm token payment mismatch.",
             );
@@ -209,9 +213,10 @@ fn exit_farm<FarmObjBuilder>(
             farm_token_nonce,
             &farm_out_amount.clone(),
             |sc| {
-                let multi_result = sc.exit_farm_endpoint(OptionalValue::None);
+                let exit_amount = to_managed_biguint(farm_out_amount);
+                let multi_result = sc.exit_farm_endpoint(exit_amount, OptionalValue::None);
 
-                let (first_result, second_result) = multi_result.into_tuple();
+                let (first_result, second_result, _third_result) = multi_result.into_tuple();
 
                 assert_eq!(
                     first_result.token_identifier,

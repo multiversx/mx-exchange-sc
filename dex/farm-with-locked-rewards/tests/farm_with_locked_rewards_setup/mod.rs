@@ -317,7 +317,8 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let out_farm_token = sc.enter_farm_endpoint(managed_address!(user));
+                    let enter_farm_result = sc.enter_farm_endpoint(managed_address!(user));
+                    let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -405,7 +406,13 @@ where
         result
     }
 
-    pub fn exit_farm(&mut self, user: &Address, farm_token_nonce: u64, farm_token_amount: u64) {
+    pub fn exit_farm(
+        &mut self,
+        user: &Address,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+        exit_farm_amount: u64,
+    ) {
         self.b_mock
             .execute_esdt_transfer(
                 user,
@@ -414,7 +421,7 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint();
+                    let _ = sc.exit_farm_endpoint(managed_biguint!(exit_farm_amount));
                 },
             )
             .assert_ok();
