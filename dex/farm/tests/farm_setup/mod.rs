@@ -5,6 +5,7 @@ use elrond_wasm::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
+use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -41,6 +42,7 @@ where
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
+    pub third_user: Address,
     pub last_farm_token_nonce: u64,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
@@ -58,6 +60,7 @@ where
         let owner = b_mock.create_user_account(&rust_zero);
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
+        let third_user = b_mock.create_user_account(&rust_zero);
         let farm_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, "farm.wasm");
         let energy_factory_wrapper = b_mock.create_sc_account(
@@ -132,12 +135,18 @@ where
             FARMING_TOKEN_ID,
             &rust_biguint!(FARMING_TOKEN_BALANCE),
         );
+        b_mock.set_esdt_balance(
+            &third_user,
+            FARMING_TOKEN_ID,
+            &rust_biguint!(FARMING_TOKEN_BALANCE),
+        );
 
         FarmSetup {
             b_mock,
             owner,
             first_user,
             second_user,
+            third_user,
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,
@@ -221,6 +230,45 @@ where
                     );
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn merge_farm_tokens(
+        &mut self,
+        user: &Address,
+        first_token_nonce: u64,
+        first_token_amount: u64,
+        second_token_nonce: u64,
+        second_token_amount: u64,
+    ) {
+        self.last_farm_token_nonce += 1;
+        let expected_farm_token_nonce = self.last_farm_token_nonce;
+        let expected_farm_token_amount = first_token_amount + second_token_amount;
+        let mut payments = Vec::new();
+        payments.push(TxInputESDT {
+            token_identifier: FARM_TOKEN_ID.to_vec(),
+            nonce: first_token_nonce,
+            value: rust_biguint!(first_token_amount),
+        });
+        payments.push(TxInputESDT {
+            token_identifier: FARM_TOKEN_ID.to_vec(),
+            nonce: second_token_nonce,
+            value: rust_biguint!(second_token_amount),
+        });
+
+        self.b_mock
+            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
+                let out_farm_token = sc.merge_farm_tokens_endpoint(OptionalValue::None);
+                assert_eq!(
+                    out_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                assert_eq!(
+                    out_farm_token.amount,
+                    managed_biguint!(expected_farm_token_amount)
+                );
+            })
             .assert_ok();
     }
 
