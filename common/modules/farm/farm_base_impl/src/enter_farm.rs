@@ -47,16 +47,19 @@ pub trait BaseEnterFarmModule:
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
-        let mut reward = BigUint::zero();
-        for payment in &enter_farm_context.additional_farm_tokens {
-            reward += FC::calculate_boosted_rewards(
+        let reward = if enter_farm_context.additional_farm_tokens.len() > 0 {
+            let payment = enter_farm_context.additional_farm_tokens.get(0);
+            FC::calculate_boosted_rewards(
                 self,
                 &caller,
                 payment.token_nonce,
                 &payment.amount,
                 &storage_cache,
-            );
-        }
+            )
+        } else {
+            BigUint::zero()
+        };
+
         storage_cache.reward_reserve -= &reward;
         let boosted_rewards =
             EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);
