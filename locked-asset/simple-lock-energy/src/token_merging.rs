@@ -8,13 +8,50 @@ use simple_lock::locked_token::LockedTokenAttributes;
 use crate::energy::Energy;
 
 #[derive(Clone)]
-pub struct LockedAmountWeightAttributesPair<M: ManagedTypeApi> {
+pub struct LockedAmountWeightAttributesPair<'a, Sc, M>
+where
+    Sc: crate::penalty::LocalPenaltyModule,
+    M: ManagedTypeApi + BlockchainApi,
+{
+    pub sc_ref: &'a Sc,
     pub token_amount: BigUint<M>,
     pub token_unlock_fee_percent: u64,
     pub attributes: LockedTokenAttributes<M>,
 }
 
-impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
+impl<'a, Sc, M> LockedAmountWeightAttributesPair<'a, Sc, M>
+where
+    Sc: crate::penalty::LocalPenaltyModule,
+    M: ManagedTypeApi + BlockchainApi,
+{
+    pub fn new(
+        sc_ref: &'a Sc,
+        token_amount: BigUint<M>,
+        attributes: LockedTokenAttributes<M>,
+    ) -> Self {
+        let current_epoch = M::blockchain_api_impl().get_block_epoch();
+        let lock_epochs_remaining = if attributes.unlock_epoch > current_epoch {
+            attributes.unlock_epoch - current_epoch
+        } else {
+            0
+        };
+        let token_unlock_fee_percent =
+            sc_ref.calculate_penalty_percentage_full_unlock(lock_epochs_remaining);
+
+        Self {
+            sc_ref,
+            token_amount,
+            token_unlock_fee_percent,
+            attributes,
+        }
+    }
+}
+
+impl<'a, Sc, M> Mergeable<M> for LockedAmountWeightAttributesPair<'a, Sc, M>
+where
+    Sc: crate::penalty::LocalPenaltyModule,
+    M: ManagedTypeApi + BlockchainApi,
+{
     fn can_merge_with(&self, other: &Self) -> bool {
         let same_token_id = self.attributes.original_token_id == other.attributes.original_token_id;
         let same_token_nonce =
@@ -35,6 +72,9 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
 
         self.token_amount += other.token_amount;
         self.token_unlock_fee_percent = unsafe { unlock_fee.to_u64().unwrap_unchecked() };
+        self.attributes.unlock_epoch = self
+            .sc_ref
+            .calculate_lock_epochs_from_penalty_percentage(self.token_unlock_fee_percent);
     }
 }
 
@@ -82,7 +122,7 @@ pub trait TokenMergingModule:
         self,
         mut payments: PaymentsVec<Self::Api>,
         opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> LockedAmountWeightAttributesPair<Self::Api> {
+    ) -> LockedAmountWeightAttributesPair<Self, Self::Api> {
         let locked_token_mapper = self.locked_token();
         let original_caller = self.dest_from_optional(opt_original_caller);
         let current_epoch = self.blockchain().get_block_epoch();
@@ -103,14 +143,11 @@ pub trait TokenMergingModule:
 
             locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
-            let lock_epochs_remaining = first_token_attributes.unlock_epoch - current_epoch;
-            let mut output_pair = LockedAmountWeightAttributesPair {
-                token_amount: first_payment.amount,
-                token_unlock_fee_percent: self
-                    .calculate_penalty_percentage_full_unlock(lock_epochs_remaining),
-                attributes: first_token_attributes,
-            };
-
+            let mut output_pair = LockedAmountWeightAttributesPair::new(
+                self,
+                first_payment.amount,
+                first_token_attributes,
+            );
             for payment in &payments {
                 let attributes: LockedTokenAttributes<Self::Api> =
                     locked_token_mapper.get_token_attributes(payment.token_nonce);
@@ -122,20 +159,9 @@ pub trait TokenMergingModule:
 
                 locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
-                let lock_epochs_remaining = attributes.unlock_epoch - current_epoch;
-
-                let amount_attr_pair = LockedAmountWeightAttributesPair {
-                    token_amount: payment.amount,
-                    token_unlock_fee_percent: self
-                        .calculate_penalty_percentage_full_unlock(lock_epochs_remaining),
-                    attributes,
-                };
+                let amount_attr_pair =
+                    LockedAmountWeightAttributesPair::new(self, payment.amount, attributes);
                 output_pair.merge_with(amount_attr_pair);
-
-                output_pair.attributes.unlock_epoch = self
-                    .calculate_lock_epochs_from_penalty_percentage(
-                        output_pair.token_unlock_fee_percent,
-                    );
             }
 
             let normalized_unlock_epoch = self
