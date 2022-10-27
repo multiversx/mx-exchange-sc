@@ -12,7 +12,6 @@ use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
 
-use crate::claim_progress;
 use crate::exit_penalty;
 
 type ClaimRewardsResultType<BigUint> =
@@ -30,7 +29,6 @@ pub trait BaseFunctionsModule:
     + permissions_module::PermissionsModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
-    + claim_progress::ClaimProgressModule
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
@@ -53,11 +51,6 @@ pub trait BaseFunctionsModule:
     ) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
         let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
-        self.update_user_claim_progress(
-            &caller,
-            None,
-            base_enter_farm_result.new_farm_token.payment.token_nonce,
-        );
         self.emit_enter_farm_event(
             &caller,
             base_enter_farm_result.context.farming_token_payment,
@@ -73,16 +66,10 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> ClaimRewardsResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let first_payment_nonce = self.clear_payments_claim_progress(&caller, &payments);
         let base_claim_rewards_result = self.claim_rewards_base::<FC>(caller.clone(), payments);
 
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         let rewards_payment = base_claim_rewards_result.rewards;
-        self.update_user_claim_progress(
-            &caller,
-            Some(first_payment_nonce),
-            output_farm_token_payment.token_nonce,
-        );
 
         self.emit_claim_rewards_event(
             &caller,
@@ -101,16 +88,10 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> EsdtTokenPayment<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
-        let first_payment_nonce = self.clear_payments_claim_progress(&caller, &payments);
         let base_compound_rewards_result =
             self.compound_rewards_base::<FC>(caller.clone(), payments);
 
         let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment.clone();
-        self.update_user_claim_progress(
-            &caller,
-            Some(first_payment_nonce),
-            output_farm_token_payment.token_nonce,
-        );
         self.emit_compound_rewards_event(
             &caller,
             base_compound_rewards_result.context,
@@ -130,7 +111,6 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> ExitFarmResultType<Self::Api> {
         let payment = self.call_value().single_esdt();
-        let payment_nonce = payment.token_nonce;
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
@@ -145,7 +125,7 @@ pub trait BaseFunctionsModule:
             );
         }
 
-        self.farm_claim_progress(&caller, payment_nonce).clear();
+        self.current_claim_progress(&caller).clear();
 
         self.emit_exit_farm_event(
             &caller,
@@ -159,20 +139,24 @@ pub trait BaseFunctionsModule:
     }
 
     fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
+        self.check_claim_progress_for_merge(caller);
         let payments = self.get_non_empty_payments();
-        let first_payment_nonce = self.clear_payments_claim_progress(caller, &payments);
         let token_mapper = self.farm_token();
         let output_attributes: FarmTokenAttributes<Self::Api> =
             self.merge_from_payments_and_burn(payments, &token_mapper);
-
         let new_token_amount = output_attributes.get_total_supply().clone();
-        let merged_token_payment = token_mapper.nft_create(new_token_amount, &output_attributes);
-        self.update_user_claim_progress(
-            caller,
-            Some(first_payment_nonce),
-            merged_token_payment.token_nonce,
-        );
-        merged_token_payment
+        token_mapper.nft_create(new_token_amount, &output_attributes)
+    }
+
+    fn check_claim_progress_for_merge(&self, caller: &ManagedAddress) {
+        let claim_progress = self.current_claim_progress(caller);
+        if !claim_progress.is_empty() {
+            let current_week = self.get_current_week();
+            require!(
+                claim_progress.get().week == current_week,
+                "The user claim progress must be up to date."
+            )
+        }
     }
 
     fn end_produce_rewards<FC: FarmContract<FarmSc = Self>>(&self) {
