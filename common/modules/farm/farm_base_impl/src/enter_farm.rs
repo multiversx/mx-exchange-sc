@@ -47,7 +47,7 @@ pub trait BaseEnterFarmModule:
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
-        let reward = if enter_farm_context.additional_farm_tokens.len() > 0 {
+        let reward = if !enter_farm_context.additional_farm_tokens.is_empty() {
             let payment = enter_farm_context.additional_farm_tokens.get(0);
             FC::calculate_boosted_rewards(
                 self,
