@@ -5,11 +5,13 @@ use week_timekeeping::Week;
 
 use crate::{events, ClaimProgress};
 
-pub trait AllBaseWeeklyRewardsSplittingImplTraits = crate::WeeklyRewardsSplittingModule
-    + energy_query::EnergyQueryModule
-    + week_timekeeping::WeekTimekeepingModule
-    + crate::global_info::WeeklyRewardsGlobalInfo
-    + events::WeeklyRewardsSplittingEventsModule;
+pub trait AllBaseWeeklyRewardsSplittingImplTraits =
+    crate::WeeklyRewardsSplittingModule
+        + energy_query::EnergyQueryModule
+        + week_timekeeping::WeekTimekeepingModule
+        + crate::global_info::WeeklyRewardsGlobalInfo
+        + crate::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+        + events::WeeklyRewardsSplittingEventsModule;
 
 pub trait WeeklyRewardsSplittingTraitsModule {
     type WeeklyRewardsSplittingMod: AllBaseWeeklyRewardsSplittingImplTraits;
@@ -38,9 +40,10 @@ pub trait WeeklyRewardsSplittingTraitsModule {
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
-        if energy_amount == &0 {
+        if energy_amount == &0 || total_energy == &0 {
             return user_rewards;
         }
+
         let total_rewards = self.collect_and_get_rewards_for_week(module, week);
         for weekly_reward in &total_rewards {
             let reward_amount = weekly_reward.amount * energy_amount / total_energy;
