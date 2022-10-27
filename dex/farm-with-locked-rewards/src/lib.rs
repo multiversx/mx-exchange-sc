@@ -17,7 +17,8 @@ use farm::{
 };
 use farm_base_impl::base_traits_impl::FarmContract;
 
-type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
+type EnterFarmResultType<BigUint> =
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -85,10 +86,13 @@ pub trait Farm:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let output_farm_token_payment = self.enter_farm::<NoMintWrapper<Self>>(original_caller);
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        let enter_farm_result = self.enter_farm::<NoMintWrapper<Self>>(original_caller);
+        let (output_farm_token_payment, rewards_payment) = enter_farm_result.clone().into_tuple();
 
-        output_farm_token_payment
+        self.send_payment_non_zero(&caller, &output_farm_token_payment);
+        self.send_payment_non_zero(&caller, &rewards_payment);
+
+        enter_farm_result
     }
 
     #[payable("*")]

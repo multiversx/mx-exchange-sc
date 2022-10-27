@@ -20,7 +20,7 @@ pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
     pub farming_token_locked_nonce: u64,
 }
 
-pub type EnterFarmThroughProxyResultType<M> = EsdtTokenPayment<M>;
+pub type EnterFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ExitFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type FarmClaimRewardsThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -171,11 +171,13 @@ pub trait ProxyFarmModule:
         };
 
         let caller = self.blockchain().get_caller();
-        farm_proxy_token_mapper.nft_create_and_send(
+        let farm_tokens = farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
             &proxy_farm_token_attributes,
-        )
+        );
+
+        (farm_tokens, enter_farm_result.reward_tokens).into()
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.

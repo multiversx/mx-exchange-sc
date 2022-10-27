@@ -17,7 +17,7 @@ use exit_penalty::{
 };
 use farm_base_impl::base_traits_impl::FarmContract;
 
-pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
+pub type EnterFarmResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
 pub type ClaimRewardsResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ExitFarmResultType<M> =
@@ -86,9 +86,12 @@ pub trait Farm:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-        let output_farm_token_payment = self.enter_farm::<Wrapper<Self>>(orig_caller);
+        let enter_farm_result = self.enter_farm::<Wrapper<Self>>(orig_caller);
+        let (output_farm_token_payment, rewards_payment) = enter_farm_result.clone().into_tuple();
+
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
-        output_farm_token_payment
+        self.send_payment_non_zero(&caller, &rewards_payment);
+        enter_farm_result
     }
 
     #[payable("*")]

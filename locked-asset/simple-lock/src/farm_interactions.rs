@@ -1,7 +1,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
+type EnterFarmResultType<BigUint> =
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
     MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
@@ -9,6 +10,7 @@ type ClaimRewardsResultType<BigUint> =
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_tokens: EsdtTokenPayment<M>,
+    pub reward_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
@@ -74,12 +76,16 @@ pub trait FarmInteractionsModule {
             "at least one result expected from enterFarm"
         );
 
-        let last_elem = raw.get(raw.len() - 1);
-        let new_farm_tokens: EnterFarmResultType<Self::Api> =
-            self.serializer().top_decode_from_managed_buffer(&last_elem);
+        let new_farm_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
+        let reward_tokens = self
+            .serializer()
+            .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
 
         EnterFarmResultWrapper {
             farm_tokens: new_farm_tokens,
+            reward_tokens,
         }
     }
 

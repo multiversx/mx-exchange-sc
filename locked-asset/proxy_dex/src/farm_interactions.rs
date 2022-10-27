@@ -4,6 +4,7 @@ use farm::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType, Prox
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
+    pub reward_token: EsdtTokenPayment<M>,
 }
 
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
@@ -30,13 +31,18 @@ pub trait FarmInteractionsModule {
         farming_token_amount: BigUint,
     ) -> EnterFarmResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
-        let result: EnterFarmResultType<Self::Api> = self
+        let enter_farm_result: EnterFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
             .enter_farm_endpoint(original_caller)
             .add_esdt_token_transfer(farming_token_id, 0, farming_token_amount)
             .execute_on_dest_context();
 
-        EnterFarmResultWrapper { farm_token: result }
+        let (output_farm_token_payment, rewards_payment) = enter_farm_result.clone().into_tuple();
+
+        EnterFarmResultWrapper {
+            farm_token: output_farm_token_payment,
+            reward_token: rewards_payment,
+        }
     }
 
     fn call_exit_farm(

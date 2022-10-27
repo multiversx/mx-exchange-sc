@@ -218,7 +218,8 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let out_farm_token = sc.enter_farm_endpoint(OptionalValue::None);
+                    let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
+                    let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
                         managed_token_id!(FARM_TOKEN_ID)
@@ -231,6 +232,49 @@ where
                 },
             )
             .assert_ok();
+    }
+
+    pub fn enter_farm_with_additional_payment(
+        &mut self,
+        user: &Address,
+        farming_token_amount: u64,
+        farm_token_nonce: u64,
+        farm_token_amount: u64,
+    ) -> u64 {
+        self.last_farm_token_nonce += 1;
+        let mut result = 0;
+        let expected_farm_token_nonce = self.last_farm_token_nonce;
+
+        let mut payments = Vec::new();
+        payments.push(TxInputESDT {
+            token_identifier: FARMING_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: rust_biguint!(farming_token_amount),
+        });
+        payments.push(TxInputESDT {
+            token_identifier: FARM_TOKEN_ID.to_vec(),
+            nonce: farm_token_nonce,
+            value: rust_biguint!(farm_token_amount),
+        });
+
+        self.b_mock
+            .execute_esdt_multi_transfer(user, &self.farm_wrapper, &payments, |sc| {
+                let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
+                let (out_farm_token, reward_token) = enter_farm_result.into_tuple();
+                assert_eq!(
+                    out_farm_token.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(out_farm_token.token_nonce, expected_farm_token_nonce);
+                assert_eq!(
+                    out_farm_token.amount,
+                    managed_biguint!(farming_token_amount + farm_token_amount)
+                );
+                result = reward_token.amount.to_u64().unwrap();
+            })
+            .assert_ok();
+
+        result
     }
 
     pub fn merge_farm_tokens(

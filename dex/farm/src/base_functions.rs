@@ -11,9 +11,12 @@ use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
+use weekly_rewards_splitting::ClaimProgress;
 
 use crate::exit_penalty;
 
+type EnterFarmResultType<BigUint> =
+    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ExitFarmResultType<BigUint> =
@@ -47,7 +50,7 @@ pub trait BaseFunctionsModule:
     fn enter_farm<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EnterFarmResultType<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
         let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
         self.emit_enter_farm_event(
@@ -57,7 +60,20 @@ pub trait BaseFunctionsModule:
             base_enter_farm_result.created_with_merge,
             base_enter_farm_result.storage_cache,
         );
-        base_enter_farm_result.new_farm_token.payment
+
+        let current_week = self.get_current_week();
+        let current_user_energy = self.get_energy_entry(caller.clone());
+        self.update_user_energy_for_current_week(&caller, current_week, &current_user_energy);
+        self.current_claim_progress(&caller).set(ClaimProgress {
+            energy: current_user_energy.clone(),
+            week: current_week,
+        });
+
+        (
+            base_enter_farm_result.new_farm_token.payment,
+            base_enter_farm_result.boosted_rewards,
+        )
+            .into()
     }
 
     fn claim_rewards<FC: FarmContract<FarmSc = Self>>(
@@ -261,5 +277,22 @@ where
         );
 
         base_farm_reward + boosted_yield_rewards
+    }
+
+    fn calculate_boosted_rewards(
+        sc: &Self::FarmSc,
+        caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        farm_token_nonce: Nonce,
+        farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        storage_cache: &StorageCache<Self::FarmSc>,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        let total_rewards_per_block = sc.per_block_reward_amount().get();
+        sc.claim_boosted_yields_rewards(
+            caller,
+            farm_token_nonce,
+            farm_token_amount,
+            &storage_cache.farm_token_supply,
+            &total_rewards_per_block,
+        )
     }
 }
