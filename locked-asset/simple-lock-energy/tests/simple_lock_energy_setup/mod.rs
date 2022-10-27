@@ -26,11 +26,9 @@ pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 
-pub const FIRST_THRESHOLD_PERCENTAGE: u64 = 4_000;
-pub const SECOND_THRESHOLD_PERCENTAGE: u64 = 6_000;
-pub const THIRD_THRESHOLD_PERCENTAGE: u64 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
 pub struct SimpleLockEnergySetup<ScBuilder>
 where
@@ -67,8 +65,8 @@ where
         b_mock
             .execute_tx(&owner, &sc_wrapper, &rust_zero, |sc| {
                 let mut lock_options = MultiValueEncoded::new();
-                for option in LOCK_OPTIONS {
-                    lock_options.push(*option);
+                for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                    lock_options.push((*option, *penalty).into());
                 }
 
                 // fees_collector_mock address used twice, as we don't test migration here
@@ -76,9 +74,6 @@ where
                 sc.init(
                     managed_token_id!(BASE_ASSET_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    FIRST_THRESHOLD_PERCENTAGE,
-                    SECOND_THRESHOLD_PERCENTAGE,
-                    THIRD_THRESHOLD_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
