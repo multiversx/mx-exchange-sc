@@ -12,8 +12,7 @@ use elrond_wasm_debug::{
 use elrond_wasm_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenModule;
 use simple_lock_energy::{
-    energy::EnergyModule, lock_options::LockOptionsModule,
-    unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
+    energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
 };
 
 mod fees_collector_mock;
@@ -85,8 +84,6 @@ where
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
-
-                assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));

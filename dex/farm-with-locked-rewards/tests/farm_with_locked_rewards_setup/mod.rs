@@ -23,7 +23,6 @@ use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
-use simple_lock_energy::lock_options::LockOptionsModule;
 use simple_lock_energy::SimpleLockEnergy;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -128,8 +127,6 @@ where
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
-
-                assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_REWARD_TOKEN_ID));

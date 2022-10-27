@@ -2,7 +2,8 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use fixed_supply_token::FixedSupplyToken;
-use mergeable::{weighted_average, Mergeable};
+use math::weighted_average;
+use mergeable::Mergeable;
 
 use crate::Epoch;
 
@@ -63,10 +64,10 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
         let first_supply = self.get_total_supply();
         let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average(
-            &self.reward_per_share,
-            first_supply,
-            &other.reward_per_share,
-            second_supply,
+            self.reward_per_share.clone(),
+            first_supply.clone(),
+            other.reward_per_share.clone(),
+            second_supply.clone(),
         );
 
         self.initial_farming_amount += other.initial_farming_amount;

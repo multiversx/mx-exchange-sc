@@ -19,7 +19,7 @@ use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
-use simple_lock_energy::{lock_options::LockOptionsModule, SimpleLockEnergy};
+use simple_lock_energy::SimpleLockEnergy;
 
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -339,8 +339,6 @@ where
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 lock_options,
             );
-
-            assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
             sc.locked_token()
                 .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));

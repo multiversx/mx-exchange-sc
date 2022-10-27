@@ -1,13 +1,11 @@
 elrond_wasm::imports!();
 
 use common_structs::PaymentsVec;
-use mergeable::{weighted_average, Mergeable};
+use math::weighted_average;
+use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::{
-    energy::Energy,
-    penalty::{self},
-};
+use crate::energy::Energy;
 
 #[derive(Clone)]
 pub struct LockedAmountWeightAttributesPair<M: ManagedTypeApi> {
@@ -28,15 +26,15 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
     fn merge_with(&mut self, other: Self) {
         self.error_if_not_mergeable(&other);
 
-        let unlock_fee: BigUint<M> = weighted_average(
-            &BigUint::from(self.token_unlock_fee),
-            &BigUint::from(self.attributes.unlock_epoch),
-            &BigUint::from(other.token_unlock_fee),
-            &BigUint::from(other.attributes.unlock_epoch),
+        let unlock_fee = weighted_average(
+            self.token_unlock_fee,
+            self.attributes.unlock_epoch,
+            other.token_unlock_fee,
+            other.attributes.unlock_epoch,
         );
 
         self.token_amount += other.token_amount;
-        self.token_unlock_fee = unsafe { unlock_fee.to_u64().unwrap_unchecked() };
+        self.token_unlock_fee = unlock_fee;
     }
 }
 
@@ -47,7 +45,7 @@ pub trait TokenMergingModule:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::pause::PauseModule
-    + penalty::LocalPenaltyModule
+    + crate::penalty::LocalPenaltyModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
     + crate::lock_options::LockOptionsModule
@@ -62,10 +60,7 @@ pub trait TokenMergingModule:
     ) -> EsdtTokenPayment {
         self.require_not_paused();
 
-        let actual_caller = self.blockchain().get_caller();
-
         let payments = self.get_non_empty_payments();
-
         let output_amount_attributes = self.merge_tokens(payments, opt_original_caller);
 
         let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
@@ -73,6 +68,7 @@ pub trait TokenMergingModule:
             output_amount_attributes.attributes.original_token_nonce,
             output_amount_attributes.token_amount,
         );
+        let actual_caller = self.blockchain().get_caller();
         let output_tokens = self.lock_and_send(
             &actual_caller,
             simulated_lock_payment,
@@ -90,7 +86,6 @@ pub trait TokenMergingModule:
         let locked_token_mapper = self.locked_token();
         let original_caller = self.dest_from_optional(opt_original_caller);
         let current_epoch = self.blockchain().get_block_epoch();
-        let penalty_percentage_struct = self.penalty_percentage().get();
 
         locked_token_mapper.require_all_same_token(&payments);
 
@@ -111,10 +106,8 @@ pub trait TokenMergingModule:
             let lock_epochs_remaining = first_token_attributes.unlock_epoch - current_epoch;
             let mut output_pair = LockedAmountWeightAttributesPair {
                 token_amount: first_payment.amount,
-                token_unlock_fee: self.calculate_penalty_percentage_full_unlock(
-                    lock_epochs_remaining,
-                    &penalty_percentage_struct,
-                ),
+                token_unlock_fee: self
+                    .calculate_penalty_percentage_full_unlock(lock_epochs_remaining),
                 attributes: first_token_attributes,
             };
             for payment in &payments {
@@ -131,18 +124,15 @@ pub trait TokenMergingModule:
                 let lock_epochs_remaining = attributes.unlock_epoch - current_epoch;
                 let amount_attr_pair = LockedAmountWeightAttributesPair {
                     token_amount: payment.amount,
-                    token_unlock_fee: self.calculate_penalty_percentage_full_unlock(
-                        lock_epochs_remaining,
-                        &penalty_percentage_struct,
-                    ),
+                    token_unlock_fee: self
+                        .calculate_penalty_percentage_full_unlock(lock_epochs_remaining),
                     attributes,
                 };
                 output_pair.merge_with(amount_attr_pair.clone());
-                let penalty_percentage_struct = self.penalty_percentage().get();
-                output_pair.attributes.unlock_epoch = self.calculate_epoch_from_penalty_percentage(
-                    amount_attr_pair.token_unlock_fee,
-                    &penalty_percentage_struct,
-                );
+                output_pair.attributes.unlock_epoch = self
+                    .calculate_lock_epochs_from_penalty_percentage(
+                        amount_attr_pair.token_unlock_fee,
+                    );
             }
 
             let normalized_unlock_epoch = self

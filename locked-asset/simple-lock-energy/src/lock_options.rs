@@ -1,83 +1,107 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Epoch;
+use common_structs::{Epoch, Percent};
+use elrond_wasm::api::StorageMapperApi;
 
 pub const EPOCHS_PER_MONTH: Epoch = 30;
-pub const EPOCHS_PER_YEAR: Epoch = 360;
+pub const EPOCHS_PER_YEAR: Epoch = 12 * EPOCHS_PER_MONTH;
+pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000; // 100%
+
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, Copy, Default)]
+pub struct LockOption {
+    pub lock_epochs: Epoch,
+    pub penalty_start_percentage: u64,
+}
+
+const MAX_LOCK_OPTIONS: usize = 10;
+pub type AllLockOptions = ArrayVec<LockOption, MAX_LOCK_OPTIONS>;
+
+static mut LOCK_OPTIONS: AllLockOptions = AllLockOptions::new_const();
 
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
-    /// Add lock options, as a list of epochs. Options must be >= 360 epochs (1 year).
+    /// Add lock options, as pairs of epochs and penalty percentages.
+    /// lock epochs must be >= 360 epochs (1 year),
+    /// percentages must be between 0 and 10_000
+    /// Additionally, percentages must increase as lock period increases.
     ///
-    /// For example, an option of "360" means the user can choose to lock their tokens
-    /// for 360 epochs.
+    /// For example, an option pair of "360, 100" means the user can choose to lock their tokens
+    /// for 360 epochs, and if they were to unlock the immediately,
+    /// they would incur a penalty of 1%.
     ///
-    /// When calling lockTokens, users may only pick one of the whitelisted lock options.
+    /// When calling lockTokens, or reducing lock periods,
+    /// users may only pick one of the whitelisted lock options.
     #[only_owner]
     #[endpoint(addLockOptions)]
-    fn add_lock_options(&self, lock_options: MultiValueEncoded<Epoch>) {
-        require!(!lock_options.is_empty(), "No options");
+    fn add_lock_options(&self, new_lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>) {
+        self.lock_options().update(|options| {
+            let new_total_options = options.len() + new_lock_options.len();
+            require!(
+                new_total_options <= MAX_LOCK_OPTIONS,
+                "Too many lock options"
+            );
 
-        let mut options_mapper = self.lock_options();
-        let mut max_added = 0;
-        for option in lock_options {
-            require!(option >= EPOCHS_PER_YEAR, "Invalid option");
+            for pair in new_lock_options {
+                let (lock_epochs, penalty_start_percentage) = pair.into_tuple();
+                require!(
+                    lock_epochs >= EPOCHS_PER_YEAR
+                        && penalty_start_percentage <= MAX_PENALTY_PERCENTAGE,
+                    "Invalid option"
+                );
 
-            if option > max_added {
-                max_added = option;
+                unsafe {
+                    options.push_unchecked(LockOption {
+                        lock_epochs,
+                        penalty_start_percentage,
+                    });
+                }
             }
 
-            let _ = options_mapper.insert(option);
-        }
-
-        self.max_lock_option().update(|max| {
-            if max_added > *max {
-                *max = max_added;
-            }
+            sort_lock_options(options);
+            require_no_duplicate_lock_epoch_options::<Self::Api>(options);
+            require_valid_percentages::<Self::Api>(options);
         });
     }
 
     #[only_owner]
     #[endpoint(removeLockOptions)]
-    fn remove_lock_options(&self, lock_options: MultiValueEncoded<Epoch>) {
-        let mut options_mapper = self.lock_options();
-        let max_mapper = self.max_lock_option();
+    fn remove_lock_options(&self, options_to_remove: MultiValueEncoded<Epoch>) {
+        self.lock_options().update(|options| {
+            require!(
+                options_to_remove.len() <= options.len(),
+                "Trying to remove too many options"
+            );
 
-        let current_max = max_mapper.get();
-        let mut was_max_removed = false;
-        for option in lock_options {
-            if option == current_max {
-                was_max_removed = true;
-            }
-
-            let _ = options_mapper.swap_remove(&option);
-        }
-
-        if was_max_removed {
-            let mut new_max = 0;
-            for option in options_mapper.iter() {
-                if option > new_max {
-                    new_max = option;
+            let mut options_to_remove_vec = ArrayVec::<_, MAX_LOCK_OPTIONS>::new();
+            for to_remove in options_to_remove {
+                unsafe {
+                    options_to_remove_vec.push_unchecked(to_remove);
                 }
             }
 
-            max_mapper.set(new_max);
+            options.retain(|elem| !options_to_remove_vec.contains(&elem.lock_epochs));
+        });
+    }
+
+    fn get_lock_options(&self) -> AllLockOptions {
+        init_static_lock_options(&self.lock_options());
+        unsafe {
+            require!(!LOCK_OPTIONS.is_empty(), "no lock options available");
         }
+
+        unsafe { LOCK_OPTIONS.clone() }
     }
 
     fn require_is_listed_lock_option(&self, lock_epochs: Epoch) {
-        require!(
-            self.lock_options().contains(&lock_epochs),
-            "Invalid lock choice"
-        );
-    }
+        let lock_options = self.get_lock_options();
+        for option in &lock_options {
+            if option.lock_epochs == lock_epochs {
+                return;
+            }
+        }
 
-    fn require_is_listed_unlock_option(&self, unlock_epochs: Epoch) {
-        require!(
-            self.lock_options().contains(&unlock_epochs) || unlock_epochs == 0u64,
-            "Invalid unlock choice"
-        );
+        sc_panic!("Invalid lock choice");
     }
 
     fn unlock_epoch_to_start_of_month(&self, unlock_epoch: Epoch) -> Epoch {
@@ -92,8 +116,45 @@ pub trait LockOptionsModule {
 
     #[view(getLockOptions)]
     #[storage_mapper("lockOptions")]
-    fn lock_options(&self) -> UnorderedSetMapper<Epoch>;
+    fn lock_options(&self) -> SingleValueMapper<AllLockOptions>;
+}
 
-    #[storage_mapper("maxLockOption")]
-    fn max_lock_option(&self) -> SingleValueMapper<Epoch>;
+fn init_static_lock_options<M: StorageMapperApi>(
+    lock_options_mapper: &SingleValueMapper<M, AllLockOptions>,
+) {
+    unsafe {
+        if !LOCK_OPTIONS.is_empty() {
+            return;
+        }
+    }
+
+    unsafe {
+        LOCK_OPTIONS = lock_options_mapper.get();
+    }
+}
+
+fn sort_lock_options(lock_options: &mut AllLockOptions) {
+    lock_options.sort_by(|first, second| first.lock_epochs.cmp(&second.lock_epochs));
+}
+
+fn require_no_duplicate_lock_epoch_options<M: ManagedTypeApi>(lock_options: &AllLockOptions) {
+    let end_index = lock_options.len() - 1;
+    for i in 0..end_index {
+        let current_element = unsafe { lock_options.get_unchecked(i) };
+        let next_element = unsafe { lock_options.get_unchecked(i + 1) };
+        if current_element.lock_epochs == next_element.lock_epochs {
+            M::error_api_impl().signal_error(b"Duplicate lock options");
+        }
+    }
+}
+
+fn require_valid_percentages<M: ManagedTypeApi>(lock_options: &AllLockOptions) {
+    let end_index = lock_options.len() - 1;
+    for i in 0..end_index {
+        let current_element = unsafe { lock_options.get_unchecked(i) };
+        let next_element = unsafe { lock_options.get_unchecked(i + 1) };
+        if current_element.penalty_start_percentage >= next_element.penalty_start_percentage {
+            M::error_api_impl().signal_error(b"Invalid lock option percentages");
+        }
+    }
 }
