@@ -65,7 +65,7 @@ pub trait BaseFunctionsModule:
         let current_user_energy = self.get_energy_entry(caller.clone());
         self.update_user_energy_for_current_week(&caller, current_week, &current_user_energy);
         self.current_claim_progress(&caller).set(ClaimProgress {
-            energy: current_user_energy.clone(),
+            energy: current_user_energy,
             week: current_week,
         });
 

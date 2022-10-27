@@ -37,7 +37,7 @@ pub trait FarmInteractionsModule {
             .add_esdt_token_transfer(farming_token_id, 0, farming_token_amount)
             .execute_on_dest_context();
 
-        let (output_farm_token_payment, rewards_payment) = enter_farm_result.clone().into_tuple();
+        let (output_farm_token_payment, rewards_payment) = enter_farm_result.into_tuple();
 
         EnterFarmResultWrapper {
             farm_token: output_farm_token_payment,
