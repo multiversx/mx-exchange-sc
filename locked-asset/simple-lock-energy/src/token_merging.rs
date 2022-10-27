@@ -10,7 +10,7 @@ use crate::energy::Energy;
 #[derive(Clone)]
 pub struct LockedAmountWeightAttributesPair<M: ManagedTypeApi> {
     pub token_amount: BigUint<M>,
-    pub token_unlock_fee: u64,
+    pub token_unlock_fee_percent: u64,
     pub attributes: LockedTokenAttributes<M>,
 }
 
@@ -27,14 +27,14 @@ impl<M: ManagedTypeApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
         self.error_if_not_mergeable(&other);
 
         let unlock_fee = weighted_average(
-            self.token_unlock_fee,
-            self.attributes.unlock_epoch,
-            other.token_unlock_fee,
-            other.attributes.unlock_epoch,
+            BigUint::from(self.token_unlock_fee_percent),
+            self.token_amount.clone(),
+            BigUint::from(other.token_unlock_fee_percent),
+            other.token_amount.clone(),
         );
 
         self.token_amount += other.token_amount;
-        self.token_unlock_fee = unlock_fee;
+        self.token_unlock_fee_percent = unsafe { unlock_fee.to_u64().unwrap_unchecked() };
     }
 }
 
@@ -106,10 +106,11 @@ pub trait TokenMergingModule:
             let lock_epochs_remaining = first_token_attributes.unlock_epoch - current_epoch;
             let mut output_pair = LockedAmountWeightAttributesPair {
                 token_amount: first_payment.amount,
-                token_unlock_fee: self
+                token_unlock_fee_percent: self
                     .calculate_penalty_percentage_full_unlock(lock_epochs_remaining),
                 attributes: first_token_attributes,
             };
+
             for payment in &payments {
                 let attributes: LockedTokenAttributes<Self::Api> =
                     locked_token_mapper.get_token_attributes(payment.token_nonce);
@@ -122,16 +123,18 @@ pub trait TokenMergingModule:
                 locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
                 let lock_epochs_remaining = attributes.unlock_epoch - current_epoch;
+
                 let amount_attr_pair = LockedAmountWeightAttributesPair {
                     token_amount: payment.amount,
-                    token_unlock_fee: self
+                    token_unlock_fee_percent: self
                         .calculate_penalty_percentage_full_unlock(lock_epochs_remaining),
                     attributes,
                 };
-                output_pair.merge_with(amount_attr_pair.clone());
+                output_pair.merge_with(amount_attr_pair);
+
                 output_pair.attributes.unlock_epoch = self
                     .calculate_lock_epochs_from_penalty_percentage(
-                        amount_attr_pair.token_unlock_fee,
+                        output_pair.token_unlock_fee_percent,
                     );
             }
 

@@ -6,7 +6,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod base_functions;
-pub mod claim_progress;
 pub mod exit_penalty;
 
 use base_functions::Wrapper;
@@ -35,7 +34,6 @@ pub trait Farm:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_functions::BaseFunctionsModule
-    + claim_progress::ClaimProgressModule
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
