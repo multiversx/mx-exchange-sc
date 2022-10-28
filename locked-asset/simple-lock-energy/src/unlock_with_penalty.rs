@@ -7,8 +7,8 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::lock_options::MAX_PENALTY_PERCENTAGE;
 
-const MIN_EPOCHS_TO_REDUCE: Epoch = 1;
 static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
+static TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG: &[u8] = b"Token can be unlocked already";
 
 #[elrond_wasm::module]
 pub trait UnlockWithPenaltyModule:
@@ -55,15 +55,15 @@ pub trait UnlockWithPenaltyModule:
 
     /// Reduce the locking period of a locked token. This incures a penalty.
     /// The longer the reduction, the bigger the penalty.
-    /// epochs_to_reduce must be a multiple of 360 (i.e. 1 year)
+    /// new_lock_period must be one of the available lock options
     #[payable("*")]
     #[endpoint(reduceLockPeriod)]
-    fn reduce_lock_period(&self, target_epoch_to_reduce: Epoch) -> EsdtTokenPayment {
-        self.require_is_listed_lock_option(target_epoch_to_reduce);
-        self.reduce_lock_period_common(Some(target_epoch_to_reduce))
+    fn reduce_lock_period(&self, new_lock_period: Epoch) -> EsdtTokenPayment {
+        self.require_is_listed_lock_option(new_lock_period);
+        self.reduce_lock_period_common(Some(new_lock_period))
     }
 
-    fn reduce_lock_period_common(&self, opt_epochs_to_reduce: Option<Epoch>) -> EsdtTokenPayment {
+    fn reduce_lock_period_common(&self, opt_new_lock_period: Option<Epoch>) -> EsdtTokenPayment {
         self.require_not_paused();
 
         let locked_token_mapper = self.locked_token();
@@ -73,36 +73,25 @@ pub trait UnlockWithPenaltyModule:
         let attributes: LockedTokenAttributes<Self::Api> =
             locked_token_mapper.get_token_attributes(payment.token_nonce);
 
-        let target_epochs_to_reduce =
-            self.resolve_opt_epochs_to_reduce(opt_epochs_to_reduce, attributes.unlock_epoch);
-
-        let penalty_amount = self.calculate_penalty_amount(
-            &payment.amount,
-            target_epochs_to_reduce,
-            attributes.unlock_epoch,
+        let current_epoch = self.blockchain().get_block_epoch();
+        require!(
+            attributes.unlock_epoch > current_epoch,
+            TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
         );
+
+        let prev_lock_epochs = attributes.unlock_epoch - current_epoch;
+        let new_lock_epochs = opt_new_lock_period.unwrap_or(0);
+        let penalty_amount =
+            self.calculate_penalty_amount(&payment.amount, prev_lock_epochs, new_lock_epochs);
 
         locked_token_mapper.nft_burn(payment.token_nonce, &(&payment.amount - &penalty_amount));
 
-        let current_epoch = self.blockchain().get_block_epoch();
         let caller = self.blockchain().get_caller();
-
         let mut energy = self.get_updated_energy_entry_for_user(&caller);
 
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
 
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment.clone(), &attributes);
-        let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
-        let new_unlock_epoch = current_epoch + target_epochs_to_reduce;
-
-        if target_epochs_to_reduce == 0u64 {
-            self.send().esdt_local_mint(
-                &unlocked_token_id,
-                0,
-                &(&unlocked_tokens.amount - &penalty_amount),
-            );
-        }
-
         if penalty_amount > 0 {
             unlocked_tokens.amount -= &penalty_amount;
             require!(
@@ -117,8 +106,14 @@ pub trait UnlockWithPenaltyModule:
             );
         }
 
-        let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
+        if new_lock_epochs == 0 {
+            let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
+            self.send()
+                .esdt_local_mint(&unlocked_token_id, 0, &unlocked_tokens.amount);
+        }
 
+        let new_unlock_epoch = current_epoch + new_lock_epochs;
+        let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
         energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
 
         self.set_energy_entry(&caller, energy);
@@ -126,68 +121,43 @@ pub trait UnlockWithPenaltyModule:
         self.to_esdt_payment(output_payment)
     }
 
-    fn resolve_opt_epochs_to_reduce(
-        &self,
-        opt_epochs_to_reduce: Option<Epoch>,
-        original_unlock_epoch: Epoch,
-    ) -> Epoch {
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            original_unlock_epoch > current_epoch,
-            "Token can be unlocked already"
-        );
-
-        let lock_epochs_remaining = original_unlock_epoch - current_epoch;
-        match opt_epochs_to_reduce {
-            Some(epochs_to_reduce) => {
-                require!(
-                    epochs_to_reduce >= MIN_EPOCHS_TO_REDUCE
-                        && epochs_to_reduce <= lock_epochs_remaining,
-                    "Invalid epochs to reduce"
-                );
-                epochs_to_reduce
-            }
-            None => 0u64,
-        }
-    }
-
     fn calculate_penalty_percentage_partial_unlock(
         &self,
-        target_epoch_to_reduce: Epoch,
-        lock_epochs_remaining: Epoch,
+        prev_lock_epochs_remaining: Epoch,
+        new_lock_epochs_remaining: Epoch,
     ) -> u64 {
-        let penalty_percentage_full_unlock_current_epoch =
-            self.calculate_penalty_percentage_full_unlock(lock_epochs_remaining);
-        let penalty_percentage_full_unlock_target_epoch =
-            self.calculate_penalty_percentage_full_unlock(target_epoch_to_reduce);
+        let prev_penalty_percentage_full =
+            self.calculate_penalty_percentage_full_unlock(prev_lock_epochs_remaining);
+        let new_penalty_percentage =
+            self.calculate_penalty_percentage_full_unlock(new_lock_epochs_remaining);
 
-        (penalty_percentage_full_unlock_current_epoch - penalty_percentage_full_unlock_target_epoch)
-            * MAX_PENALTY_PERCENTAGE as u64
-            / (MAX_PENALTY_PERCENTAGE as u64 - penalty_percentage_full_unlock_target_epoch)
+        (prev_penalty_percentage_full - new_penalty_percentage) * MAX_PENALTY_PERCENTAGE as u64
+            / (MAX_PENALTY_PERCENTAGE as u64 - new_penalty_percentage)
     }
 
     /// Calculates the penalty that would be incurred if token_amount tokens
-    /// were to have their locking period reduce by epochs_to_reduce.
-    /// target_epoch_to_reduce is one of 0, 360, 720, 1080 (0, 1, 2, 3 years)
+    /// were to have their locking period reduce to new_unlock_epoch
+    /// new_unlock_epoch must be either be current epoch (i.e. full unlock)
+    /// or one of the available lock options
     #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(
         &self,
         token_amount: &BigUint,
-        target_epoch_to_reduce: Epoch,
-        current_unlock_epoch: Epoch,
+        prev_lock_epochs: Epoch,
+        new_lock_epochs: Epoch,
     ) -> BigUint {
-        self.require_is_listed_lock_option(target_epoch_to_reduce);
-        let current_epoch = self.blockchain().get_block_epoch();
-        let lock_epochs_remaining = current_unlock_epoch - current_epoch;
-        let full_unlock = target_epoch_to_reduce == 0;
+        require!(prev_lock_epochs > 0, TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG);
+        require!(new_lock_epochs < prev_lock_epochs, "Invalid new lock epoch");
 
-        let penalty_percentage_unlock = if full_unlock {
-            self.calculate_penalty_percentage_full_unlock(lock_epochs_remaining)
+        let is_full_unlock = new_lock_epochs == 0;
+        if !is_full_unlock {
+            self.require_is_listed_lock_option(new_lock_epochs);
+        }
+
+        let penalty_percentage_unlock = if is_full_unlock {
+            self.calculate_penalty_percentage_full_unlock(prev_lock_epochs)
         } else {
-            self.calculate_penalty_percentage_partial_unlock(
-                target_epoch_to_reduce,
-                lock_epochs_remaining,
-            )
+            self.calculate_penalty_percentage_partial_unlock(prev_lock_epochs, new_lock_epochs)
         };
 
         token_amount * penalty_percentage_unlock / MAX_PENALTY_PERCENTAGE as u64

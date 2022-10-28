@@ -203,7 +203,7 @@ where
         caller: &Address,
         token_nonce: u64,
         amount: u64,
-        epochs_to_reduce: u64,
+        new_lock_period: u64,
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
@@ -212,7 +212,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.reduce_lock_period(epochs_to_reduce);
+                sc.reduce_lock_period(new_lock_period);
             },
         )
     }
@@ -220,16 +220,16 @@ where
     pub fn get_penalty_amount(
         &mut self,
         token_amount: u64,
-        epochs_to_reduce: u64,
-        current_unlock_epoch: u64,
+        prev_lock_epochs: u64,
+        new_lock_epochs: u64,
     ) -> num_bigint::BigUint {
         let mut result = rust_biguint!(0);
         self.b_mock
             .execute_query(&self.sc_wrapper, |sc| {
                 let managed_result = sc.calculate_penalty_amount(
                     &managed_biguint!(token_amount),
-                    epochs_to_reduce,
-                    current_unlock_epoch,
+                    prev_lock_epochs,
+                    new_lock_epochs,
                 );
                 result = to_rust_biguint(managed_result);
             })
