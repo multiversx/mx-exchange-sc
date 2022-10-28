@@ -37,6 +37,13 @@ impl<M: ManagedTypeApi> ClaimProgress<M> {
 
         self.week += 1;
     }
+
+    pub fn advance_multiple_weeks(&mut self, nr_weeks: Week) {
+        let end_epoch = self.energy.get_last_update_epoch() + EPOCHS_IN_WEEK * nr_weeks as u64;
+        self.energy.deplete(end_epoch);
+
+        self.week += nr_weeks;
+    }
 }
 
 #[elrond_wasm::module]
@@ -58,7 +65,7 @@ pub trait WeeklyRewardsSplittingModule:
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
 
-        let claim_progress_mapper = self.current_claim_progress(user);
+        let claim_progress_mapper = wrapper.get_claim_progress_mapper(self, user);
         let is_new_user = claim_progress_mapper.is_empty();
         let mut claim_progress = if is_new_user {
             ClaimProgress {
@@ -76,6 +83,11 @@ pub trait WeeklyRewardsSplittingModule:
         let mut all_rewards = ManagedVec::new();
         if current_energy_amount >= calculated_energy_for_current_epoch.get_energy_amount() {
             let total_weeks_to_claim = current_week - claim_progress.week;
+            if total_weeks_to_claim > USER_MAX_CLAIM_WEEKS {
+                let extra_weeks = total_weeks_to_claim - USER_MAX_CLAIM_WEEKS;
+                claim_progress.advance_multiple_weeks(extra_weeks);
+            }
+
             let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
             for _ in 0..weeks_to_claim {
                 let rewards_for_week =
