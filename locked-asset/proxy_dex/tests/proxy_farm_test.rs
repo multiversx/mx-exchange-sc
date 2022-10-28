@@ -18,7 +18,7 @@ fn farm_proxy_actions_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
-        simple_lock_energy::contract_obj,
+        energy_factory::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let farm_addr = setup.farm_wrapper.address_ref().clone();

@@ -1,5 +1,5 @@
 [package]
-name = "simple-lock-energy-wasm"
+name = "energy-factory-wasm"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"
@@ -20,7 +20,7 @@ lto = true
 debug = false
 panic = "abort"
 
-[dependencies.simple-lock-energy]
+[dependencies.energy-factory]
 path = ".."
 
 [dependencies.elrond-wasm-node]

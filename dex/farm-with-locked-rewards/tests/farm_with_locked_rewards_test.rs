@@ -13,8 +13,7 @@ fn farm_with_no_boost_no_proxy_test() {
     let _ = DebugApi::dummy();
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
-        energy_factory_mock::contract_obj,
-        simple_lock_energy::contract_obj,
+        energy_factory::contract_obj,
     );
 
     // first user enter farm
@@ -126,8 +125,7 @@ fn farm_with_boosted_yields_no_proxy_test() {
     let _ = DebugApi::dummy();
     let mut farm_setup = FarmSetup::new(
         farm_with_locked_rewards::contract_obj,
-        energy_factory_mock::contract_obj,
-        simple_lock_energy::contract_obj,
+        energy_factory::contract_obj,
     );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);

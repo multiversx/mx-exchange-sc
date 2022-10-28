@@ -5,7 +5,7 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    simple_lock_energy
+    energy_factory
     (
         callBack
         addLockOptions

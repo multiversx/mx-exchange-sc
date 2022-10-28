@@ -14,7 +14,7 @@ mod fees_collector_mock;
 use fees_collector_mock::*;
 
 use elrond_wasm_modules::pause::PauseModule;
-use energy_factory_mock::EnergyFactoryMock;
+use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
@@ -23,7 +23,6 @@ use locking_module::lock_with_energy_module::LockWithEnergyModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;
-use simple_lock_energy::SimpleLockEnergy;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_REWARD_TOKEN_ID: &[u8] = b"LOCKED-123456";
@@ -46,11 +45,10 @@ pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
-pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder, SimpleLockEnergyBuilder>
+pub struct FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
-    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
-    SimpleLockEnergyBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
@@ -61,23 +59,15 @@ where
     pub farm_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
-        ContractObjWrapper<energy_factory_mock::ContractObj<DebugApi>, EnergyFactoryBuilder>,
-    pub simple_lock_energy_wrapper:
-        ContractObjWrapper<simple_lock_energy::ContractObj<DebugApi>, SimpleLockEnergyBuilder>,
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
 }
 
-impl<FarmObjBuilder, EnergyFactoryBuilder, SimpleLockEnergyBuilder>
-    FarmSetup<FarmObjBuilder, EnergyFactoryBuilder, SimpleLockEnergyBuilder>
+impl<FarmObjBuilder, EnergyFactoryBuilder> FarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
-    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
-    SimpleLockEnergyBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
-    pub fn new(
-        farm_builder: FarmObjBuilder,
-        energy_factory_builder: EnergyFactoryBuilder,
-        simple_lock_energy_builder: SimpleLockEnergyBuilder,
-    ) -> Self {
+    pub fn new(farm_builder: FarmObjBuilder, energy_factory_builder: EnergyFactoryBuilder) -> Self {
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);
@@ -96,12 +86,6 @@ where
             energy_factory_builder,
             "energy_factory.wasm",
         );
-        let simple_lock_energy_wrapper = b_mock.create_sc_account(
-            &rust_zero,
-            Some(&owner),
-            simple_lock_energy_builder,
-            "simple-lock-energy.wasm",
-        );
         let fees_collector_mock = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner),
@@ -110,7 +94,7 @@ where
         );
 
         b_mock
-            .execute_tx(&owner, &simple_lock_energy_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 let mut lock_options = MultiValueEncoded::new();
                 for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
                     lock_options.push((*option, *penalty).into());
@@ -149,9 +133,7 @@ where
 
                 let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
                 sc.farm_token().set_token_id(farm_token_id);
-                sc.set_locking_sc_address(managed_address!(
-                    simple_lock_energy_wrapper.address_ref()
-                ));
+                sc.set_locking_sc_address(managed_address!(energy_factory_wrapper.address_ref()));
                 sc.set_lock_epochs(EPOCHS_IN_YEAR);
 
                 // sc.base_asset_token_id(managed_token_id!(REWARD_TOKEN_ID));
@@ -190,20 +172,6 @@ where
             &farming_token_roles[..],
         );
 
-        let reward_mint_token_roles = [EsdtLocalRole::Mint];
-        b_mock.set_esdt_local_roles(
-            farm_wrapper.address_ref(),
-            REWARD_TOKEN_ID,
-            &reward_mint_token_roles[..],
-        );
-
-        let reward_burn_token_roles = [EsdtLocalRole::Burn];
-        b_mock.set_esdt_local_roles(
-            simple_lock_energy_wrapper.address_ref(),
-            REWARD_TOKEN_ID,
-            &reward_burn_token_roles[..],
-        );
-
         let locked_reward_token_roles = [
             EsdtLocalRole::NftCreate,
             EsdtLocalRole::NftAddQuantity,
@@ -211,7 +179,7 @@ where
             EsdtLocalRole::Transfer,
         ];
         b_mock.set_esdt_local_roles(
-            simple_lock_energy_wrapper.address_ref(),
+            energy_factory_wrapper.address_ref(),
             LOCKED_REWARD_TOKEN_ID,
             &locked_reward_token_roles[..],
         );
@@ -233,7 +201,7 @@ where
         );
 
         b_mock
-            .execute_tx(&owner, &simple_lock_energy_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 sc.sc_whitelist_addresses()
                     .add(&managed_address!(farm_wrapper.address_ref()));
             })
@@ -248,7 +216,6 @@ where
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,
-            simple_lock_energy_wrapper,
         }
     }
 

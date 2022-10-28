@@ -19,7 +19,7 @@ use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
-use simple_lock_energy::SimpleLockEnergy;
+use energy_factory::SimpleLockEnergy;
 
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -56,7 +56,7 @@ where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-    SimpleLockObjBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
@@ -66,7 +66,7 @@ where
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub simple_lock_wrapper:
-        ContractObjWrapper<simple_lock_energy::ContractObj<DebugApi>, SimpleLockObjBuilder>,
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, SimpleLockObjBuilder>,
 }
 
 impl<ProxyObjBuilder, PairObjBuilder, FarmObjBuilder, SimpleLockObjBuilder>
@@ -75,7 +75,7 @@ where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-    SimpleLockObjBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(
         proxy_builder: ProxyObjBuilder,
@@ -311,9 +311,9 @@ fn setup_simple_lock<SimpleLockObjBuilder>(
     b_mock: &mut BlockchainStateWrapper,
     owner: &Address,
     simple_lock_builder: SimpleLockObjBuilder,
-) -> ContractObjWrapper<simple_lock_energy::ContractObj<DebugApi>, SimpleLockObjBuilder>
+) -> ContractObjWrapper<energy_factory::ContractObj<DebugApi>, SimpleLockObjBuilder>
 where
-    SimpleLockObjBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
     let simple_lock_wrapper = b_mock.create_sc_account(

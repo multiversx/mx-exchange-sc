@@ -46,8 +46,8 @@ members = [
   "locked-asset/simple-lock/meta",
   "locked-asset/simple-lock-whitelist",
   "locked-asset/simple-lock-whitelist/meta",
-  "locked-asset/simple-lock-energy",
-  "locked-asset/simple-lock-energy/meta",
+  "locked-asset/energy-factory",
+  "locked-asset/energy-factory/meta",
 
   "pause-all",
   "pause-all/meta",

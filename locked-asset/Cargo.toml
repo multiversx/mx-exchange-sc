@@ -26,8 +26,8 @@ path = "factory"
 [dependencies.simple-lock]
 path = "simple-lock"
 
-[dependencies.simple-lock-energy]
-path = "simple-lock-energy"
+[dependencies.energy-factory]
+path = "energy-factory"
 
 [dependencies.fees-collector]
 path = "../energy-integration/fees-collector"

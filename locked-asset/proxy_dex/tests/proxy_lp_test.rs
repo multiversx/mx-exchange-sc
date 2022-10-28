@@ -18,7 +18,7 @@ fn setup_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
-        simple_lock_energy::contract_obj,
+        energy_factory::contract_obj,
     );
 }
 
@@ -28,7 +28,7 @@ fn add_remove_liquidity_proxy_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
-        simple_lock_energy::contract_obj,
+        energy_factory::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let full_balance = rust_biguint!(USER_BALANCE);
@@ -182,7 +182,7 @@ fn wrapped_lp_token_merge_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
-        simple_lock_energy::contract_obj,
+        energy_factory::contract_obj,
     );
     let first_user = setup.first_user.clone();
     let locked_token_amount = rust_biguint!(1_000_000_000);

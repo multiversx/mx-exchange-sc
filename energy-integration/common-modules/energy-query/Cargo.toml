@@ -11,5 +11,5 @@ path = "src/lib.rs"
 version = "0.36.0"
 features = ["esdt-token-payment-legacy-decode",]
 
-[dependencies.simple-lock-energy]
-path = "../../../locked-asset/simple-lock-energy"
+[dependencies.energy-factory]
+path = "../../../locked-asset/energy-factory"

@@ -14,5 +14,5 @@ features = ["esdt-token-payment-legacy-decode",]
 [dependencies.simple-lock]
 path = "../../../locked-asset/simple-lock"
 
-[dependencies.simple-lock-energy]
-path = "../../../locked-asset/simple-lock-energy"
+[dependencies.energy-factory]
+path = "../../../locked-asset/energy-factory"
