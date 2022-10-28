@@ -249,9 +249,7 @@ where
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        let total_reward =
-            sc.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
-
+        let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
             let split_rewards = sc.take_reward_slice(total_reward);

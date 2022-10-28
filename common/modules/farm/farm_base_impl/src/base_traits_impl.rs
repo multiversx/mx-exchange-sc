@@ -1,11 +1,13 @@
 elrond_wasm::imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
+use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use elrond_wasm::elrond_codec::TopEncode;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
+use rewards::RewardsModule;
 
 pub trait AllBaseFarmImplTraits =
     rewards::RewardsModule
@@ -40,12 +42,47 @@ pub trait FarmContract {
         sc.send().esdt_local_mint(token_id, 0, amount);
     }
 
+    fn calculate_per_block_rewards(
+        sc: &Self::FarmSc,
+        current_block_nonce: Nonce,
+        last_reward_block_nonce: Nonce,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        if current_block_nonce <= last_reward_block_nonce || !sc.produces_per_block_rewards() {
+            return BigUint::zero();
+        }
+
+        let per_block_reward = sc.per_block_reward_amount().get();
+        let block_nonce_diff = current_block_nonce - last_reward_block_nonce;
+
+        per_block_reward * block_nonce_diff
+    }
+
+    fn mint_per_block_rewards(
+        sc: &Self::FarmSc,
+        token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        let current_block_nonce = sc.blockchain().get_block_nonce();
+        let last_reward_nonce = sc.last_reward_block_nonce().get();
+        if current_block_nonce > last_reward_nonce {
+            let to_mint =
+                Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+            if to_mint != 0 {
+                Self::mint_rewards(sc, token_id, &to_mint);
+            }
+
+            sc.last_reward_block_nonce().set(current_block_nonce);
+
+            to_mint
+        } else {
+            BigUint::zero()
+        }
+    }
+
     fn generate_aggregated_rewards(
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        let total_reward =
-            sc.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
+        let total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
         if total_reward > 0u64 {
             storage_cache.reward_reserve += &total_reward;
 
