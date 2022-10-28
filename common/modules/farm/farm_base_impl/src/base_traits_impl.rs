@@ -16,7 +16,6 @@ pub trait AllBaseFarmImplTraits =
         + permissions_module::PermissionsModule
         + pausable::PausableModule
         + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
-        
 
 pub trait FarmContract {
     type FarmSc: AllBaseFarmImplTraits;
