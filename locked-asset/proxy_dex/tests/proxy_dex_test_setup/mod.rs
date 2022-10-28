@@ -11,6 +11,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
+use energy_factory::SimpleLockEnergy;
 use farm::Farm;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
@@ -19,7 +20,6 @@ use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
-use energy_factory::SimpleLockEnergy;
 
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";

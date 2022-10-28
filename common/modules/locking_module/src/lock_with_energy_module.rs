@@ -41,10 +41,7 @@ pub trait LockWithEnergyModule {
     }
 
     #[proxy]
-    fn locking_sc_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> energy_factory::Proxy<Self::Api>;
+    fn locking_sc_proxy_obj(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
 
     #[view(getLockingScAddress)]
     #[storage_mapper("lockingScAddress")]

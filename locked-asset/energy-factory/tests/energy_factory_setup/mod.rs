@@ -10,10 +10,10 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
-use simple_lock::locked_token::LockedTokenModule;
 use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
 };
+use simple_lock::locked_token::LockedTokenModule;
 
 mod fees_collector_mock;
 use fees_collector_mock::*;

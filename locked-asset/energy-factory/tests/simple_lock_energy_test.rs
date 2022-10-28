@@ -1,7 +1,7 @@
 mod energy_factory_setup;
 
-use simple_lock::locked_token::LockedTokenAttributes;
 use energy_factory_setup::*;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
 

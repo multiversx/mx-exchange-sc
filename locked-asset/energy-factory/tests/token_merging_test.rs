@@ -2,9 +2,9 @@ mod energy_factory_setup;
 
 use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm_debug::tx_mock::TxInputESDT;
-use simple_lock::locked_token::LockedTokenAttributes;
 use energy_factory::token_merging::TokenMergingModule;
 use energy_factory_setup::*;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
 
@@ -79,7 +79,6 @@ fn token_merging_test() {
     assert_eq!(expected_energy, actual_energy);
 }
 
-
 #[test]
 fn token_merging_different_years_test() {
     let _ = DebugApi::dummy();
@@ -151,8 +150,6 @@ fn token_merging_different_years_test() {
     assert_eq!(expected_energy, actual_energy);
 }
 
-
-
 #[test]
 fn token_merging_different_years2_test() {
     let _ = DebugApi::dummy();
@@ -204,7 +201,7 @@ fn token_merging_different_years2_test() {
     assert_eq!(second_token_unlock_epoch, 1440);
 
     // (400_000 * 4_000 + 100_000 * 8_000) / 500_000 = 4_800
-    // 4_800 unlock fee -> epoch 504    
+    // 4_800 unlock fee -> epoch 504
     // -> start of month (upper) = 510
     let expected_merged_token_unlock_epoch = 510;
     setup.b_mock.check_nft_balance(
