@@ -186,11 +186,12 @@ pub trait BaseFunctionsModule:
     }
 
     fn check_claim_progress_for_merge(&self, caller: &ManagedAddress) {
-        let claim_progress = self.current_claim_progress(caller);
-        if !claim_progress.is_empty() {
+        let claim_progress_mapper = self.current_claim_progress(caller);
+        if !claim_progress_mapper.is_empty() {
             let current_week = self.get_current_week();
+            let claim_progress = claim_progress_mapper.get();
             require!(
-                claim_progress.get().week == current_week,
+                claim_progress.week == current_week,
                 "The user claim progress must be up to date."
             )
         }

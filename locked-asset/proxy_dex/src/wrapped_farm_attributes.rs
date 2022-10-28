@@ -139,7 +139,8 @@ pub fn merge_wrapped_farm_tokens<M: CallTypeApi + StorageMapperApi>(
         )
     };
 
-    let merged_farm_tokens = merge_farm_tokens_through_farm(farm_address, farm_tokens_to_merge);
+    let merged_farm_tokens =
+        merge_farm_tokens_through_farm(original_caller, farm_address, farm_tokens_to_merge);
     let new_wrapped_farm_token_attributes = WrappedFarmTokenAttributes {
         farm_token: merged_farm_tokens,
         proxy_farming_token: merged_farming_tokens,
