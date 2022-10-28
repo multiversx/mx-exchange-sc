@@ -249,7 +249,19 @@ where
         sc: &Self::FarmSc,
         storage_cache: &mut StorageCache<Self::FarmSc>,
     ) {
-        Wrapper::<T>::generate_aggregated_rewards(sc, storage_cache);
+        let total_reward =
+            sc.mint_per_block_rewards(&storage_cache.reward_token_id, Self::mint_rewards);
+
+        if total_reward > 0u64 {
+            storage_cache.reward_reserve += &total_reward;
+            let split_rewards = sc.take_reward_slice(total_reward);
+
+            if storage_cache.farm_token_supply != 0u64 {
+                let increase = (&split_rewards.base_farm * &storage_cache.division_safety_constant)
+                    / &storage_cache.farm_token_supply;
+                storage_cache.reward_per_share += &increase;
+            }
+        }
     }
 
     fn calculate_rewards(

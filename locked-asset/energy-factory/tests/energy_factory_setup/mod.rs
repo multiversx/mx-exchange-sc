@@ -10,10 +10,10 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
-use simple_lock::locked_token::LockedTokenModule;
-use simple_lock_energy::{
+use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
 };
+use simple_lock::locked_token::LockedTokenModule;
 
 mod fees_collector_mock;
 use fees_collector_mock::*;
@@ -32,19 +32,19 @@ pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
 pub struct SimpleLockEnergySetup<ScBuilder>
 where
-    ScBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
-    pub sc_wrapper: ContractObjWrapper<simple_lock_energy::ContractObj<DebugApi>, ScBuilder>,
+    pub sc_wrapper: ContractObjWrapper<energy_factory::ContractObj<DebugApi>, ScBuilder>,
     pub fees_collector_mock: Address,
 }
 
 impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
 where
-    ScBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(sc_builder: ScBuilder) -> Self {
         let _ = DebugApi::dummy();
@@ -131,7 +131,7 @@ where
 
 impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
 where
-    ScBuilder: 'static + Copy + Fn() -> simple_lock_energy::ContractObj<DebugApi>,
+    ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn lock(
         &mut self,

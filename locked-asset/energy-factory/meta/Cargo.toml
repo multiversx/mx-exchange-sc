@@ -1,5 +1,5 @@
 [package]
-name = "simple-lock-energy-meta"
+name = "energy-factory-meta"
 version = "0.0.0"
 edition = "2018"
 publish = false
@@ -7,7 +7,7 @@ authors = [ "you",]
 
 [dev-dependencies]
 
-[dependencies.simple-lock-energy]
+[dependencies.energy-factory]
 path = ".."
 
 [dependencies.elrond-wasm-debug]

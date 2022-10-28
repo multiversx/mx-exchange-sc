@@ -1,9 +1,9 @@
-mod simple_lock_energy_setup;
+mod energy_factory_setup;
 
+use energy_factory::virtual_lock::VirtualLockModule;
+use energy_factory_setup::*;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenAttributes;
-use simple_lock_energy::virtual_lock::VirtualLockModule;
-use simple_lock_energy_setup::*;
 
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
@@ -12,7 +12,7 @@ use elrond_wasm_debug::{
 
 #[test]
 fn virtual_lock_test() {
-    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let second_user = setup.second_user.clone();
 

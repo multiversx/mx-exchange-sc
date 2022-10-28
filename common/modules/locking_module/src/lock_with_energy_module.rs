@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use simple_lock_energy::virtual_lock::ProxyTrait as _;
+use energy_factory::virtual_lock::ProxyTrait as _;
 
 #[elrond_wasm::module]
 pub trait LockWithEnergyModule {
@@ -35,16 +35,13 @@ pub trait LockWithEnergyModule {
             .execute_on_dest_context()
     }
 
-    fn get_locking_sc_proxy_instance(&self) -> simple_lock_energy::Proxy<Self::Api> {
+    fn get_locking_sc_proxy_instance(&self) -> energy_factory::Proxy<Self::Api> {
         let locking_sc_address = self.locking_sc_address().get();
         self.locking_sc_proxy_obj(locking_sc_address)
     }
 
     #[proxy]
-    fn locking_sc_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> simple_lock_energy::Proxy<Self::Api>;
+    fn locking_sc_proxy_obj(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
 
     #[view(getLockingScAddress)]
     #[storage_mapper("lockingScAddress")]

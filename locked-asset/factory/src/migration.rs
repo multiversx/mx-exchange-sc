@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 use common_structs::UnlockEpochAmountPairs;
-use simple_lock_energy::migration::ProxyTrait as _;
+use energy_factory::migration::ProxyTrait as _;
 
 #[elrond_wasm::module]
 pub trait LockedTokenMigrationModule:
@@ -62,7 +62,7 @@ pub trait LockedTokenMigrationModule:
     fn new_factory_proxy_builder(
         &self,
         sc_address: ManagedAddress,
-    ) -> simple_lock_energy::Proxy<Self::Api>;
+    ) -> energy_factory::Proxy<Self::Api>;
 
     #[storage_mapper("newFactoryAddress")]
     fn new_factory_address(&self) -> SingleValueMapper<ManagedAddress>;

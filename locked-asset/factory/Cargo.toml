@@ -19,8 +19,8 @@ path = "../../common/modules/token_send"
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
 
-[dependencies.simple-lock-energy]
-path = "../simple-lock-energy"
+[dependencies.energy-factory]
+path = "../energy-factory"
 
 [dependencies.elrond-wasm]
 version = "0.36.0"

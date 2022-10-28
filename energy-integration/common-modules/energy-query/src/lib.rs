@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub use simple_lock_energy::energy::Energy;
+pub use energy_factory::energy::Energy;
 
 static USER_ENERGY_STORAGE_KEY: &[u8] = b"userEnergy";
 
@@ -63,10 +63,7 @@ pub trait EnergyQueryModule {
     }
 
     #[proxy]
-    fn energy_factory_proxy(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> simple_lock_energy::Proxy<Self::Api>;
+    fn energy_factory_proxy(&self, sc_address: ManagedAddress) -> energy_factory::Proxy<Self::Api>;
 
     #[view(getEnergyFactoryAddress)]
     #[storage_mapper("energyFactoryAddress")]

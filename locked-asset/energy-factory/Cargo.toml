@@ -1,5 +1,5 @@
 [package]
-name = "simple-lock-energy"
+name = "energy-factory"
 version = "0.0.0"
 authors = [ "you",]
 edition = "2018"

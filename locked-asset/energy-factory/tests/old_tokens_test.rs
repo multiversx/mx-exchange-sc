@@ -1,13 +1,13 @@
-mod simple_lock_energy_setup;
+mod energy_factory_setup;
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use elrond_wasm::types::{BigInt, ManagedVec};
-use simple_lock::locked_token::LockedTokenAttributes;
-use simple_lock_energy::{
+use energy_factory::{
     energy::{Energy, EnergyModule},
     migration::SimpleLockMigrationModule,
 };
-use simple_lock_energy_setup::*;
+use energy_factory_setup::*;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id_wrapped, rust_biguint, DebugApi,
@@ -17,7 +17,7 @@ use elrond_wasm_debug::{
 fn extend_lock_period_old_token_test() {
     let _ = DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
-    let mut setup = SimpleLockEnergySetup::new(simple_lock_energy::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 
     setup.b_mock.set_block_epoch(1);
 
