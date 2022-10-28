@@ -38,13 +38,14 @@ pub trait BaseEnterFarmModule:
         payments: PaymentsVec<Self::Api>,
     ) -> InternalEnterFarmResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+
         let enter_farm_context = EnterFarmContext::new(
             payments,
             &storage_cache.farming_token_id,
             &storage_cache.farm_token_id,
         );
 
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let reward = if !enter_farm_context.additional_farm_tokens.is_empty() {

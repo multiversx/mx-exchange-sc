@@ -38,13 +38,14 @@ pub trait BaseExitFarmModule:
         payment: EsdtTokenPayment<Self::Api>,
     ) -> InternalExitFarmResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+
         let exit_farm_context = ExitFarmContext::<Self::Api, FC::AttributesType>::new(
             payment,
             &storage_cache.farm_token_id,
             self.blockchain(),
         );
 
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &exit_farm_context.farm_token.payment.amount;

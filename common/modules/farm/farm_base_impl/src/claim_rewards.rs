@@ -39,13 +39,14 @@ pub trait BaseClaimRewardsModule:
         payments: PaymentsVec<Self::Api>,
     ) -> InternalClaimRewardsResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
+        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
+
         let claim_rewards_context = ClaimRewardsContext::<Self::Api, FC::AttributesType>::new(
             payments,
             &storage_cache.farm_token_id,
             self.blockchain(),
         );
 
-        self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
         let farm_token_amount = &claim_rewards_context.first_farm_token.payment.amount;

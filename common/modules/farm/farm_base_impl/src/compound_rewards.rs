@@ -40,16 +40,16 @@ pub trait BaseCompoundRewardsModule:
         payments: PaymentsVec<Self::Api>,
     ) -> InternalCompoundRewardsResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
-        let compound_rewards_context = CompoundRewardsContext::<Self::Api, FC::AttributesType>::new(
-            payments,
-            &storage_cache.farm_token_id,
-            self.blockchain(),
-        );
-
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
         require!(
             storage_cache.farming_token_id == storage_cache.reward_token_id,
             ERROR_DIFFERENT_TOKEN_IDS
+        );
+
+        let compound_rewards_context = CompoundRewardsContext::<Self::Api, FC::AttributesType>::new(
+            payments,
+            &storage_cache.farm_token_id,
+            self.blockchain(),
         );
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
