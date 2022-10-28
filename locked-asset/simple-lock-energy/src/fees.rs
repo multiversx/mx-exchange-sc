@@ -33,7 +33,7 @@ pub trait FeesModule:
 {
     fn burn_penalty(&self, token_id: TokenIdentifier, token_nonce: Nonce, fees_amount: &BigUint) {
         let fees_burn_percentage = self.fees_burn_percentage().get();
-        let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PENALTY_PERCENTAGE as u64;
+        let burn_amount = fees_amount * fees_burn_percentage as u64 / MAX_PENALTY_PERCENTAGE;
         let remaining_amount = fees_amount - &burn_amount;
 
         if burn_amount > 0 {

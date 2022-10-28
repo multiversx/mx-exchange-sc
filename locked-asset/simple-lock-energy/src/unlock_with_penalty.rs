@@ -131,8 +131,8 @@ pub trait UnlockWithPenaltyModule:
         let new_penalty_percentage =
             self.calculate_penalty_percentage_full_unlock(new_lock_epochs_remaining);
 
-        (prev_penalty_percentage_full - new_penalty_percentage) * MAX_PENALTY_PERCENTAGE as u64
-            / (MAX_PENALTY_PERCENTAGE as u64 - new_penalty_percentage)
+        (prev_penalty_percentage_full - new_penalty_percentage) * MAX_PENALTY_PERCENTAGE
+            / (MAX_PENALTY_PERCENTAGE - new_penalty_percentage)
     }
 
     /// Calculates the penalty that would be incurred if token_amount tokens
@@ -160,6 +160,6 @@ pub trait UnlockWithPenaltyModule:
             self.calculate_penalty_percentage_partial_unlock(prev_lock_epochs, new_lock_epochs)
         };
 
-        token_amount * penalty_percentage_unlock / MAX_PENALTY_PERCENTAGE as u64
+        token_amount * penalty_percentage_unlock / MAX_PENALTY_PERCENTAGE
     }
 }
