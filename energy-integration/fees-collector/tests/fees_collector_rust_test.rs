@@ -10,7 +10,9 @@ use energy_query::Energy;
 use fees_collector::{fees_accumulation::FeesAccumulationModule, FeesCollector};
 use fees_collector_test_setup::*;
 use weekly_rewards_splitting::{
-    global_info::WeeklyRewardsGlobalInfo, ClaimProgress, WeeklyRewardsSplittingModule,
+    global_info::WeeklyRewardsGlobalInfo,
+    locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule, ClaimProgress,
+    WeeklyRewardsSplittingModule,
 };
 
 #[test]
@@ -263,7 +265,16 @@ fn claim_after_dex_inactive_test() {
     fc_setup
         .b_mock
         .execute_query(&fc_setup.fc_wrapper, |sc| {
-            assert_eq!(sc.total_energy_for_week(4).get(), 10_450);
+            // for 4 weeks inactive => global update
+            // total -= 4 * 300 => 12_000 - 300 => 11_700
+            //
+            // second user update:
+            // total -= 9_000 = 2_700 += 7_950 = 10_650
+            //
+            // first user update:
+            // total -= 3_000 = 7_650 += 2_500
+
+            assert_eq!(sc.total_energy_for_week(4).get(), 10_450); // 9_050
             assert_eq!(sc.total_locked_tokens_for_week(4).get(), 100);
             assert_eq!(sc.last_global_update_week().get(), 4);
 
@@ -391,10 +402,13 @@ fn claim_second_week_test() {
             );
 
             // 10_000 total prev week
-            // - 7 * 1_000 global decrease (-7_000)
-            // + 7 * 500 - 1_000 + 2_000 (+4_500) (for first user -> global refund + energy update)
-            // = 10_000 - 7_000 + 4_500 = 7_500
-            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
+            // first user's tokens get removed, as they expired
+            // so we only decrease by second user's 500 tokens worth of energy
+            //
+            // - 7 * 500 global decrease (-3_500)
+            // + 2_000 (first user's new energy)
+            // = 8_500
+            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -452,7 +466,7 @@ fn claim_second_week_test() {
                 first_user_energy
             );
 
-            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
+            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -546,7 +560,7 @@ fn claim_inactive_week_test() {
             // 12_000 - 700 + 350 - 3_000 + 2_650
             // = 11_300 + 350 - 350
             // = 11_300
-            assert_eq!(sc.total_energy_for_week(2).get(), 11_300);
+            assert_eq!(sc.total_energy_for_week(2).get(), 11_300); // 11_650
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 100);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -719,6 +733,141 @@ fn try_claim_after_unlock() {
                     week: 2
                 }
             );
+        })
+        .assert_ok();
+}
+
+#[test]
+fn locked_token_buckets_shifting_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 50, 3_000);
+    fc_setup.set_energy(&second_user, 50, 9_000);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // user claim first week - users only get registered for week 2, without receiving rewards
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(sc.first_bucket_id().get(), 0);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(1).get(),
+                managed_biguint!(100)
+            );
+
+            // first user energy lasts for 3_000 / 50 = 60 epochs => 60 / 7 weeks to expire
+            // => bucket offset 8
+            //
+            // second user energy lasts for 9_000 / 50 = 180 epochs => 180 / 7 weeks to expire
+            // => bucket offset 25
+            for i in 0..8 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(8).get(), managed_biguint!(50));
+
+            for i in 9..25 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(25).get(), managed_biguint!(50));
+        })
+        .assert_ok();
+
+    // advance week
+    fc_setup.advance_week();
+
+    // deposit rewards week 2
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // advance 5 weeks
+    fc_setup.advance_week();
+    fc_setup.advance_week();
+    fc_setup.advance_week();
+    fc_setup.advance_week();
+    fc_setup.advance_week();
+
+    // naturally, energy would decrease with 7 * 5 * 50 = 1_750 =>
+    // new energy = 3_000 - 1_750 = 1_250
+    fc_setup.set_energy(&first_user, 50, 1_250);
+
+    // let's assume second user locked some more tokens, and now has more energy
+    fc_setup.set_energy(&second_user, 100, 10_000);
+
+    // first user claim, which triggers the global update
+    // and updates first user amounts
+    fc_setup.claim(&first_user).assert_ok();
+
+    // check internal storage after shift
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            // 6 weeks have passed, so we must shift 6 times (first bucket ID was 0 initially)
+            assert_eq!(sc.first_bucket_id().get(), 6);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(7).get(),
+                managed_biguint!(100)
+            );
+
+            // first user energy lasts for 1_250 / 50 = 25 epochs => 3 weeks => offset 3
+            // => bucket ID 6 + 3 = 9
+            // second user did not update, so they remain in bucket 25
+
+            // buckets shift 6 to the left
+            for i in 6..8 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(9).get(), managed_biguint!(50));
+
+            for i in 10..25 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(25).get(), managed_biguint!(50));
+        })
+        .assert_ok();
+
+    // second user claim, which updates second user's amounts
+    fc_setup.claim(&second_user).assert_ok();
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(sc.first_bucket_id().get(), 6);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(7).get(),
+                managed_biguint!(150)
+            );
+
+            // second user energy lasts for 10_000 / 100 = 100 => 14 weeks => offset 14
+            // => bucket ID = 6 + 14 = 20
+
+            for i in 6..8 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(9).get(), managed_biguint!(50));
+
+            for i in 10..20 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
+            assert_eq!(sc.locked_tokens_in_bucket(20).get(), managed_biguint!(100));
+
+            for i in 21..25 {
+                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+            }
         })
         .assert_ok();
 }

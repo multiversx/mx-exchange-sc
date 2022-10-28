@@ -209,6 +209,7 @@ pub trait FarmStakingProxy:
         &self,
         pair_first_token_min_amount: BigUint,
         pair_second_token_min_amount: BigUint,
+        exit_amount: BigUint,
     ) -> UnstakeResult<Self::Api> {
         let (payment_token, payment_nonce, payment_amount) =
             self.call_value().single_esdt().into_tuple();
@@ -217,8 +218,11 @@ pub trait FarmStakingProxy:
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
         let lp_farm_token_amount =
             self.get_lp_farm_token_amount_equivalent(&attributes, &payment_amount);
-        let lp_farm_exit_result =
-            self.lp_farm_exit(attributes.lp_farm_token_nonce, lp_farm_token_amount);
+        let lp_farm_exit_result = self.lp_farm_exit(
+            attributes.lp_farm_token_nonce,
+            lp_farm_token_amount,
+            exit_amount,
+        );
 
         let remove_liq_result = self.pair_remove_liquidity(
             lp_farm_exit_result.lp_tokens,

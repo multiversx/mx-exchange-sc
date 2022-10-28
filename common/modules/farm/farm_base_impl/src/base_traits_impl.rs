@@ -74,6 +74,16 @@ pub trait FarmContract {
         }
     }
 
+    fn calculate_boosted_rewards(
+        _sc: &Self::FarmSc,
+        _caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
+        _farm_token_nonce: Nonce,
+        _farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        _storage_cache: &StorageCache<Self::FarmSc>,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        BigUint::zero()
+    }
+
     fn create_enter_farm_initial_attributes(
         sc: &Self::FarmSc,
         _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,

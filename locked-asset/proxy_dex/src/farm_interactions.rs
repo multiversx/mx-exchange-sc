@@ -4,11 +4,13 @@ use farm::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType, Prox
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
+    pub reward_token: EsdtTokenPayment<M>,
 }
 
 pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
+    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct ClaimRewardsFarmResultWrapper<M: ManagedTypeApi> {
@@ -29,35 +31,42 @@ pub trait FarmInteractionsModule {
         farming_token_amount: BigUint,
     ) -> EnterFarmResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
-        let result: EnterFarmResultType<Self::Api> = self
+        let enter_farm_result: EnterFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
             .enter_farm_endpoint(original_caller)
             .add_esdt_token_transfer(farming_token_id, 0, farming_token_amount)
             .execute_on_dest_context();
 
-        EnterFarmResultWrapper { farm_token: result }
+        let (output_farm_token_payment, rewards_payment) = enter_farm_result.into_tuple();
+
+        EnterFarmResultWrapper {
+            farm_token: output_farm_token_payment,
+            reward_token: rewards_payment,
+        }
     }
 
     fn call_exit_farm(
         &self,
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
+        exit_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
         let raw_result: ExitFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
-            .exit_farm_endpoint(original_caller)
+            .exit_farm_endpoint(exit_amount, original_caller)
             .add_esdt_token_transfer(
                 farm_token.token_identifier,
                 farm_token.token_nonce,
                 farm_token.amount,
             )
             .execute_on_dest_context();
-        let (farming_tokens, reward_tokens) = raw_result.into_tuple();
+        let (farming_tokens, reward_tokens, remaining_farm_tokens) = raw_result.into_tuple();
 
         ExitFarmResultWrapper {
             farming_tokens,
             reward_tokens,
+            remaining_farm_tokens,
         }
     }
 

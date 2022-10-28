@@ -21,6 +21,7 @@ pub trait FeesCollector:
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + fees_accumulation::FeesAccumulationModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule

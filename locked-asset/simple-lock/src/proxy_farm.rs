@@ -20,7 +20,7 @@ pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
     pub farming_token_locked_nonce: u64,
 }
 
-pub type EnterFarmThroughProxyResultType<M> = EsdtTokenPayment<M>;
+pub type EnterFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ExitFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type FarmClaimRewardsThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -171,11 +171,13 @@ pub trait ProxyFarmModule:
         };
 
         let caller = self.blockchain().get_caller();
-        farm_proxy_token_mapper.nft_create_and_send(
+        let farm_tokens = farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
             &proxy_farm_token_attributes,
-        )
+        );
+
+        (farm_tokens, enter_farm_result.reward_tokens).into()
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.
@@ -188,7 +190,10 @@ pub trait ProxyFarmModule:
     /// - farm reward tokens
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
-    fn exit_farm_locked_token(&self) -> ExitFarmThroughProxyResultType<Self::Api> {
+    fn exit_farm_locked_token(
+        &self,
+        exit_amount: BigUint,
+    ) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
@@ -202,6 +207,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
+            exit_amount,
         );
         require!(
             exit_farm_result.initial_farming_tokens.token_identifier

@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(trait_alias)]
+#![feature(int_roundings)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -9,6 +10,7 @@ pub const USER_MAX_CLAIM_WEEKS: usize = 4;
 pub mod base_impl;
 pub mod events;
 pub mod global_info;
+pub mod locked_token_buckets;
 
 use base_impl::WeeklyRewardsSplittingTraitsModule;
 use common_types::PaymentsVec;
@@ -43,6 +45,7 @@ pub trait WeeklyRewardsSplittingModule:
     + week_timekeeping::WeekTimekeepingModule
     + events::WeeklyRewardsSplittingEventsModule
     + global_info::WeeklyRewardsGlobalInfo
+    + locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
 {
     fn claim_multi<WRSM: WeeklyRewardsSplittingTraitsModule<WeeklyRewardsSplittingMod = Self>>(
         &self,
@@ -142,19 +145,11 @@ pub trait WeeklyRewardsSplittingModule:
     ) {
         let last_active_mapper = self.last_active_week_for_user(user);
         let last_active_week = last_active_mapper.get();
-        let mut prev_energy = if last_active_week > 0 {
+        let prev_energy = if last_active_week > 0 {
             self.user_energy_for_week(user, last_active_week).get()
         } else {
             Energy::default()
         };
-
-        let prev_week = current_week - 1;
-        if last_active_week < prev_week && last_active_week > 0 {
-            let inactive_weeks = prev_week - last_active_week;
-            let deplete_end_epoch =
-                prev_energy.get_last_update_epoch() + inactive_weeks as u64 * EPOCHS_IN_WEEK;
-            prev_energy.deplete(deplete_end_epoch);
-        }
 
         if last_active_week != current_week {
             last_active_mapper.set(current_week);
