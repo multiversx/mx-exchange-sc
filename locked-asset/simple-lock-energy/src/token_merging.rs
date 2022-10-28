@@ -87,8 +87,8 @@ pub trait TokenMergingModule:
     + crate::events::EventsModule
     + crate::lock_options::LockOptionsModule
     + utils::UtilsModule
+    + sc_whitelist_module::SCWhitelistModule
 {
-    // TODO: Only allow original caller arg for whitelisted addresses
     #[payable("*")]
     #[endpoint(mergeTokens)]
     fn merge_tokens_endpoint(
@@ -121,8 +121,15 @@ pub trait TokenMergingModule:
         opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> LockedAmountWeightAttributesPair<Self> {
         let locked_token_mapper = self.locked_token();
-        let original_caller = self.dest_from_optional(opt_original_caller);
-        let current_epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
+        let original_caller = match opt_original_caller {
+            OptionalValue::Some(orig_caller) => {
+                self.require_sc_address_whitelisted(&caller);
+
+                orig_caller
+            }
+            OptionalValue::None => caller,
+        };
 
         locked_token_mapper.require_all_same_token(&payments);
 
@@ -130,6 +137,7 @@ pub trait TokenMergingModule:
         payments.remove(0);
 
         self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
+            let current_epoch = self.blockchain().get_block_epoch();
             let first_token_attributes: LockedTokenAttributes<Self::Api> =
                 locked_token_mapper.get_token_attributes(first_payment.token_nonce);
             energy.update_after_unlock_any(

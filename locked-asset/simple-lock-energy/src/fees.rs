@@ -30,6 +30,7 @@ pub trait FeesModule:
     + crate::events::EventsModule
     + crate::lock_options::LockOptionsModule
     + utils::UtilsModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     fn burn_penalty(&self, token_id: TokenIdentifier, token_nonce: Nonce, fees_amount: &BigUint) {
         let fees_burn_percentage = self.fees_burn_percentage().get();

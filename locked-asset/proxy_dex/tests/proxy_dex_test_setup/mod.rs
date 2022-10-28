@@ -111,6 +111,12 @@ where
             })
             .assert_ok();
 
+        b_mock
+            .execute_tx(&owner, &simple_lock_wrapper, &rust_zero, |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
+            })
+            .assert_ok();
+
         let user_balance = rust_biguint!(USER_BALANCE);
         b_mock.set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
         b_mock.set_esdt_balance(&first_user, WEGLD_TOKEN_ID, &user_balance);
