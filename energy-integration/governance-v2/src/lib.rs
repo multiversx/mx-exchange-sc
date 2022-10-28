@@ -99,7 +99,9 @@ pub trait GovernanceV2:
                 payments_for_action.append_vec(gov_action.payments.clone());
             }
 
-            gov_actions.push(gov_action);
+            unsafe {
+                gov_actions.push_unchecked(gov_action);
+            }
         }
 
         require!(

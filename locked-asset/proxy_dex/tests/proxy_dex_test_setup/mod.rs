@@ -19,7 +19,7 @@ use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
-use simple_lock_energy::{lock_options::LockOptionsModule, SimpleLockEnergy};
+use simple_lock_energy::SimpleLockEnergy;
 
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
@@ -44,9 +44,7 @@ pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
-pub const FIRST_THRESHOLD_PERCENTAGE: u64 = 4_000;
-pub const SECOND_THRESHOLD_PERCENTAGE: u64 = 6_000;
-pub const THIRD_THRESHOLD_PERCENTAGE: u64 = 8_000;
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 pub const FEES_BURN_PERCENTAGE: u16 = 10_000; // 100%
 
 // Proxy
@@ -324,23 +322,18 @@ where
     b_mock
         .execute_tx(owner, &simple_lock_wrapper, &rust_zero, |sc| {
             let mut lock_options = MultiValueEncoded::new();
-            for option in LOCK_OPTIONS {
-                lock_options.push(*option);
+            for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                lock_options.push((*option, *penalty).into());
             }
 
             sc.init(
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                FIRST_THRESHOLD_PERCENTAGE,
-                SECOND_THRESHOLD_PERCENTAGE,
-                THIRD_THRESHOLD_PERCENTAGE,
                 FEES_BURN_PERCENTAGE,
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 lock_options,
             );
-
-            assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
             sc.locked_token()
                 .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));

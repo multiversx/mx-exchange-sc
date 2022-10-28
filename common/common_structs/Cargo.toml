@@ -16,3 +16,6 @@ path = "../traits/mergeable"
 
 [dependencies.fixed-supply-token]
 path = "../traits/fixed-supply-token"
+
+[dependencies.math]
+path = "../modules/math"

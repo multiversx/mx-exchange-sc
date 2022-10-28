@@ -148,7 +148,7 @@ fn unlock_early_test() {
 
     let penalty_percentage = 4_000u64; // 1 year = 4_000
     let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
-    let penalty_amount = setup.get_penalty_amount(half_balance, 0, LOCK_OPTIONS[0]);
+    let penalty_amount = setup.get_penalty_amount(half_balance, LOCK_OPTIONS[0], 0);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     setup.unlock_early(&first_user, 1, half_balance).assert_ok();
@@ -161,9 +161,6 @@ fn unlock_early_test() {
 
     let expected_energy = rust_biguint!(0);
     let actual_energy = setup.get_user_energy(&first_user);
-    setup
-        .b_mock
-        .dump_state_for_account_hex_attributes(&first_user);
     assert_eq!(actual_energy, expected_energy);
 }
 
@@ -188,7 +185,7 @@ fn multiple_early_unlocks_same_week_test() {
 
     let mut penalty_percentage = 4_000u64; // 1 year = 4_000
     let mut expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
-    let mut penalty_amount = setup.get_penalty_amount(sixth_balance, 0, LOCK_OPTIONS[0]);
+    let mut penalty_amount = setup.get_penalty_amount(sixth_balance, LOCK_OPTIONS[0], 0);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     // Unlock early 1/3 of the LockedTokens
@@ -202,7 +199,7 @@ fn multiple_early_unlocks_same_week_test() {
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
 
-    // After first early unlock of the week, fees are caches into Simple Lock SC
+    // After first early unlock of the week, fees are cached into Simple Lock SC
     setup.b_mock.check_nft_balance(
         &setup.sc_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
@@ -222,7 +219,7 @@ fn multiple_early_unlocks_same_week_test() {
 
     penalty_percentage = 4_000u64; // 1 year = 4_000
     expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
-    penalty_amount = setup.get_penalty_amount(sixth_balance, 0, LOCK_OPTIONS[0]);
+    penalty_amount = setup.get_penalty_amount(sixth_balance, LOCK_OPTIONS[0], 0);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     let received_token_amount_2 = rust_biguint!(sixth_balance) - penalty_amount;
@@ -253,7 +250,7 @@ fn multiple_early_unlocks_same_week_test() {
 
     penalty_percentage = 4_000u64; // 1 year = 4_000
     expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
-    penalty_amount = setup.get_penalty_amount(sixth_balance, 0, LOCK_OPTIONS[0]);
+    penalty_amount = setup.get_penalty_amount(sixth_balance, LOCK_OPTIONS[0], 0);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     let received_token_amount_3 = rust_biguint!(sixth_balance) - penalty_amount;
@@ -299,7 +296,7 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
 
     let mut penalty_percentage = 4_000u64; // 1 year = 4_000
     let expected_penalty_amount = rust_biguint!(quarter_balance) * penalty_percentage / 10_000u64;
-    let mut penalty_amount = setup.get_penalty_amount(quarter_balance, 0, LOCK_OPTIONS[0]);
+    let mut penalty_amount = setup.get_penalty_amount(quarter_balance, LOCK_OPTIONS[0], 0);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     // Unlock early half of the LockedTokens
@@ -335,7 +332,7 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
 
     penalty_percentage = 3_922u64; // (360 epochs - 7 epochs) / 360 * 4_000 = 3_922
     let expected_penalty_amount_2 = rust_biguint!(quarter_balance) * penalty_percentage / 10_000u64;
-    penalty_amount = setup.get_penalty_amount(quarter_balance, 0, LOCK_OPTIONS[0]);
+    penalty_amount = setup.get_penalty_amount(quarter_balance, LOCK_OPTIONS[0] - current_epoch, 0);
     assert_eq!(penalty_amount, expected_penalty_amount_2);
 
     let received_token_amount_2 = rust_biguint!(quarter_balance) - penalty_amount;
@@ -344,9 +341,6 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
 
-    setup
-        .b_mock
-        .dump_state_for_account_hex_attributes(&setup.fees_collector_mock);
     setup.b_mock.check_nft_balance(
         &setup.fees_collector_mock,
         LOCKED_TOKEN_ID,
@@ -380,11 +374,11 @@ fn reduce_lock_period_test() {
 
     let penalty_percentage = 3_333u64; // (6_000 - 4_000) / (10_000 - 4_000) = 3_333
     let expected_penalty_amount = rust_biguint!(half_balance) * penalty_percentage / 10_000u64;
-    let penalty_amount = setup.get_penalty_amount(half_balance, EPOCHS_IN_YEAR, LOCK_OPTIONS[1]);
+    let penalty_amount = setup.get_penalty_amount(half_balance, LOCK_OPTIONS[1], LOCK_OPTIONS[0]);
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     setup
-        .reduce_lock_period(&first_user, 1, half_balance, EPOCHS_IN_YEAR)
+        .reduce_lock_period(&first_user, 1, half_balance, LOCK_OPTIONS[0])
         .assert_ok();
 
     setup.b_mock.check_esdt_balance(
@@ -420,7 +414,7 @@ fn reduce_lock_period_test() {
         }),
     );
 
-    //at this point, the fee collector should not receive any tokens
+    // at this point, the fee collector should not receive any tokens
     setup.b_mock.check_esdt_balance(
         &setup.fees_collector_mock,
         BASE_ASSET_TOKEN_ID,

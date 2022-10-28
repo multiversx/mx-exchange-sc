@@ -15,11 +15,12 @@ elrond_wasm_node::wasm_endpoints! {
         getEnergyEntryForUser
         getFeesBurnPercentage
         getFeesCollectorAddress
+        getFeesFromPenaltyUnlocking
+        getLastEpochFeeSentToCollector
         getLegacyLockedTokenId
         getLockOptions
         getLockedTokenId
         getPenaltyAmount
-        getPenaltyPercentage
         isPaused
         isSCAddressWhitelisted
         issueLockedToken
@@ -32,7 +33,6 @@ elrond_wasm_node::wasm_endpoints! {
         removeSCAddressFromWhitelist
         setFeesBurnPercentage
         setFeesCollectorAddress
-        setPenaltyPercentage
         setTransferRoleLockedToken
         unlockEarly
         unlockTokens

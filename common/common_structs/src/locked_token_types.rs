@@ -172,10 +172,12 @@ impl<M: ManagedTypeApi> LockedAssetTokenAttributesEx<M> {
             };
 
             total_tokens_processed += &unlock_amount_at_milestone;
-            amounts.push(EpochAmountPair {
-                epoch: milestone.unlock_epoch,
-                amount: unlock_amount_at_milestone,
-            });
+            unsafe {
+                amounts.push_unchecked(EpochAmountPair {
+                    epoch: milestone.unlock_epoch,
+                    amount: unlock_amount_at_milestone,
+                });
+            }
         }
 
         UnlockEpochAmountPairs::new(amounts)

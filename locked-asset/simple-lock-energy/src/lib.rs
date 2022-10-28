@@ -5,6 +5,7 @@ elrond_wasm::imports!();
 pub mod energy;
 pub mod events;
 pub mod extend_lock;
+pub mod fees;
 pub mod local_roles;
 pub mod lock_options;
 pub mod migration;
@@ -14,7 +15,7 @@ pub mod token_whitelist;
 pub mod unlock_with_penalty;
 pub mod virtual_lock;
 
-use common_structs::Epoch;
+use common_structs::{Epoch, Percent};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 
@@ -37,6 +38,7 @@ pub trait SimpleLockEnergy:
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
     + penalty::LocalPenaltyModule
+    + fees::FeesModule
     + utils::UtilsModule
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
@@ -55,19 +57,16 @@ pub trait SimpleLockEnergy:
     /// - fees_burn_percentage: The percentage of fees that are burned.
     ///     The rest are sent to the fees collector
     /// - fees_collector_address
-    /// - lock_options: List of epochs. Users may only choose from this list when calling lockTokens
+    /// - lock_options: See `addLockOptions` endpoint doc for details.
     #[init]
     fn init(
         &self,
         base_asset_token_id: TokenIdentifier,
         legacy_token_id: TokenIdentifier,
-        first_threshold_penalty_percentage: u64,
-        second_threshold_penalty_percentage: u64,
-        third_threshold_penalty_percentage: u64,
         fees_burn_percentage: u16,
         fees_collector_address: ManagedAddress,
         old_locked_asset_factory_address: ManagedAddress,
-        lock_options: MultiValueEncoded<Epoch>,
+        lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>,
     ) {
         self.require_valid_token_id(&base_asset_token_id);
         self.require_valid_token_id(&legacy_token_id);
@@ -75,11 +74,6 @@ pub trait SimpleLockEnergy:
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.legacy_locked_token_id().set(&legacy_token_id);
-        self.set_penalty_percentage(
-            first_threshold_penalty_percentage,
-            second_threshold_penalty_percentage,
-            third_threshold_penalty_percentage,
-        );
         self.set_fees_burn_percentage(fees_burn_percentage);
         self.set_fees_collector_address(fees_collector_address);
         self.old_locked_asset_factory_address()

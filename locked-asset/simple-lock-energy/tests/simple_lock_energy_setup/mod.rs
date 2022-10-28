@@ -12,8 +12,7 @@ use elrond_wasm_debug::{
 use elrond_wasm_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenModule;
 use simple_lock_energy::{
-    energy::EnergyModule, lock_options::LockOptionsModule,
-    unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
+    energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
 };
 
 mod fees_collector_mock;
@@ -27,11 +26,9 @@ pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 
-pub const FIRST_THRESHOLD_PERCENTAGE: u64 = 4_000;
-pub const SECOND_THRESHOLD_PERCENTAGE: u64 = 6_000;
-pub const THIRD_THRESHOLD_PERCENTAGE: u64 = 8_000;
 pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
 pub struct SimpleLockEnergySetup<ScBuilder>
 where
@@ -68,8 +65,8 @@ where
         b_mock
             .execute_tx(&owner, &sc_wrapper, &rust_zero, |sc| {
                 let mut lock_options = MultiValueEncoded::new();
-                for option in LOCK_OPTIONS {
-                    lock_options.push(*option);
+                for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                    lock_options.push((*option, *penalty).into());
                 }
 
                 // fees_collector_mock address used twice, as we don't test migration here
@@ -77,16 +74,11 @@ where
                 sc.init(
                     managed_token_id!(BASE_ASSET_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    FIRST_THRESHOLD_PERCENTAGE,
-                    SECOND_THRESHOLD_PERCENTAGE,
-                    THIRD_THRESHOLD_PERCENTAGE,
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
-
-                assert_eq!(sc.max_lock_option().get(), *LOCK_OPTIONS.last().unwrap());
 
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
@@ -211,7 +203,7 @@ where
         caller: &Address,
         token_nonce: u64,
         amount: u64,
-        epochs_to_reduce: u64,
+        new_lock_period: u64,
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
@@ -220,7 +212,7 @@ where
             token_nonce,
             &rust_biguint!(amount),
             |sc| {
-                sc.reduce_lock_period(epochs_to_reduce);
+                sc.reduce_lock_period(new_lock_period);
             },
         )
     }
@@ -228,16 +220,16 @@ where
     pub fn get_penalty_amount(
         &mut self,
         token_amount: u64,
-        epochs_to_reduce: u64,
-        current_unlock_epoch: u64,
+        prev_lock_epochs: u64,
+        new_lock_epochs: u64,
     ) -> num_bigint::BigUint {
         let mut result = rust_biguint!(0);
         self.b_mock
             .execute_query(&self.sc_wrapper, |sc| {
                 let managed_result = sc.calculate_penalty_amount(
                     &managed_biguint!(token_amount),
-                    epochs_to_reduce,
-                    current_unlock_epoch,
+                    prev_lock_epochs,
+                    new_lock_epochs,
                 );
                 result = to_rust_biguint(managed_result);
             })
