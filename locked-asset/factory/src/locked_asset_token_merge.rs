@@ -98,10 +98,12 @@ pub trait LockedAssetTokenMergeModule:
             let unlock_percent = &(&el.amount * PRECISION_EX_INCREASE * ONE_MILLION) / amount_total;
 
             // Accumulate even the percents of 0
-            unlock_milestones_merged.push(UnlockMilestoneEx {
-                unlock_epoch: el.epoch,
-                unlock_percent: unlock_percent.to_u64().unwrap(),
-            })
+            unsafe {
+                unlock_milestones_merged.push_unchecked(UnlockMilestoneEx {
+                    unlock_epoch: el.epoch,
+                    unlock_percent: unlock_percent.to_u64().unwrap_unchecked(),
+                });
+            }
         }
 
         self.distribute_leftover(&mut unlock_milestones_merged);
@@ -127,14 +129,16 @@ pub trait LockedAssetTokenMergeModule:
                     array.len() < DOUBLE_MAX_MILESTONES_IN_SCHEDULE,
                     "too many unlock milestones"
                 );
-                array.push(EpochAmountPair {
-                    epoch: milestone.unlock_epoch,
-                    amount: self.rule_of_three(
-                        &BigUint::from(milestone.unlock_percent),
-                        &BigUint::from(PERCENTAGE_TOTAL_EX),
-                        &locked_token.token_amount.amount,
-                    ),
-                });
+                unsafe {
+                    array.push_unchecked(EpochAmountPair {
+                        epoch: milestone.unlock_epoch,
+                        amount: self.rule_of_three(
+                            &BigUint::from(milestone.unlock_percent),
+                            &BigUint::from(PERCENTAGE_TOTAL_EX),
+                            &locked_token.token_amount.amount,
+                        ),
+                    });
+                }
             }
             sum += &locked_token.token_amount.amount;
         }
@@ -155,9 +159,13 @@ pub trait LockedAssetTokenMergeModule:
                     amount: &last.amount + &elem.amount,
                 };
                 unlock_epoch_amount_merged.pop();
-                unlock_epoch_amount_merged.push(new_elem);
+                unsafe {
+                    unlock_epoch_amount_merged.push_unchecked(new_elem);
+                }
             } else {
-                unlock_epoch_amount_merged.push(elem.clone());
+                unsafe {
+                    unlock_epoch_amount_merged.push_unchecked(elem.clone());
+                }
             }
         }
         require!(sum != 0u64, "Sum cannot be zero");

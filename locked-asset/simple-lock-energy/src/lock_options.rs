@@ -134,7 +134,7 @@ fn init_static_lock_options<M: StorageMapperApi>(
 }
 
 fn sort_lock_options(lock_options: &mut AllLockOptions) {
-    lock_options.sort_by(|first, second| first.lock_epochs.cmp(&second.lock_epochs));
+    lock_options.sort_unstable_by(|first, second| first.lock_epochs.cmp(&second.lock_epochs));
 }
 
 fn require_no_duplicate_lock_epoch_options<M: ManagedTypeApi>(lock_options: &AllLockOptions) {

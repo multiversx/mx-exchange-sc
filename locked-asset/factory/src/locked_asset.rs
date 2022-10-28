@@ -94,10 +94,12 @@ pub trait LockedAssetModule:
                 let new_unlock_percent =
                     old_milestone.unlock_percent * PRECISION_EX_INCREASE * ONE_MILLION
                         / unlock_percent_remaining;
-                unlock_milestones_merged.push(UnlockMilestoneEx {
-                    unlock_epoch: old_milestone.unlock_epoch,
-                    unlock_percent: new_unlock_percent,
-                });
+                unsafe {
+                    unlock_milestones_merged.push_unchecked(UnlockMilestoneEx {
+                        unlock_epoch: old_milestone.unlock_epoch,
+                        unlock_percent: new_unlock_percent,
+                    });
+                }
             }
         }
 

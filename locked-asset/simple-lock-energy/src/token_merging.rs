@@ -8,28 +8,26 @@ use simple_lock::locked_token::LockedTokenAttributes;
 use crate::energy::Energy;
 
 #[derive(Clone)]
-pub struct LockedAmountWeightAttributesPair<'a, Sc, M>
+pub struct LockedAmountWeightAttributesPair<'a, Sc>
 where
     Sc: crate::penalty::LocalPenaltyModule,
-    M: ManagedTypeApi + BlockchainApi,
 {
     pub sc_ref: &'a Sc,
-    pub token_amount: BigUint<M>,
+    pub token_amount: BigUint<Sc::Api>,
     pub token_unlock_fee_percent: u64,
-    pub attributes: LockedTokenAttributes<M>,
+    pub attributes: LockedTokenAttributes<Sc::Api>,
 }
 
-impl<'a, Sc, M> LockedAmountWeightAttributesPair<'a, Sc, M>
+impl<'a, Sc> LockedAmountWeightAttributesPair<'a, Sc>
 where
     Sc: crate::penalty::LocalPenaltyModule,
-    M: ManagedTypeApi + BlockchainApi,
 {
     pub fn new(
         sc_ref: &'a Sc,
-        token_amount: BigUint<M>,
-        attributes: LockedTokenAttributes<M>,
+        token_amount: BigUint<Sc::Api>,
+        attributes: LockedTokenAttributes<Sc::Api>,
     ) -> Self {
-        let current_epoch = M::blockchain_api_impl().get_block_epoch();
+        let current_epoch = Sc::Api::blockchain_api_impl().get_block_epoch();
         let lock_epochs_remaining = if attributes.unlock_epoch > current_epoch {
             attributes.unlock_epoch - current_epoch
         } else {
@@ -47,10 +45,9 @@ where
     }
 }
 
-impl<'a, Sc, M> Mergeable<M> for LockedAmountWeightAttributesPair<'a, Sc, M>
+impl<'a, Sc> Mergeable<Sc::Api> for LockedAmountWeightAttributesPair<'a, Sc>
 where
     Sc: crate::penalty::LocalPenaltyModule,
-    M: ManagedTypeApi + BlockchainApi,
 {
     fn can_merge_with(&self, other: &Self) -> bool {
         let same_token_id = self.attributes.original_token_id == other.attributes.original_token_id;
@@ -122,7 +119,7 @@ pub trait TokenMergingModule:
         self,
         mut payments: PaymentsVec<Self::Api>,
         opt_original_caller: OptionalValue<ManagedAddress>,
-    ) -> LockedAmountWeightAttributesPair<Self, Self::Api> {
+    ) -> LockedAmountWeightAttributesPair<Self> {
         let locked_token_mapper = self.locked_token();
         let original_caller = self.dest_from_optional(opt_original_caller);
         let current_epoch = self.blockchain().get_block_epoch();
