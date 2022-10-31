@@ -177,6 +177,7 @@ pub trait FarmBoostedYieldsModule:
     #[storage_mapper("undistributedBoostedRewards")]
     fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getBoostedYieldsFactors)]
     #[storage_mapper("boostedYieldsFactors")]
     fn boosted_yields_factors(&self) -> SingleValueMapper<BoostedYieldsFactors<Self::Api>>;
 }
