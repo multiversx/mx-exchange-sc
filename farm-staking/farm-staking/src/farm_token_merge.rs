@@ -3,28 +3,7 @@ elrond_wasm::derive_imports!();
 
 use token_merge_helper::{ValueWeight, WeightedAverageType};
 
-#[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
-)]
-pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
-    pub reward_per_share: BigUint<M>,
-    pub compounded_reward: BigUint<M>,
-    pub current_farm_amount: BigUint<M>,
-}
-
-#[derive(ManagedVecItem, Clone)]
-pub struct StakingFarmToken<M: ManagedTypeApi> {
-    pub payment: EsdtTokenPayment<M>,
-    pub attributes: StakingFarmTokenAttributes<M>,
-}
+use crate::token_attributes::{StakingFarmToken, StakingFarmTokenAttributes};
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:

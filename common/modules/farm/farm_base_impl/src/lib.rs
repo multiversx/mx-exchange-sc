@@ -15,11 +15,6 @@ pub mod compound_rewards;
 pub mod enter_farm;
 pub mod exit_farm;
 
-pub type EnterFarmResultType<M> = EsdtTokenPayment<M>;
-pub type CompoundRewardsResultType<M> = EsdtTokenPayment<M>;
-pub type ClaimRewardsResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
-pub type ExitFarmResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
-
 #[elrond_wasm::module]
 pub trait FarmBaseImpl:
     rewards::RewardsModule

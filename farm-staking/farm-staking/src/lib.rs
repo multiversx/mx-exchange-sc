@@ -1,17 +1,20 @@
 #![no_std]
 #![feature(exact_size_is_empty)]
 #![allow(clippy::too_many_arguments)]
+#![feature(trait_alias)]
 
+pub mod base_impl_wrapper;
 pub mod custom_rewards;
 pub mod farm_token_merge;
+pub mod token_attributes;
 
 use common_structs::Nonce;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::farm_token_merge::StakingFarmTokenAttributes;
-use farm_token_merge::StakingFarmToken;
+use token_attributes::StakingFarmToken;
+use token_attributes::StakingFarmTokenAttributes;
 
 pub type EnterFarmResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
@@ -38,7 +41,6 @@ pub trait Farm:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_token_merge::FarmTokenMergeModule
     + token_merge_helper::TokenMergeHelperModule
-    // farm base impl
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
 {
@@ -58,7 +60,7 @@ pub trait Farm:
             farming_token_id,
             division_safety_constant,
             owner,
-            admins
+            admins,
         );
 
         require!(max_apr > 0u64, "Invalid max APR percentage");

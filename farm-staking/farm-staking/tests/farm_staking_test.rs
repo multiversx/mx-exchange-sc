@@ -9,7 +9,7 @@ type RustBigUint = num_bigint::BigUint;
 
 use config::*;
 use farm_staking::custom_rewards::{CustomRewardsModule, BLOCKS_IN_YEAR, MAX_PERCENT};
-use farm_staking::farm_token_merge::StakingFarmTokenAttributes;
+use farm_staking::token_attributes::StakingFarmTokenAttributes;
 use farm_staking::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};

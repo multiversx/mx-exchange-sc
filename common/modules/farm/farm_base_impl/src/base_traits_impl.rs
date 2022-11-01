@@ -111,16 +111,6 @@ pub trait FarmContract {
         }
     }
 
-    fn calculate_boosted_rewards(
-        _sc: &Self::FarmSc,
-        _caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        _farm_token_nonce: Nonce,
-        _farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-        _storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        BigUint::zero()
-    }
-
     fn create_enter_farm_initial_attributes(
         sc: &Self::FarmSc,
         _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
@@ -186,6 +176,22 @@ pub trait FarmContract {
 
         new_attributes.into()
     }
+
+    fn get_exit_penalty(
+        _sc: &Self::FarmSc,
+        _total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        _token_attributes: &Self::AttributesType,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        BigUint::zero()
+    }
+
+    fn apply_penalty(
+        _sc: &Self::FarmSc,
+        _total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
+        _token_attributes: &Self::AttributesType,
+        _storage_cache: &StorageCache<Self::FarmSc>,
+    ) {
+    }
 }
 
 pub struct DefaultFarmWrapper<T>
@@ -200,5 +206,4 @@ where
     T: AllBaseFarmImplTraits,
 {
     type FarmSc = T;
-    type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 }
