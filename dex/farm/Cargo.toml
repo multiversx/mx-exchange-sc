@@ -32,12 +32,6 @@ path = "../../common/modules/token_send"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
-[dependencies.static_payments]
-path = "../../common/modules/static_payments"
-
-[dependencies.token_merge_helper]
-path = "../../common/modules/token_merge_helper"
-
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 

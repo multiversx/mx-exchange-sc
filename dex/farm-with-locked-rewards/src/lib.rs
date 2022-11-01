@@ -8,22 +8,16 @@ elrond_wasm::derive_imports!();
 use common_structs::{FarmTokenAttributes, Nonce};
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
+use mergeable::Mergeable;
 
 use farm::{
-    base_functions::{BaseFunctionsModule, Wrapper},
+    base_functions::{BaseFunctionsModule, ClaimRewardsResultType, Wrapper},
     exit_penalty::{
         DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
     },
+    EnterFarmResultType, ExitFarmWithPartialPosResultType,
 };
 use farm_base_impl::base_traits_impl::FarmContract;
-
-type EnterFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type CompoundRewardsResultType<BigUint> = EsdtTokenPayment<BigUint>;
-type ClaimRewardsResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 #[elrond_wasm::contract]
 pub trait Farm:
@@ -40,6 +34,8 @@ pub trait Farm:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm::base_functions::BaseFunctionsModule
     + farm::exit_penalty::ExitPenaltyModule
+    + farm::progress_update::ProgressUpdateModule
+    + farm::claim_boost_only::ClaimBoostOnlyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
@@ -87,13 +83,21 @@ pub trait Farm:
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let enter_farm_result = self.enter_farm::<NoMintWrapper<Self>>(original_caller);
-        let (output_farm_token_payment, rewards_payment) = enter_farm_result.clone().into_tuple();
 
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
-        self.send_payment_non_zero(&caller, &rewards_payment);
+        let payments = self.get_non_empty_payments();
+        let first_additional_payment_index = 1;
+        let boosted_rewards = match payments.try_get(first_additional_payment_index) {
+            Some(p) => self.claim_only_boosted_payment(&original_caller, &p),
+            None => EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero()),
+        };
 
-        enter_farm_result
+        let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(original_caller.clone());
+        self.send_payment_non_zero(&caller, &new_farm_token);
+        self.send_payment_non_zero(&caller, &boosted_rewards);
+
+        self.update_energy_and_progress_after_enter(&original_caller);
+
+        (new_farm_token, boosted_rewards).into()
     }
 
     #[payable("*")]
@@ -104,6 +108,7 @@ pub trait Farm:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
+
         let payments = self.call_value().all_esdt_transfers();
         let base_claim_rewards_result =
             self.claim_rewards_base::<NoMintWrapper<Self>>(original_caller.clone(), payments);
@@ -131,12 +136,10 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(
-        &self,
-        original_caller: ManagedAddress,
-    ) -> CompoundRewardsResultType<Self::Api> {
+    fn compound_rewards_endpoint(&self, original_caller: ManagedAddress) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
+
         let output_farm_token_payment =
             self.compound_rewards::<NoMintWrapper<Self>>(original_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
@@ -146,21 +149,54 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(exitFarm)]
-    fn exit_farm_endpoint(&self, exit_amount: BigUint) -> ExitFarmResultType<Self::Api> {
+    fn exit_farm_endpoint(
+        &self,
+        original_caller: ManagedAddress,
+        exit_amount: BigUint,
+    ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
-        let (farming_token_payment, reward_payment, remaining_farm_payment) = self
-            .exit_farm::<NoMintWrapper<Self>>(caller.clone(), exit_amount)
-            .into_tuple();
-        self.send_payment_non_zero(&caller, &farming_token_payment);
+
+        let mut payment = self.call_value().single_esdt();
+        require!(
+            payment.amount >= exit_amount,
+            "Exit amount is bigger than the payment amount"
+        );
+
+        let boosted_rewards_full_position =
+            self.claim_only_boosted_payment(&original_caller, &payment);
+        let remaining_farm_payment = EsdtTokenPayment::new(
+            payment.token_identifier.clone(),
+            payment.token_nonce,
+            &payment.amount - &exit_amount,
+        );
+
+        payment.amount = exit_amount;
+
+        let exit_farm_result =
+            self.exit_farm::<NoMintWrapper<Self>>(original_caller.clone(), payment);
+        let mut rewards = exit_farm_result.rewards;
+        rewards.merge_with(boosted_rewards_full_position);
+
+        self.send_payment_non_zero(&caller, &exit_farm_result.farming_tokens);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
+
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
-            reward_payment.token_identifier,
-            reward_payment.amount,
+            rewards.token_identifier.clone(),
+            rewards.amount.clone(),
             caller,
         );
 
-        (farming_token_payment, locked_rewards_payment).into()
+        if remaining_farm_payment.amount == 0 {
+            self.current_claim_progress(&original_caller).clear();
+        }
+
+        (
+            exit_farm_result.farming_tokens,
+            locked_rewards_payment,
+            remaining_farm_payment,
+        )
+            .into()
     }
 
     #[view(calculateRewardsForGivenPosition)]
@@ -188,11 +224,18 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
-    fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+    fn merge_farm_tokens_endpoint(
+        &self,
+        original_caller: ManagedAddress,
+    ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        let new_tokens = self.merge_farm_tokens(&caller);
-        self.send_payment_non_zero(&caller, &new_tokens);
-        new_tokens
+        self.require_sc_address_whitelisted(&caller);
+        self.check_claim_progress_for_merge(&original_caller);
+
+        let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
+        self.send_payment_non_zero(&caller, &merged_farm_token);
+
+        merged_farm_token
     }
 
     #[endpoint(startProduceRewards)]
@@ -227,13 +270,13 @@ pub trait Farm:
     }
 }
 
-pub struct NoMintWrapper<T: BaseFunctionsModule> {
+pub struct NoMintWrapper<T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule> {
     _phantom: PhantomData<T>,
 }
 
 impl<T> FarmContract for NoMintWrapper<T>
 where
-    T: BaseFunctionsModule,
+    T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule,
 {
     type FarmSc = T;
     type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
