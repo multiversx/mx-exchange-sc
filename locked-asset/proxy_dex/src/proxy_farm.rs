@@ -78,7 +78,7 @@ pub trait ProxyFarmModule:
                 new_token_attributes,
             )
         } else {
-            let new_token_amount = new_token_attributes.get_total_supply().clone();
+            let new_token_amount = new_token_attributes.get_total_supply();
             let output_wrapped_farm_token =
                 wrapped_farm_mapper.nft_create(new_token_amount, &new_token_attributes);
 
@@ -219,7 +219,7 @@ pub trait ProxyFarmModule:
             farm_token: claim_result.new_farm_token,
             proxy_farming_token: wrapped_farm_attributes.proxy_farming_token.clone(),
         };
-        let new_token_amount = new_wrapped_farm_attributes.get_total_supply().clone();
+        let new_token_amount = new_wrapped_farm_attributes.get_total_supply();
         let new_wrapped_token =
             wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_attributes);
 
@@ -264,7 +264,7 @@ pub trait ProxyFarmModule:
             farm_token: comp_result.new_farm_token,
             proxy_farming_token: wrapped_farm_attributes.proxy_farming_token.clone(),
         };
-        let new_token_amount = new_wrapped_farm_attributes.get_total_supply().clone();
+        let new_token_amount = new_wrapped_farm_attributes.get_total_supply();
         let new_wrapped_token =
             wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_attributes);
 

@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::from_over_into)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -158,7 +159,7 @@ pub trait BaseFunctionsModule:
         let token_mapper = self.farm_token();
         let output_attributes: FC::AttributesType =
             self.merge_from_payments_and_burn(payments, &token_mapper);
-        let new_token_amount = output_attributes.get_total_supply().clone();
+        let new_token_amount = output_attributes.get_total_supply();
         token_mapper.nft_create(new_token_amount, &output_attributes)
     }
 

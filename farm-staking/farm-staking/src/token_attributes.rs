@@ -90,9 +90,9 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
         let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average(
             self.reward_per_share.clone(),
-            first_supply.clone(),
+            first_supply,
             other.reward_per_share.clone(),
-            second_supply.clone(),
+            second_supply,
         );
 
         self.compounded_reward += other.compounded_reward;

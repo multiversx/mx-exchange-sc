@@ -73,7 +73,7 @@ pub trait ProxyPairModule:
                 new_token_attributes,
             )
         } else {
-            let new_token_amount = new_token_attributes.get_total_supply().clone();
+            let new_token_amount = new_token_attributes.get_total_supply();
             let output_wrapped_lp_token =
                 wrapped_lp_mapper.nft_create(new_token_amount, &new_token_attributes);
 

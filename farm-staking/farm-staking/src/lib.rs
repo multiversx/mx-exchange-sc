@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(exact_size_is_empty)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::from_over_into)]
 #![feature(trait_alias)]
 
 use base_impl_wrapper::FarmStakingWrapper;
@@ -78,7 +79,7 @@ pub trait FarmStaking:
         let token_mapper = self.farm_token();
         let output_attributes: StakingFarmTokenAttributes<Self::Api> =
             self.merge_from_payments_and_burn(payments, &token_mapper);
-        let new_token_amount = output_attributes.get_total_supply().clone();
+        let new_token_amount = output_attributes.get_total_supply();
         let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
 
         let caller = self.blockchain().get_caller();

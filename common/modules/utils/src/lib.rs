@@ -118,7 +118,7 @@ pub trait UtilsModule {
     ) -> PaymentAttributesPair<Self::Api, T> {
         let output_attributes =
             self.merge_attributes_from_payments(base_attributes, payments, mapper);
-        let new_token_amount = output_attributes.get_total_supply().clone();
+        let new_token_amount = output_attributes.get_total_supply();
         let new_token_payment = mapper.nft_create(new_token_amount, &output_attributes);
 
         PaymentAttributesPair {

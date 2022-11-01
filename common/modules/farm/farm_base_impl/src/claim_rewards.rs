@@ -100,7 +100,7 @@ pub trait BaseClaimRewardsModule:
             payment: EsdtTokenPayment::new(
                 storage_cache.farm_token_id.clone(),
                 0,
-                new_token_attributes.get_total_supply().clone(),
+                new_token_attributes.get_total_supply(),
             ),
             attributes: new_token_attributes,
         };

@@ -65,9 +65,9 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
         let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average(
             self.reward_per_share.clone(),
-            first_supply.clone(),
+            first_supply,
             other.reward_per_share.clone(),
-            second_supply.clone(),
+            second_supply,
         );
 
         self.initial_farming_amount += other.initial_farming_amount;

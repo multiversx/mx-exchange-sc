@@ -145,7 +145,7 @@ pub fn merge_wrapped_farm_tokens<M: CallTypeApi + StorageMapperApi>(
         farm_token: merged_farm_tokens,
         proxy_farming_token: merged_farming_tokens,
     };
-    let new_token_amount = new_wrapped_farm_token_attributes.get_total_supply().clone();
+    let new_token_amount = new_wrapped_farm_token_attributes.get_total_supply();
     let new_tokens =
         wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_token_attributes);
 

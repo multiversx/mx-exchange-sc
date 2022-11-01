@@ -139,7 +139,7 @@ pub trait FarmContract {
         let initial_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             first_token_attributes.into();
 
-        let net_current_farm_amount = initial_attributes.get_total_supply().clone();
+        let net_current_farm_amount = initial_attributes.get_total_supply();
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             entering_epoch: initial_attributes.entering_epoch,
