@@ -44,26 +44,26 @@ impl<M: ManagedTypeApi> Into<FarmTokenAttributes<M>> for StakingFarmTokenAttribu
 }
 
 impl<M: ManagedTypeApi> FarmToken<M> for StakingFarmTokenAttributes<M> {
-    fn get_reward_per_share(&self) -> &BigUint<M> {
-        &self.reward_per_share
+    fn get_reward_per_share(&self) -> BigUint<M> {
+        self.reward_per_share.clone()
     }
 
-    fn get_compounded_rewards(&self) -> &BigUint<M> {
-        &self.compounded_reward
+    fn get_compounded_rewards(&self) -> BigUint<M> {
+        self.compounded_reward.clone()
     }
 
-    fn get_initial_farming_tokens(&self) -> &BigUint<M> {
-        &self.current_farm_amount
+    fn get_initial_farming_tokens(&self) -> BigUint<M> {
+        &self.current_farm_amount - &self.compounded_reward
     }
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {
-    fn get_total_supply(&self) -> &BigUint<M> {
-        &self.current_farm_amount
+    fn get_total_supply(&self) -> BigUint<M> {
+        self.current_farm_amount.clone()
     }
 
     fn into_part(self, payment_amount: &BigUint<M>) -> Self {
-        if payment_amount == self.get_total_supply() {
+        if payment_amount == &self.get_total_supply() {
             return self;
         }
 

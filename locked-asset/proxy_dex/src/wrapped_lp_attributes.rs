@@ -26,8 +26,8 @@ pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for WrappedLpTokenAttributes<M> {
-    fn get_total_supply(&self) -> &BigUint<M> {
-        &self.lp_token_amount
+    fn get_total_supply(&self) -> BigUint<M> {
+        self.lp_token_amount.clone()
     }
 
     fn into_part(self, payment_amount: &BigUint<M>) -> Self {

@@ -56,7 +56,7 @@ pub trait BaseExitFarmModule:
             .clone()
             .into_part(farm_token_amount);
 
-        let mut reward = FC::calculate_rewards(
+        let reward = FC::calculate_rewards(
             self,
             &caller,
             farm_token_nonce,
@@ -65,12 +65,13 @@ pub trait BaseExitFarmModule:
             &storage_cache,
         );
         storage_cache.reward_reserve -= &reward;
-        reward += token_attributes.get_compounded_rewards();
 
+        let farming_token_amount = token_attributes.get_initial_farming_tokens()
+            + token_attributes.get_compounded_rewards();
         let farming_token_payment = EsdtTokenPayment::new(
             storage_cache.farming_token_id.clone(),
             0,
-            token_attributes.get_initial_farming_tokens().clone(),
+            farming_token_amount,
         );
         let reward_payment =
             EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);

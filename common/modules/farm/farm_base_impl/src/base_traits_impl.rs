@@ -103,8 +103,8 @@ pub trait FarmContract {
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let token_rps = token_attributes.get_reward_per_share();
-        if &storage_cache.reward_per_share > token_rps {
-            let rps_diff = &storage_cache.reward_per_share - token_rps;
+        if storage_cache.reward_per_share > token_rps {
+            let rps_diff = &storage_cache.reward_per_share - &token_rps;
             farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
         } else {
             BigUint::zero()

@@ -28,8 +28,8 @@ pub struct WrappedFarmTokenAttributes<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for WrappedFarmTokenAttributes<M> {
-    fn get_total_supply(&self) -> &BigUint<M> {
-        &self.farm_token.amount
+    fn get_total_supply(&self) -> BigUint<M> {
+        self.farm_token.amount.clone()
     }
 
     fn into_part(self, payment_amount: &BigUint<M>) -> Self {
