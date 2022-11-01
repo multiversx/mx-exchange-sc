@@ -8,6 +8,9 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[dependencies.farm]
+path = "../../dex/farm"
+
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
@@ -20,14 +23,17 @@ path = "../../common/modules/farm/farm_token"
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
 
+[dependencies.events]
+path = "../../common/modules/farm/events"
+
 [dependencies.contexts]
 path = "../../common/modules/farm/contexts"
 
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.token_send]
 path = "../../common/modules/token_send"
-
-[dependencies.token_merge_helper]
-path = "../../common/modules/token_merge_helper"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"

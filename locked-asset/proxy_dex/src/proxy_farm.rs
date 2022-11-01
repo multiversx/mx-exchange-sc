@@ -225,7 +225,7 @@ pub trait ProxyFarmModule:
 
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &new_wrapped_token);
-        self.send_payment_non_zero(&caller, &claim_result.reward_tokens);
+        self.send_payment_non_zero(&caller, &claim_result.rewards);
 
         self.emit_claim_rewards_farm_proxy_event(
             &caller,
@@ -234,10 +234,10 @@ pub trait ProxyFarmModule:
             wrapped_farm_attributes,
             new_wrapped_token.clone(),
             new_wrapped_farm_attributes,
-            claim_result.reward_tokens.clone(),
+            claim_result.rewards.clone(),
         );
 
-        (new_wrapped_token, claim_result.reward_tokens).into()
+        (new_wrapped_token, claim_result.rewards).into()
     }
 
     #[payable("*")]

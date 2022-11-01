@@ -38,7 +38,7 @@ where
 
     fn mint_per_block_rewards(
         sc: &Self::FarmSc,
-        token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
+        _token_id: &TokenIdentifier<<Self::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let current_block_nonce = sc.blockchain().get_block_nonce();
         let last_reward_nonce = sc.last_reward_block_nonce().get();
@@ -62,7 +62,7 @@ where
     }
 
     fn create_enter_farm_initial_attributes(
-        sc: &Self::FarmSc,
+        _sc: &Self::FarmSc,
         _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
@@ -88,7 +88,7 @@ where
     }
 
     fn create_compound_rewards_initial_attributes(
-        sc: &Self::FarmSc,
+        _sc: &Self::FarmSc,
         _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,

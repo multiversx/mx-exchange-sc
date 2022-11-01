@@ -99,3 +99,8 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
         self.current_farm_amount += other.current_farm_amount;
     }
 }
+
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+pub struct UnbondSftAttributes {
+    pub unlock_epoch: u64,
+}

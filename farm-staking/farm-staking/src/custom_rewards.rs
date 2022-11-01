@@ -1,7 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{Epoch, Nonce};
+use common_structs::Epoch;
+use contexts::storage_cache::StorageCache;
+use farm_base_impl::base_traits_impl::FarmContract;
+
+use crate::base_impl_wrapper::FarmStakingWrapper;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
@@ -9,7 +13,8 @@ const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 
 #[elrond_wasm::module]
 pub trait CustomRewardsModule:
-    config::ConfigModule
+    rewards::RewardsModule
+    + config::ConfigModule
     + token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + pausable::PausableModule
@@ -28,11 +33,12 @@ pub trait CustomRewardsModule:
         self.reward_capacity().update(|r| *r += payment_amount);
     }
 
-    #[endpoint]
+    #[endpoint(endProduceRewards)]
     fn end_produce_rewards(&self) {
         self.require_caller_has_admin_permissions();
 
-        self.generate_aggregated_rewards();
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.produce_rewards_enabled().set(false);
     }
 
@@ -41,7 +47,8 @@ pub trait CustomRewardsModule:
         self.require_caller_has_admin_permissions();
         require!(per_block_amount != 0, "Amount cannot be zero");
 
-        self.generate_aggregated_rewards();
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
@@ -50,7 +57,8 @@ pub trait CustomRewardsModule:
         self.require_caller_has_admin_permissions();
         require!(max_apr != 0, "Max APR cannot be zero");
 
-        self.generate_aggregated_rewards();
+        let mut storage_cache = StorageCache::new(self);
+        FarmStakingWrapper::<Self>::generate_aggregated_rewards(self, &mut storage_cache);
         self.max_annual_percentage_rewards().set(&max_apr);
     }
 
@@ -75,19 +83,9 @@ pub trait CustomRewardsModule:
     }
 
     #[endpoint(startProduceRewards)]
-    fn start_produce_rewards(&self) {
+    fn start_produce_rewards_endpoint(&self) {
         self.require_caller_has_admin_permissions();
-        require!(
-            self.per_block_reward_amount().get() != 0,
-            "Cannot produce zero reward amount"
-        );
-        require!(
-            !self.produce_rewards_enabled().get(),
-            "Producing rewards is already enabled"
-        );
-        let current_nonce = self.blockchain().get_block_nonce();
-        self.produce_rewards_enabled().set(true);
-        self.last_reward_block_nonce().set(current_nonce);
+        self.start_produce_rewards();
     }
 
     #[view(getAccumulatedRewards)]
