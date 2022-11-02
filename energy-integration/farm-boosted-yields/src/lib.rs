@@ -236,6 +236,10 @@ where
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
+        if module.boosted_yields_factors().is_empty() {
+            return user_rewards;
+        }
+
         let factors = module.boosted_yields_factors().get();
         if energy_amount <= &factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount

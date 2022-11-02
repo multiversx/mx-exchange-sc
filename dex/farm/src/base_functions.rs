@@ -297,6 +297,8 @@ where
     ) {
         let penalty_amount = Self::get_exit_penalty(sc, total_exit_amount, token_attributes);
         if penalty_amount > 0 {
+            *total_exit_amount -= &penalty_amount;
+
             sc.burn_farming_tokens(
                 &penalty_amount,
                 &storage_cache.farming_token_id,
