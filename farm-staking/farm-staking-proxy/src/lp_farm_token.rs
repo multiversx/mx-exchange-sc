@@ -22,7 +22,7 @@ pub trait LpFarmTokenModule: token_merge_helper::TokenMergeHelperModule {
         self.rule_of_three_non_zero_result(
             farm_token_amount,
             &attributes.current_farm_amount,
-            &attributes.initial_farming_amount,
+            &(&attributes.current_farm_amount - &attributes.compounded_reward),
         )
     }
 

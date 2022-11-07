@@ -107,7 +107,6 @@ pub trait FarmTokenMergeModule:
         FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: current_epoch,
-            initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
         }
@@ -128,26 +127,6 @@ pub trait FarmTokenMergeModule:
         }
 
         self.weighted_average(dataset, WeightedAverageType::Ceil)
-    }
-
-    fn aggregated_initial_farming_amount<
-        T: PaymentAmountGetter<Self::Api>
-            + CurrentFarmAmountGetter<Self::Api>
-            + InitialFarmingAmountGetter<Self::Api>,
-    >(
-        &self,
-        tokens: &ArrayVec<T, MAX_TOTAL_TOKENS>,
-    ) -> BigUint {
-        let mut sum = BigUint::zero();
-        for token in tokens {
-            sum += self.rule_of_three_non_zero_result(
-                token.get_payment_amount(),
-                token.get_current_farm_amount(),
-                token.get_initial_farming_amount(),
-            );
-        }
-
-        sum
     }
 
     fn aggregated_compounded_reward<
