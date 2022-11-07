@@ -102,7 +102,6 @@ pub trait FarmStaking:
         FarmStakingWrapper::<Self>::calculate_rewards(
             self,
             &ManagedAddress::zero(),
-            0,
             &farm_token_amount,
             &attributes,
             &storage_cache,

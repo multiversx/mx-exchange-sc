@@ -97,7 +97,6 @@ pub trait FarmContract {
     fn calculate_rewards(
         _sc: &Self::FarmSc,
         _caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        _farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
@@ -120,7 +119,6 @@ pub trait FarmContract {
         let attributes = FarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             entering_epoch: current_epoch,
-            original_entering_epoch: current_epoch,
             initial_farming_amount: farming_token_amount.clone(),
             compounded_reward: BigUint::zero(),
             current_farm_amount: farming_token_amount,
@@ -141,7 +139,6 @@ pub trait FarmContract {
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             entering_epoch: initial_attributes.entering_epoch,
-            original_entering_epoch: initial_attributes.original_entering_epoch,
             initial_farming_amount: initial_attributes.initial_farming_amount,
             compounded_reward: initial_attributes.compounded_reward,
             current_farm_amount: net_current_farm_amount,
@@ -165,7 +162,6 @@ pub trait FarmContract {
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             entering_epoch: current_epoch,
-            original_entering_epoch: current_epoch,
             initial_farming_amount: initial_attributes.initial_farming_amount,
             compounded_reward: new_pos_compounded_reward,
             current_farm_amount: new_pos_current_farm_amount,
