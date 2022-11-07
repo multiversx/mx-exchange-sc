@@ -107,14 +107,15 @@ pub trait FeesModule:
         let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
 
         self.fees_from_penalty_unlocking().clear();
-        self.fees_collector_proxy_builder(sc_address)
+        let _: IgnoreValue = self
+            .fees_collector_proxy_builder(sc_address)
             .deposit_swap_fees()
             .add_esdt_token_transfer(
                 locked_token_id,
                 nonce_amount_pair.nonce,
                 nonce_amount_pair.amount,
             )
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
 
         self.last_epoch_fee_sent_to_collector().set(current_epoch);
     }

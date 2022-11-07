@@ -46,9 +46,10 @@ pub trait Router:
             self.state().set(false);
         } else {
             self.check_is_pair_sc(&address);
-            self.pair_contract_proxy(address)
+            let _: IgnoreValue = self
+                .pair_contract_proxy(address)
                 .pause()
-                .execute_on_dest_context_ignore_result();
+                .execute_on_dest_context();
         }
     }
 
@@ -59,9 +60,10 @@ pub trait Router:
             self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
-            self.pair_contract_proxy(address)
+            let _: IgnoreValue = self
+                .pair_contract_proxy(address)
                 .resume()
-                .execute_on_dest_context_ignore_result();
+                .execute_on_dest_context();
         }
     }
 
@@ -332,9 +334,10 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        self.pair_contract_proxy(pair_address)
+        let _: IgnoreValue = self
+            .pair_contract_proxy(pair_address)
             .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     #[only_owner]
@@ -348,9 +351,10 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        self.pair_contract_proxy(pair_address)
+        let _: IgnoreValue = self
+            .pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     #[callback]
@@ -364,9 +368,10 @@ pub trait Router:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
-                self.pair_contract_proxy(address.clone())
+                let _: IgnoreValue = self
+                    .pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id.unwrap_esdt())
-                    .execute_on_dest_context_ignore_result();
+                    .execute_on_dest_context();
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
