@@ -7,7 +7,7 @@ elrond_wasm::derive_imports!();
 use core::marker::PhantomData;
 
 use common_errors::ERROR_ZERO_AMOUNT;
-use common_structs::{FarmTokenAttributes, Nonce};
+use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
@@ -206,14 +206,12 @@ where
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
-        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         farm_token_supply: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         let total_rewards_per_block = sc.per_block_reward_amount().get();
         sc.claim_boosted_yields_rewards(
             caller,
-            farm_token_nonce,
             farm_token_amount,
             farm_token_supply,
             &total_rewards_per_block,
@@ -250,7 +248,6 @@ where
     fn calculate_rewards(
         sc: &Self::FarmSc,
         caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
@@ -258,7 +255,6 @@ where
         let base_farm_reward = DefaultFarmWrapper::<T>::calculate_rewards(
             sc,
             caller,
-            farm_token_nonce,
             farm_token_amount,
             token_attributes,
             storage_cache,
@@ -266,7 +262,6 @@ where
         let boosted_yield_rewards = Self::calculate_boosted_rewards(
             sc,
             caller,
-            farm_token_nonce,
             farm_token_amount,
             &storage_cache.farm_token_supply,
         );

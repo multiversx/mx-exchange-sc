@@ -107,7 +107,6 @@ pub trait FarmTokenMergeModule:
         FarmTokenAttributes {
             reward_per_share: self.aggregated_reward_per_share(&tokens),
             entering_epoch: current_epoch,
-            original_entering_epoch: current_epoch,
             initial_farming_amount: self.aggregated_initial_farming_amount(&tokens),
             compounded_reward: self.aggregated_compounded_reward(&tokens),
             current_farm_amount: self.aggregated_current_farm_amount(&tokens),
