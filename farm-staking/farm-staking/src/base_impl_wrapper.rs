@@ -63,7 +63,6 @@ where
 
     fn create_enter_farm_initial_attributes(
         _sc: &Self::FarmSc,
-        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
@@ -76,7 +75,6 @@ where
 
     fn create_claim_rewards_initial_attributes(
         _sc: &Self::FarmSc,
-        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
@@ -89,7 +87,6 @@ where
 
     fn create_compound_rewards_initial_attributes(
         _sc: &Self::FarmSc,
-        _caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
         reward: &BigUint<<Self::FarmSc as ContractBase>::Api>,
