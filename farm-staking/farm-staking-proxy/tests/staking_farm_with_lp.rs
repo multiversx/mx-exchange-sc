@@ -344,7 +344,7 @@ fn test_stake_farm_through_proxy_with_merging() {
             LP_FARM_TOKEN_ID,
             2,
             &rust_biguint!(1_000_000_000),
-            Some(&vec![0, 0, 0, 0, 0, 4, 1000000000, 0, 4, 1000000000]), //current attributes
+            Some(&vec![0, 0, 0, 4, 1000000000, 0, 4, 1000000000]), //current attributes
         )
     });
 }
