@@ -13,7 +13,6 @@
                 "function": "calculateRewardsForGivenPosition",
                 "arguments": [
                     "address:user1",
-                    "1",
                     "100,000,000",
                     {
                         "1-reward_per_share": "biguint:0",
@@ -93,7 +92,6 @@
                 "function": "calculateRewardsForGivenPosition",
                 "arguments": [
                     "address:user1",
-                    "1",
                     "100,000,000",
                     {
                         "1-reward_per_share": "biguint:0",
