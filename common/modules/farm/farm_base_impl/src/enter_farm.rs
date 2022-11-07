@@ -33,7 +33,6 @@ pub trait BaseEnterFarmModule:
 {
     fn enter_farm_base<FC: FarmContract<FarmSc = Self>>(
         &self,
-        caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
     ) -> InternalEnterFarmResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
@@ -52,7 +51,6 @@ pub trait BaseEnterFarmModule:
         let farm_token_mapper = self.farm_token();
         let base_attributes = FC::create_enter_farm_initial_attributes(
             self,
-            caller,
             enter_farm_context.farming_token_payment.amount.clone(),
             storage_cache.reward_per_share.clone(),
         );

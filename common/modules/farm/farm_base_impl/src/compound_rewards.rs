@@ -79,7 +79,6 @@ pub trait BaseCompoundRewardsModule:
         let farm_token_mapper = self.farm_token();
         let base_attributes = FC::create_compound_rewards_initial_attributes(
             self,
-            caller,
             token_attributes,
             storage_cache.reward_per_share.clone(),
             &reward,
