@@ -203,15 +203,17 @@ pub trait EnableSwapByUserModule:
     }
 
     fn set_fee_percents(&self, pair_address: ManagedAddress) {
-        self.user_pair_proxy(pair_address)
+        let _: IgnoreValue = self
+            .user_pair_proxy(pair_address)
             .set_fee_percent(USER_DEFINED_TOTAL_FEE_PERCENT, DEFAULT_SPECIAL_FEE_PERCENT)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     fn pair_resume(&self, pair_address: ManagedAddress) {
-        self.user_pair_proxy(pair_address)
+        let _: IgnoreValue = self
+            .user_pair_proxy(pair_address)
             .resume()
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     fn read_storage_from_pair<T: TopDecode>(

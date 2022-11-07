@@ -88,9 +88,7 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
     }
 
     fn call_pause(&self, sc_addr: ManagedAddress) {
-        self.pause_proxy(sc_addr)
-            .pause()
-            .execute_on_dest_context_ignore_result();
+        let _: IgnoreValue = self.pause_proxy(sc_addr).pause().execute_on_dest_context();
     }
 
     /// Will unpause the given list of contracts.
@@ -138,9 +136,7 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
     }
 
     fn call_resume(&self, sc_addr: ManagedAddress) {
-        self.pause_proxy(sc_addr)
-            .resume()
-            .execute_on_dest_context_ignore_result();
+        let _: IgnoreValue = self.pause_proxy(sc_addr).resume().execute_on_dest_context();
     }
 
     #[proxy]

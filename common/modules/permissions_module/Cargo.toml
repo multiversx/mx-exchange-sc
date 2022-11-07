@@ -14,5 +14,5 @@ path = "../../common_errors"
 bitflags = "1.3.2"
 
 [dependencies.elrond-wasm]
-version = "0.36.0"
+version = "=0.36.1"
 features = ["esdt-token-payment-legacy-decode",]

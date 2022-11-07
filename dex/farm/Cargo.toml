@@ -69,14 +69,14 @@ path = "../../energy-integration/common-modules/weekly-rewards-splitting"
 path = "../../energy-integration/common-modules/energy-query"
 
 [dependencies.elrond-wasm]
-version = "0.36.0"
+version = "=0.36.1"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "0.36.0"
+version = "=0.36.1"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.36.0"
+version = "=0.36.1"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

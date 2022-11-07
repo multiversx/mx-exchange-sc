@@ -109,7 +109,8 @@ pub trait Distribution: global_op::GlobalOperationModule {
         for elem in locked_assets.iter() {
             let amount = elem.biguint;
             let spread_epoch = elem.epoch;
-            self.locked_asset_factory_proxy(to.clone())
+            let _: IgnoreValue = self
+                .locked_asset_factory_proxy(to.clone())
                 .create_and_forward_custom_period(
                     amount.clone(),
                     caller.clone(),
@@ -117,7 +118,8 @@ pub trait Distribution: global_op::GlobalOperationModule {
                     unlock_period.clone(),
                 )
                 .with_gas_limit(gas_limit_per_execute)
-                .execute_on_dest_context_ignore_result();
+                .execute_on_dest_context();
+
             cummulated_amount += amount;
         }
 

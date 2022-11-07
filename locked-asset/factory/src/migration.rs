@@ -53,9 +53,10 @@ pub trait LockedTokenMigrationModule:
         epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
         let new_factory_address = self.new_factory_address().get();
-        self.new_factory_proxy_builder(new_factory_address)
+        let _: IgnoreValue = self
+            .new_factory_proxy_builder(new_factory_address)
             .update_energy_after_old_token_unlock(caller, epoch_amount_pairs)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     #[proxy]

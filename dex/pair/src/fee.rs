@@ -172,10 +172,11 @@ pub trait FeeModule:
 
     fn send_fees_collector_cut(&self, token: TokenIdentifier, cut_amount: BigUint) {
         let fees_collector_address = self.fees_collector_address().get();
-        self.fees_collector_proxy(fees_collector_address)
+        let _: IgnoreValue = self
+            .fees_collector_proxy(fees_collector_address)
             .deposit_swap_fees()
             .add_esdt_token_transfer(token, 0, cut_amount)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     fn send_fee_slice(
@@ -295,11 +296,12 @@ pub trait FeeModule:
     ) {
         let pair_address = self.get_extern_swap_pair_address(available_token, requested_token);
 
-        self.pair_proxy()
+        let _: IgnoreValue = self
+            .pair_proxy()
             .contract(pair_address)
             .swap_no_fee(requested_token.clone(), destination_address.clone())
             .add_esdt_token_transfer(available_token.clone(), 0, available_amount.clone())
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     #[inline]

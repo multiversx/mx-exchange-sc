@@ -59,7 +59,7 @@ pub trait FarmDeployModule {
         for arg in args {
             contract_call.push_arg_managed_buffer(arg);
         }
-        contract_call.execute_on_dest_context_ignore_result();
+        let _: IgnoreValue = contract_call.execute_on_dest_context();
     }
 
     #[view(getAllDeployedFarms)]
