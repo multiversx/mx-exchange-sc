@@ -20,7 +20,6 @@ use crate::Epoch;
 )]
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
-    pub original_entering_epoch: Epoch,
     pub entering_epoch: Epoch,
     pub initial_farming_amount: BigUint<M>,
     pub compounded_reward: BigUint<M>,
@@ -44,7 +43,6 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
 
         FarmTokenAttributes {
             reward_per_share: self.reward_per_share,
-            original_entering_epoch: self.original_entering_epoch,
             entering_epoch: self.entering_epoch,
             initial_farming_amount: new_initial_farming_amount,
             compounded_reward: new_compounded_reward,
@@ -75,7 +73,6 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
         self.current_farm_amount += other.current_farm_amount;
 
         let current_epoch = M::blockchain_api_impl().get_block_epoch();
-        self.original_entering_epoch = current_epoch;
         self.entering_epoch = current_epoch;
     }
 }

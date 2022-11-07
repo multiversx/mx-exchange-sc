@@ -5,7 +5,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, Nonce};
+use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use mergeable::Mergeable;
@@ -203,7 +203,6 @@ pub trait Farm:
     fn calculate_rewards_for_given_position(
         &self,
         user: ManagedAddress,
-        farm_token_nonce: Nonce,
         farm_token_amount: BigUint,
         attributes: FarmTokenAttributes<Self::Api>,
     ) -> BigUint {
@@ -215,7 +214,6 @@ pub trait Farm:
         NoMintWrapper::<Self>::calculate_rewards(
             self,
             &user,
-            farm_token_nonce,
             &farm_token_amount,
             &attributes,
             &storage_cache,
@@ -308,7 +306,6 @@ where
     fn calculate_rewards(
         sc: &Self::FarmSc,
         caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
         token_attributes: &Self::AttributesType,
         storage_cache: &StorageCache<Self::FarmSc>,
@@ -316,7 +313,6 @@ where
         Wrapper::<T>::calculate_rewards(
             sc,
             caller,
-            farm_token_nonce,
             farm_token_amount,
             token_attributes,
             storage_cache,

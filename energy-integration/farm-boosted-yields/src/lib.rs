@@ -5,7 +5,7 @@ elrond_wasm::derive_imports!();
 
 use core::cmp;
 
-use common_types::{Nonce, PaymentsVec};
+use common_types::PaymentsVec;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{
     base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
@@ -138,13 +138,11 @@ pub trait FarmBoostedYieldsModule:
     fn claim_boosted_yields_rewards(
         &self,
         user: &ManagedAddress,
-        farm_token_nonce: Nonce,
         farm_token_amount: &BigUint,
         farm_token_supply: &BigUint,
         total_rewards_per_block: &BigUint,
     ) -> BigUint {
         let wrapper = FarmBoostedYieldsWrapper::new(
-            farm_token_nonce,
             farm_token_amount.clone(),
             farm_token_supply.clone(),
             total_rewards_per_block.clone(),
@@ -183,7 +181,6 @@ pub trait FarmBoostedYieldsModule:
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
-    pub current_farm_token_nonce: Nonce,
     pub user_farm_amount: BigUint<<T as ContractBase>::Api>,
     pub total_farm_supply: BigUint<<T as ContractBase>::Api>,
     pub total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
@@ -191,13 +188,11 @@ pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
 
 impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
     pub fn new(
-        current_farm_token_nonce: Nonce,
         user_farm_amount: BigUint<<T as ContractBase>::Api>,
         total_farm_supply: BigUint<<T as ContractBase>::Api>,
         total_rewards_per_block: BigUint<<T as ContractBase>::Api>,
     ) -> FarmBoostedYieldsWrapper<T> {
         FarmBoostedYieldsWrapper {
-            current_farm_token_nonce,
             user_farm_amount,
             total_farm_supply,
             total_rewards_per_block,
