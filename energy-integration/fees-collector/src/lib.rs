@@ -7,12 +7,13 @@ use core::marker::PhantomData;
 use energy_query::Energy;
 use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
-use crate::ongoing_operation::{CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP};
+use elrond_wasm_modules::ongoing_operation::{
+    CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
+};
 
 pub mod config;
 pub mod events;
 pub mod fees_accumulation;
-pub mod ongoing_operation;
 
 #[elrond_wasm::contract]
 pub trait FeesCollector:
@@ -26,7 +27,7 @@ pub trait FeesCollector:
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
     + elrond_wasm_modules::pause::PauseModule
-    + ongoing_operation::OngoingOperationModule
+    + elrond_wasm_modules::ongoing_operation::OngoingOperationModule
 {
     #[init]
     fn init(&self) {
