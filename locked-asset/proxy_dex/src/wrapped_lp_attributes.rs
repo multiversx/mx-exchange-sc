@@ -26,8 +26,8 @@ pub struct WrappedLpTokenAttributes<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for WrappedLpTokenAttributes<M> {
-    fn get_total_supply(&self) -> &BigUint<M> {
-        &self.lp_token_amount
+    fn get_total_supply(&self) -> BigUint<M> {
+        self.lp_token_amount.clone()
     }
 
     fn into_part(self, payment_amount: &BigUint<M>) -> Self {
@@ -120,7 +120,7 @@ pub fn merge_wrapped_lp_tokens<M: CallTypeApi + StorageMapperApi>(
         lp_token_amount: total_lp_tokens,
         locked_tokens: new_locked_tokens,
     };
-    let new_token_amount = new_wrapped_lp_token_attributes.get_total_supply().clone();
+    let new_token_amount = new_wrapped_lp_token_attributes.get_total_supply();
     let new_tokens =
         wrapped_lp_token_mapper.nft_create(new_token_amount, &new_wrapped_lp_token_attributes);
 

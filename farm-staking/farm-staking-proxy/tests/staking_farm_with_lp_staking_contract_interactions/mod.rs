@@ -6,8 +6,11 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 
-use farm_staking::UnbondSftAttributes;
-use farm_staking::*;
+use farm_staking::{
+    compound_stake_farm_rewards::CompoundStakeFarmRewardsModule, stake_farm::StakeFarmModule,
+    token_attributes::UnbondSftAttributes, unbond_farm::UnbondFarmModule,
+    unstake_farm::UnstakeFarmModule,
+};
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
 use sc_whitelist_module::SCWhitelistModule;

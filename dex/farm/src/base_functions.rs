@@ -1,4 +1,5 @@
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::from_over_into)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -11,16 +12,34 @@ use contexts::storage_cache::StorageCache;
 
 use farm_base_impl::base_traits_impl::{DefaultFarmWrapper, FarmContract};
 use fixed_supply_token::FixedSupplyToken;
-use weekly_rewards_splitting::ClaimProgress;
 
 use crate::exit_penalty;
 
-type EnterFarmResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ClaimRewardsResultType<BigUint> =
-    MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
-    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+pub type DoubleMultiPayment<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
+pub type ClaimRewardsResultType<M> = DoubleMultiPayment<M>;
+pub type ExitFarmResultType<M> = DoubleMultiPayment<M>;
+
+pub struct ClaimRewardsResultWrapper<M: ManagedTypeApi> {
+    pub new_farm_token: EsdtTokenPayment<M>,
+    pub rewards: EsdtTokenPayment<M>,
+}
+
+pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
+    pub farming_tokens: EsdtTokenPayment<M>,
+    pub rewards: EsdtTokenPayment<M>,
+}
+
+impl<M: ManagedTypeApi> Into<ClaimRewardsResultType<M>> for ClaimRewardsResultWrapper<M> {
+    fn into(self) -> ClaimRewardsResultType<M> {
+        (self.new_farm_token, self.rewards).into()
+    }
+}
+
+impl<M: ManagedTypeApi> Into<ExitFarmResultType<M>> for ExitFarmResultWrapper<M> {
+    fn into(self) -> ExitFarmResultType<M> {
+        (self.farming_tokens, self.rewards).into()
+    }
+}
 
 #[elrond_wasm::module]
 pub trait BaseFunctionsModule:
@@ -39,19 +58,12 @@ pub trait BaseFunctionsModule:
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
-    + farm_boosted_yields::FarmBoostedYieldsModule
-    + week_timekeeping::WeekTimekeepingModule
-    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
-    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
-    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
-    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
-    + energy_query::EnergyQueryModule
     + utils::UtilsModule
 {
     fn enter_farm<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
-    ) -> EnterFarmResultType<Self::Api> {
+    ) -> EsdtTokenPayment {
         let payments = self.call_value().all_esdt_transfers();
         let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
         self.emit_enter_farm_event(
@@ -62,25 +74,13 @@ pub trait BaseFunctionsModule:
             base_enter_farm_result.storage_cache,
         );
 
-        let current_week = self.get_current_week();
-        let current_user_energy = self.get_energy_entry(caller.clone());
-        self.update_user_energy_for_current_week(&caller, current_week, &current_user_energy);
-        self.current_claim_progress(&caller).set(ClaimProgress {
-            energy: current_user_energy,
-            week: current_week,
-        });
-
-        (
-            base_enter_farm_result.new_farm_token.payment,
-            base_enter_farm_result.boosted_rewards,
-        )
-            .into()
+        base_enter_farm_result.new_farm_token.payment
     }
 
     fn claim_rewards<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
-    ) -> ClaimRewardsResultType<Self::Api> {
+    ) -> ClaimRewardsResultWrapper<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
         let base_claim_rewards_result = self.claim_rewards_base::<FC>(caller.clone(), payments);
 
@@ -96,7 +96,10 @@ pub trait BaseFunctionsModule:
             base_claim_rewards_result.storage_cache,
         );
 
-        (output_farm_token_payment, rewards_payment).into()
+        ClaimRewardsResultWrapper {
+            new_farm_token: output_farm_token_payment,
+            rewards: rewards_payment,
+        }
     }
 
     fn compound_rewards<FC: FarmContract<FarmSc = Self>>(
@@ -120,44 +123,22 @@ pub trait BaseFunctionsModule:
         output_farm_token_payment
     }
 
-    fn exit_farm<
-        FC: FarmContract<FarmSc = Self, AttributesType = FarmTokenAttributes<Self::Api>>,
-    >(
+    fn exit_farm<FC: FarmContract<FarmSc = Self>>(
         &self,
         caller: ManagedAddress,
-        exit_amount: BigUint,
-    ) -> ExitFarmResultType<Self::Api> {
-        let mut payment = self.call_value().single_esdt();
-
-        require!(
-            payment.amount >= exit_amount,
-            "Exit amount is bigger than the payment amount"
-        );
-        let remaining_farm_payment = EsdtTokenPayment::new(
-            payment.token_identifier.clone(),
-            payment.token_nonce,
-            &payment.amount - &exit_amount,
-        );
-
-        payment.amount = exit_amount;
-
+        payment: EsdtTokenPayment,
+    ) -> ExitFarmResultWrapper<Self::Api> {
         let base_exit_farm_result = self.exit_farm_base::<FC>(caller.clone(), payment);
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
         let reward_payment = base_exit_farm_result.reward_payment;
 
-        let initial_farm_token = base_exit_farm_result.context.farm_token.clone();
-        if self.should_apply_penalty(initial_farm_token.attributes.entering_epoch) {
-            self.burn_penalty(
-                &mut farming_token_payment.amount,
-                &base_exit_farm_result.storage_cache.farming_token_id,
-                &base_exit_farm_result.storage_cache.reward_token_id,
-            );
-        }
-
-        if remaining_farm_payment.amount == 0 {
-            self.current_claim_progress(&caller).clear();
-        }
+        FC::apply_penalty(
+            self,
+            &mut farming_token_payment.amount,
+            &base_exit_farm_result.context.farm_token.attributes,
+            &base_exit_farm_result.storage_cache,
+        );
 
         self.emit_exit_farm_event(
             &caller,
@@ -167,34 +148,19 @@ pub trait BaseFunctionsModule:
             base_exit_farm_result.storage_cache,
         );
 
-        (
-            farming_token_payment,
-            reward_payment,
-            remaining_farm_payment,
-        )
-            .into()
+        ExitFarmResultWrapper {
+            farming_tokens: farming_token_payment,
+            rewards: reward_payment,
+        }
     }
 
-    fn merge_farm_tokens(&self, caller: &ManagedAddress) -> EsdtTokenPayment<Self::Api> {
-        self.check_claim_progress_for_merge(caller);
+    fn merge_farm_tokens<FC: FarmContract<FarmSc = Self>>(&self) -> EsdtTokenPayment<Self::Api> {
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
-        let output_attributes: FarmTokenAttributes<Self::Api> =
+        let output_attributes: FC::AttributesType =
             self.merge_from_payments_and_burn(payments, &token_mapper);
-        let new_token_amount = output_attributes.get_total_supply().clone();
+        let new_token_amount = output_attributes.get_total_supply();
         token_mapper.nft_create(new_token_amount, &output_attributes)
-    }
-
-    fn check_claim_progress_for_merge(&self, caller: &ManagedAddress) {
-        let claim_progress_mapper = self.current_claim_progress(caller);
-        if !claim_progress_mapper.is_empty() {
-            let current_week = self.get_current_week();
-            let claim_progress = claim_progress_mapper.get();
-            require!(
-                claim_progress.week == current_week,
-                "The user claim progress must be up to date."
-            )
-        }
     }
 
     fn end_produce_rewards<FC: FarmContract<FarmSc = Self>>(&self) {
@@ -223,13 +189,43 @@ pub trait BaseFunctionsModule:
     }
 }
 
-pub struct Wrapper<T: BaseFunctionsModule> {
+pub struct Wrapper<
+    T: BaseFunctionsModule
+        + farm_boosted_yields::FarmBoostedYieldsModule
+        + crate::exit_penalty::ExitPenaltyModule,
+> {
     _phantom: PhantomData<T>,
+}
+
+impl<T> Wrapper<T>
+where
+    T: BaseFunctionsModule
+        + farm_boosted_yields::FarmBoostedYieldsModule
+        + crate::exit_penalty::ExitPenaltyModule,
+{
+    pub fn calculate_boosted_rewards(
+        sc: &<Self as FarmContract>::FarmSc,
+        caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
+        farm_token_nonce: Nonce,
+        farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
+        farm_token_supply: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
+    ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
+        let total_rewards_per_block = sc.per_block_reward_amount().get();
+        sc.claim_boosted_yields_rewards(
+            caller,
+            farm_token_nonce,
+            farm_token_amount,
+            farm_token_supply,
+            &total_rewards_per_block,
+        )
+    }
 }
 
 impl<T> FarmContract for Wrapper<T>
 where
-    T: BaseFunctionsModule,
+    T: BaseFunctionsModule
+        + farm_boosted_yields::FarmBoostedYieldsModule
+        + crate::exit_penalty::ExitPenaltyModule,
 {
     type FarmSc = T;
     type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
@@ -272,26 +268,42 @@ where
             caller,
             farm_token_nonce,
             farm_token_amount,
-            storage_cache,
+            &storage_cache.farm_token_supply,
         );
 
         base_farm_reward + boosted_yield_rewards
     }
 
-    fn calculate_boosted_rewards(
+    fn get_exit_penalty(
         sc: &Self::FarmSc,
-        caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        farm_token_nonce: Nonce,
-        farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-        storage_cache: &StorageCache<Self::FarmSc>,
+        total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        token_attributes: &Self::AttributesType,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        let total_rewards_per_block = sc.per_block_reward_amount().get();
-        sc.claim_boosted_yields_rewards(
-            caller,
-            farm_token_nonce,
-            farm_token_amount,
-            &storage_cache.farm_token_supply,
-            &total_rewards_per_block,
-        )
+        let current_epoch = sc.blockchain().get_block_epoch();
+        let user_farming_epochs = current_epoch - token_attributes.entering_epoch;
+        let min_farming_epochs = sc.minimum_farming_epochs().get();
+        if user_farming_epochs >= min_farming_epochs {
+            BigUint::zero()
+        } else {
+            total_exit_amount * sc.penalty_percent().get() / exit_penalty::MAX_PERCENT
+        }
+    }
+
+    fn apply_penalty(
+        sc: &Self::FarmSc,
+        total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
+        token_attributes: &Self::AttributesType,
+        storage_cache: &StorageCache<Self::FarmSc>,
+    ) {
+        let penalty_amount = Self::get_exit_penalty(sc, total_exit_amount, token_attributes);
+        if penalty_amount > 0 {
+            *total_exit_amount -= &penalty_amount;
+
+            sc.burn_farming_tokens(
+                &penalty_amount,
+                &storage_cache.farming_token_id,
+                &storage_cache.reward_token_id,
+            );
+        }
     }
 }

@@ -2,11 +2,17 @@ elrond_wasm::imports!();
 
 use core::mem::swap;
 
-use farm::ProxyTrait as _;
+use farm::{
+    base_functions::{ClaimRewardsResultType, ExitFarmResultType},
+    ProxyTrait as _,
+};
+use farm_staking::{
+    claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
+    unstake_farm::ProxyTrait as _,
+};
 use pair::safe_price::ProxyTrait as _;
 
 use crate::result_types::*;
-use farm_staking::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 use pair::RemoveLiquidityResultType;
 
 pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
@@ -106,7 +112,7 @@ pub trait ExternalContractsInteractionsModule:
         staking_farm_tokens: PaymentsVec<Self::Api>,
     ) -> StakingFarmEnterResult<Self::Api> {
         let staking_farm_address = self.staking_farm_address().get();
-        let received_staking_farm_token: EnterFarmResultType<Self::Api> = self
+        let received_staking_farm_token: EsdtTokenPayment = self
             .staking_farm_proxy_obj(staking_farm_address)
             .stake_farm_through_proxy(staking_token_amount)
             .with_multi_token_transfer(staking_farm_tokens)

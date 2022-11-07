@@ -1,6 +1,9 @@
 elrond_wasm::imports!();
 
-use farm::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType, ProxyTrait as _};
+use farm::{
+    base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
+    EnterFarmResultType, ExitFarmWithPartialPosResultType, ProxyTrait as _,
+};
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_token: EsdtTokenPayment<M>,
@@ -11,11 +14,6 @@ pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
     pub remaining_farm_tokens: EsdtTokenPayment<M>,
-}
-
-pub struct ClaimRewardsFarmResultWrapper<M: ManagedTypeApi> {
-    pub new_farm_token: EsdtTokenPayment<M>,
-    pub reward_tokens: EsdtTokenPayment<M>,
 }
 
 pub struct CompoundRewardsFarmResultWrapper<M: ManagedTypeApi> {
@@ -52,7 +50,7 @@ pub trait FarmInteractionsModule {
         exit_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
-        let raw_result: ExitFarmResultType<Self::Api> = self
+        let raw_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
             .exit_farm_endpoint(exit_amount, original_caller)
             .add_esdt_token_transfer(
@@ -74,7 +72,7 @@ pub trait FarmInteractionsModule {
         &self,
         farm_address: ManagedAddress,
         farm_token: EsdtTokenPayment,
-    ) -> ClaimRewardsFarmResultWrapper<Self::Api> {
+    ) -> ClaimRewardsResultWrapper<Self::Api> {
         let original_caller = self.blockchain().get_caller();
         let raw_result: ClaimRewardsResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
@@ -85,11 +83,11 @@ pub trait FarmInteractionsModule {
                 farm_token.amount,
             )
             .execute_on_dest_context();
-        let (new_farm_token, reward_tokens) = raw_result.into_tuple();
+        let (new_farm_token, rewards) = raw_result.into_tuple();
 
-        ClaimRewardsFarmResultWrapper {
+        ClaimRewardsResultWrapper {
             new_farm_token,
-            reward_tokens,
+            rewards,
         }
     }
 

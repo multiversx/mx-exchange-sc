@@ -103,22 +103,12 @@ pub trait FarmContract {
         storage_cache: &StorageCache<Self::FarmSc>,
     ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
         let token_rps = token_attributes.get_reward_per_share();
-        if &storage_cache.reward_per_share > token_rps {
-            let rps_diff = &storage_cache.reward_per_share - token_rps;
+        if storage_cache.reward_per_share > token_rps {
+            let rps_diff = &storage_cache.reward_per_share - &token_rps;
             farm_token_amount * &rps_diff / &storage_cache.division_safety_constant
         } else {
             BigUint::zero()
         }
-    }
-
-    fn calculate_boosted_rewards(
-        _sc: &Self::FarmSc,
-        _caller: &ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
-        _farm_token_nonce: Nonce,
-        _farm_token_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
-        _storage_cache: &StorageCache<Self::FarmSc>,
-    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
-        BigUint::zero()
     }
 
     fn create_enter_farm_initial_attributes(
@@ -149,7 +139,7 @@ pub trait FarmContract {
         let initial_attributes: FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api> =
             first_token_attributes.into();
 
-        let net_current_farm_amount = initial_attributes.get_total_supply().clone();
+        let net_current_farm_amount = initial_attributes.get_total_supply();
         let new_attributes = FarmTokenAttributes {
             reward_per_share: current_reward_per_share,
             entering_epoch: initial_attributes.entering_epoch,
@@ -186,6 +176,22 @@ pub trait FarmContract {
 
         new_attributes.into()
     }
+
+    fn get_exit_penalty(
+        _sc: &Self::FarmSc,
+        _total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        _token_attributes: &Self::AttributesType,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        BigUint::zero()
+    }
+
+    fn apply_penalty(
+        _sc: &Self::FarmSc,
+        _total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
+        _token_attributes: &Self::AttributesType,
+        _storage_cache: &StorageCache<Self::FarmSc>,
+    ) {
+    }
 }
 
 pub struct DefaultFarmWrapper<T>
@@ -200,5 +206,4 @@ where
     T: AllBaseFarmImplTraits,
 {
     type FarmSc = T;
-    type AttributesType = FarmTokenAttributes<<Self::FarmSc as ContractBase>::Api>;
 }

@@ -8,8 +8,12 @@ use elrond_wasm_debug::{
 type RustBigUint = num_bigint::BigUint;
 
 use config::*;
+use farm_staking::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
 use farm_staking::custom_rewards::{CustomRewardsModule, BLOCKS_IN_YEAR, MAX_PERCENT};
-use farm_staking::farm_token_merge::StakingFarmTokenAttributes;
+use farm_staking::stake_farm::StakeFarmModule;
+use farm_staking::token_attributes::{StakingFarmTokenAttributes, UnbondSftAttributes};
+use farm_staking::unbond_farm::UnbondFarmModule;
+use farm_staking::unstake_farm::UnstakeFarmModule;
 use farm_staking::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
@@ -526,9 +530,7 @@ where
     let first_reward_share = 0;
     let second_reward_share = 400_000;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount
-        + total_amount
-        - 1)
+        + second_reward_share * second_farm_in_amount)
         / total_amount;
 
     stake_farm(

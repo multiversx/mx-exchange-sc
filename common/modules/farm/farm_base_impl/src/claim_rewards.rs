@@ -38,6 +38,23 @@ pub trait BaseClaimRewardsModule:
         caller: ManagedAddress,
         payments: PaymentsVec<Self::Api>,
     ) -> InternalClaimRewardsResult<Self, FC::AttributesType> {
+        let mut claim_result = self.claim_rewards_base_no_farm_token_mint::<FC>(caller, payments);
+        let virtual_farm_token_payment = &claim_result.new_farm_token.payment;
+        let minted_farm_token_nonce = self.send().esdt_nft_create_compact(
+            &virtual_farm_token_payment.token_identifier,
+            &virtual_farm_token_payment.amount,
+            &claim_result.new_farm_token.attributes,
+        );
+        claim_result.new_farm_token.payment.token_nonce = minted_farm_token_nonce;
+
+        claim_result
+    }
+
+    fn claim_rewards_base_no_farm_token_mint<FC: FarmContract<FarmSc = Self>>(
+        &self,
+        caller: ManagedAddress,
+        payments: PaymentsVec<Self::Api>,
+    ) -> InternalClaimRewardsResult<Self, FC::AttributesType> {
         let mut storage_cache = StorageCache::new(self);
         self.validate_contract_state(storage_cache.contract_state, &storage_cache.farm_token_id);
 
@@ -74,11 +91,19 @@ pub trait BaseClaimRewardsModule:
             token_attributes,
             storage_cache.reward_per_share.clone(),
         );
-        let new_farm_token = self.merge_and_create_token(
+        let new_token_attributes = self.merge_attributes_from_payments(
             base_attributes,
             &claim_rewards_context.additional_payments,
             &farm_token_mapper,
         );
+        let new_farm_token = PaymentAttributesPair {
+            payment: EsdtTokenPayment::new(
+                storage_cache.farm_token_id.clone(),
+                0,
+                new_token_attributes.get_total_supply(),
+            ),
+            attributes: new_token_attributes,
+        };
 
         let first_farm_token = &claim_rewards_context.first_farm_token.payment;
         farm_token_mapper.nft_burn(first_farm_token.token_nonce, &first_farm_token.amount);

@@ -33,28 +33,6 @@ pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
         self.burn_gas_limit().set(gas_limit);
     }
 
-    fn should_apply_penalty(&self, entering_epoch: Epoch) -> bool {
-        entering_epoch + self.minimum_farming_epochs().get() > self.blockchain().get_block_epoch()
-    }
-
-    fn get_penalty_amount(&self, amount: &BigUint) -> BigUint {
-        amount * self.penalty_percent().get() / MAX_PERCENT
-    }
-
-    fn burn_penalty(
-        &self,
-        initial_farming_amount: &mut BigUint,
-        farming_token_id: &TokenIdentifier,
-        reward_token_id: &TokenIdentifier,
-    ) {
-        let penalty_amount = self.get_penalty_amount(initial_farming_amount);
-        if penalty_amount > 0u64 {
-            self.burn_farming_tokens(&penalty_amount, farming_token_id, reward_token_id);
-
-            *initial_farming_amount -= penalty_amount;
-        }
-    }
-
     fn burn_farming_tokens(
         &self,
         farming_amount: &BigUint,

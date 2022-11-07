@@ -56,7 +56,7 @@ pub trait WrappedFarmTokenMerge:
             payment: EsdtTokenPayment::new(
                 wrapped_farm_token_id,
                 0,
-                virtual_pos_attributes.get_total_supply().clone(),
+                virtual_pos_attributes.get_total_supply(),
             ),
             attributes: virtual_pos_attributes,
         };

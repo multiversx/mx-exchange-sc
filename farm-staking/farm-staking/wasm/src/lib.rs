@@ -15,7 +15,7 @@ elrond_wasm_node::wasm_endpoints! {
         claimRewards
         claimRewardsWithNewValue
         compoundRewards
-        end_produce_rewards
+        endProduceRewards
         getAccumulatedRewards
         getAnnualPercentageRewards
         getDivisionSafetyConstant
@@ -28,6 +28,7 @@ elrond_wasm_node::wasm_endpoints! {
         getPermissions
         getRewardCapacity
         getRewardPerShare
+        getRewardReserve
         getRewardTokenId
         getState
         isSCAddressWhitelisted

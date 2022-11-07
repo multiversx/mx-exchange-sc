@@ -15,7 +15,6 @@ where
     pub context: EnterFarmContext<C::Api>,
     pub storage_cache: StorageCache<'a, C>,
     pub new_farm_token: PaymentAttributesPair<C::Api, T>,
-    pub boosted_rewards: EsdtTokenPayment<C::Api>,
     pub created_with_merge: bool,
 }
 
@@ -48,23 +47,6 @@ pub trait BaseEnterFarmModule:
 
         FC::generate_aggregated_rewards(self, &mut storage_cache);
 
-        let reward = if !enter_farm_context.additional_farm_tokens.is_empty() {
-            let payment = enter_farm_context.additional_farm_tokens.get(0);
-            FC::calculate_boosted_rewards(
-                self,
-                &caller,
-                payment.token_nonce,
-                &payment.amount,
-                &storage_cache,
-            )
-        } else {
-            BigUint::zero()
-        };
-
-        storage_cache.reward_reserve -= &reward;
-        let boosted_rewards =
-            EsdtTokenPayment::new(storage_cache.reward_token_id.clone(), 0, reward);
-
         storage_cache.farm_token_supply += &enter_farm_context.farming_token_payment.amount;
 
         let farm_token_mapper = self.farm_token();
@@ -87,7 +69,6 @@ pub trait BaseEnterFarmModule:
             context: enter_farm_context,
             storage_cache,
             new_farm_token,
-            boosted_rewards,
         }
     }
 }

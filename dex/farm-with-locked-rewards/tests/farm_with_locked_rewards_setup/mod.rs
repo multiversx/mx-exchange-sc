@@ -380,7 +380,10 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let _ = sc.exit_farm_endpoint(managed_biguint!(exit_farm_amount));
+                    let _ = sc.exit_farm_endpoint(
+                        managed_address!(user),
+                        managed_biguint!(exit_farm_amount),
+                    );
                 },
             )
             .assert_ok();

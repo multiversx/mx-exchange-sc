@@ -28,12 +28,12 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
-    fn get_total_supply(&self) -> &BigUint<M> {
-        &self.current_farm_amount
+    fn get_total_supply(&self) -> BigUint<M> {
+        self.current_farm_amount.clone()
     }
 
     fn into_part(self, payment_amount: &BigUint<M>) -> Self {
-        if payment_amount == self.get_total_supply() {
+        if payment_amount == &self.get_total_supply() {
             return self;
         }
 
@@ -65,9 +65,9 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
         let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average(
             self.reward_per_share.clone(),
-            first_supply.clone(),
+            first_supply,
             other.reward_per_share.clone(),
-            second_supply.clone(),
+            second_supply,
         );
 
         self.initial_farming_amount += other.initial_farming_amount;
@@ -81,26 +81,26 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
 }
 
 pub trait FarmToken<M: ManagedTypeApi> {
-    fn get_reward_per_share(&self) -> &BigUint<M>;
+    fn get_reward_per_share(&self) -> BigUint<M>;
 
-    fn get_compounded_rewards(&self) -> &BigUint<M>;
+    fn get_compounded_rewards(&self) -> BigUint<M>;
 
-    fn get_initial_farming_tokens(&self) -> &BigUint<M>;
+    fn get_initial_farming_tokens(&self) -> BigUint<M>;
 }
 
 impl<M: ManagedTypeApi> FarmToken<M> for FarmTokenAttributes<M> {
     #[inline]
-    fn get_reward_per_share(&self) -> &BigUint<M> {
-        &self.reward_per_share
+    fn get_reward_per_share(&self) -> BigUint<M> {
+        self.reward_per_share.clone()
     }
 
     #[inline]
-    fn get_compounded_rewards(&self) -> &BigUint<M> {
-        &self.compounded_reward
+    fn get_compounded_rewards(&self) -> BigUint<M> {
+        self.compounded_reward.clone()
     }
 
     #[inline]
-    fn get_initial_farming_tokens(&self) -> &BigUint<M> {
-        &self.initial_farming_amount
+    fn get_initial_farming_tokens(&self) -> BigUint<M> {
+        self.initial_farming_amount.clone()
     }
 }

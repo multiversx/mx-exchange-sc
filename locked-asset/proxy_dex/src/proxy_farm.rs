@@ -78,7 +78,7 @@ pub trait ProxyFarmModule:
                 new_token_attributes,
             )
         } else {
-            let new_token_amount = new_token_attributes.get_total_supply().clone();
+            let new_token_amount = new_token_attributes.get_total_supply();
             let output_wrapped_farm_token =
                 wrapped_farm_mapper.nft_create(new_token_amount, &new_token_attributes);
 
@@ -219,13 +219,13 @@ pub trait ProxyFarmModule:
             farm_token: claim_result.new_farm_token,
             proxy_farming_token: wrapped_farm_attributes.proxy_farming_token.clone(),
         };
-        let new_token_amount = new_wrapped_farm_attributes.get_total_supply().clone();
+        let new_token_amount = new_wrapped_farm_attributes.get_total_supply();
         let new_wrapped_token =
             wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_attributes);
 
         let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &new_wrapped_token);
-        self.send_payment_non_zero(&caller, &claim_result.reward_tokens);
+        self.send_payment_non_zero(&caller, &claim_result.rewards);
 
         self.emit_claim_rewards_farm_proxy_event(
             &caller,
@@ -234,10 +234,10 @@ pub trait ProxyFarmModule:
             wrapped_farm_attributes,
             new_wrapped_token.clone(),
             new_wrapped_farm_attributes,
-            claim_result.reward_tokens.clone(),
+            claim_result.rewards.clone(),
         );
 
-        (new_wrapped_token, claim_result.reward_tokens).into()
+        (new_wrapped_token, claim_result.rewards).into()
     }
 
     #[payable("*")]
@@ -264,7 +264,7 @@ pub trait ProxyFarmModule:
             farm_token: comp_result.new_farm_token,
             proxy_farming_token: wrapped_farm_attributes.proxy_farming_token.clone(),
         };
-        let new_token_amount = new_wrapped_farm_attributes.get_total_supply().clone();
+        let new_token_amount = new_wrapped_farm_attributes.get_total_supply();
         let new_wrapped_token =
             wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_attributes);
 
