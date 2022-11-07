@@ -13,6 +13,7 @@
                 "function": "calculateRewardsForGivenPosition",
                 "arguments": [
                     "address:user1",
+                    "1",
                     "100,050,000",
                     "0x000000041dcd65000000000000000000000000000000000a0000000405f5e10000000002c3500000000405f6a450"
                 ]
@@ -40,6 +41,7 @@
                 "function": "calculateRewardsForGivenPosition",
                 "arguments": [
                     "address:user1",
+                    "1",
                     "100,050,000",
                     "0x000000041dcd65000000000000000000000000000000000a0000000405f5e10000000002c3500000000405f6a450"
                 ]
