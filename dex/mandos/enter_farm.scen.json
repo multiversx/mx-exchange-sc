@@ -24,7 +24,16 @@
             },
             "expect": {
                 "out": [
-                    "0x0000000b4641524d2d61626364656600000000000000010000000405f5e100"
+                    {
+                        "1-token_id": "nested:str:FARM-abcdef",
+                        "2-nonce": "u64:1",
+                        "3-amount": "biguint:100,000,000"
+                    },
+                    {
+                        "1-token_id": "nested:str:WEGLD-abcdef",
+                        "2-nonce": "u64:0",
+                        "3-amount": "biguint:0"
+                    }
                 ],
                 "status": "0",
                 "message": "",
@@ -51,7 +60,16 @@
             },
             "expect": {
                 "out": [
-                    "0x0000000b4641524d2d61626364656600000000000000020000000405f5e100"
+                    {
+                        "1-token_id": "nested:str:FARM-abcdef",
+                        "2-nonce": "u64:2",
+                        "3-amount": "biguint:100,000,000"
+                    },
+                    {
+                        "1-token_id": "nested:str:WEGLD-abcdef",
+                        "2-nonce": "u64:0",
+                        "3-amount": "biguint:0"
+                    }
                 ],
                 "status": "0",
                 "message": "",

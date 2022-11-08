@@ -34,7 +34,16 @@
             },
             "expect": {
                 "out": [
-                    "0x0000000b4641524d2d61626364656600000000000000030000000411e1a300"
+                    {
+                        "1-token_id": "nested:str:FARM-abcdef",
+                        "2-nonce": "u64:3",
+                        "3-amount": "biguint:300,000,000"
+                    },
+                    {
+                        "1-token_id": "nested:str:WEGLD-abcdef",
+                        "2-nonce": "u64:0",
+                        "3-amount": "biguint:0"
+                    }
                 ],
                 "status": "0",
                 "message": "",
@@ -52,7 +61,7 @@
                         "str:FARM-abcdef": {
                             "instances": [
                                 {
-                                    "nonce": "0x03",
+                                    "nonce": "3",
                                     "balance": "300,000,000"
                                 }
                             ]

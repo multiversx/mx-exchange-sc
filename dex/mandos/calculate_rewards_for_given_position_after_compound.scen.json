@@ -14,7 +14,13 @@
                 "arguments": [
                     "address:user1",
                     "100,050,000",
-                    "0x000000041dcd65000000000000000000000000000000000a0000000405f5e10000000002c3500000000405f6a450"
+                    {
+                        "1-reward_per_share": "biguint:500,000,000",
+                        "2-entering_epoch": "u64:10",
+                        "3:initial_farming_amount": "biguint:100,000,000",
+                        "4:compounded_reward": "biguint:50,000",
+                        "5-current_farm_amount": "biguint:100,050,000"
+                    }
                 ]
             },
             "expect": {
@@ -41,7 +47,13 @@
                 "arguments": [
                     "address:user1",
                     "100,050,000",
-                    "0x000000041dcd65000000000000000000000000000000000a0000000405f5e10000000002c3500000000405f6a450"
+                    {
+                        "1-reward_per_share": "biguint:500,000,000",
+                        "2-entering_epoch": "u64:10",
+                        "3:initial_farming_amount": "biguint:100,000,000",
+                        "4:compounded_reward": "biguint:50,000",
+                        "5-current_farm_amount": "biguint:100,050,000"
+                    }
                 ]
             },
             "expect": {
