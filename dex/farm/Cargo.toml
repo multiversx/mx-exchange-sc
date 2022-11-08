@@ -83,3 +83,6 @@ num-bigint = "0.4.2"
 
 [dev-dependencies.energy-factory-mock]
 path = "../../energy-integration/energy-factory-mock"
+
+[dev-dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"

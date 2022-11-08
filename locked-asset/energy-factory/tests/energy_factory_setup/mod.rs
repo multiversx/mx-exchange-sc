@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
