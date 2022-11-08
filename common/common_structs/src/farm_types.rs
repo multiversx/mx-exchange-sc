@@ -21,7 +21,6 @@ use crate::Epoch;
 pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub entering_epoch: Epoch,
-    pub initial_farming_amount: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
 }
@@ -36,15 +35,12 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
             return self;
         }
 
-        let new_initial_farming_amount =
-            self.rule_of_three_non_zero_result(payment_amount, &self.initial_farming_amount);
         let new_compounded_reward = self.rule_of_three(payment_amount, &self.compounded_reward);
         let new_current_farm_amount = payment_amount.clone();
 
         FarmTokenAttributes {
             reward_per_share: self.reward_per_share,
             entering_epoch: self.entering_epoch,
-            initial_farming_amount: new_initial_farming_amount,
             compounded_reward: new_compounded_reward,
             current_farm_amount: new_current_farm_amount,
         }
@@ -68,7 +64,6 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
             second_supply,
         );
 
-        self.initial_farming_amount += other.initial_farming_amount;
         self.compounded_reward += other.compounded_reward;
         self.current_farm_amount += other.current_farm_amount;
 
@@ -98,6 +93,6 @@ impl<M: ManagedTypeApi> FarmToken<M> for FarmTokenAttributes<M> {
 
     #[inline]
     fn get_initial_farming_tokens(&self) -> BigUint<M> {
-        self.initial_farming_amount.clone()
+        &self.current_farm_amount - &self.compounded_reward
     }
 }

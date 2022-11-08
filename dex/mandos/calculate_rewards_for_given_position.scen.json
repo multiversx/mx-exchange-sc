@@ -17,9 +17,8 @@
                     {
                         "1-reward_per_share": "biguint:0",
                         "2-entering_epoch": "u64:0",
-                        "3:initial_farming_amount": "biguint:100,000,000",
-                        "4:compounded_reward": "biguint:0",
-                        "5-current_farm_amount": "biguint:100,000,000"
+                        "3:compounded_reward": "biguint:0",
+                        "4-current_farm_amount": "biguint:100,000,000"
                     }
                 ]
             },
@@ -96,9 +95,8 @@
                     {
                         "1-reward_per_share": "biguint:0",
                         "2-entering_epoch": "u64:0",
-                        "3:initial_farming_amount": "biguint:100,000,000",
-                        "4:compounded_reward": "biguint:0",
-                        "5-current_farm_amount": "biguint:100,000,000"
+                        "3:compounded_reward": "biguint:0",
+                        "4-current_farm_amount": "biguint:100,000,000"
                     }
                 ]
             },

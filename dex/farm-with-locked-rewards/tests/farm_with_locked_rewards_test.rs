@@ -35,15 +35,11 @@ fn farm_with_no_boost_no_proxy_test() {
     let first_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(first_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
     };
-    let first_rewards_amt = farm_setup.calculate_rewards(
-        &first_user,
-        first_farm_token_amount,
-        first_attributes,
-    );
+    let first_rewards_amt =
+        farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
     let first_expected_rewards_amt = first_farm_token_amount * 10_000 / total_farm_tokens;
     assert_eq!(first_rewards_amt, first_expected_rewards_amt);
 
@@ -51,15 +47,11 @@ fn farm_with_no_boost_no_proxy_test() {
     let second_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(second_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
     };
-    let second_rewards_amt = farm_setup.calculate_rewards(
-        &second_user,
-        second_farm_token_amount,
-        second_attributes,
-    );
+    let second_rewards_amt =
+        farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
     let second_expected_rewards_amt = second_farm_token_amount * 10_000 / total_farm_tokens;
     assert_eq!(second_rewards_amt, second_expected_rewards_amt);
 

@@ -30,7 +30,6 @@ fn farm_with_no_boost_test() {
     let first_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(first_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
     };
@@ -43,7 +42,6 @@ fn farm_with_no_boost_test() {
     let second_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(second_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
     };
@@ -232,7 +230,6 @@ fn farm_known_proxy_test() {
     let first_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(first_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
     };
@@ -245,7 +242,6 @@ fn farm_known_proxy_test() {
     let second_attributes = FarmTokenAttributes {
         reward_per_share: managed_biguint!(0),
         entering_epoch: 0,
-        initial_farming_amount: managed_biguint!(second_farm_token_amount),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
     };
