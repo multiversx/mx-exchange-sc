@@ -51,6 +51,10 @@ impl<M: ManagedTypeApi> FarmToken<M> for StakingFarmTokenAttributes<M> {
     fn get_compounded_rewards(&self) -> BigUint<M> {
         self.compounded_reward.clone()
     }
+
+    fn get_initial_farming_tokens(&self) -> BigUint<M> {
+        &self.current_farm_amount - &self.compounded_reward
+    }
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {

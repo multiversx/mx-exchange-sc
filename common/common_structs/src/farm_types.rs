@@ -76,6 +76,8 @@ pub trait FarmToken<M: ManagedTypeApi> {
     fn get_reward_per_share(&self) -> BigUint<M>;
 
     fn get_compounded_rewards(&self) -> BigUint<M>;
+
+    fn get_initial_farming_tokens(&self) -> BigUint<M>;
 }
 
 impl<M: ManagedTypeApi> FarmToken<M> for FarmTokenAttributes<M> {
@@ -87,5 +89,10 @@ impl<M: ManagedTypeApi> FarmToken<M> for FarmTokenAttributes<M> {
     #[inline]
     fn get_compounded_rewards(&self) -> BigUint<M> {
         self.compounded_reward.clone()
+    }
+
+    #[inline]
+    fn get_initial_farming_tokens(&self) -> BigUint<M> {
+        &self.current_farm_amount - &self.compounded_reward
     }
 }
