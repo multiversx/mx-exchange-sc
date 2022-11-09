@@ -17,7 +17,7 @@ use energy_factory::{
 };
 use simple_lock::locked_token::LockedTokenModule;
 
-mod fees_collector_mock;
+pub mod fees_collector_mock;
 use fees_collector_mock::*;
 
 pub const EPOCHS_IN_YEAR: u64 = 360;

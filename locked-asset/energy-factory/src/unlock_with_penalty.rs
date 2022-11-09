@@ -8,7 +8,7 @@ use simple_lock::locked_token::LockedTokenAttributes;
 use crate::lock_options::MAX_PENALTY_PERCENTAGE;
 
 static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
-static TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG: &[u8] = b"Token can be unlocked already";
+pub static TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG: &[u8] = b"Token can be unlocked already";
 
 #[elrond_wasm::module]
 pub trait UnlockWithPenaltyModule:

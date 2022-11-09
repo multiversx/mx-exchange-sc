@@ -5,7 +5,7 @@ use math::weighted_average;
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::energy::Energy;
+use crate::{energy::Energy, unlock_with_penalty::TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG};
 
 #[derive(Clone)]
 pub struct LockedAmountWeightAttributesPair<'a, Sc>
@@ -69,9 +69,12 @@ where
 
         self.token_amount += other.token_amount;
         self.token_unlock_fee_percent = unsafe { unlock_fee.to_u64().unwrap_unchecked() };
-        self.attributes.unlock_epoch = self
+
+        let lock_epochs = self
             .sc_ref
             .calculate_lock_epochs_from_penalty_percentage(self.token_unlock_fee_percent);
+        let current_epoch = self.sc_ref.blockchain().get_block_epoch();
+        self.attributes.unlock_epoch = current_epoch + lock_epochs;
     }
 }
 
@@ -140,6 +143,11 @@ pub trait TokenMergingModule:
             let current_epoch = self.blockchain().get_block_epoch();
             let first_token_attributes: LockedTokenAttributes<Self::Api> =
                 locked_token_mapper.get_token_attributes(first_payment.token_nonce);
+            require!(
+                first_token_attributes.unlock_epoch > current_epoch,
+                TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
+            );
+
             energy.update_after_unlock_any(
                 &first_payment.amount,
                 first_token_attributes.unlock_epoch,
@@ -156,6 +164,11 @@ pub trait TokenMergingModule:
             for payment in &payments {
                 let attributes: LockedTokenAttributes<Self::Api> =
                     locked_token_mapper.get_token_attributes(payment.token_nonce);
+                require!(
+                    attributes.unlock_epoch > current_epoch,
+                    TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
+                );
+
                 energy.update_after_unlock_any(
                     &payment.amount,
                     attributes.unlock_epoch,
