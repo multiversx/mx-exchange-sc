@@ -1,6 +1,7 @@
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
 use elrond_wasm::{
+    elrond_codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
@@ -276,7 +277,8 @@ where
                 0,
                 &rust_biguint!(farming_token_amount),
                 |sc| {
-                    let enter_farm_result = sc.enter_farm_endpoint(managed_address!(user));
+                    let enter_farm_result =
+                        sc.enter_farm_endpoint(OptionalValue::Some(managed_address!(user)));
                     let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
@@ -332,7 +334,7 @@ where
                 &rust_biguint!(farm_token_amount),
                 |sc| {
                     let (out_farm_token, out_reward_token) = sc
-                        .claim_rewards_endpoint(managed_address!(user))
+                        .claim_rewards_endpoint(OptionalValue::Some(managed_address!(user)))
                         .into_tuple();
                     assert_eq!(
                         out_farm_token.token_identifier,
@@ -379,8 +381,8 @@ where
                 &rust_biguint!(farm_token_amount),
                 |sc| {
                     let _ = sc.exit_farm_endpoint(
-                        managed_address!(user),
                         managed_biguint!(exit_farm_amount),
+                        OptionalValue::Some(managed_address!(user)),
                     );
                 },
             )
