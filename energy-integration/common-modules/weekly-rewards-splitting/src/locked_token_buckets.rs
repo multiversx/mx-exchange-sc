@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 
 use energy_query::Energy;
+use unwrappable::Unwrappable;
 use week_timekeeping::EPOCHS_IN_WEEK;
 
 pub type BucketId = u64;
@@ -73,7 +74,7 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         // first_bucket_id will be incremented once per week.
         // total buckets will be around ~200 initially
         // This should never overflow u64
-        unsafe { Some(bucket_id.to_u64().unwrap_unchecked()) }
+        Some(bucket_id.to_u64().unwrap_or_panic::<Self::Api>())
     }
 
     #[storage_mapper("firstBucketId")]

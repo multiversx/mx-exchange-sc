@@ -4,6 +4,7 @@ use common_structs::PaymentsVec;
 use math::weighted_average;
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
+use unwrappable::Unwrappable;
 
 use crate::{energy::Energy, unlock_with_penalty::TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG};
 
@@ -68,7 +69,7 @@ where
         );
 
         self.token_amount += other.token_amount;
-        self.token_unlock_fee_percent = unsafe { unlock_fee.to_u64().unwrap_unchecked() };
+        self.token_unlock_fee_percent = unlock_fee.to_u64().unwrap_or_panic::<Sc::Api>();
 
         let lock_epochs = self
             .sc_ref
