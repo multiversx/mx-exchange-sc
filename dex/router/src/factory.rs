@@ -59,7 +59,7 @@ pub trait FactoryModule {
             )
             .deploy_from_source(
                 &self.pair_template_address().get(),
-                CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC,
+                CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
             );
 
         self.pair_map().insert(
@@ -102,7 +102,7 @@ pub trait FactoryModule {
             )
             .upgrade_from_source(
                 &self.pair_template_address().get(),
-                CodeMetadata::UPGRADEABLE | CodeMetadata::PAYABLE_BY_SC,
+                CodeMetadata::UPGRADEABLE | CodeMetadata::READABLE | CodeMetadata::PAYABLE_BY_SC,
             );
     }
 
