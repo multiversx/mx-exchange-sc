@@ -79,23 +79,23 @@ pub trait Farm:
     #[endpoint(enterFarm)]
     fn enter_farm_endpoint(
         &self,
-        original_caller: ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payments = self.get_non_empty_payments();
         let first_additional_payment_index = 1;
         let boosted_rewards = match payments.try_get(first_additional_payment_index) {
-            Some(p) => self.claim_only_boosted_payment(&original_caller, &p),
+            Some(p) => self.claim_only_boosted_payment(&orig_caller, &p),
             None => EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero()),
         };
 
-        let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(original_caller.clone());
+        let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards);
 
-        self.update_energy_and_progress_after_enter(&original_caller);
+        self.update_energy_and_progress_after_enter(&orig_caller);
 
         (new_farm_token, boosted_rewards).into()
     }
@@ -104,14 +104,14 @@ pub trait Farm:
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
         &self,
-        original_caller: ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let payments = self.call_value().all_esdt_transfers();
         let base_claim_rewards_result =
-            self.claim_rewards_base::<NoMintWrapper<Self>>(original_caller.clone(), payments);
+            self.claim_rewards_base::<NoMintWrapper<Self>>(orig_caller.clone(), payments);
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
@@ -123,7 +123,7 @@ pub trait Farm:
         );
 
         self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
-            &original_caller,
+            &orig_caller,
             base_claim_rewards_result.context,
             base_claim_rewards_result.new_farm_token,
             locked_rewards_payment.clone(),
@@ -136,12 +136,14 @@ pub trait Farm:
 
     #[payable("*")]
     #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(&self, original_caller: ManagedAddress) -> EsdtTokenPayment {
+    fn compound_rewards_endpoint(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
-        let output_farm_token_payment =
-            self.compound_rewards::<NoMintWrapper<Self>>(original_caller);
+        let output_farm_token_payment = self.compound_rewards::<NoMintWrapper<Self>>(orig_caller);
         self.send_payment_non_zero(&caller, &output_farm_token_payment);
 
         output_farm_token_payment
@@ -151,11 +153,11 @@ pub trait Farm:
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
         &self,
-        original_caller: ManagedAddress,
         exit_amount: BigUint,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
 
         let mut payment = self.call_value().single_esdt();
         require!(
@@ -163,8 +165,7 @@ pub trait Farm:
             "Exit amount is bigger than the payment amount"
         );
 
-        let boosted_rewards_full_position =
-            self.claim_only_boosted_payment(&original_caller, &payment);
+        let boosted_rewards_full_position = self.claim_only_boosted_payment(&orig_caller, &payment);
         let remaining_farm_payment = EsdtTokenPayment::new(
             payment.token_identifier.clone(),
             payment.token_nonce,
@@ -173,8 +174,7 @@ pub trait Farm:
 
         payment.amount = exit_amount;
 
-        let exit_farm_result =
-            self.exit_farm::<NoMintWrapper<Self>>(original_caller.clone(), payment);
+        let exit_farm_result = self.exit_farm::<NoMintWrapper<Self>>(orig_caller.clone(), payment);
         let mut rewards = exit_farm_result.rewards;
         rewards.merge_with(boosted_rewards_full_position);
 
@@ -188,7 +188,7 @@ pub trait Farm:
         );
 
         if remaining_farm_payment.amount == 0 {
-            self.current_claim_progress(&original_caller).clear();
+            self.current_claim_progress(&orig_caller).clear();
         }
 
         (
@@ -224,11 +224,11 @@ pub trait Farm:
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(
         &self,
-        original_caller: ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> EsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
-        self.require_sc_address_whitelisted(&caller);
-        self.check_claim_progress_for_merge(&original_caller);
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
+        self.check_claim_progress_for_merge(&orig_caller);
 
         let merged_farm_token = self.merge_farm_tokens::<NoMintWrapper<Self>>();
         self.send_payment_non_zero(&caller, &merged_farm_token);
@@ -265,6 +265,20 @@ pub trait Farm:
         }
 
         self.lock_virtual(token_id, amount, destination_address)
+    }
+
+    fn get_orig_caller_from_opt(
+        &self,
+        caller: &ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ManagedAddress {
+        match opt_orig_caller {
+            OptionalValue::Some(opt_caller) => {
+                self.require_sc_address_whitelisted(caller);
+                opt_caller
+            }
+            OptionalValue::None => caller.clone(),
+        }
     }
 }
 
