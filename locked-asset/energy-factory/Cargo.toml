@@ -26,6 +26,9 @@ path = "../../common/modules/math"
 [dependencies.mergeable]
 path = "../../common/traits/mergeable"
 
+[dependencies.unwrappable]
+path = "../../common/traits/unwrappable"
+
 [dependencies.elrond-wasm]
 version = "=0.36.1"
 features = ["esdt-token-payment-legacy-decode",]

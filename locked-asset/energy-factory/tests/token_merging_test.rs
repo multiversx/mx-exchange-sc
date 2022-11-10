@@ -1,10 +1,31 @@
 mod energy_factory_setup;
 
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm_debug::tx_mock::TxInputESDT;
-use energy_factory::token_merging::TokenMergingModule;
+use energy_factory_setup::fees_collector_mock::FeesCollectorMock;
+
+use elrond_wasm::{
+    elrond_codec::multi_types::OptionalValue,
+    storage::mappers::StorageTokenWrapper,
+    types::{
+        BigInt, BigUint, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
+        MultiValueEncoded,
+    },
+};
+use elrond_wasm_debug::{
+    managed_address, managed_token_id, testing_framework::BlockchainStateWrapper,
+    tx_mock::TxInputESDT,
+};
+use elrond_wasm_modules::pause::PauseModule;
+use energy_factory::{
+    energy::{Energy, EnergyModule},
+    token_merging::TokenMergingModule,
+    token_whitelist::TokenWhitelistModule,
+    SimpleLockEnergy,
+};
 use energy_factory_setup::*;
-use simple_lock::locked_token::LockedTokenAttributes;
+use simple_lock::{
+    basic_lock_unlock::BasicLockUnlock,
+    locked_token::{LockedTokenAttributes, LockedTokenModule},
+};
 
 use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
 
@@ -219,4 +240,135 @@ fn token_merging_different_years2_test() {
     let expected_energy = rust_biguint!(500_000) * expected_merged_token_unlock_epoch;
     let actual_energy = setup.get_user_energy(&first_user);
     assert_eq!(expected_energy, actual_energy);
+}
+
+#[test]
+fn test_specific_tokens_merge() {
+    let _ = DebugApi::dummy();
+    let rust_zero = rust_biguint!(0u64);
+    let mut b_mock = BlockchainStateWrapper::new();
+    let owner = b_mock.create_user_account(&rust_zero);
+    let user = b_mock.create_user_account(&rust_zero);
+    let sc_wrapper = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner),
+        energy_factory::contract_obj,
+        "energy factory",
+    );
+    let fees_collector_mock = b_mock.create_sc_account(
+        &rust_zero,
+        Some(&owner),
+        FeesCollectorMock::new,
+        "fees collector mock",
+    );
+
+    let first_balance = "3562537017212685308192738"
+        .parse::<num_bigint::BigUint>()
+        .unwrap();
+    let total_expected = "5675109497292997578670612"
+        .parse::<num_bigint::BigUint>()
+        .unwrap();
+    let second_balance = &total_expected - &first_balance;
+
+    b_mock.set_esdt_local_roles(
+        sc_wrapper.address_ref(),
+        BASE_ASSET_TOKEN_ID,
+        &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
+    );
+    b_mock.set_esdt_local_roles(
+        sc_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        &[
+            EsdtLocalRole::NftCreate,
+            EsdtLocalRole::NftAddQuantity,
+            EsdtLocalRole::NftBurn,
+            EsdtLocalRole::Transfer,
+        ],
+    );
+    b_mock.set_esdt_local_roles(
+        sc_wrapper.address_ref(),
+        LEGACY_LOCKED_TOKEN_ID,
+        &[EsdtLocalRole::NftBurn],
+    );
+
+    b_mock
+        .execute_tx(&owner, &sc_wrapper, &rust_zero, |sc| {
+            let mut lock_options = MultiValueEncoded::new();
+            lock_options.push((365u64, 1_000u64).into());
+            lock_options.push((730u64, 5_000u64).into());
+            lock_options.push((1_460u64, 8_000u64).into());
+
+            sc.init(
+                managed_token_id!(BASE_ASSET_TOKEN_ID),
+                managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                FEES_BURN_PERCENTAGE,
+                managed_address!(fees_collector_mock.address_ref()),
+                managed_address!(fees_collector_mock.address_ref()),
+                lock_options,
+            );
+
+            sc.base_asset_token_id()
+                .set(&managed_token_id!(BASE_ASSET_TOKEN_ID));
+            sc.locked_token()
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+            sc.set_paused(false);
+
+            let _ = sc.lock_and_send(
+                &managed_address!(&user),
+                EgldOrEsdtTokenPayment::new(
+                    EgldOrEsdtTokenIdentifier::esdt(managed_token_id!(BASE_ASSET_TOKEN_ID)),
+                    0,
+                    BigUint::from_bytes_be(&first_balance.to_bytes_be()),
+                ),
+                4_140,
+            );
+            let _ = sc.lock_and_send(
+                &managed_address!(&user),
+                EgldOrEsdtTokenPayment::new(
+                    EgldOrEsdtTokenIdentifier::esdt(managed_token_id!(BASE_ASSET_TOKEN_ID)),
+                    0,
+                    BigUint::from_bytes_be(&second_balance.to_bytes_be()),
+                ),
+                4_050,
+            );
+
+            sc.user_energy(&managed_address!(&user)).set(Energy::new(
+                BigInt::zero(),
+                2_695,
+                BigUint::from_bytes_be(&total_expected.clone().to_bytes_be()),
+            ));
+        })
+        .assert_ok();
+
+    b_mock.set_block_epoch(2_695);
+
+    let payments = [
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: first_balance.clone(),
+        },
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 2,
+            value: second_balance.clone(),
+        },
+    ];
+    b_mock
+        .execute_esdt_multi_transfer(&user, &sc_wrapper, &payments, |sc| {
+            let _ = sc.merge_tokens_endpoint(OptionalValue::None);
+        })
+        .assert_ok();
+
+    b_mock.check_nft_balance(
+        &user,
+        LOCKED_TOKEN_ID,
+        3,
+        &total_expected,
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 4_110,
+        }),
+    );
 }

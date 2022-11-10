@@ -186,7 +186,7 @@ fn farm_proxy_actions_test() {
         Some(&WrappedFarmTokenAttributes::<DebugApi> {
             proxy_farming_token: EsdtTokenPayment {
                 token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
-                token_nonce: 3,
+                token_nonce: 1, // same unlock epoch after merge, so same nonce
                 amount: managed_biguint!(USER_BALANCE),
             },
             farm_token: EsdtTokenPayment {

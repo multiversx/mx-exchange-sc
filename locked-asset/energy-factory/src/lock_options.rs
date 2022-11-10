@@ -2,7 +2,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::{Epoch, Percent};
-use elrond_wasm::api::StorageMapperApi;
 
 pub const EPOCHS_PER_MONTH: Epoch = 30;
 pub const EPOCHS_PER_YEAR: Epoch = 12 * EPOCHS_PER_MONTH;
@@ -16,8 +15,6 @@ pub struct LockOption {
 
 const MAX_LOCK_OPTIONS: usize = 10;
 pub type AllLockOptions = ArrayVec<LockOption, MAX_LOCK_OPTIONS>;
-
-static mut LOCK_OPTIONS: AllLockOptions = AllLockOptions::new_const();
 
 #[elrond_wasm::module]
 pub trait LockOptionsModule {
@@ -85,12 +82,10 @@ pub trait LockOptionsModule {
     }
 
     fn get_lock_options(&self) -> AllLockOptions {
-        init_static_lock_options(&self.lock_options());
-        unsafe {
-            require!(!LOCK_OPTIONS.is_empty(), "no lock options available");
-        }
+        let options = self.lock_options().get();
+        require!(!options.is_empty(), "no lock options available");
 
-        unsafe { LOCK_OPTIONS.clone() }
+        options
     }
 
     fn require_is_listed_lock_option(&self, lock_epochs: Epoch) {
@@ -117,20 +112,6 @@ pub trait LockOptionsModule {
     #[view(getLockOptions)]
     #[storage_mapper("lockOptions")]
     fn lock_options(&self) -> SingleValueMapper<AllLockOptions>;
-}
-
-fn init_static_lock_options<M: StorageMapperApi>(
-    lock_options_mapper: &SingleValueMapper<M, AllLockOptions>,
-) {
-    unsafe {
-        if !LOCK_OPTIONS.is_empty() {
-            return;
-        }
-    }
-
-    unsafe {
-        LOCK_OPTIONS = lock_options_mapper.get();
-    }
 }
 
 fn sort_lock_options(lock_options: &mut AllLockOptions) {

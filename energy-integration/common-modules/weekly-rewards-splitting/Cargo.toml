@@ -19,3 +19,6 @@ path = "../week-timekeeping"
 
 [dependencies.common-types]
 path = "../../common-types"
+
+[dependencies.unwrappable]
+path = "../../../common/traits/unwrappable"

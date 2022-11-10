@@ -22,9 +22,8 @@ pub trait LocalPenaltyModule: crate::lock_options::LockOptionsModule {
 
         let first_index = 0;
         let first_lock_option = unsafe { lock_options.get_unchecked(first_index) };
-        if lock_epochs_remaining > first_lock_option.lock_epochs {
-            let end_index = lock_options.len() - 1;
-            for i in first_index..end_index {
+        if last_index > 0 && lock_epochs_remaining > first_lock_option.lock_epochs {
+            for i in first_index..last_index {
                 let prev_option_temp = unsafe { lock_options.get_unchecked(i) };
                 let next_option_temp = unsafe { lock_options.get_unchecked(i + 1) };
                 if prev_option_temp.lock_epochs <= lock_epochs_remaining
@@ -63,9 +62,8 @@ pub trait LocalPenaltyModule: crate::lock_options::LockOptionsModule {
 
         let first_index = 0;
         let first_lock_option = unsafe { lock_options.get_unchecked(first_index) };
-        if penalty_percentage > first_lock_option.penalty_start_percentage {
-            let end_index = lock_options.len() - 1;
-            for i in first_index..end_index {
+        if last_index > 0 && penalty_percentage > first_lock_option.penalty_start_percentage {
+            for i in first_index..last_index {
                 let prev_option_temp = unsafe { lock_options.get_unchecked(i) };
                 let next_option_temp = unsafe { lock_options.get_unchecked(i + 1) };
                 if prev_option_temp.penalty_start_percentage <= penalty_percentage
