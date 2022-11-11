@@ -40,7 +40,7 @@ pub trait LkmexTransfer:
         self.set_energy_factory_address(energy_factory_address);
     }
 
-    #[endpoint(withdraw)]
+    #[endpoint]
     fn withdraw(&self) {
         let caller = self.blockchain().get_caller();
         let funds = self.get_unlocked_funds(&caller);
