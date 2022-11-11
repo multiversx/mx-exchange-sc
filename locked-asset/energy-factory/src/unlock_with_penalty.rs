@@ -4,6 +4,7 @@ elrond_wasm::derive_imports!();
 use common_structs::Epoch;
 
 use simple_lock::locked_token::LockedTokenAttributes;
+use token_unstake::UnstakePair;
 
 use crate::lock_options::MAX_PENALTY_PERCENTAGE;
 
@@ -23,6 +24,8 @@ pub trait UnlockWithPenaltyModule:
     + crate::token_merging::TokenMergingModule
     + crate::penalty::LocalPenaltyModule
     + crate::fees::FeesModule
+    + token_send::TokenSendModule
+    + token_unstake::TokenUnstakeModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
 {
@@ -107,15 +110,34 @@ pub trait UnlockWithPenaltyModule:
             );
         }
 
-        if new_lock_epochs == 0 {
+        let output_payment = if new_lock_epochs == 0 {
             let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
             self.send()
                 .esdt_local_mint(&unlocked_token_id, 0, &unlocked_tokens.amount);
-        }
-
-        let new_unlock_epoch = current_epoch + new_lock_epochs;
-        let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
-        energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
+            let token_payment =
+                EsdtTokenPayment::new(unlocked_token_id, 0, unlocked_tokens.amount.clone());
+            let unbond_epochs = self.unbond_epochs().get();
+            let unstake_pair = UnstakePair {
+                unlock_epoch: current_epoch + unbond_epochs,
+                token_payment: token_payment.clone(),
+            };
+            self.unlocked_tokens_for_user(&caller)
+                .update(|unstake_pairs| {
+                    unstake_pairs.push(unstake_pair);
+                });
+            unlocked_tokens
+        } else {
+            let new_unlock_epoch = current_epoch + new_lock_epochs;
+            energy.add_after_token_lock(&unlocked_tokens.amount, new_unlock_epoch, current_epoch);
+            let payment = self.lock_tokens(unlocked_tokens, new_unlock_epoch);
+            self.send().direct(
+                &caller,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
+            payment
+        };
 
         self.set_energy_entry(&caller, energy);
 

@@ -18,7 +18,7 @@ pub mod virtual_lock;
 use common_structs::{Epoch, Percent};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
-use token_unstake::{UnstakePair, DEFAULT_UNBOND_EPOCHS};
+use token_unstake::DEFAULT_UNBOND_EPOCHS;
 
 use crate::energy::Energy;
 
@@ -165,22 +165,12 @@ pub trait SimpleLockEnergy:
 
         self.send()
             .esdt_local_mint(&output_payment.token_identifier, 0, &output_payment.amount);
-
-        let token_payment = EsdtTokenPayment::new(
-            output_payment.token_identifier.clone(),
+        self.send().direct_esdt(
+            &caller,
+            &output_payment.token_identifier,
             0,
-            output_payment.amount.clone(),
+            &output_payment.amount,
         );
-
-        let unbond_epochs = self.unbond_epochs().get();
-        let unstake_pair = UnstakePair {
-            unlock_epoch: current_epoch + unbond_epochs,
-            token_payment,
-        };
-        self.unlocked_tokens_for_user(&caller)
-            .update(|unstake_pairs| {
-                unstake_pairs.push(unstake_pair);
-            });
 
         output_payment
     }
