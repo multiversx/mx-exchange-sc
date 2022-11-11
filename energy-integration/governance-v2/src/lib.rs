@@ -79,7 +79,7 @@ pub trait GovernanceV2:
         );
 
         let proposer = self.blockchain().get_caller();
-        let user_energy = self.get_energy_amount_non_zero(proposer.clone());
+        let user_energy = self.get_energy_amount_non_zero(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
         require!(
             user_energy >= min_energy_for_propose,
@@ -146,7 +146,7 @@ pub trait GovernanceV2:
         let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
-        let user_energy = self.get_energy_amount_non_zero(voter.clone());
+        let user_energy = self.get_energy_amount_non_zero(&voter);
         self.total_votes(proposal_id)
             .update(|total_votes| *total_votes += &user_energy);
 
@@ -167,7 +167,7 @@ pub trait GovernanceV2:
         let new_user = self.user_voted_proposals(&downvoter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
-        let user_energy = self.get_energy_amount_non_zero(downvoter.clone());
+        let user_energy = self.get_energy_amount_non_zero(&downvoter);
         self.total_downvotes(proposal_id)
             .update(|total_downvotes| *total_downvotes += &user_energy);
 

@@ -34,6 +34,10 @@ impl<M: ManagedTypeApi> Energy<M> {
         }
     }
 
+    pub fn new_zero_energy(current_epoch: Epoch) -> Self {
+        Self::new(BigInt::zero(), current_epoch, BigUint::zero())
+    }
+
     fn add(&mut self, future_epoch: Epoch, current_epoch: Epoch, amount_per_epoch: &BigUint<M>) {
         if current_epoch >= future_epoch {
             return;

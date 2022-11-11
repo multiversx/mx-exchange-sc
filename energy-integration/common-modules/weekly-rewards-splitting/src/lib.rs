@@ -60,7 +60,7 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
     ) -> PaymentsVec<Self::Api> {
         let current_week = self.get_current_week();
-        let current_user_energy = self.get_energy_entry(user.clone());
+        let current_user_energy = self.get_energy_entry(user);
         let current_energy_amount = current_user_energy.get_energy_amount();
 
         self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
@@ -105,7 +105,11 @@ pub trait WeeklyRewardsSplittingModule:
             claim_progress.energy = current_user_energy;
         }
 
-        claim_progress_mapper.set(&claim_progress);
+        if claim_progress.energy.get_energy_amount() > 0 {
+            claim_progress_mapper.set(&claim_progress);
+        } else {
+            claim_progress_mapper.clear();
+        }
 
         self.emit_claim_multi_event(
             user,
