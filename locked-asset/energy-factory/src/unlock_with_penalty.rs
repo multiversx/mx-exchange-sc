@@ -107,15 +107,24 @@ pub trait UnlockWithPenaltyModule:
             );
         }
 
-        if new_lock_epochs == 0 {
+        let output_payment = if new_lock_epochs == 0 {
             let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
             self.send()
                 .esdt_local_mint(&unlocked_token_id, 0, &unlocked_tokens.amount);
-        }
 
-        let new_unlock_epoch = current_epoch + new_lock_epochs;
-        let output_payment = self.lock_and_send(&caller, unlocked_tokens, new_unlock_epoch);
-        energy.add_after_token_lock(&output_payment.amount, new_unlock_epoch, current_epoch);
+            unlocked_tokens
+        } else {
+            let new_unlock_epoch = current_epoch + new_lock_epochs;
+            energy.add_after_token_lock(&unlocked_tokens.amount, new_unlock_epoch, current_epoch);
+
+            self.lock_tokens(unlocked_tokens, new_unlock_epoch)
+        };
+        self.send().direct(
+            &caller,
+            &output_payment.token_identifier,
+            output_payment.token_nonce,
+            &output_payment.amount,
+        );
 
         self.set_energy_entry(&caller, energy);
 
