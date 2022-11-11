@@ -5,6 +5,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub mod constants;
+pub mod energy_transfer;
 
 use common_structs::{Epoch, PaymentsVec};
 
@@ -19,18 +20,24 @@ pub struct LockedFunds<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::contract]
-pub trait LkmexTransfer {
+pub trait LkmexTransfer:
+    energy_transfer::EnergyTransferModule + energy_query::EnergyQueryModule + utils::UtilsModule
+{
     #[init]
     fn init(
         &self,
+        energy_factory_address: ManagedAddress,
         locked_token_id: TokenIdentifier,
         min_lock_epochs: Epoch,
         epochs_cooldown_duration: Epoch,
     ) {
+        self.require_valid_token_id(&locked_token_id);
+
         self.min_lock_epochs().set(min_lock_epochs);
         self.epochs_cooldown_duration()
             .set(epochs_cooldown_duration);
         self.locked_token_id().set(locked_token_id);
+        self.set_energy_factory_address(energy_factory_address);
     }
 
     #[endpoint(withdraw)]
@@ -42,6 +49,8 @@ pub trait LkmexTransfer {
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.address_last_transfer_epoch(&caller).set(current_epoch);
+
+        self.add_energy_to_destination(caller, &funds);
     }
 
     fn get_unlocked_funds(&self, address: &ManagedAddress) -> PaymentsVec<Self::Api> {
@@ -75,6 +84,8 @@ pub trait LkmexTransfer {
                 BAD_LOCKING_TOKEN
             )
         }
+
+        self.deduct_energy_from_sender(caller.clone(), &payments);
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.locked_funds(&address).set(LockedFunds {
