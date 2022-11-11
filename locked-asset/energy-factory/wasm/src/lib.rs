@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         addLockOptions
         addSCAddressToWhitelist
+        claimUnlockedTokens
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
@@ -21,6 +22,8 @@ elrond_wasm_node::wasm_endpoints! {
         getLockOptions
         getLockedTokenId
         getPenaltyAmount
+        getUnbondEpochs
+        getUnlockedTokensForUser
         isPaused
         isSCAddressWhitelisted
         issueLockedToken
@@ -34,6 +37,7 @@ elrond_wasm_node::wasm_endpoints! {
         setFeesBurnPercentage
         setFeesCollectorAddress
         setTransferRoleLockedToken
+        setUnbondEpochs
         unlockEarly
         unlockTokens
         unpause

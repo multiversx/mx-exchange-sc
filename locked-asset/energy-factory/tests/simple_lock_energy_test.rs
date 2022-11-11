@@ -121,6 +121,7 @@ fn lock_ok() {
     setup.b_mock.set_block_epoch(current_epoch);
 
     setup.unlock(&first_user, 1, half_balance).assert_ok();
+    setup.claim_unlocked_tokens(&first_user).assert_ok();
     setup.b_mock.check_esdt_balance(
         &first_user,
         BASE_ASSET_TOKEN_ID,

@@ -19,6 +19,7 @@ use simple_lock::locked_token::LockedTokenModule;
 
 pub mod fees_collector_mock;
 use fees_collector_mock::*;
+use token_unstake::TokenUnstakeModule;
 
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const EPOCHS_IN_WEEK: u64 = 7;
@@ -198,6 +199,14 @@ where
                 sc.unlock_early();
             },
         )
+    }
+
+    pub fn claim_unlocked_tokens(&mut self, caller: &Address) -> TxResult {
+        let rust_zero = rust_biguint!(0u64);
+        self.b_mock
+            .execute_tx(caller, &self.sc_wrapper, &rust_zero, |sc| {
+                sc.claim_unlocked_tokens();
+            })
     }
 
     pub fn reduce_lock_period(
