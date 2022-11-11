@@ -107,6 +107,11 @@ pub trait Farm:
         (new_farm_token, boosted_rewards).into()
     }
 
+    #[endpoint(updateEnergyForUser)]
+    fn update_energy_for_user(&self, user: ManagedAddress) {
+        self.update_energy_and_progress_after_enter(&user);
+    }
+
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
