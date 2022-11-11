@@ -15,7 +15,7 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule {
         let current_epoch = self.blockchain().get_block_epoch();
         let own_sc_address = self.blockchain().get_sc_address();
 
-        let mut energy = self.get_energy_entry(from_user.clone());
+        let mut energy = self.get_energy_entry(&from_user);
         for token in tokens {
             let token_data = self.blockchain().get_esdt_token_data(
                 &own_sc_address,
@@ -42,7 +42,7 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule {
         let current_epoch = self.blockchain().get_block_epoch();
         let own_sc_address = self.blockchain().get_sc_address();
 
-        let mut energy = self.get_energy_entry(to_user.clone());
+        let mut energy = self.get_energy_entry(&to_user);
         for token in tokens {
             let token_data = self.blockchain().get_esdt_token_data(
                 &own_sc_address,
