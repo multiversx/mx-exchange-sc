@@ -3,6 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub const DEFAULT_UNBOND_EPOCHS: u64 = 10;
+
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct UnstakePair<M: ManagedTypeApi> {
     pub unlock_epoch: u64,
@@ -23,17 +25,20 @@ pub trait TokenUnstakeModule: token_send::TokenSendModule {
         let current_epoch = self.blockchain().get_block_epoch();
         let unlocked_tokens_for_user_mapper = self.unlocked_tokens_for_user(&caller);
         let unlocked_tokens_for_user = unlocked_tokens_for_user_mapper.get();
-        let mut remaining_tokens_for_user = unlocked_tokens_for_user.clone();
+        let mut remaining_tokens_for_user = ManagedVec::new();
         let mut payments = ManagedVec::new();
         for unstake_payment in &unlocked_tokens_for_user {
-            if unstake_payment.unlock_epoch > current_epoch {
-                break;
+            if current_epoch >= unstake_payment.unlock_epoch {
+                payments.push(unstake_payment.token_payment);
+            } else {
+                remaining_tokens_for_user.push(unstake_payment);
             }
-            payments.push(unstake_payment.token_payment);
-            remaining_tokens_for_user.remove(0);
         }
-
-        unlocked_tokens_for_user_mapper.set(remaining_tokens_for_user);
+        if remaining_tokens_for_user.is_empty() {
+            unlocked_tokens_for_user_mapper.clear();
+        } else {
+            unlocked_tokens_for_user_mapper.set(remaining_tokens_for_user);
+        };
         self.send_multiple_tokens_if_not_zero(&caller, &payments);
     }
 

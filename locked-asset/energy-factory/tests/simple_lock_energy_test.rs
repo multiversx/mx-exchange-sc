@@ -4,6 +4,7 @@ use energy_factory_setup::*;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
+use token_unstake::DEFAULT_UNBOND_EPOCHS;
 
 #[test]
 fn init_test() {
@@ -121,7 +122,11 @@ fn lock_ok() {
     setup.b_mock.set_block_epoch(current_epoch);
 
     setup.unlock(&first_user, 1, half_balance).assert_ok();
+
+    current_epoch += DEFAULT_UNBOND_EPOCHS;
+    setup.b_mock.set_block_epoch(current_epoch);
     setup.claim_unlocked_tokens(&first_user).assert_ok();
+
     setup.b_mock.check_esdt_balance(
         &first_user,
         BASE_ASSET_TOKEN_ID,

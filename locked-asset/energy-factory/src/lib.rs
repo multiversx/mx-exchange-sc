@@ -18,7 +18,7 @@ pub mod virtual_lock;
 use common_structs::{Epoch, Percent};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
-use token_unstake::UnstakePair;
+use token_unstake::{UnstakePair, DEFAULT_UNBOND_EPOCHS};
 
 use crate::energy::Energy;
 
@@ -82,6 +82,7 @@ pub trait SimpleLockEnergy:
         self.old_locked_asset_factory_address()
             .set(&old_locked_asset_factory_address);
         self.add_lock_options(lock_options);
+        self.unbond_epochs().set_if_empty(DEFAULT_UNBOND_EPOCHS);
         self.set_paused(true);
     }
 
