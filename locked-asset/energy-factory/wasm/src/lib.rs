@@ -33,7 +33,9 @@ elrond_wasm_node::wasm_endpoints! {
         removeSCAddressFromWhitelist
         setFeesBurnPercentage
         setFeesCollectorAddress
+        setLockedTokenTransferScAddress
         setTransferRoleLockedToken
+        setUserEnergyAfterLockedTokenTransfer
         unlockEarly
         unlockTokens
         unpause
