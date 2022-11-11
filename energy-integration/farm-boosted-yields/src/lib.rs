@@ -235,6 +235,9 @@ where
         if module.boosted_yields_factors().is_empty() {
             return user_rewards;
         }
+        if total_energy == &0 || self.total_farm_supply == 0 {
+            return user_rewards;
+        }
 
         let factors = module.boosted_yields_factors().get();
         if energy_amount <= &factors.min_energy_amount
