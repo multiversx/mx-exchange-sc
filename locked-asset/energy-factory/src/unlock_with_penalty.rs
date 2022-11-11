@@ -119,7 +119,7 @@ pub trait UnlockWithPenaltyModule:
             let unbond_epochs = self.unbond_epochs().get();
             let unstake_pair = UnstakePair {
                 unlock_epoch: current_epoch + unbond_epochs,
-                token_payment: token_payment.clone(),
+                token_payment,
             };
             self.unlocked_tokens_for_user(&caller)
                 .update(|unstake_pairs| {
