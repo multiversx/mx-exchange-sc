@@ -100,6 +100,15 @@ pub trait Farm:
         (new_farm_token, boosted_rewards).into()
     }
 
+    #[endpoint(updateEnergyForUser)]
+    fn update_energy_for_user(&self, user: ManagedAddress) {
+        let current_week = self.get_current_week();
+        let claim_progress = self.current_claim_progress(&user).get();
+        if claim_progress.week < current_week {
+            self.update_energy_and_progress_after_enter(&user);
+        }
+    }
+
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
