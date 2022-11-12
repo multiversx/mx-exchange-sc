@@ -17,7 +17,8 @@ use elrond_wasm_debug::{
 fn extend_lock_period_old_token_test() {
     let _ = DebugApi::dummy();
     let rust_zero = rust_biguint!(0);
-    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let mut setup =
+        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
 
     setup.b_mock.set_block_epoch(1);
 

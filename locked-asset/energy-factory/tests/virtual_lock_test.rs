@@ -12,7 +12,8 @@ use elrond_wasm_debug::{
 
 #[test]
 fn virtual_lock_test() {
-    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let mut setup =
+        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
     let first_user = setup.first_user.clone();
     let second_user = setup.second_user.clone();
 

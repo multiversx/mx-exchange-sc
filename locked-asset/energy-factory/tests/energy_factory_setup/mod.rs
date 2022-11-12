@@ -16,6 +16,7 @@ use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
 };
 use simple_lock::locked_token::LockedTokenModule;
+use token_unstake::TokenUnstakeModule;
 
 pub mod fees_collector_mock;
 use fees_collector_mock::*;
@@ -23,6 +24,7 @@ use fees_collector_mock::*;
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const EPOCHS_IN_WEEK: u64 = 7;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
+pub const DEFAULT_UNBOND_EPOCHS: u64 = 10;
 
 pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
@@ -32,23 +34,27 @@ pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
-pub struct SimpleLockEnergySetup<ScBuilder>
+pub struct SimpleLockEnergySetup<ScBuilder, TokenUnstakeBuilder>
 where
     ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TokenUnstakeBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
     pub sc_wrapper: ContractObjWrapper<energy_factory::ContractObj<DebugApi>, ScBuilder>,
+    pub token_unstake_wrapper:
+        ContractObjWrapper<token_unstake::ContractObj<DebugApi>, TokenUnstakeBuilder>,
     pub fees_collector_mock: Address,
 }
 
-impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
+impl<ScBuilder, TokenUnstakeBuilder> SimpleLockEnergySetup<ScBuilder, TokenUnstakeBuilder>
 where
     ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TokenUnstakeBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
 {
-    pub fn new(sc_builder: ScBuilder) -> Self {
+    pub fn new(sc_builder: ScBuilder, token_unstake_builder: TokenUnstakeBuilder) -> Self {
         let _ = DebugApi::dummy();
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
@@ -57,12 +63,24 @@ where
         let second_user = b_mock.create_user_account(&rust_zero);
         let sc_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner), sc_builder, "simple lock energy");
+        let token_unstake_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            token_unstake_builder,
+            "unstake token",
+        );
         let fees_collector_mock = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner),
             FeesCollectorMock::new,
             "fees collector mock",
         );
+
+        b_mock
+            .execute_tx(&owner, &token_unstake_wrapper, &rust_zero, |sc| {
+                sc.init();
+            })
+            .assert_ok();
 
         b_mock
             .execute_tx(&owner, &sc_wrapper, &rust_zero, |sc| {
@@ -85,6 +103,7 @@ where
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
                 sc.set_paused(false);
+                sc.set_token_unstake_address(managed_address!(token_unstake_wrapper.address_ref()));
             })
             .assert_ok();
 
@@ -126,14 +145,16 @@ where
             first_user,
             second_user,
             sc_wrapper,
+            token_unstake_wrapper,
             fees_collector_mock: fees_collector_mock.address_ref().clone(),
         }
     }
 }
 
-impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
+impl<ScBuilder, TokenUnstakeBuilder> SimpleLockEnergySetup<ScBuilder, TokenUnstakeBuilder>
 where
     ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    TokenUnstakeBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
 {
     pub fn lock(
         &mut self,
@@ -217,6 +238,15 @@ where
                 sc.reduce_lock_period(new_lock_period);
             },
         )
+    }
+
+    pub fn claim_unlocked_tokens(&mut self, caller: &Address) {
+        let rust_zero = rust_biguint!(0u64);
+        self.b_mock
+            .execute_tx(caller, &self.token_unstake_wrapper, &rust_zero, |sc| {
+                sc.claim_unlocked_tokens();
+            })
+            .assert_ok();
     }
 
     pub fn get_penalty_amount(
