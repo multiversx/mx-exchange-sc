@@ -46,6 +46,13 @@ pub trait UnlockWithPenaltyModule:
         self.fees_collector_address().set(&sc_address);
     }
 
+    #[only_owner]
+    #[endpoint(setTokenUnstakeAddress)]
+    fn set_token_unstake_address(&self, sc_address: ManagedAddress) {
+        self.require_sc_address(&sc_address);
+        self.token_unstake_sc_address().set(&sc_address);
+    }
+
     /// Unlock a locked token instantly. This incures a penalty.
     /// The longer the remaining locking time, the bigger the penalty.
     #[payable("*")]
@@ -112,19 +119,33 @@ pub trait UnlockWithPenaltyModule:
             self.send()
                 .esdt_local_mint(&unlocked_token_id, 0, &unlocked_tokens.amount);
 
+            let mut proxy_instance = self.get_token_unstake_sc_proxy_instance();
+
+            let _: IgnoreValue = proxy_instance
+                .deposit_user_tokens(&caller)
+                .with_egld_or_single_esdt_token_transfer(
+                    EgldOrEsdtTokenIdentifier::esdt(unlocked_token_id),
+                    0,
+                    unlocked_tokens.amount.clone(),
+                )
+                .execute_on_dest_context();
+
             unlocked_tokens
         } else {
             let new_unlock_epoch = current_epoch + new_lock_epochs;
             energy.add_after_token_lock(&unlocked_tokens.amount, new_unlock_epoch, current_epoch);
 
-            self.lock_tokens(unlocked_tokens, new_unlock_epoch)
+            let payment = self.lock_tokens(unlocked_tokens, new_unlock_epoch);
+
+            self.send().direct(
+                &caller,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
+
+            payment
         };
-        self.send().direct(
-            &caller,
-            &output_payment.token_identifier,
-            output_payment.token_nonce,
-            &output_payment.amount,
-        );
 
         self.set_energy_entry(&caller, energy);
 
@@ -172,4 +193,19 @@ pub trait UnlockWithPenaltyModule:
 
         token_amount * penalty_percentage_unlock / MAX_PENALTY_PERCENTAGE
     }
+
+    fn get_token_unstake_sc_proxy_instance(&self) -> token_unstake::Proxy<Self::Api> {
+        let locking_sc_address = self.token_unstake_sc_address().get();
+        self.token_unstake_sc_proxy_obj(locking_sc_address)
+    }
+
+    #[proxy]
+    fn token_unstake_sc_proxy_obj(
+        &self,
+        sc_address: ManagedAddress,
+    ) -> token_unstake::Proxy<Self::Api>;
+
+    #[view(getTokenUnstakeScAddress)]
+    #[storage_mapper("tokenUnstakeScAddress")]
+    fn token_unstake_sc_address(&self) -> SingleValueMapper<ManagedAddress>;
 }

@@ -11,6 +11,9 @@ path = "src/lib.rs"
 [dependencies.simple-lock]
 path = "../simple-lock"
 
+[dependencies.token-unstake]
+path = "../token-unstake"
+
 [dependencies.common_structs]
 path = "../../common/common_structs"
 

@@ -21,6 +21,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLockOptions
         getLockedTokenId
         getPenaltyAmount
+        getTokenUnstakeScAddress
         isPaused
         isSCAddressWhitelisted
         issueLockedToken
@@ -34,6 +35,7 @@ elrond_wasm_node::wasm_endpoints! {
         setFeesBurnPercentage
         setFeesCollectorAddress
         setLockedTokenTransferScAddress
+        setTokenUnstakeAddress
         setTransferRoleLockedToken
         setUserEnergyAfterLockedTokenTransfer
         unlockEarly
