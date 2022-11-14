@@ -131,7 +131,7 @@ impl<M: ManagedTypeApi> Energy<M> {
         }
     }
 
-    pub fn update_after_extend(
+    pub fn update_after_unlock_epoch_change(
         &mut self,
         token_amount: &BigUint<M>,
         old_unlock_epoch: Epoch,

@@ -28,6 +28,7 @@ elrond_wasm_node::wasm_endpoints! {
         lockTokens
         lockVirtual
         mergeTokens
+        migrateOldTokens
         pause
         reduceLockPeriod
         removeLockOptions
