@@ -1,9 +1,12 @@
 mod energy_factory_setup;
 
+use energy_factory::energy::EnergyModule;
 use energy_factory_setup::*;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
+use elrond_wasm_debug::{
+    managed_address, managed_biguint, managed_token_id_wrapped, rust_biguint, DebugApi,
+};
 
 #[test]
 fn init_test() {
@@ -539,4 +542,37 @@ fn test_same_token_nonce() {
             unlock_epoch: 360,
         }),
     );
+}
+
+#[test]
+fn energy_deplete_test() {
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
+    let first_user = setup.first_user.clone();
+    let half_balance = USER_BALANCE / 2;
+
+    let mut current_epoch = 0;
+    setup
+        .lock(
+            &first_user,
+            BASE_ASSET_TOKEN_ID,
+            half_balance,
+            LOCK_OPTIONS[0],
+        )
+        .assert_ok();
+
+    let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * half_balance;
+    let actual_energy = setup.get_user_energy(&first_user);
+    assert_eq!(actual_energy, expected_energy);
+
+    current_epoch = 10;
+    let expected_energy = managed_biguint!(LOCK_OPTIONS[0] - current_epoch) * half_balance;
+
+    setup
+        .b_mock
+        .execute_query(&setup.sc_wrapper, |sc| {
+            let mut energy = sc.user_energy(&managed_address!(&first_user)).get();
+            energy.deplete(current_epoch);
+            assert_eq!(energy.get_energy_amount(), expected_energy);
+        })
+        .assert_ok();
 }
