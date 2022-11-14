@@ -22,7 +22,6 @@ pub trait EnergyQueryModule {
 
     fn get_energy_amount(&self, user: &ManagedAddress) -> BigUint {
         let user_energy = self.get_energy_entry(user);
-        sc_print!("get_energy_amount = {}", user_energy.get_energy_amount());
         user_energy.get_energy_amount()
     }
 

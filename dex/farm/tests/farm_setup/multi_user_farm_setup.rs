@@ -495,29 +495,19 @@ where
     pub fn update_energy_for_user(&mut self, error: bool) {
         let b_mock = &mut self.b_mock;
         let user_addr = &self.first_user;
+        let result = b_mock.execute_tx(
+            &self.first_user,
+            &self.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_energy_for_user(managed_address!(user_addr));
+            },
+        );
 
         if error {
-            b_mock
-                .execute_tx(
-                    &self.first_user,
-                    &self.farm_wrapper,
-                    &rust_biguint!(0),
-                    |sc| {
-                        sc.update_energy_for_user(managed_address!(user_addr));
-                    },
-                )
-                .assert_error(4, "Can update only after claim rewards")
+            result.assert_error(4, "Can update only after claim rewards")
         } else {
-            b_mock
-                .execute_tx(
-                    &self.first_user,
-                    &self.farm_wrapper,
-                    &rust_biguint!(0),
-                    |sc| {
-                        sc.update_energy_for_user(managed_address!(user_addr));
-                    },
-                )
-                .assert_ok();
+            result.assert_ok();
         }
     }
 
