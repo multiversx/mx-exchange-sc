@@ -14,6 +14,7 @@ pub mod penalty;
 pub mod token_merging;
 pub mod token_whitelist;
 pub mod unlock_with_penalty;
+pub mod unstake;
 pub mod virtual_lock;
 
 use common_structs::{Epoch, Percent};
@@ -32,6 +33,7 @@ pub trait SimpleLockEnergy:
     + energy::EnergyModule
     + lock_options::LockOptionsModule
     + unlock_with_penalty::UnlockWithPenaltyModule
+    + unstake::UnstakeModule
     + extend_lock::ExtendLockModule
     + migration::SimpleLockMigrationModule
     + events::EventsModule
@@ -59,6 +61,9 @@ pub trait SimpleLockEnergy:
     /// - fees_burn_percentage: The percentage of fees that are burned.
     ///     The rest are sent to the fees collector
     /// - fees_collector_address
+    /// - token_unstake_address - The address of the SC that will handle the unbond logic
+    ///     By default, all tokens go through an unbond period after unlock
+    /// - old_locked_asset_factory_address
     /// - lock_options: See `addLockOptions` endpoint doc for details.
     #[init]
     fn init(
@@ -67,6 +72,7 @@ pub trait SimpleLockEnergy:
         legacy_token_id: TokenIdentifier,
         fees_burn_percentage: u16,
         fees_collector_address: ManagedAddress,
+        token_unstake_address: ManagedAddress,
         old_locked_asset_factory_address: ManagedAddress,
         lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>,
     ) {
@@ -78,6 +84,7 @@ pub trait SimpleLockEnergy:
         self.legacy_locked_token_id().set(&legacy_token_id);
         self.set_fees_burn_percentage(fees_burn_percentage);
         self.set_fees_collector_address(fees_collector_address);
+        self.set_token_unstake_address(token_unstake_address);
         self.old_locked_asset_factory_address()
             .set(&old_locked_asset_factory_address);
         self.add_lock_options(lock_options);

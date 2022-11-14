@@ -18,5 +18,18 @@ version = "=0.36.1"
 [dev-dependencies]
 num-bigint = "0.4.2"
 
-[dependencies.token_send]
-path = "../../common/modules/token_send"
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.energy-factory]
+path = "../energy-factory"
+
+[dependencies.simple-lock]
+path = "../simple-lock"
+

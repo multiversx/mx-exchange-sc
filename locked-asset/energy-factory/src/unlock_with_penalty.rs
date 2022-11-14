@@ -5,10 +5,16 @@ use common_structs::Epoch;
 
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use crate::lock_options::MAX_PENALTY_PERCENTAGE;
+use crate::{energy::Energy, lock_options::MAX_PENALTY_PERCENTAGE};
 
 static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
 pub static TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG: &[u8] = b"Token can be unlocked already";
+
+pub struct LockReduceResult<M: ManagedTypeApi> {
+    pub new_lock_epochs: u64,
+    pub unlocked_tokens: EgldOrEsdtTokenPayment<M>,
+    pub energy: Energy<M>,
+}
 
 #[elrond_wasm::module]
 pub trait UnlockWithPenaltyModule:
@@ -23,6 +29,7 @@ pub trait UnlockWithPenaltyModule:
     + crate::token_merging::TokenMergingModule
     + crate::penalty::LocalPenaltyModule
     + crate::fees::FeesModule
+    + crate::unstake::UnstakeModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
 {
@@ -46,19 +53,25 @@ pub trait UnlockWithPenaltyModule:
         self.fees_collector_address().set(&sc_address);
     }
 
-    #[only_owner]
-    #[endpoint(setTokenUnstakeAddress)]
-    fn set_token_unstake_address(&self, sc_address: ManagedAddress) {
-        self.require_sc_address(&sc_address);
-        self.token_unstake_sc_address().set(&sc_address);
-    }
-
     /// Unlock a locked token instantly. This incures a penalty.
     /// The longer the remaining locking time, the bigger the penalty.
+    /// Tokens can be unlocked through another SC after the unbond period has passed.
     #[payable("*")]
     #[endpoint(unlockEarly)]
-    fn unlock_early(&self) -> EsdtTokenPayment {
-        self.reduce_lock_period_common(None)
+    fn unlock_early(&self) {
+        let caller = self.blockchain().get_caller();
+        let payment = self.call_value().single_esdt();
+        let reduce_result = self.reduce_lock_period_common(&caller, payment.clone(), None);
+
+        let unlocked_tokens = self.to_esdt_payment(reduce_result.unlocked_tokens);
+        self.send().esdt_local_mint(
+            &unlocked_tokens.token_identifier,
+            0,
+            &unlocked_tokens.amount,
+        );
+
+        self.set_energy_entry(&caller, reduce_result.energy);
+        self.unstake_tokens(caller, payment, unlocked_tokens);
     }
 
     /// Reduce the locking period of a locked token. This incures a penalty.
@@ -68,14 +81,41 @@ pub trait UnlockWithPenaltyModule:
     #[endpoint(reduceLockPeriod)]
     fn reduce_lock_period(&self, new_lock_period: Epoch) -> EsdtTokenPayment {
         self.require_is_listed_lock_option(new_lock_period);
-        self.reduce_lock_period_common(Some(new_lock_period))
+
+        let caller = self.blockchain().get_caller();
+        let payment = self.call_value().single_esdt();
+        let reduce_result =
+            self.reduce_lock_period_common(&caller, payment.clone(), Some(new_lock_period));
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let new_unlock_epoch = current_epoch + reduce_result.new_lock_epochs;
+
+        let unlocked_tokens = reduce_result.unlocked_tokens;
+        let new_locked_tokens = self.lock_tokens(unlocked_tokens, new_unlock_epoch);
+
+        let mut energy = reduce_result.energy;
+        energy.add_after_token_lock(&new_locked_tokens.amount, new_unlock_epoch, current_epoch);
+        self.set_energy_entry(&caller, energy);
+
+        self.send().direct(
+            &caller,
+            &new_locked_tokens.token_identifier,
+            new_locked_tokens.token_nonce,
+            &new_locked_tokens.amount,
+        );
+
+        self.to_esdt_payment(new_locked_tokens)
     }
 
-    fn reduce_lock_period_common(&self, opt_new_lock_period: Option<Epoch>) -> EsdtTokenPayment {
+    fn reduce_lock_period_common(
+        &self,
+        caller: &ManagedAddress,
+        payment: EsdtTokenPayment,
+        opt_new_lock_period: Option<Epoch>,
+    ) -> LockReduceResult<Self::Api> {
         self.require_not_paused();
 
         let locked_token_mapper = self.locked_token();
-        let payment = self.call_value().single_esdt();
         locked_token_mapper.require_same_token(&payment.token_identifier);
 
         let attributes: LockedTokenAttributes<Self::Api> =
@@ -89,67 +129,25 @@ pub trait UnlockWithPenaltyModule:
 
         let prev_lock_epochs = attributes.unlock_epoch - current_epoch;
         let new_lock_epochs = opt_new_lock_period.unwrap_or(0);
-        let penalty_amount =
-            self.calculate_penalty_amount(&payment.amount, prev_lock_epochs, new_lock_epochs);
+        require!(new_lock_epochs < prev_lock_epochs, "Invalid reduce choice");
 
-        locked_token_mapper.nft_burn(payment.token_nonce, &(&payment.amount - &penalty_amount));
-
-        let caller = self.blockchain().get_caller();
-        let mut energy = self.get_updated_energy_entry_for_user(&caller);
-
+        let mut energy = self.get_updated_energy_entry_for_user(caller);
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
 
+        let penalty_amount =
+            self.calculate_penalty_amount(&payment.amount, prev_lock_epochs, new_lock_epochs);
         let mut unlocked_tokens = self.unlock_tokens_unchecked(payment.clone(), &attributes);
-        if penalty_amount > 0 {
-            unlocked_tokens.amount -= &penalty_amount;
-            require!(
-                unlocked_tokens.amount > 0,
-                "No tokens remaining after penalty is applied"
-            );
+        require!(
+            unlocked_tokens.amount > penalty_amount,
+            "No tokens remaining after penalty is applied"
+        );
+        unlocked_tokens.amount -= penalty_amount;
 
-            self.burn_penalty(
-                locked_token_mapper.get_token_id(),
-                payment.token_nonce,
-                &penalty_amount,
-            );
+        LockReduceResult {
+            new_lock_epochs,
+            energy,
+            unlocked_tokens,
         }
-
-        let output_payment = if new_lock_epochs == 0 {
-            let unlocked_token_id = unlocked_tokens.token_identifier.clone().unwrap_esdt();
-            self.send()
-                .esdt_local_mint(&unlocked_token_id, 0, &unlocked_tokens.amount);
-
-            let mut proxy_instance = self.get_token_unstake_sc_proxy_instance();
-
-            let _: IgnoreValue = proxy_instance
-                .deposit_user_tokens(&caller)
-                .with_egld_or_single_esdt_token_transfer(
-                    EgldOrEsdtTokenIdentifier::esdt(unlocked_token_id),
-                    0,
-                    unlocked_tokens.amount.clone(),
-                )
-                .execute_on_dest_context();
-
-            unlocked_tokens
-        } else {
-            let new_unlock_epoch = current_epoch + new_lock_epochs;
-            energy.add_after_token_lock(&unlocked_tokens.amount, new_unlock_epoch, current_epoch);
-
-            let payment = self.lock_tokens(unlocked_tokens, new_unlock_epoch);
-
-            self.send().direct(
-                &caller,
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-
-            payment
-        };
-
-        self.set_energy_entry(&caller, energy);
-
-        self.to_esdt_payment(output_payment)
     }
 
     fn calculate_penalty_percentage_partial_unlock(
@@ -193,19 +191,4 @@ pub trait UnlockWithPenaltyModule:
 
         token_amount * penalty_percentage_unlock / MAX_PENALTY_PERCENTAGE
     }
-
-    fn get_token_unstake_sc_proxy_instance(&self) -> token_unstake::Proxy<Self::Api> {
-        let locking_sc_address = self.token_unstake_sc_address().get();
-        self.token_unstake_sc_proxy_obj(locking_sc_address)
-    }
-
-    #[proxy]
-    fn token_unstake_sc_proxy_obj(
-        &self,
-        sc_address: ManagedAddress,
-    ) -> token_unstake::Proxy<Self::Api>;
-
-    #[view(getTokenUnstakeScAddress)]
-    #[storage_mapper("tokenUnstakeScAddress")]
-    fn token_unstake_sc_address(&self) -> SingleValueMapper<ManagedAddress>;
 }
