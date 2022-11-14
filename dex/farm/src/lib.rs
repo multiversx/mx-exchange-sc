@@ -11,6 +11,7 @@ pub mod exit_penalty;
 pub mod progress_update;
 
 use base_functions::{ClaimRewardsResultType, DoubleMultiPayment, Wrapper};
+use common_errors::ERROR_PERMISSION_DENIED;
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 
@@ -107,15 +108,6 @@ pub trait Farm:
         (new_farm_token, boosted_rewards).into()
     }
 
-    #[endpoint(updateEnergyForUser)]
-    fn update_energy_for_user(&self, user: ManagedAddress) {
-        let current_week = self.get_current_week();
-        let claim_progress = self.current_claim_progress(&user).get();
-        if claim_progress.week == current_week {
-            self.update_energy_and_progress_after_enter(&user);
-        }
-    }
-
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards_endpoint(
@@ -191,6 +183,17 @@ pub trait Farm:
             remaining_farm_payment,
         )
             .into()
+    }
+
+    #[endpoint(updateEnergyForUser)]
+    fn update_energy_for_user(&self, user: ManagedAddress) {
+        let current_week = self.get_current_week();
+        let claim_progress = self.current_claim_progress(&user).get();
+        if claim_progress.week == current_week {
+            self.update_energy_and_progress_after_enter(&user);
+        } else {
+            sc_panic!(ERROR_PERMISSION_DENIED);
+        }
     }
 
     #[view(calculateRewardsForGivenPosition)]

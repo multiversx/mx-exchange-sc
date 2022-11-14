@@ -2,6 +2,16 @@
 
 elrond_wasm::imports!();
 
+mod farm_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait Farm {
+        #[endpoint(updateEnergyForUser)]
+        fn update_energy_for_user(&self, user: ManagedAddress); 
+    }
+}
+
 #[elrond_wasm::contract]
 pub trait EnergyUpdate {
     #[init]
@@ -22,5 +32,5 @@ pub trait EnergyUpdate {
     }
 
     #[proxy]
-    fn farm_proxy(&self, user: ManagedAddress) -> farm::Proxy<Self::Api>;
+    fn farm_proxy(&self, user: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
 }
