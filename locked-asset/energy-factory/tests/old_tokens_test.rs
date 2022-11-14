@@ -2,6 +2,7 @@ mod energy_factory_setup;
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use elrond_wasm::types::{BigInt, ManagedVec};
+use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
     migration::SimpleLockMigrationModule,
@@ -19,10 +20,11 @@ fn extend_lock_period_old_token_test() {
     let rust_zero = rust_biguint!(0);
     let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 
-    setup.b_mock.set_block_epoch(1);
+    let current_epoch = 1;
+    setup.b_mock.set_block_epoch(current_epoch);
 
-    let first_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR);
-    let second_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 2);
+    let first_unlock_epoch = 91; // 3 months
+    let second_unlock_epoch = 121; // 9 months
     let mut unlock_milestones = ManagedVec::<DebugApi, UnlockMilestoneEx>::new();
     unlock_milestones.push(UnlockMilestoneEx {
         unlock_percent: 40_000,
@@ -47,13 +49,16 @@ fn extend_lock_period_old_token_test() {
     );
 
     let mut user_energy_amount = managed_biguint!(0);
-    user_energy_amount += managed_biguint!(40_000) * USER_BALANCE * first_unlock_epoch / 100_000u32;
     user_energy_amount +=
-        managed_biguint!(40_000) * USER_BALANCE * second_unlock_epoch / 100_000u32;
+        managed_biguint!(40_000) * USER_BALANCE * (first_unlock_epoch - current_epoch) / 100_000u32;
+    user_energy_amount +=
+        managed_biguint!(60_000) * USER_BALANCE * (second_unlock_epoch - current_epoch)
+            / 100_000u32;
 
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
+            sc.set_paused(true);
             sc.update_energy_for_old_tokens(
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
@@ -67,21 +72,37 @@ fn extend_lock_period_old_token_test() {
             );
             let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
             assert_eq!(expected_energy, actual_energy);
+
+            sc.set_paused(false);
         })
         .assert_ok();
 
-    // extend to 4 years
     setup
-        .extend_locking_period(
+        .b_mock
+        .execute_esdt_transfer(
             &first_user,
+            &setup.sc_wrapper,
             LEGACY_LOCKED_TOKEN_ID,
             1,
-            USER_BALANCE,
-            EPOCHS_IN_YEAR * 4,
+            &rust_biguint!(USER_BALANCE),
+            |sc| {
+                let _ = sc.migrate_old_tokens();
+            },
         )
         .assert_ok();
 
-    let new_unlock_epoch = to_start_of_month(EPOCHS_IN_YEAR * 4);
+    // (40% * x * 90 + 60% * x * 120) / x = 36 + 72 = 108
+    let new_lock_epochs: elrond_wasm::types::BigUint<DebugApi> =
+        (managed_biguint!(40_000) * USER_BALANCE / 100_000u32
+            * (first_unlock_epoch - current_epoch)
+            + managed_biguint!(60_000) * USER_BALANCE / 100_000u32
+                * (second_unlock_epoch - current_epoch))
+            / USER_BALANCE;
+    // rounded up to next month -> 1 + 432 = to_start_month(433) => 420 => 450
+    let new_unlock_epoch =
+        to_start_of_month(current_epoch + new_lock_epochs.to_u64().unwrap() * 4) + 30;
+    assert_eq!(new_unlock_epoch, 450);
+
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,
@@ -104,7 +125,7 @@ fn extend_lock_period_old_token_test() {
 
     let actual_energy_after = setup.get_user_energy(&first_user);
     assert_eq!(
-        to_rust_biguint(user_energy_amount.clone()),
+        to_rust_biguint(user_energy_amount),
         actual_energy_after
     );
 }
