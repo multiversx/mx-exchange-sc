@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 
 use crate::energy::Energy;
 use common_structs::{Epoch, OldLockedTokenAttributes, UnlockEpochAmountPairs};
+use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 use unwrappable::Unwrappable;
 
 const TOKEN_MIGRATION_LOCK_EPOCHS_FACTOR: u64 = 4;
@@ -62,10 +63,16 @@ pub trait SimpleLockMigrationModule:
         let payments = self.get_non_empty_payments();
         let own_sc_address = self.blockchain().get_sc_address();
         let current_epoch = self.blockchain().get_block_epoch();
+        let legacy_token_id = self.legacy_locked_token_id().get();
 
         let mut output_payments = ManagedVec::new();
         self.update_energy(&caller, |energy| {
             for payment in &payments {
+                require!(
+                    payment.token_identifier == legacy_token_id,
+                    INVALID_PAYMENTS_ERR_MSG
+                );
+
                 let new_token =
                     self.migrate_single_old_token(payment, current_epoch, &own_sc_address, energy);
                 output_payments.push(new_token);
