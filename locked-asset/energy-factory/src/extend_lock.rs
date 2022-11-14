@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_structs::{Epoch, OldLockedTokenAttributes};
+use common_structs::Epoch;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::energy::Energy;
@@ -33,11 +33,6 @@ pub trait ExtendLockModule:
             let payment_clone = payment.clone();
             if self.is_base_asset_token(&payment.token_identifier) {
                 self.lock_base_asset(payment_clone, unlock_epoch, current_epoch, energy)
-            } else if self.is_legacy_locked_token(&payment.token_identifier) {
-                self.require_address_is_caller(dest_address);
-                self.require_old_tokens_energy_was_updated(dest_address);
-
-                self.extend_old_token_period(payment_clone, unlock_epoch, current_epoch, energy)
             } else {
                 self.require_address_is_caller(dest_address);
                 self.locked_token()
@@ -69,43 +64,6 @@ pub trait ExtendLockModule:
         self.to_esdt_payment(output_tokens)
     }
 
-    fn extend_old_token_period(
-        &self,
-        payment: EsdtTokenPayment,
-        new_unlock_epoch: Epoch,
-        current_epoch: Epoch,
-        energy: &mut Energy<Self::Api>,
-    ) -> EsdtTokenPayment {
-        let own_sc_address = self.blockchain().get_sc_address();
-        let old_token_data = self.blockchain().get_esdt_token_data(
-            &own_sc_address,
-            &payment.token_identifier,
-            payment.token_nonce,
-        );
-        let attributes: OldLockedTokenAttributes<Self::Api> = old_token_data.decode_attributes();
-        let unlock_epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&payment.amount);
-
-        for epoch_amount_pair in unlock_epoch_amount_pairs.pairs {
-            require!(
-                epoch_amount_pair.epoch < new_unlock_epoch,
-                INVALID_EXTEND_PERIOD_ARG_ERR_MSG
-            );
-
-            energy.update_after_extend(
-                &epoch_amount_pair.amount,
-                epoch_amount_pair.epoch,
-                new_unlock_epoch,
-                current_epoch,
-            );
-        }
-
-        let base_asset = EgldOrEsdtTokenIdentifier::esdt(self.base_asset_token_id().get());
-        let original_unlocked_tokens = EgldOrEsdtTokenPayment::new(base_asset, 0, payment.amount);
-        let new_locked_tokens = self.lock_tokens(original_unlocked_tokens, new_unlock_epoch);
-
-        self.to_esdt_payment(new_locked_tokens)
-    }
-
     fn extend_new_token_period(
         &self,
         payment: EsdtTokenPayment,
@@ -122,7 +80,7 @@ pub trait ExtendLockModule:
             INVALID_EXTEND_PERIOD_ARG_ERR_MSG
         );
 
-        energy.update_after_extend(
+        energy.update_after_unlock_epoch_change(
             &payment.amount,
             attributes.unlock_epoch,
             new_unlock_epoch,
