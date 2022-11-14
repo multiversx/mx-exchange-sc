@@ -124,8 +124,5 @@ fn extend_lock_period_old_token_test() {
     user_energy_amount += energy_increase;
 
     let actual_energy_after = setup.get_user_energy(&first_user);
-    assert_eq!(
-        to_rust_biguint(user_energy_amount),
-        actual_energy_after
-    );
+    assert_eq!(to_rust_biguint(user_energy_amount), actual_energy_after);
 }

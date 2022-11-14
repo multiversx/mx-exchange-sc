@@ -1,0 +1,14 @@
+[package]
+name = "energy-update-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = [ "you",]
+
+[dev-dependencies]
+
+[dependencies.energy-update]
+path = ".."
+
+[dependencies.elrond-wasm-debug]
+version = "=0.36.1"

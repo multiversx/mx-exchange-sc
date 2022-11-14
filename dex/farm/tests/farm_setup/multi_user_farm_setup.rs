@@ -16,11 +16,13 @@ use elrond_wasm_debug::{
 
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::{Energy, EnergyQueryModule};
+use energy_update::EnergyUpdate;
 use farm::Farm;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
+use weekly_rewards_splitting::WeeklyRewardsSplittingModule;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";
@@ -35,10 +37,11 @@ pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
-pub struct MultiUserFarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
+pub struct MultiUserFarmSetup<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
@@ -49,14 +52,22 @@ where
     pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub energy_factory_wrapper:
         ContractObjWrapper<energy_factory_mock::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+    pub eu_wrapper:
+        ContractObjWrapper<energy_update::ContractObj<DebugApi>, EnergyUpdateObjBuilder>,
 }
 
-impl<FarmObjBuilder, EnergyFactoryBuilder> MultiUserFarmSetup<FarmObjBuilder, EnergyFactoryBuilder>
+impl<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder>
+    MultiUserFarmSetup<FarmObjBuilder, EnergyFactoryBuilder, EnergyUpdateObjBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    EnergyUpdateObjBuilder: 'static + Copy + Fn() -> energy_update::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder, energy_factory_builder: EnergyFactoryBuilder) -> Self {
+    pub fn new(
+        farm_builder: FarmObjBuilder,
+        energy_factory_builder: EnergyFactoryBuilder,
+        eu_builder: EnergyUpdateObjBuilder,
+    ) -> Self {
         let rust_zero = rust_biguint!(0);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);
@@ -71,6 +82,14 @@ where
             energy_factory_builder,
             "energy_factory.wasm",
         );
+        let eu_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), eu_builder, "energy update mock");
+
+        b_mock
+            .execute_tx(&owner, &eu_wrapper, &rust_zero, |sc| {
+                sc.init();
+            })
+            .assert_ok();
 
         b_mock
             .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
@@ -152,6 +171,7 @@ where
             last_farm_token_nonce: 0,
             farm_wrapper,
             energy_factory_wrapper,
+            eu_wrapper,
         }
     }
 
@@ -469,6 +489,41 @@ where
                     );
                 },
             )
+            .assert_ok();
+    }
+
+    pub fn update_energy_for_user(&mut self, error: bool) {
+        let b_mock = &mut self.b_mock;
+        let user_addr = &self.first_user;
+        let result = b_mock.execute_tx(
+            &self.first_user,
+            &self.farm_wrapper,
+            &rust_biguint!(0),
+            |sc| {
+                sc.update_energy_for_user(managed_address!(user_addr));
+            },
+        );
+
+        if error {
+            result.assert_error(4, "Can update only after claim rewards")
+        } else {
+            result.assert_ok();
+        }
+    }
+
+    pub fn check_farm_claim_progress_energy(&mut self, expected_user_energy: u64) {
+        let b_mock = &mut self.b_mock;
+        let user_addr = &self.first_user;
+        b_mock
+            .execute_query(&self.farm_wrapper, |sc| {
+                let current_claim_progress = sc
+                    .current_claim_progress(&managed_address!(&user_addr))
+                    .get();
+                assert_eq!(
+                    managed_biguint!(expected_user_energy),
+                    current_claim_progress.energy.get_energy_amount()
+                );
+            })
             .assert_ok();
     }
 

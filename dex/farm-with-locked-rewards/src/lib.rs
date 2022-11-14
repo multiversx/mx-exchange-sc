@@ -5,6 +5,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_errors::ERROR_ENERGY_UPDATE_SAME_WEEK;
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
@@ -197,6 +198,17 @@ pub trait Farm:
             remaining_farm_payment,
         )
             .into()
+    }
+
+    #[endpoint(updateEnergyForUser)]
+    fn update_energy_for_user(&self, user: ManagedAddress) {
+        let current_week = self.get_current_week();
+        let claim_progress = self.current_claim_progress(&user).get();
+        require!(
+            claim_progress.week == current_week,
+            ERROR_ENERGY_UPDATE_SAME_WEEK
+        );
+        self.update_energy_and_progress_after_enter(&user);
     }
 
     #[view(calculateRewardsForGivenPosition)]
