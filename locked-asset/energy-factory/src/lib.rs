@@ -8,6 +8,7 @@ pub mod extend_lock;
 pub mod fees;
 pub mod local_roles;
 pub mod lock_options;
+pub mod locked_token_transfer;
 pub mod migration;
 pub mod penalty;
 pub mod token_merging;
@@ -42,6 +43,7 @@ pub trait SimpleLockEnergy:
     + utils::UtilsModule
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
+    + locked_token_transfer::LockedTokenTransferModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.

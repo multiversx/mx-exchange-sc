@@ -79,6 +79,15 @@ impl<M: ManagedTypeApi> Energy<M> {
         self.amount += BigInt::from(energy_amount);
     }
 
+    pub fn remove_energy_raw(
+        &mut self,
+        locked_token_amount: BigUint<M>,
+        energy_amount: BigUint<M>,
+    ) {
+        self.total_locked_tokens -= locked_token_amount;
+        self.amount -= BigInt::from(energy_amount);
+    }
+
     pub fn add_after_token_lock(
         &mut self,
         lock_amount: &BigUint<M>,
