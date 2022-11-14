@@ -506,7 +506,7 @@ where
                         sc.update_energy_for_user(managed_address!(user_addr));
                     },
                 )
-                .assert_error(4, "Can only manually update energy only after claim")
+                .assert_error(4, "Can update only after claim rewards")
         } else {
             b_mock
                 .execute_tx(
