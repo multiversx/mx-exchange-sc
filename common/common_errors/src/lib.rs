@@ -17,3 +17,4 @@ pub static ERROR_NO_TOKEN_TO_MERGE: &[u8] = b"No token to merge";
 pub static ERROR_PAYMENT_FAILED: &[u8] = b"Payment failed";
 pub static ERROR_PERMISSION_DENIED: &[u8] = b"Permission denied";
 pub static ERROR_PARAMETERS: &[u8] = b"Bad parameters";
+pub static ERROR_ENERGY_UPDATE_SAME_WEEK: &[u8] = b"Can only manually update energy only after claim";
