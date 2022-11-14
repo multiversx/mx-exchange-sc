@@ -78,7 +78,10 @@ where
 
         b_mock
             .execute_tx(&owner, &token_unstake_wrapper, &rust_zero, |sc| {
-                sc.init();
+                sc.init(DEFAULT_UNBOND_EPOCHS);
+                let mut tokens = MultiValueEncoded::new();
+                tokens.push(managed_token_id!(BASE_ASSET_TOKEN_ID));
+                sc.add_unstake_tokens_to_whitelist(tokens);
             })
             .assert_ok();
 

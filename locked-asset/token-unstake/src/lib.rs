@@ -3,8 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-pub const DEFAULT_UNBOND_EPOCHS: u64 = 10;
-
 #[derive(ManagedVecItem, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi, Clone)]
 pub struct UnstakePair<M: ManagedTypeApi> {
     pub unlock_epoch: u64,
@@ -14,8 +12,8 @@ pub struct UnstakePair<M: ManagedTypeApi> {
 #[elrond_wasm::contract]
 pub trait TokenUnstakeModule: token_send::TokenSendModule {
     #[init]
-    fn init(&self) {
-        self.unbond_epochs().set_if_empty(DEFAULT_UNBOND_EPOCHS);
+    fn init(&self, unbond_epochs: u64) {
+        self.unbond_epochs().set_if_empty(unbond_epochs);
     }
 
     #[only_owner]
@@ -24,17 +22,37 @@ pub trait TokenUnstakeModule: token_send::TokenSendModule {
         self.unbond_epochs().set(unbond_epochs);
     }
 
+    #[only_owner]
+    #[endpoint(addTokenToWhitelist)]
+    fn add_unstake_tokens_to_whitelist(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
+        let token_mapper = self.unstake_tokens();
+        for token in tokens {
+            require!(!token_mapper.contains(&token), "Token already whitelisted");
+            token_mapper.add(&token);
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(removeSCAddressFromWhitelist)]
+    fn remove_unstake_tokens_from_whitelist(&self, token: TokenIdentifier) {
+        let token_mapper = self.unstake_tokens();
+        require!(token_mapper.contains(&token), "Token is not whitelisted");
+        token_mapper.remove(&token);
+    }
+
+    #[inline]
+    fn require_token_whitelisted(&self, token: &TokenIdentifier) {
+        self.unstake_tokens().require_whitelisted(token);
+    }
+
     #[payable("*")]
     #[endpoint(depositUserTokens)]
     fn deposit_user_tokens(&self, caller: &ManagedAddress) {
         let token_payment = self.call_value().single_esdt();
+        self.require_token_whitelisted(&token_payment.token_identifier);
         require!(
             token_payment.token_nonce == 0,
             "Can only unstake fungible tokens"
-        );
-        require!(
-            token_payment.amount > 0,
-            "Payment amount must be greater than 0"
         );
         let current_epoch = self.blockchain().get_block_epoch();
         let unbond_epochs = self.unbond_epochs().get();
@@ -63,17 +81,16 @@ pub trait TokenUnstakeModule: token_send::TokenSendModule {
                 remaining_tokens_for_user.push(unstake_payment);
             }
         }
-        if remaining_tokens_for_user.is_empty() {
-            unlocked_tokens_for_user_mapper.clear();
-        } else {
-            unlocked_tokens_for_user_mapper.set(remaining_tokens_for_user);
-        };
+        unlocked_tokens_for_user_mapper.set(remaining_tokens_for_user);
         self.send_multiple_tokens_if_not_zero(&caller, &payments);
     }
 
     #[view(getUnbondEpochs)]
     #[storage_mapper("unbondEpochs")]
     fn unbond_epochs(&self) -> SingleValueMapper<u64>;
+
+    #[storage_mapper("unstakeTokens")]
+    fn unstake_tokens(&self) -> WhitelistMapper<Self::Api, TokenIdentifier>;
 
     #[view(getUnlockedTokensForUser)]
     #[storage_mapper("unlockedTokensForUser")]
