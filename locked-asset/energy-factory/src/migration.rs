@@ -96,7 +96,7 @@ pub trait SimpleLockMigrationModule:
         energy: &mut Energy<Self::Api>,
     ) -> EsdtTokenPayment {
         let old_token_data = self.blockchain().get_esdt_token_data(
-            &own_sc_address,
+            own_sc_address,
             &payment.token_identifier,
             payment.token_nonce,
         );
