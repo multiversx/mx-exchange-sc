@@ -28,6 +28,7 @@ pub trait SimpleLockMigrationModule:
         total_locked_tokens: BigUint,
         energy_amount: BigUint,
     ) {
+        self.require_paused();
         self.require_old_tokens_energy_not_updated(&user);
 
         self.update_energy(&user, |energy: &mut Energy<Self::Api>| {
@@ -43,6 +44,7 @@ pub trait SimpleLockMigrationModule:
         original_caller: ManagedAddress,
         epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
+        self.require_not_paused();
         self.require_caller_old_factory();
         self.require_old_tokens_energy_was_updated(&original_caller);
 
@@ -57,6 +59,8 @@ pub trait SimpleLockMigrationModule:
     #[payable("*")]
     #[endpoint(migrateOldTokens)]
     fn migrate_old_tokens(&self) -> MultiValueEncoded<EsdtTokenPayment> {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         self.require_old_tokens_energy_was_updated(&caller);
 

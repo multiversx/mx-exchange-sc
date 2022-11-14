@@ -2,6 +2,7 @@ mod energy_factory_setup;
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
 use elrond_wasm::types::{BigInt, ManagedVec};
+use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
     migration::SimpleLockMigrationModule,
@@ -57,6 +58,7 @@ fn extend_lock_period_old_token_test() {
     setup
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
+            sc.set_paused(true);
             sc.update_energy_for_old_tokens(
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
@@ -70,6 +72,8 @@ fn extend_lock_period_old_token_test() {
             );
             let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
             assert_eq!(expected_energy, actual_energy);
+
+            sc.set_paused(false);
         })
         .assert_ok();
 
