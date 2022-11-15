@@ -242,15 +242,6 @@ where
         )
     }
 
-    // pub fn claim_unlocked_tokens(&mut self, caller: &Address) {
-    //     let rust_zero = rust_biguint!(0u64);
-    //     self.b_mock
-    //         .execute_tx(caller, &self.token_unstake_wrapper, &rust_zero, |sc| {
-    //             sc.claim_unlocked_tokens();
-    //         })
-    //         .assert_ok();
-    // }
-
     pub fn get_penalty_amount(
         &mut self,
         token_amount: u64,

@@ -49,13 +49,6 @@ impl UnbondScMock {
         let (dest_user, ()) =
             load_endpoint_args::<DebugApi, (ManagedAddress<DebugApi>, ())>(("dest_user", ()));
 
-        // let dest_user_addr_raw = <Self as ContractBase>::Api::argument_api_impl()
-        //     .tx_input_box
-        //     .args[0]
-        //     .clone();
-        // let dest_user =
-        //     ManagedAddress::try_from(ManagedBuffer::new_from_bytes(&dest_user_addr_raw)).unwrap();
-
         self.send().direct_esdt(
             &dest_user,
             &unlocked_tokens.token_identifier,
