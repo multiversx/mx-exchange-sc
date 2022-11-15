@@ -21,26 +21,26 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {
-        self.up_votes
-            + self.down_votes
-            + self.down_votes_veto
-            + self.abstain
+        &self.up_votes
+            + &self.down_votes
+            + &self.down_votes_veto
+            + &self.abstain
     }
     pub fn get_up_votes_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        self.up_votes / total_votes
+        &self.up_votes / &total_votes
     }
     pub fn get_down_votes_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        self.down_votes / total_votes
+        &self.down_votes / &total_votes
     }
     pub fn get_down_votes_veto_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        down_votes_veto / total_votes
+        &self.down_votes_veto / &total_votes
     }
     pub fn get_abstain_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        abstain / total_votes
+        &self.abstain / &total_votes
     }
 }
 

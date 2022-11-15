@@ -183,6 +183,52 @@ pub trait GovernanceV2:
         self.downvote_cast_event(&downvoter, proposal_id, &user_energy);
     }
 
+    /// Downvote a proposal. The voting power depends on the user's energy.
+    #[endpoint(downVoteVeto)]
+    fn down_vote_veto(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
+            "Proposal is not active"
+        );
+
+        let down_veto_voter = self.blockchain().get_caller();
+        let new_user = self
+            .user_voted_proposals(&down_veto_voter)
+            .insert(proposal_id);
+        require!(new_user, ALREADY_VOTED_ERR_MSG);
+
+        let user_energy = self.get_energy_amount_non_zero(&down_veto_voter);
+        self.proposal_votes(proposal_id).update(|proposal_votes| {
+            proposal_votes.down_votes_veto += &user_energy.clone();
+        });
+        self.downvote_cast_event(&down_veto_voter, proposal_id, &user_energy);
+    }
+
+    /// Downvote a proposal. The voting power depends on the user's energy.
+    #[endpoint]
+    fn abstain(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
+            "Proposal is not active"
+        );
+
+        let abstain_voter = self.blockchain().get_caller();
+        let new_user = self
+            .user_voted_proposals(&abstain_voter)
+            .insert(proposal_id);
+        require!(new_user, ALREADY_VOTED_ERR_MSG);
+
+        let user_energy = self.get_energy_amount_non_zero(&abstain_voter);
+        self.proposal_votes(proposal_id).update(|proposal_votes| {
+            proposal_votes.abstain += &user_energy.clone();
+        });
+        self.downvote_cast_event(&abstain_voter, proposal_id, &user_energy);
+    }
+
     /// Queue a proposal for execution.
     /// This can be done only if the proposal has reached the quorum.
     /// A proposal is considered successful and ready for queing if
