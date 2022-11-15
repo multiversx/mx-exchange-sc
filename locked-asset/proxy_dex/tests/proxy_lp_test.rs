@@ -18,6 +18,7 @@ fn setup_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
 }
@@ -28,6 +29,7 @@ fn add_remove_liquidity_proxy_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
     let first_user = setup.first_user.clone();
@@ -182,6 +184,7 @@ fn wrapped_lp_token_merge_test() {
         proxy_dex::contract_obj,
         pair::contract_obj,
         farm::contract_obj,
+        farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
     let first_user = setup.first_user.clone();
