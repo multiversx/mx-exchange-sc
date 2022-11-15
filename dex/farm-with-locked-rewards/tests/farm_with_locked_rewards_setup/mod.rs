@@ -107,6 +107,7 @@ where
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
+                    managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
 

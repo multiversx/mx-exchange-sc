@@ -81,6 +81,7 @@ fn transfer_locked_token_test() {
                 FEES_BURN_PERCENTAGE,
                 managed_address!(transfer_sc_wrapper.address_ref()),
                 managed_address!(transfer_sc_wrapper.address_ref()),
+                managed_address!(transfer_sc_wrapper.address_ref()),
                 lock_options,
             );
 

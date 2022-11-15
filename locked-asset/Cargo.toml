@@ -41,6 +41,9 @@ path = "proxy_dex"
 [dependencies.lkmex-transfer]
 path = "lkmex-transfer"
 
+[dependencies.token-unstake]
+path = "token-unstake"
+
 [dev-dependencies.elrond-wasm-modules]
 version = "=0.36.1"
 

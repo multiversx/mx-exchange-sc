@@ -197,10 +197,6 @@ fn multiple_early_unlocks_same_week_test() {
         .assert_ok();
 
     let received_token_amount = rust_biguint!(sixth_balance) - penalty_amount;
-    let expected_balance = &received_token_amount + half_balance;
-    setup
-        .b_mock
-        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
 
     // After first early unlock of the week, fees are cached into Simple Lock SC
     setup.b_mock.check_nft_balance(
@@ -226,25 +222,6 @@ fn multiple_early_unlocks_same_week_test() {
     assert_eq!(penalty_amount, expected_penalty_amount);
 
     let received_token_amount_2 = rust_biguint!(sixth_balance) - penalty_amount;
-    let expected_balance = &received_token_amount_2 + &received_token_amount + half_balance;
-    setup
-        .b_mock
-        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
-
-    // Energy SC stores the fee until the end of the week
-    // Doesn't send it to FeeCollector yet
-
-    setup.b_mock.check_nft_balance(
-        &setup.sc_wrapper.address_ref(),
-        LOCKED_TOKEN_ID,
-        2,
-        &(expected_penalty_amount + 1u64),
-        Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
-            original_token_nonce: 0,
-            unlock_epoch: 390,
-        }),
-    );
 
     // Unlock early the last 1/3 of the LockedTokens, same week
     setup
@@ -308,10 +285,6 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
         .assert_ok();
 
     let received_token_amount = rust_biguint!(quarter_balance) - penalty_amount;
-    let expected_balance = &received_token_amount + half_balance;
-    setup
-        .b_mock
-        .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
 
     setup.b_mock.check_nft_balance(
         &setup.sc_wrapper.address_ref(),

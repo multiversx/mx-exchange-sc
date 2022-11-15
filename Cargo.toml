@@ -50,6 +50,8 @@ members = [
   "locked-asset/simple-lock-whitelist/meta",
   "locked-asset/energy-factory",
   "locked-asset/energy-factory/meta",
+  "locked-asset/token-unstake",
+  "locked-asset/token-unstake/meta",
 
   "pause-all",
   "pause-all/meta",

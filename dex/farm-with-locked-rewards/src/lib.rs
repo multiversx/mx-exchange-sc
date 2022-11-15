@@ -278,20 +278,6 @@ pub trait Farm:
 
         self.lock_virtual(token_id, amount, destination_address)
     }
-
-    fn get_orig_caller_from_opt(
-        &self,
-        caller: &ManagedAddress,
-        opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> ManagedAddress {
-        match opt_orig_caller {
-            OptionalValue::Some(opt_caller) => {
-                self.require_sc_address_whitelisted(caller);
-                opt_caller
-            }
-            OptionalValue::None => caller.clone(),
-        }
-    }
 }
 
 pub struct NoMintWrapper<T: BaseFunctionsModule + farm_boosted_yields::FarmBoostedYieldsModule> {

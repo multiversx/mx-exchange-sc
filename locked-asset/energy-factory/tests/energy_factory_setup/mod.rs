@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+pub mod fees_collector_mock;
+pub mod unbond_sc_mock;
+
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -13,12 +16,13 @@ use elrond_wasm_debug::{
 };
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{
-    energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, SimpleLockEnergy,
+    energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
+    SimpleLockEnergy,
 };
 use simple_lock::locked_token::LockedTokenModule;
 
-pub mod fees_collector_mock;
 use fees_collector_mock::*;
+use unbond_sc_mock::*;
 
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const EPOCHS_IN_WEEK: u64 = 7;
@@ -42,6 +46,7 @@ where
     pub second_user: Address,
     pub sc_wrapper: ContractObjWrapper<energy_factory::ContractObj<DebugApi>, ScBuilder>,
     pub fees_collector_mock: Address,
+    pub unbond_sc_mock: Address,
 }
 
 impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
@@ -57,6 +62,8 @@ where
         let second_user = b_mock.create_user_account(&rust_zero);
         let sc_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner), sc_builder, "simple lock energy");
+        let token_unstake_wrapper =
+            b_mock.create_sc_account(&rust_zero, Some(&owner), UnbondScMock::new, "unstake token");
         let fees_collector_mock = b_mock.create_sc_account(
             &rust_zero,
             Some(&owner),
@@ -78,6 +85,7 @@ where
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
+                    managed_address!(token_unstake_wrapper.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
@@ -85,9 +93,11 @@ where
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
                 sc.set_paused(false);
+                sc.set_token_unstake_address(managed_address!(token_unstake_wrapper.address_ref()));
             })
             .assert_ok();
 
+        // set energy factory roles
         b_mock.set_esdt_local_roles(
             sc_wrapper.address_ref(),
             BASE_ASSET_TOKEN_ID,
@@ -109,6 +119,18 @@ where
             &[EsdtLocalRole::NftBurn],
         );
 
+        // set unbond sc roles
+        b_mock.set_esdt_local_roles(
+            token_unstake_wrapper.address_ref(),
+            BASE_ASSET_TOKEN_ID,
+            &[EsdtLocalRole::Burn],
+        );
+        b_mock.set_esdt_local_roles(
+            token_unstake_wrapper.address_ref(),
+            LOCKED_TOKEN_ID,
+            &[EsdtLocalRole::NftBurn],
+        );
+
         b_mock.set_esdt_balance(
             &first_user,
             BASE_ASSET_TOKEN_ID,
@@ -127,6 +149,7 @@ where
             second_user,
             sc_wrapper,
             fees_collector_mock: fees_collector_mock.address_ref().clone(),
+            unbond_sc_mock: token_unstake_wrapper.address_ref().clone(),
         }
     }
 }

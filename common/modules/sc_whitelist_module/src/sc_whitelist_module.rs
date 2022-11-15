@@ -32,6 +32,20 @@ pub trait SCWhitelistModule {
         self.sc_whitelist_addresses().require_whitelisted(address);
     }
 
+    fn get_orig_caller_from_opt(
+        &self,
+        caller: &ManagedAddress,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ManagedAddress {
+        match opt_orig_caller {
+            OptionalValue::Some(opt_caller) => {
+                self.require_sc_address_whitelisted(caller);
+                opt_caller
+            }
+            OptionalValue::None => caller.clone(),
+        }
+    }
+
     #[storage_mapper("scWhitelistAddresses")]
     fn sc_whitelist_addresses(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
 }

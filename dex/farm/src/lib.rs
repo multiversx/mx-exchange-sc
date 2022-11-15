@@ -250,18 +250,4 @@ pub trait Farm:
         self.require_caller_has_admin_permissions();
         self.set_per_block_rewards::<Wrapper<Self>>(per_block_amount);
     }
-
-    fn get_orig_caller_from_opt(
-        &self,
-        caller: &ManagedAddress,
-        opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> ManagedAddress {
-        match opt_orig_caller {
-            OptionalValue::Some(opt_caller) => {
-                self.require_sc_address_whitelisted(caller);
-                opt_caller
-            }
-            OptionalValue::None => caller.clone(),
-        }
-    }
 }

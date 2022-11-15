@@ -1,0 +1,35 @@
+[package]
+name = "token-unstake"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dev-dependencies.elrond-wasm-debug]
+version = "=0.36.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.energy-factory]
+path = "../energy-factory"
+
+[dependencies.simple-lock]
+path = "../simple-lock"
+

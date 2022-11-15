@@ -338,6 +338,7 @@ where
                 FEES_BURN_PERCENTAGE,
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),
+                managed_address!(dummy_sc_wrapper.address_ref()),
                 lock_options,
             );
 
