@@ -120,7 +120,7 @@ pub trait Farm:
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards_payment.token_identifier,
             rewards_payment.amount,
-            caller.clone(),
+            caller,
             orig_caller.clone(),
         );
 
