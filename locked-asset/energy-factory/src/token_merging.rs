@@ -103,14 +103,7 @@ pub trait TokenMergingModule:
 
         let payments = self.get_non_empty_payments();
         let caller = self.blockchain().get_caller();
-        let original_caller = match opt_original_caller {
-            OptionalValue::Some(orig_caller) => {
-                self.require_sc_address_whitelisted(&caller);
-
-                orig_caller
-            }
-            OptionalValue::None => caller.clone(),
-        };
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
 
         let energy = self.get_updated_energy_entry_for_user(&original_caller);
         let mut opt_energy = Some(energy);
