@@ -20,6 +20,12 @@ path = "../../dex/pair"
 [dependencies.farm]
 path = "../../dex/farm"
 
+[dependencies.farm-with-locked-rewards]
+path = "../../dex/farm-with-locked-rewards"
+
+[dependencies.locking_module]
+path = "../../common/modules/locking_module"
+
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
 
