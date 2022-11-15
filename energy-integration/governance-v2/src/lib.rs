@@ -122,13 +122,12 @@ pub trait GovernanceV2:
             self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
-
-        let proposal_votes = ProposalVotes {
-            up_votes: user_energy,
-            down_votes: BigUint::zero(),
-            down_votes_veto: BigUint::zero(),
-            abstain: BigUint::zero(),
-        };
+        let proposal_votes = ProposalVotes::new(
+            user_energy,
+            BigUint::zero(),
+            BigUint::zero(),
+            BigUint::zero(),
+        );
 
         self.proposal_votes(proposal_id).set(proposal_votes);
         let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
@@ -157,15 +156,15 @@ pub trait GovernanceV2:
 
         let user_energy = self.get_energy_amount_non_zero(&voter);
         self.proposal_votes(proposal_id).update(|proposal_votes| {
-            proposal_votes.up_votes += user_energy.clone();
+            proposal_votes.up_votes += &user_energy.clone();
         });
 
         self.vote_cast_event(&voter, proposal_id, &user_energy);
     }
 
     /// Downvote a proposal. The voting power depends on the user's energy.
-    #[endpoint]
-    fn downvote(&self, proposal_id: ProposalId) {
+    #[endpoint(downVote)]
+    fn down_vote(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
@@ -179,7 +178,7 @@ pub trait GovernanceV2:
 
         let user_energy = self.get_energy_amount_non_zero(&downvoter);
         self.proposal_votes(proposal_id).update(|proposal_votes| {
-            proposal_votes.down_votes += user_energy.clone();
+            proposal_votes.down_votes += &user_energy.clone();
         });
         self.downvote_cast_event(&downvoter, proposal_id, &user_energy);
     }

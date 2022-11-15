@@ -12,35 +12,35 @@ pub struct ProposalVotes<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> ProposalVotes<M> {
-    pub fn new(&self) -> Self {
+    pub fn new(up_votes: BigUint<M>, down_votes: BigUint<M>, down_votes_veto: BigUint<M>, abstain: BigUint<M>) -> Self {
         ProposalVotes {
-            up_votes: BigUint::zero(),
-            down_votes: BigUint::zero(),
-            down_votes_veto: BigUint::zero(),
-            abstain: BigUint::zero(),
+            up_votes,
+            down_votes,
+            down_votes_veto,
+            abstain,
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {
-        self.up_votes.clone()
-            + self.down_votes.clone()
-            + self.down_votes_veto.clone()
-            + self.abstain.clone()
+        self.up_votes
+            + self.down_votes
+            + self.down_votes_veto
+            + self.abstain
     }
     pub fn get_up_votes_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        self.up_votes.clone() / total_votes
+        self.up_votes / total_votes
     }
     pub fn get_down_votes_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        self.down_votes.clone() / total_votes
+        self.down_votes / total_votes
     }
     pub fn get_down_votes_veto_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        self.down_votes_veto.clone() / total_votes
+        down_votes_veto / total_votes
     }
     pub fn get_abstain_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
-        self.abstain.clone() / total_votes
+        abstain / total_votes
     }
 }
 
