@@ -6,7 +6,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::ERROR_ENERGY_UPDATE_SAME_WEEK;
-use common_structs::FarmTokenAttributes;
+use common_structs::{Epoch, FarmTokenAttributes};
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use mergeable::Mergeable;
@@ -74,6 +74,9 @@ pub trait Farm:
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
     }
 
     #[payable("*")]
