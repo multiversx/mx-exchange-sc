@@ -871,3 +871,87 @@ fn locked_token_buckets_shifting_test() {
         })
         .assert_ok();
 }
+
+#[test]
+fn claim_active_user_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+
+    fc_setup.set_energy(&first_user, 500, 3_000);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+
+    // user has currentProgress week 1
+    fc_setup.claim(&first_user).assert_ok();
+
+    fc_setup
+        .b_mock
+        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_zero);
+    fc_setup
+        .b_mock
+        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_zero);
+
+    let current_epoch = fc_setup.current_epoch;
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
+                    .get(),
+                USER_BALANCE
+            );
+
+            let first_user_energy = Energy::new(
+                BigInt::from(managed_biguint!(3_000)),
+                current_epoch,
+                managed_biguint!(500),
+            );
+            assert_eq!(
+                sc.user_energy_for_week(&managed_address!(&first_user), 1)
+                    .get(),
+                first_user_energy
+            );
+
+            assert_eq!(sc.total_energy_for_week(1).get(), 3_000);
+            assert_eq!(sc.total_locked_tokens_for_week(1).get(), 500);
+            assert_eq!(sc.last_global_update_week().get(), 1);
+
+            assert_eq!(
+                sc.current_claim_progress(&managed_address!(&first_user))
+                    .get(),
+                ClaimProgress {
+                    energy: first_user_energy,
+                    week: 1
+                }
+            );
+        })
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+            .execute_tx(&first_user, &fc_setup.fc_wrapper, &rust_biguint!(0), |sc| {
+                let rewards = sc.claim_rewards();
+                assert_eq!(rewards.len(), 0 as usize);
+            })
+            .assert_ok();
+
+    fc_setup.b_mock.set_block_epoch(current_epoch + 7);
+
+    fc_setup
+        .b_mock
+            .execute_tx(&first_user, &fc_setup.fc_wrapper, &rust_biguint!(0), |sc| {
+                let rewards = sc.claim_rewards();
+                assert_eq!(rewards.len(), 1 as usize);
+            })
+            .assert_ok();
+    // state remains unchanged
+    fc_setup
+        .b_mock
+        .check_esdt_balance(&first_user, FIRST_TOKEN_ID, &rust_biguint!(USER_BALANCE));
+}
