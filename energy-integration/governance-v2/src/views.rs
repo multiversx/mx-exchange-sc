@@ -44,11 +44,12 @@ pub trait ViewsModule:
     }
 
     fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
-        let total_votes = self.total_votes(proposal_id).get();
-        let total_downvotes = self.total_downvotes(proposal_id).get();
+        let proposal_votes = self.proposal_votes(proposal_id).get();
+        let total_up_votes = proposal_votes.up_votes;
+        let total_downvotes = proposal_votes.down_votes;
         let quorum = self.quorum().get();
 
-        &total_votes + &total_downvotes >= quorum && total_votes > total_downvotes
+        &total_up_votes + &total_downvotes >= quorum && total_up_votes > total_downvotes
     }
 
     #[view(getProposer)]

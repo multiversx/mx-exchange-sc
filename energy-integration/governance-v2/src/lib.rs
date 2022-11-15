@@ -10,6 +10,8 @@ pub mod views;
 
 use proposal::*;
 
+use crate::proposal_storage::ProposalVotes;
+
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
@@ -120,8 +122,15 @@ pub trait GovernanceV2:
             self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
+        
+        let proposal_votes = ProposalVotes {
+            up_votes: user_energy,
+            down_votes: BigUint::zero(),
+            down_votes_veto: BigUint::zero(),
+            abstain: BigUint::zero(),
+        };
 
-        self.total_votes(proposal_id).set(&user_energy);
+        self.proposal_votes(proposal_id).set(proposal_votes);
         let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
 
         let current_block = self.blockchain().get_block_nonce();
@@ -147,8 +156,9 @@ pub trait GovernanceV2:
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
         let user_energy = self.get_energy_amount_non_zero(&voter);
-        self.total_votes(proposal_id)
-            .update(|total_votes| *total_votes += &user_energy);
+        self.proposal_votes(proposal_id).update(|proposal_votes| {
+            proposal_votes.up_votes += user_energy.clone();
+        });
 
         self.vote_cast_event(&voter, proposal_id, &user_energy);
     }
@@ -168,9 +178,9 @@ pub trait GovernanceV2:
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
         let user_energy = self.get_energy_amount_non_zero(&downvoter);
-        self.total_downvotes(proposal_id)
-            .update(|total_downvotes| *total_downvotes += &user_energy);
-
+        self.proposal_votes(proposal_id).update(|proposal_votes| {
+            proposal_votes.down_votes += user_energy.clone();
+        });
         self.downvote_cast_event(&downvoter, proposal_id, &user_energy);
     }
 
@@ -327,7 +337,6 @@ pub trait GovernanceV2:
         self.required_payments_for_proposal(proposal_id).clear();
         self.payments_depositor(proposal_id).clear();
 
-        self.total_votes(proposal_id).clear();
-        self.total_downvotes(proposal_id).clear();
+        self.proposal_votes(proposal_id).clear();
     }
 }
