@@ -6,7 +6,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_errors::ERROR_ENERGY_UPDATE_SAME_WEEK;
-use common_structs::{Epoch, FarmTokenAttributes};
+use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
 use mergeable::Mergeable;
