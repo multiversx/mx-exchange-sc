@@ -6,6 +6,7 @@ use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT,
     DebugApi,
 };
+use energy_factory::energy::EnergyModule;
 use proxy_dex::{
     proxy_farm::ProxyFarmModule, wrapped_farm_attributes::WrappedFarmTokenAttributes,
     wrapped_farm_token_merge::WrappedFarmTokenMerge,
@@ -213,6 +214,19 @@ fn farm_proxy_claim_energy_test() {
 
     //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
 
+    let current_epoch = 5;
+    setup.b_mock.set_block_epoch(current_epoch);
+
+    let expected_energy = rust_biguint!(360u64 - current_epoch) * USER_BALANCE;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let managed_result = sc.get_energy_amount_for_user(managed_address!(&first_user));
+            let result = to_rust_biguint(managed_result);
+            assert_eq!(result, expected_energy);
+        })
+        .assert_ok();
+
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -225,6 +239,16 @@ fn farm_proxy_claim_energy_test() {
                 sc.enter_farm_proxy_endpoint(managed_address!(&farm_locked_addr));
             },
         )
+        .assert_ok();
+
+    let expected_energy = rust_biguint!(360u64 - current_epoch) * USER_BALANCE;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let managed_result = sc.get_energy_amount_for_user(managed_address!(&first_user));
+            let result = to_rust_biguint(managed_result);
+            assert_eq!(result, expected_energy);
+        })
         .assert_ok();
 
     // check user balance
@@ -276,7 +300,7 @@ fn farm_proxy_claim_energy_test() {
 
     //////////////////////////////////////////// CLAIM REWARDS /////////////////////////////////////
 
-    // claim rewards with half position
+    // claim rewards
     setup
         .b_mock
         .execute_esdt_transfer(
@@ -299,4 +323,15 @@ fn farm_proxy_claim_energy_test() {
         &(rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32),
         None,
     );
+
+    let new_user_balance = USER_BALANCE + rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32;
+    let expected_energy = rust_biguint!(360u64 - current_epoch) * new_user_balance;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let managed_result = sc.get_energy_amount_for_user(managed_address!(&first_user));
+            let result = to_rust_biguint(managed_result);
+            assert_eq!(result, expected_energy);
+        })
+        .assert_ok();
 }
