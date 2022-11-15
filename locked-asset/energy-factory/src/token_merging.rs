@@ -102,16 +102,29 @@ pub trait TokenMergingModule:
         self.require_not_paused();
 
         let payments = self.get_non_empty_payments();
-        let output_amount_attributes = self.merge_tokens(payments, opt_original_caller);
+        let caller = self.blockchain().get_caller();
+        let original_caller = match opt_original_caller {
+            OptionalValue::Some(orig_caller) => {
+                self.require_sc_address_whitelisted(&caller);
+
+                orig_caller
+            }
+            OptionalValue::None => caller.clone(),
+        };
+
+        let energy = self.get_updated_energy_entry_for_user(&original_caller);
+        let mut opt_energy = Some(energy);
+        let output_amount_attributes = self.merge_tokens(payments, &mut opt_energy);
+        let updated_energy = opt_energy.unwrap_or_panic::<Self::Api>();
+        self.set_energy_entry(&original_caller, updated_energy);
 
         let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
             output_amount_attributes.attributes.original_token_id,
             output_amount_attributes.attributes.original_token_nonce,
             output_amount_attributes.token_amount,
         );
-        let actual_caller = self.blockchain().get_caller();
         let output_tokens = self.lock_and_send(
-            &actual_caller,
+            &caller,
             simulated_lock_payment,
             output_amount_attributes.attributes.unlock_epoch,
         );
@@ -122,78 +135,72 @@ pub trait TokenMergingModule:
     fn merge_tokens(
         self,
         mut payments: PaymentsVec<Self::Api>,
-        opt_original_caller: OptionalValue<ManagedAddress>,
+        opt_energy: &mut Option<Energy<Self::Api>>,
     ) -> LockedAmountWeightAttributesPair<Self> {
         let locked_token_mapper = self.locked_token();
-        let caller = self.blockchain().get_caller();
-        let original_caller = match opt_original_caller {
-            OptionalValue::Some(orig_caller) => {
-                self.require_sc_address_whitelisted(&caller);
-
-                orig_caller
-            }
-            OptionalValue::None => caller,
-        };
-
         locked_token_mapper.require_all_same_token(&payments);
 
         let first_payment = payments.get(0);
         payments.remove(0);
 
-        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
-            let current_epoch = self.blockchain().get_block_epoch();
-            let first_token_attributes: LockedTokenAttributes<Self::Api> =
-                locked_token_mapper.get_token_attributes(first_payment.token_nonce);
-            require!(
-                first_token_attributes.unlock_epoch > current_epoch,
-                TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
-            );
+        let current_epoch = self.blockchain().get_block_epoch();
+        let first_token_attributes: LockedTokenAttributes<Self::Api> =
+            locked_token_mapper.get_token_attributes(first_payment.token_nonce);
+        require!(
+            first_token_attributes.unlock_epoch > current_epoch,
+            TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
+        );
 
+        if let Some(energy) = opt_energy.as_mut() {
             energy.update_after_unlock_any(
                 &first_payment.amount,
                 first_token_attributes.unlock_epoch,
                 current_epoch,
             );
+        }
 
-            locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
+        locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
-            let mut output_pair = LockedAmountWeightAttributesPair::new(
-                self,
-                first_payment.amount,
-                first_token_attributes,
+        let mut output_pair = LockedAmountWeightAttributesPair::new(
+            self,
+            first_payment.amount,
+            first_token_attributes,
+        );
+        for payment in &payments {
+            let attributes: LockedTokenAttributes<Self::Api> =
+                locked_token_mapper.get_token_attributes(payment.token_nonce);
+            require!(
+                attributes.unlock_epoch > current_epoch,
+                TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
             );
-            for payment in &payments {
-                let attributes: LockedTokenAttributes<Self::Api> =
-                    locked_token_mapper.get_token_attributes(payment.token_nonce);
-                require!(
-                    attributes.unlock_epoch > current_epoch,
-                    TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
-                );
 
+            if let Some(energy) = opt_energy.as_mut() {
                 energy.update_after_unlock_any(
                     &payment.amount,
                     attributes.unlock_epoch,
                     current_epoch,
                 );
-
-                locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
-
-                let amount_attr_pair =
-                    LockedAmountWeightAttributesPair::new(self, payment.amount, attributes);
-                output_pair.merge_with(amount_attr_pair);
             }
 
-            let normalized_unlock_epoch = self
-                .unlock_epoch_to_start_of_month_upper_estimate(output_pair.attributes.unlock_epoch);
-            output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
+            locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
+            let amount_attr_pair =
+                LockedAmountWeightAttributesPair::new(self, payment.amount, attributes);
+            output_pair.merge_with(amount_attr_pair);
+        }
+
+        let normalized_unlock_epoch =
+            self.unlock_epoch_to_start_of_month_upper_estimate(output_pair.attributes.unlock_epoch);
+        output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
+
+        if let Some(energy) = opt_energy.as_mut() {
             energy.add_after_token_lock(
                 &output_pair.token_amount,
                 output_pair.attributes.unlock_epoch,
                 current_epoch,
             );
+        }
 
-            output_pair
-        })
+        output_pair
     }
 }

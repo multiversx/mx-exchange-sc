@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         addLockOptions
         addSCAddressToWhitelist
+        finalizeUnstake
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
@@ -33,6 +34,7 @@ elrond_wasm_node::wasm_endpoints! {
         reduceLockPeriod
         removeLockOptions
         removeSCAddressFromWhitelist
+        revertUnstake
         setFeesBurnPercentage
         setFeesCollectorAddress
         setLockedTokenTransferScAddress

@@ -31,11 +31,15 @@ pub trait EnergyFactoryMock {
 
     #[view(getEnergyEntryForUser)]
     fn get_energy_entry_for_user(&self, user: ManagedAddress) -> Energy<Self::Api> {
+        let current_epoch = self.blockchain().get_block_epoch();
         let mapper = self.user_energy(&user);
         if !mapper.is_empty() {
-            mapper.get()
+            let mut energy = mapper.get();
+            energy.deplete(current_epoch);
+
+            energy
         } else {
-            Energy::default()
+            Energy::new_zero_energy(current_epoch)
         }
     }
 

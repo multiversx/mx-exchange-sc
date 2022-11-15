@@ -184,17 +184,16 @@ pub trait EnergyModule: crate::events::EventsModule {
 
     #[view(getEnergyEntryForUser)]
     fn get_updated_energy_entry_for_user(&self, user: &ManagedAddress) -> Energy<Self::Api> {
-        let energy_mapper = self.user_energy(user);
-        let mut energy = if !energy_mapper.is_empty() {
-            energy_mapper.get()
-        } else {
-            Energy::default()
-        };
-
         let current_epoch = self.blockchain().get_block_epoch();
-        energy.deplete(current_epoch);
+        let energy_mapper = self.user_energy(user);
+        if !energy_mapper.is_empty() {
+            let mut energy = energy_mapper.get();
+            energy.deplete(current_epoch);
 
-        energy
+            energy
+        } else {
+            Energy::new_zero_energy(current_epoch)
+        }
     }
 
     #[view(getEnergyAmountForUser)]

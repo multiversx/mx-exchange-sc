@@ -71,7 +71,7 @@ pub trait FeesModule:
             existing_nonce_amount_pair.amount,
         ));
 
-        let new_locked_amount_attributes = self.merge_tokens(payments, OptionalValue::None);
+        let new_locked_amount_attributes = self.merge_tokens(payments, &mut None);
 
         let sft_nonce = self.get_or_create_nonce_for_attributes(
             &locked_token_mapper,

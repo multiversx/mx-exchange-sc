@@ -7,13 +7,13 @@
 elrond_wasm_node::wasm_endpoints! {
     token_unstake
     (
-        addTokenToWhitelist
+        cancelUnbond
         claimUnlockedTokens
         depositUserTokens
+        getEnergyFactoryAddress
         getUnbondEpochs
         getUnlockedTokensForUser
-        removeSCAddressFromWhitelist
-        setUnbondEpochs
+        setEnergyFactoryAddress
     )
 }
 

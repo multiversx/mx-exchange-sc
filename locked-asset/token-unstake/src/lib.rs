@@ -64,30 +64,37 @@ pub trait TokenUnstakeModule: utils::UtilsModule + energy_query::EnergyQueryModu
                     }
 
                     let locked_tokens = entry.locked_tokens;
-                    let penalty_amount = &locked_tokens.amount - &entry.unlocked_tokens.amount;
-                    output_payments.push(entry.unlocked_tokens);
+                    let unlocked_tokens = entry.unlocked_tokens;
 
-                    let locked_tokens_burn_amount = &locked_tokens.amount - &penalty_amount;
+                    // we only burn the tokens that are not unlocked
+                    // the rest are sent back as penalty
+                    let locked_tokens_burn_amount = unlocked_tokens.amount.clone();
                     self.send().esdt_local_burn(
                         &locked_tokens.token_identifier,
                         locked_tokens.token_nonce,
                         &locked_tokens_burn_amount,
                     );
 
-                    let penalty = EsdtTokenPayment::new(
-                        locked_tokens.token_identifier,
-                        locked_tokens.token_nonce,
-                        penalty_amount,
-                    );
-                    penalty_tokens.push(penalty);
+                    let penalty_amount = &locked_tokens.amount - &unlocked_tokens.amount;
+                    if penalty_amount > 0 {
+                        let penalty = EsdtTokenPayment::new(
+                            locked_tokens.token_identifier,
+                            locked_tokens.token_nonce,
+                            penalty_amount,
+                        );
+                        penalty_tokens.push(penalty);
+                    }
 
+                    output_payments.push(unlocked_tokens);
                     user_entries.remove(0);
                 }
             });
 
         if !output_payments.is_empty() {
             self.send().direct_multi(&caller, &output_payments);
+        }
 
+        if !penalty_tokens.is_empty() {
             let sc_address = self.energy_factory_address().get();
             let _: IgnoreValue = self
                 .energy_factory_proxy(sc_address)

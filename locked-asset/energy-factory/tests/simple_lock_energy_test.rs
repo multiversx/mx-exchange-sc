@@ -10,13 +10,12 @@ use elrond_wasm_debug::{
 
 #[test]
 fn init_test() {
-    let _ = SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let _ = SimpleLockEnergySetup::new(energy_factory::contract_obj);
 }
 
 #[test]
 fn try_lock() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     setup
         .b_mock
@@ -35,8 +34,7 @@ fn try_lock() {
 
 #[test]
 fn lock_ok() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
 
@@ -135,12 +133,11 @@ fn lock_ok() {
 
 #[test]
 fn unlock_early_test() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
 
-    let mut current_epoch = 0;
+    let current_epoch = 0;
     setup.b_mock.set_block_epoch(current_epoch);
 
     setup
@@ -161,9 +158,6 @@ fn unlock_early_test() {
 
     let received_token_amount = rust_biguint!(half_balance) - penalty_amount;
     let expected_balance = received_token_amount + half_balance;
-    current_epoch += DEFAULT_UNBOND_EPOCHS;
-    setup.b_mock.set_block_epoch(current_epoch);
-    setup.claim_unlocked_tokens(&first_user);
     setup
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
@@ -175,13 +169,12 @@ fn unlock_early_test() {
 
 #[test]
 fn multiple_early_unlocks_same_week_test() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
     let sixth_balance = half_balance / 3;
 
-    let mut current_epoch = 0;
+    let current_epoch = 0;
     setup.b_mock.set_block_epoch(current_epoch);
 
     setup
@@ -235,11 +228,6 @@ fn multiple_early_unlocks_same_week_test() {
         .unlock_early(&first_user, 1, sixth_balance)
         .assert_ok();
 
-    // Claim unbonded tokens
-    current_epoch += DEFAULT_UNBOND_EPOCHS;
-    setup.b_mock.set_block_epoch(current_epoch);
-    setup.claim_unlocked_tokens(&first_user);
-
     penalty_percentage = 4_000u64; // 1 year = 4_000
     expected_penalty_amount = rust_biguint!(sixth_balance) * penalty_percentage / 10_000u64;
     penalty_amount = setup.get_penalty_amount(sixth_balance, LOCK_OPTIONS[0], 0);
@@ -269,8 +257,7 @@ fn multiple_early_unlocks_same_week_test() {
 
 #[test]
 fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
     let quarter_balance = half_balance / 2;
@@ -324,11 +311,6 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
     penalty_amount = setup.get_penalty_amount(quarter_balance, LOCK_OPTIONS[0] - current_epoch, 0);
     assert_eq!(penalty_amount, expected_penalty_amount_2);
 
-    // Claim unbonded tokens
-    current_epoch += DEFAULT_UNBOND_EPOCHS;
-    setup.b_mock.set_block_epoch(current_epoch);
-    setup.claim_unlocked_tokens(&first_user);
-
     let received_token_amount_2 = rust_biguint!(quarter_balance) - penalty_amount;
     let expected_balance = &received_token_amount_2 + &received_token_amount + half_balance;
     setup
@@ -350,8 +332,7 @@ fn multiple_early_unlocks_multiple_weeks_fee_collector_check_test() {
 
 #[test]
 fn reduce_lock_period_test() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
 
@@ -425,8 +406,7 @@ fn reduce_lock_period_test() {
 
 #[test]
 fn extend_locking_period_test() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
 
@@ -495,8 +475,7 @@ fn extend_locking_period_test() {
 
 #[test]
 fn test_same_token_nonce() {
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
     let half_balance = USER_BALANCE / 2;
 

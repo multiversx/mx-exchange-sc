@@ -32,8 +32,7 @@ use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
 #[test]
 fn token_merging_test() {
     let _ = DebugApi::dummy();
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
     let first_token_amount = 400_000;
@@ -104,8 +103,7 @@ fn token_merging_test() {
 #[test]
 fn token_merging_different_years_test() {
     let _ = DebugApi::dummy();
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
     let first_token_amount = 400_000;
@@ -176,8 +174,7 @@ fn token_merging_different_years_test() {
 #[test]
 fn token_merging_different_years2_test() {
     let _ = DebugApi::dummy();
-    let mut setup =
-        SimpleLockEnergySetup::new(energy_factory::contract_obj, token_unstake::contract_obj);
+    let mut setup = SimpleLockEnergySetup::new(energy_factory::contract_obj);
     let first_user = setup.first_user.clone();
 
     let first_token_amount = 400_000;
@@ -305,6 +302,7 @@ fn test_specific_tokens_merge() {
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                 FEES_BURN_PERCENTAGE,
+                managed_address!(fees_collector_mock.address_ref()),
                 managed_address!(fees_collector_mock.address_ref()),
                 managed_address!(fees_collector_mock.address_ref()),
                 lock_options,

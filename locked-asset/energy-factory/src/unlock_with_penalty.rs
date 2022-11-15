@@ -91,7 +91,22 @@ pub trait UnlockWithPenaltyModule:
         let new_unlock_epoch = current_epoch + reduce_result.new_lock_epochs;
 
         let unlocked_tokens = reduce_result.unlocked_tokens;
+        let penalty_amount = &payment.amount - &unlocked_tokens.amount;
         let new_locked_tokens = self.lock_tokens(unlocked_tokens, new_unlock_epoch);
+
+        let amount_to_burn = &payment.amount - &penalty_amount;
+        self.send().esdt_local_burn(
+            &payment.token_identifier,
+            payment.token_nonce,
+            &amount_to_burn,
+        );
+        if penalty_amount > 0 {
+            self.burn_penalty(
+                payment.token_identifier,
+                payment.token_nonce,
+                &penalty_amount,
+            );
+        }
 
         let mut energy = reduce_result.energy;
         energy.add_after_token_lock(&new_locked_tokens.amount, new_unlock_epoch, current_epoch);
@@ -136,7 +151,7 @@ pub trait UnlockWithPenaltyModule:
 
         let penalty_amount =
             self.calculate_penalty_amount(&payment.amount, prev_lock_epochs, new_lock_epochs);
-        let mut unlocked_tokens = self.unlock_tokens_unchecked(payment.clone(), &attributes);
+        let mut unlocked_tokens = self.unlock_tokens_unchecked(payment, &attributes);
         require!(
             unlocked_tokens.amount > penalty_amount,
             "No tokens remaining after penalty is applied"

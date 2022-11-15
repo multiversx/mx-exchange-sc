@@ -650,8 +650,11 @@ fn farm_enter_with_multiple_farm_token() {
 #[test]
 fn farm_claim_with_minimum_tokens() {
     let _ = DebugApi::dummy();
-    let mut farm_setup =
-        MultiUserFarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
