@@ -21,9 +21,10 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {
-        let total_votes = self.up_votes.clone() + self.down_votes.clone() + self.down_votes_veto.clone() + self.abstain.clone();
-
-        total_votes
+        self.up_votes.clone()
+            + self.down_votes.clone()
+            + self.down_votes_veto.clone()
+            + self.abstain.clone()
     }
     pub fn get_up_votes_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
@@ -69,5 +70,8 @@ pub trait ProposalStorageModule {
 
     #[view(getProposalVotes)]
     #[storage_mapper("proposalVotes")]
-    fn proposal_votes(&self, proposal_id: ProposalId) -> SingleValueMapper<ProposalVotes<Self::Api>>;
+    fn proposal_votes(
+        &self,
+        proposal_id: ProposalId,
+    ) -> SingleValueMapper<ProposalVotes<Self::Api>>;
 }

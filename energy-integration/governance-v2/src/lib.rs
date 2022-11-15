@@ -122,7 +122,7 @@ pub trait GovernanceV2:
             self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
-        
+
         let proposal_votes = ProposalVotes {
             up_votes: user_energy,
             down_votes: BigUint::zero(),
