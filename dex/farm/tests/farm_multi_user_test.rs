@@ -7,8 +7,11 @@ use farm_setup::multi_user_farm_setup::*;
 #[test]
 fn farm_with_no_boost_test() {
     let _ = DebugApi::dummy();
-    let mut farm_setup =
-        MultiUserFarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
@@ -100,8 +103,11 @@ fn farm_with_no_boost_test() {
 #[test]
 fn farm_with_boosted_yields_test() {
     let _ = DebugApi::dummy();
-    let mut farm_setup =
-        MultiUserFarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
@@ -209,8 +215,11 @@ fn farm_with_boosted_yields_test() {
 #[test]
 fn farm_known_proxy_test() {
     let _ = DebugApi::dummy();
-    let mut farm_setup =
-        MultiUserFarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
 
     // first user enter farm
     let first_farm_token_amount = 100_000_000;
@@ -303,8 +312,11 @@ fn farm_known_proxy_test() {
 #[test]
 fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     let _ = DebugApi::dummy();
-    let mut farm_setup =
-        MultiUserFarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();
@@ -523,8 +535,11 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
 #[test]
 fn farm_enter_with_multiple_farm_token() {
     let _ = DebugApi::dummy();
-    let mut farm_setup =
-        MultiUserFarmSetup::new(farm::contract_obj, energy_factory_mock::contract_obj);
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
 
     farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
     farm_setup.set_boosted_yields_factors();

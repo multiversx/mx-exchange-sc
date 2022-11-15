@@ -63,7 +63,7 @@ impl<M: ManagedTypeApi> Energy<M> {
             return;
         }
 
-        if self.total_locked_tokens > 0 && self.last_update_epoch > 0 {
+        if self.total_locked_tokens > 0 {
             self.subtract(
                 self.last_update_epoch,
                 current_epoch,
