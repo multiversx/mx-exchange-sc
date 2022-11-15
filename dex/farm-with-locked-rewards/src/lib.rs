@@ -120,7 +120,8 @@ pub trait Farm:
         let locked_rewards_payment = self.send_to_lock_contract_non_zero(
             rewards_payment.token_identifier,
             rewards_payment.amount,
-            caller,
+            caller.clone(),
+            orig_caller.clone(),
         );
 
         self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
@@ -186,6 +187,7 @@ pub trait Farm:
             rewards.token_identifier.clone(),
             rewards.amount.clone(),
             caller,
+            orig_caller.clone(),
         );
 
         if remaining_farm_payment.amount == 0 {
@@ -271,12 +273,13 @@ pub trait Farm:
         token_id: TokenIdentifier,
         amount: BigUint,
         destination_address: ManagedAddress,
+        energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
         if amount == 0 {
             return EsdtTokenPayment::new(token_id, 0, amount);
         }
 
-        self.lock_virtual(token_id, amount, destination_address)
+        self.lock_virtual(token_id, amount, destination_address, energy_address)
     }
 
     fn get_orig_caller_from_opt(
