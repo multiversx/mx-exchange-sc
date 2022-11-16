@@ -26,6 +26,7 @@ pub trait VirtualLockModule:
         amount: BigUint,
         lock_epochs: Epoch,
         dest_address: ManagedAddress,
+        energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
         require!(
             self.is_base_asset_token(&token_id),
@@ -40,14 +41,15 @@ pub trait VirtualLockModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
 
-        let locked_tokens = self.update_energy(&dest_address, |energy: &mut Energy<Self::Api>| {
-            self.lock_base_asset(
-                EsdtTokenPayment::new(token_id, 0, amount),
-                unlock_epoch,
-                current_epoch,
-                energy,
-            )
-        });
+        let locked_tokens =
+            self.update_energy(&energy_address, |energy: &mut Energy<Self::Api>| {
+                self.lock_base_asset(
+                    EsdtTokenPayment::new(token_id, 0, amount),
+                    unlock_epoch,
+                    current_epoch,
+                    energy,
+                )
+            });
         self.send().direct_esdt(
             &dest_address,
             &locked_tokens.token_identifier,
