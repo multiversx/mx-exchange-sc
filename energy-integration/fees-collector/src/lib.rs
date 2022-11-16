@@ -2,10 +2,11 @@
 
 elrond_wasm::imports!();
 
+use common_errors::ERROR_ENERGY_UPDATE_SAME_WEEK;
 use common_types::{PaymentsVec, Week};
 use core::marker::PhantomData;
 use energy_query::Energy;
-use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
+use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
 
 use elrond_wasm_modules::ongoing_operation::{
     CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
@@ -95,6 +96,27 @@ pub trait FeesCollector:
                 (run_result, OptionalValue::Some(last_processed_index)).into()
             }
         }
+    }
+
+    #[endpoint(updateEnergyForUser)]
+    fn update_energy_for_user(&self, user: ManagedAddress) {
+        let current_week = self.get_current_week();
+        let claim_progress = self.current_claim_progress(&user).get();
+        require!(
+            claim_progress.week == current_week,
+            ERROR_ENERGY_UPDATE_SAME_WEEK
+        );
+        self.update_energy_and_progress_after_enter(&user);
+    }
+
+    fn update_energy_and_progress_after_enter(&self, caller: &ManagedAddress) {
+        let current_week = self.get_current_week();
+        let current_user_energy = self.get_energy_entry(caller);
+        self.update_user_energy_for_current_week(caller, current_week, &current_user_energy);
+        self.current_claim_progress(caller).set(ClaimProgress {
+            energy: current_user_energy,
+            week: current_week,
+        });
     }
 }
 

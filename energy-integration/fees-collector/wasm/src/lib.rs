@@ -32,6 +32,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeKnownTokens
         setEnergyFactoryAddress
         unpause
+        updateEnergyForUser
     )
 }
 
