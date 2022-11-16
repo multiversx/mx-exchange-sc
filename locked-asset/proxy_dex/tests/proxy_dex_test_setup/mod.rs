@@ -26,7 +26,7 @@ use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 // General
 pub static MEX_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static WEGLD_TOKEN_ID: &[u8] = b"WEGLD-123456";
-pub const EPOCHS_IN_YEAR: u64 = 365;
+pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 // Pair
