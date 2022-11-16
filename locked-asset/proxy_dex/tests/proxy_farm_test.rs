@@ -217,7 +217,7 @@ fn farm_proxy_claim_energy_test() {
     let current_epoch = 5;
     setup.b_mock.set_block_epoch(current_epoch);
 
-    let expected_energy = rust_biguint!(360u64 - current_epoch) * USER_BALANCE;
+    let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * USER_BALANCE;
     setup
         .b_mock
         .execute_query(&setup.simple_lock_wrapper, |sc| {
@@ -241,7 +241,7 @@ fn farm_proxy_claim_energy_test() {
         )
         .assert_ok();
 
-    let expected_energy = rust_biguint!(360u64 - current_epoch) * USER_BALANCE;
+    let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * USER_BALANCE;
     setup
         .b_mock
         .execute_query(&setup.simple_lock_wrapper, |sc| {
@@ -325,7 +325,7 @@ fn farm_proxy_claim_energy_test() {
     );
 
     let new_user_balance = USER_BALANCE + rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32;
-    let expected_energy = rust_biguint!(360u64 - current_epoch) * new_user_balance;
+    let expected_energy = rust_biguint!(LOCK_OPTIONS[0] - current_epoch) * new_user_balance;
     setup
         .b_mock
         .execute_query(&setup.simple_lock_wrapper, |sc| {
