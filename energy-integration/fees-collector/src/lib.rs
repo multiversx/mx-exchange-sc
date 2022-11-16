@@ -101,7 +101,22 @@ pub trait FeesCollector:
     #[endpoint(updateEnergyForUser)]
     fn update_energy_for_user(&self, user: ManagedAddress) {
         let current_week = self.get_current_week();
-        let claim_progress = self.current_claim_progress(&user).get();
+
+        let claim_progress_mapper = self.current_claim_progress(&user);
+
+        let is_new_user = claim_progress_mapper.is_empty();
+        let claim_progress = if is_new_user {
+            let new_claim_progress = ClaimProgress {
+                energy: Energy::new_zero_energy(0),
+                week: current_week,
+            };
+            claim_progress_mapper.set(&new_claim_progress);
+            new_claim_progress
+        } else {
+            claim_progress_mapper.get()
+        };
+
+        
         require!(
             claim_progress.week == current_week,
             ERROR_ENERGY_UPDATE_SAME_WEEK

@@ -17,8 +17,8 @@ pub trait EnergyUpdate {
     #[init]
     fn init(&self) {}
 
-    #[endpoint(updateFarmsEnergyForUser)]
-    fn update_farms_energy_for_user(
+    #[endpoint(updateContractsEnergyForUser)]
+    fn update_contracts_energy_for_user(
         &self,
         user: ManagedAddress,
         farm_addresses: MultiValueEncoded<ManagedAddress>,
