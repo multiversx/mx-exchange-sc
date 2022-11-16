@@ -27,6 +27,9 @@ path = "../common-modules/weekly-rewards-splitting"
 [dependencies.common-types]
 path = "../common-types"
 
+[dependencies.common_errors]
+path = "../../common/common_errors"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
 
