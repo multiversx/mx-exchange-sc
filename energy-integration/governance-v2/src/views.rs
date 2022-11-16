@@ -36,7 +36,7 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::Active;
         }
 
-        if self.quorum_reached(proposal_id) {
+        if self.quorum_and_vote_reached(proposal_id) {
             GovernanceProposalStatus::Succeeded
         } else {
             GovernanceProposalStatus::Defeated
