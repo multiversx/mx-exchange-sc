@@ -12,6 +12,17 @@ pub struct EncodabLockedAmountWeightAttributesPair<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> EncodabLockedAmountWeightAttributesPair<M> {
+    pub fn from_ref_instance<'a, Sc>(ref_instance: LockedAmountWeightAttributesPair<Sc>) -> Self
+    where
+        Sc: energy_factory::penalty::LocalPenaltyModule<Api = M>,
+    {
+        EncodabLockedAmountWeightAttributesPair {
+            token_amount: ref_instance.token_amount,
+            token_unlock_fee_percent: ref_instance.token_unlock_fee_percent,
+            attributes: ref_instance.attributes,
+        }
+    }
+
     pub fn to_self_ref_instance<'a, Sc>(
         self,
         sc_ref: &'a Sc,
@@ -28,6 +39,7 @@ impl<M: ManagedTypeApi> EncodabLockedAmountWeightAttributesPair<M> {
     }
 }
 
+// TODO: Cleanup modules to not duplicate endpoints in this SC
 #[elrond_wasm::module]
 pub trait FeesMergingModule:
     energy_factory::penalty::LocalPenaltyModule + energy_factory::lock_options::LockOptionsModule

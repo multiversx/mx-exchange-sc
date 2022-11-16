@@ -27,6 +27,9 @@ path = "../../common/common_structs"
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
 
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
 [dependencies.energy-factory]
 path = "../energy-factory"
 

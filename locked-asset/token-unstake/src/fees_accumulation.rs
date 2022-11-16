@@ -1,8 +1,16 @@
 elrond_wasm::imports!();
 
 use common_structs::{Epoch, Nonce};
+use energy_factory::{
+    lock_options::MAX_PENALTY_PERCENTAGE, token_merging::LockedAmountWeightAttributesPair,
+    unstake::ProxyTrait as _,
+};
+use simple_lock::locked_token::LockedTokenAttributes;
+use week_timekeeping::EPOCHS_IN_WEEK;
 
-const EPOCHS_PER_WEEK: Epoch = 7;
+use crate::fees_merging::EncodabLockedAmountWeightAttributesPair;
+
+static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
 pub mod fees_collector_proxy {
     elrond_wasm::imports!();
@@ -20,6 +28,8 @@ pub trait FeesAccumulationModule:
     crate::fees_merging::FeesMergingModule
     + energy_factory::penalty::LocalPenaltyModule
     + energy_factory::lock_options::LockOptionsModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
 {
     #[payable("*")]
     #[endpoint(depositFees)]
@@ -35,12 +45,18 @@ pub trait FeesAccumulationModule:
                 .esdt_local_burn(&token_id, token_nonce, &burn_amount);
         }
         if remaining_amount > 0 {
-            if self.fees_from_penalty_unlocking().is_empty() {
-                // First fee deposit of the week
-                self.fees_from_penalty_unlocking()
-                    .set(NonceAmountPair::new(token_nonce, remaining_amount));
-            } else {
+            let fees_mapper = self.fees_from_penalty_unlocking();
+            if !fees_mapper.is_empty() {
                 self.merge_fees_from_penalty(token_nonce, remaining_amount);
+            } else {
+                let token_attributes: LockedTokenAttributes<Self::Api> =
+                    self.get_token_attributes(&token_id, token_nonce);
+                let ref_instance =
+                    LockedAmountWeightAttributesPair::new(self, remaining_amount, token_attributes);
+                let encodable_instance =
+                    EncodabLockedAmountWeightAttributesPair::from_ref_instance(ref_instance);
+
+                fees_mapper.set(&encodable_instance);
             }
         }
 
@@ -49,31 +65,52 @@ pub trait FeesAccumulationModule:
     }
 
     fn send_fees_to_collector(&self) {
-        // Send fees to FeeCollector SC
+        let last_send_mapper = self.last_epoch_fee_sent_to_collector();
         let current_epoch = self.blockchain().get_block_epoch();
-        let last_epoch_fee_sent_to_collector = self.last_epoch_fee_sent_to_collector().get();
-        let next_send_epoch = last_epoch_fee_sent_to_collector + EPOCHS_PER_WEEK;
-
+        let last_epoch_fee_sent_to_collector = last_send_mapper.get();
+        let next_send_epoch = last_epoch_fee_sent_to_collector + EPOCHS_IN_WEEK;
         if current_epoch < next_send_epoch {
             return;
         }
 
-        let sc_address = self.fees_collector_address().get();
-        let locked_token_id = self.locked_token().get_token_id();
-        let nonce_amount_pair = self.fees_from_penalty_unlocking().get();
+        let fees_mapper = self.fees_from_penalty_unlocking();
+        if fees_mapper.is_empty() {
+            last_send_mapper.set(current_epoch);
 
-        self.fees_from_penalty_unlocking().clear();
-        let _: IgnoreValue = self
-            .fees_collector_proxy_builder(sc_address)
-            .deposit_swap_fees()
-            .add_esdt_token_transfer(
-                locked_token_id,
-                nonce_amount_pair.nonce,
-                nonce_amount_pair.amount,
+            return;
+        }
+
+        let energy_factory_addr = self.energy_factory_address().get();
+        let locked_token_id = self.get_locked_token_id(&energy_factory_addr);
+
+        let fees_attributes = fees_mapper.get();
+        let fee_tokens: EsdtTokenPayment = self
+            .energy_factory_proxy(energy_factory_addr)
+            .create_merged_locked_token_for_fees(
+                fees_attributes.token_amount,
+                fees_attributes.attributes.unlock_epoch,
             )
             .execute_on_dest_context();
 
-        self.last_epoch_fee_sent_to_collector().set(current_epoch);
+        let fees_collector_addr = self.fees_collector_address().get();
+        let _: IgnoreValue = self
+            .fees_collector_proxy_builder(fees_collector_addr)
+            .deposit_swap_fees()
+            .add_esdt_token_transfer(
+                fee_tokens.token_identifier,
+                fee_tokens.token_nonce,
+                fee_tokens.amount,
+            )
+            .execute_on_dest_context();
+
+        fees_mapper.clear();
+    }
+
+    fn get_locked_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {
+        self.storage_raw().read_from_address(
+            energy_factory_addr,
+            ManagedBuffer::new_from_bytes(LOCKED_TOKEN_ID_STORAGE_KEY),
+        )
     }
 
     #[proxy]

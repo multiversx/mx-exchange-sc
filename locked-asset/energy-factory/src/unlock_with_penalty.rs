@@ -32,6 +32,7 @@ pub trait UnlockWithPenaltyModule:
     + crate::unstake::UnstakeModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
+    + crate::token_whitelist::TokenWhitelistModule
 {
     /// Sets the percentage of fees that are burned. The rest are sent to the fees collector.
     /// Value between 0 and 10_000. 0 is also accepted.

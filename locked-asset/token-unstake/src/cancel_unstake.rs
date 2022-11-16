@@ -5,13 +5,12 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 #[elrond_wasm::module]
 pub trait CancelUnstakeModule:
-    crate::tokens_per_user::TokensPerUserModule + energy_query::EnergyQueryModule
+    crate::tokens_per_user::TokensPerUserModule + energy_query::EnergyQueryModule + utils::UtilsModule
 {
     #[endpoint(cancelUnbond)]
     fn cancel_unbond(&self) -> MultiValueEncoded<EsdtTokenPayment> {
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
-        let own_sc_address = self.blockchain().get_sc_address();
 
         let mut output_payments = ManagedVec::new();
         let mut energy = self.get_energy_entry(&caller);
@@ -22,12 +21,8 @@ pub trait CancelUnstakeModule:
 
         for entry in &user_entries {
             let locked_tokens = entry.locked_tokens;
-            let token_data = self.blockchain().get_esdt_token_data(
-                &own_sc_address,
-                &locked_tokens.token_identifier,
-                locked_tokens.token_nonce,
-            );
-            let attributes: LockedTokenAttributes<Self::Api> = token_data.decode_attributes();
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .get_token_attributes(&locked_tokens.token_identifier, locked_tokens.token_nonce);
             if attributes.unlock_epoch >= current_epoch {
                 energy.add_after_token_lock(
                     &locked_tokens.amount,

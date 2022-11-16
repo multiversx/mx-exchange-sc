@@ -8,6 +8,7 @@ pub mod extend_lock;
 pub mod fees;
 pub mod local_roles;
 pub mod lock_options;
+pub mod lock_options_endpoints;
 pub mod locked_token_transfer;
 pub mod migration;
 pub mod penalty;
@@ -32,6 +33,7 @@ pub trait SimpleLockEnergy:
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
     + lock_options::LockOptionsModule
+    + lock_options_endpoints::LockOptionsEndpointsModule
     + unlock_with_penalty::UnlockWithPenaltyModule
     + unstake::UnstakeModule
     + extend_lock::ExtendLockModule

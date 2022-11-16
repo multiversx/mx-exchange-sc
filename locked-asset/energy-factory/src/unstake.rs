@@ -28,12 +28,33 @@ pub trait UnstakeModule:
     + crate::lock_options::LockOptionsModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
+    + crate::token_whitelist::TokenWhitelistModule
 {
     #[only_owner]
     #[endpoint(setTokenUnstakeAddress)]
     fn set_token_unstake_address(&self, sc_address: ManagedAddress) {
         self.require_sc_address(&sc_address);
         self.token_unstake_sc_address().set(&sc_address);
+    }
+
+    #[endpoint(createMergedLockedTokenForFees)]
+    fn create_merged_locked_token_for_fees(
+        &self,
+        amount: BigUint,
+        unlock_epoch: u64,
+    ) -> EsdtTokenPayment {
+        self.require_caller_unstake_sc();
+
+        let caller = self.blockchain().get_caller();
+        let base_asset_token_id = self.base_asset_token_id().get();
+        let virtual_payment = EgldOrEsdtTokenPayment::new(
+            EgldOrEsdtTokenIdentifier::esdt(base_asset_token_id),
+            0,
+            amount,
+        );
+        let output_payment = self.lock_and_send(&caller, virtual_payment, unlock_epoch);
+
+        self.to_esdt_payment(output_payment)
     }
 
     #[payable("*")]
