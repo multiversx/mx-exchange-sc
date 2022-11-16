@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 
 use crate::energy::Energy;
 use common_structs::{Epoch, OldLockedTokenAttributes, UnlockEpochAmountPairs};
+use math::safe_sub;
 use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 use unwrappable::Unwrappable;
 
@@ -134,11 +135,7 @@ pub trait SimpleLockMigrationModule:
         let mut weighted_epochs_sum = BigUint::zero();
         let mut weight_sum = BigUint::zero();
         for epoch_amount_pair in &unlock_epoch_amount_pairs.pairs {
-            let lock_epochs_remaining = if epoch_amount_pair.epoch > current_epoch {
-                epoch_amount_pair.epoch - current_epoch
-            } else {
-                0
-            };
+            let lock_epochs_remaining = safe_sub(epoch_amount_pair.epoch, current_epoch);
             weighted_epochs_sum += &epoch_amount_pair.amount * lock_epochs_remaining;
             weight_sum += &epoch_amount_pair.amount;
         }

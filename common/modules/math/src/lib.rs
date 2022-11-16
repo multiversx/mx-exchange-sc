@@ -23,8 +23,20 @@ where
 
 pub fn weighted_average<T>(first_value: T, first_weight: T, second_value: T, second_weight: T) -> T
 where
-    T: Add<Output = T> + Mul<Output = T> + Div<Output = T> + PartialOrd + Clone,
+    T: Add<Output = T> + Mul<Output = T> + Div<Output = T> + Clone,
 {
     let weight_sum = first_weight.clone() + second_weight.clone();
     (first_value * first_weight + second_value * second_weight) / weight_sum
+}
+
+/// computes first_value - second_value, returning 0 if the result would be negative
+pub fn safe_sub<T>(first_value: T, second_value: T) -> T
+where
+    T: Sub<Output = T> + PartialOrd + Default,
+{
+    if first_value > second_value {
+        first_value - second_value
+    } else {
+        T::default()
+    }
 }
