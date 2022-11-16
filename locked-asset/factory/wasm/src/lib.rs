@@ -26,9 +26,11 @@ elrond_wasm_node::wasm_endpoints! {
         removeWhitelist
         setInitEpoch
         setLocalRolesLockedAssetToken
+        setTransferRoleLockedToken
         setUnlockPeriod
         set_transfer_exec_gas_limit
         unlockAssets
+        unsetTransferRoleLockedToken
         whitelist
     )
 }

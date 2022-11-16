@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![feature(exact_size_is_empty)]
 
 mod attr_ex_helper;
@@ -7,6 +6,7 @@ mod cache;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
+pub mod transfer_role;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -30,6 +30,7 @@ pub trait LockedAssetFactory:
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
+    + transfer_role::TransferRoleModule
 {
     #[init]
     fn init(
