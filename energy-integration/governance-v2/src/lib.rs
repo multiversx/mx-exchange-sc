@@ -9,6 +9,9 @@ pub mod proposal_storage;
 pub mod views;
 
 use proposal::*;
+use proposal_storage::VoteType;
+
+use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
@@ -120,8 +123,14 @@ pub trait GovernanceV2:
             self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
+        let proposal_votes = ProposalVotes::new(
+            user_energy,
+            BigUint::zero(),
+            BigUint::zero(),
+            BigUint::zero(),
+        );
 
-        self.total_votes(proposal_id).set(&user_energy);
+        self.proposal_votes(proposal_id).set(proposal_votes);
         let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
 
         let current_block = self.blockchain().get_block_nonce();
@@ -134,7 +143,7 @@ pub trait GovernanceV2:
 
     /// Vote on a proposal. The voting power depends on the user's energy.
     #[endpoint]
-    fn vote(&self, proposal_id: ProposalId) {
+    fn vote(&self, proposal_id: ProposalId, vote: VoteType) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
@@ -147,31 +156,34 @@ pub trait GovernanceV2:
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
         let user_energy = self.get_energy_amount_non_zero(&voter);
-        self.total_votes(proposal_id)
-            .update(|total_votes| *total_votes += &user_energy);
 
-        self.vote_cast_event(&voter, proposal_id, &user_energy);
-    }
-
-    /// Downvote a proposal. The voting power depends on the user's energy.
-    #[endpoint]
-    fn downvote(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        self.require_valid_proposal_id(proposal_id);
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Active,
-            "Proposal is not active"
-        );
-
-        let downvoter = self.blockchain().get_caller();
-        let new_user = self.user_voted_proposals(&downvoter).insert(proposal_id);
-        require!(new_user, ALREADY_VOTED_ERR_MSG);
-
-        let user_energy = self.get_energy_amount_non_zero(&downvoter);
-        self.total_downvotes(proposal_id)
-            .update(|total_downvotes| *total_downvotes += &user_energy);
-
-        self.downvote_cast_event(&downvoter, proposal_id, &user_energy);
+        match vote {
+            VoteType::UpVote => {
+                self.proposal_votes(proposal_id).update(|proposal_votes| {
+                    proposal_votes.up_votes += &user_energy.clone();
+                });
+                self.up_vote_cast_event(&voter, proposal_id, &user_energy);
+            }
+            VoteType::DownVote => {
+                self.proposal_votes(proposal_id).update(|proposal_votes| {
+                    proposal_votes.down_votes += &user_energy.clone();
+                });
+                self.down_vote_cast_event(&voter, proposal_id, &user_energy);
+            }
+            VoteType::DownVetoVote => {
+                self.proposal_votes(proposal_id).update(|proposal_votes| {
+                    proposal_votes.down_veto_votes += &user_energy.clone();
+                });
+                self.down_veto_vote_cast_event(&voter, proposal_id, &user_energy);
+            },
+            VoteType::AbstainVote => {
+                self.proposal_votes(proposal_id).update(|proposal_votes| {
+                    proposal_votes.abstain_votes += &user_energy.clone();
+                });
+                self.abstain_vote_cast_event(&voter, proposal_id, &user_energy);
+        
+            }
+        }
     }
 
     /// Queue a proposal for execution.
@@ -327,7 +339,6 @@ pub trait GovernanceV2:
         self.required_payments_for_proposal(proposal_id).clear();
         self.payments_depositor(proposal_id).clear();
 
-        self.total_votes(proposal_id).clear();
-        self.total_downvotes(proposal_id).clear();
+        self.proposal_votes(proposal_id).clear();
     }
 }

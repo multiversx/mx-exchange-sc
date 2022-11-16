@@ -14,18 +14,34 @@ pub trait EventsModule {
         proposal: &GovernanceProposal<Self::Api>,
     );
 
-    #[event("voteCast")]
-    fn vote_cast_event(
+    #[event("upVoteCast")]
+    fn up_vote_cast_event(
         &self,
-        #[indexed] voter: &ManagedAddress,
+        #[indexed] up_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
         nr_votes: &BigUint,
     );
 
-    #[event("downvoteCast")]
-    fn downvote_cast_event(
+    #[event("downVoteCast")]
+    fn down_vote_cast_event(
         &self,
-        #[indexed] downvoter: &ManagedAddress,
+        #[indexed] down_voter: &ManagedAddress,
+        #[indexed] proposal_id: ProposalId,
+        nr_downvotes: &BigUint,
+    );
+
+    #[event("downVetoVoteCast")]
+    fn down_veto_vote_cast_event(
+        &self,
+        #[indexed] down_veto_voter: &ManagedAddress,
+        #[indexed] proposal_id: ProposalId,
+        nr_downvotes: &BigUint,
+    );
+
+    #[event("abstainVoteCast")]
+    fn abstain_vote_cast_event(
+        &self,
+        #[indexed] abstain_voter: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
         nr_downvotes: &BigUint,
     );

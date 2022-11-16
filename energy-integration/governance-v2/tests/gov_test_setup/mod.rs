@@ -7,7 +7,9 @@ use elrond_wasm_debug::{
 };
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
-use governance_v2::{configurable::ConfigurablePropertiesModule, GovernanceV2};
+use governance_v2::{
+    configurable::ConfigurablePropertiesModule, proposal_storage::VoteType, GovernanceV2,
+};
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;
 pub const QUORUM: u64 = 1_500;
@@ -33,6 +35,7 @@ where
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
+    pub third_user: Address,
     pub gov_wrapper: ContractObjWrapper<governance_v2::ContractObj<DebugApi>, GovBuilder>,
     pub current_block: u64,
 }
@@ -47,6 +50,7 @@ where
         let owner = b_mock.create_user_account(&rust_zero);
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
+        let third_user = b_mock.create_user_account(&rust_zero);
 
         // init energy factory
         let energy_factory_wrapper = b_mock.create_sc_account(
@@ -67,6 +71,12 @@ where
                 sc.user_energy(&managed_address!(&second_user))
                     .set(&Energy::new(
                         BigInt::from(managed_biguint!(USER_ENERGY)),
+                        0,
+                        managed_biguint!(0),
+                    ));
+                sc.user_energy(&managed_address!(&third_user))
+                    .set(&Energy::new(
+                        BigInt::from(managed_biguint!(USER_ENERGY + 1u64)),
                         0,
                         managed_biguint!(0),
                     ));
@@ -97,6 +107,7 @@ where
             owner,
             first_user,
             second_user,
+            third_user,
             gov_wrapper,
             current_block: 10,
         }
@@ -146,17 +157,31 @@ where
         (result, proposal_id)
     }
 
-    pub fn vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
+    pub fn up_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id);
+                sc.vote(proposal_id, VoteType::UpVote);
             })
     }
 
-    pub fn downvote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
+    pub fn down_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.downvote(proposal_id);
+                sc.vote(proposal_id, VoteType::DownVote);
+            })
+    }
+
+    pub fn down_veto_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
+        self.b_mock
+            .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.vote(proposal_id, VoteType::DownVetoVote);
+            })
+    }
+
+    pub fn abstain_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
+        self.b_mock
+            .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.vote(proposal_id, VoteType::AbstainVote);
             })
     }
 
