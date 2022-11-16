@@ -7,7 +7,7 @@ use elrond_wasm_debug::{
 };
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
-use governance_v2::{configurable::ConfigurablePropertiesModule, GovernanceV2};
+use governance_v2::{configurable::ConfigurablePropertiesModule, GovernanceV2, proposal_storage::VoteType};
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;
 pub const QUORUM: u64 = 1_500;
@@ -149,14 +149,14 @@ where
     pub fn vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id);
+                sc.vote(proposal_id, VoteType::UpVote);
             })
     }
 
     pub fn downvote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.downvote(proposal_id);
+                sc.vote(proposal_id, VoteType::DownVote);
             })
     }
 

@@ -43,7 +43,7 @@ pub trait ViewsModule:
         }
     }
 
-    fn quorum_reached(&self, proposal_id: ProposalId) -> bool {
+    fn quorum_and_vote_reached(&self, proposal_id: ProposalId) -> bool {
         let proposal_votes = self.proposal_votes(proposal_id).get();
         let total_votes = proposal_votes.get_total_votes();
         let total_up_votes = proposal_votes.up_votes;
@@ -52,8 +52,11 @@ pub trait ViewsModule:
         let third_total_votes = &total_votes / 3u64;
         let quorum = self.quorum().get();
 
-        
-        total_votes >= quorum && (total_up_votes > total_down_votes || third_total_votes > total_down_veto_votes)
+        if total_down_veto_votes > third_total_votes {
+            false
+        } else {
+            total_votes >= quorum && total_up_votes > (total_down_votes + total_down_veto_votes)
+        }
     }
 
     #[view(getProposer)]

@@ -15,7 +15,6 @@ use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
-static VOTE_OPTION_UNKOWN: &[u8] = b"Unknown vote type. Please vote on of the following: UpVote, DownVote, DownVetoVote, Abstain";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
 #[elrond_wasm::contract]
@@ -184,7 +183,6 @@ pub trait GovernanceV2:
                 self.abstain_vote_cast_event(&voter, proposal_id, &user_energy);
         
             }
-            _ => sc_panic!(VOTE_OPTION_UNKOWN),
         }
     }
 
