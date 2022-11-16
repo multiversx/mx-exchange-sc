@@ -5,7 +5,6 @@ elrond_wasm::imports!();
 pub mod energy;
 pub mod events;
 pub mod extend_lock;
-pub mod fees;
 pub mod local_roles;
 pub mod lock_options;
 pub mod lock_options_endpoints;
@@ -43,7 +42,6 @@ pub trait SimpleLockEnergy:
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
     + penalty::LocalPenaltyModule
-    + fees::FeesModule
     + utils::UtilsModule
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
@@ -72,8 +70,6 @@ pub trait SimpleLockEnergy:
         &self,
         base_asset_token_id: TokenIdentifier,
         legacy_token_id: TokenIdentifier,
-        fees_burn_percentage: u16,
-        fees_collector_address: ManagedAddress,
         token_unstake_address: ManagedAddress,
         old_locked_asset_factory_address: ManagedAddress,
         lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>,
@@ -84,8 +80,6 @@ pub trait SimpleLockEnergy:
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.legacy_locked_token_id().set(&legacy_token_id);
-        self.set_fees_burn_percentage(fees_burn_percentage);
-        self.set_fees_collector_address(fees_collector_address);
         self.set_token_unstake_address(token_unstake_address);
         self.old_locked_asset_factory_address()
             .set(&old_locked_asset_factory_address);

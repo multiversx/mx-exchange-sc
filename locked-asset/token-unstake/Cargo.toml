@@ -18,6 +18,9 @@ version = "=0.36.1"
 [dev-dependencies]
 num-bigint = "0.4.2"
 
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
 [dependencies.utils]
 path = "../../common/modules/utils"
 

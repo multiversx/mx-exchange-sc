@@ -1,13 +1,21 @@
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
-pub trait UnbondTokensModule: crate::tokens_per_user::TokensPerUserModule {
+pub trait UnbondTokensModule:
+    crate::tokens_per_user::TokensPerUserModule
+    + crate::fees_accumulation::FeesAccumulationModule
+    + crate::fees_merging::FeesMergingModule
+    + energy_factory::penalty::LocalPenaltyModule
+    + energy_factory::lock_options::LockOptionsModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
+{
     #[endpoint(claimUnlockedTokens)]
     fn claim_unlocked_tokens(&self) -> MultiValueEncoded<EsdtTokenPayment> {
         let caller = self.blockchain().get_caller();
         let current_epoch = self.blockchain().get_block_epoch();
         let mut output_payments = ManagedVec::new();
-        let mut penalty_tokens = ManagedVec::new();
+        let mut penalty_tokens = ManagedVec::<Self::Api, _>::new();
         self.unlocked_tokens_for_user(&caller)
             .update(|user_entries| {
                 while !user_entries.is_empty() {
@@ -43,17 +51,12 @@ pub trait UnbondTokensModule: crate::tokens_per_user::TokensPerUserModule {
                 }
             });
 
-        if !output_payments.is_empty() {
-            self.send().direct_multi(&caller, &output_payments);
+        for token in &penalty_tokens {
+            self.burn_penalty(token);
         }
 
-        if !penalty_tokens.is_empty() {
-            let sc_address = self.energy_factory_address().get();
-            let _: IgnoreValue = self
-                .energy_factory_proxy(sc_address)
-                .finalize_unstake()
-                .with_multi_token_transfer(penalty_tokens)
-                .execute_on_dest_context();
+        if !output_payments.is_empty() {
+            self.send().direct_multi(&caller, &output_payments);
         }
 
         output_payments.into()

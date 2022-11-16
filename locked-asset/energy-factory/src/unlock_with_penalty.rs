@@ -7,7 +7,6 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::{energy::Energy, lock_options::MAX_PENALTY_PERCENTAGE};
 
-static INVALID_PERCENTAGE_ERR_MSG: &[u8] = b"Invalid percentage value";
 pub static TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG: &[u8] = b"Token can be unlocked already";
 
 pub struct LockReduceResult<M: ManagedTypeApi> {
@@ -28,32 +27,11 @@ pub trait UnlockWithPenaltyModule:
     + elrond_wasm_modules::pause::PauseModule
     + crate::token_merging::TokenMergingModule
     + crate::penalty::LocalPenaltyModule
-    + crate::fees::FeesModule
     + crate::unstake::UnstakeModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
     + crate::token_whitelist::TokenWhitelistModule
 {
-    /// Sets the percentage of fees that are burned. The rest are sent to the fees collector.
-    /// Value between 0 and 10_000. 0 is also accepted.
-    #[only_owner]
-    #[endpoint(setFeesBurnPercentage)]
-    fn set_fees_burn_percentage(&self, percentage: u16) {
-        require!(
-            percentage as u64 <= MAX_PENALTY_PERCENTAGE,
-            INVALID_PERCENTAGE_ERR_MSG
-        );
-
-        self.fees_burn_percentage().set(percentage);
-    }
-
-    #[only_owner]
-    #[endpoint(setFeesCollectorAddress)]
-    fn set_fees_collector_address(&self, sc_address: ManagedAddress) {
-        self.require_sc_address(&sc_address);
-        self.fees_collector_address().set(&sc_address);
-    }
-
     /// Unlock a locked token instantly. This incures a penalty.
     /// The longer the remaining locking time, the bigger the penalty.
     /// Tokens can be unlocked through another SC after the unbond period has passed.
@@ -102,11 +80,12 @@ pub trait UnlockWithPenaltyModule:
             &amount_to_burn,
         );
         if penalty_amount > 0 {
-            self.burn_penalty(
+            let fees = EsdtTokenPayment::new(
                 payment.token_identifier,
                 payment.token_nonce,
-                &penalty_amount,
+                penalty_amount,
             );
+            self.send_fees_to_unstake_sc(fees);
         }
 
         let mut energy = reduce_result.energy;
