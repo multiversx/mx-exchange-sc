@@ -20,6 +20,7 @@ pub mod virtual_lock;
 use common_structs::{Epoch, Percent};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
+use unwrappable::Unwrappable;
 
 use crate::energy::Energy;
 
@@ -53,6 +54,8 @@ pub trait SimpleLockEnergy:
     /// - legacy_token_id: The token ID of the old locked asset.
     ///     NOTE: The SC also needs the NFTBurn role for this token.
     /// - old_locked_asset_factory_address
+    /// - min_migrated_token_locked_period - The minimum number of epochs that
+    ///     a migrated old LKMEX token will be locked for after the average is calculated
     /// - lock_options: See `addLockOptions` endpoint doc for details.
     #[init]
     fn init(
@@ -60,17 +63,29 @@ pub trait SimpleLockEnergy:
         base_asset_token_id: TokenIdentifier,
         legacy_token_id: TokenIdentifier,
         old_locked_asset_factory_address: ManagedAddress,
+        min_migrated_token_locked_period: Epoch,
         lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>,
     ) {
         self.require_valid_token_id(&base_asset_token_id);
         self.require_valid_token_id(&legacy_token_id);
         self.require_sc_address(&old_locked_asset_factory_address);
 
+        self.add_lock_options(lock_options);
+
+        let all_lock_options = self.get_lock_options();
+        let max_lock_option = all_lock_options.last().unwrap_or_panic::<Self::Api>();
+        require!(
+            min_migrated_token_locked_period <= max_lock_option.lock_epochs,
+            "Invalid min epoch for migrated token"
+        );
+        self.min_migrated_token_locked_period()
+            .set(min_migrated_token_locked_period);
+
         self.base_asset_token_id().set(&base_asset_token_id);
         self.legacy_locked_token_id().set(&legacy_token_id);
         self.old_locked_asset_factory_address()
             .set(&old_locked_asset_factory_address);
-        self.add_lock_options(lock_options);
+
         self.set_paused(true);
     }
 
