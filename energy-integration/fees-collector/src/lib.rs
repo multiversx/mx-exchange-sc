@@ -75,9 +75,15 @@ pub trait FeesCollector:
             Some((index, multi_value)) => {
                 let (user, energy, total_locked) = multi_value.into_tuple();
                 let energy_entry = Energy::new(BigInt::from(energy), current_epoch, total_locked);
-                self.update_user_energy_for_current_week(&user, current_week, &energy_entry);
 
                 self.current_claim_progress(&user).update(|claim_progress| {
+                    self.update_user_energy_for_current_week(
+                        &user,
+                        current_week,
+                        &energy_entry,
+                        Some(claim_progress.clone()),
+                    );
+
                     if claim_progress.week == current_week {
                         claim_progress.energy = energy_entry;
                     }
@@ -112,10 +118,23 @@ pub trait FeesCollector:
     fn update_energy_and_progress_after_enter(&self, caller: &ManagedAddress) {
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(caller);
-        self.update_user_energy_for_current_week(caller, current_week, &current_user_energy);
-        self.current_claim_progress(caller).set(ClaimProgress {
-            energy: current_user_energy,
+
+        let progress_mapper = self.current_claim_progress(caller);
+        let opt_progress_for_update = if !progress_mapper.is_empty() {
+            Some(progress_mapper.get())
+        } else {
+            None
+        };
+        self.update_user_energy_for_current_week(
+            caller,
+            current_week,
+            &current_user_energy,
+            opt_progress_for_update,
+        );
+
+        progress_mapper.set(&ClaimProgress {
             week: current_week,
+            energy: current_user_energy,
         });
     }
 }

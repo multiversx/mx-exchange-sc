@@ -17,23 +17,16 @@ use common_types::PaymentsVec;
 use energy_query::Energy;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
-#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
+#[derive(TypeAbi, TopEncode, TopDecode, Clone, PartialEq, Debug)]
 pub struct ClaimProgress<M: ManagedTypeApi> {
     pub energy: Energy<M>,
     pub week: Week,
 }
 
 impl<M: ManagedTypeApi> ClaimProgress<M> {
-    pub fn advance_week(&mut self, opt_user_updated_energy: Option<Energy<M>>) {
-        match opt_user_updated_energy {
-            Some(user_updated_energy) => {
-                self.energy = user_updated_energy;
-            }
-            None => {
-                let next_week_epoch = self.energy.get_last_update_epoch() + EPOCHS_IN_WEEK;
-                self.energy.deplete(next_week_epoch);
-            }
-        }
+    pub fn advance_week(&mut self) {
+        let next_week_epoch = self.energy.get_last_update_epoch() + EPOCHS_IN_WEEK;
+        self.energy.deplete(next_week_epoch);
 
         self.week += 1;
     }
@@ -59,28 +52,47 @@ pub trait WeeklyRewardsSplittingModule:
         wrapper: &WRSM,
         user: &ManagedAddress,
     ) -> PaymentsVec<Self::Api> {
+        if self.blockchain().is_smart_contract(user) {
+            return PaymentsVec::new();
+        }
+
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(user);
         let current_energy_amount = current_user_energy.get_energy_amount();
 
-        self.update_user_energy_for_current_week(user, current_week, &current_user_energy);
-
         let claim_progress_mapper = wrapper.get_claim_progress_mapper(self, user);
         let is_new_user = claim_progress_mapper.is_empty();
-        let mut claim_progress = if is_new_user {
+        let mut claim_progress = if !is_new_user {
+            claim_progress_mapper.get()
+        } else {
             ClaimProgress {
                 energy: current_user_energy.clone(),
                 week: current_week,
             }
-        } else {
-            claim_progress_mapper.get()
         };
+
+        let opt_progress_for_energy_update = if !is_new_user {
+            Some(claim_progress.clone())
+        } else {
+            None
+        };
+        self.update_user_energy_for_current_week(
+            user,
+            current_week,
+            &current_user_energy,
+            opt_progress_for_energy_update,
+        );
 
         let current_epoch = self.blockchain().get_block_epoch();
         let mut calculated_energy_for_current_epoch = claim_progress.energy.clone();
         calculated_energy_for_current_epoch.deplete(current_epoch);
 
         let mut all_rewards = ManagedVec::new();
+
+        // for the case when a user locks, enters the weekly rewards, and then unlocks.
+        // Then, they wait for a long period, and start claiming,
+        // getting rewards they shouldn't have access to.
+        // In this case, they receive no rewards, and their progress is reset
         if current_energy_amount >= calculated_energy_for_current_epoch.get_energy_amount() {
             let total_weeks_to_claim = current_week - claim_progress.week;
             if total_weeks_to_claim > USER_MAX_CLAIM_WEEKS {
@@ -90,20 +102,15 @@ pub trait WeeklyRewardsSplittingModule:
 
             let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
             for _ in 0..weeks_to_claim {
-                let rewards_for_week =
-                    self.claim_single(wrapper, user, current_week, &mut claim_progress);
+                let rewards_for_week = self.claim_single(wrapper, &mut claim_progress);
                 if !rewards_for_week.is_empty() {
                     all_rewards.append_vec(rewards_for_week);
                 }
             }
-        } else {
-            // for the case when a user locks, enters the weekly rewards, and then unlocks.
-            // Then, they wait for a long period, and start claiming,
-            // getting rewards they shouldn't have access to.
-            // In this case, they receive no rewards, and their progress is reset
-            claim_progress.week = current_week;
-            claim_progress.energy = current_user_energy;
         }
+
+        claim_progress.week = current_week;
+        claim_progress.energy = current_user_energy;
 
         if claim_progress.energy.get_energy_amount() > 0 {
             claim_progress_mapper.set(&claim_progress);
@@ -124,8 +131,6 @@ pub trait WeeklyRewardsSplittingModule:
     fn claim_single<WRSM: WeeklyRewardsSplittingTraitsModule<WeeklyRewardsSplittingMod = Self>>(
         &self,
         wrapper: &WRSM,
-        user: &ManagedAddress,
-        current_week: Week,
         claim_progress: &mut ClaimProgress<Self::Api>,
     ) -> PaymentsVec<Self::Api> {
         let total_energy = self.total_energy_for_week(claim_progress.week).get();
@@ -136,19 +141,7 @@ pub trait WeeklyRewardsSplittingModule:
             &total_energy,
         );
 
-        let next_week = claim_progress.week + 1;
-        let next_energy_mapper = self.user_energy_for_week(user, next_week);
-        let opt_next_week_energy = if !next_energy_mapper.is_empty() {
-            let saved_energy = next_energy_mapper.get();
-            if next_week != current_week {
-                next_energy_mapper.clear();
-            }
-
-            Some(saved_energy)
-        } else {
-            None
-        };
-        claim_progress.advance_week(opt_next_week_energy);
+        claim_progress.advance_week();
 
         user_rewards
     }
@@ -158,21 +151,15 @@ pub trait WeeklyRewardsSplittingModule:
         user: &ManagedAddress,
         current_week: Week,
         current_energy: &Energy<Self::Api>,
+        opt_existing_claim_progres: Option<ClaimProgress<Self::Api>>,
     ) {
-        let last_active_mapper = self.last_active_week_for_user(user);
-        let last_active_week = last_active_mapper.get();
-        let prev_energy = if last_active_week > 0 {
-            self.user_energy_for_week(user, last_active_week).get()
-        } else {
-            Energy::default()
+        let (last_active_week, prev_energy) = match opt_existing_claim_progres {
+            Some(existing_claim_progress) => {
+                (existing_claim_progress.week, existing_claim_progress.energy)
+            }
+            None => (0, Energy::default()),
         };
 
-        if last_active_week != current_week {
-            last_active_mapper.set(current_week);
-        }
-
-        self.user_energy_for_week(user, current_week)
-            .set(current_energy);
         self.update_global_amounts_for_current_week(
             current_week,
             last_active_week,
@@ -183,7 +170,35 @@ pub trait WeeklyRewardsSplittingModule:
         self.emit_update_user_energy_event(user, current_week, current_energy);
     }
 
-    // user info
+    #[view(getLastActiveWeekForUser)]
+    fn get_last_active_week_for_user_view(&self, user: ManagedAddress) -> Week {
+        let progress_mapper = self.current_claim_progress(&user);
+        if !progress_mapper.is_empty() {
+            let claim_progress = progress_mapper.get();
+            claim_progress.week
+        } else {
+            0
+        }
+    }
+
+    #[view(getUserEnergyForWeek)]
+    fn get_user_energy_for_week_view(
+        &self,
+        user: ManagedAddress,
+        week: Week,
+    ) -> OptionalValue<Energy<Self::Api>> {
+        let progress_mapper = self.current_claim_progress(&user);
+        if progress_mapper.is_empty() {
+            return OptionalValue::None;
+        }
+
+        let claim_progress = progress_mapper.get();
+        if claim_progress.week == week {
+            OptionalValue::Some(claim_progress.energy)
+        } else {
+            OptionalValue::None
+        }
+    }
 
     #[view(getCurrentClaimProgress)]
     #[storage_mapper("currentClaimProgress")]
@@ -191,16 +206,4 @@ pub trait WeeklyRewardsSplittingModule:
         &self,
         user: &ManagedAddress,
     ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
-
-    #[view(getUserEnergyForWeek)]
-    #[storage_mapper("userEnergyForWeek")]
-    fn user_energy_for_week(
-        &self,
-        user: &ManagedAddress,
-        week: Week,
-    ) -> SingleValueMapper<Energy<Self::Api>>;
-
-    #[view(getLastActiveWeekForUser)]
-    #[storage_mapper("lastActiveWeekForUser")]
-    fn last_active_week_for_user(&self, user: &ManagedAddress) -> SingleValueMapper<Week>;
 }

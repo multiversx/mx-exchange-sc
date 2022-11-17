@@ -77,21 +77,10 @@ fn claim_first_week_test() {
                 current_epoch,
                 managed_biguint!(500),
             );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&first_user), 1)
-                    .get(),
-                first_user_energy
-            );
-
             let second_user_energy = Energy::new(
                 BigInt::from(managed_biguint!(3_000)),
                 current_epoch,
                 managed_biguint!(500),
-            );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&second_user), 1)
-                    .get(),
-                second_user_energy
             );
 
             assert_eq!(sc.total_energy_for_week(1).get(), 4_000);
@@ -144,21 +133,10 @@ fn claim_first_week_test() {
                 current_epoch,
                 managed_biguint!(500),
             );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&first_user), 1)
-                    .get(),
-                first_user_energy
-            );
-
             let second_user_energy = Energy::new(
                 BigInt::from(managed_biguint!(3_000)),
                 current_epoch,
                 managed_biguint!(500),
-            );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&second_user), 1)
-                    .get(),
-                second_user_energy
             );
 
             assert_eq!(sc.total_energy_for_week(1).get(), 4_000);
@@ -395,11 +373,6 @@ fn claim_second_week_test() {
                 current_epoch,
                 managed_biguint!(1_000),
             );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&first_user), 2)
-                    .get(),
-                first_user_energy
-            );
 
             // 10_000 total prev week
             // first user's tokens get removed, as they expired
@@ -459,11 +432,6 @@ fn claim_second_week_test() {
                 BigInt::from(managed_biguint!(2_000)),
                 current_epoch,
                 managed_biguint!(1_000),
-            );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&first_user), 2)
-                    .get(),
-                first_user_energy
             );
 
             assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
@@ -647,11 +615,6 @@ fn owner_update_energy_test() {
                 BigInt::from(managed_biguint!(2_000)),
                 current_epoch,
                 managed_biguint!(45),
-            );
-            assert_eq!(
-                sc.user_energy_for_week(&managed_address!(&first_user), 1)
-                    .get(),
-                first_user_energy
             );
 
             assert_eq!(sc.total_energy_for_week(1).get(), 11_000);

@@ -83,7 +83,7 @@ pub trait FeesAccumulationModule:
             if !fees_mapper.is_empty() {
                 self.merge_fees_from_penalty(EsdtTokenPayment::new(
                     payment.token_identifier.clone(),
-                    payment.token_nonce.clone(),
+                    payment.token_nonce,
                     remaining_amount,
                 ));
             } else {
