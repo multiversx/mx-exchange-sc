@@ -5,12 +5,8 @@ pub const MAX_GOVERNANCE_PROPOSAL_ACTIONS: usize = 4;
 
 pub type ProposalId = usize;
 
-pub type GovernanceActionAsMultiArg<M> = MultiValue4<
-    u64,
-    ManagedAddress<M>,
-    ManagedBuffer<M>,
-    ManagedVec<M, ManagedBuffer<M>>,
->;
+pub type GovernanceActionAsMultiArg<M> =
+    MultiValue4<u64, ManagedAddress<M>, ManagedBuffer<M>, ManagedVec<M, ManagedBuffer<M>>>;
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Eq)]
 pub enum GovernanceProposalStatus {

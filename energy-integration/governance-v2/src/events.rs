@@ -74,5 +74,4 @@ pub trait EventsModule {
         #[indexed] proposal_id: ProposalId,
         payment: &EsdtTokenPayment<Self::Api>,
     );
-
 }
