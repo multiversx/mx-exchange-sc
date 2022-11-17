@@ -18,6 +18,9 @@ version = "=0.36.1"
 [dependencies.farm]
 path = "../../dex/farm"
 
+[dependencies.weekly-rewards-splitting]
+path = "../common-modules/weekly-rewards-splitting"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
 

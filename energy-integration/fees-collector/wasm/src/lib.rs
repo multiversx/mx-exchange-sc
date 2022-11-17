@@ -27,7 +27,6 @@ elrond_wasm_node::wasm_endpoints! {
         getUserEnergyForWeek
         isPaused
         pause
-        recomputeEnergy
         removeKnownContracts
         removeKnownTokens
         setEnergyFactoryAddress

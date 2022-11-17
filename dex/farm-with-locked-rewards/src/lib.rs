@@ -5,7 +5,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_errors::ERROR_ENERGY_UPDATE_SAME_WEEK;
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
@@ -49,6 +48,7 @@ pub trait Farm:
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + energy_query::EnergyQueryModule
 {
     #[init]
@@ -99,7 +99,7 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards);
 
-        self.update_energy_and_progress_after_enter(&orig_caller);
+        self.update_energy_and_progress(&orig_caller);
 
         (new_farm_token, boosted_rewards).into()
     }
@@ -203,17 +203,6 @@ pub trait Farm:
             remaining_farm_payment,
         )
             .into()
-    }
-
-    #[endpoint(updateEnergyForUser)]
-    fn update_energy_for_user(&self, user: ManagedAddress) {
-        let current_week = self.get_current_week();
-        let claim_progress = self.current_claim_progress(&user).get();
-        require!(
-            claim_progress.week == current_week,
-            ERROR_ENERGY_UPDATE_SAME_WEEK
-        );
-        self.update_energy_and_progress_after_enter(&user);
     }
 
     #[view(calculateRewardsForGivenPosition)]

@@ -22,7 +22,7 @@ use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
-use weekly_rewards_splitting::WeeklyRewardsSplittingModule;
+use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 
 pub static REWARD_TOKEN_ID: &[u8] = b"REW-123456";
 pub static FARMING_TOKEN_ID: &[u8] = b"LPTOK-123456";

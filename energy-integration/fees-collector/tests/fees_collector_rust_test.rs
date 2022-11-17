@@ -1,18 +1,14 @@
 mod fees_collector_test_setup;
 
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
-    types::{BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded, OperationCompletionStatus},
-};
+use elrond_wasm::types::{BigInt, EsdtTokenPayment, ManagedVec};
 use elrond_wasm_debug::{managed_address, managed_biguint, managed_token_id, rust_biguint};
-use elrond_wasm_modules::pause::PauseModule;
 use energy_query::Energy;
-use fees_collector::{fees_accumulation::FeesAccumulationModule, FeesCollector};
+use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector_test_setup::*;
+use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 use weekly_rewards_splitting::{
     global_info::WeeklyRewardsGlobalInfo,
     locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule, ClaimProgress,
-    WeeklyRewardsSplittingModule,
 };
 
 #[test]
@@ -571,66 +567,6 @@ fn claim_inactive_week_test() {
         SECOND_TOKEN_ID,
         &second_user_expected_second_token_amt,
     );
-}
-
-#[test]
-fn owner_update_energy_test() {
-    let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
-
-    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
-    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
-
-    fc_setup.set_energy(&first_user, 50, 3_000);
-    fc_setup.set_energy(&second_user, 50, 9_000);
-
-    fc_setup.claim(&first_user).assert_ok();
-    fc_setup.claim(&second_user).assert_ok();
-
-    let owner = fc_setup.owner_address.clone();
-    let current_epoch = fc_setup.current_epoch;
-    fc_setup
-        .b_mock
-        .execute_tx(&owner, &fc_setup.fc_wrapper, &rust_zero, |sc| {
-            sc.set_paused(true);
-
-            let mut args = MultiValueEncoded::new();
-            args.push(
-                (
-                    managed_address!(&first_user),
-                    managed_biguint!(2_000),
-                    managed_biguint!(45),
-                )
-                    .into(),
-            );
-
-            let (status, opt_index) = sc.recompute_energy(args).into_tuple();
-            assert!(matches!(status, OperationCompletionStatus::Completed));
-            assert!(matches!(opt_index, OptionalValue::None));
-
-            let first_user_energy = Energy::new(
-                BigInt::from(managed_biguint!(2_000)),
-                current_epoch,
-                managed_biguint!(45),
-            );
-
-            assert_eq!(sc.total_energy_for_week(1).get(), 11_000);
-            assert_eq!(sc.total_locked_tokens_for_week(1).get(), 95);
-            assert_eq!(sc.last_global_update_week().get(), 1);
-
-            assert_eq!(
-                sc.current_claim_progress(&managed_address!(&first_user))
-                    .get(),
-                ClaimProgress {
-                    energy: first_user_energy,
-                    week: 1
-                }
-            );
-        })
-        .assert_ok();
 }
 
 #[test]

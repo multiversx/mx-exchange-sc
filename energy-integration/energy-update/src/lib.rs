@@ -2,15 +2,7 @@
 
 elrond_wasm::imports!();
 
-mod farm_proxy {
-    elrond_wasm::imports!();
-
-    #[elrond_wasm::proxy]
-    pub trait Farm {
-        #[endpoint(updateEnergyForUser)]
-        fn update_energy_for_user(&self, user: ManagedAddress);
-    }
-}
+use weekly_rewards_splitting::update_claim_progress_energy::ProxyTrait as _;
 
 #[elrond_wasm::contract]
 pub trait EnergyUpdate {
