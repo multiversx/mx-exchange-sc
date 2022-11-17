@@ -89,7 +89,7 @@ pub trait ProxyFarmModule:
         farm_type: FarmType,
     ) {
         let was_removed = self.known_farms().swap_remove(&farm_address);
-        require!(was_removed, "Farm address now known");
+        require!(was_removed, "Farm address not known");
 
         let mapper_by_token = self.farm_address_for_token(&farming_token_id, farm_type);
         require!(
@@ -181,7 +181,6 @@ pub trait ProxyFarmModule:
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.
-    /// The original farming tokens will be unlocked automatically if unlock_epoch has passed.
     ///
     /// Expected payment: FARM_PROXY tokens
     ///

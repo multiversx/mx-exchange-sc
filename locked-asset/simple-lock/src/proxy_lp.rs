@@ -96,7 +96,7 @@ pub trait ProxyLpModule:
         second_token_id: TokenIdentifier,
     ) {
         let was_removed = self.known_liquidity_pools().swap_remove(&lp_address);
-        require!(was_removed, "Liquidty Pool address now known");
+        require!(was_removed, "Liquidty Pool address not known");
 
         let correct_order_mapper =
             self.lp_address_for_token_pair(&first_token_id, &second_token_id);
