@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-pub mod unbond_sc_mock;
+pub mod fees_collector_mock;
 
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
@@ -20,7 +20,10 @@ use energy_factory::{
 };
 use simple_lock::locked_token::LockedTokenModule;
 
-use unbond_sc_mock::*;
+use fees_collector_mock::*;
+use token_unstake::{
+    cancel_unstake::CancelUnstakeModule, unbond_tokens::UnbondTokensModule, TokenUnstakeModule,
+};
 
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const EPOCHS_IN_WEEK: u64 = 7;
@@ -33,36 +36,63 @@ pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR]; // 1, 2 or 4 years
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
-pub struct SimpleLockEnergySetup<ScBuilder>
+pub const FEES_BURN_PERCENTAGE: u64 = 5_000; // 50%
+pub const UNBOND_EPOCHS: u64 = 10;
+
+pub struct TokenUnstakeSetup<EnergyFactoryBuilder, UnstakeScBuilder>
 where
-    ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    UnstakeScBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner: Address,
     pub first_user: Address,
     pub second_user: Address,
-    pub sc_wrapper: ContractObjWrapper<energy_factory::ContractObj<DebugApi>, ScBuilder>,
-    pub unbond_sc_mock: Address,
+    pub energy_factory_wrapper:
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
+    pub unstake_sc_wrapper:
+        ContractObjWrapper<token_unstake::ContractObj<DebugApi>, UnstakeScBuilder>,
+    pub fees_collector_mock: Address,
 }
 
-impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
+impl<EnergyFactoryBuilder, UnstakeScBuilder>
+    TokenUnstakeSetup<EnergyFactoryBuilder, UnstakeScBuilder>
 where
-    ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    UnstakeScBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
 {
-    pub fn new(sc_builder: ScBuilder) -> Self {
+    pub fn new(
+        energy_factory_builder: EnergyFactoryBuilder,
+        unstake_sc_builder: UnstakeScBuilder,
+    ) -> Self {
         let _ = DebugApi::dummy();
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner = b_mock.create_user_account(&rust_zero);
         let first_user = b_mock.create_user_account(&rust_zero);
         let second_user = b_mock.create_user_account(&rust_zero);
-        let sc_wrapper =
-            b_mock.create_sc_account(&rust_zero, Some(&owner), sc_builder, "simple lock energy");
-        let token_unstake_wrapper =
-            b_mock.create_sc_account(&rust_zero, Some(&owner), UnbondScMock::new, "unstake token");
+        let energy_factory_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            energy_factory_builder,
+            "simple lock energy",
+        );
+        let unstake_sc_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            unstake_sc_builder,
+            "unstake token",
+        );
+        let fees_collector_mock = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner),
+            FeesCollectorMock::new,
+            "fees collector mock",
+        );
 
+        // setup energy factory
         b_mock
-            .execute_tx(&owner, &sc_wrapper, &rust_zero, |sc| {
+            .execute_tx(&owner, &energy_factory_wrapper, &rust_zero, |sc| {
                 let mut lock_options = MultiValueEncoded::new();
                 for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
                     lock_options.push((*option, *penalty).into());
@@ -73,25 +103,43 @@ where
                 sc.init(
                     managed_token_id!(BASE_ASSET_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    managed_address!(token_unstake_wrapper.address_ref()),
+                    managed_address!(unstake_sc_wrapper.address_ref()),
                     lock_options,
                 );
 
                 sc.locked_token()
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
                 sc.set_paused(false);
-                sc.set_token_unstake_address(managed_address!(token_unstake_wrapper.address_ref()));
+                sc.set_token_unstake_address(managed_address!(unstake_sc_wrapper.address_ref()));
+            })
+            .assert_ok();
+
+        // setup unstake sc
+        b_mock
+            .execute_tx(&owner, &unstake_sc_wrapper, &rust_zero, |sc| {
+                let mut lock_options = MultiValueEncoded::new();
+                for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                    lock_options.push((*option, *penalty).into());
+                }
+
+                sc.init(
+                    UNBOND_EPOCHS,
+                    managed_address!(energy_factory_wrapper.address_ref()),
+                    FEES_BURN_PERCENTAGE,
+                    managed_address!(fees_collector_mock.address_ref()),
+                    lock_options,
+                );
             })
             .assert_ok();
 
         // set energy factory roles
         b_mock.set_esdt_local_roles(
-            sc_wrapper.address_ref(),
+            energy_factory_wrapper.address_ref(),
             BASE_ASSET_TOKEN_ID,
             &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
         );
         b_mock.set_esdt_local_roles(
-            sc_wrapper.address_ref(),
+            energy_factory_wrapper.address_ref(),
             LOCKED_TOKEN_ID,
             &[
                 EsdtLocalRole::NftCreate,
@@ -101,23 +149,24 @@ where
             ],
         );
         b_mock.set_esdt_local_roles(
-            sc_wrapper.address_ref(),
+            energy_factory_wrapper.address_ref(),
             LEGACY_LOCKED_TOKEN_ID,
             &[EsdtLocalRole::NftBurn],
         );
 
         // set unbond sc roles
         b_mock.set_esdt_local_roles(
-            token_unstake_wrapper.address_ref(),
+            unstake_sc_wrapper.address_ref(),
             BASE_ASSET_TOKEN_ID,
             &[EsdtLocalRole::Burn],
         );
         b_mock.set_esdt_local_roles(
-            token_unstake_wrapper.address_ref(),
+            unstake_sc_wrapper.address_ref(),
             LOCKED_TOKEN_ID,
             &[EsdtLocalRole::NftBurn],
         );
 
+        // set user balance
         b_mock.set_esdt_balance(
             &first_user,
             BASE_ASSET_TOKEN_ID,
@@ -134,15 +183,18 @@ where
             owner,
             first_user,
             second_user,
-            sc_wrapper,
-            unbond_sc_mock: token_unstake_wrapper.address_ref().clone(),
+            energy_factory_wrapper,
+            unstake_sc_wrapper,
+            fees_collector_mock: fees_collector_mock.address_ref().clone(),
         }
     }
 }
 
-impl<ScBuilder> SimpleLockEnergySetup<ScBuilder>
+impl<EnergyFactoryBuilder, UnstakeScBuilder>
+    TokenUnstakeSetup<EnergyFactoryBuilder, UnstakeScBuilder>
 where
-    ScBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    UnstakeScBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
 {
     pub fn lock(
         &mut self,
@@ -153,7 +205,7 @@ where
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
-            &self.sc_wrapper,
+            &self.energy_factory_wrapper,
             token_id,
             0,
             &rust_biguint!(amount),
@@ -163,30 +215,10 @@ where
         )
     }
 
-    pub fn extend_locking_period(
-        &mut self,
-        caller: &Address,
-        token_id: &[u8],
-        token_nonce: u64,
-        amount: u64,
-        lock_epochs: u64,
-    ) -> TxResult {
-        self.b_mock.execute_esdt_transfer(
-            caller,
-            &self.sc_wrapper,
-            token_id,
-            token_nonce,
-            &rust_biguint!(amount),
-            |sc| {
-                sc.lock_tokens_endpoint(lock_epochs, OptionalValue::None);
-            },
-        )
-    }
-
     pub fn unlock(&mut self, caller: &Address, token_nonce: u64, amount: u64) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
-            &self.sc_wrapper,
+            &self.energy_factory_wrapper,
             LOCKED_TOKEN_ID,
             token_nonce,
             &rust_biguint!(amount),
@@ -199,7 +231,7 @@ where
     pub fn unlock_early(&mut self, caller: &Address, token_nonce: u64, amount: u64) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
-            &self.sc_wrapper,
+            &self.energy_factory_wrapper,
             LOCKED_TOKEN_ID,
             token_nonce,
             &rust_biguint!(amount),
@@ -218,7 +250,7 @@ where
     ) -> TxResult {
         self.b_mock.execute_esdt_transfer(
             caller,
-            &self.sc_wrapper,
+            &self.energy_factory_wrapper,
             LOCKED_TOKEN_ID,
             token_nonce,
             &rust_biguint!(amount),
@@ -236,7 +268,7 @@ where
     ) -> num_bigint::BigUint {
         let mut result = rust_biguint!(0);
         self.b_mock
-            .execute_query(&self.sc_wrapper, |sc| {
+            .execute_query(&self.energy_factory_wrapper, |sc| {
                 let managed_result = sc.calculate_penalty_amount(
                     &managed_biguint!(token_amount),
                     prev_lock_epochs,
@@ -252,7 +284,7 @@ where
     pub fn get_user_energy(&mut self, user: &Address) -> num_bigint::BigUint {
         let mut result = rust_biguint!(0);
         self.b_mock
-            .execute_query(&self.sc_wrapper, |sc| {
+            .execute_query(&self.energy_factory_wrapper, |sc| {
                 let managed_result = sc.get_energy_amount_for_user(managed_address!(user));
                 result = to_rust_biguint(managed_result);
             })
@@ -262,10 +294,37 @@ where
     }
 }
 
+impl<EnergyFactoryBuilder, UnstakeScBuilder>
+    TokenUnstakeSetup<EnergyFactoryBuilder, UnstakeScBuilder>
+where
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
+    UnstakeScBuilder: 'static + Copy + Fn() -> token_unstake::ContractObj<DebugApi>,
+{
+    pub fn unbond(&mut self, user: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.unstake_sc_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.claim_unlocked_tokens();
+            })
+    }
+
+    pub fn cancel_unbond(&mut self, user: &Address) -> TxResult {
+        self.b_mock
+            .execute_tx(user, &self.unstake_sc_wrapper, &rust_biguint!(0), |sc| {
+                let _ = sc.cancel_unbond();
+            })
+    }
+}
+
 pub fn to_rust_biguint(
     managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
+}
+
+pub fn to_managed_biguint(
+    rust_biguint: num_bigint::BigUint,
+) -> elrond_wasm::types::BigUint<DebugApi> {
+    elrond_wasm::types::BigUint::from_bytes_be(&rust_biguint.to_bytes_be())
 }
 
 pub fn to_start_of_month(unlock_epoch: u64) -> u64 {

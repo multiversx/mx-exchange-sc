@@ -51,18 +51,14 @@ pub trait UnbondTokensModule:
                 }
             });
 
+        require!(!output_payments.is_empty(), "Nothing to unbond");
+
         for token in &penalty_tokens {
             self.burn_penalty(token);
         }
 
-        if !output_payments.is_empty() {
-            self.send().direct_multi(&caller, &output_payments);
-        }
+        self.send().direct_multi(&caller, &output_payments);
 
         output_payments.into()
     }
-
-    #[view(getUnbondEpochs)]
-    #[storage_mapper("unbondEpochs")]
-    fn unbond_epochs(&self) -> SingleValueMapper<u64>;
 }

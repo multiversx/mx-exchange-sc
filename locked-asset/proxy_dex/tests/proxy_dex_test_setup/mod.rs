@@ -335,8 +335,6 @@ where
             sc.init(
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                FEES_BURN_PERCENTAGE,
-                managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 lock_options,

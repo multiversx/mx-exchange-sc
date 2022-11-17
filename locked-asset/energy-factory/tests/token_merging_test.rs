@@ -301,8 +301,6 @@ fn test_specific_tokens_merge() {
             sc.init(
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                FEES_BURN_PERCENTAGE,
-                managed_address!(fees_collector_mock.address_ref()),
                 managed_address!(fees_collector_mock.address_ref()),
                 managed_address!(fees_collector_mock.address_ref()),
                 lock_options,

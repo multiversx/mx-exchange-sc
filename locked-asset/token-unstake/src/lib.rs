@@ -8,7 +8,8 @@ pub mod fees_merging;
 pub mod tokens_per_user;
 pub mod unbond_tokens;
 
-use crate::tokens_per_user::UnstakePair;
+use common_structs::{Epoch, Percent};
+use energy_factory::lock_options::{AllLockOptions, LockOption, MAX_PENALTY_PERCENTAGE};
 
 #[elrond_wasm::contract]
 pub trait TokenUnstakeModule:
@@ -24,35 +25,41 @@ pub trait TokenUnstakeModule:
 {
     /// Needs burn role for both the unlocked and locked token
     #[init]
-    fn init(&self, unbond_epochs: u64, energy_factory_address: ManagedAddress) {
+    fn init(
+        &self,
+        unbond_epochs: u64,
+        energy_factory_address: ManagedAddress,
+        fees_burn_percentage: u64,
+        fees_collector_address: ManagedAddress,
+        lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>,
+    ) {
         self.require_sc_address(&energy_factory_address);
+        self.require_sc_address(&fees_collector_address);
+        require!(
+            fees_burn_percentage <= MAX_PENALTY_PERCENTAGE,
+            "Invalid percentage"
+        );
 
         self.unbond_epochs().set(unbond_epochs);
         self.energy_factory_address().set(&energy_factory_address);
-    }
+        self.fees_collector_address().set(&fees_collector_address);
+        self.fees_burn_percentage().set(fees_burn_percentage);
 
-    #[payable("*")]
-    #[endpoint(depositUserTokens)]
-    fn deposit_user_tokens(&self, user: ManagedAddress) {
-        let caller = self.blockchain().get_caller();
-        let energy_factory_address = self.energy_factory_address().get();
-        require!(
-            caller == energy_factory_address,
-            "Only energy factory SC can call this endpoint"
-        );
-
-        let [locked_tokens, unlocked_tokens] = self.call_value().multi_esdt();
         let current_epoch = self.blockchain().get_block_epoch();
-        let unbond_epochs = self.unbond_epochs().get();
-        let unlock_epoch = current_epoch + unbond_epochs;
-        self.unlocked_tokens_for_user(&user)
-            .update(|unstake_pairs| {
-                let unstake_pair = UnstakePair {
-                    unlock_epoch,
-                    locked_tokens,
-                    unlocked_tokens,
-                };
-                unstake_pairs.push(unstake_pair);
-            });
+        self.last_epoch_fee_sent_to_collector()
+            .set_if_empty(current_epoch);
+
+        // TODO: See if we can get this from energy factory here
+        let mut options = AllLockOptions::new();
+        for pair in lock_options {
+            let (lock_epochs, penalty_start_percentage) = pair.into_tuple();
+            unsafe {
+                options.push_unchecked(LockOption {
+                    lock_epochs,
+                    penalty_start_percentage,
+                });
+            }
+        }
+        self.lock_options().set(&options);
     }
 }

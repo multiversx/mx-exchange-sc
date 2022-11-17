@@ -33,6 +33,8 @@ pub trait UnstakeModule:
     + sc_whitelist_module::SCWhitelistModule
     + crate::token_whitelist::TokenWhitelistModule
 {
+    /// - token_unstake_address - The address of the SC that will handle the unbond logic
+    ///     By default, all tokens go through an unbond period after unlock
     #[only_owner]
     #[endpoint(setTokenUnstakeAddress)]
     fn set_token_unstake_address(&self, sc_address: ManagedAddress) {

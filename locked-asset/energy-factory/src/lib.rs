@@ -52,17 +52,6 @@ pub trait SimpleLockEnergy:
     ///     NOTE: The SC also needs the ESDTLocalMint and ESDTLocalBurn roles for this token.
     /// - legacy_token_id: The token ID of the old locked asset.
     ///     NOTE: The SC also needs the NFTBurn role for this token.
-    /// - min_penalty_percentage / max_penalty_percentage: The penalty for early unlock
-    ///     of a token. A token locked for the max period, will have max_penalty_percentage penalty,
-    ///     whereas one with 1 epoch left, will have min_penalty_percentage.
-    ///     Penalty decreases linearly from max to min, based on the remaining locking period.
-    ///     
-    ///     Both are values between 0 and 10_000, where 10_000 is 100%.
-    /// - fees_burn_percentage: The percentage of fees that are burned.
-    ///     The rest are sent to the fees collector
-    /// - fees_collector_address
-    /// - token_unstake_address - The address of the SC that will handle the unbond logic
-    ///     By default, all tokens go through an unbond period after unlock
     /// - old_locked_asset_factory_address
     /// - lock_options: See `addLockOptions` endpoint doc for details.
     #[init]
@@ -70,7 +59,6 @@ pub trait SimpleLockEnergy:
         &self,
         base_asset_token_id: TokenIdentifier,
         legacy_token_id: TokenIdentifier,
-        token_unstake_address: ManagedAddress,
         old_locked_asset_factory_address: ManagedAddress,
         lock_options: MultiValueEncoded<MultiValue2<Epoch, Percent>>,
     ) {
@@ -80,7 +68,6 @@ pub trait SimpleLockEnergy:
 
         self.base_asset_token_id().set(&base_asset_token_id);
         self.legacy_locked_token_id().set(&legacy_token_id);
-        self.set_token_unstake_address(token_unstake_address);
         self.old_locked_asset_factory_address()
             .set(&old_locked_asset_factory_address);
         self.add_lock_options(lock_options);

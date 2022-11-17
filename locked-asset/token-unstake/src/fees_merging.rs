@@ -7,7 +7,7 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
-#[derive(TopEncode, TopDecode)]
+#[derive(TopEncode, TopDecode, PartialEq, Debug)]
 pub struct EncodabLockedAmountWeightAttributesPair<M: ManagedTypeApi> {
     pub token_amount: BigUint<M>,
     pub token_unlock_fee_percent: u64,
