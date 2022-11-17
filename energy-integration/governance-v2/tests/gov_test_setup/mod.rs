@@ -237,6 +237,17 @@ where
         )
     }
 
+    pub fn claim_deposited_tokens(
+        &mut self,
+        caller: &Address,
+        proposal_id: usize,
+    ) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.claim_deposited_tokens(proposal_id);
+            })
+    }
+
     pub fn increment_block_nonce(&mut self, inc_amount: u64) {
         self.current_block += inc_amount;
         self.b_mock.set_block_nonce(self.current_block);
