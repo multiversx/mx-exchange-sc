@@ -289,14 +289,16 @@ pub trait GovernanceV2:
                 );
             }
             GovernanceProposalStatus::Defeated => {}
+            GovernanceProposalStatus::WaitingForFees => {
+                // TODO: Dacă propunerea e defeated, dăm fee-ul înapoi?
+                self.refund_payments(proposal_id);
+            }
             _ => {
                 sc_panic!("Action may not be cancelled");
             }
         }
 
-        self.refund_payments(proposal_id);
         self.clear_proposal(proposal_id);
-
         self.proposal_canceled_event(proposal_id);
     }
 
@@ -323,15 +325,13 @@ pub trait GovernanceV2:
     }
 
     fn refund_payments(&self, proposal_id: ProposalId) {
-        let payments = self.required_payments_for_proposal(proposal_id).get();
-        if payments.is_empty() {
+        let payments = self.proposals().get(proposal_id).fees;
+        if payments.entries.is_empty() {
             return;
         }
-
-        let depositor_mapper = self.payments_depositor(proposal_id);
-        if !depositor_mapper.is_empty() {
-            let depositor = depositor_mapper.get();
-            self.send().direct_multi(&depositor, &payments);
+        for fee_entry in payments.entries.iter() {
+            let payment = fee_entry.tokens;
+            self.send().direct_esdt(&fee_entry.depositor_addr, &payment.token_identifier, payment.token_nonce, &payment.amount);
         }
     }
 
@@ -339,10 +339,6 @@ pub trait GovernanceV2:
         self.proposals().clear_entry(proposal_id);
         self.proposal_start_block(proposal_id).clear();
         self.proposal_queue_block(proposal_id).clear();
-
-        self.required_payments_for_proposal(proposal_id).clear();
-        self.payments_depositor(proposal_id).clear();
-
         self.proposal_votes(proposal_id).clear();
     }
 }
