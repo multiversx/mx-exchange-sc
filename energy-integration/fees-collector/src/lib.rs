@@ -2,11 +2,10 @@
 
 elrond_wasm::imports!();
 
-use common_errors::ERROR_ENERGY_UPDATE_SAME_WEEK;
 use common_types::{PaymentsVec, Week};
 use core::marker::PhantomData;
 use energy_query::Energy;
-use weekly_rewards_splitting::{base_impl::WeeklyRewardsSplittingTraitsModule, ClaimProgress};
+use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
 use elrond_wasm_modules::ongoing_operation::{
     CONTINUE_OP, DEFAULT_MIN_GAS_TO_SAVE_PROGRESS, STOP_OP,
@@ -24,6 +23,7 @@ pub trait FeesCollector:
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
     + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + fees_accumulation::FeesAccumulationModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
@@ -102,40 +102,6 @@ pub trait FeesCollector:
                 (run_result, OptionalValue::Some(last_processed_index)).into()
             }
         }
-    }
-
-    #[endpoint(updateEnergyForUser)]
-    fn update_energy_for_user(&self, user: ManagedAddress) {
-        let current_week = self.get_current_week();
-        let claim_progress = self.current_claim_progress(&user).get();
-        require!(
-            claim_progress.week == current_week,
-            ERROR_ENERGY_UPDATE_SAME_WEEK
-        );
-        self.update_energy_and_progress_after_enter(&user);
-    }
-
-    fn update_energy_and_progress_after_enter(&self, caller: &ManagedAddress) {
-        let current_week = self.get_current_week();
-        let current_user_energy = self.get_energy_entry(caller);
-
-        let progress_mapper = self.current_claim_progress(caller);
-        let opt_progress_for_update = if !progress_mapper.is_empty() {
-            Some(progress_mapper.get())
-        } else {
-            None
-        };
-        self.update_user_energy_for_current_week(
-            caller,
-            current_week,
-            &current_user_energy,
-            opt_progress_for_update,
-        );
-
-        progress_mapper.set(&ClaimProgress {
-            week: current_week,
-            energy: current_user_energy,
-        });
     }
 }
 

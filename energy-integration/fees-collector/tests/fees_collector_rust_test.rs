@@ -9,10 +9,10 @@ use elrond_wasm_modules::pause::PauseModule;
 use energy_query::Energy;
 use fees_collector::{fees_accumulation::FeesAccumulationModule, FeesCollector};
 use fees_collector_test_setup::*;
+use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 use weekly_rewards_splitting::{
     global_info::WeeklyRewardsGlobalInfo,
     locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule, ClaimProgress,
-    WeeklyRewardsSplittingModule,
 };
 
 #[test]

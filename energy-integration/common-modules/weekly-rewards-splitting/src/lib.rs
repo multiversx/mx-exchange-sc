@@ -11,6 +11,7 @@ pub mod base_impl;
 pub mod events;
 pub mod global_info;
 pub mod locked_token_buckets;
+pub mod update_claim_progress_energy;
 
 use base_impl::WeeklyRewardsSplittingTraitsModule;
 use common_types::PaymentsVec;
@@ -46,6 +47,7 @@ pub trait WeeklyRewardsSplittingModule:
     + events::WeeklyRewardsSplittingEventsModule
     + global_info::WeeklyRewardsGlobalInfo
     + locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + update_claim_progress_energy::UpdateClaimProgressEnergyModule
 {
     fn claim_multi<WRSM: WeeklyRewardsSplittingTraitsModule<WeeklyRewardsSplittingMod = Self>>(
         &self,
@@ -146,30 +148,6 @@ pub trait WeeklyRewardsSplittingModule:
         user_rewards
     }
 
-    fn update_user_energy_for_current_week(
-        &self,
-        user: &ManagedAddress,
-        current_week: Week,
-        current_energy: &Energy<Self::Api>,
-        opt_existing_claim_progres: Option<ClaimProgress<Self::Api>>,
-    ) {
-        let (last_active_week, prev_energy) = match opt_existing_claim_progres {
-            Some(existing_claim_progress) => {
-                (existing_claim_progress.week, existing_claim_progress.energy)
-            }
-            None => (0, Energy::default()),
-        };
-
-        self.update_global_amounts_for_current_week(
-            current_week,
-            last_active_week,
-            &prev_energy,
-            current_energy,
-        );
-
-        self.emit_update_user_energy_event(user, current_week, current_energy);
-    }
-
     #[view(getLastActiveWeekForUser)]
     fn get_last_active_week_for_user_view(&self, user: ManagedAddress) -> Week {
         let progress_mapper = self.current_claim_progress(&user);
@@ -199,11 +177,4 @@ pub trait WeeklyRewardsSplittingModule:
             OptionalValue::None
         }
     }
-
-    #[view(getCurrentClaimProgress)]
-    #[storage_mapper("currentClaimProgress")]
-    fn current_claim_progress(
-        &self,
-        user: &ManagedAddress,
-    ) -> SingleValueMapper<ClaimProgress<Self::Api>>;
 }
