@@ -10,14 +10,10 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         addLockOptions
         addSCAddressToWhitelist
-        finalizeUnstake
+        createMergedLockedTokenForFees
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser
-        getFeesBurnPercentage
-        getFeesCollectorAddress
-        getFeesFromPenaltyUnlocking
-        getLastEpochFeeSentToCollector
         getLegacyLockedTokenId
         getLockOptions
         getLockedTokenId
@@ -35,8 +31,6 @@ elrond_wasm_node::wasm_endpoints! {
         removeLockOptions
         removeSCAddressFromWhitelist
         revertUnstake
-        setFeesBurnPercentage
-        setFeesCollectorAddress
         setLockedTokenTransferScAddress
         setTokenUnstakeAddress
         setTransferRoleLockedToken

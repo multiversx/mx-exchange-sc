@@ -9,8 +9,12 @@ elrond_wasm_node::wasm_endpoints! {
     (
         cancelUnbond
         claimUnlockedTokens
+        depositFees
         depositUserTokens
         getEnergyFactoryAddress
+        getFeesBurnPercentage
+        getFeesCollectorAddress
+        getLastEpochFeeSentToCollector
         getUnbondEpochs
         getUnlockedTokensForUser
         setEnergyFactoryAddress

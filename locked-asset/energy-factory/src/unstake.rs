@@ -10,13 +10,16 @@ mod token_unstake_proxy {
         #[payable("*")]
         #[endpoint(depositUserTokens)]
         fn deposit_user_tokens(&self, user: ManagedAddress);
+
+        #[payable("*")]
+        #[endpoint(depositFees)]
+        fn deposit_fees(&self);
     }
 }
 
 #[elrond_wasm::module]
 pub trait UnstakeModule:
-    crate::fees::FeesModule
-    + simple_lock::basic_lock_unlock::BasicLockUnlock
+    simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -28,7 +31,10 @@ pub trait UnstakeModule:
     + crate::lock_options::LockOptionsModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
+    + crate::token_whitelist::TokenWhitelistModule
 {
+    /// - token_unstake_address - The address of the SC that will handle the unbond logic
+    ///     By default, all tokens go through an unbond period after unlock
     #[only_owner]
     #[endpoint(setTokenUnstakeAddress)]
     fn set_token_unstake_address(&self, sc_address: ManagedAddress) {
@@ -36,19 +42,24 @@ pub trait UnstakeModule:
         self.token_unstake_sc_address().set(&sc_address);
     }
 
-    #[payable("*")]
-    #[endpoint(finalizeUnstake)]
-    fn finalize_unstake(&self) {
+    #[endpoint(createMergedLockedTokenForFees)]
+    fn create_merged_locked_token_for_fees(
+        &self,
+        amount: BigUint,
+        unlock_epoch: u64,
+    ) -> EsdtTokenPayment {
         self.require_caller_unstake_sc();
 
-        let payments = self.get_non_empty_payments();
-        for payment in &payments {
-            self.burn_penalty(
-                payment.token_identifier.clone(),
-                payment.token_nonce,
-                &payment.amount,
-            );
-        }
+        let caller = self.blockchain().get_caller();
+        let base_asset_token_id = self.base_asset_token_id().get();
+        let virtual_payment = EgldOrEsdtTokenPayment::new(
+            EgldOrEsdtTokenIdentifier::esdt(base_asset_token_id),
+            0,
+            amount,
+        );
+        let output_payment = self.lock_and_send(&caller, virtual_payment, unlock_epoch);
+
+        self.to_esdt_payment(output_payment)
     }
 
     #[payable("*")]
@@ -74,6 +85,15 @@ pub trait UnstakeModule:
             .token_unstake_sc_proxy_obj(locking_sc_address)
             .deposit_user_tokens(caller)
             .with_multi_token_transfer(payments)
+            .execute_on_dest_context();
+    }
+
+    fn send_fees_to_unstake_sc(&self, fees: EsdtTokenPayment) {
+        let locking_sc_address = self.token_unstake_sc_address().get();
+        let _: IgnoreValue = self
+            .token_unstake_sc_proxy_obj(locking_sc_address)
+            .deposit_fees()
+            .add_esdt_token_transfer(fees.token_identifier, fees.token_nonce, fees.amount)
             .execute_on_dest_context();
     }
 

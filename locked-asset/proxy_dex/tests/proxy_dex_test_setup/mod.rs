@@ -48,7 +48,6 @@ pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 5 * EPOCHS_IN_YEAR, 10 * EPOCHS_IN_YEAR]; // 1, 5 or 10 years
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
-pub const FEES_BURN_PERCENTAGE: u16 = 10_000; // 100%
 
 // Proxy
 pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
@@ -466,9 +465,6 @@ where
             sc.init(
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                FEES_BURN_PERCENTAGE,
-                managed_address!(dummy_sc_wrapper.address_ref()),
-                managed_address!(dummy_sc_wrapper.address_ref()),
                 managed_address!(dummy_sc_wrapper.address_ref()),
                 lock_options,
             );

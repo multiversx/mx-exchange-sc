@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 
 use common_structs::PaymentsVec;
-use math::weighted_average;
+use math::{safe_sub, weighted_average};
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
@@ -28,12 +28,8 @@ where
         token_amount: BigUint<Sc::Api>,
         attributes: LockedTokenAttributes<Sc::Api>,
     ) -> Self {
-        let current_epoch = Sc::Api::blockchain_api_impl().get_block_epoch();
-        let lock_epochs_remaining = if attributes.unlock_epoch > current_epoch {
-            attributes.unlock_epoch - current_epoch
-        } else {
-            0
-        };
+        let current_epoch = sc_ref.blockchain().get_block_epoch();
+        let lock_epochs_remaining = safe_sub(attributes.unlock_epoch, current_epoch);
         let token_unlock_fee_percent =
             sc_ref.calculate_penalty_percentage_full_unlock(lock_epochs_remaining);
 

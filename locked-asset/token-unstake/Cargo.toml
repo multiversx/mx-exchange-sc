@@ -15,8 +15,16 @@ features = ["esdt-token-payment-legacy-decode",]
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
 
+[dev-dependencies.elrond-wasm-modules]
+version = "=0.36.1"
+
 [dev-dependencies]
 num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
 
 [dependencies.utils]
 path = "../../common/modules/utils"
@@ -26,6 +34,9 @@ path = "../../common/common_structs"
 
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
 
 [dependencies.energy-factory]
 path = "../energy-factory"

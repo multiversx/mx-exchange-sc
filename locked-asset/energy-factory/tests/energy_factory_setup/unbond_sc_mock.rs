@@ -1,12 +1,12 @@
 use elrond_wasm::io::load_endpoint_args;
 use elrond_wasm::{
     contract_base::{CallableContract, ContractBase},
-    types::{ContractCall, ManagedAddress, ManagedBuffer},
+    types::ManagedAddress,
 };
 use elrond_wasm_debug::DebugApi;
 
-static DEPOSIT_FN_NAME: &[u8] = b"depositUserTokens";
-static FINISH_UNSTAKE_FN_NAME: &[u8] = b"finalizeUnstake";
+static DEPOSIT_USER_TOKENS_FN_NAME: &[u8] = b"depositUserTokens";
+static DEPOSIT_FEES_FN_NAME: &[u8] = b"depositFees";
 
 #[derive(Clone)]
 pub struct UnbondScMock {}
@@ -17,11 +17,11 @@ impl ContractBase for UnbondScMock {
 
 impl CallableContract for UnbondScMock {
     fn call(&self, fn_name: &[u8]) -> bool {
-        if fn_name == DEPOSIT_FN_NAME {
+        if fn_name == DEPOSIT_USER_TOKENS_FN_NAME {
             self.send_to_user();
             true
         } else {
-            false
+            fn_name == DEPOSIT_FEES_FN_NAME
         }
     }
 
@@ -55,20 +55,5 @@ impl UnbondScMock {
             unlocked_tokens.token_nonce,
             &unlocked_tokens.amount,
         );
-
-        let penalty_amount = &locked_tokens.amount - &unlocked_tokens.amount;
-        if penalty_amount > 0 {
-            let energy_sc = self.blockchain().get_caller();
-            let contract_call = ContractCall::<DebugApi, ()>::new(
-                energy_sc,
-                ManagedBuffer::new_from_bytes(FINISH_UNSTAKE_FN_NAME),
-            )
-            .add_esdt_token_transfer(
-                locked_tokens.token_identifier,
-                locked_tokens.token_nonce,
-                penalty_amount,
-            );
-            let _: () = contract_call.execute_on_dest_context();
-        }
     }
 }

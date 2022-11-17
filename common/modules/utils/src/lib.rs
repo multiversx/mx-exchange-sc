@@ -58,6 +58,19 @@ pub trait UtilsModule {
         first_payment
     }
 
+    fn get_token_attributes<T: TopDecode>(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: u64,
+    ) -> T {
+        let own_sc_address = self.blockchain().get_sc_address();
+        let token_data =
+            self.blockchain()
+                .get_esdt_token_data(&own_sc_address, token_id, token_nonce);
+
+        token_data.decode_attributes()
+    }
+
     fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
         &self,
         payment: &EsdtTokenPayment,

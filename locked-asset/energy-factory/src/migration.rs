@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 
 use crate::energy::Energy;
 use common_structs::{Epoch, OldLockedTokenAttributes, UnlockEpochAmountPairs};
+use math::safe_sub;
 use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 use unwrappable::Unwrappable;
 
@@ -65,7 +66,6 @@ pub trait SimpleLockMigrationModule:
         self.require_old_tokens_energy_was_updated(&caller);
 
         let payments = self.get_non_empty_payments();
-        let own_sc_address = self.blockchain().get_sc_address();
         let current_epoch = self.blockchain().get_block_epoch();
         let legacy_token_id = self.legacy_locked_token_id().get();
 
@@ -77,8 +77,7 @@ pub trait SimpleLockMigrationModule:
                     INVALID_PAYMENTS_ERR_MSG
                 );
 
-                let new_token =
-                    self.migrate_single_old_token(payment, current_epoch, &own_sc_address, energy);
+                let new_token = self.migrate_single_old_token(payment, current_epoch, energy);
                 output_payments.push(new_token);
             }
         });
@@ -92,15 +91,10 @@ pub trait SimpleLockMigrationModule:
         &self,
         payment: EsdtTokenPayment,
         current_epoch: Epoch,
-        own_sc_address: &ManagedAddress,
         energy: &mut Energy<Self::Api>,
     ) -> EsdtTokenPayment {
-        let old_token_data = self.blockchain().get_esdt_token_data(
-            own_sc_address,
-            &payment.token_identifier,
-            payment.token_nonce,
-        );
-        let attributes: OldLockedTokenAttributes<Self::Api> = old_token_data.decode_attributes();
+        let attributes: OldLockedTokenAttributes<Self::Api> =
+            self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
         self.send().esdt_local_burn(
             &payment.token_identifier,
             payment.token_nonce,
@@ -134,11 +128,7 @@ pub trait SimpleLockMigrationModule:
         let mut weighted_epochs_sum = BigUint::zero();
         let mut weight_sum = BigUint::zero();
         for epoch_amount_pair in &unlock_epoch_amount_pairs.pairs {
-            let lock_epochs_remaining = if epoch_amount_pair.epoch > current_epoch {
-                epoch_amount_pair.epoch - current_epoch
-            } else {
-                0
-            };
+            let lock_epochs_remaining = safe_sub(epoch_amount_pair.epoch, current_epoch);
             weighted_epochs_sum += &epoch_amount_pair.amount * lock_epochs_remaining;
             weight_sum += &epoch_amount_pair.amount;
         }

@@ -42,7 +42,6 @@ pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 pub const EPOCHS_IN_YEAR: u64 = 360;
 
-pub const FEES_BURN_PERCENTAGE: u16 = 5_000; // 50%
 pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
@@ -104,9 +103,6 @@ where
                 sc.init(
                     managed_token_id!(REWARD_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                    FEES_BURN_PERCENTAGE,
-                    managed_address!(fees_collector_mock.address_ref()),
-                    managed_address!(fees_collector_mock.address_ref()),
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
