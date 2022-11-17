@@ -1,7 +1,5 @@
 mod energy_factory_setup;
 
-use energy_factory_setup::fees_collector_mock::FeesCollectorMock;
-
 use elrond_wasm::{
     elrond_codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -255,10 +253,10 @@ fn test_specific_tokens_merge() {
         energy_factory::contract_obj,
         "energy factory",
     );
-    let fees_collector_mock = b_mock.create_sc_account(
+    let unbond_sc_mock = b_mock.create_sc_account(
         &rust_zero,
         Some(&owner),
-        FeesCollectorMock::new,
+        unbond_sc_mock::UnbondScMock::new,
         "fees collector mock",
     );
 
@@ -301,8 +299,7 @@ fn test_specific_tokens_merge() {
             sc.init(
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-                managed_address!(fees_collector_mock.address_ref()),
-                managed_address!(fees_collector_mock.address_ref()),
+                managed_address!(unbond_sc_mock.address_ref()),
                 lock_options,
             );
 
