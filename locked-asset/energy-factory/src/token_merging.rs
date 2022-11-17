@@ -101,12 +101,9 @@ pub trait TokenMergingModule:
         let caller = self.blockchain().get_caller();
         let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
 
-        let energy = self.get_updated_energy_entry_for_user(&original_caller);
-        let mut opt_energy = Some(energy);
-        let output_amount_attributes = self.merge_tokens(payments, &mut opt_energy);
-        let updated_energy = opt_energy.unwrap_or_panic::<Self::Api>();
-        self.set_energy_entry(&original_caller, updated_energy);
-
+        let output_amount_attributes = self.update_energy(&original_caller, |energy| {
+            self.merge_tokens(payments, energy)
+        });
         let simulated_lock_payment = EgldOrEsdtTokenPayment::new(
             output_amount_attributes.attributes.original_token_id,
             output_amount_attributes.attributes.original_token_nonce,
@@ -124,7 +121,7 @@ pub trait TokenMergingModule:
     fn merge_tokens(
         self,
         mut payments: PaymentsVec<Self::Api>,
-        opt_energy: &mut Option<Energy<Self::Api>>,
+        energy: &mut Energy<Self::Api>,
     ) -> LockedAmountWeightAttributesPair<Self> {
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_all_same_token(&payments);
@@ -140,13 +137,11 @@ pub trait TokenMergingModule:
             TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
         );
 
-        if let Some(energy) = opt_energy.as_mut() {
-            energy.update_after_unlock_any(
-                &first_payment.amount,
-                first_token_attributes.unlock_epoch,
-                current_epoch,
-            );
-        }
+        energy.update_after_unlock_any(
+            &first_payment.amount,
+            first_token_attributes.unlock_epoch,
+            current_epoch,
+        );
 
         locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
@@ -163,13 +158,7 @@ pub trait TokenMergingModule:
                 TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
             );
 
-            if let Some(energy) = opt_energy.as_mut() {
-                energy.update_after_unlock_any(
-                    &payment.amount,
-                    attributes.unlock_epoch,
-                    current_epoch,
-                );
-            }
+            energy.update_after_unlock_any(&payment.amount, attributes.unlock_epoch, current_epoch);
 
             locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
@@ -182,13 +171,11 @@ pub trait TokenMergingModule:
             self.unlock_epoch_to_start_of_month_upper_estimate(output_pair.attributes.unlock_epoch);
         output_pair.attributes.unlock_epoch = normalized_unlock_epoch;
 
-        if let Some(energy) = opt_energy.as_mut() {
-            energy.add_after_token_lock(
-                &output_pair.token_amount,
-                output_pair.attributes.unlock_epoch,
-                current_epoch,
-            );
-        }
+        energy.add_after_token_lock(
+            &output_pair.token_amount,
+            output_pair.attributes.unlock_epoch,
+            current_epoch,
+        );
 
         output_pair
     }

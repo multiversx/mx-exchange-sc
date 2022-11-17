@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
-
 use weekly_rewards_splitting::ClaimProgress;
+
+elrond_wasm::imports!();
 
 #[elrond_wasm::module]
 pub trait ProgressUpdateModule:
@@ -29,10 +29,23 @@ pub trait ProgressUpdateModule:
     fn update_energy_and_progress_after_enter(&self, caller: &ManagedAddress) {
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(caller);
-        self.update_user_energy_for_current_week(caller, current_week, &current_user_energy);
-        self.current_claim_progress(caller).set(ClaimProgress {
-            energy: current_user_energy,
+
+        let progress_mapper = self.current_claim_progress(caller);
+        let opt_progress_for_update = if !progress_mapper.is_empty() {
+            Some(progress_mapper.get())
+        } else {
+            None
+        };
+        self.update_user_energy_for_current_week(
+            caller,
+            current_week,
+            &current_user_energy,
+            opt_progress_for_update,
+        );
+
+        progress_mapper.set(&ClaimProgress {
             week: current_week,
+            energy: current_user_energy,
         });
     }
 }
