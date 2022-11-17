@@ -104,6 +104,7 @@ where
                     managed_token_id!(REWARD_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                     managed_address!(fees_collector_mock.address_ref()),
+                    0,
                     lock_options,
                 );
 

@@ -466,6 +466,7 @@ where
                 managed_token_id!(MEX_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                 managed_address!(dummy_sc_wrapper.address_ref()),
+                0,
                 lock_options,
             );
 

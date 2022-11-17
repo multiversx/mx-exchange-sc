@@ -78,6 +78,7 @@ fn transfer_locked_token_test() {
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                 managed_address!(transfer_sc_wrapper.address_ref()),
+                0,
                 lock_options,
             );
 

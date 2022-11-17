@@ -74,6 +74,7 @@ where
                     managed_token_id!(BASE_ASSET_TOKEN_ID),
                     managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                     managed_address!(token_unstake_wrapper.address_ref()),
+                    0,
                     lock_options,
                 );
 

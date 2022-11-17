@@ -142,8 +142,11 @@ pub trait SimpleLockMigrationModule:
             current_epoch + base_lock_epochs * TOKEN_MIGRATION_LOCK_EPOCHS_FACTOR;
         let lock_options = self.get_lock_options();
         let max_lock_option = lock_options.last().unwrap_or_panic::<Self::Api>();
-        let new_unlock_epoch =
+        let mut new_unlock_epoch =
             core::cmp::min(new_tentative_unlock_epoch, max_lock_option.lock_epochs);
+
+        let min_lock_period = self.min_migrated_token_locked_period().get();
+        new_unlock_epoch = core::cmp::max(new_unlock_epoch, min_lock_period);
 
         self.unlock_epoch_to_start_of_month_upper_estimate(new_unlock_epoch)
     }
@@ -173,6 +176,9 @@ pub trait SimpleLockMigrationModule:
 
     #[storage_mapper("oldLockedAssetFactoryAddress")]
     fn old_locked_asset_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
+
+    #[storage_mapper("minMigratedTokenLockedPeriod")]
+    fn min_migrated_token_locked_period(&self) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("userUpdatedOldTokensEnergy")]
     fn user_updated_old_tokens_energy(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
