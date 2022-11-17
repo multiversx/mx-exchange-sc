@@ -34,7 +34,7 @@ pub trait ProgressUpdateModule:
         let opt_progress_for_update = if !progress_mapper.is_empty() {
             Some(progress_mapper.get())
         } else {
-            None
+            None 
         };
         self.update_user_energy_for_current_week(
             caller,
