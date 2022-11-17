@@ -446,8 +446,6 @@ fn gov_wait_for_fees_cancel_test() {
     );
 }
 
-
-
 #[test]
 fn gov_claim_deposited_token_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
@@ -525,7 +523,9 @@ fn gov_claim_deposited_token_test() {
         .assert_user_error("Proposal is not active");
 
     // Cancel while still in state WaitForFees
-    gov_setup.claim_deposited_tokens(&second_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .claim_deposited_tokens(&second_user_addr, proposal_id)
+        .assert_ok();
 
     // Check funds are returned to users
     gov_setup.b_mock.check_nft_balance::<Empty>(
@@ -544,13 +544,12 @@ fn gov_claim_deposited_token_test() {
         None,
     );
 
-        // Check that SC has user funds
-        gov_setup.b_mock.check_nft_balance::<Empty>(
-            &sc_addr,
-            LKMEX_TOKEN_ID,
-            1,
-            &rust_biguint!(100),
-            None,
-        );
-    
+    // Check that SC has user funds
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &sc_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(100),
+        None,
+    );
 }

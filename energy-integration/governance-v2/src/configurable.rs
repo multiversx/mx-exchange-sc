@@ -175,5 +175,4 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[view(getGovernanceTokenId)]
     #[storage_mapper("governanceTokenId")]
     fn governance_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
-
 }

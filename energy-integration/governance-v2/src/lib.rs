@@ -50,13 +50,15 @@ pub trait GovernanceV2:
 
         let caller = self.blockchain().get_caller();
         let mut proposal = self.proposals().get(proposal_id);
-        proposal.fees.entries.push(FeeEntry{depositor_addr: caller.clone(), tokens: additional_fee.clone()});
+        proposal.fees.entries.push(FeeEntry {
+            depositor_addr: caller.clone(),
+            tokens: additional_fee.clone(),
+        });
         proposal.fees.total_amount += additional_fee.amount.clone();
 
         self.proposals().set(proposal_id, &proposal);
         self.user_deposit_event(&caller, proposal_id, &additional_fee);
     }
-
 
     /// Used to claim deposited tokens to gather threshold min_fee.
     #[payable("*")]
@@ -75,18 +77,27 @@ pub trait GovernanceV2:
         for fee_entry in proposal.fees.entries.iter() {
             if caller == fee_entry.depositor_addr {
                 let payment = fee_entry.tokens;
-                self.send().direct_esdt(&fee_entry.depositor_addr, &payment.token_identifier, payment.token_nonce, &payment.amount);
-                
-                let index = proposal.fees.entries.iter().position(|fee_entry| fee_entry.depositor_addr == caller).unwrap();
+                self.send().direct_esdt(
+                    &fee_entry.depositor_addr,
+                    &payment.token_identifier,
+                    payment.token_nonce,
+                    &payment.amount,
+                );
+
+                let index = proposal
+                    .fees
+                    .entries
+                    .iter()
+                    .position(|fee_entry| fee_entry.depositor_addr == caller)
+                    .unwrap();
                 proposal.fees.entries.remove(index);
-        
+
                 self.proposals().set(proposal_id, &proposal);
                 self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
                 return;
             }
         }
     }
-
 
     /// Propose a list of actions.
     /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
@@ -354,7 +365,12 @@ pub trait GovernanceV2:
         }
         for fee_entry in payments.entries.iter() {
             let payment = fee_entry.tokens;
-            self.send().direct_esdt(&fee_entry.depositor_addr, &payment.token_identifier, payment.token_nonce, &payment.amount);
+            self.send().direct_esdt(
+                &fee_entry.depositor_addr,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
         }
     }
 

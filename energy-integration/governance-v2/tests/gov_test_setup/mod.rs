@@ -2,7 +2,7 @@ use elrond_wasm::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::{TxResult},
+    tx_mock::TxResult,
     DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
@@ -237,11 +237,7 @@ where
         )
     }
 
-    pub fn claim_deposited_tokens(
-        &mut self,
-        caller: &Address,
-        proposal_id: usize,
-    ) -> TxResult {
+    pub fn claim_deposited_tokens(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
                 sc.claim_deposited_tokens(proposal_id);
