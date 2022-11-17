@@ -56,7 +56,6 @@ pub trait ViewsModule:
         let third_total_votes = &total_votes / 3u64;
         let quorum = self.quorum().get();
 
-        sc_print!("quorum = {}, total_votes = {}, total_up_votes = {}, total_down_votes = {}", quorum, total_votes, total_up_votes, total_down_votes);
         if total_down_veto_votes > third_total_votes {
             false
         } else {
@@ -106,7 +105,6 @@ pub trait ViewsModule:
     }
 
     fn proposal_reached_min_fees(&self, proposal_id: ProposalId) -> bool {
-        sc_print!("self.proposals().get(proposal_id).fees.total_amount = {}", self.proposals().get(proposal_id).fees.total_amount);
         self.proposals().get(proposal_id).fees.total_amount >= self.min_fee_for_propose().get()
     }
 

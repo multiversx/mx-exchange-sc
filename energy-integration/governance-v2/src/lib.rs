@@ -27,9 +27,8 @@ pub trait GovernanceV2:
     + views::ViewsModule
     + energy_query::EnergyQueryModule
 {
-    /// Used to deposit tokens for "payable" actions.
-    /// Funds will be returned if the proposal is defeated.
-    /// To keep the logic simple, all tokens have to be deposited at once
+    /// Used to deposit tokens to gather threshold min_fee.
+    /// Funds will be returned if the proposal is canceled.
     #[payable("*")]
     #[endpoint(depositTokensForProposal)]
     fn deposit_tokens_for_proposal(&self, proposal_id: ProposalId) {
@@ -54,16 +53,40 @@ pub trait GovernanceV2:
         proposal.fees.entries.push(FeeEntry{depositor_addr: caller.clone(), tokens: additional_fee.clone()});
         proposal.fees.total_amount += additional_fee.amount.clone();
 
-        
-
         self.proposals().set(proposal_id, &proposal);
-        // update(|x| *x -= total_amount)
-        // let new_fee_entry = FeeEntry{caller, additional_fee};
-        // proposal_fees.entries.
-        sc_print!("proposal_reached_min_fees = {}?", self.proposal_reached_min_fees(proposal_id));
-
         self.user_deposit_event(&caller, proposal_id, &additional_fee);
     }
+
+
+    /// Used to claim deposited tokens to gather threshold min_fee.
+    #[payable("*")]
+    #[endpoint(claimDepositedTokens)]
+    fn claim_deposited_tokens(&self, proposal_id: ProposalId) {
+        self.require_caller_not_self();
+        self.require_valid_proposal_id(proposal_id);
+
+        require!(
+            !self.proposal_reached_min_fees(proposal_id),
+            MIN_FEES_REACHED
+        );
+        let caller = self.blockchain().get_caller();
+        let mut proposal = self.proposals().get(proposal_id);
+
+        for fee_entry in proposal.fees.entries.iter() {
+            if caller == fee_entry.depositor_addr {
+                let payment = fee_entry.tokens;
+                self.send().direct_esdt(&fee_entry.depositor_addr, &payment.token_identifier, payment.token_nonce, &payment.amount);
+                
+                let index = proposal.fees.entries.iter().position(|fee_entry| fee_entry.depositor_addr == caller).unwrap();
+                proposal.fees.entries.remove(index);
+        
+                self.proposals().set(proposal_id, &proposal);
+                self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
+                return;
+            }
+        }
+    }
+
 
     /// Propose a list of actions.
     /// A maximum of MAX_GOVERNANCE_PROPOSAL_ACTIONS can be proposed at a time.
@@ -71,11 +94,11 @@ pub trait GovernanceV2:
     /// An action has the following format:
     ///     - gas limit for action execution
     ///     - destination address
-    ///     - a vector of ESDT transfers, in the form of ManagedVec<EsdTokenPayment>
+    ///     - a fee payment for proposal (if smaller than min_fee_for_propose, state: WaitForFee)
     ///     - endpoint to be called on the destination
     ///     - a vector of arguments for the endpoint, in the form of ManagedVec<ManagedBuffer>
     ///
-    /// The proposer's energy is automatically used for voting already.
+    /// The proposer's energy is NOT automatically used for voting. A separate vote is needed.
     ///
     /// Returns the ID of the newly created proposal.
     #[endpoint]
