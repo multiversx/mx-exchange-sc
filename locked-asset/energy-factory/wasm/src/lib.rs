@@ -31,6 +31,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeLockOptions
         removeSCAddressFromWhitelist
         revertUnstake
+        setBurnRoleLockedToken
         setLockedTokenTransferScAddress
         setTokenUnstakeAddress
         setTransferRoleLockedToken

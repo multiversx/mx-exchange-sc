@@ -18,4 +18,12 @@ pub trait LocalRolesModule:
         self.locked_token()
             .set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer], None);
     }
+
+    /// Sets the burn role for the given address
+    #[only_owner]
+    #[endpoint(setBurnRoleLockedToken)]
+    fn set_burn_role(&self, address: ManagedAddress) {
+        self.locked_token()
+            .set_local_roles_for_address(&address, &[EsdtLocalRole::NftBurn], None);
+    }
 }
