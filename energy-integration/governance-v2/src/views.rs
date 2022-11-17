@@ -16,6 +16,10 @@ pub trait ViewsModule:
             return GovernanceProposalStatus::None;
         }
 
+        if !self.proposal_reached_min_fees(proposal_id) {
+            return GovernanceProposalStatus::WaitingForFees;
+        }
+
         let queue_block = self.proposal_queue_block(proposal_id).get();
         if queue_block > 0 {
             return GovernanceProposalStatus::Queued;
@@ -52,6 +56,7 @@ pub trait ViewsModule:
         let third_total_votes = &total_votes / 3u64;
         let quorum = self.quorum().get();
 
+        sc_print!("quorum = {}, total_votes = {}, total_up_votes = {}, total_down_votes = {}", quorum, total_votes, total_up_votes, total_down_votes);
         if total_down_veto_votes > third_total_votes {
             false
         } else {
@@ -98,6 +103,11 @@ pub trait ViewsModule:
 
     fn is_valid_proposal_id(&self, proposal_id: ProposalId) -> bool {
         proposal_id >= 1 && proposal_id <= self.proposals().len()
+    }
+
+    fn proposal_reached_min_fees(&self, proposal_id: ProposalId) -> bool {
+        sc_print!("self.proposals().get(proposal_id).fees.total_amount = {}", self.proposals().get(proposal_id).fees.total_amount);
+        self.proposals().get(proposal_id).fees.total_amount >= self.min_fee_for_propose().get()
     }
 
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {

@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 
 pub mod configurable;
+mod errors;
 pub mod events;
 pub mod proposal;
 pub mod proposal_storage;
@@ -11,6 +12,7 @@ pub mod views;
 use proposal::*;
 use proposal_storage::VoteType;
 
+use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
@@ -34,25 +36,33 @@ pub trait GovernanceV2:
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
 
-        let depositor_mapper = self.payments_depositor(proposal_id);
-        require!(depositor_mapper.is_empty(), "Payments already deposited");
-
-        let required_payments = self.required_payments_for_proposal(proposal_id).get();
         require!(
-            !required_payments.is_empty(),
-            "This proposal requires no payments"
+            !self.proposal_reached_min_fees(proposal_id),
+            MIN_FEES_REACHED
         );
 
-        let actual_payments = self.call_value().all_esdt_transfers();
+        let additional_fee = self.call_value().single_esdt();
         require!(
-            actual_payments == required_payments,
-            "Invalid payments, must match the required payments"
+            self.governance_token_id()
+                .get()
+                .eq(&additional_fee.token_identifier),
+            WRONG_TOKEN_ID
         );
 
         let caller = self.blockchain().get_caller();
-        depositor_mapper.set(&caller);
+        let mut proposal = self.proposals().get(proposal_id);
+        proposal.fees.entries.push(FeeEntry{depositor_addr: caller.clone(), tokens: additional_fee.clone()});
+        proposal.fees.total_amount += additional_fee.amount.clone();
 
-        self.user_deposit_event(&caller, proposal_id, &actual_payments);
+        
+
+        self.proposals().set(proposal_id, &proposal);
+        // update(|x| *x -= total_amount)
+        // let new_fee_entry = FeeEntry{caller, additional_fee};
+        // proposal_fees.entries.
+        sc_print!("proposal_reached_min_fees = {}?", self.proposal_reached_min_fees(proposal_id));
+
+        self.user_deposit_event(&caller, proposal_id, &additional_fee);
     }
 
     /// Propose a list of actions.
@@ -84,23 +94,27 @@ pub trait GovernanceV2:
         let proposer = self.blockchain().get_caller();
         let user_energy = self.get_energy_amount_non_zero(&proposer);
         let min_energy_for_propose = self.min_energy_for_propose().get();
+
         require!(
             user_energy >= min_energy_for_propose,
             "Not enough energy for propose"
         );
 
+        let user_fee = self.call_value().single_esdt();
+        require!(
+            self.governance_token_id()
+                .get()
+                .eq(&user_fee.token_identifier),
+            WRONG_TOKEN_ID
+        );
+
         let mut gov_actions = ArrayVec::new();
-        let mut payments_for_action = ManagedVec::new();
         for action_multiarg in actions {
             let gov_action = GovernanceAction::from(action_multiarg);
             require!(
                 gov_action.gas_limit < MAX_GAS_LIMIT_PER_BLOCK,
                 "A single action cannot use more than the max gas limit per block"
             );
-
-            if !gov_action.payments.is_empty() {
-                payments_for_action.append_vec(gov_action.payments.clone());
-            }
 
             unsafe {
                 gov_actions.push_unchecked(gov_action);
@@ -112,26 +126,26 @@ pub trait GovernanceV2:
             "Actions require too much gas to be executed"
         );
 
+        let mut fees_entries = ManagedVec::new();
+        fees_entries.push(FeeEntry {
+            depositor_addr: proposer.clone(),
+            tokens: user_fee.clone(),
+        });
+
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
+            fees: ProposalFees {
+                total_amount: user_fee.amount,
+                entries: fees_entries,
+            },
         };
         let proposal_id = self.proposals().push(&proposal);
 
-        if !payments_for_action.is_empty() {
-            self.required_payments_for_proposal(proposal_id)
-                .set(&payments_for_action);
-        }
-        let proposal_votes = ProposalVotes::new(
-            user_energy,
-            BigUint::zero(),
-            BigUint::zero(),
-            BigUint::zero(),
-        );
+        let proposal_votes = ProposalVotes::new();
 
         self.proposal_votes(proposal_id).set(proposal_votes);
-        let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
 
         let current_block = self.blockchain().get_block_nonce();
         self.proposal_start_block(proposal_id).set(current_block);
@@ -175,13 +189,12 @@ pub trait GovernanceV2:
                     proposal_votes.down_veto_votes += &user_energy.clone();
                 });
                 self.down_veto_vote_cast_event(&voter, proposal_id, &user_energy);
-            },
+            }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &user_energy.clone();
                 });
                 self.abstain_vote_cast_event(&voter, proposal_id, &user_energy);
-        
             }
         }
     }
@@ -199,11 +212,6 @@ pub trait GovernanceV2:
         require!(
             self.get_proposal_status(proposal_id) == GovernanceProposalStatus::Succeeded,
             "Can only queue succeeded proposals"
-        );
-        require!(
-            self.required_payments_for_proposal(proposal_id).is_empty()
-                || !self.payments_depositor(proposal_id).is_empty(),
-            "Payments for proposal not deposited"
         );
 
         let current_block = self.blockchain().get_block_nonce();
@@ -249,10 +257,6 @@ pub trait GovernanceV2:
                 .send()
                 .contract_call::<()>(action.dest_address, action.function_name)
                 .with_gas_limit(action.gas_limit);
-
-            if !action.payments.is_empty() {
-                contract_call = contract_call.with_multi_token_transfer(action.payments);
-            }
 
             for arg in &action.arguments {
                 contract_call.push_arg_managed_buffer(arg);

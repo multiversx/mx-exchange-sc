@@ -19,20 +19,23 @@ pub struct ProposalVotes<M: ManagedTypeApi> {
     pub abstain_votes: BigUint<M>,
 }
 
+impl<M: ManagedTypeApi> Default for ProposalVotes<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<M: ManagedTypeApi> ProposalVotes<M> {
-    pub fn new(up_votes: BigUint<M>, down_votes: BigUint<M>, down_veto_votes: BigUint<M>, abstain_votes: BigUint<M>) -> Self {
+    pub fn new() -> Self {
         ProposalVotes {
-            up_votes,
-            down_votes,
-            down_veto_votes,
-            abstain_votes,
+            up_votes: BigUint::zero(),
+            down_votes: BigUint::zero(),
+            down_veto_votes: BigUint::zero(),
+            abstain_votes: BigUint::zero(),
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {
-        &self.up_votes
-            + &self.down_votes
-            + &self.down_veto_votes
-            + &self.abstain_votes
+        &self.up_votes + &self.down_votes + &self.down_veto_votes + &self.abstain_votes
     }
     pub fn get_up_votes_percentage(&self) -> BigUint<M> {
         let total_votes = self.get_total_votes();
