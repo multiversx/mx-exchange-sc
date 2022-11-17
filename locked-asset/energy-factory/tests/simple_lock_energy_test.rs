@@ -239,20 +239,6 @@ fn multiple_early_unlocks_same_week_test() {
     setup
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &expected_balance);
-
-    // Energy SC stores the fee until the end of the week
-    // Doesn't send it to FeeCollector yet
-    // setup.b_mock.check_nft_balance(
-    //     &setup.sc_wrapper.address_ref(),
-    //     LOCKED_TOKEN_ID,
-    //     2,
-    //     &(expected_penalty_amount * 3u64 / 2u64 + 1u64),
-    //     Some(&LockedTokenAttributes::<DebugApi> {
-    //         original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
-    //         original_token_nonce: 0,
-    //         unlock_epoch: 390,
-    //     }),
-    // );
 }
 
 #[test]
