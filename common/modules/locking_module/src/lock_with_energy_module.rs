@@ -26,12 +26,13 @@ pub trait LockWithEnergyModule {
         token_id: TokenIdentifier,
         amount: BigUint,
         dest_address: ManagedAddress,
+        energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
         let lock_epochs = self.lock_epochs().get();
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
-            .lock_virtual(token_id, amount, lock_epochs, dest_address)
+            .lock_virtual(token_id, amount, lock_epochs, dest_address, energy_address)
             .execute_on_dest_context()
     }
 

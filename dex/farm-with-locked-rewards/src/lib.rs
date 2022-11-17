@@ -74,6 +74,9 @@ pub trait Farm:
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        self.first_week_start_epoch().set_if_empty(current_epoch);
     }
 
     #[payable("*")]
@@ -121,6 +124,7 @@ pub trait Farm:
             rewards_payment.token_identifier,
             rewards_payment.amount,
             caller,
+            orig_caller.clone(),
         );
 
         self.emit_claim_rewards_event::<_, FarmTokenAttributes<Self::Api>>(
@@ -186,6 +190,7 @@ pub trait Farm:
             rewards.token_identifier.clone(),
             rewards.amount.clone(),
             caller,
+            orig_caller.clone(),
         );
 
         if remaining_farm_payment.amount == 0 {
@@ -271,12 +276,13 @@ pub trait Farm:
         token_id: TokenIdentifier,
         amount: BigUint,
         destination_address: ManagedAddress,
+        energy_address: ManagedAddress,
     ) -> EsdtTokenPayment {
         if amount == 0 {
             return EsdtTokenPayment::new(token_id, 0, amount);
         }
 
-        self.lock_virtual(token_id, amount, destination_address)
+        self.lock_virtual(token_id, amount, destination_address, energy_address)
     }
 }
 

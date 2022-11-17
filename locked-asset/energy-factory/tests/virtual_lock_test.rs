@@ -25,6 +25,7 @@ fn virtual_lock_test() {
                 managed_biguint!(1_000),
                 LOCK_OPTIONS[0],
                 managed_address!(&second_user),
+                managed_address!(&second_user),
             );
         })
         .assert_user_error("Item not whitelisted");
@@ -37,6 +38,7 @@ fn virtual_lock_test() {
                 managed_token_id!(b"RANDTOK-123456"),
                 managed_biguint!(1_000),
                 LOCK_OPTIONS[0],
+                managed_address!(&second_user),
                 managed_address!(&second_user),
             );
         })
@@ -53,6 +55,7 @@ fn virtual_lock_test() {
                 managed_token_id!(BASE_ASSET_TOKEN_ID),
                 managed_biguint!(1_000),
                 LOCK_OPTIONS[0],
+                managed_address!(&second_user),
                 managed_address!(&second_user),
             );
         })
