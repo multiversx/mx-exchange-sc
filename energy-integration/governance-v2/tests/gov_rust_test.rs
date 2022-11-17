@@ -1,5 +1,6 @@
 mod gov_test_setup;
 
+use elrond_wasm::elrond_codec::Empty;
 use elrond_wasm_debug::{managed_biguint, rust_biguint};
 use gov_test_setup::*;
 use governance_v2::{
@@ -18,10 +19,20 @@ fn change_gov_config_test() {
     let first_user_addr = gov_setup.first_user.clone();
     let second_user_addr = gov_setup.second_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000),
+        &Empty,
+    );
+
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
+        MIN_FEE_FOR_PROPOSE,
         &sc_addr,
-        Vec::new(),
         b"changeQuorum",
         vec![1_000u64.to_be_bytes().to_vec()],
     );
@@ -63,6 +74,9 @@ fn change_gov_config_test() {
         .up_vote(&second_user_addr, proposal_id)
         .assert_user_error("Already voted for this proposal");
 
+    gov_setup
+        .up_vote(&first_user_addr, proposal_id)
+        .assert_ok();
     // queue ok
     gov_setup.set_block_nonce(45);
     gov_setup.queue(proposal_id).assert_ok();
@@ -94,10 +108,20 @@ fn gov_no_veto_vote_test() {
     let second_user_addr = gov_setup.second_user.clone();
     let third_user_addr = gov_setup.third_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000),
+        &Empty,
+    );
+
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
+        MIN_FEE_FOR_PROPOSE,
         &sc_addr,
-        Vec::new(),
         b"changeQuorum",
         vec![1_000u64.to_be_bytes().to_vec()],
     );
@@ -139,10 +163,20 @@ fn gov_abstain_vote_test() {
     let first_user_addr = gov_setup.first_user.clone();
     let second_user_addr = gov_setup.second_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000),
+        &Empty,
+    );
+
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
+        MIN_FEE_FOR_PROPOSE,
         &sc_addr,
-        Vec::new(),
         b"changeQuorum",
         vec![1_000u64.to_be_bytes().to_vec()],
     );
@@ -161,6 +195,8 @@ fn gov_abstain_vote_test() {
 
     // First user Up Vote
     // Second user Abstain Vote
+    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
+
     gov_setup
         .abstain_vote(&second_user_addr, proposal_id)
         .assert_ok();
@@ -190,10 +226,20 @@ fn gov_cancel_defeated_proposal_test() {
     let first_user_addr = gov_setup.first_user.clone();
     let second_user_addr = gov_setup.second_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(1_000),
+        &Empty,
+    );
+
     let (result, proposal_id) = gov_setup.propose(
         &first_user_addr,
+        MIN_FEE_FOR_PROPOSE,
         &sc_addr,
-        Vec::new(),
         b"changeQuorum",
         vec![1_000u64.to_be_bytes().to_vec()],
     );
@@ -215,47 +261,94 @@ fn gov_cancel_defeated_proposal_test() {
 }
 
 #[test]
-fn gov_paymnts_refund_test() {
+fn gov_additional_payment_to_propose_test() {
     let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
 
-    let user_addr = gov_setup.first_user.clone();
+    let first_user_addr = gov_setup.first_user.clone();
+    let second_user_addr = gov_setup.second_user.clone();
     let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
 
-    let token_id = b"COOL-123456".to_vec();
-    let amount = 10064;
-    gov_setup
-        .b_mock
-        .set_esdt_balance(&user_addr, &token_id, &rust_biguint!(amount));
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(100),
+        &Empty,
+    );
 
-    let payments = vec![Payment {
-        token: token_id.clone(),
-        nonce: 0,
-        amount,
-    }];
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &second_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(950),
+        &Empty,
+    );
+
     let (result, proposal_id) = gov_setup.propose(
-        &user_addr,
+        &first_user_addr,
+        100,
         &sc_addr,
-        payments.clone(),
-        b"giveMeTokens",
+        b"changeQuorum",
         vec![1_000u64.to_be_bytes().to_vec()],
     );
+
     result.assert_ok();
     assert_eq!(proposal_id, 1);
 
+    // vote too early
+    gov_setup.set_block_nonce(20);
     gov_setup
-        .deposit_tokens(&user_addr, &payments, proposal_id)
+        .up_vote(&second_user_addr, proposal_id)
+        .assert_user_error("Proposal is not active");
+
+    gov_setup
+        .deposit_tokens(&second_user_addr, 950, proposal_id)
         .assert_ok();
 
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &sc_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(1_050),
+        None,
+    );
+
+    // quorum is 1_500
     gov_setup
         .b_mock
-        .check_esdt_balance(&sc_addr, &token_id, &rust_biguint!(amount));
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            assert_eq!(sc.quorum().get(), managed_biguint!(1_500));
+        })
+        .assert_ok();
 
-    gov_setup.increment_block_nonce(VOTING_DELAY_BLOCKS);
-    gov_setup.increment_block_nonce(VOTING_PERIOD_BLOCKS);
-    gov_setup.cancel(&user_addr, proposal_id).assert_ok();
+    gov_setup.set_block_nonce(20);
 
-    // tokens were refunded to the user
+    // First user Up Vote
+    gov_setup
+    .up_vote(&first_user_addr, proposal_id)
+    .assert_ok();
+
+    // Second user Up Vote
+    gov_setup
+        .up_vote(&second_user_addr, proposal_id)
+        .assert_ok();
+
+    // queue: Vote passed: 1000 UP, 0 down, 0 DownVeto, 1000 Abstain
+    gov_setup.set_block_nonce(45);
+    gov_setup.queue(proposal_id).assert_ok();
+
+    // execute
+    gov_setup.increment_block_nonce(LOCKING_PERIOD_BLOCKS);
+    gov_setup.execute(proposal_id).assert_ok();
+
+    // after execution, quorum changed from 1_500 to the proposed 1_000
     gov_setup
         .b_mock
-        .check_esdt_balance(&user_addr, &token_id, &rust_biguint!(amount));
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            assert_eq!(sc.quorum().get(), managed_biguint!(1_000));
+            assert!(sc.proposals().item_is_empty(1));
+        })
+        .assert_ok();
 }

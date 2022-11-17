@@ -64,6 +64,6 @@ pub trait EventsModule {
         &self,
         #[indexed] address: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
-        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        payment: &EsdtTokenPayment<Self::Api>,
     );
 }
