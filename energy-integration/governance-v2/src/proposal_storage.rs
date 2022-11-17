@@ -60,14 +60,14 @@ pub trait ProposalStorageModule {
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
 
-    #[storage_mapper("requiredPaymentsForProposal")]
-    fn required_payments_for_proposal(
-        &self,
-        proposal_id: ProposalId,
-    ) -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
+    // #[storage_mapper("requiredPaymentsForProposal")]
+    // fn required_payments_for_proposal(
+    //     &self,
+    //     proposal_id: ProposalId,
+    // ) -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
 
-    #[storage_mapper("paymentsDepositor")]
-    fn payments_depositor(&self, proposal_id: ProposalId) -> SingleValueMapper<ManagedAddress>;
+    // #[storage_mapper("paymentsDepositor")]
+    // fn payments_depositor(&self, proposal_id: ProposalId) -> SingleValueMapper<ManagedAddress>;
 
     // Not stored under "proposals", as that would require deserializing the whole struct
     #[storage_mapper("proposalStartBlock")]

@@ -74,9 +74,7 @@ fn change_gov_config_test() {
         .up_vote(&second_user_addr, proposal_id)
         .assert_user_error("Already voted for this proposal");
 
-    gov_setup
-        .up_vote(&first_user_addr, proposal_id)
-        .assert_ok();
+    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
     // queue ok
     gov_setup.set_block_nonce(45);
     gov_setup.queue(proposal_id).assert_ok();
@@ -326,9 +324,7 @@ fn gov_additional_payment_to_propose_test() {
     gov_setup.set_block_nonce(20);
 
     // First user Up Vote
-    gov_setup
-    .up_vote(&first_user_addr, proposal_id)
-    .assert_ok();
+    gov_setup.up_vote(&first_user_addr, proposal_id).assert_ok();
 
     // Second user Up Vote
     gov_setup
@@ -351,4 +347,101 @@ fn gov_additional_payment_to_propose_test() {
             assert!(sc.proposals().item_is_empty(1));
         })
         .assert_ok();
+}
+
+#[test]
+fn gov_wait_for_fees_cancel_test() {
+    let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
+
+    let first_user_addr = gov_setup.first_user.clone();
+    let second_user_addr = gov_setup.second_user.clone();
+    let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(100),
+        &Empty,
+    );
+
+    // Give proposer the minimum fee
+    gov_setup.b_mock.set_nft_balance(
+        &second_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(500),
+        &Empty,
+    );
+
+    let (result, proposal_id) = gov_setup.propose(
+        &first_user_addr,
+        100,
+        &sc_addr,
+        b"changeQuorum",
+        vec![1_000u64.to_be_bytes().to_vec()],
+    );
+
+    result.assert_ok();
+    assert_eq!(proposal_id, 1);
+
+    // vote too early
+    gov_setup.set_block_nonce(20);
+    gov_setup
+        .deposit_tokens(&second_user_addr, 500, proposal_id)
+        .assert_ok();
+
+    // Check users don't have any funds
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(0),
+        None,
+    );
+
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &second_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(0),
+        None,
+    );
+
+    // Check that SC has user funds
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &sc_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(600),
+        None,
+    );
+
+    gov_setup.set_block_nonce(20);
+
+    // Vote is not Active
+    gov_setup
+        .up_vote(&first_user_addr, proposal_id)
+        .assert_user_error("Proposal is not active");
+
+    // Cancel while still in state WaitForFees
+    gov_setup.cancel(&second_user_addr, proposal_id).assert_ok();
+
+    // Check funds are returned to users
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &first_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(100),
+        None,
+    );
+
+    gov_setup.b_mock.check_nft_balance::<Empty>(
+        &second_user_addr,
+        LKMEX_TOKEN_ID,
+        1,
+        &rust_biguint!(500),
+        None,
+    );
 }
