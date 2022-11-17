@@ -15,7 +15,7 @@ pub struct EncodabLockedAmountWeightAttributesPair<M: ManagedTypeApi> {
 }
 
 impl<M: ManagedTypeApi> EncodabLockedAmountWeightAttributesPair<M> {
-    pub fn from_ref_instance<'a, Sc>(ref_instance: LockedAmountWeightAttributesPair<Sc>) -> Self
+    pub fn from_ref_instance<Sc>(ref_instance: LockedAmountWeightAttributesPair<Sc>) -> Self
     where
         Sc: energy_factory::penalty::LocalPenaltyModule<Api = M>,
     {
@@ -26,10 +26,7 @@ impl<M: ManagedTypeApi> EncodabLockedAmountWeightAttributesPair<M> {
         }
     }
 
-    pub fn into_self_ref_instance<'a, Sc>(
-        self,
-        sc_ref: &'a Sc,
-    ) -> LockedAmountWeightAttributesPair<Sc>
+    pub fn into_self_ref_instance<Sc>(self, sc_ref: &Sc) -> LockedAmountWeightAttributesPair<Sc>
     where
         Sc: energy_factory::penalty::LocalPenaltyModule<Api = M>,
     {
