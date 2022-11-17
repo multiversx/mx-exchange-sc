@@ -49,4 +49,3 @@ pub trait LockOptionsModule {
     #[storage_mapper("lockOptions")]
     fn lock_options(&self) -> SingleValueMapper<AllLockOptions>;
 }
-
