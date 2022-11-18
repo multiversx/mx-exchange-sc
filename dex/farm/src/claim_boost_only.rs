@@ -41,7 +41,7 @@ pub trait ClaimBoostOnlyModule:
         let reward = Wrapper::<Self>::calculate_boosted_rewards(
             self,
             caller,
-            token_attributes,
+            &token_attributes,
             &payment.amount,
             &self.farm_token_supply().get(),
         );

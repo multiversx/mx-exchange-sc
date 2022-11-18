@@ -206,14 +206,11 @@ where
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
-        token_attributes: <Self as FarmContract>::AttributesType,
+        token_attributes: &<Self as FarmContract>::AttributesType,
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         farm_token_supply: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
-        let attr_default: FarmTokenAttributes<
-            <<Self as FarmContract>::FarmSc as ContractBase>::Api,
-        > = token_attributes.into();
-        if &attr_default.original_owner != caller {
+        if &token_attributes.original_owner != caller {
             sc.update_energy_and_progress(caller);
 
             return BigUint::zero();
@@ -272,7 +269,7 @@ where
         let boosted_yield_rewards = Self::calculate_boosted_rewards(
             sc,
             caller,
-            token_attributes.clone(),
+            token_attributes,
             farm_token_amount,
             &storage_cache.farm_token_supply,
         );
