@@ -215,6 +215,108 @@ fn farm_with_boosted_yields_test() {
 }
 
 #[test]
+fn farm_boosted_yields_claim_with_different_user_pos_test() {
+    let _ = DebugApi::dummy();
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(2);
+
+    // first user enter farm
+    let first_farm_token_amount = 100_000_000;
+    let first_user = farm_setup.first_user.clone();
+    let third_user = farm_setup.third_user.clone();
+    farm_setup.set_user_energy(&first_user, 1_000, 2, 1);
+    farm_setup.enter_farm(&first_user, first_farm_token_amount);
+
+    farm_setup.b_mock.check_nft_balance(
+        &first_user,
+        FARM_TOKEN_ID,
+        1,
+        &rust_biguint!(first_farm_token_amount),
+        Some(&FarmTokenAttributes::<DebugApi> {
+            reward_per_share: managed_biguint!(0),
+            compounded_reward: managed_biguint!(0),
+            entering_epoch: 2,
+            current_farm_amount: managed_biguint!(first_farm_token_amount),
+            original_owner: managed_address!(&first_user),
+        }),
+    );
+
+    // second user enter farm
+    let second_farm_token_amount = 50_000_000;
+    let second_user = farm_setup.second_user.clone();
+    farm_setup.set_user_energy(&second_user, 4_000, 2, 1);
+    farm_setup.enter_farm(&second_user, second_farm_token_amount);
+
+    // users claim rewards to get their energy registered
+    let _ = farm_setup.claim_rewards(&first_user, 1, first_farm_token_amount);
+    let _ = farm_setup.claim_rewards(&second_user, 2, second_farm_token_amount);
+
+    // advance blocks - 10 blocks - 10 * 1_000 = 10_000 total rewards
+    // 7_500 base farm, 2_500 boosted yields
+    farm_setup.b_mock.set_block_nonce(10);
+
+    // random tx on end of week 1, to cummulate rewards
+    farm_setup.b_mock.set_block_epoch(6);
+    farm_setup.set_user_energy(&first_user, 1_000, 6, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 6, 1);
+    farm_setup.set_user_energy(&third_user, 1, 6, 1);
+    farm_setup.enter_farm(&third_user, 1);
+    farm_setup.exit_farm(&third_user, 5, 1, 1);
+
+    // advance 1 week
+    farm_setup.b_mock.set_block_epoch(10);
+    farm_setup.set_user_energy(&first_user, 1_000, 10, 1);
+    farm_setup.set_user_energy(&second_user, 4_000, 10, 1);
+
+    let total_farm_tokens = first_farm_token_amount + second_farm_token_amount;
+
+    // transfer first user's position to second user
+    farm_setup.b_mock.set_nft_balance(
+        &second_user,
+        FARM_TOKEN_ID,
+        3,
+        &rust_biguint!(first_farm_token_amount),
+        &FarmTokenAttributes::<DebugApi> {
+            reward_per_share: managed_biguint!(0),
+            compounded_reward: managed_biguint!(0),
+            entering_epoch: 2,
+            current_farm_amount: managed_biguint!(first_farm_token_amount),
+            original_owner: managed_address!(&first_user),
+        },
+    );
+
+    // second user claim with first user's pos
+    // user will only receive rewards for base farm, no boosted rewards
+    let second_base_farm_amt = first_farm_token_amount * 7_500 / total_farm_tokens;
+    let second_receveived_reward_amt =
+        farm_setup.claim_rewards(&second_user, 3, first_farm_token_amount);
+    assert_eq!(second_receveived_reward_amt, second_base_farm_amt);
+
+    farm_setup
+        .b_mock
+        .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
+            &second_user,
+            FARM_TOKEN_ID,
+            6,
+            &rust_biguint!(first_farm_token_amount),
+            None,
+        );
+
+    farm_setup.b_mock.check_esdt_balance(
+        &second_user,
+        REWARD_TOKEN_ID,
+        &rust_biguint!(second_receveived_reward_amt),
+    );
+}
+
+#[test]
 fn farm_known_proxy_test() {
     let _ = DebugApi::dummy();
     let mut farm_setup = MultiUserFarmSetup::new(
