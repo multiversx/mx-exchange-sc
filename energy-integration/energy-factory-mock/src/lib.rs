@@ -43,6 +43,15 @@ pub trait EnergyFactoryMock {
         }
     }
 
+    #[endpoint(setUserEnergyAfterLockedTokenTransfer)]
+    fn set_user_energy_after_locked_token_transfer(
+        &self,
+        user: ManagedAddress,
+        energy: Energy<Self::Api>,
+    ) {
+        self.user_energy(&user).set(&energy);
+    }
+
     #[storage_mapper("userEnergy")]
     fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
 }

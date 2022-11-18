@@ -24,7 +24,7 @@ pub trait LockedTokenWrapper:
 
     #[payable("*")]
     #[endpoint(wrapLockedToken)]
-    fn wrap_locked_token(&self) -> EsdtTokenPayment {
+    fn wrap_locked_token_endpoint(&self) -> EsdtTokenPayment {
         let payment = self.call_value().single_esdt();
         let caller = self.blockchain().get_caller();
         self.deduct_energy_from_sender(

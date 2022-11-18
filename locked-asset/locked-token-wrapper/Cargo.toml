@@ -26,6 +26,9 @@ path = "../energy-factory"
 [dependencies.lkmex-transfer]
 path = "../lkmex-transfer"
 
+[dependencies.energy-factory-mock]
+path = "../../energy-integration/energy-factory-mock"
+
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
 
@@ -34,3 +37,8 @@ path = "../../common/common_structs"
 
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"

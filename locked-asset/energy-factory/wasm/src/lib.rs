@@ -10,6 +10,7 @@ elrond_wasm_node::wasm_endpoints! {
         callBack
         addLockOptions
         addSCAddressToWhitelist
+        addToTokenTransferWhitelist
         createMergedLockedTokenForFees
         getBaseAssetTokenId
         getEnergyAmountForUser
@@ -28,11 +29,11 @@ elrond_wasm_node::wasm_endpoints! {
         migrateOldTokens
         pause
         reduceLockPeriod
+        removeFromTokenTransferWhitelist
         removeLockOptions
         removeSCAddressFromWhitelist
         revertUnstake
         setBurnRoleLockedToken
-        setLockedTokenTransferScAddress
         setTokenUnstakeAddress
         setTransferRoleLockedToken
         setUserEnergyAfterLockedTokenTransfer

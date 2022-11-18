@@ -5,7 +5,7 @@ use common_structs::Nonce;
 
 pub static WRAPPED_TOKEN_NAME: &[u8] = b"WrappedLKMEX";
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct WrappedTokenAttributes {
     pub locked_token_nonce: Nonce,
 }
@@ -79,6 +79,9 @@ pub trait WrappedTokenModule:
 
         let wrapped_token_attributes: WrappedTokenAttributes =
             wrapped_token_mapper.get_token_attributes(token.token_nonce);
+
+        self.send()
+            .esdt_local_burn(&token.token_identifier, token.token_nonce, &token.amount);
 
         let locked_token_id = self.locked_token().get_token_id();
         EsdtTokenPayment::new(
