@@ -1,8 +1,8 @@
 elrond_wasm::imports!();
 
-use crate::proposal::{
-    GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS,
-};
+use crate::{proposal::{
+    GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS, HASH_LENGTH
+}, proposal_storage::VoteType};
 
 #[elrond_wasm::module]
 pub trait ViewsModule:
@@ -59,6 +59,11 @@ pub trait ViewsModule:
         }
     }
 
+    #[view(getVoteStatus)]
+    fn get_vote_status(&self, proposal_id: ProposalId, address: ManagedAddress<Self::Api>) -> OptionalValue<VoteType> {
+        return OptionalValue::None;
+    }
+
     #[view(getProposer)]
     fn get_proposer(&self, proposal_id: ProposalId) -> OptionalValue<ManagedAddress> {
         if !self.proposal_exists(proposal_id) {
@@ -66,6 +71,15 @@ pub trait ViewsModule:
         }
 
         OptionalValue::Some(self.proposals().get(proposal_id).proposer)
+    }
+
+    #[view(getProposalRootHash)]
+    fn get_root_hash(&self, proposal_id: ProposalId) -> OptionalValue<ManagedByteArray<HASH_LENGTH>> {
+        if !self.proposal_exists(proposal_id) {
+            return OptionalValue::None;
+        }
+
+        OptionalValue::Some(self.proposals().get(proposal_id).root_hash)
     }
 
     #[view(getProposalDescription)]

@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub const HASH_LENGTH: usize = 32;
 pub const MAX_GOVERNANCE_PROPOSAL_ACTIONS: usize = 5;
 
 pub type ProposalId = usize;
@@ -63,4 +64,5 @@ pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposer: ManagedAddress<M>,
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
     pub description: ManagedBuffer<M>,
+    pub root_hash: ManagedByteArray<M, HASH_LENGTH>,
 }

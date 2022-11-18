@@ -11,8 +11,6 @@ pub mod views;
 use proposal::*;
 use proposal_storage::VoteType;
 
-use crate::proposal_storage::ProposalVotes;
-
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
@@ -71,10 +69,12 @@ pub trait GovernanceV2:
     #[endpoint]
     fn propose(
         &self,
+        root_hash: ManagedByteArray<HASH_LENGTH>,
         description: ManagedBuffer,
         actions: MultiValueEncoded<GovernanceActionAsMultiArg<Self::Api>>,
     ) -> ProposalId {
         self.require_caller_not_self();
+        require!(!root_hash.is_empty(), "Invalid root hash provided");
         require!(!actions.is_empty(), "Proposal has no actions");
         require!(
             actions.len() <= MAX_GOVERNANCE_PROPOSAL_ACTIONS,
@@ -82,12 +82,6 @@ pub trait GovernanceV2:
         );
 
         let proposer = self.blockchain().get_caller();
-        let user_energy = self.get_energy_amount_non_zero(&proposer);
-        let min_energy_for_propose = self.min_energy_for_propose().get();
-        require!(
-            user_energy >= min_energy_for_propose,
-            "Not enough energy for propose"
-        );
 
         let mut gov_actions = ArrayVec::new();
         let mut payments_for_action = ManagedVec::new();
@@ -113,6 +107,7 @@ pub trait GovernanceV2:
         );
 
         let proposal = GovernanceProposal {
+            root_hash,
             proposer: proposer.clone(),
             description,
             actions: gov_actions,
@@ -123,15 +118,6 @@ pub trait GovernanceV2:
             self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
-        let proposal_votes = ProposalVotes::new(
-            user_energy,
-            BigUint::zero(),
-            BigUint::zero(),
-            BigUint::zero(),
-        );
-
-        self.proposal_votes(proposal_id).set(proposal_votes);
-        let _ = self.user_voted_proposals(&proposer).insert(proposal_id);
 
         let current_block = self.blockchain().get_block_nonce();
         self.proposal_start_block(proposal_id).set(current_block);
@@ -143,7 +129,7 @@ pub trait GovernanceV2:
 
     /// Vote on a proposal. The voting power depends on the user's energy.
     #[endpoint]
-    fn vote(&self, proposal_id: ProposalId, vote: VoteType) {
+    fn vote(&self, proposal_id: ProposalId, vote: VoteType, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<32>, 18>) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
@@ -155,7 +141,16 @@ pub trait GovernanceV2:
         let new_user = self.user_voted_proposals(&voter).insert(proposal_id);
         require!(new_user, ALREADY_VOTED_ERR_MSG);
 
-        let user_energy = self.get_energy_amount_non_zero(&voter);
+        let user_energy = power.clone();
+        match self.get_root_hash(proposal_id) {
+            OptionalValue::None => {
+                sc_panic!("Proposal does not exist");
+            }
+            OptionalValue::Some(root_hash) => {
+                require!(self.verify_merkle_proof(power, proof, root_hash), "Invalid merkle proof provided");
+            }
+        }
+        
 
         match vote {
             VoteType::UpVote => {
@@ -340,5 +335,28 @@ pub trait GovernanceV2:
         self.payments_depositor(proposal_id).clear();
 
         self.proposal_votes(proposal_id).clear();
+    }
+
+    fn verify_merkle_proof(&self, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, 18>, root_hash: ManagedByteArray<HASH_LENGTH>) -> bool {
+        let caller = self.blockchain().get_caller().clone();
+        let mut leaf_bytes = caller.as_managed_buffer().clone();
+        leaf_bytes.append(&power.to_bytes_be_buffer());
+
+        let mut hash = self.crypto().sha256(leaf_bytes);
+        for proof_item in proof {
+            if hash.to_byte_array() < proof_item.to_byte_array() {
+                let mut tst = hash.as_managed_buffer().clone();
+                tst.append(proof_item.as_managed_buffer());
+
+                hash = self.crypto().sha256(tst);
+            } else {
+                let mut tst = proof_item.as_managed_buffer().clone();
+                tst.append(hash.as_managed_buffer());
+
+                hash = self.crypto().sha256(tst);
+            }
+        }
+
+        return hash == root_hash;
     }
 }

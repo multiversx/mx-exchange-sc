@@ -1,4 +1,4 @@
-use elrond_wasm::types::{Address, BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
+use elrond_wasm::{types::{Address, BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded, BigUint, ManagedByteArray}, arrayvec::ArrayVec};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -19,6 +19,8 @@ pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
 
 pub const USER_ENERGY: u64 = 1_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
+
+pub const DUMMY_PROOF: ArrayVec<ManagedByteArray<DebugApi, 32>, 18> = ArrayVec::new_const();
 
 #[derive(Clone)]
 pub struct Payment {
@@ -160,28 +162,28 @@ where
     pub fn up_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::UpVote);
+                sc.vote(proposal_id, VoteType::UpVote, BigUint::from(managed_biguint!(0)), DUMMY_PROOF);
             })
     }
 
     pub fn down_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::DownVote);
+                sc.vote(proposal_id, VoteType::DownVote, BigUint::from(managed_biguint!(0)), DUMMY_PROOF);
             })
     }
 
     pub fn down_veto_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::DownVetoVote);
+                sc.vote(proposal_id, VoteType::DownVetoVote, BigUint::from(managed_biguint!(0)), DUMMY_PROOF);
             })
     }
 
     pub fn abstain_vote(&mut self, voter: &Address, proposal_id: usize) -> TxResult {
         self.b_mock
             .execute_tx(voter, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                sc.vote(proposal_id, VoteType::AbstainVote);
+                sc.vote(proposal_id, VoteType::AbstainVote, BigUint::from(managed_biguint!(0)), DUMMY_PROOF);
             })
     }
 
