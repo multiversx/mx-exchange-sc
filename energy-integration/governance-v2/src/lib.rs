@@ -175,13 +175,12 @@ pub trait GovernanceV2:
                     proposal_votes.down_veto_votes += &user_energy.clone();
                 });
                 self.down_veto_vote_cast_event(&voter, proposal_id, &user_energy);
-            },
+            }
             VoteType::AbstainVote => {
                 self.proposal_votes(proposal_id).update(|proposal_votes| {
                     proposal_votes.abstain_votes += &user_energy.clone();
                 });
                 self.abstain_vote_cast_event(&voter, proposal_id, &user_energy);
-        
             }
         }
     }
