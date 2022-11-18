@@ -112,6 +112,7 @@ pub trait FarmContract {
 
     fn create_enter_farm_initial_attributes(
         sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         farming_token_amount: BigUint<<Self::FarmSc as ContractBase>::Api>,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
@@ -121,6 +122,7 @@ pub trait FarmContract {
             entering_epoch: current_epoch,
             compounded_reward: BigUint::zero(),
             current_farm_amount: farming_token_amount,
+            original_owner: caller,
         };
 
         attributes.into()
@@ -128,6 +130,7 @@ pub trait FarmContract {
 
     fn create_claim_rewards_initial_attributes(
         _sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
     ) -> Self::AttributesType {
@@ -140,6 +143,7 @@ pub trait FarmContract {
             entering_epoch: initial_attributes.entering_epoch,
             compounded_reward: initial_attributes.compounded_reward,
             current_farm_amount: net_current_farm_amount,
+            original_owner: caller,
         };
 
         new_attributes.into()
@@ -147,6 +151,7 @@ pub trait FarmContract {
 
     fn create_compound_rewards_initial_attributes(
         sc: &Self::FarmSc,
+        caller: ManagedAddress<<Self::FarmSc as ContractBase>::Api>,
         first_token_attributes: Self::AttributesType,
         current_reward_per_share: BigUint<<Self::FarmSc as ContractBase>::Api>,
         reward: &BigUint<<Self::FarmSc as ContractBase>::Api>,
@@ -162,6 +167,7 @@ pub trait FarmContract {
             entering_epoch: current_epoch,
             compounded_reward: new_pos_compounded_reward,
             current_farm_amount: new_pos_current_farm_amount,
+            original_owner: caller,
         };
 
         new_attributes.into()

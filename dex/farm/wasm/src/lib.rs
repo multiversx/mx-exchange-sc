@@ -63,5 +63,6 @@ elrond_wasm_node::wasm_endpoints! {
         set_minimum_farming_epochs
         set_penalty_percent
         startProduceRewards
+        updateEnergyForUser
     )
 }

@@ -65,7 +65,7 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> EsdtTokenPayment {
         let payments = self.call_value().all_esdt_transfers();
-        let base_enter_farm_result = self.enter_farm_base::<FC>(payments);
+        let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
         self.emit_enter_farm_event(
             &caller,
             base_enter_farm_result.context.farming_token_payment,

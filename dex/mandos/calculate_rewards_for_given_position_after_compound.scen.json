@@ -17,8 +17,9 @@
                     {
                         "1-reward_per_share": "biguint:500,000,000",
                         "2-entering_epoch": "u64:10",
-                        "3:compounded_reward": "biguint:50,000",
-                        "4-current_farm_amount": "biguint:100,050,000"
+                        "3-compounded_reward": "biguint:50,000",
+                        "4-current_farm_amount": "biguint:100,050,000",
+                        "5-original_owner": "address:user1"
                     }
                 ]
             },
@@ -49,8 +50,9 @@
                     {
                         "1-reward_per_share": "biguint:500,000,000",
                         "2-entering_epoch": "u64:10",
-                        "3:compounded_reward": "biguint:50,000",
-                        "4-current_farm_amount": "biguint:100,050,000"
+                        "3-compounded_reward": "biguint:50,000",
+                        "4-current_farm_amount": "biguint:100,050,000",
+                        "5-original_owner": "address:user1"
                     }
                 ]
             },
