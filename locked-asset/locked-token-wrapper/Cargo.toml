@@ -11,5 +11,26 @@ path = "src/lib.rs"
 [dependencies.elrond-wasm]
 version = "=0.36.1"
 
+[dependencies.elrond-wasm-modules]
+version = "=0.36.1"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.simple-lock]
+path = "../simple-lock"
+
+[dependencies.energy-factory]
+path = "../energy-factory"
+
+[dependencies.lkmex-transfer]
+path = "../lkmex-transfer"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
