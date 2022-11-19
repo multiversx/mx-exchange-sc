@@ -38,8 +38,7 @@ pub trait FeesAccumulationModule:
         self.emit_deposit_swap_fees_event(
             caller,
             current_week,
-            payment.token_identifier,
-            payment.amount,
+            payment
         );
     }
 

@@ -8,10 +8,9 @@ pub trait FeesCollectorEventsModule {
         self,
         caller: ManagedAddress,
         current_week: Week,
-        payment_token: TokenIdentifier,
-        payment_amount: BigUint,
+        payment: EsdtTokenPayment<Self::Api>
     ) {
-        self.deposit_swap_fees_event(caller, current_week, payment_token, payment_amount);
+        self.deposit_swap_fees_event(caller, current_week, payment);
     }
 
     #[event("deposit_swap_fees_event")]
@@ -19,7 +18,6 @@ pub trait FeesCollectorEventsModule {
         &self,
         #[indexed] caller: ManagedAddress,
         #[indexed] current_week: Week,
-        #[indexed] payment_token: TokenIdentifier,
-        payment_amount: BigUint,
+        #[indexed] payment: EsdtTokenPayment<Self::Api>,
     );
 }
