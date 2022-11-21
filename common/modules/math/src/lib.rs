@@ -26,7 +26,22 @@ where
     T: Add<Output = T> + Mul<Output = T> + Div<Output = T> + Clone,
 {
     let weight_sum = first_weight.clone() + second_weight.clone();
-    (first_value * first_weight + second_value * second_weight) / weight_sum
+    let weighted_sum = first_value * first_weight + second_value * second_weight;
+    weighted_sum / weight_sum
+}
+
+pub fn weighted_average_round_up<T>(
+    first_value: T,
+    first_weight: T,
+    second_value: T,
+    second_weight: T,
+) -> T
+where
+    T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T> + Clone + From<u32>,
+{
+    let weight_sum = first_weight.clone() + second_weight.clone();
+    let weighted_sum = first_value * first_weight + second_value * second_weight;
+    (weighted_sum + weight_sum.clone() - T::from(1u32)) / weight_sum
 }
 
 /// computes first_value - second_value, returning 0 if the result would be negative
