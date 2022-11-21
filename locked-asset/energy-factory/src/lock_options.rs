@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::Epoch;
+use unwrappable::Unwrappable;
 
 pub const EPOCHS_PER_MONTH: Epoch = 30;
 pub const EPOCHS_PER_YEAR: Epoch = 12 * EPOCHS_PER_MONTH;
@@ -43,7 +44,17 @@ pub trait LockOptionsModule {
 
     fn unlock_epoch_to_start_of_month_upper_estimate(&self, unlock_epoch: Epoch) -> Epoch {
         let lower_bound_unlock = self.unlock_epoch_to_start_of_month(unlock_epoch);
-        lower_bound_unlock + EPOCHS_PER_MONTH
+        let new_unlock_epoch = lower_bound_unlock + EPOCHS_PER_MONTH;
+
+        let current_epoch = self.blockchain().get_block_epoch();
+        let new_lock_epochs_unbounded = new_unlock_epoch - current_epoch;
+
+        let lock_options = self.get_lock_options();
+        let last_lock_option = lock_options.last().unwrap_or_panic::<Self::Api>();
+        let new_lock_epochs_bounded =
+            core::cmp::min(new_lock_epochs_unbounded, last_lock_option.lock_epochs);
+
+        current_epoch + new_lock_epochs_bounded
     }
 
     #[storage_mapper("lockOptions")]
