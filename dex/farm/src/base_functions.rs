@@ -157,6 +157,8 @@ pub trait BaseFunctionsModule:
     fn merge_farm_tokens<FC: FarmContract<FarmSc = Self>>(&self) -> EsdtTokenPayment<Self::Api> {
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
+        token_mapper.require_all_same_token(&payments);
+
         let output_attributes: FC::AttributesType =
             self.merge_from_payments_and_burn(payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply();
