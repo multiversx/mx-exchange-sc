@@ -51,10 +51,11 @@ pub trait LockOptionsModule {
 
         let lock_options = self.get_lock_options();
         let last_lock_option = lock_options.last().unwrap_or_panic::<Self::Api>();
-        let new_lock_epochs_bounded =
-            core::cmp::min(new_lock_epochs_unbounded, last_lock_option.lock_epochs);
-
-        current_epoch + new_lock_epochs_bounded
+        if new_lock_epochs_unbounded <= last_lock_option.lock_epochs {
+            new_unlock_epoch
+        } else {
+            lower_bound_unlock
+        }
     }
 
     #[storage_mapper("lockOptions")]
