@@ -138,8 +138,7 @@ pub trait SimpleLockMigrationModule:
             .to_u64()
             .unwrap_or_panic::<Self::Api>();
 
-        let new_tentative_unlock_epoch =
-            current_epoch + base_lock_epochs * TOKEN_MIGRATION_LOCK_EPOCHS_FACTOR;
+        let new_tentative_unlock_epoch = base_lock_epochs * TOKEN_MIGRATION_LOCK_EPOCHS_FACTOR;
         let lock_options = self.get_lock_options();
         let max_lock_option = lock_options.last().unwrap_or_panic::<Self::Api>();
         let mut new_unlock_epoch =
@@ -148,7 +147,7 @@ pub trait SimpleLockMigrationModule:
         let min_lock_period = self.min_migrated_token_locked_period().get();
         new_unlock_epoch = core::cmp::max(new_unlock_epoch, min_lock_period);
 
-        self.unlock_epoch_to_start_of_month_upper_estimate(new_unlock_epoch)
+        self.unlock_epoch_to_start_of_month_upper_estimate(current_epoch + new_unlock_epoch)
     }
 
     fn require_caller_old_factory(&self) {
