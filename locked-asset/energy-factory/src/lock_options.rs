@@ -45,10 +45,12 @@ pub trait LockOptionsModule {
     fn unlock_epoch_to_start_of_month_upper_estimate(&self, unlock_epoch: Epoch) -> Epoch {
         let lower_bound_unlock = self.unlock_epoch_to_start_of_month(unlock_epoch);
         let new_unlock_epoch = lower_bound_unlock + EPOCHS_PER_MONTH;
-
         let current_epoch = self.blockchain().get_block_epoch();
-        let new_lock_epochs_unbounded = new_unlock_epoch - current_epoch;
+        if current_epoch >= new_unlock_epoch {
+            return new_unlock_epoch;
+        }
 
+        let new_lock_epochs_unbounded = new_unlock_epoch - current_epoch;
         let lock_options = self.get_lock_options();
         let last_lock_option = lock_options.last().unwrap_or_panic::<Self::Api>();
         if new_lock_epochs_unbounded <= last_lock_option.lock_epochs {
