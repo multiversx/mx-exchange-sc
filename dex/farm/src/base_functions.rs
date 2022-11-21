@@ -65,7 +65,7 @@ pub trait BaseFunctionsModule:
         caller: ManagedAddress,
     ) -> EsdtTokenPayment {
         let payments = self.call_value().all_esdt_transfers();
-        let base_enter_farm_result = self.enter_farm_base::<FC>(payments);
+        let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
         self.emit_enter_farm_event(
             &caller,
             base_enter_farm_result.context.farming_token_payment,
@@ -206,9 +206,16 @@ where
     pub fn calculate_boosted_rewards(
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
+        token_attributes: &<Self as FarmContract>::AttributesType,
         farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         farm_token_supply: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
+        if &token_attributes.original_owner != caller {
+            sc.update_energy_and_progress(caller);
+
+            return BigUint::zero();
+        }
+
         let total_rewards_per_block = sc.per_block_reward_amount().get();
         sc.claim_boosted_yields_rewards(
             caller,
@@ -262,6 +269,7 @@ where
         let boosted_yield_rewards = Self::calculate_boosted_rewards(
             sc,
             caller,
+            token_attributes,
             farm_token_amount,
             &storage_cache.farm_token_supply,
         );

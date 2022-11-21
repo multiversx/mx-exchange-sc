@@ -190,6 +190,7 @@ where
             entering_epoch: expected_entering_epoch,
             compounded_reward: managed_biguint!(expected_compounded_reward),
             current_farm_amount: managed_biguint!(expected_total_out_amount),
+            original_owner: managed_address!(&self.user_address),
         };
         b_mock.check_nft_balance(
             &self.user_address,
@@ -299,6 +300,7 @@ where
             entering_epoch: 0,
             compounded_reward: managed_biguint!(0),
             current_farm_amount: managed_biguint!(farm_token_amount),
+            original_owner: managed_address!(&self.user_address),
         };
 
         b_mock.check_nft_balance(
