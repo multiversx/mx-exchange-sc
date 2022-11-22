@@ -13,3 +13,9 @@ impl<T> Unwrappable<T> for Option<T> {
         self.unwrap_or_else(|| M::error_api_impl().signal_error(CANNOT_UNWRAP_MSG))
     }
 }
+
+impl<T, E> Unwrappable<T> for Result<T, E> {
+    fn unwrap_or_panic<M: ManagedTypeApi>(self) -> T {
+        self.unwrap_or_else(|_| M::error_api_impl().signal_error(CANNOT_UNWRAP_MSG))
+    }
+}

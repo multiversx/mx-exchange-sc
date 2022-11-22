@@ -35,11 +35,7 @@ pub trait FeesAccumulationModule:
                 .update(|locked_fees| locked_fees.push(payment.clone()));
         }
 
-        self.emit_deposit_swap_fees_event(
-            caller,
-            current_week,
-            payment
-        );
+        self.emit_deposit_swap_fees_event(caller, current_week, payment);
     }
 
     fn collect_accumulated_fees_for_week(

@@ -15,6 +15,9 @@ features = ["esdt-token-payment-legacy-decode",]
 [dependencies.elrond-wasm-modules]
 version = "=0.36.1"
 
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
 

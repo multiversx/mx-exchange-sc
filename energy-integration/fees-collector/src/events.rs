@@ -8,7 +8,7 @@ pub trait FeesCollectorEventsModule {
         self,
         caller: ManagedAddress,
         current_week: Week,
-        payment: EsdtTokenPayment<Self::Api>
+        payment: EsdtTokenPayment<Self::Api>,
     ) {
         self.deposit_swap_fees_event(caller, current_week, payment);
     }
