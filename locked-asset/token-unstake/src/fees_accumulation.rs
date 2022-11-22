@@ -8,7 +8,9 @@ use energy_factory::{
 use simple_lock::locked_token::LockedTokenAttributes;
 use week_timekeeping::EPOCHS_IN_WEEK;
 
-use crate::{fees_merging::EncodabLockedAmountWeightAttributesPair, tokens_per_user::UnstakePair};
+use crate::{
+    events, fees_merging::EncodabLockedAmountWeightAttributesPair, tokens_per_user::UnstakePair,
+};
 
 pub mod fees_collector_proxy {
     elrond_wasm::imports!();
@@ -29,6 +31,7 @@ pub trait FeesAccumulationModule:
     + energy_factory::lock_options::LockOptionsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + events::EventsModule
 {
     #[payable("*")]
     #[endpoint(depositUserTokens)]
@@ -55,6 +58,9 @@ pub trait FeesAccumulationModule:
             });
 
         self.send_fees_to_collector();
+
+        let new_unlocked_tokens = self.unlocked_tokens_for_user(&user).get();
+        self.emit_unlocked_tokens_event(&user, new_unlocked_tokens);
     }
 
     #[payable("*")]
