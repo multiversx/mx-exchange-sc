@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
-use math::weighted_average;
+use math::weighted_average_round_up;
 use mergeable::Mergeable;
 
 static NOT_IMPLEMENTED_ERR_MSG: &[u8] = b"Conversion not implemented";
@@ -88,7 +88,7 @@ impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
     fn merge_with(&mut self, other: Self) {
         let first_supply = self.get_total_supply();
         let second_supply = other.get_total_supply();
-        self.reward_per_share = weighted_average(
+        self.reward_per_share = weighted_average_round_up(
             self.reward_per_share.clone(),
             first_supply,
             other.reward_per_share.clone(),

@@ -17,7 +17,6 @@ fn setup_test() {
     let _ = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
-        farm::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -28,7 +27,6 @@ fn add_remove_liquidity_proxy_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
-        farm::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
@@ -183,7 +181,6 @@ fn wrapped_lp_token_merge_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
-        farm::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );

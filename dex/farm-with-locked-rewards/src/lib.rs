@@ -91,13 +91,20 @@ pub trait Farm:
         let payments = self.get_non_empty_payments();
         let first_additional_payment_index = 1;
         let boosted_rewards = match payments.try_get(first_additional_payment_index) {
-            Some(p) => self.claim_only_boosted_payment(&orig_caller, &p),
+            Some(p) => {
+                let unlocked_rewards = self.claim_only_boosted_payment(&orig_caller, &p);
+                self.send_to_lock_contract_non_zero(
+                    unlocked_rewards.token_identifier,
+                    unlocked_rewards.amount,
+                    caller.clone(),
+                    orig_caller.clone(),
+                )
+            }
             None => EsdtTokenPayment::new(self.reward_token_id().get(), 0, BigUint::zero()),
         };
 
         let new_farm_token = self.enter_farm::<NoMintWrapper<Self>>(orig_caller.clone());
         self.send_payment_non_zero(&caller, &new_farm_token);
-        self.send_payment_non_zero(&caller, &boosted_rewards);
 
         self.update_energy_and_progress(&orig_caller);
 

@@ -48,7 +48,8 @@ pub trait StakeFarmModule:
 
     fn stake_farm_common(&self, payments: PaymentsVec<Self::Api>) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
-        let enter_result = self.enter_farm_base::<FarmStakingWrapper<Self>>(payments);
+        let enter_result =
+            self.enter_farm_base::<FarmStakingWrapper<Self>>(caller.clone(), payments);
 
         let new_farm_token = enter_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &new_farm_token);

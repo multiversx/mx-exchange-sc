@@ -84,8 +84,8 @@ fn transfer_locked_token_test() {
 
             sc.locked_token()
                 .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
-            sc.locked_token_transfer_sc_address()
-                .set(&managed_address!(transfer_sc_wrapper.address_ref()));
+            sc.token_transfer_whitelist()
+                .add(&managed_address!(transfer_sc_wrapper.address_ref()));
             sc.set_paused(false);
         })
         .assert_ok();

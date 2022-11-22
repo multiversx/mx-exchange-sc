@@ -1,5 +1,5 @@
 use common_structs::FarmTokenAttributes;
-use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
+use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::farm_with_locked_rewards_setup::{
@@ -37,6 +37,7 @@ fn farm_with_no_boost_no_proxy_test() {
         entering_epoch: 0,
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(first_farm_token_amount),
+        original_owner: managed_address!(&first_user),
     };
     let first_rewards_amt =
         farm_setup.calculate_rewards(&first_user, first_farm_token_amount, first_attributes);
@@ -49,6 +50,7 @@ fn farm_with_no_boost_no_proxy_test() {
         entering_epoch: 0,
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(second_farm_token_amount),
+        original_owner: managed_address!(&second_user),
     };
     let second_rewards_amt =
         farm_setup.calculate_rewards(&second_user, second_farm_token_amount, second_attributes);
