@@ -1,0 +1,144 @@
+{
+    "name": "Simple lock whitelist",
+    "comment": "",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:ASHEGLD-123456": {
+                            "balance": "1000000000000000000"
+                        },
+                        "str:ASHUSDC-123456": {
+                            "balance": "1000000000000000000"
+                        }
+                    }
+                },
+                "sc:farm_old": {
+                    "nonce": "0",
+                    "code": "file:../../simple-lock-whitelist/mandos/old-farm.wasm",
+                    "esdt": {
+                        "str:FARMOLD-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:state": "1",
+                        "str:farming_token_id": "str:ASHEGLD-123456",
+                        "str:reward_token_id": "str:MEX-123456",
+                        "str:farm_token_id": "str:FARMOLD-123456",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:per_block_reward_amount": "1000000000000000000",
+                        "str:produce_rewards_enabled": "1"
+                    },
+                    "owner": "address:owner"
+                },
+                "sc:farm-locked-rewards_old": {
+                    "nonce": "0",
+                    "code": "file:../../simple-lock-whitelist/mandos/old-farm_locked_rewards.wasm",
+                    "esdt": {
+                        "str:FARMLKOLD-123456": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:state": "1",
+                        "str:farming_token_id": "str:ASHEGLD-123456",
+                        "str:reward_token_id": "str:MEX-123456",
+                        "str:farm_token_id": "str:FARMLKOLD-123456",
+                        "str:division_safety_constant": "1000000000000",
+                        "str:per_block_reward_amount": "1000000000000000000",
+                        "str:produce_rewards_enabled": "0x01",
+                        "str:penalty_percent": "u64:0",
+                        "str:minimum_farming_epochs": "u8:0",
+                        "str:locked_asset_factory_address": "sc:factory",
+                        "str:transfer_exec_gas_limit": "50000000"
+                    },
+                    "owner": "address:owner"
+                },
+                "sc:factory": {
+                    "nonce": "0",
+                    "code": "file:../../factory/output/factory.wasm",
+                    "owner": "address:owner",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:init_epoch": "u64:1",
+                        "str:extended_attributes_activation_nonce": "u64:10",
+                        "str:asset_token_id": "str:MEX-123456",
+                        "str:locked_asset_token_id": "str:LKMEX-abcdef",
+                        "str:default_unlock_period": "0x00000002000000000000001b32000000000000002c32",
+                        "str:transfer_exec_gas_limit": "50000000"
+                    }
+                },
+                "sc:proxy_dex_exit_only": {
+                    "nonce": "0",
+                    "code": "file:../output/proxy_dex_exit_only.wasm",
+                    "owner": "address:owner",
+                    "esdt": {
+                        "str:LKMEX-abcdef": {
+                            "roles": [
+                                "ESDTRoleNFTCreate",
+                                "ESDTRoleNFTAddQuantity",
+                                "ESDTRoleNFTBurn"
+                            ]
+                        },
+                        "str:MEX-123456": {
+                            "roles": [
+                                "ESDTRoleLocalMint",
+                                "ESDTRoleLocalBurn"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "factory-whitelist-farm",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:factory",
+                "egldValue": "0",
+                "function": "whitelist",
+                "arguments": [
+                    "sc:farm-locked-rewards_old"
+                ],
+                "gasLimit": "25,000,000"
+            },
+            "expect": {
+                "status": "0",
+                "out": []
+            }
+        }
+    ]
+}

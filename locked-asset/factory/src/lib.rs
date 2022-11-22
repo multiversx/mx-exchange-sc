@@ -117,6 +117,7 @@ pub trait LockedAssetFactory:
         self.common_create_and_forward(amount, &address, &caller, start_epoch, unlock_period)
     }
 
+    /// Can be called even if paused.
     #[endpoint(createAndForward)]
     fn create_and_forward(
         &self,
@@ -124,8 +125,6 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
     ) -> EsdtTokenPayment<Self::Api> {
-        self.require_not_paused();
-
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),

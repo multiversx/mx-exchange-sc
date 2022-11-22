@@ -1,0 +1,27 @@
+{
+    "name": "exit farm test",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "sc_setup.json"
+        },
+        {
+            "step": "setState",
+            "comment": "simulate user enter farm through proxy",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "esdt": {
+                        "str:ASHEGLD-123456": {
+                            "balance": "1000000000000000000"
+                        },
+                        "str:ASHUSDC-123456": {
+                            "balance": "1000000000000000000"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
