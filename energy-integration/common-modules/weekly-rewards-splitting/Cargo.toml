@@ -22,3 +22,6 @@ path = "../../common-types"
 
 [dependencies.unwrappable]
 path = "../../../common/traits/unwrappable"
+
+[dependencies.math]
+path = "../../../common/modules/math"

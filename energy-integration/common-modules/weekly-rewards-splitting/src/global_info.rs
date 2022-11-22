@@ -59,27 +59,21 @@ pub trait WeeklyRewardsGlobalInfo:
             return;
         }
 
-        let total_energy_prev_week = self.total_energy_for_week(last_global_update_week).get();
-        let total_tokens_prev_week = self
+        let mut total_energy = self.total_energy_for_week(last_global_update_week).get();
+        let mut total_tokens = self
             .total_locked_tokens_for_week(last_global_update_week)
             .get();
 
         let week_diff = current_week - last_global_update_week;
-        let total_tokens_with_no_energy =
-            self.shift_buckets_and_get_removed_token_amount(week_diff);
-        let total_tokens_for_current_week = total_tokens_prev_week - total_tokens_with_no_energy;
+        self.shift_buckets_and_update_tokens_energy(
+            week_diff,
+            &mut total_tokens,
+            &mut total_energy,
+        );
 
-        let energy_deplete = &total_tokens_for_current_week * EPOCHS_IN_WEEK * week_diff as u64;
-        let energy_for_current_week = if total_energy_prev_week >= energy_deplete {
-            total_energy_prev_week - energy_deplete
-        } else {
-            BigUint::zero()
-        };
-
-        self.total_energy_for_week(current_week)
-            .set(&energy_for_current_week);
+        self.total_energy_for_week(current_week).set(&total_energy);
         self.total_locked_tokens_for_week(current_week)
-            .set(&total_tokens_for_current_week);
+            .set(&total_tokens);
     }
 
     fn update_and_get_total_tokens_amounts_after_user_energy_update(
