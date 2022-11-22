@@ -1,3 +1,5 @@
+use crate::events;
+
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
@@ -9,6 +11,7 @@ pub trait UnbondTokensModule:
     + energy_factory::lock_options::LockOptionsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + events::EventsModule
 {
     #[endpoint(claimUnlockedTokens)]
     fn claim_unlocked_tokens(&self) -> MultiValueEncoded<EsdtTokenPayment> {
@@ -58,6 +61,9 @@ pub trait UnbondTokensModule:
         }
 
         self.send().direct_multi(&caller, &output_payments);
+
+        let new_unlocked_tokens = self.unlocked_tokens_for_user(&caller).get();
+        self.emit_unlocked_tokens_event(&caller, new_unlocked_tokens);
 
         output_payments.into()
     }

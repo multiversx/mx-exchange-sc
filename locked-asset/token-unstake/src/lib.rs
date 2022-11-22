@@ -3,6 +3,7 @@
 elrond_wasm::imports!();
 
 pub mod cancel_unstake;
+pub mod events;
 pub mod fees_accumulation;
 pub mod fees_merging;
 pub mod tokens_per_user;
@@ -22,6 +23,7 @@ pub trait TokenUnstakeModule:
     + energy_query::EnergyQueryModule
     + energy_factory::penalty::LocalPenaltyModule
     + energy_factory::lock_options::LockOptionsModule
+    + events::EventsModule
 {
     /// Needs burn role for both the unlocked and locked token
     #[init]
