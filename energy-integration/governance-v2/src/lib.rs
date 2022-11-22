@@ -8,8 +8,11 @@ pub mod proposal;
 pub mod proposal_storage;
 pub mod views;
 
+
 use proposal::*;
 use proposal_storage::VoteType;
+
+use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
@@ -75,7 +78,6 @@ pub trait GovernanceV2:
     ) -> ProposalId {
         self.require_caller_not_self();
         require!(!root_hash.is_empty(), "Invalid root hash provided");
-        require!(!actions.is_empty(), "Proposal has no actions");
         require!(
             actions.len() <= MAX_GOVERNANCE_PROPOSAL_ACTIONS,
             "Exceeded max actions per proposal"
@@ -118,6 +120,15 @@ pub trait GovernanceV2:
             self.required_payments_for_proposal(proposal_id)
                 .set(&payments_for_action);
         }
+
+        let proposal_votes = ProposalVotes::new(
+            BigUint::zero(),
+            BigUint::zero(),
+            BigUint::zero(),
+            BigUint::zero(),
+        );
+
+        self.proposal_votes(proposal_id).set(proposal_votes);
 
         let current_block = self.blockchain().get_block_nonce();
         self.proposal_start_block(proposal_id).set(current_block);
@@ -336,20 +347,27 @@ pub trait GovernanceV2:
 
         self.proposal_votes(proposal_id).clear();
     }
-
+    
     fn verify_merkle_proof(&self, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, 18>, root_hash: ManagedByteArray<HASH_LENGTH>) -> bool {
         let caller = self.blockchain().get_caller().clone();
         let mut leaf_bytes = caller.as_managed_buffer().clone();
-        leaf_bytes.append(&power.to_bytes_be_buffer());
 
-        let mut hash = self.crypto().sha256(leaf_bytes);
+        let p = power.to_bytes_be_buffer();
+
+        leaf_bytes.append(&p);
+
+        let mut hash = self.crypto().sha256(&leaf_bytes);
+
         for proof_item in proof {
-            if hash.to_byte_array() < proof_item.to_byte_array() {
+            if BigUint::from(hash.as_managed_buffer()) < BigUint::from(proof_item.as_managed_buffer()) {
+                // sc_print!("going if {:x} - {:x}", hash, proof_item);
                 let mut tst = hash.as_managed_buffer().clone();
                 tst.append(proof_item.as_managed_buffer());
 
                 hash = self.crypto().sha256(tst);
             } else {
+                // sc_print!("going else {:x} - {:x}", hash, proof_item);
+
                 let mut tst = proof_item.as_managed_buffer().clone();
                 tst.append(hash.as_managed_buffer());
 
