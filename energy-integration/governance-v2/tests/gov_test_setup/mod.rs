@@ -105,8 +105,7 @@ where
 
         b_mock
             .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
-                sc.governance_token_id()
-                    .set(managed_token_id!(LKMEX_TOKEN_ID));
+                sc.fee_token_id().set(managed_token_id!(LKMEX_TOKEN_ID));
             })
             .assert_ok();
 

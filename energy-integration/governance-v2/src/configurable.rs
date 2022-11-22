@@ -172,7 +172,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[storage_mapper("lockTimeAfterVotingEndsInBlocks")]
     fn lock_time_after_voting_ends_in_blocks(&self) -> SingleValueMapper<u64>;
 
-    #[view(getGovernanceTokenId)]
-    #[storage_mapper("governanceTokenId")]
-    fn governance_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+    #[view(getFeeTokenId)]
+    #[storage_mapper("feeTokenId")]
+    fn fee_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

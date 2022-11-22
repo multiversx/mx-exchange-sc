@@ -16,6 +16,7 @@ use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
+const MIN_AMOUNT_PER_DEPOSIT: u64 = 1;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
@@ -42,10 +43,12 @@ pub trait GovernanceV2:
 
         let additional_fee = self.call_value().single_esdt();
         require!(
-            self.governance_token_id()
-                .get()
-                .eq(&additional_fee.token_identifier),
+            self.fee_token_id().get() == additional_fee.token_identifier,
             WRONG_TOKEN_ID
+        );
+        require!(
+            additional_fee.amount >= MIN_AMOUNT_PER_DEPOSIT,
+            MIN_AMOUNT_NOT_REACHED
         );
 
         let caller = self.blockchain().get_caller();
@@ -74,28 +77,26 @@ pub trait GovernanceV2:
         let caller = self.blockchain().get_caller();
         let mut proposal = self.proposals().get(proposal_id);
 
-        for fee_entry in proposal.fees.entries.iter() {
-            if caller == fee_entry.depositor_addr {
-                let payment = fee_entry.tokens;
-                self.send().direct_esdt(
-                    &fee_entry.depositor_addr,
-                    &payment.token_identifier,
-                    payment.token_nonce,
-                    &payment.amount,
-                );
-
-                let index = proposal
-                    .fees
-                    .entries
-                    .iter()
-                    .position(|fee_entry| fee_entry.depositor_addr == caller)
-                    .unwrap();
-                proposal.fees.entries.remove(index);
-
-                self.proposals().set(proposal_id, &proposal);
-                self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
-                return;
+        let mut fees_to_send = ManagedVec::<Self::Api, FeeEntry<Self::Api>>::new();
+        let mut i = 0;
+        while i < proposal.fees.entries.len() {
+            if proposal.fees.entries.get(i).depositor_addr == caller {
+                fees_to_send.push(proposal.fees.entries.get(i));
+                proposal.fees.entries.remove(i);
+            } else {
+                i += 1;
             }
+        }
+
+        for fee_entry in fees_to_send.iter() {
+            let payment = fee_entry.tokens;
+
+            self.send().direct_esdt(
+                &fee_entry.depositor_addr,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
         }
     }
 
@@ -136,9 +137,7 @@ pub trait GovernanceV2:
 
         let user_fee = self.call_value().single_esdt();
         require!(
-            self.governance_token_id()
-                .get()
-                .eq(&user_fee.token_identifier),
+            self.fee_token_id().get() == user_fee.token_identifier,
             WRONG_TOKEN_ID
         );
 
@@ -160,11 +159,14 @@ pub trait GovernanceV2:
             "Actions require too much gas to be executed"
         );
 
-        let mut fees_entries = ManagedVec::new();
-        fees_entries.push(FeeEntry {
+        let fees_entries = ManagedVec::from_single_item(FeeEntry {
             depositor_addr: proposer.clone(),
             tokens: user_fee.clone(),
         });
+        // fees_entries.push(FeeEntry {
+        //     depositor_addr: proposer.clone(),
+        //     tokens: user_fee.clone(),
+        // });
 
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
@@ -324,7 +326,6 @@ pub trait GovernanceV2:
             }
             GovernanceProposalStatus::Defeated => {}
             GovernanceProposalStatus::WaitingForFees => {
-                // TODO: Dacă propunerea e defeated, dăm fee-ul înapoi?
                 self.refund_payments(proposal_id);
             }
             _ => {
@@ -360,9 +361,7 @@ pub trait GovernanceV2:
 
     fn refund_payments(&self, proposal_id: ProposalId) {
         let payments = self.proposals().get(proposal_id).fees;
-        if payments.entries.is_empty() {
-            return;
-        }
+
         for fee_entry in payments.entries.iter() {
             let payment = fee_entry.tokens;
             self.send().direct_esdt(
