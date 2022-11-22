@@ -1,6 +1,7 @@
 elrond_wasm::imports!();
 
 use energy_query::Energy;
+use math::safe_sub;
 use unwrappable::Unwrappable;
 use week_timekeeping::EPOCHS_IN_WEEK;
 
@@ -13,23 +14,27 @@ pub struct BucketPair {
 
 #[elrond_wasm::module]
 pub trait WeeklyRewardsLockedTokenBucketsModule {
-    fn shift_buckets_and_get_removed_token_amount(&self, nr_pos_to_shift: usize) -> BigUint {
+    fn shift_buckets_and_update_tokens_energy(
+        &self,
+        nr_pos_to_shift: usize,
+        total_tokens: &mut BigUint,
+        energy_amount: &mut BigUint,
+    ) {
         let first_bucket_id_mapper = self.first_bucket_id();
-
-        let mut total_removed_tokens = BigUint::zero();
         let mut first_bucket_id = first_bucket_id_mapper.get();
         for _ in 0..nr_pos_to_shift {
             let bucket_mapper = self.locked_tokens_in_bucket(first_bucket_id);
             let tokens_in_bucket = bucket_mapper.get();
             bucket_mapper.clear();
 
-            total_removed_tokens += tokens_in_bucket;
+            *total_tokens -= tokens_in_bucket;
+            let energy_deplete = &*total_tokens * EPOCHS_IN_WEEK;
+            *energy_amount = safe_sub((*energy_amount).clone(), energy_deplete);
+
             first_bucket_id += 1;
         }
 
         first_bucket_id_mapper.set(first_bucket_id);
-
-        total_removed_tokens
     }
 
     fn reallocate_bucket_after_energy_update(

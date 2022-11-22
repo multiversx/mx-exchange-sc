@@ -8,9 +8,7 @@ use energy_factory::{
 use simple_lock::locked_token::LockedTokenAttributes;
 use week_timekeeping::EPOCHS_IN_WEEK;
 
-use crate::{
-    events, fees_merging::EncodabLockedAmountWeightAttributesPair, tokens_per_user::UnstakePair,
-};
+use crate::{events, tokens_per_user::UnstakePair};
 
 pub mod fees_collector_proxy {
     elrond_wasm::imports!();
@@ -95,12 +93,10 @@ pub trait FeesAccumulationModule:
             } else {
                 let token_attributes: LockedTokenAttributes<Self::Api> =
                     self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
-                let ref_instance =
-                    LockedAmountWeightAttributesPair::new(self, remaining_amount, token_attributes);
-                let encodable_instance =
-                    EncodabLockedAmountWeightAttributesPair::from_ref_instance(ref_instance);
+                let output_pair =
+                    LockedAmountWeightAttributesPair::new(remaining_amount, token_attributes);
 
-                fees_mapper.set(&encodable_instance);
+                fees_mapper.set(&output_pair);
             }
         }
 
