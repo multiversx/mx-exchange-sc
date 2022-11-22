@@ -77,8 +77,7 @@ fn token_merging_test() {
     assert_eq!(first_token_unlock_epoch, 360);
     assert_eq!(second_token_unlock_epoch, 720);
 
-    // (400_000 * 360 + 100_000 * 720) / 500_000 = 4_400
-    // 6_400 unlock fee -> epoch 432
+    // (400_000 * 360 + 100_000 * 720) / 500_000 = epoch 432
     // -> start of month (upper) = 450
     let expected_merged_token_unlock_epoch = 450;
     setup.b_mock.check_nft_balance(
@@ -148,8 +147,7 @@ fn token_merging_different_years_test() {
     assert_eq!(first_token_unlock_epoch, 720);
     assert_eq!(second_token_unlock_epoch, 1440);
 
-    // (400_000 * 6_000 + 100_000 * 8_000) / 500_000 = 6_400 (unlock fee)
-    // 6_400 unlock fee -> epoch 864
+    // (400_000 * 720 + 100_000 * 1440) / 500_000 = epoch 864
     // -> start of month (upper) = 870
     let expected_merged_token_unlock_epoch = 870;
     setup.b_mock.check_nft_balance(
@@ -219,10 +217,9 @@ fn token_merging_different_years2_test() {
     assert_eq!(first_token_unlock_epoch, 360);
     assert_eq!(second_token_unlock_epoch, 1440);
 
-    // (400_000 * 4_000 + 100_000 * 8_000) / 500_000 = 4_800
-    // 4_800 unlock fee -> epoch 504
-    // -> start of month (upper) = 510
-    let expected_merged_token_unlock_epoch = 510;
+    // (400_000 * 360 + 100_000 * 1_440) / 500_000 = 576 unlock epoch
+    // -> start of month (upper) = 600
+    let expected_merged_token_unlock_epoch = 600;
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,
