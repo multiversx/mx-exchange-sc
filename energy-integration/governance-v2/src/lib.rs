@@ -359,14 +359,11 @@ pub trait GovernanceV2:
 
         for proof_item in proof {
             if BigUint::from(hash.as_managed_buffer()) < BigUint::from(proof_item.as_managed_buffer()) {
-                // sc_print!("going if {:x} - {:x}", hash, proof_item);
                 let mut tst = hash.as_managed_buffer().clone();
                 tst.append(proof_item.as_managed_buffer());
 
                 hash = self.crypto().sha256(tst);
             } else {
-                // sc_print!("going else {:x} - {:x}", hash, proof_item);
-
                 let mut tst = proof_item.as_managed_buffer().clone();
                 tst.append(hash.as_managed_buffer());
 
