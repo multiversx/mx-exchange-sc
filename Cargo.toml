@@ -44,6 +44,8 @@ members = [
   "locked-asset/proxy_dex_exit_only/meta",
   "locked-asset/lkmex-transfer",
   "locked-asset/lkmex-transfer/meta",
+  "locked-asset/locked-token-wrapper",
+  "locked-asset/locked-token-wrapper/meta",
   "locked-asset/factory",
   "locked-asset/factory/meta",
   "locked-asset/simple-lock",
