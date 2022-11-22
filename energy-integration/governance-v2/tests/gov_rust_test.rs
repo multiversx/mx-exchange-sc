@@ -1,7 +1,5 @@
 mod gov_test_setup;
 
-use elrond_wasm::{types::ManagedByteArray, arrayvec::ArrayVec};
-use elrond_wasm::hex_literal::hex;
 use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 use gov_test_setup::*;
 use governance_v2::{
