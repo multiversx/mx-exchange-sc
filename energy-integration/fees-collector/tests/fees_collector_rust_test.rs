@@ -770,3 +770,64 @@ fn locked_token_buckets_shifting_test() {
         })
         .assert_ok();
 }
+
+#[test]
+fn multi_bucket_shift_consistency_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 1_000, 7_000);
+    fc_setup.set_energy(&second_user, 100, 2_100);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+
+    // user claim first week - users only get registered for week 2, without receiving rewards
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(sc.first_bucket_id().get(), 0);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(1).get(),
+                managed_biguint!(1_100)
+            );
+
+            assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
+            assert_eq!(sc.locked_tokens_in_bucket(1).get(), managed_biguint!(1_000));
+            assert_eq!(sc.locked_tokens_in_bucket(2).get(), managed_biguint!(0));
+            assert_eq!(sc.locked_tokens_in_bucket(3).get(), managed_biguint!(100));
+        })
+        .assert_ok();
+
+    // advance two weeks
+    fc_setup.advance_week();
+    fc_setup.advance_week();
+
+    // check internal storage after shift
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            sc.perform_weekly_update(3);
+
+            // 2 weeks passed since last update, so first_bucket_id => 0 + 2
+            // first user's tokens were shifted out, only second user remains
+            assert_eq!(sc.first_bucket_id().get(), 2);
+            assert_eq!(sc.total_locked_tokens_for_week(3).get(), 100u64);
+
+            // for week 2: energy -= 7 * 1_100 => 9_100 - 7_700 => 1_400
+            // for week 3: energy -= 7 * 100 => 1_400 - 700 => 700
+            assert_eq!(sc.total_energy_for_week(3).get(), 700u64);
+        })
+        .assert_ok();
+}

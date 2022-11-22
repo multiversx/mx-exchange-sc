@@ -4,11 +4,12 @@ use elrond_wasm::types::{EsdtTokenPayment, ManagedVec};
 use elrond_wasm_debug::{
     managed_address, managed_token_id, managed_token_id_wrapped, rust_biguint, DebugApi,
 };
+use energy_factory::token_merging::LockedAmountWeightAttributesPair;
 use num_bigint::ToBigInt;
 use num_traits::cast::ToPrimitive;
 use simple_lock::locked_token::LockedTokenAttributes;
 use token_unstake::{
-    fees_merging::{EncodabLockedAmountWeightAttributesPair, FeesMergingModule},
+    fees_merging::FeesMergingModule,
     tokens_per_user::{TokensPerUserModule, UnstakePair},
 };
 use token_unstake_setup::*;
@@ -167,10 +168,9 @@ where
         .b_mock
         .execute_query(&setup.unstake_sc_wrapper, |sc| {
             let actual_fees = sc.fees_from_penalty_unlocking().get();
-            let expected_fees = EncodabLockedAmountWeightAttributesPair::<DebugApi> {
+            let expected_fees = LockedAmountWeightAttributesPair::<DebugApi> {
                 // half is burned, half is kept as fees
                 token_amount: to_managed_biguint(penalty_amount.clone() / 2u64),
-                token_unlock_fee_percent: PENALTY_PERCENTAGES[2],
                 attributes: LockedTokenAttributes::<DebugApi> {
                     original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
                     original_token_nonce: 0,
@@ -214,16 +214,14 @@ where
 
     // check merged fees
     let new_total_fees = penalty_amount / 2u64 + second_penalty_amount / 2u64;
-    let new_fee_percent = 7_500; // weighted average over penalty of 8_000 and 6_000
-    let new_unlock_epoch = 1_290; // from 7_500 penalty (of 8_000) max => max 1_440 to 1_290
+    let new_unlock_epoch = 1_290;
     setup
         .b_mock
         .execute_query(&setup.unstake_sc_wrapper, |sc| {
             let actual_fees = sc.fees_from_penalty_unlocking().get();
-            let expected_fees = EncodabLockedAmountWeightAttributesPair::<DebugApi> {
+            let expected_fees = LockedAmountWeightAttributesPair::<DebugApi> {
                 // half is burned, half is kept as fees
                 token_amount: to_managed_biguint(new_total_fees.clone()),
-                token_unlock_fee_percent: new_fee_percent,
                 attributes: LockedTokenAttributes::<DebugApi> {
                     original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
                     original_token_nonce: 0,
