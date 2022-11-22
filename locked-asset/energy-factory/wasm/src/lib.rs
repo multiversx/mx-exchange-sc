@@ -28,7 +28,6 @@ elrond_wasm_node::wasm_endpoints! {
         migrateOldTokens
         pause
         reduceLockPeriod
-        removeLockOptions
         removeSCAddressFromWhitelist
         revertUnstake
         setBurnRoleLockedToken

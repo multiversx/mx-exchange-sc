@@ -51,26 +51,6 @@ pub trait LockOptionsEndpointsModule: crate::lock_options::LockOptionsModule {
         });
     }
 
-    #[only_owner]
-    #[endpoint(removeLockOptions)]
-    fn remove_lock_options(&self, options_to_remove: MultiValueEncoded<Epoch>) {
-        self.lock_options().update(|options| {
-            require!(
-                options_to_remove.len() <= options.len(),
-                "Trying to remove too many options"
-            );
-
-            let mut options_to_remove_vec = ArrayVec::<_, MAX_LOCK_OPTIONS>::new();
-            for to_remove in options_to_remove {
-                unsafe {
-                    options_to_remove_vec.push_unchecked(to_remove);
-                }
-            }
-
-            options.retain(|elem| !options_to_remove_vec.contains(&elem.lock_epochs));
-        });
-    }
-
     #[view(getLockOptions)]
     fn get_lock_options_view(&self) -> AllLockOptions {
         self.lock_options().get()
