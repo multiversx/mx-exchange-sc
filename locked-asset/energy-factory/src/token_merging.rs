@@ -1,51 +1,30 @@
 elrond_wasm::imports!();
+elrond_wasm::derive_imports!();
 
 use common_structs::PaymentsVec;
-use math::{safe_sub, weighted_average};
+use math::weighted_average;
 use mergeable::{throw_not_mergeable_error, Mergeable};
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
 
 use crate::{energy::Energy, unlock_with_penalty::TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG};
 
-#[derive(Clone)]
-pub struct LockedAmountWeightAttributesPair<'a, Sc>
-where
-    Sc: crate::penalty::LocalPenaltyModule,
-{
-    pub sc_ref: &'a Sc,
-    pub token_amount: BigUint<Sc::Api>,
-    pub token_unlock_fee_percent: u64,
-    pub attributes: LockedTokenAttributes<Sc::Api>,
+#[derive(TopEncode, TopDecode, Clone, PartialEq, Debug)]
+pub struct LockedAmountWeightAttributesPair<M: ManagedTypeApi> {
+    pub token_amount: BigUint<M>,
+    pub attributes: LockedTokenAttributes<M>,
 }
 
-impl<'a, Sc> LockedAmountWeightAttributesPair<'a, Sc>
-where
-    Sc: crate::penalty::LocalPenaltyModule,
-{
-    pub fn new(
-        sc_ref: &'a Sc,
-        token_amount: BigUint<Sc::Api>,
-        attributes: LockedTokenAttributes<Sc::Api>,
-    ) -> Self {
-        let current_epoch = sc_ref.blockchain().get_block_epoch();
-        let lock_epochs_remaining = safe_sub(attributes.unlock_epoch, current_epoch);
-        let token_unlock_fee_percent =
-            sc_ref.calculate_penalty_percentage_full_unlock(lock_epochs_remaining);
-
+impl<M: ManagedTypeApi> LockedAmountWeightAttributesPair<M> {
+    pub fn new(token_amount: BigUint<M>, attributes: LockedTokenAttributes<M>) -> Self {
         Self {
-            sc_ref,
             token_amount,
-            token_unlock_fee_percent,
             attributes,
         }
     }
 }
 
-impl<'a, Sc> Mergeable<Sc::Api> for LockedAmountWeightAttributesPair<'a, Sc>
-where
-    Sc: crate::penalty::LocalPenaltyModule,
-{
+impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for LockedAmountWeightAttributesPair<M> {
     fn can_merge_with(&self, other: &Self) -> bool {
         let same_token_id = self.attributes.original_token_id == other.attributes.original_token_id;
         let same_token_nonce =
@@ -64,18 +43,15 @@ where
             other.token_amount.clone(),
         )
         .to_u64()
-        .unwrap_or_panic::<Sc::Api>();
+        .unwrap_or_panic::<M>();
 
-        let current_epoch = self.sc_ref.blockchain().get_block_epoch();
+        let current_epoch = M::blockchain_api_impl().get_block_epoch();
+
         if current_epoch > new_unlock_epoch {
-            throw_not_mergeable_error::<Sc::Api>();
+            throw_not_mergeable_error::<M>();
         } else {
-            let new_unlock_fee_percent = self
-                .sc_ref
-                .calculate_penalty_percentage_full_unlock(new_unlock_epoch - current_epoch);
             self.token_amount += other.token_amount;
             self.attributes.unlock_epoch = new_unlock_epoch;
-            self.token_unlock_fee_percent = new_unlock_fee_percent;
         }
     }
 }
@@ -127,7 +103,7 @@ pub trait TokenMergingModule:
         self,
         mut payments: PaymentsVec<Self::Api>,
         energy: &mut Energy<Self::Api>,
-    ) -> LockedAmountWeightAttributesPair<Self> {
+    ) -> LockedAmountWeightAttributesPair<Self::Api> {
         let locked_token_mapper = self.locked_token();
         locked_token_mapper.require_all_same_token(&payments);
 
@@ -150,11 +126,8 @@ pub trait TokenMergingModule:
 
         locked_token_mapper.nft_burn(first_payment.token_nonce, &first_payment.amount);
 
-        let mut output_pair = LockedAmountWeightAttributesPair::new(
-            self,
-            first_payment.amount,
-            first_token_attributes,
-        );
+        let mut output_pair =
+            LockedAmountWeightAttributesPair::new(first_payment.amount, first_token_attributes);
         for payment in &payments {
             let attributes: LockedTokenAttributes<Self::Api> =
                 locked_token_mapper.get_token_attributes(payment.token_nonce);
@@ -168,7 +141,7 @@ pub trait TokenMergingModule:
             locked_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
             let amount_attr_pair =
-                LockedAmountWeightAttributesPair::new(self, payment.amount, attributes);
+                LockedAmountWeightAttributesPair::new(payment.amount, attributes);
             output_pair.merge_with(amount_attr_pair);
         }
 
