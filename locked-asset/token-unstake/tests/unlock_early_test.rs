@@ -1,9 +1,8 @@
 mod token_unstake_setup;
 
-use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, DebugApi};
+use elrond_wasm_debug::{managed_address, managed_biguint, DebugApi};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
-use token_unstake::tokens_per_user::{TokensPerUserModule, UnstakePair};
 use token_unstake_setup::*;
 
 #[test]
