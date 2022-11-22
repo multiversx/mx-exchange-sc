@@ -36,9 +36,12 @@ pub trait ClaimBoostOnlyModule:
         payment: &EsdtTokenPayment,
     ) -> EsdtTokenPayment {
         let reward_token_id = self.reward_token_id().get();
+        let token_attributes =
+            self.get_attributes_as_part_of_fixed_supply(payment, &self.farm_token());
         let reward = Wrapper::<Self>::calculate_boosted_rewards(
             self,
             caller,
+            &token_attributes,
             &payment.amount,
             &self.farm_token_supply().get(),
         );

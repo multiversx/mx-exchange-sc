@@ -14,16 +14,25 @@ use proxy_dex::{
 use proxy_dex_test_setup::*;
 
 #[test]
+fn farm_proxy_setup_test() {
+    let _ = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+}
+
+#[test]
 fn farm_proxy_actions_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
-        farm::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );
     let first_user = setup.first_user.clone();
-    let farm_addr = setup.farm_wrapper.address_ref().clone();
+    let farm_addr = setup.farm_locked_wrapper.address_ref().clone();
 
     //////////////////////////////////////////// ENTER FARM /////////////////////////////////////
 
@@ -61,7 +70,7 @@ fn farm_proxy_actions_test() {
                 amount: managed_biguint!(USER_BALANCE),
             },
             farm_token: EsdtTokenPayment {
-                token_identifier: managed_token_id!(FARM_TOKEN_ID),
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
                 token_nonce: 1,
                 amount: managed_biguint!(USER_BALANCE),
             },
@@ -73,7 +82,7 @@ fn farm_proxy_actions_test() {
         .b_mock
         .check_nft_balance::<FarmTokenAttributes<DebugApi>>(
             setup.proxy_wrapper.address_ref(),
-            FARM_TOKEN_ID,
+            FARM_LOCKED_TOKEN_ID,
             1,
             &rust_biguint!(USER_BALANCE),
             None,
@@ -81,7 +90,7 @@ fn farm_proxy_actions_test() {
 
     // check farm balance
     setup.b_mock.check_esdt_balance(
-        setup.farm_wrapper.address_ref(),
+        setup.farm_locked_wrapper.address_ref(),
         MEX_TOKEN_ID,
         &rust_biguint!(USER_BALANCE),
     );
@@ -107,10 +116,12 @@ fn farm_proxy_actions_test() {
         .assert_ok();
 
     // check user balance
-    setup.b_mock.check_esdt_balance(
+    setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
-        MEX_TOKEN_ID,
+        LOCKED_TOKEN_ID,
+        3,
         &(rust_biguint!(PER_BLOCK_REWARD_AMOUNT) * 100u32 / 2u32),
+        None,
     );
     setup.b_mock.check_nft_balance::<Empty>(
         &first_user,
@@ -132,7 +143,7 @@ fn farm_proxy_actions_test() {
                 amount: managed_biguint!(USER_BALANCE),
             },
             farm_token: EsdtTokenPayment {
-                token_identifier: managed_token_id!(FARM_TOKEN_ID),
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
                 token_nonce: 1,
                 amount: managed_biguint!(USER_BALANCE),
             },
@@ -151,7 +162,7 @@ fn farm_proxy_actions_test() {
                 amount: managed_biguint!(USER_BALANCE / 2),
             },
             farm_token: EsdtTokenPayment {
-                token_identifier: managed_token_id!(FARM_TOKEN_ID),
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
                 token_nonce: 2,
                 amount: managed_biguint!(USER_BALANCE / 2),
             },
@@ -192,7 +203,7 @@ fn farm_proxy_actions_test() {
                 amount: managed_biguint!(USER_BALANCE),
             },
             farm_token: EsdtTokenPayment {
-                token_identifier: managed_token_id!(FARM_TOKEN_ID),
+                token_identifier: managed_token_id!(FARM_LOCKED_TOKEN_ID),
                 token_nonce: 3,
                 amount: managed_biguint!(USER_BALANCE),
             },
@@ -205,7 +216,6 @@ fn farm_proxy_claim_energy_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
-        farm::contract_obj,
         farm_with_locked_rewards::contract_obj,
         energy_factory::contract_obj,
     );

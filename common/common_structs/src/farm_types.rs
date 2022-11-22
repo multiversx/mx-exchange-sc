@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use fixed_supply_token::FixedSupplyToken;
-use math::weighted_average;
+use math::weighted_average_round_up;
 use mergeable::Mergeable;
 
 use crate::Epoch;
@@ -23,6 +23,7 @@ pub struct FarmTokenAttributes<M: ManagedTypeApi> {
     pub entering_epoch: Epoch,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
+    pub original_owner: ManagedAddress<M>,
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
@@ -43,21 +44,23 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
             entering_epoch: self.entering_epoch,
             compounded_reward: new_compounded_reward,
             current_farm_amount: new_current_farm_amount,
+            original_owner: self.original_owner,
         }
     }
 }
 
 impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> {
-    /// farm tokens can always be merged with each other
     #[inline]
-    fn can_merge_with(&self, _other: &Self) -> bool {
-        true
+    fn can_merge_with(&self, other: &Self) -> bool {
+        self.original_owner == other.original_owner
     }
 
     fn merge_with(&mut self, other: Self) {
+        self.error_if_not_mergeable(&other);
+
         let first_supply = self.get_total_supply();
         let second_supply = other.get_total_supply();
-        self.reward_per_share = weighted_average(
+        self.reward_per_share = weighted_average_round_up(
             self.reward_per_share.clone(),
             first_supply,
             other.reward_per_share.clone(),

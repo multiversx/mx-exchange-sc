@@ -121,11 +121,15 @@ fn gov_no_veto_vote_test() {
         .assert_ok();
 
     // Third User DownWithVetoVote
-    gov_setup.down_veto_vote(&third_user_addr, proposal_id).assert_ok();
+    gov_setup
+        .down_veto_vote(&third_user_addr, proposal_id)
+        .assert_ok();
 
     // queue Vote failed: 1001 DownVetoVotes > (3001 TotalVotes / 3)
     gov_setup.set_block_nonce(45);
-    gov_setup.queue(proposal_id).assert_user_error("Can only queue succeeded proposals");
+    gov_setup
+        .queue(proposal_id)
+        .assert_user_error("Can only queue succeeded proposals");
 }
 
 #[test]

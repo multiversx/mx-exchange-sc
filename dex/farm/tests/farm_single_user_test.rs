@@ -103,7 +103,9 @@ where
     let second_reward_share =
         0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount)
+        + second_reward_share * second_farm_in_amount
+        + total_amount
+        - 1)
         / total_amount;
 
     farm_setup.enter_farm(
@@ -141,14 +143,16 @@ fn test_exit_farm_after_enter_twice() {
     let second_reward_share =
         0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
     let prev_reward_per_share = (first_reward_share * farm_in_amount
-        + second_reward_share * second_farm_in_amount)
+        + second_reward_share * second_farm_in_amount
+        + total_farm_token
+        - 1)
         / total_farm_token;
     let new_reward_per_share = prev_reward_per_share
         + 25 * PER_BLOCK_REWARD_AMOUNT * DIVISION_SAFETY_CONSTANT / total_farm_token;
     let reward_per_share_diff = new_reward_per_share - prev_reward_per_share;
 
     let expected_reward_amount =
-        total_farm_token * reward_per_share_diff / DIVISION_SAFETY_CONSTANT + 1;
+        total_farm_token * reward_per_share_diff / DIVISION_SAFETY_CONSTANT;
     farm_setup.exit_farm(
         total_farm_token,
         2,
