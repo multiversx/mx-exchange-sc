@@ -18,7 +18,6 @@ use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
     SimpleLockEnergy,
 };
-use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenModule;
 
 use fees_collector_mock::*;
