@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::PaymentsVec;
 use math::weighted_average;
-use mergeable::{throw_not_mergeable_error, Mergeable};
+use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
 
@@ -45,14 +45,8 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for LockedAmountWeightAttri
         .to_u64()
         .unwrap_or_panic::<M>();
 
-        let current_epoch = M::blockchain_api_impl().get_block_epoch();
-
-        if current_epoch > new_unlock_epoch {
-            throw_not_mergeable_error::<M>();
-        } else {
-            self.token_amount += other.token_amount;
-            self.attributes.unlock_epoch = new_unlock_epoch;
-        }
+        self.attributes.unlock_epoch = new_unlock_epoch;
+        self.token_amount += other.token_amount;
     }
 }
 
