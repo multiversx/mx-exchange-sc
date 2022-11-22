@@ -10,6 +10,10 @@ type ExitFarmResultType<BigUint> =
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
+const ENTER_FARM_RESULTS_LEN: usize = 2;
+const EXIT_FARM_RESULTS_LEN: usize = 3;
+const CLAIM_REWARDS_RESULTS_LEN: usize = 2;
+
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
@@ -73,10 +77,10 @@ pub trait FarmInteractionsModule {
 
         let raw_results: RawResultsType<Self::Api> = contract_call.execute_on_dest_context();
         let mut results_wrapper = RawResultWrapper::new(raw_results);
-        results_wrapper.trim_results_front(2);
+        results_wrapper.trim_results_front(ENTER_FARM_RESULTS_LEN);
 
-        let new_farm_tokens = results_wrapper.decode_result_at_index(0);
-        let reward_tokens = results_wrapper.decode_result_at_index(1);
+        let new_farm_tokens = results_wrapper.decode_next_result();
+        let reward_tokens = results_wrapper.decode_next_result();
 
         EnterFarmResultWrapper {
             farm_tokens: new_farm_tokens,
@@ -99,11 +103,11 @@ pub trait FarmInteractionsModule {
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
-        results_wrapper.trim_results_front(3);
+        results_wrapper.trim_results_front(EXIT_FARM_RESULTS_LEN);
 
-        let initial_farming_tokens = results_wrapper.decode_result_at_index(0);
-        let reward_tokens = results_wrapper.decode_result_at_index(1);
-        let remaining_farm_tokens = results_wrapper.decode_result_at_index(2);
+        let initial_farming_tokens = results_wrapper.decode_next_result();
+        let reward_tokens = results_wrapper.decode_next_result();
+        let remaining_farm_tokens = results_wrapper.decode_next_result();
 
         ExitFarmResultWrapper {
             initial_farming_tokens,
@@ -126,10 +130,10 @@ pub trait FarmInteractionsModule {
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
-        results_wrapper.trim_results_front(2);
+        results_wrapper.trim_results_front(CLAIM_REWARDS_RESULTS_LEN);
 
-        let new_farm_tokens = results_wrapper.decode_result_at_index(0);
-        let reward_tokens = results_wrapper.decode_result_at_index(1);
+        let new_farm_tokens = results_wrapper.decode_next_result();
+        let reward_tokens = results_wrapper.decode_next_result();
 
         FarmClaimRewardsResultWrapper {
             new_farm_tokens,
