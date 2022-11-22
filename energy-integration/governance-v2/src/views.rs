@@ -105,7 +105,9 @@ pub trait ViewsModule:
     }
 
     fn proposal_reached_min_fees(&self, proposal_id: ProposalId) -> bool {
-        self.proposals().get(proposal_id).fees.total_amount >= self.min_fee_for_propose().get()
+        let accumulated_fees = self.proposals().get(proposal_id).fees.total_amount;
+        let min_fees = self.min_fee_for_propose().get();
+        accumulated_fees >= min_fees
     }
 
     fn proposal_exists(&self, proposal_id: ProposalId) -> bool {
