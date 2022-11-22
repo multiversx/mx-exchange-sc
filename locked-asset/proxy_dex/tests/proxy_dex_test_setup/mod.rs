@@ -12,7 +12,6 @@ use elrond_wasm_debug::{
 };
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::SimpleLockEnergy;
-use farm::Farm;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
@@ -33,7 +32,6 @@ pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
 
 // Farm
-pub static FARM_TOKEN_ID: &[u8] = b"FARM-123456";
 pub static FARM_LOCKED_TOKEN_ID: &[u8] = b"FARML-123456";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
@@ -53,16 +51,10 @@ pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 pub static WRAPPED_LP_TOKEN_ID: &[u8] = b"WPLP-123456";
 pub static WRAPPED_FARM_TOKEN_ID: &[u8] = b"WPFARM-123456";
 
-pub struct ProxySetup<
-    ProxyObjBuilder,
-    PairObjBuilder,
-    FarmObjBuilder,
-    FarmLockedObjBuilder,
-    SimpleLockObjBuilder,
-> where
+pub struct ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
+where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
@@ -72,38 +64,23 @@ pub struct ProxySetup<
     pub second_user: Address,
     pub proxy_wrapper: ContractObjWrapper<proxy_dex::ContractObj<DebugApi>, ProxyObjBuilder>,
     pub pair_wrapper: ContractObjWrapper<pair::ContractObj<DebugApi>, PairObjBuilder>,
-    pub farm_wrapper: ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     pub farm_locked_wrapper:
         ContractObjWrapper<farm_with_locked_rewards::ContractObj<DebugApi>, FarmLockedObjBuilder>,
     pub simple_lock_wrapper:
         ContractObjWrapper<energy_factory::ContractObj<DebugApi>, SimpleLockObjBuilder>,
 }
 
-impl<
-        ProxyObjBuilder,
-        PairObjBuilder,
-        FarmObjBuilder,
-        FarmLockedObjBuilder,
-        SimpleLockObjBuilder,
-    >
-    ProxySetup<
-        ProxyObjBuilder,
-        PairObjBuilder,
-        FarmObjBuilder,
-        FarmLockedObjBuilder,
-        SimpleLockObjBuilder,
-    >
+impl<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
+    ProxySetup<ProxyObjBuilder, PairObjBuilder, FarmLockedObjBuilder, SimpleLockObjBuilder>
 where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
     FarmLockedObjBuilder: 'static + Copy + Fn() -> farm_with_locked_rewards::ContractObj<DebugApi>,
     SimpleLockObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(
         proxy_builder: ProxyObjBuilder,
         pair_builder: PairObjBuilder,
-        farm_builder: FarmObjBuilder,
         farm_locked_builder: FarmLockedObjBuilder,
         simple_lock_builder: SimpleLockObjBuilder,
     ) -> Self {
@@ -118,7 +95,6 @@ where
         b_mock.set_block_epoch(1);
 
         let pair_wrapper = setup_pair(&mut b_mock, &owner, pair_builder);
-        let farm_wrapper = setup_farm(&mut b_mock, &owner, farm_builder);
         let simple_lock_wrapper = setup_simple_lock(&mut b_mock, &owner, simple_lock_builder);
         let farm_locked_wrapper = setup_farm_locked(
             &mut b_mock,
@@ -131,16 +107,10 @@ where
             &owner,
             proxy_builder,
             pair_wrapper.address_ref(),
-            farm_wrapper.address_ref(),
             farm_locked_wrapper.address_ref(),
             simple_lock_wrapper.address_ref(),
         );
 
-        b_mock
-            .execute_tx(&owner, &farm_wrapper, &rust_zero, |sc| {
-                sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
-            })
-            .assert_ok();
         b_mock
             .execute_tx(&owner, &farm_locked_wrapper, &rust_zero, |sc| {
                 sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
@@ -223,7 +193,6 @@ where
             second_user,
             proxy_wrapper,
             pair_wrapper,
-            farm_wrapper,
             farm_locked_wrapper,
             simple_lock_wrapper,
         }
@@ -279,80 +248,6 @@ where
     b_mock.set_esdt_local_roles(pair_wrapper.address_ref(), LP_TOKEN_ID, &lp_token_roles[..]);
 
     pair_wrapper
-}
-
-fn setup_farm<FarmObjBuilder>(
-    b_mock: &mut BlockchainStateWrapper,
-    owner: &Address,
-    farm_builder: FarmObjBuilder,
-) -> ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>
-where
-    FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
-{
-    let rust_zero = rust_biguint!(0u64);
-    let farm_wrapper = b_mock.create_sc_account(&rust_zero, Some(&owner), farm_builder, "farm");
-
-    b_mock
-        .execute_tx(owner, &farm_wrapper, &rust_zero, |sc| {
-            let reward_token_id = managed_token_id!(MEX_TOKEN_ID);
-            let farming_token_id = managed_token_id!(MEX_TOKEN_ID);
-            let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
-            let pair_address = managed_address!(&Address::zero());
-
-            sc.init(
-                reward_token_id,
-                farming_token_id,
-                division_safety_constant,
-                pair_address,
-                managed_address!(&owner),
-                MultiValueEncoded::new(),
-            );
-
-            let farm_token_id = managed_token_id!(FARM_TOKEN_ID);
-            sc.farm_token().set_token_id(farm_token_id);
-
-            sc.per_block_reward_amount()
-                .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
-
-            sc.state().set(State::Active);
-            sc.produce_rewards_enabled().set(true);
-
-            sc.set_boosted_yields_factors(
-                managed_biguint!(USER_REWARDS_BASE_CONST),
-                managed_biguint!(USER_REWARDS_ENERGY_CONST),
-                managed_biguint!(USER_REWARDS_FARM_CONST),
-                managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
-                managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
-            );
-        })
-        .assert_ok();
-
-    let farm_token_roles = [
-        EsdtLocalRole::NftCreate,
-        EsdtLocalRole::NftAddQuantity,
-        EsdtLocalRole::NftBurn,
-    ];
-    b_mock.set_esdt_local_roles(
-        farm_wrapper.address_ref(),
-        FARM_TOKEN_ID,
-        &farm_token_roles[..],
-    );
-
-    let farming_token_roles = [EsdtLocalRole::Burn];
-    b_mock.set_esdt_local_roles(
-        farm_wrapper.address_ref(),
-        MEX_TOKEN_ID,
-        &farming_token_roles[..],
-    );
-
-    let reward_token_roles = [EsdtLocalRole::Mint];
-    b_mock.set_esdt_local_roles(
-        farm_wrapper.address_ref(),
-        MEX_TOKEN_ID,
-        &reward_token_roles[..],
-    );
-
-    farm_wrapper
 }
 
 fn setup_farm_locked<FarmLockedObjBuilder>(
@@ -505,7 +400,6 @@ fn setup_proxy<ProxyObjBuilder>(
     owner: &Address,
     proxy_builder: ProxyObjBuilder,
     pair_addr: &Address,
-    farm_addr: &Address,
     farm_locked_addr: &Address,
     simple_lock_addr: &Address,
 ) -> ContractObjWrapper<proxy_dex::ContractObj<DebugApi>, ProxyObjBuilder>
@@ -537,7 +431,6 @@ where
                 .set_token_id(managed_token_id!(WRAPPED_FARM_TOKEN_ID));
 
             sc.intermediated_pairs().insert(managed_address!(pair_addr));
-            sc.intermediated_farms().insert(managed_address!(farm_addr));
             sc.intermediated_farms()
                 .insert(managed_address!(farm_locked_addr));
         })
