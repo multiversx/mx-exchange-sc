@@ -7,10 +7,25 @@ pub trait LockedTokenTransferModule:
     utils::UtilsModule + crate::energy::EnergyModule + crate::events::EventsModule
 {
     #[only_owner]
-    #[endpoint(setLockedTokenTransferScAddress)]
-    fn set_locked_token_transfer_sc_address(&self, sc_address: ManagedAddress) {
-        self.require_sc_address(&sc_address);
-        self.locked_token_transfer_sc_address().set(&sc_address);
+    #[endpoint(addToTokenTransferWhitelist)]
+    fn add_to_token_transfer_whitelist(&self, sc_addresses: MultiValueEncoded<ManagedAddress>) {
+        let mapper = self.token_transfer_whitelist();
+        for sc_addr in sc_addresses {
+            self.require_sc_address(&sc_addr);
+            mapper.add(&sc_addr);
+        }
+    }
+
+    #[only_owner]
+    #[endpoint(removeFromTokenTransferWhitelist)]
+    fn remove_from_token_transfer_whitelist(
+        &self,
+        sc_addresses: MultiValueEncoded<ManagedAddress>,
+    ) {
+        let mapper = self.token_transfer_whitelist();
+        for sc_addr in sc_addresses {
+            mapper.remove(&sc_addr);
+        }
     }
 
     #[endpoint(setUserEnergyAfterLockedTokenTransfer)]
@@ -20,15 +35,11 @@ pub trait LockedTokenTransferModule:
         energy: Energy<Self::Api>,
     ) {
         let caller = self.blockchain().get_caller();
-        let transfer_sc_address = self.locked_token_transfer_sc_address().get();
-        require!(
-            caller == transfer_sc_address,
-            "Only the locked token transfer SC may call this endpoint"
-        );
+        self.token_transfer_whitelist().require_whitelisted(&caller);
 
         self.set_energy_entry(&user, energy);
     }
 
-    #[storage_mapper("lockedTokenTransferScAddress")]
-    fn locked_token_transfer_sc_address(&self) -> SingleValueMapper<ManagedAddress>;
+    #[storage_mapper("tokenTransferWhitelist")]
+    fn token_transfer_whitelist(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
 }
