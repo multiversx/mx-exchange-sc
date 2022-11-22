@@ -1,3 +1,5 @@
+use common_structs::{RawResultWrapper, RawResultsType};
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
@@ -7,6 +9,10 @@ type ExitFarmResultType<BigUint> =
     MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+
+const ENTER_FARM_RESULTS_LEN: usize = 2;
+const EXIT_FARM_RESULTS_LEN: usize = 3;
+const CLAIM_REWARDS_RESULTS_LEN: usize = 2;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
     pub farm_tokens: EsdtTokenPayment<M>,
@@ -69,19 +75,12 @@ pub trait FarmInteractionsModule {
             );
         }
 
-        let result: MultiValueEncoded<ManagedBuffer> = contract_call.execute_on_dest_context();
-        let raw = result.into_vec_of_buffers();
-        require!(
-            !raw.is_empty(),
-            "at least one result expected from enterFarm"
-        );
+        let raw_results: RawResultsType<Self::Api> = contract_call.execute_on_dest_context();
+        let mut results_wrapper = RawResultWrapper::new(raw_results);
+        results_wrapper.trim_results_front(ENTER_FARM_RESULTS_LEN);
 
-        let new_farm_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
-        let reward_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
+        let new_farm_tokens = results_wrapper.decode_next_result();
+        let reward_tokens = results_wrapper.decode_next_result();
 
         EnterFarmResultWrapper {
             farm_tokens: new_farm_tokens,
@@ -97,24 +96,18 @@ pub trait FarmInteractionsModule {
         farm_token_amount: BigUint,
         exit_amount: BigUint,
     ) -> ExitFarmResultWrapper<Self::Api> {
-        let result: MultiValueEncoded<ManagedBuffer> = self
+        let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .exit_farm(exit_amount)
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
-        let raw = result.into_vec_of_buffers();
-        require!(raw.len() > 2, "at least 3 results expected from exitFarm");
+        let mut results_wrapper = RawResultWrapper::new(raw_results);
+        results_wrapper.trim_results_front(EXIT_FARM_RESULTS_LEN);
 
-        let initial_farming_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 3));
-        let reward_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
-        let remaining_farm_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
+        let initial_farming_tokens = results_wrapper.decode_next_result();
+        let reward_tokens = results_wrapper.decode_next_result();
+        let remaining_farm_tokens = results_wrapper.decode_next_result();
 
         ExitFarmResultWrapper {
             initial_farming_tokens,
@@ -130,24 +123,17 @@ pub trait FarmInteractionsModule {
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
     ) -> FarmClaimRewardsResultWrapper<Self::Api> {
-        let result: MultiValueEncoded<ManagedBuffer> = self
+        let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .claim_rewards()
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
-        let raw = result.into_vec_of_buffers();
-        require!(
-            raw.len() > 1,
-            "at least 2 results expected from claim rewards"
-        );
+        let mut results_wrapper = RawResultWrapper::new(raw_results);
+        results_wrapper.trim_results_front(CLAIM_REWARDS_RESULTS_LEN);
 
-        let new_farm_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 2));
-        let reward_tokens = self
-            .serializer()
-            .top_decode_from_managed_buffer(&raw.get(raw.len() - 1));
+        let new_farm_tokens = results_wrapper.decode_next_result();
+        let reward_tokens = results_wrapper.decode_next_result();
 
         FarmClaimRewardsResultWrapper {
             new_farm_tokens,
