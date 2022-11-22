@@ -1,14 +1,69 @@
 mod gov_test_setup;
 
+use elrond_wasm::types::ManagedAddress;
 use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 use gov_test_setup::*;
 use governance_v2::{
-    configurable::ConfigurablePropertiesModule, proposal_storage::ProposalStorageModule,
+    configurable::ConfigurablePropertiesModule, proposal_storage::ProposalStorageModule, views::ViewsModule,
 };
 
 #[test]
 fn init_gov_test() {
     let _ = GovSetup::new(governance_v2::contract_obj);
+}
+
+#[test]
+fn test_user_voted() {
+    let _ = DebugApi::dummy();
+    
+    let mut gov_setup = GovSetup::new(governance_v2::contract_obj);
+    let sc_addr = gov_setup.gov_wrapper.address_ref().clone();
+    let first_user_addr = gov_setup.first_merkle_user.clone();
+    let first_user_power = gov_setup.get_first_user_voting_power();
+    let first_user_proof = gov_setup.first_merkle_proof();
+
+     // Unexisting
+     gov_setup
+     .b_mock
+     .execute_query(&gov_setup.gov_wrapper, |sc| {
+         let ma: ManagedAddress<DebugApi> = ManagedAddress::from_address(&first_user_addr);
+         assert_eq!(sc.user_voted_proposal(1, ma), false);
+     })
+     .assert_ok();
+
+    let (result, proposal_id) = gov_setup.propose(
+        gov_setup.get_merkle_root_hash(),
+        &first_user_addr,
+        &sc_addr,
+        Vec::new(),
+        b"changeQuorum",
+        vec![1_000u64.to_be_bytes().to_vec()],
+    );
+    result.assert_ok();
+    assert_eq!(proposal_id, 1);
+    gov_setup.set_block_nonce(20);
+
+   // Before the vote
+   gov_setup
+   .b_mock
+   .execute_query(&gov_setup.gov_wrapper, |sc| {
+       let ma: ManagedAddress<DebugApi> = ManagedAddress::from_address(&first_user_addr);
+       assert_eq!(sc.user_voted_proposal(proposal_id, ma), false);
+   })
+   .assert_ok();
+
+    gov_setup
+        .up_vote(&first_user_addr, &first_user_power, &first_user_proof, proposal_id)
+        .assert_ok();
+
+    // After the vote
+     gov_setup
+     .b_mock
+     .execute_query(&gov_setup.gov_wrapper, |sc| {
+         let ma: ManagedAddress<DebugApi> = ManagedAddress::from_address(&first_user_addr);
+         assert_eq!(sc.user_voted_proposal(1, ma), true);
+     })
+     .assert_ok();
 }
 
 #[test]

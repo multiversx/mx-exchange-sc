@@ -189,6 +189,8 @@ pub trait GovernanceV2:
         
             }
         }
+        
+        let _ = self.user_voted_proposals(&voter).insert(proposal_id);
     }
 
     /// Queue a proposal for execution.
@@ -352,11 +354,9 @@ pub trait GovernanceV2:
         let mut leaf_bytes = caller.as_managed_buffer().clone();
 
         let p = power.to_bytes_be_buffer();
-
         leaf_bytes.append(&p);
 
         let mut hash = self.crypto().sha256(&leaf_bytes);
-
         for proof_item in proof {
             if BigUint::from(hash.as_managed_buffer()) < BigUint::from(proof_item.as_managed_buffer()) {
                 let mut tst = hash.as_managed_buffer().clone();

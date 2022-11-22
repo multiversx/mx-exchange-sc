@@ -25,12 +25,12 @@ elrond_wasm_node::wasm_endpoints! {
         getProposalVotes
         getProposer
         getQuorum
-        getVoteStatus
         getVotingDelayInBlocks
         getVotingPeriodInBlocks
         propose
         queue
         setEnergyFactoryAddress
+        userVotedProposal
         vote
     )
 }

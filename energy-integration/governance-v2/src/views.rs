@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use crate::{proposal::{
     GovernanceAction, GovernanceProposalStatus, ProposalId, MAX_GOVERNANCE_PROPOSAL_ACTIONS, HASH_LENGTH
-}, proposal_storage::VoteType};
+}};
 
 #[elrond_wasm::module]
 pub trait ViewsModule:
@@ -59,9 +59,9 @@ pub trait ViewsModule:
         }
     }
 
-    #[view(getVoteStatus)]
-    fn get_vote_status(&self, proposal_id: ProposalId, address: ManagedAddress<Self::Api>) -> OptionalValue<VoteType> {
-        return OptionalValue::None;
+    #[view(userVotedProposal)]
+    fn user_voted_proposal(&self, proposal_id: ProposalId, address: ManagedAddress<Self::Api>) -> bool {
+        self.user_voted_proposals(&address).contains(&proposal_id)
     }
 
     #[view(getProposer)]
