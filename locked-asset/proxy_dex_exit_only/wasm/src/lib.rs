@@ -5,11 +5,20 @@
 #![no_std]
 
 elrond_wasm_node::wasm_endpoints! {
-    adder
+    proxy_dex_exit_only
     (
-        add
-        getSum
+        callBack
+        addFarmToIntermediate
+        addPairToIntermediate
+        exitFarmProxy
+        getAssetTokenId
+        getIntermediatedFarms
+        getIntermediatedPairs
+        getLockedTokenIds
+        getWrappedFarmTokenId
+        getWrappedLpTokenId
+        removeIntermediatedFarm
+        removeIntermediatedPair
+        removeLiquidityProxy
     )
 }
-
-elrond_wasm_node::wasm_empty_callback! {}
