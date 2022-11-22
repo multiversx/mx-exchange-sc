@@ -89,7 +89,6 @@ impl<M: ManagedTypeApi> RawResultWrapper<M> {
             let decode_result = T::top_decode(raw_buffer_ref.deref().clone());
             decode_result.unwrap_or_panic::<M>()
         };
-
         self.raw_results.remove(FIRST_VEC_INDEX);
 
         result
