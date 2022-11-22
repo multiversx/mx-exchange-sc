@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 
 use common_structs::PaymentsVec;
 use math::{safe_sub, weighted_average};
-use mergeable::Mergeable;
+use mergeable::{throw_not_mergeable_error, Mergeable};
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
 
@@ -57,21 +57,26 @@ where
     fn merge_with(&mut self, other: Self) {
         self.error_if_not_mergeable(&other);
 
-        let unlock_fee = weighted_average(
-            BigUint::from(self.token_unlock_fee_percent),
+        let new_unlock_epoch = weighted_average(
+            BigUint::from(self.attributes.unlock_epoch),
             self.token_amount.clone(),
-            BigUint::from(other.token_unlock_fee_percent),
+            BigUint::from(other.attributes.unlock_epoch),
             other.token_amount.clone(),
-        );
+        )
+        .to_u64()
+        .unwrap_or_panic::<Sc::Api>();
 
-        self.token_amount += other.token_amount;
-        self.token_unlock_fee_percent = unlock_fee.to_u64().unwrap_or_panic::<Sc::Api>();
-
-        let lock_epochs = self
-            .sc_ref
-            .calculate_lock_epochs_from_penalty_percentage(self.token_unlock_fee_percent);
         let current_epoch = self.sc_ref.blockchain().get_block_epoch();
-        self.attributes.unlock_epoch = current_epoch + lock_epochs;
+        if current_epoch > new_unlock_epoch {
+            throw_not_mergeable_error::<Sc::Api>();
+        } else {
+            let new_unlock_fee_percent = self
+                .sc_ref
+                .calculate_penalty_percentage_full_unlock(new_unlock_epoch - current_epoch);
+            self.token_amount += other.token_amount;
+            self.attributes.unlock_epoch = new_unlock_epoch;
+            self.token_unlock_fee_percent = new_unlock_fee_percent;
+        }
     }
 }
 

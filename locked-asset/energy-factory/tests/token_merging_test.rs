@@ -219,10 +219,9 @@ fn token_merging_different_years2_test() {
     assert_eq!(first_token_unlock_epoch, 360);
     assert_eq!(second_token_unlock_epoch, 1440);
 
-    // (400_000 * 4_000 + 100_000 * 8_000) / 500_000 = 4_800
-    // 4_800 unlock fee -> epoch 504
-    // -> start of month (upper) = 510
-    let expected_merged_token_unlock_epoch = 510;
+    // (400_000 * 360 + 100_000 * 1_440) / 500_000 = 576 unlock epoch
+    // -> start of month (upper) = 600
+    let expected_merged_token_unlock_epoch = 600;
     setup.b_mock.check_nft_balance(
         &first_user,
         LOCKED_TOKEN_ID,
