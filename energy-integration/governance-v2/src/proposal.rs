@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 pub const HASH_LENGTH: usize = 32;
+pub const PROOF_LENGTH: usize = 18;
 pub const MAX_GOVERNANCE_PROPOSAL_ACTIONS: usize = 5;
 
 pub type ProposalId = usize;

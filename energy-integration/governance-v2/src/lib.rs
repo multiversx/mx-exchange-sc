@@ -8,7 +8,6 @@ pub mod proposal;
 pub mod proposal_storage;
 pub mod views;
 
-
 use proposal::*;
 use proposal_storage::VoteType;
 
@@ -140,7 +139,7 @@ pub trait GovernanceV2:
 
     /// Vote on a proposal. The voting power depends on the user's energy.
     #[endpoint]
-    fn vote(&self, proposal_id: ProposalId, vote: VoteType, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<32>, 18>) {
+    fn vote(&self, proposal_id: ProposalId, vote: VoteType, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
@@ -347,8 +346,8 @@ pub trait GovernanceV2:
 
         self.proposal_votes(proposal_id).clear();
     }
-    
-    fn verify_merkle_proof(&self, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, 18>, root_hash: ManagedByteArray<HASH_LENGTH>) -> bool {
+
+    fn verify_merkle_proof(&self, power: BigUint<Self::Api>, proof: ArrayVec<ManagedByteArray<HASH_LENGTH>, PROOF_LENGTH>, root_hash: ManagedByteArray<HASH_LENGTH>) -> bool {
         let caller = self.blockchain().get_caller().clone();
         let mut leaf_bytes = caller.as_managed_buffer().clone();
 
