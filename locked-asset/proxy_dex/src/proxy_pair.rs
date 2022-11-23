@@ -45,7 +45,7 @@ pub trait ProxyPairModule:
             self.get_underlying_token(second_payment.token_identifier.clone());
         let add_liq_result = self.call_add_liquidity(
             pair_address.clone(),
-            first_unlocked_token_id.clone(),
+            first_unlocked_token_id,
             first_payment.amount.clone(),
             first_token_amount_min,
             second_unlocked_token_id,
@@ -53,23 +53,17 @@ pub trait ProxyPairModule:
             second_token_amount_min,
         );
 
-        let new_locked_token_amount: BigUint =
-            if first_unlocked_token_id == first_payment.token_identifier.clone() {
-                input_token_refs.locked_token_ref.amount.clone()
-                    - &add_liq_result.first_token_leftover.amount
-            } else {
-                input_token_refs.locked_token_ref.amount.clone()
-                    - &add_liq_result.second_token_leftover.amount
-            };
-
-        let new_locked_tokens = EsdtTokenPayment::new(
-            input_token_refs.locked_token_ref.token_identifier.clone(),
-            input_token_refs.locked_token_ref.token_nonce,
-            new_locked_token_amount,
-        );
+        let mut locked_token_used = input_token_refs.locked_token_ref.clone();
+        locked_token_used.amount = if input_token_refs.locked_token_ref.token_identifier
+            == first_payment.token_identifier
+        {
+            first_payment.amount.clone() - &add_liq_result.first_token_leftover.amount
+        } else {
+            second_payment.amount.clone() - &add_liq_result.second_token_leftover.amount
+        };
 
         let new_token_attributes = WrappedLpTokenAttributes {
-            locked_tokens: new_locked_tokens,
+            locked_tokens: locked_token_used,
             lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
             lp_token_amount: add_liq_result.lp_tokens_received.amount.clone(),
         };
