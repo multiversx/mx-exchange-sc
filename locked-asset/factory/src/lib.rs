@@ -7,9 +7,11 @@ use common_structs::{
 
 mod attr_ex_helper;
 mod cache;
+pub mod energy;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
+pub mod migration;
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -25,6 +27,7 @@ pub trait LockedAssetFactory:
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
+    + migration::LockedTokenMigrationModule
 {
     #[init]
     fn init(&self) {}
@@ -169,6 +172,11 @@ pub trait LockedAssetFactory:
 
         self.send()
             .esdt_local_burn(&locked_token_id, token_nonce, &amount);
+
+        let amounts_per_epoch = attributes.get_unlock_amounts_per_epoch(&amount);
+        let unlockable_amounts_per_epoch =
+            amounts_per_epoch.get_unlockable_entries(month_start_epoch);
+        self.update_energy_after_unlock(caller.clone(), unlockable_amounts_per_epoch);
 
         self.emit_unlock_assets_event(
             &caller,
