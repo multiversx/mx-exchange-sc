@@ -71,7 +71,10 @@ where
 
         b_mock
             .execute_tx(&owner_address, &fc_wrapper, &rust_zero, |sc| {
-                sc.init();
+                sc.init(
+                    managed_token_id!(FIRST_TOKEN_ID),
+                    managed_address!(energy_factory_wrapper.address_ref()),
+                );
 
                 let _ = sc
                     .known_contracts()
