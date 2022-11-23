@@ -21,6 +21,7 @@ elrond_wasm_node::wasm_endpoints! {
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
         getLastGlobalUpdateWeek
+        getLockedTokenId
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
         getTotalRewardsForWeek

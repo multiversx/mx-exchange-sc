@@ -1,10 +1,14 @@
 mod fees_collector_test_setup;
 
 use elrond_wasm::types::{BigInt, EsdtTokenPayment, ManagedVec};
-use elrond_wasm_debug::{managed_address, managed_biguint, managed_token_id, rust_biguint};
+use elrond_wasm_debug::{
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    DebugApi,
+};
 use energy_query::Energy;
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector_test_setup::*;
+use simple_lock::locked_token::LockedTokenAttributes;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 use weekly_rewards_splitting::{
     global_info::WeeklyRewardsGlobalInfo,
@@ -830,4 +834,240 @@ fn multi_bucket_shift_consistency_test() {
             assert_eq!(sc.total_energy_for_week(3).get(), 700u64);
         })
         .assert_ok();
+}
+
+#[test]
+fn claim_locked_rewards_with_energy_update_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
+    let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
+
+    fc_setup.set_energy(&first_user, 500, 1_000);
+    fc_setup.set_energy(&second_user, 500, 9_000);
+
+    fc_setup.deposit(FIRST_TOKEN_ID, USER_BALANCE).assert_ok();
+    fc_setup
+        .deposit(SECOND_TOKEN_ID, USER_BALANCE / 2)
+        .assert_ok();
+    fc_setup
+        .deposit_locked_tokens(LOCKED_TOKEN_ID, 1, USER_BALANCE)
+        .assert_ok();
+
+    // user claim first week - users only get registered for week 2, without receiving rewards
+    fc_setup.claim(&first_user).assert_ok();
+    fc_setup.claim(&second_user).assert_ok();
+
+    // advance week
+    fc_setup.advance_week();
+
+    // increase first user's energy
+    fc_setup.set_energy(&first_user, 1000, 2_000);
+
+    // claim week 2 - receives rewards accumulated in week 1, and gets new energy saved
+    fc_setup.claim(&first_user).assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                1,
+                managed_biguint!(USER_BALANCE),
+            ));
+            assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
+        })
+        .assert_ok();
+
+    let first_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
+    let first_user_expected_second_token_amt =
+        rust_biguint!(USER_BALANCE / 2) * 1_000u32 / 10_000u32;
+    let first_user_expected_locked_token_amt = rust_biguint!(USER_BALANCE) * 1_000u32 / 10_000u32;
+
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        FIRST_TOKEN_ID,
+        &first_user_expected_first_token_amt,
+    );
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        SECOND_TOKEN_ID,
+        &first_user_expected_second_token_amt,
+    );
+    fc_setup.b_mock.check_nft_balance(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &first_user_expected_locked_token_amt,
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(LOCKED_TOKEN_ID),
+            original_token_nonce: 1,
+            unlock_epoch: 100,
+        }),
+    );
+
+    let current_epoch = fc_setup.current_epoch;
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            // fees were cleared and accumulated in the total_rewards mapper
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(FIRST_TOKEN_ID))
+                    .get(),
+                managed_biguint!(0)
+            );
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(SECOND_TOKEN_ID))
+                    .get(),
+                managed_biguint!(0)
+            );
+            assert_eq!(
+                sc.accumulated_locked_fees(1, &managed_token_id!(LOCKED_TOKEN_ID))
+                    .get(),
+                ManagedVec::new()
+            );
+
+            let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                1,
+                managed_biguint!(USER_BALANCE),
+            ));
+            assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
+
+            // first user's new energy is added to week 2
+            let first_user_energy = Energy::new(
+                BigInt::from(managed_biguint!(2_000)),
+                current_epoch,
+                managed_biguint!(1_000),
+            );
+
+            // 10_000 total prev week
+            // first user's tokens get removed, as they expired
+            // so we only decrease by second user's 500 tokens worth of energy
+            //
+            // - 7 * 500 global decrease (-3_500)
+            // + 2_000 (first user's new energy)
+            // = 8_500
+            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
+            assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
+            assert_eq!(sc.last_global_update_week().get(), 2);
+
+            assert_eq!(
+                sc.current_claim_progress(&managed_address!(&first_user))
+                    .get(),
+                ClaimProgress {
+                    energy: first_user_energy,
+                    week: 2
+                }
+            );
+        })
+        .assert_ok();
+
+    // first user try claim again
+    fc_setup.claim(&first_user).assert_ok();
+
+    // no rewards were given, and state remains intact
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        FIRST_TOKEN_ID,
+        &first_user_expected_first_token_amt,
+    );
+    fc_setup.b_mock.check_esdt_balance(
+        &first_user,
+        SECOND_TOKEN_ID,
+        &first_user_expected_second_token_amt,
+    );
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            let mut expected_total_rewards = ManagedVec::new();
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(FIRST_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(SECOND_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                1,
+                managed_biguint!(USER_BALANCE),
+            ));
+            assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
+
+            // first user's new energy is added to week 2
+            // added energy: 100 (unlock epoch) - 12 (curent epoch) = 88 * 100000000000000000 = 8800000000000000000
+            let first_user_energy = Energy::new(
+                BigInt::from(managed_biguint!(8800000000000002000u64)),
+                current_epoch,
+                managed_biguint!(100000000000001000u64),
+            );
+
+            // total initial energy: 8500
+            // total updated energy: 100 (unlock epoch) - 12 (curent epoch) = 88 * 100000000000000000 = 8800000000000000000
+            assert_eq!(sc.total_energy_for_week(2).get(), 8800000000000008500u64);
+            assert_eq!(
+                sc.total_locked_tokens_for_week(2).get(),
+                100000000000001500u64
+            ); // 100000000000000000 + 1500
+            assert_eq!(sc.last_global_update_week().get(), 2);
+
+            assert_eq!(
+                sc.current_claim_progress(&managed_address!(&first_user))
+                    .get(),
+                ClaimProgress {
+                    energy: first_user_energy,
+                    week: 2
+                }
+            );
+        })
+        .assert_ok();
+
+    // second user claim for week 2
+    fc_setup.claim(&second_user).assert_ok();
+
+    let second_user_expected_first_token_amt = rust_biguint!(USER_BALANCE) * 9_000u32 / 10_000u32;
+    let second_user_expected_second_token_amt =
+        rust_biguint!(USER_BALANCE / 2) * 9_000u32 / 10_000u32;
+
+    fc_setup.b_mock.check_esdt_balance(
+        &second_user,
+        FIRST_TOKEN_ID,
+        &second_user_expected_first_token_amt,
+    );
+    fc_setup.b_mock.check_esdt_balance(
+        &second_user,
+        SECOND_TOKEN_ID,
+        &second_user_expected_second_token_amt,
+    );
 }
