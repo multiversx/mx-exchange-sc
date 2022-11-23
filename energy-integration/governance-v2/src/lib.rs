@@ -163,10 +163,6 @@ pub trait GovernanceV2:
             depositor_addr: proposer.clone(),
             tokens: user_fee.clone(),
         });
-        // fees_entries.push(FeeEntry {
-        //     depositor_addr: proposer.clone(),
-        //     tokens: user_fee.clone(),
-        // });
 
         let proposal = GovernanceProposal {
             proposer: proposer.clone(),
