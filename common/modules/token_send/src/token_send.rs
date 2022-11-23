@@ -23,6 +23,8 @@ pub trait TokenSendModule {
             function = ManagedBuffer::new();
         }
 
+        self.send().direct_with_gas_limit();
+
         Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(
                 destination,

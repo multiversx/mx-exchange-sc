@@ -158,10 +158,12 @@ pub trait Farm:
         let mut context = self.new_farm_context(opt_accept_funds_func);
 
         self.load_state(&mut context);
-        require!(
-            context.get_contract_state().unwrap() == &State::Active,
-            ERROR_NOT_ACTIVE
-        );
+        // Allow exit even if paused
+        //
+        // require!(
+        //     context.get_contract_state().unwrap() == &State::Active,
+        //     ERROR_NOT_ACTIVE
+        // );
 
         self.load_farm_token_id(&mut context);
         require!(
