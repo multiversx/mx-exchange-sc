@@ -38,7 +38,7 @@ pub trait FeesAccumulationModule:
         self.emit_deposit_swap_fees_event(caller, current_week, payment);
     }
 
-    fn collect_accumulated_fees_for_week(
+    fn collect_and_clear_all_accumulated_fees_for_week(
         &self,
         week: Week,
     ) -> ManagedVec<EsdtTokenPayment<Self::Api>> {
@@ -49,7 +49,6 @@ pub trait FeesAccumulationModule:
             if let Some(accumulated_fees) = opt_accumulated_fees {
                 results.push(EsdtTokenPayment::new(token.clone(), 0, accumulated_fees));
             }
-
             let opt_accumulated_locked_fees =
                 self.get_and_clear_acccumulated_locked_fees(week, &token);
             if let Some(accumulated_locked_fees) = opt_accumulated_locked_fees {

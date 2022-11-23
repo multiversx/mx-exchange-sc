@@ -29,13 +29,13 @@ pub trait FeesCollector:
     + utils::UtilsModule
 {
     #[init]
-    fn init(&self, energy_token_id: TokenIdentifier, energy_factory_address: ManagedAddress) {
+    fn init(&self, locked_token_id: TokenIdentifier, energy_factory_address: ManagedAddress) {
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
-        self.require_valid_token_id(&energy_token_id);
+        self.require_valid_token_id(&locked_token_id);
         self.require_sc_address(&energy_factory_address);
 
-        self.energy_token_id().set(energy_token_id);
+        self.locked_token_id().set(locked_token_id);
         self.energy_factory_address().set(&energy_factory_address);
     }
 
@@ -46,7 +46,7 @@ pub trait FeesCollector:
         let caller = self.blockchain().get_caller();
         let wrapper = FeesCollectorWrapper::new();
         let rewards = self.claim_multi(&wrapper, &caller);
-        let energy_token_id = self.energy_token_id().get();
+        let energy_token_id = self.locked_token_id().get();
         let mut require_energy_update = false;
         if !rewards.is_empty() {
             self.send().direct_multi(&caller, &rewards);
@@ -83,10 +83,6 @@ pub trait FeesCollector:
             .set_user_energy_after_locked_token_transfer(user, energy)
             .execute_on_dest_context();
     }
-
-    #[view(getEnergyTokenId)]
-    #[storage_mapper("energyTokenId")]
-    fn energy_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }
 
 pub struct FeesCollectorWrapper<T: FeesCollector> {
@@ -118,15 +114,6 @@ where
         module: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let mut results = ManagedVec::new();
-        let all_tokens = module.all_tokens().get();
-        for token in &all_tokens {
-            let opt_accumulated_fees = module.get_and_clear_acccumulated_fees(week, &token);
-            if let Some(accumulated_fees) = opt_accumulated_fees {
-                results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
-            }
-        }
-
-        results
+        module.collect_and_clear_all_accumulated_fees_for_week(week)
     }
 }
