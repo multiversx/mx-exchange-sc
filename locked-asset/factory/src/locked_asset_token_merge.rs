@@ -13,44 +13,9 @@ use super::locked_asset::{
 
 #[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
-    locked_asset::LockedAssetModule
-    + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
-    + attr_ex_helper::AttrExHelper
+    locked_asset::LockedAssetModule + token_merge::TokenMergeModule + attr_ex_helper::AttrExHelper
 {
-    #[payable("*")]
-    #[endpoint(mergeLockedAssetTokens)]
-    fn merge_locked_asset_tokens(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EsdtTokenPayment<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        let payments_vec = self.call_value().all_esdt_transfers();
-        require!(!payments_vec.is_empty(), "Empty payment vec");
-        let payments_iter = payments_vec.iter();
-
-        let (amount, attrs) =
-            self.get_merged_locked_asset_token_amount_and_attributes(payments_iter.clone());
-        let locked_asset_token = self.locked_asset_token_id().get();
-
-        self.burn_tokens_from_payments(payments_iter);
-
-        let new_nonce = self.nft_create_tokens(&locked_asset_token, &amount, &attrs);
-        self.transfer_execute_custom(
-            &caller,
-            &locked_asset_token,
-            new_nonce,
-            &amount,
-            &opt_accept_funds_func,
-        );
-
-        self.create_payment(&locked_asset_token, new_nonce, &amount)
-    }
-
-    fn burn_tokens_from_payments(
-        &self,
-        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
-    ) {
+    fn burn_tokens_from_payments(&self, payments: &ManagedVec<EsdtTokenPayment>) {
         for entry in payments {
             self.send()
                 .esdt_local_burn(&entry.token_identifier, entry.token_nonce, &entry.amount);
@@ -59,7 +24,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        payments: ManagedVecRefIterator<Self::Api, EsdtTokenPayment<Self::Api>>,
+        payments: &ManagedVec<EsdtTokenPayment>,
     ) -> (BigUint, LockedAssetTokenAttributesEx<Self::Api>) {
         require!(!payments.is_empty(), "Cannot merge with 0 tokens");
 
@@ -74,10 +39,10 @@ pub trait LockedAssetTokenMergeModule:
             );
 
             tokens.push(LockedTokenEx {
-                token_amount: self.create_payment(
-                    &entry.token_identifier,
+                token_amount: EsdtTokenPayment::new(
+                    entry.token_identifier.clone(),
                     entry.token_nonce,
-                    &entry.amount,
+                    entry.amount.clone(),
                 ),
                 attributes: self.get_attributes_ex(&entry.token_identifier, entry.token_nonce),
             });
@@ -111,7 +76,7 @@ pub trait LockedAssetTokenMergeModule:
         for el in unlock_epoch_amount_merged.iter() {
             let unlock_percent = &(&el.amount * PRECISION_EX_INCREASE * ONE_MILLION) / amount_total;
 
-            //Accumulate even the percents of 0
+            // Accumulate even the percents of 0
             unlock_milestones_merged.push(UnlockMilestoneEx {
                 unlock_epoch: el.epoch,
                 unlock_percent: unlock_percent.to_u64().unwrap(),

@@ -1,6 +1,9 @@
 #![no_std]
-#![feature(generic_associated_types)]
-#![feature(exact_size_is_empty)]
+
+use attr_ex_helper::PRECISION_EX_INCREASE;
+use common_structs::{
+    Epoch, LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockPeriod, UnlockScheduleEx,
+};
 
 mod attr_ex_helper;
 mod cache;
@@ -11,72 +14,20 @@ pub mod locked_asset_token_merge;
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_TRANSFER_EXEC_GAS_LIMIT: u64 = 35000000;
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
-
-use attr_ex_helper::PRECISION_EX_INCREASE;
-use common_structs::{
-    Epoch, LockedAssetTokenAttributesEx, Nonce, UnlockMilestone, UnlockMilestoneEx, UnlockPeriod,
-    UnlockScheduleEx,
-};
 
 #[elrond_wasm::contract]
 pub trait LockedAssetFactory:
     locked_asset::LockedAssetModule
     + cache::CacheModule
-    + token_send::TokenSendModule
     + token_merge::TokenMergeModule
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
 {
     #[init]
-    fn init(
-        &self,
-        asset_token_id: TokenIdentifier,
-        #[var_args] default_unlock_period: ManagedVarArgs<UnlockMilestone>,
-    ) {
-        require!(
-            asset_token_id.is_esdt(),
-            "Asset token ID is not a valid esdt identifier"
-        );
-        require!(
-            asset_token_id != self.locked_asset_token_id().get(),
-            "Asset token ID cannot be the same as Locked asset token ID"
-        );
-        let unlock_milestones = default_unlock_period.to_vec();
-        self.validate_unlock_milestones(&unlock_milestones);
-
-        self.transfer_exec_gas_limit()
-            .set_if_empty(&DEFAULT_TRANSFER_EXEC_GAS_LIMIT);
-        self.init_epoch()
-            .set_if_empty(&self.blockchain().get_block_epoch());
-
-        self.asset_token_id().set(&asset_token_id);
-        self.default_unlock_period()
-            .set(&UnlockPeriod { unlock_milestones });
-        self.set_extended_attributes_activation_nonce();
-    }
-
-    fn set_extended_attributes_activation_nonce(&self) {
-        //for extra safety
-        if !self.init_epoch().is_empty() && self.extended_attributes_activation_nonce().is_empty() {
-            let one = BigUint::from(1u64);
-            let zero = BigUint::zero();
-            let mb_empty = ManagedBuffer::new();
-            let mv_empty = ManagedVec::new();
-            let token_id = self.locked_asset_token_id().get();
-
-            let nonce = self.send().esdt_nft_create(
-                &token_id, &one, &mb_empty, &zero, &mb_empty, &mb_empty, &mv_empty,
-            );
-            self.send().esdt_local_burn(&token_id, nonce, &one);
-
-            self.extended_attributes_activation_nonce()
-                .set(&(nonce + 1));
-        }
-    }
+    fn init(&self) {}
 
     #[only_owner]
     #[endpoint]
@@ -99,7 +50,7 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -113,8 +64,7 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &OptionalValue::None);
+        let new_token = self.produce_tokens_and_send(&amount, &attr, &address);
 
         self.emit_create_and_forward_event(
             &caller,
@@ -134,8 +84,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-        #[var_args] opt_accept_funds_func: OptionalValue<ManagedBuffer>,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -154,8 +103,7 @@ pub trait LockedAssetFactory:
             is_merged: false,
         };
 
-        let new_token =
-            self.produce_tokens_and_send(&amount, &attr, &address, &opt_accept_funds_func);
+        let new_token = self.produce_tokens_and_send(&amount, &attr, &address);
 
         self.emit_create_and_forward_event(
             &caller,
@@ -171,12 +119,8 @@ pub trait LockedAssetFactory:
 
     #[payable("*")]
     #[endpoint(unlockAssets)]
-    fn unlock_assets(
-        &self,
-        #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: BigUint,
-        #[payment_nonce] token_nonce: Nonce,
-    ) {
+    fn unlock_assets(&self) {
+        let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
@@ -195,12 +139,8 @@ pub trait LockedAssetFactory:
         let caller = self.blockchain().get_caller();
         self.mint_and_send_assets(&caller, &unlock_amount);
 
-        let mut output_locked_assets_token_amount = EsdtTokenPayment {
-            token_identifier: token_id.clone(),
-            token_nonce: 0,
-            amount: BigUint::zero(),
-            token_type: EsdtTokenType::Invalid,
-        };
+        let mut output_locked_assets_token_amount =
+            EsdtTokenPayment::new(token_id.clone(), 0, BigUint::zero());
         let mut output_locked_asset_attributes = LockedAssetTokenAttributesEx {
             unlock_schedule: UnlockScheduleEx {
                 unlock_milestones: ManagedVec::new(),
@@ -224,7 +164,6 @@ pub trait LockedAssetFactory:
                 &locked_remaining,
                 &output_locked_asset_attributes,
                 &caller,
-                &OptionalValue::None,
             );
         }
 
@@ -246,15 +185,6 @@ pub trait LockedAssetFactory:
         );
     }
 
-    #[only_owner]
-    #[endpoint(setUnlockPeriod)]
-    fn set_unlock_period(&self, #[var_args] milestones: ManagedVarArgs<UnlockMilestone>) {
-        let unlock_milestones = milestones.to_vec();
-        self.validate_unlock_milestones(&unlock_milestones);
-        self.default_unlock_period()
-            .set(&UnlockPeriod { unlock_milestones });
-    }
-
     fn get_month_start_epoch(&self, epoch: Epoch) -> Epoch {
         epoch - (epoch - self.init_epoch().get()) % EPOCHS_IN_MONTH
     }
@@ -264,17 +194,11 @@ pub trait LockedAssetFactory:
         amount: &BigUint,
         attributes: &LockedAssetTokenAttributesEx<Self::Api>,
         address: &ManagedAddress,
-        opt_accept_funds_func: &OptionalValue<ManagedBuffer>,
     ) -> EsdtTokenPayment<Self::Api> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
-                self.add_quantity_and_send_locked_assets(
-                    amount,
-                    cached_nonce,
-                    address,
-                    opt_accept_funds_func,
-                );
+                self.add_quantity_and_send_locked_assets(amount, cached_nonce, address);
                 cached_nonce
             }
             Option::None => {
@@ -291,7 +215,6 @@ pub trait LockedAssetFactory:
                     &additional_amount_to_create,
                     address,
                     attributes,
-                    opt_accept_funds_func,
                 );
 
                 if do_cache_result {
@@ -302,104 +225,45 @@ pub trait LockedAssetFactory:
         };
 
         let token_id = self.locked_asset_token_id().get();
-        self.create_payment(&token_id, sent_nonce, amount)
+        EsdtTokenPayment::new(token_id, sent_nonce, amount.clone())
     }
 
     #[only_owner]
-    #[payable("EGLD")]
-    #[endpoint(registerLockedAssetToken)]
-    fn register_locked_asset_token(
-        &self,
-        #[payment_amount] register_cost: BigUint,
-        token_display_name: ManagedBuffer,
-        token_ticker: ManagedBuffer,
-        num_decimals: usize,
-    ) {
-        require!(
-            self.locked_asset_token_id().is_empty(),
-            "Token exists already"
-        );
-
-        self.send()
-            .esdt_system_sc_proxy()
-            .register_meta_esdt(
-                register_cost,
-                &token_display_name,
-                &token_ticker,
-                MetaTokenProperties {
-                    num_decimals,
-                    can_add_special_roles: true,
-                    can_change_owner: false,
-                    can_freeze: false,
-                    can_pause: false,
-                    can_upgrade: true,
-                    can_wipe: false,
-                },
-            )
-            .async_call()
-            .with_callback(self.callbacks().register_callback())
-            .call_and_exit()
-    }
-
-    #[callback]
-    fn register_callback(&self, #[call_result] result: ManagedAsyncCallResult<TokenIdentifier>) {
-        match result {
-            ManagedAsyncCallResult::Ok(token_id) => {
-                self.last_error_message().clear();
-
-                if self.locked_asset_token_id().is_empty() {
-                    self.locked_asset_token_id().set(&token_id);
-                }
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-
-                let (payment, token_id) = self.call_value().payment_token_pair();
-                self.send().direct(
-                    &self.blockchain().get_owner_address(),
-                    &token_id,
-                    0,
-                    &payment,
-                    &[],
-                );
-            }
+    #[endpoint(setTransferRoleForAddress)]
+    fn set_transfer_role_for_address(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
         };
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRolesLockedAssetToken)]
-    fn set_local_roles_locked_asset_token(
-        &self,
-        address: ManagedAddress,
-        #[var_args] roles: ManagedVarArgs<EsdtLocalRole>,
-    ) {
-        require!(
-            !self.locked_asset_token_id().is_empty(),
-            "Locked Asset Token not registered"
-        );
 
         self.send()
             .esdt_system_sc_proxy()
             .set_special_roles(
                 &address,
                 &self.locked_asset_token_id().get(),
-                roles.into_iter(),
+                [EsdtLocalRole::Transfer][..].iter().cloned(),
             )
             .async_call()
-            .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
     }
 
-    #[callback]
-    fn change_roles_callback(&self, #[call_result] result: ManagedAsyncCallResult<()>) {
-        match result {
-            ManagedAsyncCallResult::Ok(()) => {
-                self.last_error_message().clear();
-            }
-            ManagedAsyncCallResult::Err(message) => {
-                self.last_error_message().set(&message.err_msg);
-            }
-        }
+    #[only_owner]
+    #[endpoint(setBurnRoleForAddress)]
+    fn set_burn_role_for_address(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
+        self.send()
+            .esdt_system_sc_proxy()
+            .set_special_roles(
+                &address,
+                &self.locked_asset_token_id().get(),
+                [EsdtLocalRole::NftBurn][..].iter().cloned(),
+            )
+            .async_call()
+            .call_and_exit()
     }
 
     fn create_unlock_schedule(
@@ -419,12 +283,6 @@ pub trait LockedAssetFactory:
         }
     }
 
-    #[only_owner]
-    #[endpoint(setInitEpoch)]
-    fn set_init_epoch(&self, init_epoch: Epoch) {
-        self.init_epoch().set(&init_epoch);
-    }
-
     #[view(getLastErrorMessage)]
     #[storage_mapper("last_error_message")]
     fn last_error_message(&self) -> SingleValueMapper<ManagedBuffer>;
@@ -437,8 +295,8 @@ pub trait LockedAssetFactory:
     fn whitelisted_contracts(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getWhitelistedContracts)]
-    fn get_whitelisted_contracts(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_whitelisted_contracts(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.whitelisted_contracts().iter() {
             result.push(pair);
         }
