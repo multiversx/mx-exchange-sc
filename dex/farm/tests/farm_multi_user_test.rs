@@ -586,7 +586,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     let second_base_farm_amt2 = second_farm_token_amount * 15_000 / total_farm_tokens;
 
     // Boosted yields rewards for 2 weeks ~= 3066
-    let second_boosted_amt2 = 3065; // 4000 energy & 50_000_000 farm tokens
+    let second_boosted_amt2 = 3066; // 4000 energy & 50_000_000 farm tokens
     let second_total2 = second_base_farm_amt2 + second_boosted_amt2;
 
     let second_receveived_reward_amt2 =
@@ -612,7 +612,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     // current week = 4
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 2);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 2);
-    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 2);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 1);
 
     farm_setup.check_error_collect_undistributed_boosted_rewards(
         "Current week must be higher than the week offset",
@@ -625,13 +625,13 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.check_undistributed_boosted_rewards(2);
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 2);
-    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 2);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 1);
 
     // advance to week 8
     farm_setup.b_mock.set_block_epoch(50);
 
     farm_setup.collect_undistributed_boosted_rewards();
-    farm_setup.check_undistributed_boosted_rewards(6);
+    farm_setup.check_undistributed_boosted_rewards(5);
 
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);

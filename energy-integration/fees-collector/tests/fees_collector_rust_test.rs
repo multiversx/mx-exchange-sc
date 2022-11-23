@@ -1,10 +1,13 @@
 mod fees_collector_test_setup;
 
 use elrond_wasm::types::{BigInt, EsdtTokenPayment, ManagedVec};
-use elrond_wasm_debug::{managed_address, managed_biguint, managed_token_id, rust_biguint};
+use elrond_wasm_debug::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, DebugApi,
+};
 use energy_query::Energy;
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector_test_setup::*;
+use weekly_rewards_splitting::locked_token_buckets::LockedTokensBucket;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;
 use weekly_rewards_splitting::{
     global_info::WeeklyRewardsGlobalInfo,
@@ -375,9 +378,10 @@ fn claim_second_week_test() {
             // so we only decrease by second user's 500 tokens worth of energy
             //
             // - 7 * 500 global decrease (-3_500)
+            // - 1_000 (first user's surplus energy)
             // + 2_000 (first user's new energy)
-            // = 8_500
-            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
+            // = 7_500
+            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -430,7 +434,7 @@ fn claim_second_week_test() {
                 managed_biguint!(1_000),
             );
 
-            assert_eq!(sc.total_energy_for_week(2).get(), 8_500);
+            assert_eq!(sc.total_energy_for_week(2).get(), 7_500);
             assert_eq!(sc.total_locked_tokens_for_week(2).get(), 1_500);
             assert_eq!(sc.last_global_update_week().get(), 2);
 
@@ -670,18 +674,32 @@ fn locked_token_buckets_shifting_test() {
 
             // first user energy lasts for 3_000 / 50 = 60 epochs => 60 / 7 weeks to expire
             // => bucket offset 8
+            // => surplus = 3_000 % (50 * 7) = 3_000 % 350 = 200
             //
             // second user energy lasts for 9_000 / 50 = 180 epochs => 180 / 7 weeks to expire
             // => bucket offset 25
+            // => surplus = 9_000 % (50 * 7) = 9_000 % 350 = 250
             for i in 0..8 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
-            assert_eq!(sc.locked_tokens_in_bucket(8).get(), managed_biguint!(50));
+            assert_eq!(
+                sc.locked_tokens_in_bucket(8).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(50),
+                    surplus_energy_amount: managed_biguint!(200)
+                }
+            );
 
             for i in 9..25 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
-            assert_eq!(sc.locked_tokens_in_bucket(25).get(), managed_biguint!(50));
+            assert_eq!(
+                sc.locked_tokens_in_bucket(25).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(50),
+                    surplus_energy_amount: managed_biguint!(250)
+                }
+            );
         })
         .assert_ok();
 
@@ -729,14 +747,33 @@ fn locked_token_buckets_shifting_test() {
 
             // buckets shift 6 to the left
             for i in 6..8 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
-            assert_eq!(sc.locked_tokens_in_bucket(9).get(), managed_biguint!(50));
+            assert_eq!(
+                sc.locked_tokens_in_bucket(8).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(0),
+                    surplus_energy_amount: managed_biguint!(0)
+                }
+            );
+            assert_eq!(
+                sc.locked_tokens_in_bucket(9).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(50),
+                    surplus_energy_amount: managed_biguint!(200)
+                }
+            );
 
             for i in 10..25 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
-            assert_eq!(sc.locked_tokens_in_bucket(25).get(), managed_biguint!(50));
+            assert_eq!(
+                sc.locked_tokens_in_bucket(25).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(50),
+                    surplus_energy_amount: managed_biguint!(250)
+                }
+            );
         })
         .assert_ok();
 
@@ -753,20 +790,47 @@ fn locked_token_buckets_shifting_test() {
 
             // second user energy lasts for 10_000 / 100 = 100 => 14 weeks => offset 14
             // => bucket ID = 6 + 14 = 20
+            // => surplus = 10_000 % (7 * 100) = 10_000 % 700 = 200
 
             for i in 6..8 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
-            assert_eq!(sc.locked_tokens_in_bucket(9).get(), managed_biguint!(50));
+            assert_eq!(
+                sc.locked_tokens_in_bucket(8).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(0),
+                    surplus_energy_amount: managed_biguint!(0)
+                }
+            );
+            assert_eq!(
+                sc.locked_tokens_in_bucket(9).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(50),
+                    surplus_energy_amount: managed_biguint!(200)
+                }
+            );
 
             for i in 10..20 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
-            assert_eq!(sc.locked_tokens_in_bucket(20).get(), managed_biguint!(100));
+            assert_eq!(
+                sc.locked_tokens_in_bucket(20).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(100),
+                    surplus_energy_amount: managed_biguint!(200)
+                }
+            );
 
             for i in 21..25 {
-                assert_eq!(sc.locked_tokens_in_bucket(i).get(), managed_biguint!(0));
+                assert!(sc.locked_tokens_in_bucket(i).is_empty());
             }
+            assert_eq!(
+                sc.locked_tokens_in_bucket(25).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(0),
+                    surplus_energy_amount: managed_biguint!(0)
+                }
+            );
         })
         .assert_ok();
 }
@@ -803,10 +867,22 @@ fn multi_bucket_shift_consistency_test() {
                 managed_biguint!(1_100)
             );
 
-            assert_eq!(sc.locked_tokens_in_bucket(0).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(1).get(), managed_biguint!(1_000));
-            assert_eq!(sc.locked_tokens_in_bucket(2).get(), managed_biguint!(0));
-            assert_eq!(sc.locked_tokens_in_bucket(3).get(), managed_biguint!(100));
+            assert!(sc.locked_tokens_in_bucket(0).is_empty());
+            assert_eq!(
+                sc.locked_tokens_in_bucket(1).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(1_000),
+                    surplus_energy_amount: managed_biguint!(0) // 7_000 % (7 * 1_000)
+                }
+            );
+            assert!(sc.locked_tokens_in_bucket(2).is_empty());
+            assert_eq!(
+                sc.locked_tokens_in_bucket(3).get(),
+                LockedTokensBucket::<DebugApi> {
+                    token_amount: managed_biguint!(100),
+                    surplus_energy_amount: managed_biguint!(0) // 2_100 % (7 * 100)
+                }
+            );
         })
         .assert_ok();
 
@@ -829,5 +905,120 @@ fn multi_bucket_shift_consistency_test() {
             // for week 3: energy -= 7 * 100 => 1_400 - 700 => 700
             assert_eq!(sc.total_energy_for_week(3).get(), 700u64);
         })
+        .assert_ok();
+}
+
+#[test]
+fn surplus_energy_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup = FeesCollectorSetup::new(
+        fees_collector::contract_obj,
+        energy_factory_mock::contract_obj,
+    );
+
+    // first user, 7_500 energy, 1_000 tokens (7 epochs, 1 week)
+    // => bucket offset 1, surplus = 500
+
+    // second user, 15_000 energy, 1_000 tokens (14 epochs, 2 week)
+    // => bucket offset 1, surplus = 1_000
+
+    // third user, 20_100 energy, 500 tokens (40 epochs => 5 weeks)
+    // => bucket offset 2, surplus = 2_600
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.reallocate_bucket_after_energy_update(
+                    &Energy::default(),
+                    &Energy::default(),
+                    &Energy::new(
+                        managed_biguint!(7_500).into(),
+                        INIT_EPOCH,
+                        managed_biguint!(1_000),
+                    ),
+                );
+
+                sc.reallocate_bucket_after_energy_update(
+                    &Energy::default(),
+                    &Energy::default(),
+                    &Energy::new(
+                        managed_biguint!(15_000).into(),
+                        INIT_EPOCH,
+                        managed_biguint!(1_000),
+                    ),
+                );
+
+                sc.reallocate_bucket_after_energy_update(
+                    &Energy::default(),
+                    &Energy::default(),
+                    &Energy::new(
+                        managed_biguint!(20_100).into(),
+                        INIT_EPOCH,
+                        managed_biguint!(500),
+                    ),
+                );
+
+                assert_eq!(
+                    sc.locked_tokens_in_bucket(1).get(),
+                    LockedTokensBucket::<DebugApi> {
+                        token_amount: managed_biguint!(1_000),
+                        surplus_energy_amount: managed_biguint!(500)
+                    }
+                );
+                assert_eq!(
+                    sc.locked_tokens_in_bucket(2).get(),
+                    LockedTokensBucket::<DebugApi> {
+                        token_amount: managed_biguint!(1_000),
+                        surplus_energy_amount: managed_biguint!(1_000)
+                    }
+                );
+                assert_eq!(
+                    sc.locked_tokens_in_bucket(5).get(),
+                    LockedTokensBucket::<DebugApi> {
+                        token_amount: managed_biguint!(500),
+                        surplus_energy_amount: managed_biguint!(2_600)
+                    }
+                );
+
+                let mut total_energy = managed_biguint!(7_500u64 + 15_000u64 + 20_100u64);
+                let mut total_tokens = managed_biguint!(1_000u64 + 1_000u64 + 500u64);
+                assert_eq!(total_energy, 42_600u64);
+                assert_eq!(total_tokens, 2_500u64);
+
+                // no token shifted out yet, as first_token_id = 0
+                sc.shift_buckets_and_update_tokens_energy(1, &mut total_tokens, &mut total_energy);
+                assert_eq!(total_energy, 25_100u64); // 42_600 - 7 * 2_500
+                assert_eq!(total_tokens, 2_500u64);
+
+                // first bucket gets shifted
+                sc.shift_buckets_and_update_tokens_energy(1, &mut total_tokens, &mut total_energy);
+                assert_eq!(total_energy, 14_100u64); // 25_100 - 7 * 1_500 - 500
+                assert_eq!(total_tokens, 1_500u64);
+
+                // second bucket gets shifted
+                sc.shift_buckets_and_update_tokens_energy(1, &mut total_tokens, &mut total_energy);
+                assert_eq!(total_energy, 9_600u64); // 14_100 - 7 * 500 - 1_000
+                assert_eq!(total_tokens, 500u64);
+
+                // no shift
+                sc.shift_buckets_and_update_tokens_energy(1, &mut total_tokens, &mut total_energy);
+                assert_eq!(total_energy, 6_100u64); // 9_600 - 7 * 500
+                assert_eq!(total_tokens, 500u64);
+
+                // no shift
+                sc.shift_buckets_and_update_tokens_energy(1, &mut total_tokens, &mut total_energy);
+                assert_eq!(total_energy, 2_600u64); // 6_100 - 7 * 500
+                assert_eq!(total_tokens, 500u64);
+
+                // last bucket shift
+                sc.shift_buckets_and_update_tokens_energy(1, &mut total_tokens, &mut total_energy);
+                assert_eq!(total_energy, 0u64); // 2_600 - 7 * 0 - 2_600
+                assert_eq!(total_tokens, 0u64);
+            },
+        )
         .assert_ok();
 }
