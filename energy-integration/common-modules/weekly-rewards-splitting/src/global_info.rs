@@ -29,6 +29,7 @@ pub trait WeeklyRewardsGlobalInfo:
         let new_total_locked_tokens = self
             .update_and_get_total_tokens_amounts_after_user_energy_update(
                 current_week,
+                prev_user_energy,
                 &prev_energy_for_update,
                 current_user_energy,
             );
@@ -79,11 +80,15 @@ pub trait WeeklyRewardsGlobalInfo:
     fn update_and_get_total_tokens_amounts_after_user_energy_update(
         &self,
         current_week: Week,
-        prev_user_energy: &Energy<Self::Api>,
+        original_prev_user_energy: &Energy<Self::Api>,
+        depleted_prev_user_energy: &Energy<Self::Api>,
         current_user_energy: &Energy<Self::Api>,
     ) -> BigUint {
-        let bucket_pair =
-            self.reallocate_bucket_after_energy_update(prev_user_energy, current_user_energy);
+        let bucket_pair = self.reallocate_bucket_after_energy_update(
+            original_prev_user_energy,
+            depleted_prev_user_energy,
+            current_user_energy,
+        );
 
         self.total_locked_tokens_for_week(current_week)
             .update(|total_locked| {
@@ -92,12 +97,12 @@ pub trait WeeklyRewardsGlobalInfo:
                 if had_prev_energy && has_current_energy {
                     // usual case of non-zero for both prev and current energy
                     *total_locked += current_user_energy.get_total_locked_tokens();
-                    *total_locked -= prev_user_energy.get_total_locked_tokens();
+                    *total_locked -= depleted_prev_user_energy.get_total_locked_tokens();
                 } else if had_prev_energy && !has_current_energy {
                     // only decrease if previous energy > 0,
                     // otherwise, these tokens were already removed by global shifting
                     // current not added, as it's 0
-                    *total_locked -= prev_user_energy.get_total_locked_tokens();
+                    *total_locked -= depleted_prev_user_energy.get_total_locked_tokens();
                 } else if !had_prev_energy && has_current_energy {
                     // if user had 0 energy, but now has non-zero,
                     // then we have to only add the new tokens, as the old were already deducted
