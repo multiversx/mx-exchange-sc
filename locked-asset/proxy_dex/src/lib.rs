@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
@@ -11,6 +10,7 @@ pub mod migration_from_v1_2;
 pub mod proxy_common;
 pub mod proxy_farm;
 mod proxy_pair;
+pub mod transfer_role;
 mod wrapped_farm_token_merge;
 mod wrapped_lp_token_merge;
 
@@ -31,6 +31,7 @@ pub trait ProxyDexImpl:
     + wrapped_lp_token_merge::WrappedLpTokenMerge
     + events::EventsModule
     + migration_from_v1_2::MigrationModule
+    + transfer_role::TransferRoleModule
 {
     #[init]
     fn init(
