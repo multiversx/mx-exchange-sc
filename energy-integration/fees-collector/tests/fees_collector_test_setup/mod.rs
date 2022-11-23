@@ -9,7 +9,7 @@ use fees_collector::{config::ConfigModule, fees_accumulation::FeesAccumulationMo
 use simple_lock::locked_token::LockedTokenAttributes;
 use week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
 
-const INIT_EPOCH: u64 = 5;
+pub const INIT_EPOCH: u64 = 5;
 
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
 pub static SECOND_TOKEN_ID: &[u8] = b"SECOND-123456";
