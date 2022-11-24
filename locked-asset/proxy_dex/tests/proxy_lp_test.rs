@@ -177,7 +177,7 @@ fn add_remove_liquidity_proxy_test() {
 }
 
 #[test]
-fn double_add_liquidity_proxy_test() {
+fn tripple_add_liquidity_proxy_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,
         pair::contract_obj,
@@ -414,7 +414,7 @@ fn double_add_liquidity_proxy_test() {
     setup.b_mock.check_nft_balance(
         &first_user,
         WRAPPED_LP_TOKEN_ID,
-        2,
+        3,
         &expected_second_lp_token_amount,
         Some(&WrappedLpTokenAttributes::<DebugApi> {
             locked_tokens: EsdtTokenPayment {
