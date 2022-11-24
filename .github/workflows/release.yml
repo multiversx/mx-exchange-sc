@@ -43,7 +43,6 @@ jobs:
           path: |
             /home/runner/work/output-from-docker/**/*.wasm
             /home/runner/work/output-from-docker/**/*.abi.json
-            /home/runner/work/output-from-docker/**/*.zip
           if-no-files-found: error
 
   release:
