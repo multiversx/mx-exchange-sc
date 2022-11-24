@@ -50,7 +50,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
             if reward_amount > 0 {
                 user_rewards.push(EsdtTokenPayment::new(
                     weekly_reward.token_identifier,
-                    0,
+                    weekly_reward.token_nonce,
                     reward_amount,
                 ));
             }

@@ -24,6 +24,15 @@ path = "../common-modules/week-timekeeping"
 [dependencies.weekly-rewards-splitting]
 path = "../common-modules/weekly-rewards-splitting"
 
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.common-types]
 path = "../common-types"
 
