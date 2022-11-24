@@ -7,7 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     factory
     (
-        callBack
         createAndForward
         createAndForwardCustomPeriod
         getAssetTokenId
@@ -17,17 +16,15 @@ elrond_wasm_node::wasm_endpoints! {
         getInitEpoch
         getLastErrorMessage
         getLockedAssetTokenId
-        getTransferExecGasLimit
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
-        mergeLockedAssetTokens
-        registerLockedAssetToken
         removeWhitelist
-        setInitEpoch
-        setLocalRolesLockedAssetToken
-        setUnlockPeriod
-        set_transfer_exec_gas_limit
+        setBurnRoleForAddress
+        setNewFactoryAddress
+        setTransferRoleForAddress
         unlockAssets
         whitelist
     )
 }
+
+elrond_wasm_node::wasm_empty_callback! {}

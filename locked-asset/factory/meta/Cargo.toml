@@ -10,9 +10,8 @@ publish = false
 path = ".."
 
 [dependencies.elrond-wasm]
-version = "0.28.0"
-
+version = "=0.36.1"
+features = [ "esdt-token-payment-legacy-decode" ]
 
 [dependencies.elrond-wasm-debug]
-version = "0.28.0"
-
+version = "=0.36.1"
