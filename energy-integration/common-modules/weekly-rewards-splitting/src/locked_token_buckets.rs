@@ -69,7 +69,7 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         if let Some(prev_bucket_id) = &opt_bucket_for_prev_energy {
             self.init_and_update_bucket(*prev_bucket_id, |bucket| {
                 bucket.token_amount -= original_prev_energy.get_total_locked_tokens();
-                bucket.surplus_energy_amount -= self.get_surplus_for_energy(&original_prev_energy);
+                bucket.surplus_energy_amount -= self.get_surplus_for_energy(original_prev_energy);
             });
         }
 
@@ -77,7 +77,7 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         if let Some(new_bucket_id) = &opt_bucket_for_current_energy {
             self.init_and_update_bucket(*new_bucket_id, |bucket| {
                 bucket.token_amount += current_energy.get_total_locked_tokens();
-                bucket.surplus_energy_amount += self.get_surplus_for_energy(&current_energy);
+                bucket.surplus_energy_amount += self.get_surplus_for_energy(current_energy);
             });
         }
 
