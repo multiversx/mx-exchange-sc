@@ -1,26 +1,39 @@
-use elrond_wasm::types::{Address, BigInt, MultiValueEncoded};
+use elrond_wasm::{
+    storage::mappers::StorageTokenWrapper,
+    types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
+};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     testing_framework::*, tx_mock::TxResult, DebugApi,
 };
-use energy_factory_mock::EnergyFactoryMock;
+
+use elrond_wasm_modules::pause::PauseModule;
+use energy_factory::{
+    energy::EnergyModule, locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy,
+};
 use energy_query::{Energy, EnergyQueryModule};
 use fees_collector::{config::ConfigModule, fees_accumulation::FeesAccumulationModule, *};
-use simple_lock::locked_token::LockedTokenAttributes;
+use locking_module::lock_with_energy_module::LockWithEnergyModule;
+use sc_whitelist_module::SCWhitelistModule;
+use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
 
 pub const INIT_EPOCH: u64 = 5;
+pub const EPOCHS_IN_YEAR: u64 = 360;
+pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
+pub static LOCK_OPTIONS: &[u64] = &[EPOCHS_IN_YEAR, 2 * EPOCHS_IN_YEAR, 4 * EPOCHS_IN_YEAR];
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
 pub static SECOND_TOKEN_ID: &[u8] = b"SECOND-123456";
-pub static BASE_TOKEN_ID: &[u8] = b"BASE-123456";
+pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
-pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
+pub static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
+pub static PENALTY_PERCENTAGES: &[u64] = &[4_000, 6_000, 8_000];
 
 pub struct FeesCollectorSetup<FeesCollectorObjBuilder, EnergyFactoryObjBuilder>
 where
     FeesCollectorObjBuilder: 'static + Copy + Fn() -> fees_collector::ContractObj<DebugApi>,
-    EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
@@ -28,7 +41,7 @@ where
     pub fc_wrapper:
         ContractObjWrapper<fees_collector::ContractObj<DebugApi>, FeesCollectorObjBuilder>,
     pub energy_factory_wrapper:
-        ContractObjWrapper<energy_factory_mock::ContractObj<DebugApi>, EnergyFactoryObjBuilder>,
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryObjBuilder>,
     pub current_epoch: u64,
 }
 
@@ -36,7 +49,7 @@ impl<FeesCollectorObjBuilder, EnergyFactoryObjBuilder>
     FeesCollectorSetup<FeesCollectorObjBuilder, EnergyFactoryObjBuilder>
 where
     FeesCollectorObjBuilder: 'static + Copy + Fn() -> fees_collector::ContractObj<DebugApi>,
-    EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory_mock::ContractObj<DebugApi>,
+    EnergyFactoryObjBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub fn new(
         fc_builder: FeesCollectorObjBuilder,
@@ -59,6 +72,30 @@ where
             "energy factory path",
         );
 
+        // set energy factory roles
+        b_mock.set_esdt_local_roles(
+            energy_factory_wrapper.address_ref(),
+            BASE_ASSET_TOKEN_ID,
+            &[EsdtLocalRole::Mint, EsdtLocalRole::Burn],
+        );
+        b_mock.set_esdt_local_roles(
+            energy_factory_wrapper.address_ref(),
+            LOCKED_TOKEN_ID,
+            &[
+                EsdtLocalRole::NftCreate,
+                EsdtLocalRole::NftAddQuantity,
+                EsdtLocalRole::NftBurn,
+                EsdtLocalRole::Transfer,
+            ],
+        );
+
+        // set fees collector roles
+        b_mock.set_esdt_local_roles(
+            fc_wrapper.address_ref(),
+            LOCKED_TOKEN_ID,
+            &[EsdtLocalRole::NftBurn],
+        );
+
         b_mock.set_esdt_balance(
             &depositor_address,
             FIRST_TOKEN_ID,
@@ -78,13 +115,38 @@ where
             1,
             &rust_biguint!(USER_BALANCE * 2),
             &LockedTokenAttributes::<DebugApi> {
-                original_token_id: managed_token_id_wrapped!(BASE_TOKEN_ID),
+                original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
                 original_token_nonce: 1,
                 unlock_epoch: 100,
             },
         );
 
         b_mock.set_block_epoch(INIT_EPOCH);
+
+        // setup energy factory
+        b_mock
+            .execute_tx(&owner_address, &energy_factory_wrapper, &rust_zero, |sc| {
+                let mut lock_options = MultiValueEncoded::new();
+                for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
+                    lock_options.push((*option, *penalty).into());
+                }
+                sc.init(
+                    managed_token_id!(BASE_ASSET_TOKEN_ID),
+                    managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                    managed_address!(energy_factory_wrapper.address_ref()),
+                    0,
+                    lock_options,
+                );
+
+                sc.locked_token()
+                    .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
+                sc.set_paused(false);
+                sc.add_sc_address_to_whitelist(managed_address!(fc_wrapper.address_ref()));
+                let mut token_transfer_sc_list = MultiValueEncoded::new();
+                token_transfer_sc_list.push(managed_address!(fc_wrapper.address_ref()));
+                sc.add_to_token_transfer_whitelist(token_transfer_sc_list);
+            })
+            .assert_ok();
 
         b_mock
             .execute_tx(&owner_address, &fc_wrapper, &rust_zero, |sc| {
@@ -107,6 +169,8 @@ where
                 sc.set_energy_factory_address(managed_address!(
                     energy_factory_wrapper.address_ref()
                 ));
+                sc.set_locking_sc_address(managed_address!(energy_factory_wrapper.address_ref()));
+                sc.set_lock_epochs(LOCK_OPTIONS[2]);
             })
             .assert_ok();
 

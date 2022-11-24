@@ -21,7 +21,6 @@ pub trait TokenUnstakeModule:
     + energy_query::EnergyQueryModule
     + energy_factory::penalty::LocalPenaltyModule
     + energy_factory::lock_options::LockOptionsModule
-    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + events::EventsModule
 {
     /// Needs burn role for both the unlocked and locked token
@@ -45,10 +44,6 @@ pub trait TokenUnstakeModule:
         self.energy_factory_address().set(&energy_factory_address);
         self.fees_collector_address().set(&fees_collector_address);
         self.fees_burn_percentage().set(fees_burn_percentage);
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        self.last_epoch_fee_sent_to_collector()
-            .set_if_empty(current_epoch);
 
         // TODO: See if we can get this from energy factory here
         let mut options = AllLockOptions::new();

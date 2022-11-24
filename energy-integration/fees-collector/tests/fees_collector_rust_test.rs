@@ -18,10 +18,8 @@ use weekly_rewards_splitting::{
 
 #[test]
 fn setup_test() {
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
     assert_eq!(fc_setup.get_current_week(), 1);
 
     fc_setup.advance_week();
@@ -31,10 +29,8 @@ fn setup_test() {
 #[test]
 fn claim_first_week_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -167,10 +163,8 @@ fn claim_first_week_test() {
 #[test]
 fn claim_after_dex_inactive_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -277,10 +271,8 @@ fn claim_after_dex_inactive_test() {
 #[test]
 fn claim_second_week_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -473,10 +465,8 @@ fn claim_second_week_test() {
 #[test]
 fn claim_inactive_week_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -578,10 +568,8 @@ fn claim_inactive_week_test() {
 #[test]
 fn try_claim_after_unlock() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -645,10 +633,8 @@ fn try_claim_after_unlock() {
 #[test]
 fn locked_token_buckets_shifting_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -840,10 +826,8 @@ fn locked_token_buckets_shifting_test() {
 #[test]
 fn multi_bucket_shift_consistency_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -913,10 +897,8 @@ fn multi_bucket_shift_consistency_test() {
 #[test]
 fn surplus_energy_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     // first user, 7_500 energy, 1_000 tokens (7 epochs, 1 week)
     // => bucket offset 1, surplus = 500
@@ -1028,10 +1010,8 @@ fn surplus_energy_test() {
 #[test]
 fn claim_locked_rewards_with_energy_update_test() {
     let rust_zero = rust_biguint!(0);
-    let mut fc_setup = FeesCollectorSetup::new(
-        fees_collector::contract_obj,
-        energy_factory_mock::contract_obj,
-    );
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
 
     let first_user = fc_setup.b_mock.create_user_account(&rust_zero);
     let second_user = fc_setup.b_mock.create_user_account(&rust_zero);
@@ -1076,7 +1056,7 @@ fn claim_locked_rewards_with_energy_update_test() {
             ));
             expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(LOCKED_TOKEN_ID),
-                1,
+                0,
                 managed_biguint!(USER_BALANCE),
             ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
@@ -1104,9 +1084,9 @@ fn claim_locked_rewards_with_energy_update_test() {
         1,
         &first_user_expected_locked_token_amt,
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id_wrapped!(BASE_TOKEN_ID),
-            original_token_nonce: 1,
-            unlock_epoch: 100,
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: 1440,
         }),
     );
 
@@ -1128,7 +1108,7 @@ fn claim_locked_rewards_with_energy_update_test() {
             assert_eq!(
                 sc.accumulated_locked_fees(1, &managed_token_id!(LOCKED_TOKEN_ID))
                     .get(),
-                ManagedVec::new()
+                managed_biguint!(0)
             );
 
             let mut expected_total_rewards = ManagedVec::new();
@@ -1144,7 +1124,7 @@ fn claim_locked_rewards_with_energy_update_test() {
             ));
             expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(LOCKED_TOKEN_ID),
-                1,
+                0,
                 managed_biguint!(USER_BALANCE),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
@@ -1210,7 +1190,7 @@ fn claim_locked_rewards_with_energy_update_test() {
             ));
             expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(LOCKED_TOKEN_ID),
-                1,
+                0,
                 managed_biguint!(USER_BALANCE),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);

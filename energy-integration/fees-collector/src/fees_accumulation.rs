@@ -3,6 +3,8 @@ elrond_wasm::derive_imports!();
 
 use week_timekeeping::Week;
 
+static BASE_TOKEN_ID_STORAGE_KEY: &[u8] = b"baseAssetTokenId";
+
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule
@@ -25,14 +27,22 @@ pub trait FeesAccumulationModule:
             self.known_tokens().contains(&payment.token_identifier),
             "Invalid payment token"
         );
-
         let current_week = self.get_current_week();
         if payment.token_nonce == 0 {
             self.accumulated_fees(current_week, &payment.token_identifier)
                 .update(|amt| *amt += &payment.amount);
         } else {
+            require!(
+                payment.token_identifier == self.locked_token_id().get(),
+                "Invalid locked token"
+            );
+            self.send().esdt_local_burn(
+                &payment.token_identifier,
+                payment.token_nonce,
+                &payment.amount,
+            );
             self.accumulated_locked_fees(current_week, &payment.token_identifier)
-                .update(|locked_fees| locked_fees.push(payment.clone()));
+                .update(|amt| *amt += &payment.amount);
         }
 
         self.emit_deposit_swap_fees_event(caller, current_week, payment);
@@ -52,7 +62,11 @@ pub trait FeesAccumulationModule:
             let opt_accumulated_locked_fees =
                 self.get_and_clear_acccumulated_locked_fees(week, &token);
             if let Some(accumulated_locked_fees) = opt_accumulated_locked_fees {
-                results.append_vec(accumulated_locked_fees);
+                results.push(EsdtTokenPayment::new(
+                    token.clone(),
+                    0,
+                    accumulated_locked_fees,
+                ));
             }
         }
         results
@@ -77,15 +91,22 @@ pub trait FeesAccumulationModule:
         &self,
         week: Week,
         token: &TokenIdentifier,
-    ) -> Option<ManagedVec<EsdtTokenPayment<Self::Api>>> {
+    ) -> Option<BigUint> {
         let mapper = self.accumulated_locked_fees(week, token);
         let value = mapper.get();
-        if !value.is_empty() {
+        if value > 0 {
             mapper.clear();
             Some(value)
         } else {
             None
         }
+    }
+
+    fn get_base_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {
+        self.storage_raw().read_from_address(
+            energy_factory_addr,
+            ManagedBuffer::new_from_bytes(BASE_TOKEN_ID_STORAGE_KEY),
+        )
     }
 
     #[view(getAccumulatedFees)]
@@ -97,6 +118,6 @@ pub trait FeesAccumulationModule:
     fn accumulated_locked_fees(
         &self,
         week: Week,
-        token: &TokenIdentifier<Self::Api>,
-    ) -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
+        token: &TokenIdentifier,
+    ) -> SingleValueMapper<BigUint>;
 }

@@ -23,6 +23,7 @@ pub trait FeesCollector:
     + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
     + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
     + fees_accumulation::FeesAccumulationModule
+    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
     + elrond_wasm_modules::pause::PauseModule
@@ -46,33 +47,41 @@ pub trait FeesCollector:
         let caller = self.blockchain().get_caller();
         let wrapper = FeesCollectorWrapper::new();
         let rewards = self.claim_multi(&wrapper, &caller);
-        let energy_token_id = self.locked_token_id().get();
-        let mut require_energy_update = false;
         if !rewards.is_empty() {
-            self.send().direct_multi(&caller, &rewards);
-
-            let current_epoch = self.blockchain().get_block_epoch();
-            let mut energy = self.get_energy_entry(&caller);
+            let locked_token_id = self.locked_token_id().get();
             for reward in &rewards {
-                if reward.token_identifier == energy_token_id && reward.token_nonce > 0 {
-                    let attributes: LockedTokenAttributes<Self::Api> =
-                        self.get_token_attributes(&reward.token_identifier, reward.token_nonce);
+                if reward.token_identifier == locked_token_id {
+                    let energy_factory_addr = self.energy_factory_address().get();
+                    let locked_rewards = self.lock_virtual(
+                        self.get_base_token_id(&energy_factory_addr),
+                        reward.amount.clone(),
+                        caller.clone(),
+                        energy_factory_addr,
+                    );
+                    let current_epoch = self.blockchain().get_block_epoch();
+                    let mut energy = self.get_energy_entry(&caller);
+                    let attributes: LockedTokenAttributes<Self::Api> = self.get_token_attributes(
+                        &locked_rewards.token_identifier,
+                        locked_rewards.token_nonce,
+                    );
                     if attributes.unlock_epoch > current_epoch {
                         energy.add_after_token_lock(
-                            &reward.amount,
+                            &locked_rewards.amount,
                             attributes.unlock_epoch,
                             current_epoch,
                         );
-
-                        require_energy_update = true;
                     }
+                    self.set_energy_in_factory(caller.clone(), energy);
+                } else {
+                    self.send().direct_esdt(
+                        &caller,
+                        &reward.token_identifier,
+                        reward.token_nonce,
+                        &reward.amount,
+                    );
                 }
             }
-            if require_energy_update {
-                self.set_energy_in_factory(caller, energy);
-            }
         }
-
         rewards
     }
 

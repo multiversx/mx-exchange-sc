@@ -14,15 +14,9 @@ elrond_wasm_node::wasm_endpoints! {
         getEnergyFactoryAddress
         getFeesBurnPercentage
         getFeesCollectorAddress
-        getFeesFromPenaltyUnlocking
-        getLastEpochFeeSentToCollector
-        getLockEpochs
-        getLockingScAddress
         getUnbondEpochs
         getUnlockedTokensForUser
         setEnergyFactoryAddress
-        setLockEpochs
-        setLockingScAddress
     )
 }
 

@@ -1,11 +1,8 @@
 elrond_wasm::imports!();
 
-use common_structs::Epoch;
 use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
-use week_timekeeping::EPOCHS_IN_WEEK;
 
 static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
-static BASE_TOKEN_ID_STORAGE_KEY: &[u8] = b"baseAssetTokenId";
 
 use crate::{events, tokens_per_user::UnstakePair};
 
@@ -25,7 +22,6 @@ pub trait FeesAccumulationModule:
     crate::tokens_per_user::TokensPerUserModule
     + energy_factory::penalty::LocalPenaltyModule
     + energy_factory::lock_options::LockOptionsModule
-    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + events::EventsModule
@@ -54,8 +50,6 @@ pub trait FeesAccumulationModule:
                 unstake_pairs.push(unstake_pair);
             });
 
-        self.send_fees_to_collector();
-
         let new_unlocked_tokens = self.unlocked_tokens_for_user(&user).get();
         self.emit_unlocked_tokens_event(&user, new_unlocked_tokens);
     }
@@ -82,59 +76,32 @@ pub trait FeesAccumulationModule:
         let fees_burn_percentage = self.fees_burn_percentage().get();
         let burn_amount = &payment.amount * fees_burn_percentage / MAX_PENALTY_PERCENTAGE;
         let remaining_amount = &payment.amount - &burn_amount;
-        if remaining_amount > 0 {
-            self.fees_from_penalty_unlocking()
-                .update(|fees| *fees += remaining_amount)
-        }
 
-        self.send().esdt_local_burn(
-            &payment.token_identifier,
+        self.send()
+            .esdt_local_burn(&payment.token_identifier, payment.token_nonce, &burn_amount);
+
+        self.send_fees_to_collector(EsdtTokenPayment::new(
+            payment.token_identifier,
             payment.token_nonce,
-            &payment.amount,
-        );
-
-        // Only once per week
-        self.send_fees_to_collector();
+            remaining_amount,
+        ));
     }
 
-    fn send_fees_to_collector(&self) {
-        let last_send_mapper = self.last_epoch_fee_sent_to_collector();
-        let current_epoch = self.blockchain().get_block_epoch();
-        let last_epoch_fee_sent_to_collector = last_send_mapper.get();
-        let next_send_epoch = last_epoch_fee_sent_to_collector + EPOCHS_IN_WEEK;
-        if current_epoch < next_send_epoch {
+    fn send_fees_to_collector(&self, payment: EsdtTokenPayment) {
+        if payment.amount == 0u64 {
             return;
         }
-
-        let fees_mapper = self.fees_from_penalty_unlocking();
-        let total_fees = fees_mapper.get();
-        if total_fees == 0u64 {
-            last_send_mapper.set(current_epoch);
-
-            return;
-        }
-
-        let energy_factory_addr = self.energy_factory_address().get();
-
-        let fee_tokens: EsdtTokenPayment = self.lock_virtual(
-            self.get_locked_token_id(&energy_factory_addr, BASE_TOKEN_ID_STORAGE_KEY),
-            total_fees,
-            self.blockchain().get_sc_address(),
-            energy_factory_addr,
-        );
 
         let fees_collector_addr = self.fees_collector_address().get();
         let _: IgnoreValue = self
             .fees_collector_proxy_builder(fees_collector_addr)
             .deposit_swap_fees()
             .add_esdt_token_transfer(
-                fee_tokens.token_identifier,
-                fee_tokens.token_nonce,
-                fee_tokens.amount,
+                payment.token_identifier,
+                payment.token_nonce,
+                payment.amount,
             )
             .execute_on_dest_context();
-
-        fees_mapper.clear();
     }
 
     fn get_locked_token_id(
@@ -154,10 +121,6 @@ pub trait FeesAccumulationModule:
         sc_address: ManagedAddress,
     ) -> fees_collector_proxy::Proxy<Self::Api>;
 
-    #[view(getFeesFromPenaltyUnlocking)]
-    #[storage_mapper("feesFromPenaltyUnlocking")]
-    fn fees_from_penalty_unlocking(&self) -> SingleValueMapper<BigUint>;
-
     #[view(getFeesBurnPercentage)]
     #[storage_mapper("feesBurnPercentage")]
     fn fees_burn_percentage(&self) -> SingleValueMapper<u64>;
@@ -165,8 +128,4 @@ pub trait FeesAccumulationModule:
     #[view(getFeesCollectorAddress)]
     #[storage_mapper("feesCollectorAddress")]
     fn fees_collector_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getLastEpochFeeSentToCollector)]
-    #[storage_mapper("lastEpochFeeSentToCollector")]
-    fn last_epoch_fee_sent_to_collector(&self) -> SingleValueMapper<Epoch>;
 }
