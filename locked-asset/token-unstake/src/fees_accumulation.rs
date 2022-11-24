@@ -65,8 +65,7 @@ pub trait FeesAccumulationModule:
         );
 
         let payment = self.call_value().single_esdt();
-        let locked_token_id =
-            self.get_locked_token_id(&energy_factory_addr, LOCKED_TOKEN_ID_STORAGE_KEY);
+        let locked_token_id = self.get_locked_token_id(&energy_factory_addr);
         require!(payment.token_identifier == locked_token_id, "Invalid token");
 
         self.burn_penalty(payment);
@@ -104,14 +103,10 @@ pub trait FeesAccumulationModule:
             .execute_on_dest_context();
     }
 
-    fn get_locked_token_id(
-        &self,
-        energy_factory_addr: &ManagedAddress,
-        token_key: &[u8],
-    ) -> TokenIdentifier {
+    fn get_locked_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {
         self.storage_raw().read_from_address(
             energy_factory_addr,
-            ManagedBuffer::new_from_bytes(token_key),
+            ManagedBuffer::new_from_bytes(LOCKED_TOKEN_ID_STORAGE_KEY),
         )
     }
 
