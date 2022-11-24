@@ -24,9 +24,8 @@ panic = "abort"
 path = ".."
 
 [dependencies.elrond-wasm-node]
-version = "0.28.0"
-features = [ "vm-validate-token-identifier" ]
+version = "=0.36.1"
 
 [dependencies.elrond-wasm-output]
-version = "0.28.0"
-features = [ "wasm-output-mode",]
+version = "=0.36.1"
+features = ["wasm-output-mode"]

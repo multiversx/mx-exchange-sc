@@ -10,6 +10,7 @@ path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
 version = "=0.36.1"
+features = [ "esdt-token-payment-legacy-decode" ]
 
 [dependencies]
 hex-literal = "0.3.1"
