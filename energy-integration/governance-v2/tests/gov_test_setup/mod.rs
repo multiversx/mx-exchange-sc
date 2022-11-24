@@ -1,8 +1,8 @@
-use elrond_wasm::types::{Address, BigInt, EsdtTokenPayment, ManagedVec, MultiValueEncoded};
+use elrond_wasm::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::{TxInputESDT, TxResult},
+    tx_mock::TxResult,
     DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
@@ -12,10 +12,12 @@ use governance_v2::{
 };
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;
+pub const MIN_FEE_FOR_PROPOSE: u64 = 1_000;
 pub const QUORUM: u64 = 1_500;
 pub const VOTING_DELAY_BLOCKS: u64 = 10;
 pub const VOTING_PERIOD_BLOCKS: u64 = 20;
 pub const LOCKING_PERIOD_BLOCKS: u64 = 30;
+pub static LKMEX_TOKEN_ID: &[u8] = b"LKMEX-123456";
 
 pub const USER_ENERGY: u64 = 1_000;
 pub const GAS_LIMIT: u64 = 1_000_000;
@@ -91,12 +93,19 @@ where
             .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
                 sc.init(
                     managed_biguint!(MIN_ENERGY_FOR_PROPOSE),
+                    managed_biguint!(MIN_FEE_FOR_PROPOSE),
                     managed_biguint!(QUORUM),
                     VOTING_DELAY_BLOCKS,
                     VOTING_PERIOD_BLOCKS,
                     LOCKING_PERIOD_BLOCKS,
                     managed_address!(energy_factory_wrapper.address_ref()),
                 );
+            })
+            .assert_ok();
+
+        b_mock
+            .execute_tx(&owner, &gov_wrapper, &rust_zero, |sc| {
+                sc.fee_token_id().set(managed_token_id!(LKMEX_TOKEN_ID));
             })
             .assert_ok();
 
@@ -116,24 +125,19 @@ where
     pub fn propose(
         &mut self,
         proposer: &Address,
+        fee_amount: u64,
         dest_address: &Address,
-        payments: Vec<Payment>,
         endpoint_name: &[u8],
         args: Vec<Vec<u8>>,
     ) -> (TxResult, usize) {
         let mut proposal_id = 0;
-        let result = self
-            .b_mock
-            .execute_tx(proposer, &self.gov_wrapper, &rust_biguint!(0), |sc| {
-                let mut payments_managed = ManagedVec::new();
-                for p in payments {
-                    payments_managed.push(EsdtTokenPayment::new(
-                        managed_token_id!(p.token),
-                        p.nonce,
-                        managed_biguint!(p.amount),
-                    ));
-                }
-
+        let result = self.b_mock.execute_esdt_transfer(
+            proposer,
+            &self.gov_wrapper,
+            LKMEX_TOKEN_ID,
+            1u64,
+            &rust_biguint!(fee_amount),
+            |sc| {
                 let mut args_managed = ManagedVec::new();
                 for arg in args {
                     args_managed.push(managed_buffer!(&arg));
@@ -144,7 +148,6 @@ where
                     (
                         GAS_LIMIT,
                         managed_address!(dest_address),
-                        payments_managed,
                         managed_buffer!(endpoint_name),
                         args_managed,
                     )
@@ -152,7 +155,8 @@ where
                 );
 
                 proposal_id = sc.propose(managed_buffer!(b"change quorum"), actions);
-            });
+            },
+        );
 
         (result, proposal_id)
     }
@@ -217,21 +221,25 @@ where
     pub fn deposit_tokens(
         &mut self,
         caller: &Address,
-        payments: &Vec<Payment>,
+        amount: u64,
         proposal_id: usize,
     ) -> TxResult {
-        let mut esdt_transfers = Vec::new();
-        for p in payments {
-            esdt_transfers.push(TxInputESDT {
-                token_identifier: p.token.clone(),
-                nonce: p.nonce,
-                value: rust_biguint!(p.amount),
-            });
-        }
-
-        self.b_mock
-            .execute_esdt_multi_transfer(caller, &self.gov_wrapper, &esdt_transfers, |sc| {
+        self.b_mock.execute_esdt_transfer(
+            caller,
+            &self.gov_wrapper,
+            LKMEX_TOKEN_ID,
+            1u64,
+            &rust_biguint!(amount),
+            |sc| {
                 sc.deposit_tokens_for_proposal(proposal_id);
+            },
+        )
+    }
+
+    pub fn claim_deposited_tokens(&mut self, caller: &Address, proposal_id: usize) -> TxResult {
+        self.b_mock
+            .execute_tx(caller, &self.gov_wrapper, &rust_biguint!(0), |sc| {
+                sc.claim_deposited_tokens(proposal_id);
             })
     }
 
