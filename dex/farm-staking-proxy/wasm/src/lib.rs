@@ -7,8 +7,6 @@
 elrond_wasm_node::wasm_endpoints! {
     farm_staking_proxy
     (
-        callBack
-        claimDualYield
         getDualYieldTokenId
         getFarmTokenId
         getLpFarmAddress
@@ -16,8 +14,8 @@ elrond_wasm_node::wasm_endpoints! {
         getPairAddress
         getStakingFarmAddress
         getStakingTokenId
-        issueDualYieldToken
-        stakeFarmTokens
         unstakeFarmTokens
     )
 }
+
+elrond_wasm_node::wasm_empty_callback! {}
