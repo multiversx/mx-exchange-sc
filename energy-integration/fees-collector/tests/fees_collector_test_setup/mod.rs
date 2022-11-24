@@ -13,6 +13,7 @@ pub const INIT_EPOCH: u64 = 5;
 
 pub static FIRST_TOKEN_ID: &[u8] = b"FIRST-123456";
 pub static SECOND_TOKEN_ID: &[u8] = b"SECOND-123456";
+pub static BASE_TOKEN_ID: &[u8] = b"BASE-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
@@ -77,7 +78,7 @@ where
             1,
             &rust_biguint!(USER_BALANCE * 2),
             &LockedTokenAttributes::<DebugApi> {
-                original_token_id: managed_token_id_wrapped!(LOCKED_TOKEN_ID),
+                original_token_id: managed_token_id_wrapped!(BASE_TOKEN_ID),
                 original_token_nonce: 1,
                 unlock_epoch: 100,
             },

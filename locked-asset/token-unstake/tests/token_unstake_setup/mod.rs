@@ -18,9 +18,10 @@ use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
     SimpleLockEnergy,
 };
-use simple_lock::locked_token::LockedTokenModule;
-
 use fees_collector_mock::*;
+use locking_module::lock_with_energy_module::LockWithEnergyModule;
+use sc_whitelist_module::SCWhitelistModule;
+use simple_lock::locked_token::LockedTokenModule;
 use token_unstake::{
     cancel_unstake::CancelUnstakeModule, unbond_tokens::UnbondTokensModule, TokenUnstakeModule,
 };
@@ -112,6 +113,7 @@ where
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
                 sc.set_paused(false);
                 sc.set_token_unstake_address(managed_address!(unstake_sc_wrapper.address_ref()));
+                sc.add_sc_address_to_whitelist(managed_address!(unstake_sc_wrapper.address_ref()));
             })
             .assert_ok();
 
@@ -130,6 +132,8 @@ where
                     managed_address!(fees_collector_mock.address_ref()),
                     lock_options,
                 );
+                sc.set_locking_sc_address(managed_address!(energy_factory_wrapper.address_ref()));
+                sc.set_lock_epochs(LOCK_OPTIONS[2]);
             })
             .assert_ok();
 

@@ -1104,7 +1104,7 @@ fn claim_locked_rewards_with_energy_update_test() {
         1,
         &first_user_expected_locked_token_amt,
         Some(&LockedTokenAttributes::<DebugApi> {
-            original_token_id: managed_token_id_wrapped!(LOCKED_TOKEN_ID),
+            original_token_id: managed_token_id_wrapped!(BASE_TOKEN_ID),
             original_token_nonce: 1,
             unlock_epoch: 100,
         }),

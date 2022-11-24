@@ -1,12 +1,11 @@
 elrond_wasm::imports!();
 
 use common_structs::Epoch;
-use energy_factory::{
-    lock_options::MAX_PENALTY_PERCENTAGE, token_merging::LockedAmountWeightAttributesPair,
-    unstake::ProxyTrait as _,
-};
-use simple_lock::locked_token::LockedTokenAttributes;
+use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
 use week_timekeeping::EPOCHS_IN_WEEK;
+
+static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
+static BASE_TOKEN_ID_STORAGE_KEY: &[u8] = b"baseAssetTokenId";
 
 use crate::{events, tokens_per_user::UnstakePair};
 
@@ -23,10 +22,10 @@ pub mod fees_collector_proxy {
 
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
-    crate::fees_merging::FeesMergingModule
-    + crate::tokens_per_user::TokensPerUserModule
+    crate::tokens_per_user::TokensPerUserModule
     + energy_factory::penalty::LocalPenaltyModule
     + energy_factory::lock_options::LockOptionsModule
+    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + events::EventsModule
@@ -72,7 +71,8 @@ pub trait FeesAccumulationModule:
         );
 
         let payment = self.call_value().single_esdt();
-        let locked_token_id = self.get_locked_token_id(&energy_factory_addr);
+        let locked_token_id =
+            self.get_locked_token_id(&energy_factory_addr, LOCKED_TOKEN_ID_STORAGE_KEY);
         require!(payment.token_identifier == locked_token_id, "Invalid token");
 
         self.burn_penalty(payment);
@@ -83,21 +83,8 @@ pub trait FeesAccumulationModule:
         let burn_amount = &payment.amount * fees_burn_percentage / MAX_PENALTY_PERCENTAGE;
         let remaining_amount = &payment.amount - &burn_amount;
         if remaining_amount > 0 {
-            let fees_mapper = self.fees_from_penalty_unlocking();
-            if !fees_mapper.is_empty() {
-                self.merge_fees_from_penalty(EsdtTokenPayment::new(
-                    payment.token_identifier.clone(),
-                    payment.token_nonce,
-                    remaining_amount,
-                ));
-            } else {
-                let token_attributes: LockedTokenAttributes<Self::Api> =
-                    self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
-                let output_pair =
-                    LockedAmountWeightAttributesPair::new(remaining_amount, token_attributes);
-
-                fees_mapper.set(&output_pair);
-            }
+            self.fees_from_penalty_unlocking()
+                .update(|fees| *fees += remaining_amount)
         }
 
         self.send().esdt_local_burn(
@@ -120,21 +107,21 @@ pub trait FeesAccumulationModule:
         }
 
         let fees_mapper = self.fees_from_penalty_unlocking();
-        if fees_mapper.is_empty() {
+        let total_fees = fees_mapper.get();
+        if total_fees == 0u64 {
             last_send_mapper.set(current_epoch);
 
             return;
         }
 
-        let fees_attributes = fees_mapper.get();
         let energy_factory_addr = self.energy_factory_address().get();
-        let fee_tokens: EsdtTokenPayment = self
-            .energy_factory_proxy(energy_factory_addr)
-            .create_merged_locked_token_for_fees(
-                fees_attributes.token_amount,
-                fees_attributes.attributes.unlock_epoch,
-            )
-            .execute_on_dest_context();
+
+        let fee_tokens: EsdtTokenPayment = self.lock_virtual(
+            self.get_locked_token_id(&energy_factory_addr, BASE_TOKEN_ID_STORAGE_KEY),
+            total_fees,
+            self.blockchain().get_sc_address(),
+            energy_factory_addr,
+        );
 
         let fees_collector_addr = self.fees_collector_address().get();
         let _: IgnoreValue = self
@@ -150,11 +137,26 @@ pub trait FeesAccumulationModule:
         fees_mapper.clear();
     }
 
+    fn get_locked_token_id(
+        &self,
+        energy_factory_addr: &ManagedAddress,
+        token_key: &[u8],
+    ) -> TokenIdentifier {
+        self.storage_raw().read_from_address(
+            energy_factory_addr,
+            ManagedBuffer::new_from_bytes(token_key),
+        )
+    }
+
     #[proxy]
     fn fees_collector_proxy_builder(
         &self,
         sc_address: ManagedAddress,
     ) -> fees_collector_proxy::Proxy<Self::Api>;
+
+    #[view(getFeesFromPenaltyUnlocking)]
+    #[storage_mapper("feesFromPenaltyUnlocking")]
+    fn fees_from_penalty_unlocking(&self) -> SingleValueMapper<BigUint>;
 
     #[view(getFeesBurnPercentage)]
     #[storage_mapper("feesBurnPercentage")]

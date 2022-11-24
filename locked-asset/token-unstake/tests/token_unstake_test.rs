@@ -4,12 +4,11 @@ use elrond_wasm::types::{EsdtTokenPayment, ManagedVec};
 use elrond_wasm_debug::{
     managed_address, managed_token_id, managed_token_id_wrapped, rust_biguint, DebugApi,
 };
-use energy_factory::token_merging::LockedAmountWeightAttributesPair;
 use num_bigint::ToBigInt;
 use num_traits::cast::ToPrimitive;
 use simple_lock::locked_token::LockedTokenAttributes;
 use token_unstake::{
-    fees_merging::FeesMergingModule,
+    fees_accumulation::FeesAccumulationModule,
     tokens_per_user::{TokensPerUserModule, UnstakePair},
 };
 use token_unstake_setup::*;
@@ -21,6 +20,7 @@ where
 {
     pub setup: TokenUnstakeSetup<EnergyFactoryBuilder, UnstakeScBuilder>,
     pub balance_after_second_reduce: num_bigint::BigUint,
+    pub initial_total_fees: num_bigint::BigUint,
     pub final_penalty_amount: num_bigint::BigUint,
 }
 
@@ -30,11 +30,12 @@ fn init_token_unstake_test() {
 }
 
 #[test]
-fn unstake_sc_fees_merging_and_unbond_test() {
+fn unstake_and_unbond_test() {
     let result = unbond_test_common(energy_factory::contract_obj, token_unstake::contract_obj);
-    let (mut setup, balance_after_second_reduce, final_penalty_amount) = (
+    let (mut setup, balance_after_second_reduce, initial_total_fees, final_penalty_amount) = (
         result.setup,
         result.balance_after_second_reduce,
+        result.initial_total_fees,
         result.final_penalty_amount,
     );
     let first_user = setup.first_user.clone();
@@ -45,9 +46,21 @@ fn unstake_sc_fees_merging_and_unbond_test() {
         .unbond(&first_user)
         .assert_user_error("Nothing to unbond");
 
+    // check initial fees status
+    setup.b_mock.check_nft_balance(
+        &setup.fees_collector_mock,
+        LOCKED_TOKEN_ID,
+        1,
+        &(initial_total_fees),
+        Some(&LockedTokenAttributes::<DebugApi> {
+            original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
+            original_token_nonce: 0,
+            unlock_epoch: LOCK_OPTIONS[2],
+        }),
+    );
+
     // unbond epochs pass
     setup.b_mock.set_block_epoch(10 + UNBOND_EPOCHS);
-
     // unbond ok
     setup.unbond(&first_user).assert_ok();
 
@@ -57,19 +70,25 @@ fn unstake_sc_fees_merging_and_unbond_test() {
         .b_mock
         .check_esdt_balance(&first_user, BASE_ASSET_TOKEN_ID, &user_balance_after_unbond);
 
-    // check fees added correctly
-    // nonce is 3, since we already had a token with this unlock epoch
+    // check final fees status
     setup.b_mock.check_nft_balance(
         &setup.fees_collector_mock,
         LOCKED_TOKEN_ID,
-        3,
-        &(final_penalty_amount / 2u64),
+        1,
+        &(initial_total_fees + (final_penalty_amount / rust_biguint!(2u64))),
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
             original_token_nonce: 0,
-            unlock_epoch: LOCK_OPTIONS[0],
+            unlock_epoch: LOCK_OPTIONS[2],
         }),
     );
+
+    setup
+        .b_mock
+        .execute_query(&setup.unstake_sc_wrapper, |sc| {
+            assert!(sc.fees_from_penalty_unlocking().is_empty());
+        })
+        .assert_ok();
 
     let user_energy = setup.get_user_energy(&first_user);
     assert_eq!(user_energy, rust_biguint!(0));
@@ -168,15 +187,7 @@ where
         .b_mock
         .execute_query(&setup.unstake_sc_wrapper, |sc| {
             let actual_fees = sc.fees_from_penalty_unlocking().get();
-            let expected_fees = LockedAmountWeightAttributesPair::<DebugApi> {
-                // half is burned, half is kept as fees
-                token_amount: to_managed_biguint(penalty_amount.clone() / 2u64),
-                attributes: LockedTokenAttributes::<DebugApi> {
-                    original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
-                    original_token_nonce: 0,
-                    unlock_epoch: LOCK_OPTIONS[2],
-                },
-            };
+            let expected_fees = to_managed_biguint(penalty_amount.clone() / 2u64);
             assert_eq!(actual_fees, expected_fees);
         })
         .assert_ok();
@@ -212,27 +223,19 @@ where
         }),
     );
 
-    // check merged fees
+    // check fees
     let new_total_fees = penalty_amount / 2u64 + second_penalty_amount / 2u64;
-    let new_unlock_epoch = 1_290;
+    let new_unlock_epoch = LOCK_OPTIONS[2];
     setup
         .b_mock
         .execute_query(&setup.unstake_sc_wrapper, |sc| {
             let actual_fees = sc.fees_from_penalty_unlocking().get();
-            let expected_fees = LockedAmountWeightAttributesPair::<DebugApi> {
-                // half is burned, half is kept as fees
-                token_amount: to_managed_biguint(new_total_fees.clone()),
-                attributes: LockedTokenAttributes::<DebugApi> {
-                    original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
-                    original_token_nonce: 0,
-                    unlock_epoch: new_unlock_epoch,
-                },
-            };
+            let expected_fees = to_managed_biguint(new_total_fees.clone());
             assert_eq!(actual_fees, expected_fees);
         })
         .assert_ok();
 
-    // check fees merged and sent to fees collector after 1 week
+    // check fees and sent to fees collector after 1 week
     setup.b_mock.set_block_epoch(10);
 
     let new_amount_u64 = balance_after_second_reduce
@@ -284,7 +287,7 @@ where
     setup.b_mock.check_nft_balance(
         &setup.fees_collector_mock,
         LOCKED_TOKEN_ID,
-        4,
+        1,
         &new_total_fees,
         Some(&LockedTokenAttributes::<DebugApi> {
             original_token_id: managed_token_id_wrapped!(BASE_ASSET_TOKEN_ID),
@@ -296,6 +299,7 @@ where
     ResultWrapper {
         setup,
         balance_after_second_reduce,
+        initial_total_fees: new_total_fees,
         final_penalty_amount,
     }
 }
