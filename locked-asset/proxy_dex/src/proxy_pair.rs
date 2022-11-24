@@ -53,8 +53,17 @@ pub trait ProxyPairModule:
             second_token_amount_min,
         );
 
+        let mut locked_token_used = input_token_refs.locked_token_ref.clone();
+        locked_token_used.amount = if input_token_refs.locked_token_ref.token_identifier
+            == first_payment.token_identifier
+        {
+            first_payment.amount.clone() - &add_liq_result.first_token_leftover.amount
+        } else {
+            second_payment.amount.clone() - &add_liq_result.second_token_leftover.amount
+        };
+
         let new_token_attributes = WrappedLpTokenAttributes {
-            locked_tokens: input_token_refs.locked_token_ref.clone(),
+            locked_tokens: locked_token_used,
             lp_token_id: add_liq_result.lp_tokens_received.token_identifier.clone(),
             lp_token_amount: add_liq_result.lp_tokens_received.amount.clone(),
         };
