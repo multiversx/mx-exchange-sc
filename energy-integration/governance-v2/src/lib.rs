@@ -105,7 +105,7 @@ pub trait GovernanceV2:
                 payment.token_nonce,
                 &payment.amount,
             );
-            self.user_claim_event(&caller, proposal_id, &fee_entry.tokens);
+            self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
         }
     }
 
