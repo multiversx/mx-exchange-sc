@@ -35,6 +35,10 @@ pub trait GovernanceV2:
     fn deposit_tokens_for_proposal(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::WaitingForFees,
+            "Proposal is not waiting for fees anymore"
+        );
 
         require!(
             !self.proposal_reached_min_fees(proposal_id),
@@ -69,6 +73,10 @@ pub trait GovernanceV2:
     fn claim_deposited_tokens(&self, proposal_id: ProposalId) {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
+        require!(
+            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::WaitingForFees,
+            "Cannot claim deposited tokens anymore; Proposal is not in WatingForFees state"
+        );
 
         require!(
             !self.proposal_reached_min_fees(proposal_id),
@@ -97,6 +105,7 @@ pub trait GovernanceV2:
                 payment.token_nonce,
                 &payment.amount,
             );
+            self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
         }
     }
 
