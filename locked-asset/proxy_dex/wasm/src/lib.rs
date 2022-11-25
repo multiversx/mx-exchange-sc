@@ -20,6 +20,10 @@ elrond_wasm_node::wasm_endpoints! {
         removeIntermediatedFarm
         removeIntermediatedPair
         removeLiquidityProxy
+        setTransferRoleLockedFarmToken
+        setTransferRoleLockedLpToken
+        unsetTransferRoleLockedFarmToken
+        unsetTransferRoleLockedLpToken
     )
 }
 
