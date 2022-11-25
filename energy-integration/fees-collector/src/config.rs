@@ -60,6 +60,10 @@ pub trait ConfigModule {
         self.all_tokens().set(&all_tokens_vec);
     }
 
+    #[view(getUnlockedTokenId)]
+    #[storage_mapper("unlockedTokenId")]
+    fn unlocked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
+
     #[view(getLockedTokenId)]
     #[storage_mapper("lockedTokenId")]
     fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
