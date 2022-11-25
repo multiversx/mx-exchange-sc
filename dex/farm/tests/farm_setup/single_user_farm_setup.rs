@@ -30,7 +30,7 @@ pub const MIN_FARMING_EPOCHS: u64 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
-pub const USER_REWARDS_BASE_CONST: u64 = 10;
+pub const MAX_REWARDS_FACTOR: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
@@ -95,7 +95,7 @@ where
         blockchain_wrapper
             .execute_tx(&owner_addr, &farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_factors(
-                    managed_biguint!(USER_REWARDS_BASE_CONST),
+                    managed_biguint!(MAX_REWARDS_FACTOR),
                     managed_biguint!(USER_REWARDS_ENERGY_CONST),
                     managed_biguint!(USER_REWARDS_FARM_CONST),
                     managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),

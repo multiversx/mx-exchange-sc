@@ -831,10 +831,13 @@ fn farm_claim_with_minimum_tokens() {
     );
 
     // second user claim - Applies user base max rewards
-    // user_rewards_base_const * user_base_rewards_per_block * BLOCKS_PER_WEEK
-    // 10 * 1 * 100_800
-    let second_base_farm_amt = second_farm_token_amount * 75_600_000 / total_farm_tokens;
-    let second_boosted_amt = 1_008_000;
+
+    // total boosted rewards = 25_200_000
+    // boosted rewards limited to:
+    // 10 * 25_200_000 * 100_000 / 100_000_000 = 25_200_000 / 100 =
+    // 252_000
+    let second_base_farm_amt = second_farm_token_amount * 75_600_000 / total_farm_tokens; // 75_600
+    let second_boosted_amt = 252_000;
     let second_total = second_base_farm_amt + second_boosted_amt;
     let second_receveived_reward_amt =
         farm_setup.claim_rewards(&second_user, 4, second_farm_token_amount);

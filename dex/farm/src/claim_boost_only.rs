@@ -42,8 +42,7 @@ pub trait ClaimBoostOnlyModule:
             self,
             caller,
             &token_attributes,
-            &payment.amount,
-            &self.farm_token_supply().get(),
+            payment.amount.clone(),
         );
         if reward > 0 {
             self.reward_reserve().update(|reserve| *reserve -= &reward);

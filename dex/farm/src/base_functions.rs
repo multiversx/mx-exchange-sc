@@ -59,6 +59,14 @@ pub trait BaseFunctionsModule:
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + energy_query::EnergyQueryModule
 {
     fn enter_farm<FC: FarmContract<FarmSc = Self>>(
         &self,
@@ -66,6 +74,11 @@ pub trait BaseFunctionsModule:
     ) -> EsdtTokenPayment {
         let payments = self.call_value().all_esdt_transfers();
         let base_enter_farm_result = self.enter_farm_base::<FC>(caller.clone(), payments);
+
+        self.set_farm_supply_for_current_week(
+            &base_enter_farm_result.storage_cache.farm_token_supply,
+        );
+
         self.emit_enter_farm_event(
             &caller,
             base_enter_farm_result.context.farming_token_payment,
@@ -86,6 +99,10 @@ pub trait BaseFunctionsModule:
 
         let output_farm_token_payment = base_claim_rewards_result.new_farm_token.payment.clone();
         let rewards_payment = base_claim_rewards_result.rewards;
+
+        self.set_farm_supply_for_current_week(
+            &base_claim_rewards_result.storage_cache.farm_token_supply,
+        );
 
         self.emit_claim_rewards_event(
             &caller,
@@ -111,6 +128,11 @@ pub trait BaseFunctionsModule:
             self.compound_rewards_base::<FC>(caller.clone(), payments);
 
         let output_farm_token_payment = base_compound_rewards_result.new_farm_token.payment.clone();
+
+        self.set_farm_supply_for_current_week(
+            &base_compound_rewards_result.storage_cache.farm_token_supply,
+        );
+
         self.emit_compound_rewards_event(
             &caller,
             base_compound_rewards_result.context,
@@ -132,6 +154,10 @@ pub trait BaseFunctionsModule:
 
         let mut farming_token_payment = base_exit_farm_result.farming_token_payment;
         let reward_payment = base_exit_farm_result.reward_payment;
+
+        self.set_farm_supply_for_current_week(
+            &base_exit_farm_result.storage_cache.farm_token_supply,
+        );
 
         FC::apply_penalty(
             self,
@@ -181,6 +207,11 @@ pub trait BaseFunctionsModule:
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
+    fn set_farm_supply_for_current_week(&self, farm_supply: &BigUint) {
+        let current_week = self.get_current_week();
+        self.farm_supply_for_week(current_week).set(farm_supply);
+    }
+
     fn require_queried(&self) {
         let caller = self.blockchain().get_caller();
         let sc_address = self.blockchain().get_sc_address();
@@ -209,8 +240,7 @@ where
         sc: &<Self as FarmContract>::FarmSc,
         caller: &ManagedAddress<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
         token_attributes: &<Self as FarmContract>::AttributesType,
-        farm_token_amount: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
-        farm_token_supply: &BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
+        farm_token_amount: BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api>,
     ) -> BigUint<<<Self as FarmContract>::FarmSc as ContractBase>::Api> {
         if &token_attributes.original_owner != caller {
             sc.update_energy_and_progress(caller);
@@ -218,13 +248,7 @@ where
             return BigUint::zero();
         }
 
-        let total_rewards_per_block = sc.per_block_reward_amount().get();
-        sc.claim_boosted_yields_rewards(
-            caller,
-            farm_token_amount,
-            farm_token_supply,
-            &total_rewards_per_block,
-        )
+        sc.claim_boosted_yields_rewards(caller, farm_token_amount)
     }
 }
 
@@ -272,8 +296,7 @@ where
             sc,
             caller,
             token_attributes,
-            farm_token_amount,
-            &storage_cache.farm_token_supply,
+            farm_token_amount.clone(),
         );
 
         base_farm_reward + boosted_yield_rewards
