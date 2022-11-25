@@ -29,6 +29,7 @@ impl<M: ManagedTypeApi> SplitReward<M> {
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
 pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
+    pub max_rewards_factor: BigUint<M>,
     pub user_rewards_energy_const: BigUint<M>,
     pub user_rewards_farm_const: BigUint<M>,
     pub min_energy_amount: BigUint<M>,
@@ -59,6 +60,7 @@ pub trait FarmBoostedYieldsModule:
     #[endpoint(setBoostedYieldsFactors)]
     fn set_boosted_yields_factors(
         &self,
+        max_rewards_factor: BigUint,
         user_rewards_energy_const: BigUint,
         user_rewards_farm_const: BigUint,
         min_energy_amount: BigUint,
@@ -67,7 +69,8 @@ pub trait FarmBoostedYieldsModule:
         self.require_caller_has_admin_permissions();
         let biguint_zero = BigUint::zero();
         require!(
-            user_rewards_energy_const > biguint_zero
+            max_rewards_factor > biguint_zero
+                && user_rewards_energy_const > biguint_zero
                 && user_rewards_farm_const > biguint_zero
                 && min_energy_amount > biguint_zero
                 && min_farm_amount > biguint_zero,
@@ -75,6 +78,7 @@ pub trait FarmBoostedYieldsModule:
         );
 
         let factors = BoostedYieldsFactors {
+            max_rewards_factor,
             user_rewards_energy_const,
             user_rewards_farm_const,
             min_energy_amount,
@@ -248,7 +252,9 @@ where
             return user_rewards;
         }
 
-        let max_rewards = &weekly_reward.amount * &self.user_farm_amount / &farm_supply_for_week;
+        let max_rewards =
+            &factors.max_rewards_factor * &weekly_reward.amount * &self.user_farm_amount
+                / &farm_supply_for_week;
 
         // computed user rewards = total_boosted_rewards *
         // (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) /
