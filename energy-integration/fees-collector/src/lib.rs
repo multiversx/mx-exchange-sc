@@ -34,6 +34,11 @@ pub trait FeesCollector:
         self.first_week_start_epoch().set_if_empty(current_epoch);
         self.require_valid_token_id(&locked_token_id);
         self.require_sc_address(&energy_factory_address);
+
+        let mut tokens = MultiValueEncoded::new();
+        tokens.push(locked_token_id.clone());
+        self.add_known_tokens(tokens);
+
         self.locked_token_id().set(locked_token_id);
         self.energy_factory_address().set(&energy_factory_address);
     }

@@ -28,10 +28,8 @@ pub trait FeesAccumulationModule:
             "Invalid payment token"
         );
         let current_week = self.get_current_week();
-        if payment.token_nonce == 0 {
-            self.accumulated_fees(current_week, &payment.token_identifier)
-                .update(|amt| *amt += &payment.amount);
-        } else {
+
+        if payment.token_nonce > 0 {
             require!(
                 payment.token_identifier == self.locked_token_id().get(),
                 "Invalid locked token"
@@ -41,9 +39,9 @@ pub trait FeesAccumulationModule:
                 payment.token_nonce,
                 &payment.amount,
             );
-            self.accumulated_locked_fees(current_week, &payment.token_identifier)
-                .update(|amt| *amt += &payment.amount);
         }
+        self.accumulated_fees(current_week, &payment.token_identifier)
+            .update(|amt| *amt += &payment.amount);
 
         self.emit_deposit_swap_fees_event(caller, current_week, payment);
     }
@@ -58,15 +56,6 @@ pub trait FeesAccumulationModule:
             let opt_accumulated_fees = self.get_and_clear_acccumulated_fees(week, &token);
             if let Some(accumulated_fees) = opt_accumulated_fees {
                 results.push(EsdtTokenPayment::new(token.clone(), 0, accumulated_fees));
-            }
-            let opt_accumulated_locked_fees =
-                self.get_and_clear_acccumulated_locked_fees(week, &token);
-            if let Some(accumulated_locked_fees) = opt_accumulated_locked_fees {
-                results.push(EsdtTokenPayment::new(
-                    token.clone(),
-                    0,
-                    accumulated_locked_fees,
-                ));
             }
         }
         results
@@ -87,21 +76,6 @@ pub trait FeesAccumulationModule:
         }
     }
 
-    fn get_and_clear_acccumulated_locked_fees(
-        &self,
-        week: Week,
-        token: &TokenIdentifier,
-    ) -> Option<BigUint> {
-        let mapper = self.accumulated_locked_fees(week, token);
-        let value = mapper.get();
-        if value > 0 {
-            mapper.clear();
-            Some(value)
-        } else {
-            None
-        }
-    }
-
     fn get_base_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {
         self.storage_raw().read_from_address(
             energy_factory_addr,
@@ -112,12 +86,4 @@ pub trait FeesAccumulationModule:
     #[view(getAccumulatedFees)]
     #[storage_mapper("accumulatedFees")]
     fn accumulated_fees(&self, week: Week, token: &TokenIdentifier) -> SingleValueMapper<BigUint>;
-
-    #[view(getAccumulatedLockedFees)]
-    #[storage_mapper("accumulatedLockedFees")]
-    fn accumulated_locked_fees(
-        &self,
-        week: Week,
-        token: &TokenIdentifier,
-    ) -> SingleValueMapper<BigUint>;
 }
