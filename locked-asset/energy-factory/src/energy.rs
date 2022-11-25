@@ -176,6 +176,10 @@ pub trait EnergyModule: crate::events::EventsModule {
     }
 
     fn set_energy_entry(&self, user: &ManagedAddress, new_energy: Energy<Self::Api>) {
+        if self.blockchain().is_smart_contract(user) {
+            return;
+        }
+
         let prev_energy = self.get_updated_energy_entry_for_user(user);
 
         self.user_energy(user).set(&new_energy);
