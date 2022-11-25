@@ -8,9 +8,7 @@ use elrond_wasm_debug::{
 };
 
 use elrond_wasm_modules::pause::PauseModule;
-use energy_factory::{
-    energy::EnergyModule, locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy,
-};
+use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use fees_collector::{config::ConfigModule, fees_accumulation::FeesAccumulationModule, *};
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
@@ -142,9 +140,6 @@ where
                     .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
                 sc.set_paused(false);
                 sc.add_sc_address_to_whitelist(managed_address!(fc_wrapper.address_ref()));
-                let mut token_transfer_sc_list = MultiValueEncoded::new();
-                token_transfer_sc_list.push(managed_address!(fc_wrapper.address_ref()));
-                sc.add_to_token_transfer_whitelist(token_transfer_sc_list);
             })
             .assert_ok();
 

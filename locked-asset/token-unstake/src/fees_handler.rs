@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 
-use energy_factory::lock_options::MAX_PENALTY_PERCENTAGE;
-
+pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000;
 static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
 use crate::{events, tokens_per_user::UnstakePair};
@@ -20,8 +19,6 @@ pub mod fees_collector_proxy {
 #[elrond_wasm::module]
 pub trait FeesHandlerModule:
     crate::tokens_per_user::TokensPerUserModule
-    + energy_factory::penalty::LocalPenaltyModule
-    + energy_factory::lock_options::LockOptionsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + events::EventsModule
