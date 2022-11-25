@@ -31,7 +31,6 @@ pub const DIV_SAFETY: u64 = 1_000_000_000_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 1_000;
 pub const FARMING_TOKEN_BALANCE: u64 = 200_000_000;
 pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
-pub const USER_REWARDS_BASE_CONST: u64 = 10;
 pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
 pub const USER_REWARDS_FARM_CONST: u64 = 2;
 pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
@@ -210,7 +209,6 @@ where
         self.b_mock
             .execute_tx(&self.owner, &self.farm_wrapper, &rust_biguint!(0), |sc| {
                 sc.set_boosted_yields_factors(
-                    managed_biguint!(USER_REWARDS_BASE_CONST),
                     managed_biguint!(USER_REWARDS_ENERGY_CONST),
                     managed_biguint!(USER_REWARDS_FARM_CONST),
                     managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
