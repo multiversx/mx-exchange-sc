@@ -43,4 +43,3 @@ path = "../energy-factory"
 
 [dependencies.simple-lock]
 path = "../simple-lock"
-
