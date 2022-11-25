@@ -16,6 +16,7 @@ elrond_wasm_node::wasm_endpoints! {
         getLockedAssetTokenId
         getWrappedFarmTokenId
         getWrappedLpTokenId
+        migrateV1_2Position
         removeIntermediatedFarm
         removeIntermediatedPair
         removeLiquidityProxy
