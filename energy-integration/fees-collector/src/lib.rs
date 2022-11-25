@@ -6,7 +6,6 @@ use common_types::{PaymentsVec, Week};
 use core::marker::PhantomData;
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
-use simple_lock::locked_token::LockedTokenAttributes;
 use weekly_rewards_splitting::base_impl::WeeklyRewardsSplittingTraitsModule;
 
 pub mod config;
@@ -35,7 +34,6 @@ pub trait FeesCollector:
         self.first_week_start_epoch().set_if_empty(current_epoch);
         self.require_valid_token_id(&locked_token_id);
         self.require_sc_address(&energy_factory_address);
-
         self.locked_token_id().set(locked_token_id);
         self.energy_factory_address().set(&energy_factory_address);
     }
@@ -47,8 +45,10 @@ pub trait FeesCollector:
         let caller = self.blockchain().get_caller();
         let wrapper = FeesCollectorWrapper::new();
         let rewards = self.claim_multi(&wrapper, &caller);
+        let mut all_rewards = ManagedVec::new();
         if !rewards.is_empty() {
             let locked_token_id = self.locked_token_id().get();
+            let mut fungible_rewards = ManagedVec::new();
             for reward in &rewards {
                 if reward.token_identifier == locked_token_id {
                     let energy_factory_addr = self.energy_factory_address().get();
@@ -56,33 +56,24 @@ pub trait FeesCollector:
                         self.get_base_token_id(&energy_factory_addr),
                         reward.amount.clone(),
                         caller.clone(),
-                        energy_factory_addr,
+                        caller.clone(),
                     );
-                    let current_epoch = self.blockchain().get_block_epoch();
-                    let mut energy = self.get_energy_entry(&caller);
-                    let attributes: LockedTokenAttributes<Self::Api> = self.get_token_attributes(
-                        &locked_rewards.token_identifier,
-                        locked_rewards.token_nonce,
-                    );
-                    if attributes.unlock_epoch > current_epoch {
-                        energy.add_after_token_lock(
-                            &locked_rewards.amount,
-                            attributes.unlock_epoch,
-                            current_epoch,
-                        );
-                    }
-                    self.set_energy_in_factory(caller.clone(), energy);
+                    all_rewards.push(locked_rewards);
                 } else {
-                    self.send().direct_esdt(
-                        &caller,
-                        &reward.token_identifier,
+                    fungible_rewards.push(EsdtTokenPayment::new(
+                        reward.token_identifier,
                         reward.token_nonce,
-                        &reward.amount,
-                    );
+                        reward.amount,
+                    ));
                 }
             }
+            if !fungible_rewards.is_empty() {
+                self.send().direct_multi(&caller, &fungible_rewards);
+                all_rewards.append_vec(fungible_rewards);
+            }
         }
-        rewards
+
+        all_rewards
     }
 
     fn set_energy_in_factory(&self, user: ManagedAddress, energy: Energy<Self::Api>) {

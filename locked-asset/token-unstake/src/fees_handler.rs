@@ -18,7 +18,7 @@ pub mod fees_collector_proxy {
 }
 
 #[elrond_wasm::module]
-pub trait FeesAccumulationModule:
+pub trait FeesHandlerModule:
     crate::tokens_per_user::TokensPerUserModule
     + energy_factory::penalty::LocalPenaltyModule
     + energy_factory::lock_options::LockOptionsModule

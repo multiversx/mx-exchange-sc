@@ -4,7 +4,7 @@ elrond_wasm::imports!();
 
 pub mod cancel_unstake;
 pub mod events;
-pub mod fees_accumulation;
+pub mod fees_handler;
 pub mod tokens_per_user;
 pub mod unbond_tokens;
 
@@ -16,7 +16,7 @@ pub trait TokenUnstakeModule:
     tokens_per_user::TokensPerUserModule
     + unbond_tokens::UnbondTokensModule
     + cancel_unstake::CancelUnstakeModule
-    + fees_accumulation::FeesAccumulationModule
+    + fees_handler::FeesHandlerModule
     + utils::UtilsModule
     + energy_query::EnergyQueryModule
     + energy_factory::penalty::LocalPenaltyModule
