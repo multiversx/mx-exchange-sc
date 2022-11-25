@@ -256,6 +256,25 @@ pub trait LockedAssetFactory:
     }
 
     #[only_owner]
+    #[endpoint(unsetTransferRoleForAddress)]
+    fn unset_transfer_role_for_address(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
+        self.send()
+            .esdt_system_sc_proxy()
+            .unset_special_roles(
+                &address,
+                &self.locked_asset_token_id().get(),
+                [EsdtLocalRole::Transfer][..].iter().cloned(),
+            )
+            .async_call()
+            .call_and_exit()
+    }
+
+    #[only_owner]
     #[endpoint(setBurnRoleForAddress)]
     fn set_burn_role_for_address(&self, opt_address: OptionalValue<ManagedAddress>) {
         let address = match opt_address {

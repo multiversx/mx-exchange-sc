@@ -23,6 +23,7 @@ elrond_wasm_node::wasm_endpoints! {
         setNewFactoryAddress
         setTransferRoleForAddress
         unlockAssets
+        unsetTransferRoleForAddress
         whitelist
     )
 }
