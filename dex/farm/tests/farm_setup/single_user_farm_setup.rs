@@ -28,6 +28,7 @@ pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u64 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
+pub const MAX_PERCENT: u64 = 10_000;
 pub const PER_BLOCK_REWARD_AMOUNT: u64 = 5_000;
 pub const USER_TOTAL_LP_TOKENS: u64 = 5_000_000_000;
 pub const MAX_REWARDS_FACTOR: u64 = 10;
@@ -208,6 +209,7 @@ where
         farm_token_amount: u64,
         farm_token_nonce: u64,
         expected_mex_out: u64,
+        expected_farm_token_amount: u64,
         expected_user_mex_balance: &RustBigUint,
         expected_user_lp_token_balance: &RustBigUint,
     ) {
@@ -233,7 +235,10 @@ where
                         managed_token_id!(LP_TOKEN_ID)
                     );
                     assert_eq!(first_result.token_nonce, 0);
-                    assert_eq!(first_result.amount, managed_biguint!(farm_token_amount));
+                    assert_eq!(
+                        first_result.amount,
+                        managed_biguint!(expected_farm_token_amount)
+                    );
 
                     assert_eq!(
                         second_result.token_identifier,
