@@ -40,10 +40,7 @@ pub struct WrappedLpToken<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait ProxyPairModule:
-    proxy_common::ProxyCommonModule
-    + token_merge::TokenMergeModule
-    + token_send::TokenSendModule
-    + events::EventsModule
+    proxy_common::ProxyCommonModule + token_merge::TokenMergeModule + events::EventsModule
 {
     #[only_owner]
     #[endpoint(addPairToIntermediate)]

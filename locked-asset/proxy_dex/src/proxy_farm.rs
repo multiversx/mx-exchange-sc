@@ -35,7 +35,6 @@ pub trait ProxyFarmModule:
     proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
     + token_merge::TokenMergeModule
-    + token_send::TokenSendModule
     + events::EventsModule
 {
     #[only_owner]
