@@ -69,6 +69,7 @@ pub trait GovernanceV2:
     ///
     /// Returns the ID of the newly created proposal.
     #[endpoint]
+    #[only_owner]
     fn propose(
         &self,
         root_hash: ManagedByteArray<HASH_LENGTH>,
