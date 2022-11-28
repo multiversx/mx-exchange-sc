@@ -61,8 +61,7 @@ pub trait CancelUnstakeModule:
             .revert_unstake(caller.clone(), energy)
             .execute_on_dest_context();
 
-        let new_unlocked_tokens = self.unlocked_tokens_for_user(&caller).get();
-        self.emit_unlocked_tokens_event(&caller, new_unlocked_tokens);
+        self.emit_unlocked_tokens_event(&caller, ManagedVec::new());
         output_payments.into()
     }
 }
