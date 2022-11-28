@@ -20,8 +20,11 @@ elrond_wasm_node::wasm_endpoints! {
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
         getLastGlobalUpdateWeek
+        getLastLockedTokensAddBlock
+        getLastLockedTokensAddWeek
         getLockEpochs
         getLockedTokenId
+        getLockedTokensPerBlock
         getLockingScAddress
         getTotalEnergyForWeek
         getTotalLockedTokensForWeek
@@ -33,6 +36,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeKnownTokens
         setEnergyFactoryAddress
         setLockEpochs
+        setLockedTokensPerBlock
         setLockingScAddress
         unpause
         updateEnergyForUser
