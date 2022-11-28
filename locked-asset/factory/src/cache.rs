@@ -8,9 +8,7 @@ use crate::attr_ex_helper;
 use super::locked_asset;
 
 #[elrond_wasm::module]
-pub trait CacheModule:
-    locked_asset::LockedAssetModule + token_send::TokenSendModule + attr_ex_helper::AttrExHelper
-{
+pub trait CacheModule: locked_asset::LockedAssetModule + attr_ex_helper::AttrExHelper {
     #[inline(always)]
     fn get_sft_nonce_for_unlock_schedule(
         &self,

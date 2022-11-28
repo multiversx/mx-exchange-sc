@@ -11,6 +11,8 @@ pub type Epoch = u64;
 static NOT_ENOUGH_RESULTS_ERR_MSG: &[u8] = b"Not enough results";
 const FIRST_VEC_INDEX: usize = 0;
 
+pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
+
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, TypeAbi, Eq)]
 pub struct TokenPair<M: ManagedTypeApi> {
     pub first_token: TokenIdentifier<M>,
@@ -21,6 +23,14 @@ impl<M: ManagedTypeApi> TokenPair<M> {
     pub fn equals(&self, other: &TokenPair<M>) -> bool {
         self.first_token == other.first_token && self.second_token == other.second_token
     }
+}
+
+#[derive(
+    TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone, Debug,
+)]
+pub struct EpochAmountPair<M: ManagedTypeApi> {
+    pub epoch: u64,
+    pub amount: BigUint<M>,
 }
 
 #[derive(
@@ -119,6 +129,17 @@ pub struct UnlockScheduleEx<M: ManagedTypeApi> {
     pub unlock_milestones: ManagedVec<M, UnlockMilestoneEx>,
 }
 
+impl<M: ManagedTypeApi> UnlockScheduleEx<M> {
+    pub fn get_total_percent(&self) -> u64 {
+        let mut total = 0;
+        for milestone in &self.unlock_milestones {
+            total += milestone.unlock_percent;
+        }
+
+        total
+    }
+}
+
 impl<M: ManagedTypeApi> UnlockSchedule<M> {
     pub fn from(unlock_milestones: ManagedVec<M, UnlockMilestone>) -> Self {
         UnlockSchedule { unlock_milestones }
@@ -147,6 +168,41 @@ pub struct LockedAssetTokenAttributes<M: ManagedTypeApi> {
 pub struct LockedAssetTokenAttributesEx<M: ManagedTypeApi> {
     pub unlock_schedule: UnlockScheduleEx<M>,
     pub is_merged: bool,
+}
+
+impl<M: ManagedTypeApi> LockedAssetTokenAttributesEx<M> {
+    pub fn get_unlock_amounts_per_epoch(
+        &self,
+        total_amount: &BigUint<M>,
+    ) -> UnlockEpochAmountPairs<M> {
+        let mut amounts = ArrayVec::new();
+        let unlock_milestones = &self.unlock_schedule.unlock_milestones;
+        if unlock_milestones.is_empty() {
+            return UnlockEpochAmountPairs::new(amounts);
+        }
+
+        let mut total_tokens_processed = BigUint::zero();
+        let last_milestone_index = unlock_milestones.len() - 1;
+        let total_percent = self.unlock_schedule.get_total_percent();
+        for (i, milestone) in unlock_milestones.iter().enumerate() {
+            // account for approximation errors
+            let unlock_amount_at_milestone = if i < last_milestone_index {
+                total_amount * milestone.unlock_percent / total_percent
+            } else {
+                total_amount - &total_tokens_processed
+            };
+
+            total_tokens_processed += &unlock_amount_at_milestone;
+            unsafe {
+                amounts.push_unchecked(EpochAmountPair {
+                    epoch: milestone.unlock_epoch,
+                    amount: unlock_amount_at_milestone,
+                });
+            }
+        }
+
+        UnlockEpochAmountPairs::new(amounts)
+    }
 }
 
 pub type RawResultsType<M> = MultiValueEncoded<M, ManagedBuffer<M>>;
@@ -207,5 +263,42 @@ impl<T> Unwrappable<T> for Option<T> {
 impl<T, E> Unwrappable<T> for Result<T, E> {
     fn unwrap_or_panic<M: ManagedTypeApi>(self) -> T {
         self.unwrap_or_else(|_| M::error_api_impl().signal_error(CANNOT_UNWRAP_MSG))
+    }
+}
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct UnlockEpochAmountPairs<M: ManagedTypeApi> {
+    pub pairs: ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE>,
+}
+
+impl<M: ManagedTypeApi> UnlockEpochAmountPairs<M> {
+    pub fn new(pairs: ArrayVec<EpochAmountPair<M>, MAX_MILESTONES_IN_SCHEDULE>) -> Self {
+        Self { pairs }
+    }
+
+    pub fn get_unlockable_entries(&self, current_epoch: Epoch) -> Self {
+        let mut unlockable_entries = ArrayVec::new();
+        for pair in &self.pairs {
+            if pair.epoch <= current_epoch {
+                unsafe {
+                    unlockable_entries.push_unchecked(pair.clone());
+                }
+            }
+        }
+
+        Self {
+            pairs: unlockable_entries,
+        }
+    }
+
+    pub fn get_total_unlockable_amount(&self, current_epoch: Epoch) -> BigUint<M> {
+        let mut total_unlockable = BigUint::zero();
+        for pair in &self.pairs {
+            if pair.epoch <= current_epoch {
+                total_unlockable += &pair.amount;
+            }
+        }
+
+        total_unlockable
     }
 }
