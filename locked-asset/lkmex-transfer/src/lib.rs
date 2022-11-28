@@ -60,7 +60,7 @@ pub trait LkmexTransfer:
         receiver: &ManagedAddress,
         sender: &ManagedAddress,
     ) -> PaymentsVec<Self::Api> {
-        let locked_funds_mapper = self.locked_funds(&receiver, &sender);
+        let locked_funds_mapper = self.locked_funds(receiver, sender);
         require!(!locked_funds_mapper.is_empty(), CALLER_NOTHING_TO_CLAIM);
 
         let current_epoch = self.blockchain().get_block_epoch();
