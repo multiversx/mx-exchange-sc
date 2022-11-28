@@ -322,7 +322,7 @@ where
         &farming_token_roles[..],
     );
 
-    let reward_token_roles = [EsdtLocalRole::Mint];
+    let reward_token_roles = [EsdtLocalRole::Mint, EsdtLocalRole::Burn];
     b_mock.set_esdt_local_roles(
         farm_wrapper.address_ref(),
         MEX_TOKEN_ID,

@@ -181,7 +181,7 @@ pub trait ProxyFarmModule:
         self.burn_if_base_asset(&exit_result.farming_tokens);
 
         let wrapped_attributes_for_initial_tokens =
-            full_wrapped_farm_attributes.into_part(&exit_amount);
+            full_wrapped_farm_attributes.into_part(&exit_result.farming_tokens.amount);
         let initial_proxy_farming_tokens = wrapped_attributes_for_initial_tokens
             .proxy_farming_token
             .clone();

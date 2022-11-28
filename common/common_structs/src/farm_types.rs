@@ -49,7 +49,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for FarmTokenAttributes<M> {
     }
 }
 
-impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> {
+impl<M: ManagedTypeApi> Mergeable<M> for FarmTokenAttributes<M> {
     #[inline]
     fn can_merge_with(&self, other: &Self) -> bool {
         self.original_owner == other.original_owner
@@ -70,8 +70,7 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for FarmTokenAttributes<M> 
         self.compounded_reward += other.compounded_reward;
         self.current_farm_amount += other.current_farm_amount;
 
-        let current_epoch = M::blockchain_api_impl().get_block_epoch();
-        self.entering_epoch = current_epoch;
+        self.entering_epoch = core::cmp::max(self.entering_epoch, other.entering_epoch);
     }
 }
 

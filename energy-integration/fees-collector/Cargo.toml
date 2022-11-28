@@ -24,6 +24,18 @@ path = "../common-modules/week-timekeeping"
 [dependencies.weekly-rewards-splitting]
 path = "../common-modules/weekly-rewards-splitting"
 
+[dependencies.energy-factory]
+path = "../../locked-asset/energy-factory"
+
+[dependencies.simple-lock]
+path = "../../locked-asset/simple-lock"
+
+[dependencies.locking_module]
+path = "../../common/modules/locking_module"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
 [dependencies.common-types]
 path = "../common-types"
 
@@ -36,5 +48,5 @@ version = "=0.36.1"
 [dev-dependencies]
 num-bigint = "0.4.2"
 
-[dev-dependencies.energy-factory-mock]
-path = "../energy-factory-mock"
+[dev-dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"

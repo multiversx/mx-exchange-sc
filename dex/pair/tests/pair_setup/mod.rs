@@ -231,14 +231,10 @@ where
 
                     let (desired_token_output, payment_token_residuum) = ret.into_tuple();
                     payment_token_swap_amount = num_bigint::BigUint::from_bytes_be(
-                        &payment_token_residuum
-                            .amount
-                            .to_bytes_be()
-                            .as_slice()
-                            .clone(),
+                        &payment_token_residuum.amount.to_bytes_be().as_slice(),
                     );
                     desired_token_swap_amount = num_bigint::BigUint::from_bytes_be(
-                        &desired_token_output.amount.to_bytes_be().as_slice().clone(),
+                        &desired_token_output.amount.to_bytes_be().as_slice(),
                     );
 
                     assert_eq!(

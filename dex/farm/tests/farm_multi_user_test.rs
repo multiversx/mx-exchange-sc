@@ -586,7 +586,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     let second_base_farm_amt2 = second_farm_token_amount * 15_000 / total_farm_tokens;
 
     // Boosted yields rewards for 2 weeks ~= 3066
-    let second_boosted_amt2 = 3065; // 4000 energy & 50_000_000 farm tokens
+    let second_boosted_amt2 = 3066; // 4000 energy & 50_000_000 farm tokens
     let second_total2 = second_base_farm_amt2 + second_boosted_amt2;
 
     let second_receveived_reward_amt2 =
@@ -612,7 +612,7 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     // current week = 4
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 2);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 2);
-    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 2);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 1);
 
     farm_setup.check_error_collect_undistributed_boosted_rewards(
         "Current week must be higher than the week offset",
@@ -625,13 +625,13 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.check_undistributed_boosted_rewards(2);
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 2);
-    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 2);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(3, 1);
 
     // advance to week 8
     farm_setup.b_mock.set_block_epoch(50);
 
     farm_setup.collect_undistributed_boosted_rewards();
-    farm_setup.check_undistributed_boosted_rewards(6);
+    farm_setup.check_undistributed_boosted_rewards(5);
 
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);
@@ -831,10 +831,13 @@ fn farm_claim_with_minimum_tokens() {
     );
 
     // second user claim - Applies user base max rewards
-    // user_rewards_base_const * user_base_rewards_per_block * BLOCKS_PER_WEEK
-    // 10 * 1 * 100_800
-    let second_base_farm_amt = second_farm_token_amount * 75_600_000 / total_farm_tokens;
-    let second_boosted_amt = 1_008_000;
+
+    // total boosted rewards = 25_200_000
+    // boosted rewards limited to:
+    // 10 * 25_200_000 * 100_000 / 100_000_000 = 25_200_000 / 100 =
+    // 252_000
+    let second_base_farm_amt = second_farm_token_amount * 75_600_000 / total_farm_tokens; // 75_600
+    let second_boosted_amt = 252_000;
     let second_total = second_base_farm_amt + second_boosted_amt;
     let second_receveived_reward_amt =
         farm_setup.claim_rewards(&second_user, 4, second_farm_token_amount);

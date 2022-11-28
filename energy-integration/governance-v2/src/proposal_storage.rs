@@ -19,18 +19,19 @@ pub struct ProposalVotes<M: ManagedTypeApi> {
     pub abstain_votes: BigUint<M>,
 }
 
+impl<M: ManagedTypeApi> Default for ProposalVotes<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<M: ManagedTypeApi> ProposalVotes<M> {
-    pub fn new(
-        up_votes: BigUint<M>,
-        down_votes: BigUint<M>,
-        down_veto_votes: BigUint<M>,
-        abstain_votes: BigUint<M>,
-    ) -> Self {
+    pub fn new() -> Self {
         ProposalVotes {
-            up_votes,
-            down_votes,
-            down_veto_votes,
-            abstain_votes,
+            up_votes: BigUint::zero(),
+            down_votes: BigUint::zero(),
+            down_veto_votes: BigUint::zero(),
+            abstain_votes: BigUint::zero(),
         }
     }
     pub fn get_total_votes(&self) -> BigUint<M> {
@@ -59,16 +60,6 @@ pub trait ProposalStorageModule {
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
 
-    #[storage_mapper("requiredPaymentsForProposal")]
-    fn required_payments_for_proposal(
-        &self,
-        proposal_id: ProposalId,
-    ) -> SingleValueMapper<ManagedVec<EsdtTokenPayment<Self::Api>>>;
-
-    #[storage_mapper("paymentsDepositor")]
-    fn payments_depositor(&self, proposal_id: ProposalId) -> SingleValueMapper<ManagedAddress>;
-
-    // Not stored under "proposals", as that would require deserializing the whole struct
     #[storage_mapper("proposalStartBlock")]
     fn proposal_start_block(&self, proposal_id: ProposalId) -> SingleValueMapper<u64>;
 

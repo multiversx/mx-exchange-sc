@@ -18,9 +18,8 @@ use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
     SimpleLockEnergy,
 };
-use simple_lock::locked_token::LockedTokenModule;
-
 use fees_collector_mock::*;
+use simple_lock::locked_token::LockedTokenModule;
 use token_unstake::{
     cancel_unstake::CancelUnstakeModule, unbond_tokens::UnbondTokensModule, TokenUnstakeModule,
 };
@@ -118,17 +117,11 @@ where
         // setup unstake sc
         b_mock
             .execute_tx(&owner, &unstake_sc_wrapper, &rust_zero, |sc| {
-                let mut lock_options = MultiValueEncoded::new();
-                for (option, penalty) in LOCK_OPTIONS.iter().zip(PENALTY_PERCENTAGES.iter()) {
-                    lock_options.push((*option, *penalty).into());
-                }
-
                 sc.init(
                     UNBOND_EPOCHS,
                     managed_address!(energy_factory_wrapper.address_ref()),
                     FEES_BURN_PERCENTAGE,
                     managed_address!(fees_collector_mock.address_ref()),
-                    lock_options,
                 );
             })
             .assert_ok();

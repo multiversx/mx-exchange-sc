@@ -33,6 +33,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     fn init(
         &self,
         min_energy_for_propose: BigUint,
+        min_fee_for_propose: BigUint,
         quorum: BigUint,
         voting_delay_in_blocks: u64,
         voting_period_in_blocks: u64,
@@ -40,6 +41,7 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
         energy_factory_address: ManagedAddress,
     ) {
         self.try_change_min_energy_for_propose(min_energy_for_propose);
+        self.try_change_min_fee_for_propose(min_fee_for_propose);
         self.try_change_quorum(quorum);
         self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
         self.try_change_voting_period_in_blocks(voting_period_in_blocks);
@@ -54,6 +56,13 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
 
     #[endpoint(changeMinEnergyForProposal)]
     fn change_min_energy_for_propose(&self, new_value: BigUint) {
+        self.require_caller_self();
+
+        self.try_change_min_energy_for_propose(new_value);
+    }
+
+    #[endpoint(changeMinFeeForProposal)]
+    fn change_min_fee_for_propose(&self, new_value: BigUint) {
         self.require_caller_self();
 
         self.try_change_min_energy_for_propose(new_value);
@@ -103,6 +112,12 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
         self.min_energy_for_propose().set(&new_value);
     }
 
+    fn try_change_min_fee_for_propose(&self, new_value: BigUint) {
+        require!(new_value != 0, "Min fee for proposal can't be set to 0");
+
+        self.min_fee_for_propose().set(&new_value);
+    }
+
     fn try_change_quorum(&self, new_value: BigUint) {
         require!(new_value != 0, "Quorum can't be set to 0");
 
@@ -137,6 +152,10 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[storage_mapper("minEnergyForPropose")]
     fn min_energy_for_propose(&self) -> SingleValueMapper<BigUint>;
 
+    #[view(getMinFeeForPropose)]
+    #[storage_mapper("minFeeForPropose")]
+    fn min_fee_for_propose(&self) -> SingleValueMapper<BigUint>;
+
     #[view(getQuorum)]
     #[storage_mapper("quorum")]
     fn quorum(&self) -> SingleValueMapper<BigUint>;
@@ -152,4 +171,8 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[view(getLockTimeAfterVotingEndsInBlocks)]
     #[storage_mapper("lockTimeAfterVotingEndsInBlocks")]
     fn lock_time_after_voting_ends_in_blocks(&self) -> SingleValueMapper<u64>;
+
+    #[view(getFeeTokenId)]
+    #[storage_mapper("feeTokenId")]
+    fn fee_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 }

@@ -332,4 +332,21 @@ where
             storage_cache,
         )
     }
+
+    fn get_exit_penalty(
+        sc: &Self::FarmSc,
+        total_exit_amount: &BigUint<<Self::FarmSc as ContractBase>::Api>,
+        token_attributes: &Self::AttributesType,
+    ) -> BigUint<<Self::FarmSc as ContractBase>::Api> {
+        Wrapper::<T>::get_exit_penalty(sc, total_exit_amount, token_attributes)
+    }
+
+    fn apply_penalty(
+        sc: &Self::FarmSc,
+        total_exit_amount: &mut BigUint<<Self::FarmSc as ContractBase>::Api>,
+        token_attributes: &Self::AttributesType,
+        storage_cache: &StorageCache<Self::FarmSc>,
+    ) {
+        Wrapper::<T>::apply_penalty(sc, total_exit_amount, token_attributes, storage_cache)
+    }
 }

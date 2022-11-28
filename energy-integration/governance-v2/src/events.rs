@@ -64,6 +64,14 @@ pub trait EventsModule {
         &self,
         #[indexed] address: &ManagedAddress,
         #[indexed] proposal_id: ProposalId,
-        payments: &ManagedVec<EsdtTokenPayment<Self::Api>>,
+        payment: &EsdtTokenPayment<Self::Api>,
+    );
+
+    #[event("userClaimDepositedTokens")]
+    fn user_claim_deposited_tokens_event(
+        &self,
+        #[indexed] address: &ManagedAddress,
+        #[indexed] proposal_id: ProposalId,
+        payment: &EsdtTokenPayment<Self::Api>,
     );
 }

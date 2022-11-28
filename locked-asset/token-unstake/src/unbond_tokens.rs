@@ -5,10 +5,7 @@ elrond_wasm::imports!();
 #[elrond_wasm::module]
 pub trait UnbondTokensModule:
     crate::tokens_per_user::TokensPerUserModule
-    + crate::fees_accumulation::FeesAccumulationModule
-    + crate::fees_merging::FeesMergingModule
-    + energy_factory::penalty::LocalPenaltyModule
-    + energy_factory::lock_options::LockOptionsModule
+    + crate::fees_handler::FeesHandlerModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + events::EventsModule

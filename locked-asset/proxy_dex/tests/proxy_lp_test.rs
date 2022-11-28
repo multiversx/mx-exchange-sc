@@ -177,6 +177,277 @@ fn add_remove_liquidity_proxy_test() {
 }
 
 #[test]
+fn tripple_add_liquidity_proxy_test() {
+    let mut setup = ProxySetup::new(
+        proxy_dex::contract_obj,
+        pair::contract_obj,
+        farm_with_locked_rewards::contract_obj,
+        energy_factory::contract_obj,
+    );
+    let first_user = setup.first_user.clone();
+    let full_balance = rust_biguint!(USER_BALANCE);
+    let locked_token_amount1 = rust_biguint!(1_000_000_000);
+    let locked_token_amount2 = rust_biguint!(1_100_000_000);
+    let other_token_amount = rust_biguint!(500_000_000);
+    let other_token_amount2 = rust_biguint!(600_000_000);
+    let expected_lp_token_amount = rust_biguint!(499_999_000);
+    let expected_second_lp_token_amount = rust_biguint!(500_000_000);
+
+    // set the price to 1 EGLD = 2 MEX
+    let payments = vec![
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount1.clone(),
+        },
+        TxInputESDT {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // First add liquidity
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount1.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_ok();
+
+    // check proxy's LOCKED balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &setup.proxy_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        1,
+        &locked_token_amount1,
+        None,
+    );
+
+    // check user's balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &(&full_balance - &locked_token_amount1),
+        None,
+    );
+    setup.b_mock.check_esdt_balance(
+        &first_user,
+        WEGLD_TOKEN_ID,
+        &(&full_balance - &other_token_amount),
+    );
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        1,
+        &expected_lp_token_amount,
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(locked_token_amount1.to_u64().unwrap()),
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(expected_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
+
+    // check proxy balance
+    setup.b_mock.check_esdt_balance(
+        setup.proxy_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &expected_lp_token_amount,
+    );
+
+    // check pair balance
+    setup.b_mock.check_esdt_balance(
+        setup.pair_wrapper.address_ref(),
+        MEX_TOKEN_ID,
+        &locked_token_amount1,
+    );
+    setup.b_mock.check_esdt_balance(
+        setup.pair_wrapper.address_ref(),
+        WEGLD_TOKEN_ID,
+        &other_token_amount,
+    );
+
+    let payments = vec![
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount2.clone(),
+        },
+        TxInputESDT {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount.clone(),
+        },
+    ];
+
+    // Second add liquidity
+    let pair_addr = setup.pair_wrapper.address_ref().clone();
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount1.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_ok();
+
+    // check proxy's LOCKED balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &setup.proxy_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        1,
+        &(&locked_token_amount1 * 2u64),
+        None,
+    );
+
+    // check user's balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &(&full_balance - &locked_token_amount1 * 2u64),
+        None,
+    );
+
+    setup.b_mock.check_esdt_balance(
+        &first_user,
+        WEGLD_TOKEN_ID,
+        &(&full_balance - &other_token_amount * 2u64),
+    );
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        2,
+        &expected_second_lp_token_amount,
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(locked_token_amount1.to_u64().unwrap()),
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(expected_second_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
+
+    // check proxy balance
+    setup.b_mock.check_esdt_balance(
+        setup.proxy_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &(expected_lp_token_amount.clone() + expected_second_lp_token_amount.clone()),
+    );
+
+    // check pair balance
+    setup.b_mock.check_esdt_balance(
+        setup.pair_wrapper.address_ref(),
+        MEX_TOKEN_ID,
+        &(locked_token_amount1.clone() * 2u64),
+    );
+    setup.b_mock.check_esdt_balance(
+        setup.pair_wrapper.address_ref(),
+        WEGLD_TOKEN_ID,
+        &(other_token_amount.clone() * 2u64),
+    );
+
+    // Third add liquidity
+    let payments = vec![
+        TxInputESDT {
+            token_identifier: LOCKED_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: locked_token_amount1.clone(),
+        },
+        TxInputESDT {
+            token_identifier: WEGLD_TOKEN_ID.to_vec(),
+            nonce: 0,
+            value: other_token_amount2.clone(),
+        },
+    ];
+
+    setup
+        .b_mock
+        .execute_esdt_multi_transfer(&first_user, &setup.proxy_wrapper, &payments, |sc| {
+            sc.add_liquidity_proxy(
+                managed_address!(&pair_addr),
+                managed_biguint!(locked_token_amount1.to_u64().unwrap()),
+                managed_biguint!(other_token_amount.to_u64().unwrap()),
+            );
+        })
+        .assert_ok();
+
+    // check proxy's LOCKED balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &setup.proxy_wrapper.address_ref(),
+        LOCKED_TOKEN_ID,
+        1,
+        &(&locked_token_amount1 * 3u64),
+        None,
+    );
+
+    // check user's balance
+    setup.b_mock.check_nft_balance::<Empty>(
+        &first_user,
+        LOCKED_TOKEN_ID,
+        1,
+        &(&full_balance - &locked_token_amount1 * 3u64),
+        None,
+    );
+
+    setup.b_mock.check_esdt_balance(
+        &first_user,
+        WEGLD_TOKEN_ID,
+        &(&full_balance - &other_token_amount * 3u64),
+    );
+
+    setup.b_mock.check_nft_balance(
+        &first_user,
+        WRAPPED_LP_TOKEN_ID,
+        3,
+        &expected_second_lp_token_amount,
+        Some(&WrappedLpTokenAttributes::<DebugApi> {
+            locked_tokens: EsdtTokenPayment {
+                token_identifier: managed_token_id!(LOCKED_TOKEN_ID),
+                token_nonce: 1,
+                amount: managed_biguint!(locked_token_amount1.to_u64().unwrap()),
+            },
+            lp_token_id: managed_token_id!(LP_TOKEN_ID),
+            lp_token_amount: managed_biguint!(expected_second_lp_token_amount.to_u64().unwrap()),
+        }),
+    );
+
+    // check proxy balance
+    setup.b_mock.check_esdt_balance(
+        setup.proxy_wrapper.address_ref(),
+        LP_TOKEN_ID,
+        &(expected_lp_token_amount + (expected_second_lp_token_amount * 2u64)),
+    );
+
+    // check pair balance
+    setup.b_mock.check_esdt_balance(
+        setup.pair_wrapper.address_ref(),
+        MEX_TOKEN_ID,
+        &(locked_token_amount1 * 3u64),
+    );
+    setup.b_mock.check_esdt_balance(
+        setup.pair_wrapper.address_ref(),
+        WEGLD_TOKEN_ID,
+        &(other_token_amount * 3u64),
+    );
+}
+
+#[test]
 fn wrapped_lp_token_merge_test() {
     let mut setup = ProxySetup::new(
         proxy_dex::contract_obj,

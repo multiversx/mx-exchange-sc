@@ -605,6 +605,7 @@ fn fees_collector_pair_test() {
     );
 
     let pair_addr = pair_setup.pair_wrapper.address_ref().clone();
+    let energy_factory_mock_addr = pair_setup.pair_wrapper.address_ref().clone();
     pair_setup
         .b_mock
         .execute_tx(
@@ -612,7 +613,10 @@ fn fees_collector_pair_test() {
             &fees_collector_wrapper,
             &rust_biguint!(0),
             |sc| {
-                sc.init();
+                sc.init(
+                    managed_token_id!(LOCKED_TOKEN_ID),
+                    managed_address!(&energy_factory_mock_addr),
+                );
                 let _ = sc.known_contracts().insert(managed_address!(&pair_addr));
 
                 let mut tokens = MultiValueEncoded::new();
