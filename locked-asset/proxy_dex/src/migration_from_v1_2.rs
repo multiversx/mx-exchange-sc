@@ -1,13 +1,13 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_structs::RawResultWrapper;
+use common_structs::RawResultsType;
 use common_structs::WrappedFarmTokenAttributes;
 
 use super::events;
 use super::proxy_common;
 use super::proxy_pair;
-use super::wrapped_farm_token_merge;
-use super::wrapped_lp_token_merge;
 use crate::proxy_farm;
 
 mod farm_v1_2_contract_proxy {
@@ -30,24 +30,17 @@ pub trait MigrationModule:
     + proxy_common::ProxyCommonModule
     + proxy_pair::ProxyPairModule
     + token_merge::TokenMergeModule
-    + token_send::TokenSendModule
-    + wrapped_farm_token_merge::WrappedFarmTokenMerge
-    + wrapped_lp_token_merge::WrappedLpTokenMerge
     + events::EventsModule
 {
     #[payable("*")]
     #[endpoint(migrateV1_2Position)]
-    fn migrate_v1_2_position(
-        &self,
-        #[payment_token] payment_token_id: TokenIdentifier,
-        #[payment_nonce] payment_token_nonce: u64,
-        #[payment_amount] payment_amount: BigUint,
-        farm_address: ManagedAddress,
-    ) {
+    fn migrate_v1_2_position(&self, farm_address: ManagedAddress) {
         self.require_is_intermediated_farm(&farm_address);
         self.require_wrapped_farm_token_id_not_empty();
         self.require_wrapped_lp_token_id_not_empty();
 
+        let (payment_token_id, payment_token_nonce, payment_amount) =
+            self.call_value().single_esdt().into_tuple();
         let wrapped_farm_token = self.wrapped_farm_token_id().get();
         require!(
             payment_token_id == wrapped_farm_token,
@@ -63,12 +56,17 @@ pub trait MigrationModule:
         let farm_amount = payment_amount.clone();
 
         // Get the new farm position from the new contract.
-        let (new_pos, reward) = self
+        let raw_results: RawResultsType<Self::Api> = self
             .farm_v1_2_contract_proxy(farm_address)
             .migrate_to_new_farm(self.blockchain().get_sc_address())
-            .add_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
-            .execute_on_dest_context_custom_range(|_, after| (after - 2, after))
-            .into_tuple();
+            .add_esdt_token_transfer(farm_token_id, farm_token_nonce, farm_amount)
+            .execute_on_dest_context();
+
+        let mut results_wrapper = RawResultWrapper::new(raw_results);
+        results_wrapper.trim_results_front(2);
+
+        let new_pos: EsdtTokenPayment = results_wrapper.decode_next_result();
+        let reward: EsdtTokenPayment = results_wrapper.decode_next_result();
 
         // Burn the old proxy farm position
         self.send()
@@ -87,7 +85,9 @@ pub trait MigrationModule:
                 &wrapped_farm_token_attrs.farming_token_amount,
             ),
         };
-        let new_nonce = self.nft_create_tokens(&wrapped_farm_token, &new_pos.amount, &new_attrs);
+        let new_nonce =
+            self.send()
+                .esdt_nft_create_compact(&wrapped_farm_token, &new_pos.amount, &new_attrs);
 
         let mut payments = ManagedVec::new();
         payments.push(EsdtTokenPayment::new(
@@ -101,7 +101,7 @@ pub trait MigrationModule:
         }
 
         let caller = self.blockchain().get_caller();
-        self.send_multiple_tokens(&caller, &payments, &OptionalValue::None);
+        self.send().direct_multi(&caller, &payments);
     }
 
     #[proxy]

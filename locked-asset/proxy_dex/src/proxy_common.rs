@@ -5,7 +5,7 @@ use common_structs::Nonce;
 use common_structs::{WrappedFarmTokenAttributes, WrappedLpTokenAttributes};
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule: token_send::TokenSendModule {
+pub trait ProxyCommonModule {
     fn get_wrapped_lp_token_attributes(
         &self,
         token_id: &TokenIdentifier,
@@ -73,8 +73,8 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn intermediated_farms(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getIntermediatedFarms)]
-    fn get_intermediated_farms(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_intermediated_farms(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.intermediated_farms().iter() {
             result.push(pair);
         }
@@ -85,20 +85,11 @@ pub trait ProxyCommonModule: token_send::TokenSendModule {
     fn intermediated_pairs(&self) -> SetMapper<ManagedAddress>;
 
     #[view(getIntermediatedPairs)]
-    fn get_intermediated_pairs(&self) -> ManagedMultiResultVec<ManagedAddress> {
-        let mut result = ManagedMultiResultVec::new();
+    fn get_intermediated_pairs(&self) -> MultiValueEncoded<ManagedAddress> {
+        let mut result = MultiValueEncoded::new();
         for pair in self.intermediated_pairs().iter() {
             result.push(pair);
         }
         result
     }
-
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
-    #[proxy]
-    fn farm_contract_proxy(&self, to: ManagedAddress) -> farm::Proxy<Self::Api>;
-
-    #[proxy]
-    fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;
 }
