@@ -13,6 +13,9 @@ path = "../../common/common_structs"
 [dependencies.token_merge]
 path = "../../common/modules/token_merge"
 
+[dependencies.token_send]
+path = "../../common/modules/token_send"
+
 [dependencies.elrond-wasm]
 version = "=0.36.1"
 features = [ "esdt-token-payment-legacy-decode" ]

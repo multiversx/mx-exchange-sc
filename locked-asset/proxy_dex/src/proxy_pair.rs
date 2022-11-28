@@ -40,7 +40,10 @@ pub struct WrappedLpToken<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait ProxyPairModule:
-    proxy_common::ProxyCommonModule + token_merge::TokenMergeModule + events::EventsModule
+    proxy_common::ProxyCommonModule
+    + token_merge::TokenMergeModule
+    + token_send::TokenSendModule
+    + events::EventsModule
 {
     #[only_owner]
     #[endpoint(addPairToIntermediate)]
@@ -109,16 +112,20 @@ pub trait ProxyPairModule:
         }
 
         // Send back the tokens removed from pair sc.
-        self.send()
-            .direct_esdt(&caller, &fungible_token_id, 0, &fungible_token_amount);
         let locked_assets_to_send =
             core::cmp::min(assets_received.clone(), locked_assets_invested.clone());
-        self.send().direct_esdt(
-            &caller,
-            &locked_asset_token_id,
+        let mut payments_vec = ManagedVec::new();
+        payments_vec.push(EsdtTokenPayment::new(
+            fungible_token_id.clone(),
+            0,
+            fungible_token_amount.clone(),
+        ));
+        payments_vec.push(EsdtTokenPayment::new(
+            locked_asset_token_id.clone(),
             attributes.locked_assets_nonce,
-            &locked_assets_to_send,
-        );
+            locked_assets_to_send.clone(),
+        ));
+        self.send_multiple_tokens_if_not_zero(&caller, &payments_vec);
 
         // Do cleanup
         if assets_received > locked_assets_invested {
