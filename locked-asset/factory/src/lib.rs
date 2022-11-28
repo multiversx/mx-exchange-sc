@@ -7,7 +7,6 @@ use common_structs::{
 
 mod attr_ex_helper;
 mod cache;
-pub mod energy;
 mod events;
 pub mod locked_asset;
 pub mod locked_asset_token_merge;
@@ -18,6 +17,21 @@ elrond_wasm::derive_imports!();
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct OldEsdtTokenPayment<M: ManagedTypeApi> {
+    pub token_type: EsdtTokenType,
+    pub payment: EsdtTokenPayment<M>,
+}
+
+impl<M: ManagedTypeApi> OldEsdtTokenPayment<M> {
+    pub fn new(payment: EsdtTokenPayment<M>) -> Self {
+        Self {
+            token_type: payment.token_type(),
+            payment,
+        }
+    }
+}
 
 #[elrond_wasm::contract]
 pub trait LockedAssetFactory:
@@ -53,7 +67,7 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
-    ) -> EsdtTokenPayment {
+    ) -> OldEsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -78,7 +92,8 @@ pub trait LockedAssetFactory:
             &attr,
             month_start_epoch,
         );
-        new_token
+
+        OldEsdtTokenPayment::new(new_token)
     }
 
     #[endpoint(createAndForward)]
@@ -87,7 +102,7 @@ pub trait LockedAssetFactory:
         amount: BigUint,
         address: ManagedAddress,
         start_epoch: Epoch,
-    ) -> EsdtTokenPayment {
+    ) -> OldEsdtTokenPayment<Self::Api> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -117,7 +132,8 @@ pub trait LockedAssetFactory:
             &attr,
             start_epoch,
         );
-        new_token
+
+        OldEsdtTokenPayment::new(new_token)
     }
 
     #[payable("*")]
