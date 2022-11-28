@@ -16,7 +16,7 @@ use crate::constants::*;
 )]
 pub struct LockedFunds<M: ManagedTypeApi> {
     funds: PaymentsVec<M>,
-    unlock_epoch: Epoch,
+    locked_epoch: Epoch,
 }
 
 #[elrond_wasm::contract]
@@ -41,29 +41,33 @@ pub trait LkmexTransfer:
     }
 
     #[endpoint]
-    fn withdraw(&self) {
-        let caller = self.blockchain().get_caller();
-        let funds = self.get_unlocked_funds(&caller);
-        self.send().direct_multi(&caller, &funds);
-        self.locked_funds(&caller).clear();
+    fn withdraw(&self, sender: ManagedAddress) {
+        let receiver = self.blockchain().get_caller();
+        let funds = self.get_unlocked_funds(&receiver, &sender);
+        self.send().direct_multi(&receiver, &funds);
+        self.locked_funds(&receiver, &sender).clear();
+        self.all_senders(&receiver).swap_remove(&sender);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.address_last_transfer_epoch(&caller).set(current_epoch);
+        self.address_last_transfer_epoch(&receiver)
+            .set(current_epoch);
 
-        self.add_energy_to_destination(caller, &funds);
+        self.add_energy_to_destination(receiver, &funds);
     }
 
-    fn get_unlocked_funds(&self, address: &ManagedAddress) -> PaymentsVec<Self::Api> {
-        require!(
-            !self.locked_funds(address).is_empty(),
-            CALLER_NOTHING_TO_CLAIM
-        );
+    fn get_unlocked_funds(
+        &self,
+        receiver: &ManagedAddress,
+        sender: &ManagedAddress,
+    ) -> PaymentsVec<Self::Api> {
+        let locked_funds_mapper = self.locked_funds(&receiver, &sender);
+        require!(!locked_funds_mapper.is_empty(), CALLER_NOTHING_TO_CLAIM);
 
         let current_epoch = self.blockchain().get_block_epoch();
         let min_lock_epochs = self.min_lock_epochs().get();
-        let locked_funds = self.locked_funds(address).get();
+        let locked_funds = locked_funds_mapper.get();
         require!(
-            current_epoch - locked_funds.unlock_epoch > min_lock_epochs,
+            current_epoch - locked_funds.locked_epoch > min_lock_epochs,
             TOKENS_STILL_LOCKED
         );
 
@@ -72,9 +76,11 @@ pub trait LkmexTransfer:
 
     #[payable("*")]
     #[endpoint(lockFunds)]
-    fn lock_funds(&self, address: ManagedAddress) {
-        let caller = self.blockchain().get_caller();
-        self.check_address_on_cooldown(&caller);
+    fn lock_funds(&self, receiver: ManagedAddress) {
+        let sender = self.blockchain().get_caller();
+        let locked_funds_mapper = self.locked_funds(&receiver, &sender);
+        require!(locked_funds_mapper.is_empty(), ALREADY_SENT_TO_ADDRESS);
+        self.check_address_on_cooldown(&sender);
 
         let payments = self.call_value().all_esdt_transfers();
         let locked_token_id = self.locked_token_id().get();
@@ -85,14 +91,15 @@ pub trait LkmexTransfer:
             )
         }
 
-        self.deduct_energy_from_sender(caller.clone(), &payments);
+        self.deduct_energy_from_sender(sender.clone(), &payments);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.locked_funds(&address).set(LockedFunds {
+        self.locked_funds(&receiver, &sender).set(LockedFunds {
             funds: payments,
-            unlock_epoch: current_epoch,
+            locked_epoch: current_epoch,
         });
-        self.address_last_transfer_epoch(&caller).set(current_epoch);
+        self.address_last_transfer_epoch(&sender).set(current_epoch);
+        self.all_senders(&receiver).insert(sender);
     }
 
     fn check_address_on_cooldown(&self, address: &ManagedAddress) {
@@ -112,7 +119,15 @@ pub trait LkmexTransfer:
     }
 
     #[storage_mapper("lockedFunds")]
-    fn locked_funds(&self, owner: &ManagedAddress) -> SingleValueMapper<LockedFunds<Self::Api>>;
+    fn locked_funds(
+        &self,
+        receiver: &ManagedAddress,
+        sender: &ManagedAddress,
+    ) -> SingleValueMapper<LockedFunds<Self::Api>>;
+
+    #[view(getAllSenders)]
+    #[storage_mapper("allSenders")]
+    fn all_senders(&self, receiver: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
     #[storage_mapper("addressLastTransferEpoch")]
     fn address_last_transfer_epoch(&self, owner: &ManagedAddress) -> SingleValueMapper<Epoch>;
