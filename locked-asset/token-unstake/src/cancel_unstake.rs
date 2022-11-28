@@ -61,8 +61,8 @@ pub trait CancelUnstakeModule:
             .revert_unstake(caller.clone(), energy)
             .execute_on_dest_context();
 
-        self.emit_unlocked_tokens_event(&caller, user_entries);
-
+        let new_unlocked_tokens = self.unlocked_tokens_for_user(&caller).get();
+        self.emit_unlocked_tokens_event(&caller, new_unlocked_tokens);
         output_payments.into()
     }
 }
