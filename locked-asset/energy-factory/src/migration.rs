@@ -45,6 +45,10 @@ pub trait SimpleLockMigrationModule:
         original_caller: ManagedAddress,
         epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
+        if self.blockchain().is_smart_contract(&original_caller) {
+            return;
+        }
+
         self.require_not_paused();
         self.require_caller_old_factory();
         self.require_old_tokens_energy_was_updated(&original_caller);
