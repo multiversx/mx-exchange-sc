@@ -2,7 +2,7 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::PaymentsVec;
-use math::weighted_average;
+use math::weighted_average_round_up;
 use mergeable::Mergeable;
 use simple_lock::locked_token::LockedTokenAttributes;
 use unwrappable::Unwrappable;
@@ -36,7 +36,7 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for LockedAmountWeightAttri
     fn merge_with(&mut self, other: Self) {
         self.error_if_not_mergeable(&other);
 
-        let new_unlock_epoch = weighted_average(
+        let new_unlock_epoch = weighted_average_round_up(
             BigUint::from(self.attributes.unlock_epoch),
             self.token_amount.clone(),
             BigUint::from(other.attributes.unlock_epoch),
