@@ -65,7 +65,9 @@ pub trait ProxyDexImpl:
             require!(is_new, "Locked token already assigned to another address");
         }
 
-        self.asset_token().set_token_id(asset_token_id);
+        if self.asset_token().is_empty() {
+            self.asset_token().set_token_id(asset_token_id);
+        }
     }
 
     #[only_owner]
