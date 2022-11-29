@@ -14,7 +14,7 @@ on:
         required: true
         description: Image elrondnetwork/build-contract-rust
         options:
-        - v3.1.0
+        - v3.2.0
 
 permissions:
   contents: write
@@ -36,7 +36,9 @@ jobs:
 
       - name: Build contract
         run: |
-          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --output=/home/runner/work/output-from-docker
+          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=farm-staking-proxy --output=/home/runner/work/output-from-docker
+          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=factory --output=/home/runner/work/output-from-docker
+          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=proxy_dex --output=/home/runner/work/output-from-docker
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
