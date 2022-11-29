@@ -77,40 +77,40 @@ fn enter_mex_farm_rs() {
     elrond_wasm_debug::mandos_rs("mandos/enter_mex_farm.scen.json", world());
 }
 
-#[test]
-fn exit_farm_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/exit_farm.scen.json", world());
-}
+// #[test]
+// fn exit_farm_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/exit_farm.scen.json", world());
+// }
 
-#[test]
-fn exit_farm_too_soon_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/exit_farm_too_soon.scen.json", world());
-}
+// #[test]
+// fn exit_farm_too_soon_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/exit_farm_too_soon.scen.json", world());
+// }
 
-#[test]
-fn exit_mex_farm_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/exit_mex_farm.scen.json", world());
-}
+// #[test]
+// fn exit_mex_farm_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/exit_mex_farm.scen.json", world());
+// }
 
-#[test]
-fn farm_reward_distr_scen_1_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_1.scen.json", world());
-}
+// #[test]
+// fn farm_reward_distr_scen_1_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_1.scen.json", world());
+// }
 
-#[test]
-fn farm_reward_distr_scen_2_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_2.scen.json", world());
-}
+// #[test]
+// fn farm_reward_distr_scen_2_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_2.scen.json", world());
+// }
 
-#[test]
-fn farm_reward_distr_scen_3_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_3.scen.json", world());
-}
+// #[test]
+// fn farm_reward_distr_scen_3_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_3.scen.json", world());
+// }
 
-#[test]
-fn farm_reward_distr_scen_4_rs() {
-    elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_4.scen.json", world());
-}
+// #[test]
+// fn farm_reward_distr_scen_4_rs() {
+//     elrond_wasm_debug::mandos_rs("mandos/farm_reward_distr_scen_4.scen.json", world());
+// }
 
 #[test]
 fn farm_with_egld_token_rs() {
