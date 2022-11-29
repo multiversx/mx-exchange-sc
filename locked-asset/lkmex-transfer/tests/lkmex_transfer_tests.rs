@@ -179,7 +179,7 @@ fn transfer_locked_token_test() {
     // second user claim
     b_mock
         .execute_tx(&claimer_addr, &transfer_sc_wrapper, &rust_zero, |sc| {
-            sc.withdraw();
+            sc.withdraw(managed_address!(&user_addr));
         })
         .assert_ok();
 
