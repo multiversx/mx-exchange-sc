@@ -12,7 +12,6 @@ pub type RustBigUint = num_bigint::BigUint;
 use config::*;
 use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
-use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use rewards::*;
@@ -25,12 +24,6 @@ pub const FARM_TOKEN_ID: &[u8] = b"FARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u64 = 2;
 pub const PENALTY_PERCENT: u64 = 10;
-
-pub const MAX_REWARDS_FACTOR: u64 = 10;
-pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
-pub const USER_REWARDS_FARM_CONST: u64 = 2;
-pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
-pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
 
 pub enum Action {
     EnterFarm(Address, RustBigUint),
@@ -110,14 +103,6 @@ where
 
                 sc.state().set(&State::Active);
                 sc.produce_rewards_enabled().set(&true);
-
-                sc.set_boosted_yields_factors(
-                    managed_biguint!(MAX_REWARDS_FACTOR),
-                    managed_biguint!(USER_REWARDS_ENERGY_CONST),
-                    managed_biguint!(USER_REWARDS_FARM_CONST),
-                    managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
-                    managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
-                );
             })
             .assert_ok();
 
