@@ -81,10 +81,21 @@ pub trait SimpleLockEnergy:
         self.min_migrated_token_locked_period()
             .set(min_migrated_token_locked_period);
 
-        self.base_asset_token_id().set(&base_asset_token_id);
-        self.legacy_locked_token_id().set(&legacy_token_id);
-        self.old_locked_asset_factory_address()
-            .set(&old_locked_asset_factory_address);
+        if self.base_asset_token_id().is_empty() {
+            self.base_asset_token_id().set(&base_asset_token_id);
+        }
+
+        if self.legacy_locked_token_id().is_empty() {
+            self.legacy_locked_token_id().set(&legacy_token_id);
+        }
+
+        if self.old_locked_asset_factory_address().is_empty() {
+            self.old_locked_asset_factory_address()
+                .set(&old_locked_asset_factory_address);
+        } else {
+            self.old_locked_asset_factory_address()
+                .update(|factory_address| *factory_address = old_locked_asset_factory_address);
+        }
 
         self.set_paused(true);
     }

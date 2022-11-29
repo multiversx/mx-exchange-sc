@@ -18,7 +18,9 @@ pub trait LockedTokenWrapper:
         self.require_valid_token_id(&locked_token_id);
         self.require_sc_address(&energy_factory_address);
 
-        self.locked_token().set_token_id(locked_token_id);
+        if self.locked_token().is_empty() {
+            self.locked_token().set_token_id(locked_token_id);
+        }
         self.energy_factory_address().set(&energy_factory_address);
     }
 
