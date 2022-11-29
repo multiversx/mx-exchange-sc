@@ -89,6 +89,21 @@ pub trait ProxyDexImpl:
     }
 
     #[only_owner]
+    #[endpoint(setTransferRoleWrappedLpToken)]
+    fn set_transfer_role_wrapped_lp_token(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
+        self.wrapped_lp_token().set_local_roles_for_address(
+            &address,
+            &[EsdtLocalRole::Transfer],
+            None,
+        );
+    }
+
+    #[only_owner]
     #[payable("EGLD")]
     #[endpoint(registerProxyFarm)]
     fn register_proxy_farm(
@@ -104,6 +119,21 @@ pub trait ProxyDexImpl:
             token_display_name,
             token_ticker,
             num_decimals,
+            None,
+        );
+    }
+
+    #[only_owner]
+    #[endpoint(setTransferRoleWrappedFarmToken)]
+    fn set_transfer_role_wrapped_farm_token(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+
+        self.wrapped_farm_token().set_local_roles_for_address(
+            &address,
+            &[EsdtLocalRole::Transfer],
             None,
         );
     }
