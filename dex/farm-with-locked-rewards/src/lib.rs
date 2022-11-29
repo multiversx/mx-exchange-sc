@@ -200,8 +200,11 @@ pub trait Farm:
             orig_caller.clone(),
         );
 
-        if remaining_farm_payment.amount == 0 {
-            self.current_claim_progress(&orig_caller).clear();
+        let boosted_yields_factors = self.boosted_yields_factors().get();
+        if remaining_farm_payment.amount == 0
+            || remaining_farm_payment.amount < boosted_yields_factors.min_farm_amount
+        {
+            self.clear_user_energy(&orig_caller);
         }
 
         (

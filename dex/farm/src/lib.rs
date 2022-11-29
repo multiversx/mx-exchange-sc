@@ -173,8 +173,11 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
-        if remaining_farm_payment.amount == 0 {
-            self.current_claim_progress(&orig_caller).clear();
+        let boosted_yields_factors = self.boosted_yields_factors().get();
+        if remaining_farm_payment.amount == 0
+            || remaining_farm_payment.amount < boosted_yields_factors.min_farm_amount
+        {
+            self.clear_user_energy(&orig_caller);
         }
 
         (

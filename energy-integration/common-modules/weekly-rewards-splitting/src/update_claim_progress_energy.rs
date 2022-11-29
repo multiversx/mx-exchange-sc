@@ -73,6 +73,26 @@ pub trait UpdateClaimProgressEnergyModule:
         self.emit_update_user_energy_event(user, current_week, current_energy);
     }
 
+    fn clear_user_energy(&self, user: &ManagedAddress) {
+        let current_week = self.get_current_week();
+        let current_user_energy = Energy::default();
+
+        let progress_mapper = self.current_claim_progress(user);
+        let opt_progress_for_update = if !progress_mapper.is_empty() {
+            Some(progress_mapper.get())
+        } else {
+            None
+        };
+        self.update_user_energy_for_current_week(
+            user,
+            current_week,
+            &current_user_energy,
+            opt_progress_for_update,
+        );
+
+        self.current_claim_progress(user).clear();
+    }
+
     #[view(getCurrentClaimProgress)]
     #[storage_mapper("currentClaimProgress")]
     fn current_claim_progress(
