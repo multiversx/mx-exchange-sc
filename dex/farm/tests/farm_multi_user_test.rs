@@ -189,8 +189,8 @@ fn farm_with_boosted_yields_test() {
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (2500 * 3 * 4000 / 5_000 + 2500 * 2 * 50_000_000 / 150_000_000) / (3 + 2)
-    // (6000 + 1666) / (5) = 1532
-    let second_boosted_amt = 1532; // 4000 energy & 50_000_000 farm tokens
+    // (6000 + 1666) / (5) = 1533
+    let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_total = second_base_farm_amt + second_boosted_amt;
 
     let second_receveived_reward_amt =
@@ -502,8 +502,8 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (2500 * 3 * 4000 / 5_000 + 2500 * 2 * 50_000_000 / 150_000_000) / (3 + 2)
-    // (6000 + 1666) / (5) = 1532
-    let second_boosted_amt1 = 1532; // 4000 energy & 50_000_000 farm tokens
+    // (6000 + 1666) / (5) = 1533
+    let second_boosted_amt1 = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_total1 = second_base_farm_amt1 + second_boosted_amt1;
 
     let second_receveived_reward_amt1 =
@@ -585,8 +585,8 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     // second user claim2
     let second_base_farm_amt2 = second_farm_token_amount * 15_000 / total_farm_tokens;
 
-    // Boosted yields rewards for 2 weeks ~= 3066
-    let second_boosted_amt2 = 3066; // 4000 energy & 50_000_000 farm tokens
+    // Boosted yields rewards for 2 weeks ~= 3067
+    let second_boosted_amt2 = 3067; // 4000 energy & 50_000_000 farm tokens
     let second_total2 = second_base_farm_amt2 + second_boosted_amt2;
 
     let second_receveived_reward_amt2 =
@@ -610,8 +610,8 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     );
 
     // current week = 4
-    farm_setup.check_remaining_boosted_rewards_to_distribute(1, 2);
-    farm_setup.check_remaining_boosted_rewards_to_distribute(2, 2);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(1, 1);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(2, 1);
     farm_setup.check_remaining_boosted_rewards_to_distribute(3, 1);
 
     farm_setup.check_error_collect_undistributed_boosted_rewards(
@@ -622,16 +622,16 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.b_mock.set_block_epoch(36);
 
     farm_setup.collect_undistributed_boosted_rewards();
-    farm_setup.check_undistributed_boosted_rewards(2);
+    farm_setup.check_undistributed_boosted_rewards(1);
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
-    farm_setup.check_remaining_boosted_rewards_to_distribute(2, 2);
+    farm_setup.check_remaining_boosted_rewards_to_distribute(2, 1);
     farm_setup.check_remaining_boosted_rewards_to_distribute(3, 1);
 
     // advance to week 8
     farm_setup.b_mock.set_block_epoch(50);
 
     farm_setup.collect_undistributed_boosted_rewards();
-    farm_setup.check_undistributed_boosted_rewards(5);
+    farm_setup.check_undistributed_boosted_rewards(3);
 
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);
@@ -724,8 +724,8 @@ fn farm_enter_with_multiple_farm_token() {
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (2500 * 3 * 4000 / 5_000 + 2500 * 2 * 50_000_000 / 150_000_000) / (3 + 2)
-    // (6000 + 1666) / (5) = 1532
-    let second_boosted_amt = 1532; // 4000 energy & 50_000_000 farm tokens
+    // (6000 + 1666) / (5) = 1533
+    let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_farm_token_amount2 = 50_000_000;
     let second_user_enter_farm_reward = farm_setup.enter_farm_with_additional_payment(
         &second_user,
@@ -806,9 +806,9 @@ fn farm_claim_with_minimum_tokens() {
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (25_200_000 * 3 * 10_000 / 100_000 + 25_200_000 * 2 * 99_900_000 / 100_000_000) / (3 + 2)
-    // (7_560_000 + 50_349_600) / (5) = 11_581_920 ~= 11581904 //rounding differences
+    // (7_560_000 + 50_349_600) / (5) = 11_581_920
     let first_base_farm_amt = first_farm_token_amount * 75_600_000 / total_farm_tokens;
-    let first_boosted_amt = 11_581_904;
+    let first_boosted_amt = 11_581_920;
     let first_total = first_base_farm_amt + first_boosted_amt;
     let first_receveived_reward_amt =
         farm_setup.claim_rewards(&first_user, 3, first_farm_token_amount);
