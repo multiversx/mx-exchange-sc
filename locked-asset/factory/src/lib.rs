@@ -58,7 +58,9 @@ pub trait LockedAssetFactory:
         }
         self.set_extended_attributes_activation_nonce(!is_sc_deploy);
 
-        self.asset_token_id().set(&asset_token_id);
+        if self.asset_token_id().is_empty() {
+            self.asset_token_id().set(&asset_token_id);
+        }
         self.default_unlock_period()
             .set(&UnlockPeriod { unlock_milestones });
 
