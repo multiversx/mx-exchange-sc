@@ -75,7 +75,8 @@ pub trait UpdateClaimProgressEnergyModule:
 
     fn clear_user_energy(&self, user: &ManagedAddress) {
         let current_week = self.get_current_week();
-        let current_user_energy = Energy::default();
+        let current_epoch = self.blockchain().get_block_epoch();
+        let current_user_energy = Energy::new_zero_energy(current_epoch);
 
         let progress_mapper = self.current_claim_progress(user);
         let opt_progress_for_update = if !progress_mapper.is_empty() {
@@ -90,7 +91,7 @@ pub trait UpdateClaimProgressEnergyModule:
             opt_progress_for_update,
         );
 
-        self.current_claim_progress(user).clear();
+        progress_mapper.clear();
     }
 
     #[view(getCurrentClaimProgress)]

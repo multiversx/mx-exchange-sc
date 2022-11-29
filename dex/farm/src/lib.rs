@@ -173,10 +173,13 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
-        let boosted_yields_factors = self.boosted_yields_factors().get();
-        if remaining_farm_payment.amount == 0
-            || remaining_farm_payment.amount < boosted_yields_factors.min_farm_amount
-        {
+        let mut min_farm_amount = BigUint::zero();
+        let boosted_yields_factors_mapper = self.boosted_yields_factors();
+        if !boosted_yields_factors_mapper.is_empty() {
+            let boosted_yields_factors = boosted_yields_factors_mapper.get();
+            min_farm_amount = boosted_yields_factors.min_farm_amount;
+        }
+        if remaining_farm_payment.amount == 0 || remaining_farm_payment.amount < min_farm_amount {
             self.clear_user_energy(&orig_caller);
         }
 
