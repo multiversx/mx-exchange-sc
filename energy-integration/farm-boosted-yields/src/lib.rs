@@ -231,7 +231,7 @@ where
 
         let factors = module.boosted_yields_factors().get();
         if energy_amount <= &factors.min_energy_amount
-            || self.user_farm_amount < factors.min_farm_amount
+            || self.user_farm_amount <= factors.min_farm_amount
         {
             return user_rewards;
         }
