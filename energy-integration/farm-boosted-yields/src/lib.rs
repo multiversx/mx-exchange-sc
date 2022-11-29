@@ -36,6 +36,18 @@ pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
     pub min_farm_amount: BigUint<M>,
 }
 
+impl<M: ManagedTypeApi> Default for BoostedYieldsFactors<M> {
+    fn default() -> Self {
+        BoostedYieldsFactors {
+            max_rewards_factor: BigUint::zero(),
+            user_rewards_energy_const: BigUint::zero(),
+            user_rewards_farm_const: BigUint::zero(),
+            min_energy_amount: BigUint::zero(),
+            min_farm_amount: BigUint::zero(),
+        }
+    }
+}
+
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
     config::ConfigModule
@@ -67,15 +79,6 @@ pub trait FarmBoostedYieldsModule:
         min_farm_amount: BigUint,
     ) {
         self.require_caller_has_admin_permissions();
-        let biguint_zero = BigUint::zero();
-        require!(
-            max_rewards_factor > biguint_zero
-                && user_rewards_energy_const > biguint_zero
-                && user_rewards_farm_const > biguint_zero
-                && min_energy_amount > biguint_zero
-                && min_farm_amount > biguint_zero,
-            "Values must be greater than 0"
-        );
 
         let factors = BoostedYieldsFactors {
             max_rewards_factor,

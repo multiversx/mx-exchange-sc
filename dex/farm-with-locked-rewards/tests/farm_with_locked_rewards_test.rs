@@ -198,8 +198,8 @@ fn farm_with_boosted_yields_no_proxy_test() {
     // total_boosted_rewards * (energy_const * user_energy / total_energy + farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (total_boosted_rewards * energy_const * user_energy / total_energy + total_boosted_rewards * farm_const * user_farm / total_farm) / (energy_const + farm_const)
     // (2500 * 3 * 4000 / 5_000 + 2500 * 2 * 50_000_000 / 150_000_000) / (3 + 2)
-    // (6000 + 1666) / (5) = 1532
-    let second_boosted_amt = 1532; // 4000 energy & 50_000_000 farm tokens
+    // (6000 + 1666) / (5) = 1533
+    let second_boosted_amt = 1533; // 4000 energy & 50_000_000 farm tokens
     let second_total = second_base_farm_amt + second_boosted_amt;
 
     let second_receveived_reward_amt =

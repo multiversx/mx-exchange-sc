@@ -25,6 +25,7 @@ elrond_wasm_node::wasm_endpoints! {
         getCurrentWeek
         getDivisionSafetyConstant
         getEnergyFactoryAddress
+        getFarmSupplyForWeek
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
