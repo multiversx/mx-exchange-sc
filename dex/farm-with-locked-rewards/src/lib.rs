@@ -200,12 +200,8 @@ pub trait Farm:
             orig_caller.clone(),
         );
 
-        let mut min_farm_amount = BigUint::zero();
-        let boosted_yields_factors_mapper = self.boosted_yields_factors();
-        if !boosted_yields_factors_mapper.is_empty() {
-            let boosted_yields_factors = boosted_yields_factors_mapper.get();
-            min_farm_amount = boosted_yields_factors.min_farm_amount;
-        }
+        let boosted_yields_factors = self.boosted_yields_factors().get();
+        let min_farm_amount = boosted_yields_factors.min_farm_amount;
         if remaining_farm_payment.amount == 0 || remaining_farm_payment.amount < min_farm_amount {
             self.clear_user_energy(&orig_caller);
         }
