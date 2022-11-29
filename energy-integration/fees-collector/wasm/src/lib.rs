@@ -20,7 +20,6 @@ elrond_wasm_node::wasm_endpoints! {
         getFirstWeekStartEpoch
         getLastActiveWeekForUser
         getLastGlobalUpdateWeek
-        getLastLockedTokensAddBlock
         getLastLockedTokensAddWeek
         getLockEpochs
         getLockedTokenId
