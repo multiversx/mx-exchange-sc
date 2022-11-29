@@ -14,7 +14,7 @@ on:
         required: true
         description: Image elrondnetwork/build-contract-rust
         options:
-        - v3.1.0
+        - v3.2.0
 
 permissions:
   contents: write
