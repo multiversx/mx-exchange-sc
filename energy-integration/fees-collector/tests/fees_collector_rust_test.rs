@@ -6,6 +6,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use energy_query::Energy;
+use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector_test_setup::*;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -1256,4 +1257,94 @@ fn claim_locked_rewards_with_energy_update_test() {
         SECOND_TOKEN_ID,
         &second_user_expected_second_token_amt,
     );
+}
+
+#[test]
+fn additional_locked_tokens_test() {
+    let rust_zero = rust_biguint!(0);
+    let mut fc_setup =
+        FeesCollectorSetup::new(fees_collector::contract_obj, energy_factory::contract_obj);
+
+    fc_setup.advance_week(); //current_week = 1
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.set_locked_tokens_per_block(managed_biguint!(1_000));
+            },
+        )
+        .assert_ok();
+
+    // nothing accumulated yet, as locked_tokens_per_block was 0
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(sc.last_locked_token_add_week().get(), 2);
+            assert_eq!(sc.locked_tokens_per_block().get(), 1_000u64);
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(LOCKED_TOKEN_ID))
+                    .get(),
+                0u64
+            );
+        })
+        .assert_ok();
+
+    // cumulating again on same week does nothing
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.accumulate_additional_locked_tokens();
+            },
+        )
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(sc.last_locked_token_add_week().get(), 2);
+            assert_eq!(sc.locked_tokens_per_block().get(), 1_000u64);
+            assert_eq!(
+                sc.accumulated_fees(1, &managed_token_id!(LOCKED_TOKEN_ID))
+                    .get(),
+                0u64
+            );
+        })
+        .assert_ok();
+
+    // cumulate on next week - tokens are allocated in current_week (2) - 1
+    fc_setup.advance_week(); //current_week = 2
+
+    fc_setup
+        .b_mock
+        .execute_tx(
+            &fc_setup.owner_address,
+            &fc_setup.fc_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.accumulate_additional_locked_tokens();
+            },
+        )
+        .assert_ok();
+
+    fc_setup
+        .b_mock
+        .execute_query(&fc_setup.fc_wrapper, |sc| {
+            assert_eq!(sc.last_locked_token_add_week().get(), 3);
+            assert_eq!(sc.locked_tokens_per_block().get(), 1_000u64);
+            assert_eq!(
+                sc.accumulated_fees(2, &managed_token_id!(LOCKED_TOKEN_ID))
+                    .get(),
+                BLOCKS_IN_WEEK * 1_000u64
+            );
+        })
+        .assert_ok();
 }
