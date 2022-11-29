@@ -77,19 +77,18 @@ pub trait ProxyFarmModule:
         let reward_token_returned = farm_result.1;
 
         let caller = self.blockchain().get_caller();
-        self.send().direct_esdt(
-            &caller,
-            &wrapped_farm_token_attrs.farming_token_id,
+        let mut payments_vec = ManagedVec::new();
+        payments_vec.push(EsdtTokenPayment::new(
+            wrapped_farm_token_attrs.farming_token_id.clone(),
             wrapped_farm_token_attrs.farming_token_nonce,
-            &farming_token_returned.amount,
-        );
-
-        self.send().direct_esdt(
-            &caller,
-            &reward_token_returned.token_identifier,
+            farming_token_returned.amount.clone(),
+        ));
+        payments_vec.push(EsdtTokenPayment::new(
+            reward_token_returned.token_identifier.clone(),
             reward_token_returned.token_nonce,
-            &reward_token_returned.amount,
-        );
+            reward_token_returned.amount.clone(),
+        ));
+        self.send_multiple_tokens_if_not_zero(&caller, &payments_vec);
         self.send().esdt_local_burn(&token_id, token_nonce, &amount);
 
         if farming_token_returned.token_identifier == self.asset_token_id().get() {
