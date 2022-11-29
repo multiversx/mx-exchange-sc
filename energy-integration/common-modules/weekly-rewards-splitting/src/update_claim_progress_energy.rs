@@ -73,7 +73,15 @@ pub trait UpdateClaimProgressEnergyModule:
         self.emit_update_user_energy_event(user, current_week, current_energy);
     }
 
-    fn clear_user_energy(&self, user: &ManagedAddress) {
+    fn clear_user_energy(
+        &self,
+        user: &ManagedAddress,
+        remaining_farm_payment_amount: &BigUint,
+        min_farm_amount: &BigUint,
+    ) {
+        if remaining_farm_payment_amount >= min_farm_amount {
+            return;
+        }
         let current_week = self.get_current_week();
         let current_epoch = self.blockchain().get_block_epoch();
         let current_user_energy = Energy::new_zero_energy(current_epoch);

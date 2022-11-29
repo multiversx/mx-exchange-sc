@@ -175,9 +175,11 @@ pub trait Farm:
 
         let boosted_yields_factors = self.boosted_yields_factors().get();
         let min_farm_amount = boosted_yields_factors.min_farm_amount;
-        if remaining_farm_payment.amount == 0 || remaining_farm_payment.amount < min_farm_amount {
-            self.clear_user_energy(&orig_caller);
-        }
+        self.clear_user_energy(
+            &orig_caller,
+            &remaining_farm_payment.amount,
+            &min_farm_amount,
+        );
 
         (
             exit_farm_result.farming_tokens,
