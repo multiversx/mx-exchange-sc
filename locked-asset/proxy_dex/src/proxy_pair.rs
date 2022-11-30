@@ -8,6 +8,8 @@ elrond_wasm::derive_imports!();
 use common_structs::WrappedLpTokenAttributes;
 use common_structs::{RawResultWrapper, RawResultsType};
 
+use crate::{attr_ex_helper, energy_update};
+
 use super::events;
 use super::proxy_common;
 
@@ -40,7 +42,11 @@ pub struct WrappedLpToken<M: ManagedTypeApi> {
 
 #[elrond_wasm::module]
 pub trait ProxyPairModule:
-    proxy_common::ProxyCommonModule + token_merge::TokenMergeModule + events::EventsModule
+    proxy_common::ProxyCommonModule
+    + token_merge::TokenMergeModule
+    + events::EventsModule
+    + energy_update::EnergyUpdateModule
+    + attr_ex_helper::AttrExHelperModule
 {
     #[only_owner]
     #[endpoint(addPairToIntermediate)]
@@ -129,6 +135,12 @@ pub trait ProxyPairModule:
             let difference = assets_received - locked_assets_invested;
             self.send()
                 .direct_esdt(&caller, &asset_token_id, 0, &difference);
+            self.deduct_energy_from_user(
+                &caller,
+                &locked_asset_token_id,
+                attributes.locked_assets_nonce,
+                &difference,
+            );
         } else if assets_received < locked_assets_invested {
             let difference = locked_assets_invested - assets_received;
             self.send().esdt_local_burn(
