@@ -355,12 +355,12 @@ where
     let rust_zero = rust_biguint!(0u64);
     let simple_lock_wrapper = b_mock.create_sc_account(
         &rust_zero,
-        Some(&owner),
+        Some(owner),
         simple_lock_builder,
         "simple lock energy",
     );
     let dummy_sc_wrapper =
-        b_mock.create_sc_account(&rust_zero, Some(&owner), DummySc::new, "dummy sc 1");
+        b_mock.create_sc_account(&rust_zero, Some(owner), DummySc::new, "dummy sc 1");
 
     b_mock
         .execute_tx(owner, &simple_lock_wrapper, &rust_zero, |sc| {
@@ -419,7 +419,7 @@ where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let proxy_wrapper = b_mock.create_sc_account(&rust_zero, Some(&owner), proxy_builder, "proxy");
+    let proxy_wrapper = b_mock.create_sc_account(&rust_zero, Some(owner), proxy_builder, "proxy");
 
     b_mock
         .execute_tx(owner, &proxy_wrapper, &rust_zero, |sc| {

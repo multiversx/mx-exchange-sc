@@ -268,7 +268,7 @@ fn tripple_add_liquidity_proxy_test() {
 
     // check proxy's LOCKED balance
     setup.b_mock.check_nft_balance::<Empty>(
-        &setup.proxy_wrapper.address_ref(),
+        setup.proxy_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
         1,
         &locked_token_amount1,
@@ -327,7 +327,7 @@ fn tripple_add_liquidity_proxy_test() {
         TxInputESDT {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: locked_token_amount2.clone(),
+            value: locked_token_amount2,
         },
         TxInputESDT {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
@@ -351,7 +351,7 @@ fn tripple_add_liquidity_proxy_test() {
 
     // check proxy's LOCKED balance
     setup.b_mock.check_nft_balance::<Empty>(
-        &setup.proxy_wrapper.address_ref(),
+        setup.proxy_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
         1,
         &(&locked_token_amount1 * 2u64),
@@ -418,7 +418,7 @@ fn tripple_add_liquidity_proxy_test() {
         TxInputESDT {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
-            value: other_token_amount2.clone(),
+            value: other_token_amount2,
         },
     ];
 
@@ -435,7 +435,7 @@ fn tripple_add_liquidity_proxy_test() {
 
     // check proxy's LOCKED balance
     setup.b_mock.check_nft_balance::<Empty>(
-        &setup.proxy_wrapper.address_ref(),
+        setup.proxy_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
         1,
         &(&locked_token_amount1 * 3u64),
@@ -539,12 +539,12 @@ fn wrapped_lp_token_merge_test() {
         TxInputESDT {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: first_amount.clone(),
+            value: first_amount,
         },
         TxInputESDT {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: second_amount.clone(),
+            value: second_amount,
         },
     ];
 
