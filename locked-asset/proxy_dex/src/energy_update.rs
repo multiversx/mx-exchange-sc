@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
@@ -11,6 +12,7 @@ pub trait EnergyUpdateModule: energy_query::EnergyQueryModule + utils::UtilsModu
         &self,
         user: &ManagedAddress,
         token_id: &TokenIdentifier,
+        token_nonce: u64,
         token_amount: &BigUint,
     ) {
         let energy_factory_addr = self.energy_factory_address().get();
@@ -20,8 +22,11 @@ pub trait EnergyUpdateModule: energy_query::EnergyQueryModule + utils::UtilsModu
         }
 
         let current_epoch = self.blockchain().get_block_epoch();
+        let attributes: LockedTokenAttributes<Self::Api> =
+            self.get_token_attributes(&token_id, token_nonce);
+
         let mut energy = self.get_energy_entry(user);
-        energy.deplete_after_early_unlock(token_amount, current_epoch, current_epoch);
+        energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
         self.set_energy_in_factory(user.clone(), energy, energy_factory_addr);
     }
 

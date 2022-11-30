@@ -11,7 +11,8 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
-use energy_factory::SimpleLockEnergy;
+use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
+use energy_query::EnergyQueryModule;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
@@ -127,7 +128,18 @@ where
                 sc.add_sc_address_to_whitelist(managed_address!(farm_locked_wrapper.address_ref()));
             })
             .assert_ok();
-
+        b_mock
+            .execute_tx(&owner, &simple_lock_wrapper, &rust_zero, |sc| {
+                let mut sc_addresses = MultiValueEncoded::new();
+                sc_addresses.push(managed_address!(proxy_wrapper.address_ref()));
+                sc.add_to_token_transfer_whitelist(sc_addresses);
+            })
+            .assert_ok();
+        b_mock
+            .execute_tx(&owner, &proxy_wrapper, &rust_zero, |sc| {
+                sc.set_energy_factory_address(managed_address!(simple_lock_wrapper.address_ref()));
+            })
+            .assert_ok();
         let user_balance = rust_biguint!(USER_BALANCE);
         b_mock.set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
         b_mock.set_esdt_balance(&first_user, WEGLD_TOKEN_ID, &user_balance);

@@ -62,7 +62,7 @@ path = "../energy-factory"
 [dependencies.energy-query]
 path = "../../energy-integration/common-modules/energy-query"
 
-[dev-dependencies.simple-lock]
+[dependencies.simple-lock]
 path = "../simple-lock"
 
 [dev-dependencies.pausable]

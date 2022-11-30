@@ -186,6 +186,7 @@ pub trait ProxyPairModule:
                 self.deduct_energy_from_user(
                     &caller,
                     &attributes.locked_tokens.token_identifier,
+                    attributes.locked_tokens.token_nonce,
                     &extra_locked_tokens,
                 );
             }
