@@ -74,13 +74,6 @@ pub trait LockedTokenModule:
         );
     }
 
-    #[only_owner]
-    #[endpoint(setLockedToken)]
-    fn set_locked_token(&self, token_id: TokenIdentifier) {
-        require!(token_id.is_valid_esdt_identifier(), "Token id is not valid");
-        self.locked_token().set_token_id(token_id);
-    }
-
     fn send_tokens_optimal_status(
         &self,
         to: &ManagedAddress,

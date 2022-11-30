@@ -26,7 +26,6 @@ elrond_wasm_node::wasm_endpoints! {
         removeFarmFromWhitelist
         removeLiquidityLockedToken
         removeLpFromWhitelist
-        setLockedToken
         unlockTokens
     )
 }

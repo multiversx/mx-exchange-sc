@@ -71,6 +71,13 @@ pub trait SimpleLockWhitelist:
         );
     }
 
+    #[only_owner]
+    #[endpoint(setLockedToken)]
+    fn set_locked_token(&self, token_id: TokenIdentifier) {
+        require!(token_id.is_valid_esdt_identifier(), "Token id is not valid");
+        self.locked_token().set_token_id(token_id);
+    }
+
     /// Locks a whitelisted token until `unlock_epoch` and receive meta ESDT LOCKED tokens.
     /// on a 1:1 ratio. If unlock epoch has already passed, the original tokens are sent instead.
     ///
