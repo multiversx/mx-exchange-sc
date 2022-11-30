@@ -5,6 +5,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+pub mod energy_update;
 pub mod events;
 pub mod external_merging;
 pub mod farm_interactions;
@@ -30,6 +31,8 @@ pub trait ProxyDexImpl:
     + token_send::TokenSendModule
     + wrapped_farm_token_merge::WrappedFarmTokenMerge
     + wrapped_lp_token_merge::WrappedLpTokenMerge
+    + energy_update::EnergyUpdateModule
+    + energy_query::EnergyQueryModule
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule

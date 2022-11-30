@@ -14,6 +14,8 @@ pub trait ProxyPairModule:
     + crate::sc_whitelist::ScWhitelistModule
     + crate::pair_interactions::PairInteractionsModule
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
+    + crate::energy_update::EnergyUpdateModule
+    + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + crate::events::EventsModule
@@ -179,6 +181,11 @@ pub trait ProxyPairModule:
                 self.send().esdt_local_burn(
                     &attributes.locked_tokens.token_identifier,
                     attributes.locked_tokens.token_nonce,
+                    &extra_locked_tokens,
+                );
+                self.deduct_energy_from_user(
+                    &caller,
+                    &attributes.locked_tokens.token_identifier,
                     &extra_locked_tokens,
                 );
             }

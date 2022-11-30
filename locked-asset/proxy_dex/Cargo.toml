@@ -56,8 +56,11 @@ num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
 
-[dev-dependencies.energy-factory]
+[dependencies.energy-factory]
 path = "../energy-factory"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
 
 [dev-dependencies.simple-lock]
 path = "../simple-lock"
