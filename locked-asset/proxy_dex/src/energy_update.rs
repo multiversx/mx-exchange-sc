@@ -8,8 +8,6 @@ use crate::{attr_ex_helper, energy::Energy, proxy_common};
 static LEGACY_LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"legacyLockedTokenId";
 static USER_ENERGY_STORAGE_KEY: &[u8] = b"userEnergy";
 
-pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
-
 mod energy_factory_proxy {
     elrond_wasm::imports!();
     use crate::energy_update::Energy;
@@ -58,13 +56,11 @@ pub trait EnergyUpdateModule:
         let current_epoch = self.blockchain().get_block_epoch();
         let attributes: LockedAssetTokenAttributesEx<Self::Api> =
             self.get_attributes_ex(token_id, token_nonce);
-        let unlock_schedule = attributes.unlock_schedule.unlock_milestones;
-        for unlock_milestone in &unlock_schedule {
-            let token_amount_for_milestone =
-                token_amount * unlock_milestone.unlock_percent / PERCENTAGE_TOTAL_EX;
+        let amounts_per_epoch = attributes.get_unlock_amounts_per_epoch(token_amount);
+        for epoch_amount_pair in &amounts_per_epoch.pairs {
             energy.update_after_unlock_any(
-                &token_amount_for_milestone,
-                unlock_milestone.unlock_epoch,
+                &epoch_amount_pair.amount,
+                epoch_amount_pair.epoch,
                 current_epoch,
             );
         }
