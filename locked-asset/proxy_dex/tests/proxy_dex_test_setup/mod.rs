@@ -226,14 +226,14 @@ where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let pair_wrapper = b_mock.create_sc_account(&rust_zero, Some(&owner), pair_builder, "pair");
+    let pair_wrapper = b_mock.create_sc_account(&rust_zero, Some(owner), pair_builder, "pair");
 
     b_mock
-        .execute_tx(&owner, &pair_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(MEX_TOKEN_ID);
             let second_token_id = managed_token_id!(WEGLD_TOKEN_ID);
-            let router_address = managed_address!(&owner);
-            let router_owner_address = managed_address!(&owner);
+            let router_address = managed_address!(owner);
+            let router_owner_address = managed_address!(owner);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
 
@@ -251,7 +251,7 @@ where
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
-            sc.state().set(&State::Active);
+            sc.state().set(State::Active);
             sc.set_max_observations_per_record(10);
         })
         .assert_ok();
@@ -274,7 +274,7 @@ where
     let rust_zero = rust_biguint!(0u64);
     let farm_wrapper = b_mock.create_sc_account(
         &rust_zero,
-        Some(&owner),
+        Some(owner),
         farm_builder,
         "farm-with-locked-rewards.wasm",
     );
@@ -291,7 +291,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
-                managed_address!(&owner),
+                managed_address!(owner),
                 MultiValueEncoded::new(),
             );
 
