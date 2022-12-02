@@ -495,7 +495,7 @@ where
     pub fn update_energy_for_user(&mut self) {
         let b_mock = &mut self.b_mock;
         let user_addr = &self.first_user;
-        b_mock.execute_tx(
+        let _ = b_mock.execute_tx(
             &self.first_user,
             &self.farm_wrapper,
             &rust_biguint!(0),
@@ -511,7 +511,7 @@ where
         b_mock
             .execute_query(&self.farm_wrapper, |sc| {
                 let current_claim_progress_mapper =
-                    sc.current_claim_progress(&managed_address!(&user_addr));
+                    sc.current_claim_progress(&managed_address!(user_addr));
                 if expected_user_energy > 0 {
                     assert_eq!(
                         managed_biguint!(expected_user_energy),
