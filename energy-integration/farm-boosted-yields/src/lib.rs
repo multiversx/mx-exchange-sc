@@ -206,11 +206,10 @@ where
         let rewards_mapper = module.accumulated_rewards_for_week(week);
         let total_rewards = rewards_mapper.get();
         rewards_mapper.clear();
-        if total_rewards > 0 {
-            module
-                .remaining_boosted_rewards_to_distribute(week)
-                .update(|amount| *amount += &total_rewards);
-        }
+
+        module
+            .remaining_boosted_rewards_to_distribute(week)
+            .set(&total_rewards);
 
         ManagedVec::from_single_item(EsdtTokenPayment::new(reward_token_id, 0, total_rewards))
     }
