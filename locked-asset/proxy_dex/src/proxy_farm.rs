@@ -5,8 +5,9 @@ elrond_wasm::derive_imports!();
 
 use common_structs::{Nonce, WrappedFarmTokenAttributes};
 use common_structs::{RawResultWrapper, RawResultsType};
+use factory::attr_ex_helper;
 
-use crate::{attr_ex_helper, energy_update};
+use crate::energy_update;
 
 use super::events;
 use super::proxy_common;
@@ -39,7 +40,7 @@ pub trait ProxyFarmModule:
     + token_merge::TokenMergeModule
     + events::EventsModule
     + energy_update::EnergyUpdateModule
-    + attr_ex_helper::AttrExHelperModule
+    + attr_ex_helper::AttrExHelper
 {
     #[only_owner]
     #[endpoint(addFarmToIntermediate)]

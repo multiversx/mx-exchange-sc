@@ -18,6 +18,7 @@ pub trait AttrExHelper {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: u64,
+        attr_ex_activation: u64,
     ) -> LockedAssetTokenAttributesEx<Self::Api> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
@@ -25,7 +26,6 @@ pub trait AttrExHelper {
             token_nonce,
         );
 
-        let attr_ex_activation = self.extended_attributes_activation_nonce().get();
         if token_nonce < attr_ex_activation {
             let attr = self
                 .serializer()

@@ -2,11 +2,13 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::LockedAssetTokenAttributesEx;
+use factory::attr_ex_helper;
 
-use crate::{attr_ex_helper, energy::Energy, proxy_common};
+use crate::{energy::Energy, proxy_common};
 
 static LEGACY_LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"legacyLockedTokenId";
 static USER_ENERGY_STORAGE_KEY: &[u8] = b"userEnergy";
+static EXTENDED_ATTRIBUTES_ACTIVATION_NONCE_KEY: &[u8] = b"extended_attributes_activation_nonce";
 
 mod energy_factory_proxy {
     elrond_wasm::imports!();
@@ -25,7 +27,7 @@ mod energy_factory_proxy {
 
 #[elrond_wasm::module]
 pub trait EnergyUpdateModule:
-    proxy_common::ProxyCommonModule + attr_ex_helper::AttrExHelperModule
+    proxy_common::ProxyCommonModule + attr_ex_helper::AttrExHelper
 {
     #[only_owner]
     #[endpoint(setEnergyFactoryAddress)]
@@ -52,10 +54,10 @@ pub trait EnergyUpdateModule:
         }
 
         let mut energy = self.get_energy_entry(user);
-
         let current_epoch = self.blockchain().get_block_epoch();
+        let extended_attributes_activation_nonce = self.get_extended_attributes_activation_nonce();
         let attributes: LockedAssetTokenAttributesEx<Self::Api> =
-            self.get_attributes_ex(token_id, token_nonce);
+            self.get_attributes_ex(token_id, token_nonce, extended_attributes_activation_nonce);
         let amounts_per_epoch = attributes.get_unlock_amounts_per_epoch(token_amount);
         for epoch_amount_pair in &amounts_per_epoch.pairs {
             energy.update_after_unlock_any(
@@ -111,6 +113,14 @@ pub trait EnergyUpdateModule:
         self.storage_raw().read_from_address(
             energy_factory_addr,
             ManagedBuffer::new_from_bytes(LEGACY_LOCKED_TOKEN_ID_STORAGE_KEY),
+        )
+    }
+
+    fn get_extended_attributes_activation_nonce(&self) -> u64 {
+        let sc_address = self.locked_asset_factory_address().get();
+        self.storage_raw().read_from_address(
+            &sc_address,
+            ManagedBuffer::new_from_bytes(EXTENDED_ATTRIBUTES_ACTIVATION_NONCE_KEY),
         )
     }
 

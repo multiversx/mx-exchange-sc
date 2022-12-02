@@ -3,7 +3,8 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-mod attr_ex_helper;
+use factory::attr_ex_helper;
+
 mod energy;
 mod energy_update;
 mod events;
@@ -21,9 +22,9 @@ pub trait ProxyDexImpl:
     + token_merge::TokenMergeModule
     + events::EventsModule
     + energy_update::EnergyUpdateModule
-    + attr_ex_helper::AttrExHelperModule
     + migration_from_v1_2::MigrationModule
     + transfer_role::TransferRoleModule
+    + attr_ex_helper::AttrExHelper
 {
     #[init]
     fn init(&self) {}

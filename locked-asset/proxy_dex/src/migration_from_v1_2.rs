@@ -4,11 +4,11 @@ elrond_wasm::derive_imports!();
 use common_structs::RawResultWrapper;
 use common_structs::RawResultsType;
 use common_structs::WrappedFarmTokenAttributes;
+use factory::attr_ex_helper;
 
 use super::events;
 use super::proxy_common;
 use super::proxy_pair;
-use crate::attr_ex_helper;
 use crate::energy_update;
 use crate::proxy_farm;
 
@@ -34,7 +34,7 @@ pub trait MigrationModule:
     + token_merge::TokenMergeModule
     + events::EventsModule
     + energy_update::EnergyUpdateModule
-    + attr_ex_helper::AttrExHelperModule
+    + attr_ex_helper::AttrExHelper
 {
     #[payable("*")]
     #[endpoint(migrateV1_2Position)]

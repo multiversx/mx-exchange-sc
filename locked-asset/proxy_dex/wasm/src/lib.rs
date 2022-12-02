@@ -12,6 +12,7 @@ elrond_wasm_node::wasm_endpoints! {
         exitFarmProxy
         getAssetTokenId
         getEnergyFactoryAddress
+        getExtendedAttributesActivationNonce
         getIntermediatedFarms
         getIntermediatedPairs
         getLockedAssetTokenId

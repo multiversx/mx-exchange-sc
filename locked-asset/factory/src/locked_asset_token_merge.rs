@@ -31,7 +31,7 @@ pub trait LockedAssetTokenMergeModule:
         let mut tokens = ManagedVec::new();
         let mut sum_amount = BigUint::zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
-
+        let attr_ex_activation = self.extended_attributes_activation_nonce().get();
         for entry in payments {
             require!(
                 entry.token_identifier == locked_asset_token_id,
@@ -44,7 +44,11 @@ pub trait LockedAssetTokenMergeModule:
                     entry.token_nonce,
                     entry.amount.clone(),
                 ),
-                attributes: self.get_attributes_ex(&entry.token_identifier, entry.token_nonce),
+                attributes: self.get_attributes_ex(
+                    &entry.token_identifier,
+                    entry.token_nonce,
+                    attr_ex_activation,
+                ),
             });
             sum_amount += &entry.amount;
         }
