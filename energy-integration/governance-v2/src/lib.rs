@@ -28,6 +28,34 @@ pub trait GovernanceV2:
     + views::ViewsModule
     + energy_query::EnergyQueryModule
 {
+    /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal
+    /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
+    /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
+    /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
+    /// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this)  
+    /// - `lockTimeAfterVotingEndsInBlocks` - Number of blocks to wait before a successful proposal can be executed  
+    #[init]
+    fn init(
+        &self,
+        min_energy_for_propose: BigUint,
+        min_fee_for_propose: BigUint,
+        quorum: BigUint,
+        voting_delay_in_blocks: u64,
+        voting_period_in_blocks: u64,
+        lock_time_after_voting_ends_in_blocks: u64,
+        energy_factory_address: ManagedAddress,
+    ) {
+        self.try_change_min_energy_for_propose(min_energy_for_propose);
+        self.try_change_min_fee_for_propose(min_fee_for_propose);
+        self.try_change_quorum(quorum);
+        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
+        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
+        self.try_change_lock_time_after_voting_ends_in_blocks(
+            lock_time_after_voting_ends_in_blocks,
+        );
+        self.set_energy_factory_address(energy_factory_address);
+    }
+
     /// Used to deposit tokens to gather threshold min_fee.
     /// Funds will be returned if the proposal is canceled.
     #[payable("*")]
