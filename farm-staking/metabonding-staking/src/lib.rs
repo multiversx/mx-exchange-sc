@@ -20,16 +20,10 @@ pub trait MetabondingStaking:
         locked_asset_token_id: TokenIdentifier,
         locked_asset_factory_address: ManagedAddress,
     ) {
-        if self.locked_asset_token_id().is_empty() {
-            self.locked_asset_token_id().set(&locked_asset_token_id);
-        }
-        if self.locked_asset_factory_address().is_empty() {
-            self.locked_asset_factory_address()
-                .set(&locked_asset_factory_address);
-        } else {
-            self.locked_asset_factory_address()
-                .update(|factory_address| *factory_address = locked_asset_factory_address);
-        }
+        self.locked_asset_token_id()
+            .set_if_empty(&locked_asset_token_id);
+        self.locked_asset_factory_address()
+            .set_if_empty(&locked_asset_factory_address);
     }
 
     #[payable("*")]
