@@ -19,7 +19,6 @@ const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 const MIN_AMOUNT_PER_DEPOSIT: u64 = 1;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
-/// An empty contract. To be used as a template when starting a new contract from scratch.
 #[elrond_wasm::contract]
 pub trait GovernanceV2:
     configurable::ConfigurablePropertiesModule
@@ -28,6 +27,28 @@ pub trait GovernanceV2:
     + views::ViewsModule
     + energy_query::EnergyQueryModule
 {
+    #[init]
+    fn init(
+        &self,
+        min_energy_for_propose: BigUint,
+        min_fee_for_propose: BigUint,
+        quorum: BigUint,
+        voting_delay_in_blocks: u64,
+        voting_period_in_blocks: u64,
+        lock_time_after_voting_ends_in_blocks: u64,
+        energy_factory_address: ManagedAddress,
+    ) {
+        self.try_change_min_energy_for_propose(min_energy_for_propose);
+        self.try_change_min_fee_for_propose(min_fee_for_propose);
+        self.try_change_quorum(quorum);
+        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
+        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
+        self.try_change_lock_time_after_voting_ends_in_blocks(
+            lock_time_after_voting_ends_in_blocks,
+        );
+        self.set_energy_factory_address(energy_factory_address);
+    }
+
     /// Used to deposit tokens to gather threshold min_fee.
     /// Funds will be returned if the proposal is canceled.
     #[payable("*")]
@@ -85,27 +106,24 @@ pub trait GovernanceV2:
         let caller = self.blockchain().get_caller();
         let mut proposal = self.proposals().get(proposal_id);
 
-        let mut fees_to_send = ManagedVec::<Self::Api, FeeEntry<Self::Api>>::new();
+        let mut fees_to_send = ManagedVec::<Self::Api, EsdtTokenPayment>::new();
         let mut i = 0;
         while i < proposal.fees.entries.len() {
             if proposal.fees.entries.get(i).depositor_addr == caller {
-                fees_to_send.push(proposal.fees.entries.get(i));
+                let removed_fee = proposal.fees.entries.get(i).tokens;
+                proposal.fees.total_amount -= &removed_fee.amount;
+                fees_to_send.push(removed_fee);
                 proposal.fees.entries.remove(i);
             } else {
                 i += 1;
             }
         }
 
-        for fee_entry in fees_to_send.iter() {
-            let payment = fee_entry.tokens;
+        self.proposals().set(proposal_id, &proposal);
+        self.send().direct_multi(&caller, &fees_to_send);
 
-            self.send().direct_esdt(
-                &fee_entry.depositor_addr,
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-            self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
+        for fee_payment in fees_to_send.iter() {
+            self.user_claim_deposited_tokens_event(&caller, proposal_id, &fee_payment);
         }
     }
 
