@@ -43,10 +43,14 @@ pub trait UpdateClaimProgressEnergyModule:
             opt_progress_for_update,
         );
 
-        progress_mapper.set(&ClaimProgress {
-            week: current_week,
-            energy: current_user_energy,
-        });
+        if current_user_energy.get_energy_amount() > 0 {
+            progress_mapper.set(&ClaimProgress {
+                week: current_week,
+                energy: current_user_energy,
+            });
+        } else {
+            progress_mapper.clear();
+        }
     }
 
     fn update_user_energy_for_current_week(
