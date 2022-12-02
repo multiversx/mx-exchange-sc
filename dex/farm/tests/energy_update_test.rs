@@ -27,7 +27,7 @@ fn test_energy_update() {
     farm_setup.set_user_energy(&first_user, energy_amount, 13, 1);
     farm_setup.check_farm_claim_progress_energy(0);
 
-    farm_setup.update_energy_for_user(false);
+    farm_setup.update_energy_for_user();
     farm_setup.check_farm_claim_progress_energy(energy_amount);
 }
 
@@ -44,9 +44,10 @@ fn test_energy_update_no_claim_current_week() {
     farm_setup.enter_farm(&first_user, first_farm_token_amount);
 
     farm_setup.b_mock.set_block_epoch(5);
-    farm_setup.update_energy_for_user(false);
+    farm_setup.update_energy_for_user();
 
     farm_setup.b_mock.set_block_epoch(15);
 
-    farm_setup.update_energy_for_user(true);
+    farm_setup.update_energy_for_user();
+    farm_setup.check_farm_claim_progress_energy(0);
 }
