@@ -70,43 +70,48 @@ pub trait GovernanceV2:
     /// Used to claim deposited tokens to gather threshold min_fee.
     #[payable("*")]
     #[endpoint(claimDepositedTokens)]
-    fn claim_deposited_tokens(&self, proposal_id: ProposalId) {
+    fn claim_deposited_tokens(&self, proposal_id: ProposalId) -> ManagedVec<EsdtTokenPayment> {
         self.require_caller_not_self();
         self.require_valid_proposal_id(proposal_id);
         require!(
             self.get_proposal_status(proposal_id) == GovernanceProposalStatus::WaitingForFees,
             "Cannot claim deposited tokens anymore; Proposal is not in WatingForFees state"
         );
-
         require!(
             !self.proposal_reached_min_fees(proposal_id),
             MIN_FEES_REACHED
         );
+
         let caller = self.blockchain().get_caller();
         let mut proposal = self.proposals().get(proposal_id);
+        let entries = &mut proposal.fees.entries;
 
-        let mut fees_to_send = ManagedVec::<Self::Api, FeeEntry<Self::Api>>::new();
+        let mut fees_to_send = ManagedVec::new();
+        let mut total_fees = BigUint::zero();
         let mut i = 0;
-        while i < proposal.fees.entries.len() {
-            if proposal.fees.entries.get(i).depositor_addr == caller {
-                fees_to_send.push(proposal.fees.entries.get(i));
-                proposal.fees.entries.remove(i);
+        let mut entries_len = entries.len();
+        while i < entries_len {
+            let entry = entries.get(i);
+            if entry.depositor_addr == caller {
+                total_fees += &entry.tokens.amount;
+                entries_len -= 1;
+
+                fees_to_send.push(entry.tokens);
+                entries.remove(i);
             } else {
                 i += 1;
             }
         }
 
-        for fee_entry in fees_to_send.iter() {
-            let payment = fee_entry.tokens;
+        require!(total_fees > 0, "No tokens to send");
 
-            self.send().direct_esdt(
-                &fee_entry.depositor_addr,
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-            self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
-        }
+        proposal.fees.total_amount -= total_fees;
+        self.proposals().set(proposal_id, &proposal);
+
+        self.send().direct_multi(&caller, &fees_to_send);
+        self.user_claim_deposited_tokens_event(&caller, proposal_id, &fees_to_send);
+
+        fees_to_send
     }
 
     /// Propose a list of actions.
