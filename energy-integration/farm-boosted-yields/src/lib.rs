@@ -36,18 +36,6 @@ pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
     pub min_farm_amount: BigUint<M>,
 }
 
-impl<M: ManagedTypeApi> Default for BoostedYieldsFactors<M> {
-    fn default() -> Self {
-        BoostedYieldsFactors {
-            max_rewards_factor: BigUint::zero(),
-            user_rewards_energy_const: BigUint::zero(),
-            user_rewards_farm_const: BigUint::zero(),
-            min_energy_amount: BigUint::zero(),
-            min_farm_amount: BigUint::zero(),
-        }
-    }
-}
-
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
     config::ConfigModule
@@ -79,6 +67,14 @@ pub trait FarmBoostedYieldsModule:
         min_farm_amount: BigUint,
     ) {
         self.require_caller_has_admin_permissions();
+        require!(
+            max_rewards_factor > 0
+                && user_rewards_energy_const > 0
+                && user_rewards_farm_const > 0
+                && min_energy_amount > 0
+                && min_farm_amount > 0,
+            "Values must be greater than 0"
+        );
 
         let factors = BoostedYieldsFactors {
             max_rewards_factor,
@@ -87,33 +83,36 @@ pub trait FarmBoostedYieldsModule:
             min_energy_amount,
             min_farm_amount,
         };
-
         self.boosted_yields_factors().set(factors);
     }
 
     #[endpoint(collectUndistributedBoostedRewards)]
     fn collect_undistributed_boosted_rewards(&self) {
         self.require_caller_has_admin_permissions();
+
         let collect_rewards_offset = USER_MAX_CLAIM_WEEKS + 1usize;
         let current_week = self.get_current_week();
         require!(
             current_week > collect_rewards_offset,
             "Current week must be higher than the week offset"
         );
+
         let last_collect_week_mapper = self.last_undistributed_boosted_rewards_collect_week();
-        let first_collect_week = last_collect_week_mapper.get() + 1usize;
+        let first_collect_week = last_collect_week_mapper.get() + 1;
         let last_collect_week = current_week - collect_rewards_offset;
-        if first_collect_week <= last_collect_week {
-            for week in first_collect_week..=last_collect_week {
-                let rewards_to_distribute_mapper =
-                    self.remaining_boosted_rewards_to_distribute(week);
-                let rewards_to_distribute = rewards_to_distribute_mapper.get();
-                self.undistributed_boosted_rewards()
-                    .update(|total_amount| *total_amount += rewards_to_distribute);
-                rewards_to_distribute_mapper.clear();
-            }
-            last_collect_week_mapper.set(last_collect_week);
+        if first_collect_week > last_collect_week {
+            return;
         }
+
+        for week in first_collect_week..=last_collect_week {
+            let rewards_to_distribute_mapper = self.remaining_boosted_rewards_to_distribute(week);
+            let rewards_to_distribute = rewards_to_distribute_mapper.get();
+            self.undistributed_boosted_rewards()
+                .update(|total_amount| *total_amount += rewards_to_distribute);
+            rewards_to_distribute_mapper.clear();
+        }
+
+        last_collect_week_mapper.set(last_collect_week);
     }
 
     fn take_reward_slice(&self, full_reward: BigUint) -> SplitReward<Self::Api> {

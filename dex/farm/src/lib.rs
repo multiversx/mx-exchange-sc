@@ -18,7 +18,6 @@ use exit_penalty::{
     DEFAULT_BURN_GAS_LIMIT, DEFAULT_MINUMUM_FARMING_EPOCHS, DEFAULT_PENALTY_PERCENT,
 };
 use farm_base_impl::base_traits_impl::FarmContract;
-use farm_boosted_yields::BoostedYieldsFactors;
 use mergeable::Mergeable;
 
 pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
@@ -79,8 +78,6 @@ pub trait Farm:
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
-        self.boosted_yields_factors()
-            .set_if_empty(BoostedYieldsFactors::default());
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
@@ -176,17 +173,15 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
-        let mut min_farm_amount = BigUint::zero();
         let boosted_yields_factors_mapper = self.boosted_yields_factors();
         if !boosted_yields_factors_mapper.is_empty() {
             let boosted_yields_factors = boosted_yields_factors_mapper.get();
-            min_farm_amount = boosted_yields_factors.min_farm_amount;
+            self.clear_user_energy(
+                &orig_caller,
+                &remaining_farm_payment.amount,
+                &boosted_yields_factors.min_farm_amount,
+            );
         }
-        self.clear_user_energy(
-            &orig_caller,
-            &remaining_farm_payment.amount,
-            &min_farm_amount,
-        );
 
         (
             exit_farm_result.farming_tokens,
