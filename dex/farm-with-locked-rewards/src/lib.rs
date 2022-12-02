@@ -8,7 +8,6 @@ elrond_wasm::derive_imports!();
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
-use farm_boosted_yields::BoostedYieldsFactors;
 use mergeable::Mergeable;
 
 use farm::{
@@ -75,8 +74,6 @@ pub trait Farm:
             .set_if_empty(DEFAULT_MINUMUM_FARMING_EPOCHS);
         self.burn_gas_limit().set_if_empty(DEFAULT_BURN_GAS_LIMIT);
         self.pair_contract_address().set(&pair_contract_address);
-        self.boosted_yields_factors()
-            .set_if_empty(BoostedYieldsFactors::default());
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.first_week_start_epoch().set_if_empty(current_epoch);
@@ -203,17 +200,15 @@ pub trait Farm:
             orig_caller.clone(),
         );
 
-        let mut min_farm_amount = BigUint::zero();
         let boosted_yields_factors_mapper = self.boosted_yields_factors();
         if !boosted_yields_factors_mapper.is_empty() {
             let boosted_yields_factors = boosted_yields_factors_mapper.get();
-            min_farm_amount = boosted_yields_factors.min_farm_amount;
+            self.clear_user_energy(
+                &orig_caller,
+                &remaining_farm_payment.amount,
+                &boosted_yields_factors.min_farm_amount,
+            );
         }
-        self.clear_user_energy(
-            &orig_caller,
-            &remaining_farm_payment.amount,
-            &min_farm_amount,
-        );
 
         (
             exit_farm_result.farming_tokens,
