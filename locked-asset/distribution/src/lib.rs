@@ -42,16 +42,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
             "Asset token ID is not a valid esdt identifier"
         );
 
-        if self.asset_token_id().is_empty() {
-            self.asset_token_id().set(&asset_token_id);
-        }
-        if self.locked_asset_factory_address().is_empty() {
-            self.locked_asset_factory_address()
-                .set(&locked_asset_factory_address);
-        } else {
-            self.locked_asset_factory_address()
-                .update(|factory_address| *factory_address = locked_asset_factory_address);
-        }
+        self.asset_token_id().set_if_empty(&asset_token_id);
+        self.locked_asset_factory_address()
+            .set_if_empty(&locked_asset_factory_address);
     }
 
     #[only_owner]
