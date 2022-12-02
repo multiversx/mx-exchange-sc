@@ -7,6 +7,7 @@ use elrond_wasm_debug::{
 };
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
+use governance_v2::gov_fees::GovFeesModule;
 use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal_storage::VoteType, GovernanceV2,
 };
