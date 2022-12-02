@@ -142,6 +142,10 @@ pub trait FarmBoostedYieldsModule:
         user: &ManagedAddress,
         farm_token_amount: BigUint,
     ) -> BigUint {
+        if self.boosted_yields_factors().is_empty() {
+            return BigUint::zero();
+        }
+
         let wrapper = FarmBoostedYieldsWrapper::new(farm_token_amount);
         let rewards = self.claim_multi(&wrapper, user);
 
