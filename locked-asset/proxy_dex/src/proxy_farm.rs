@@ -27,6 +27,8 @@ pub trait ProxyFarmModule:
     + crate::proxy_pair::ProxyPairModule
     + crate::pair_interactions::PairInteractionsModule
     + crate::farm_interactions::FarmInteractionsModule
+    + crate::energy_update::EnergyUpdateModule
+    + energy_query::EnergyQueryModule
     + token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + crate::wrapped_farm_token_merge::WrappedFarmTokenMerge

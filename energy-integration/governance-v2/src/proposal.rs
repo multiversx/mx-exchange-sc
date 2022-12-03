@@ -18,19 +18,39 @@ pub enum GovernanceProposalStatus {
     Queued,
     WaitingForFees,
 }
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, TypeAbi)]
+#[derive(
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    ManagedVecItem,
+    TypeAbi,
+    PartialEq,
+    Debug,
+    Clone,
+)]
 pub struct ProposalFees<M: ManagedTypeApi> {
     pub total_amount: BigUint<M>,
     pub entries: ManagedVec<M, FeeEntry<M>>,
 }
 
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, TypeAbi)]
+#[derive(
+    TopEncode,
+    TopDecode,
+    NestedEncode,
+    NestedDecode,
+    ManagedVecItem,
+    TypeAbi,
+    PartialEq,
+    Debug,
+    Clone,
+)]
 pub struct FeeEntry<M: ManagedTypeApi> {
     pub depositor_addr: ManagedAddress<M>,
     pub tokens: EsdtTokenPayment<M>,
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
 pub struct GovernanceAction<M: ManagedTypeApi> {
     pub gas_limit: u64,
     pub dest_address: ManagedAddress<M>,
@@ -62,7 +82,7 @@ impl<M: ManagedTypeApi> From<GovernanceActionAsMultiArg<M>> for GovernanceAction
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode)]
+#[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct GovernanceProposal<M: ManagedTypeApi> {
     pub proposer: ManagedAddress<M>,
     pub actions: ArrayVec<GovernanceAction<M>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,

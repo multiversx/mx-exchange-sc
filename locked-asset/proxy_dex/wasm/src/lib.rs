@@ -16,6 +16,7 @@ elrond_wasm_node::wasm_endpoints! {
         enterFarmProxy
         exitFarmProxy
         getAssetTokenId
+        getEnergyFactoryAddress
         getIntermediatedFarms
         getIntermediatedPairs
         getLockedTokenIds
@@ -28,6 +29,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeIntermediatedFarm
         removeIntermediatedPair
         removeLiquidityProxy
+        setEnergyFactoryAddress
         setTransferRoleWrappedFarmToken
         setTransferRoleWrappedLpToken
     )

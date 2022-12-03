@@ -1,10 +1,15 @@
 mod proxy_dex_test_setup;
 
-use elrond_wasm::{elrond_codec::Empty, types::EsdtTokenPayment};
+use elrond_wasm::{
+    elrond_codec::Empty,
+    types::{BigInt, EsdtTokenPayment},
+};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT,
     DebugApi,
 };
+use energy_factory::energy::EnergyModule;
+use energy_query::Energy;
 use num_traits::ToPrimitive;
 use proxy_dex::{
     proxy_pair::ProxyPairModule, wrapped_lp_attributes::WrappedLpTokenAttributes,
@@ -111,6 +116,30 @@ fn add_remove_liquidity_proxy_test() {
         &other_token_amount,
     );
 
+    let mut block_epoch = 1u64;
+    let mut user_balance = USER_BALANCE;
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let unlock_epoch = LOCK_OPTIONS[0];
+            let lock_epochs = unlock_epoch - block_epoch;
+            let expected_energy_amount =
+                BigInt::from((user_balance) as i64) * BigInt::from(lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(user_balance),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
+        .assert_ok();
+
+    // pass epochs to process energy update
+    block_epoch = 10u64;
+    setup.b_mock.set_block_epoch(block_epoch);
+    user_balance -= 1000; // extra_locked_tokens burnt
+
     // remove liquidity
     let half_lp_tokens = &expected_lp_token_amount / 2u32;
     // should be 500_000_000, but ends up so due to approximations
@@ -144,6 +173,23 @@ fn add_remove_liquidity_proxy_test() {
                 );
             },
         )
+        .assert_ok();
+
+    setup
+        .b_mock
+        .execute_query(&setup.simple_lock_wrapper, |sc| {
+            let unlock_epoch = LOCK_OPTIONS[0];
+            let lock_epochs = unlock_epoch - block_epoch;
+            let expected_energy_amount =
+                BigInt::from((user_balance) as i64) * BigInt::from(lock_epochs as i64);
+            let expected_energy = Energy::new(
+                expected_energy_amount,
+                block_epoch,
+                managed_biguint!(user_balance),
+            );
+            let actual_energy = sc.user_energy(&managed_address!(&first_user)).get();
+            assert_eq!(expected_energy, actual_energy);
+        })
         .assert_ok();
 
     // check user's balance
@@ -222,7 +268,7 @@ fn tripple_add_liquidity_proxy_test() {
 
     // check proxy's LOCKED balance
     setup.b_mock.check_nft_balance::<Empty>(
-        &setup.proxy_wrapper.address_ref(),
+        setup.proxy_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
         1,
         &locked_token_amount1,
@@ -281,7 +327,7 @@ fn tripple_add_liquidity_proxy_test() {
         TxInputESDT {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: locked_token_amount2.clone(),
+            value: locked_token_amount2,
         },
         TxInputESDT {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
@@ -305,7 +351,7 @@ fn tripple_add_liquidity_proxy_test() {
 
     // check proxy's LOCKED balance
     setup.b_mock.check_nft_balance::<Empty>(
-        &setup.proxy_wrapper.address_ref(),
+        setup.proxy_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
         1,
         &(&locked_token_amount1 * 2u64),
@@ -372,7 +418,7 @@ fn tripple_add_liquidity_proxy_test() {
         TxInputESDT {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
-            value: other_token_amount2.clone(),
+            value: other_token_amount2,
         },
     ];
 
@@ -389,7 +435,7 @@ fn tripple_add_liquidity_proxy_test() {
 
     // check proxy's LOCKED balance
     setup.b_mock.check_nft_balance::<Empty>(
-        &setup.proxy_wrapper.address_ref(),
+        setup.proxy_wrapper.address_ref(),
         LOCKED_TOKEN_ID,
         1,
         &(&locked_token_amount1 * 3u64),
@@ -493,12 +539,12 @@ fn wrapped_lp_token_merge_test() {
         TxInputESDT {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: first_amount.clone(),
+            value: first_amount,
         },
         TxInputESDT {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
-            value: second_amount.clone(),
+            value: second_amount,
         },
     ];
 

@@ -28,29 +28,9 @@ elrond_wasm::imports!();
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
 #[elrond_wasm::module]
-pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
-    #[init]
-    fn init(
-        &self,
-        min_energy_for_propose: BigUint,
-        min_fee_for_propose: BigUint,
-        quorum: BigUint,
-        voting_delay_in_blocks: u64,
-        voting_period_in_blocks: u64,
-        lock_time_after_voting_ends_in_blocks: u64,
-        energy_factory_address: ManagedAddress,
-    ) {
-        self.try_change_min_energy_for_propose(min_energy_for_propose);
-        self.try_change_min_fee_for_propose(min_fee_for_propose);
-        self.try_change_quorum(quorum);
-        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
-        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
-        self.try_change_lock_time_after_voting_ends_in_blocks(
-            lock_time_after_voting_ends_in_blocks,
-        );
-        self.set_energy_factory_address(energy_factory_address);
-    }
-
+pub trait ConfigurablePropertiesModule:
+    crate::caller_check::CallerCheckModule + energy_query::EnergyQueryModule
+{
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
 
@@ -94,16 +74,6 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
         self.require_caller_self();
 
         self.try_change_lock_time_after_voting_ends_in_blocks(new_value);
-    }
-
-    fn require_caller_self(&self) {
-        let caller = self.blockchain().get_caller();
-        let sc_address = self.blockchain().get_sc_address();
-
-        require!(
-            caller == sc_address,
-            "Only the SC itself may call this function"
-        );
     }
 
     fn try_change_min_energy_for_propose(&self, new_value: BigUint) {

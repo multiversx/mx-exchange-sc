@@ -42,26 +42,6 @@ pub trait UnstakeModule:
         self.token_unstake_sc_address().set(&sc_address);
     }
 
-    #[endpoint(createMergedLockedTokenForFees)]
-    fn create_merged_locked_token_for_fees(
-        &self,
-        amount: BigUint,
-        unlock_epoch: u64,
-    ) -> EsdtTokenPayment {
-        self.require_caller_unstake_sc();
-
-        let caller = self.blockchain().get_caller();
-        let base_asset_token_id = self.base_asset_token_id().get();
-        let virtual_payment = EgldOrEsdtTokenPayment::new(
-            EgldOrEsdtTokenIdentifier::esdt(base_asset_token_id),
-            0,
-            amount,
-        );
-        let output_payment = self.lock_and_send(&caller, virtual_payment, unlock_epoch);
-
-        self.to_esdt_payment(output_payment)
-    }
-
     #[payable("*")]
     #[endpoint(revertUnstake)]
     fn revert_unstake(&self, user: ManagedAddress, new_energy: Energy<Self::Api>) {

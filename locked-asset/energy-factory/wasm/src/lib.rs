@@ -11,7 +11,6 @@ elrond_wasm_node::wasm_endpoints! {
         addLockOptions
         addSCAddressToWhitelist
         addToTokenTransferWhitelist
-        createMergedLockedTokenForFees
         getBaseAssetTokenId
         getEnergyAmountForUser
         getEnergyEntryForUser

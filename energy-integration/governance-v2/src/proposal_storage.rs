@@ -57,6 +57,13 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
 
 #[elrond_wasm::module]
 pub trait ProposalStorageModule {
+    fn clear_proposal(&self, proposal_id: ProposalId) {
+        self.proposals().clear_entry(proposal_id);
+        self.proposal_start_block(proposal_id).clear();
+        self.proposal_queue_block(proposal_id).clear();
+        self.proposal_votes(proposal_id).clear();
+    }
+
     #[storage_mapper("proposals")]
     fn proposals(&self) -> VecMapper<GovernanceProposal<Self::Api>>;
 

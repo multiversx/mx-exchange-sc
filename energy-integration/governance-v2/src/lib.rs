@@ -2,9 +2,11 @@
 
 elrond_wasm::imports!();
 
+pub mod caller_check;
 pub mod configurable;
 mod errors;
 pub mod events;
+pub mod gov_fees;
 pub mod proposal;
 pub mod proposal_storage;
 pub mod views;
@@ -16,7 +18,6 @@ use crate::errors::*;
 use crate::proposal_storage::ProposalVotes;
 
 const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
-const MIN_AMOUNT_PER_DEPOSIT: u64 = 1;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
@@ -25,88 +26,37 @@ pub trait GovernanceV2:
     configurable::ConfigurablePropertiesModule
     + events::EventsModule
     + proposal_storage::ProposalStorageModule
+    + gov_fees::GovFeesModule
+    + caller_check::CallerCheckModule
     + views::ViewsModule
     + energy_query::EnergyQueryModule
 {
-    /// Used to deposit tokens to gather threshold min_fee.
-    /// Funds will be returned if the proposal is canceled.
-    #[payable("*")]
-    #[endpoint(depositTokensForProposal)]
-    fn deposit_tokens_for_proposal(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        self.require_valid_proposal_id(proposal_id);
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::WaitingForFees,
-            "Proposal is not waiting for fees anymore"
+    /// - `min_energy_for_propose` - the minimum energy required for submitting a proposal
+    /// - `quorum` - the minimum number of (`votes` minus `downvotes`) at the end of voting period  
+    /// - `maxActionsPerProposal` - Maximum number of actions (transfers and/or smart contract calls) that a proposal may have  
+    /// - `votingDelayInBlocks` - Number of blocks to wait after a block is proposed before being able to vote/downvote that proposal
+    /// - `votingPeriodInBlocks` - Number of blocks the voting period lasts (voting delay does not count towards this)  
+    /// - `lockTimeAfterVotingEndsInBlocks` - Number of blocks to wait before a successful proposal can be executed  
+    #[init]
+    fn init(
+        &self,
+        min_energy_for_propose: BigUint,
+        min_fee_for_propose: BigUint,
+        quorum: BigUint,
+        voting_delay_in_blocks: u64,
+        voting_period_in_blocks: u64,
+        lock_time_after_voting_ends_in_blocks: u64,
+        energy_factory_address: ManagedAddress,
+    ) {
+        self.try_change_min_energy_for_propose(min_energy_for_propose);
+        self.try_change_min_fee_for_propose(min_fee_for_propose);
+        self.try_change_quorum(quorum);
+        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
+        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
+        self.try_change_lock_time_after_voting_ends_in_blocks(
+            lock_time_after_voting_ends_in_blocks,
         );
-
-        require!(
-            !self.proposal_reached_min_fees(proposal_id),
-            MIN_FEES_REACHED
-        );
-
-        let additional_fee = self.call_value().single_esdt();
-        require!(
-            self.fee_token_id().get() == additional_fee.token_identifier,
-            WRONG_TOKEN_ID
-        );
-        require!(
-            additional_fee.amount >= MIN_AMOUNT_PER_DEPOSIT,
-            MIN_AMOUNT_NOT_REACHED
-        );
-
-        let caller = self.blockchain().get_caller();
-        let mut proposal = self.proposals().get(proposal_id);
-        proposal.fees.entries.push(FeeEntry {
-            depositor_addr: caller.clone(),
-            tokens: additional_fee.clone(),
-        });
-        proposal.fees.total_amount += additional_fee.amount.clone();
-
-        self.proposals().set(proposal_id, &proposal);
-        self.user_deposit_event(&caller, proposal_id, &additional_fee);
-    }
-
-    /// Used to claim deposited tokens to gather threshold min_fee.
-    #[payable("*")]
-    #[endpoint(claimDepositedTokens)]
-    fn claim_deposited_tokens(&self, proposal_id: ProposalId) {
-        self.require_caller_not_self();
-        self.require_valid_proposal_id(proposal_id);
-        require!(
-            self.get_proposal_status(proposal_id) == GovernanceProposalStatus::WaitingForFees,
-            "Cannot claim deposited tokens anymore; Proposal is not in WatingForFees state"
-        );
-
-        require!(
-            !self.proposal_reached_min_fees(proposal_id),
-            MIN_FEES_REACHED
-        );
-        let caller = self.blockchain().get_caller();
-        let mut proposal = self.proposals().get(proposal_id);
-
-        let mut fees_to_send = ManagedVec::<Self::Api, FeeEntry<Self::Api>>::new();
-        let mut i = 0;
-        while i < proposal.fees.entries.len() {
-            if proposal.fees.entries.get(i).depositor_addr == caller {
-                fees_to_send.push(proposal.fees.entries.get(i));
-                proposal.fees.entries.remove(i);
-            } else {
-                i += 1;
-            }
-        }
-
-        for fee_entry in fees_to_send.iter() {
-            let payment = fee_entry.tokens;
-
-            self.send().direct_esdt(
-                &fee_entry.depositor_addr,
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-            self.user_claim_deposited_tokens_event(&caller, proposal_id, &payment);
-        }
+        self.set_energy_factory_address(energy_factory_address);
     }
 
     /// Propose a list of actions.
@@ -342,16 +292,6 @@ pub trait GovernanceV2:
         self.proposal_canceled_event(proposal_id);
     }
 
-    fn require_caller_not_self(&self) {
-        let caller = self.blockchain().get_caller();
-        let sc_address = self.blockchain().get_sc_address();
-
-        require!(
-            caller != sc_address,
-            "Cannot call this endpoint through proposed action"
-        );
-    }
-
     fn total_gas_needed(
         &self,
         actions: &ArrayVec<GovernanceAction<Self::Api>, MAX_GOVERNANCE_PROPOSAL_ACTIONS>,
@@ -376,12 +316,5 @@ pub trait GovernanceV2:
                 &payment.amount,
             );
         }
-    }
-
-    fn clear_proposal(&self, proposal_id: ProposalId) {
-        self.proposals().clear_entry(proposal_id);
-        self.proposal_start_block(proposal_id).clear();
-        self.proposal_queue_block(proposal_id).clear();
-        self.proposal_votes(proposal_id).clear();
     }
 }

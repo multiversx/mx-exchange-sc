@@ -11,7 +11,8 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 use elrond_wasm_modules::pause::PauseModule;
-use energy_factory::SimpleLockEnergy;
+use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
+use energy_query::EnergyQueryModule;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
@@ -127,7 +128,18 @@ where
                 sc.add_sc_address_to_whitelist(managed_address!(farm_locked_wrapper.address_ref()));
             })
             .assert_ok();
-
+        b_mock
+            .execute_tx(&owner, &simple_lock_wrapper, &rust_zero, |sc| {
+                let mut sc_addresses = MultiValueEncoded::new();
+                sc_addresses.push(managed_address!(proxy_wrapper.address_ref()));
+                sc.add_to_token_transfer_whitelist(sc_addresses);
+            })
+            .assert_ok();
+        b_mock
+            .execute_tx(&owner, &proxy_wrapper, &rust_zero, |sc| {
+                sc.set_energy_factory_address(managed_address!(simple_lock_wrapper.address_ref()));
+            })
+            .assert_ok();
         let user_balance = rust_biguint!(USER_BALANCE);
         b_mock.set_esdt_balance(&first_user, MEX_TOKEN_ID, &user_balance);
         b_mock.set_esdt_balance(&first_user, WEGLD_TOKEN_ID, &user_balance);
@@ -214,14 +226,14 @@ where
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let pair_wrapper = b_mock.create_sc_account(&rust_zero, Some(&owner), pair_builder, "pair");
+    let pair_wrapper = b_mock.create_sc_account(&rust_zero, Some(owner), pair_builder, "pair");
 
     b_mock
-        .execute_tx(&owner, &pair_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(MEX_TOKEN_ID);
             let second_token_id = managed_token_id!(WEGLD_TOKEN_ID);
-            let router_address = managed_address!(&owner);
-            let router_owner_address = managed_address!(&owner);
+            let router_address = managed_address!(owner);
+            let router_owner_address = managed_address!(owner);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
 
@@ -239,7 +251,7 @@ where
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
-            sc.state().set(&State::Active);
+            sc.state().set(State::Active);
             sc.set_max_observations_per_record(10);
         })
         .assert_ok();
@@ -262,7 +274,7 @@ where
     let rust_zero = rust_biguint!(0u64);
     let farm_wrapper = b_mock.create_sc_account(
         &rust_zero,
-        Some(&owner),
+        Some(owner),
         farm_builder,
         "farm-with-locked-rewards.wasm",
     );
@@ -279,7 +291,7 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
-                managed_address!(&owner),
+                managed_address!(owner),
                 MultiValueEncoded::new(),
             );
 
@@ -343,12 +355,12 @@ where
     let rust_zero = rust_biguint!(0u64);
     let simple_lock_wrapper = b_mock.create_sc_account(
         &rust_zero,
-        Some(&owner),
+        Some(owner),
         simple_lock_builder,
         "simple lock energy",
     );
     let dummy_sc_wrapper =
-        b_mock.create_sc_account(&rust_zero, Some(&owner), DummySc::new, "dummy sc 1");
+        b_mock.create_sc_account(&rust_zero, Some(owner), DummySc::new, "dummy sc 1");
 
     b_mock
         .execute_tx(owner, &simple_lock_wrapper, &rust_zero, |sc| {
@@ -407,7 +419,7 @@ where
     ProxyObjBuilder: 'static + Copy + Fn() -> proxy_dex::ContractObj<DebugApi>,
 {
     let rust_zero = rust_biguint!(0u64);
-    let proxy_wrapper = b_mock.create_sc_account(&rust_zero, Some(&owner), proxy_builder, "proxy");
+    let proxy_wrapper = b_mock.create_sc_account(&rust_zero, Some(owner), proxy_builder, "proxy");
 
     b_mock
         .execute_tx(owner, &proxy_wrapper, &rust_zero, |sc| {

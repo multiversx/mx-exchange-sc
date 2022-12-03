@@ -8,6 +8,7 @@ use crate::proposal::{
 pub trait ViewsModule:
     crate::proposal_storage::ProposalStorageModule
     + crate::configurable::ConfigurablePropertiesModule
+    + crate::caller_check::CallerCheckModule
     + energy_query::EnergyQueryModule
 {
     #[view(getProposalStatus)]

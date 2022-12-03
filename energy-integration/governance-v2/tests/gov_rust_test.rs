@@ -1,10 +1,18 @@
 mod gov_test_setup;
 
-use elrond_wasm::elrond_codec::Empty;
-use elrond_wasm_debug::{managed_biguint, rust_biguint};
+use elrond_wasm::{
+    arrayvec::ArrayVec,
+    elrond_codec::Empty,
+    types::{EsdtTokenPayment, ManagedVec},
+};
+use elrond_wasm_debug::{
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, DebugApi,
+};
 use gov_test_setup::*;
 use governance_v2::{
-    configurable::ConfigurablePropertiesModule, proposal_storage::ProposalStorageModule,
+    configurable::ConfigurablePropertiesModule,
+    proposal::{FeeEntry, GovernanceAction, GovernanceProposal, ProposalFees},
+    proposal_storage::ProposalStorageModule,
 };
 
 #[test]
@@ -527,7 +535,44 @@ fn gov_claim_deposited_token_test() {
         .claim_deposited_tokens(&second_user_addr, proposal_id)
         .assert_ok();
 
-    // Check funds are returned to users
+    gov_setup
+        .b_mock
+        .execute_query(&gov_setup.gov_wrapper, |sc| {
+            let mut expected_actions = ArrayVec::new();
+            expected_actions.push(GovernanceAction {
+                dest_address: managed_address!(&sc_addr),
+                function_name: managed_buffer!(b"changeQuorum"),
+                arguments: ManagedVec::from_single_item(managed_buffer!(
+                    &1_000u64.to_be_bytes()[..]
+                )),
+                gas_limit: GAS_LIMIT,
+            });
+
+            let fee_entry = FeeEntry {
+                depositor_addr: managed_address!(&first_user_addr),
+                tokens: EsdtTokenPayment::<DebugApi> {
+                    token_identifier: managed_token_id!(LKMEX_TOKEN_ID),
+                    token_nonce: 1,
+                    amount: managed_biguint!(100),
+                },
+            };
+            let expected_fees = ManagedVec::from_single_item(fee_entry);
+            let expected_proposal = GovernanceProposal::<DebugApi> {
+                proposer: managed_address!(&first_user_addr),
+                description: managed_buffer!(b"change quorum"),
+                actions: expected_actions,
+                fees: ProposalFees {
+                    total_amount: managed_biguint!(100),
+                    entries: expected_fees,
+                },
+            };
+
+            let actual_proposal = sc.proposals().get(proposal_id);
+            assert_eq!(actual_proposal, expected_proposal);
+        })
+        .assert_ok();
+
+    // Check funds are returned to second user only
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &first_user_addr,
         LKMEX_TOKEN_ID,
@@ -544,7 +589,7 @@ fn gov_claim_deposited_token_test() {
         None,
     );
 
-    // Check that SC has user funds
+    // Check that SC has still has first user's funds
     gov_setup.b_mock.check_nft_balance::<Empty>(
         &sc_addr,
         LKMEX_TOKEN_ID,
