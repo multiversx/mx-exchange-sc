@@ -8,22 +8,14 @@ pub mod locked_asset_token;
 use locked_asset_token::UserEntry;
 
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
-pub const UNBOND_EPOCHS: u64 = 3;
+pub const UNBOND_EPOCHS: u64 = 0;
 
 #[elrond_wasm::contract]
 pub trait MetabondingStaking:
     locked_asset_token::LockedAssetTokenModule + events::EventsModule
 {
     #[init]
-    fn init(
-        &self,
-        locked_asset_token_id: TokenIdentifier,
-        locked_asset_factory_address: ManagedAddress,
-    ) {
-        self.locked_asset_token_id().set(&locked_asset_token_id);
-        self.locked_asset_factory_address()
-            .set(&locked_asset_factory_address);
-    }
+    fn init(&self) {}
 
     #[payable("*")]
     #[endpoint(stakeLockedAsset)]
@@ -75,12 +67,6 @@ pub trait MetabondingStaking:
         let mut user_entry: UserEntry<Self::Api> = entry_mapper.get();
         let unstake_amount = user_entry.unstake_amount.clone();
         require!(unstake_amount > 0, "Must unstake first");
-
-        let current_epoch = self.blockchain().get_block_epoch();
-        require!(
-            current_epoch >= user_entry.unbond_epoch,
-            "Unbond period in progress"
-        );
 
         self.total_locked_asset_supply()
             .update(|total_supply| *total_supply -= &unstake_amount);
