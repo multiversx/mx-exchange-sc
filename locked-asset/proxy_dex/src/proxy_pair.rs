@@ -136,15 +136,15 @@ pub trait ProxyPairModule:
             let difference = assets_received - locked_assets_invested;
             self.send()
                 .direct_esdt(&caller, &asset_token_id, 0, &difference);
-            self.deduct_energy_from_user(
-                &caller,
+        } else if assets_received < locked_assets_invested {
+            let difference = locked_assets_invested - assets_received;
+            self.send().esdt_local_burn(
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
                 &difference,
             );
-        } else if assets_received < locked_assets_invested {
-            let difference = locked_assets_invested - assets_received;
-            self.send().esdt_local_burn(
+            self.deduct_energy_from_user(
+                &caller,
                 &locked_asset_token_id,
                 attributes.locked_assets_nonce,
                 &difference,
