@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FarmTokenAttributes;
+use common_structs_old::FarmTokenAttributes;
 use farm_token::FarmToken;
 
 use config::State;

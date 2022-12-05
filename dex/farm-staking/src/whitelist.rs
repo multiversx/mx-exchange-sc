@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use common_errors::ERROR_PERMISSIONS;
+use common_errors_old::ERROR_PERMISSIONS;
 
 #[elrond_wasm::module]
 pub trait WhitelistModule {

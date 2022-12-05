@@ -3,9 +3,9 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_errors::*;
+use common_errors_old::*;
 
-use common_structs::Nonce;
+use common_structs_old::Nonce;
 
 pub const MAX_PERCENT: u64 = 10_000;
 pub const DEFAULT_PENALTY_PERCENT: u64 = 100;

@@ -20,20 +20,14 @@ path = "../../common/modules/farm/rewards"
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_old]
+path = "../../common/modules/token_merge_old"
 
-[dependencies.factory]
-path = "../../locked-asset/factory"
+[dependencies.common_structs_old]
+path = "../../common/common_structs_old"
 
-[dependencies.pair]
-path = "../pair"
-
-[dependencies.common_structs]
-path = "../../common/common_structs"
-
-[dependencies.common_errors]
-path = "../../common/common_errors"
+[dependencies.common_errors_old]
+path = "../../common/common_errors_old"
 
 [dependencies.elrond-wasm]
 version = "0.28.0"

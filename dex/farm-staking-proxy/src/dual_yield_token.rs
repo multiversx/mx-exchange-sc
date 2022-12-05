@@ -1,5 +1,9 @@
+use elrond_wasm::storage::StorageKey;
+
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
+
+static DUAL_YIELD_TOKEN_ID_KEY: &[u8] = b"dualYieldTokenId";
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug)]
 pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
@@ -20,6 +24,21 @@ impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
 
 #[elrond_wasm::module]
 pub trait DualYieldTokenModule: token_merge::TokenMergeModule {
+    #[only_owner]
+    #[endpoint(setTransferRoleDualYieldToken)]
+    fn set_transfer_role_dual_yield_token(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let mapper = NonFungibleTokenMapper::new(StorageKey::new(DUAL_YIELD_TOKEN_ID_KEY));
+        let address = self.resolve_address(opt_address);
+        mapper.set_local_roles_for_address(&address, &[EsdtLocalRole::Transfer][..], None);
+    }
+
+    fn resolve_address(&self, opt_address: OptionalValue<ManagedAddress>) -> ManagedAddress {
+        match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        }
+    }
+
     fn require_dual_yield_token(&self, token_id: &TokenIdentifier) {
         let dual_yield_token_id = self.dual_yield_token_id().get();
         require!(token_id == &dual_yield_token_id, "Invalid payment token");

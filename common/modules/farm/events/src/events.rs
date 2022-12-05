@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FarmTokenAttributes;
+use common_structs_old::FarmTokenAttributes;
 
 use contexts::generic::GenericContext;
 

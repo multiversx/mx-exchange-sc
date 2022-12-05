@@ -1,18 +1,18 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_errors::*;
+use common_errors_old::*;
 
-use common_structs::FarmTokenAttributes;
+use common_structs_old::FarmTokenAttributes;
 use farm_token::FarmToken;
-use token_merge::ValueWeight;
+use token_merge_old::ValueWeight;
 
 #[elrond_wasm::module]
 pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + config::ConfigModule
-    + token_merge::TokenMergeModule
+    + token_merge_old::TokenMergeModule
 {
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
