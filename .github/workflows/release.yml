@@ -37,6 +37,7 @@ jobs:
       - name: Build contract
         run: |
           python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=farm-staking-proxy --output=/home/runner/work/output-from-docker
+          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=farm_with_lock --output=/home/runner/work/output-from-docker
           python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=factory --output=/home/runner/work/output-from-docker
           python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --contract=proxy_dex --output=/home/runner/work/output-from-docker
 
