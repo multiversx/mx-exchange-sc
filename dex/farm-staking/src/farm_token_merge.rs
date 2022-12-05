@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use token_merge::ValueWeight;
+use token_merge_old::ValueWeight;
 
 #[derive(
     ManagedVecItem,
@@ -31,7 +31,7 @@ pub trait FarmTokenMergeModule:
     token_send::TokenSendModule
     + farm_token::FarmTokenModule
     + config::ConfigModule
-    + token_merge::TokenMergeModule
+    + token_merge_old::TokenMergeModule
 {
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]

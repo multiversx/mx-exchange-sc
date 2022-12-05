@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![feature(exact_size_is_empty)]
 #![allow(clippy::too_many_arguments)]
 
@@ -7,7 +6,7 @@ pub mod custom_rewards;
 pub mod farm_token_merge;
 pub mod whitelist;
 
-use common_structs::Nonce;
+use common_structs_old::Nonce;
 use config::State;
 
 elrond_wasm::imports!();
@@ -37,14 +36,11 @@ pub trait Farm:
     custom_rewards::CustomRewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
+    + token_merge_old::TokenMergeModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + whitelist::WhitelistModule
 {
-    #[proxy]
-    fn pair_contract_proxy(&self, to: ManagedAddress) -> pair::Proxy<Self::Api>;
-
     #[init]
     fn init(
         &self,

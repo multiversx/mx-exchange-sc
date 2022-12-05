@@ -5,9 +5,9 @@
 pub mod custom_rewards;
 pub mod farm_token_merge;
 
-use common_errors::*;
+use common_errors_old::*;
 
-use common_structs::{Epoch, FarmTokenAttributes};
+use common_structs_old::{Epoch, FarmTokenAttributes};
 use config::State;
 use contexts::generic::{GenericContext, StorageCache};
 use farm_token::FarmToken;
@@ -27,13 +27,30 @@ type ClaimRewardsResultType<BigUint> =
 type ExitFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
+mod pair {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait PairProxy {
+        #[payable("*")]
+        #[endpoint(removeLiquidityAndBuyBackAndBurnToken)]
+        fn remove_liquidity_and_burn_token(
+            &self,
+            #[payment_token] token_in: TokenIdentifier,
+            #[payment_nonce] nonce: u64,
+            #[payment_amount] amount_in: BigUint,
+            token_to_buyback_and_burn: TokenIdentifier,
+        );
+    }
+}
+
 #[elrond_wasm::contract]
 pub trait Farm:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
+    + token_merge_old::TokenMergeModule
     + farm_token::FarmTokenModule
     + farm_token_merge::FarmTokenMergeModule
     + events::EventsModule

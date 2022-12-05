@@ -1,7 +1,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_errors::*;
+use common_errors_old::*;
 
 use contexts::generic::StorageCache;
 
