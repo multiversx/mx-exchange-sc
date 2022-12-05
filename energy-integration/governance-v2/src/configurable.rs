@@ -73,10 +73,9 @@ pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
         self.try_change_voting_delay_in_blocks(new_value);
     }
 
+    #[only_owner]
     #[endpoint(changeVotingPeriodInBlocks)]
     fn change_voting_period_in_blocks(&self, new_value: u64) {
-        self.require_caller_self();
-
         self.try_change_voting_period_in_blocks(new_value);
     }
 
