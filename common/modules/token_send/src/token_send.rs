@@ -2,7 +2,7 @@
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
-use common_errors::*;
+use common_errors_old::*;
 
 #[elrond_wasm::module]
 pub trait TokenSendModule {
@@ -22,8 +22,6 @@ pub trait TokenSendModule {
             gas_limit = 0u64;
             function = ManagedBuffer::new();
         }
-
-        self.send().direct_with_gas_limit();
 
         Self::Api::send_api_impl()
             .direct_multi_esdt_transfer_execute(

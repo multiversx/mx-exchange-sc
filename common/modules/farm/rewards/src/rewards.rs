@@ -3,7 +3,7 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::Nonce;
+use common_structs_old::Nonce;
 
 #[elrond_wasm::module]
 pub trait RewardsModule:

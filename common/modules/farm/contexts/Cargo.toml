@@ -7,11 +7,11 @@ edition = "2018"
 [lib]
 path = "src/mod.rs"
 
-[dependencies.common_structs]
-path = "../../../common_structs"
+[dependencies.common_structs_old]
+path = "../../../common_structs_old"
 
-[dependencies.common_errors]
-path = "../../../common_errors"
+[dependencies.common_errors_old]
+path = "../../../common_errors_old"
 
 [dependencies.farm_token]
 path = "../farm_token"
@@ -22,8 +22,8 @@ path = "../rewards"
 [dependencies.token_send]
 path = "../../token_send"
 
-[dependencies.token_merge]
-path = "../../token_merge"
+[dependencies.token_merge_old]
+path = "../../token_merge_old"
 
 [dependencies.config]
 path = "../config"

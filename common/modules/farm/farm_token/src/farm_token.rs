@@ -1,11 +1,13 @@
 #![no_std]
-#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmTokenAttributes, Nonce};
+use common_structs_old::{FarmTokenAttributes, Nonce};
 use elrond_wasm::elrond_codec::TopEncode;
+
+static SET_SPECIAL_ROLE_ENDPOINT_NAME: &[u8] = b"setSpecialRole";
+static TRANSFER_ROLE_NAME: &[u8] = b"ESDTTransferRole";
 
 #[derive(ManagedVecItem, Clone)]
 pub struct FarmToken<M: ManagedTypeApi> {
@@ -117,6 +119,39 @@ pub trait FarmTokenModule: config::ConfigModule + token_send::TokenSendModule {
             .async_call()
             .with_callback(self.callbacks().change_roles_callback())
             .call_and_exit()
+    }
+
+    #[only_owner]
+    #[endpoint(setTransferRoleFarmToken)]
+    fn set_transfer_role_farm_token(&self, #[var_args] opt_address: OptionalValue<ManagedAddress>) {
+        let farm_token_id = self.farm_token_id().get();
+        self.role_management_common(farm_token_id, SET_SPECIAL_ROLE_ENDPOINT_NAME, opt_address);
+    }
+
+    fn role_management_common(
+        &self,
+        locked_token_id: TokenIdentifier,
+        endpoint_name: &[u8],
+        opt_address: OptionalValue<ManagedAddress>,
+    ) -> ! {
+        let role_dest_address = self.resolve_address(opt_address);
+        let esdt_system_sc_addr = self.send().esdt_system_sc_proxy().esdt_system_sc_address();
+        let mut contract_call = ContractCall::<_, ()>::new(
+            esdt_system_sc_addr,
+            ManagedBuffer::new_from_bytes(endpoint_name),
+        );
+        contract_call.push_endpoint_arg(&locked_token_id);
+        contract_call.push_endpoint_arg(&role_dest_address);
+        contract_call.push_endpoint_arg(&TRANSFER_ROLE_NAME);
+
+        contract_call.async_call().call_and_exit();
+    }
+
+    fn resolve_address(&self, opt_address: OptionalValue<ManagedAddress>) -> ManagedAddress {
+        match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        }
     }
 
     #[callback]

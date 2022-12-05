@@ -7,11 +7,11 @@ edition = "2018"
 [lib]
 path = "src/rewards.rs"
 
-[dependencies.common_structs]
-path = "../../../common_structs"
+[dependencies.common_structs_old]
+path = "../../../common_structs_old"
 
-[dependencies.common_errors]
-path = "../../../common_errors"
+[dependencies.common_errors_old]
+path = "../../../common_errors_old"
 
 [dependencies.config]
 path = "../config"

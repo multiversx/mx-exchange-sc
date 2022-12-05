@@ -9,7 +9,7 @@ pub trait CtxHelper:
     + token_send::TokenSendModule
     + rewards::RewardsModule
     + farm_token::FarmTokenModule
-    + token_merge::TokenMergeModule
+    + token_merge_old::TokenMergeModule
 {
     fn new_farm_context(
         &self,
