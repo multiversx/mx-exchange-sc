@@ -62,7 +62,7 @@ fn extend_lock_period_old_token_test() {
             sc.update_energy_for_old_tokens(
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                user_energy_amount.clone(),
+                BigInt::from(user_energy_amount.clone()),
             );
 
             let expected_energy = Energy::new(
@@ -175,7 +175,7 @@ fn min_period_migrated_token_test() {
             sc.update_energy_for_old_tokens(
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                user_energy_amount.clone(),
+                BigInt::from(user_energy_amount.clone()),
             );
 
             let expected_energy = Energy::new(
@@ -279,7 +279,7 @@ fn min_period_migrated_token_test2() {
             sc.update_energy_for_old_tokens(
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
-                user_energy_amount.clone(),
+                BigInt::from(user_energy_amount.clone()),
             );
 
             let expected_energy = Energy::new(

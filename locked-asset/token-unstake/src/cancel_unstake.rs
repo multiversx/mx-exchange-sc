@@ -38,7 +38,7 @@ pub trait CancelUnstakeModule:
                 // account for energy refund on unlock
                 let epoch_diff = current_epoch - attributes.unlock_epoch;
                 let energy_to_reduce = &locked_tokens.amount * epoch_diff;
-                energy.add_energy_raw(locked_tokens.amount.clone(), BigUint::zero());
+                energy.add_energy_raw(locked_tokens.amount.clone(), BigInt::zero());
                 energy.remove_energy_raw(BigUint::zero(), energy_to_reduce);
             }
 

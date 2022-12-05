@@ -27,7 +27,7 @@ pub trait SimpleLockMigrationModule:
         &self,
         user: ManagedAddress,
         total_locked_tokens: BigUint,
-        energy_amount: BigUint,
+        energy_amount: BigInt,
     ) {
         self.require_paused();
         self.require_old_tokens_energy_not_updated(&user);
