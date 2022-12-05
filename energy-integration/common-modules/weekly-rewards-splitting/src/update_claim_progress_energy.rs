@@ -18,11 +18,14 @@ pub trait UpdateClaimProgressEnergyModule:
     #[endpoint(updateEnergyForUser)]
     fn update_energy_for_user(&self, user: ManagedAddress) {
         let current_week = self.get_current_week();
-        let claim_progress = self.current_claim_progress(&user).get();
-        require!(
-            claim_progress.week == current_week,
-            ERROR_ENERGY_UPDATE_SAME_WEEK
-        );
+        let claim_progress_mapper = self.current_claim_progress(&user);
+        if !claim_progress_mapper.is_empty() {
+            let claim_progress = claim_progress_mapper.get();
+            require!(
+                claim_progress.week == current_week,
+                ERROR_ENERGY_UPDATE_SAME_WEEK
+            );
+        }
         self.update_energy_and_progress(&user);
     }
 
@@ -43,10 +46,14 @@ pub trait UpdateClaimProgressEnergyModule:
             opt_progress_for_update,
         );
 
-        progress_mapper.set(&ClaimProgress {
-            week: current_week,
-            energy: current_user_energy,
-        });
+        if current_user_energy.get_energy_amount() > 0 {
+            progress_mapper.set(&ClaimProgress {
+                week: current_week,
+                energy: current_user_energy,
+            });
+        } else {
+            progress_mapper.clear();
+        }
     }
 
     fn update_user_energy_for_current_week(
