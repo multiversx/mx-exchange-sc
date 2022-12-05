@@ -30,24 +30,7 @@ elrond_wasm::imports!();
 #[elrond_wasm::module]
 pub trait ConfigurablePropertiesModule: energy_query::EnergyQueryModule {
     #[init]
-    fn init(
-        &self,
-        min_energy_for_propose: BigUint,
-        quorum: BigUint,
-        voting_delay_in_blocks: u64,
-        voting_period_in_blocks: u64,
-        lock_time_after_voting_ends_in_blocks: u64,
-        energy_factory_address: ManagedAddress,
-    ) {
-        self.try_change_min_energy_for_propose(min_energy_for_propose);
-        self.try_change_quorum(quorum);
-        self.try_change_voting_delay_in_blocks(voting_delay_in_blocks);
-        self.try_change_voting_period_in_blocks(voting_period_in_blocks);
-        self.try_change_lock_time_after_voting_ends_in_blocks(
-            lock_time_after_voting_ends_in_blocks,
-        );
-        self.set_energy_factory_address(energy_factory_address);
-    }
+    fn init(&self) {}
 
     // endpoints - these can only be called by the SC itself.
     // i.e. only by proposing and executing an action with the SC as dest and the respective func name
