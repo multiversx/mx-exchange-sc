@@ -202,16 +202,15 @@ where
 
     fn collect_rewards_for_week(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let reward_token_id = module.reward_token_id().get();
-        let rewards_mapper = module.accumulated_rewards_for_week(week);
+        let reward_token_id = sc.reward_token_id().get();
+        let rewards_mapper = sc.accumulated_rewards_for_week(week);
         let total_rewards = rewards_mapper.get();
         rewards_mapper.clear();
 
-        module
-            .remaining_boosted_rewards_to_distribute(week)
+        sc.remaining_boosted_rewards_to_distribute(week)
             .set(&total_rewards);
 
         ManagedVec::from_single_item(EsdtTokenPayment::new(reward_token_id, 0, total_rewards))
@@ -219,29 +218,29 @@ where
 
     fn get_user_rewards_for_week(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
         energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
-        if module.boosted_yields_factors().is_empty() {
+        if sc.boosted_yields_factors().is_empty() {
             return user_rewards;
         }
 
-        let farm_supply_for_week = module.farm_supply_for_week(week).get();
+        let farm_supply_for_week = sc.farm_supply_for_week(week).get();
         if total_energy == &0 || farm_supply_for_week == 0 {
             return user_rewards;
         }
 
-        let factors = module.boosted_yields_factors().get();
+        let factors = sc.boosted_yields_factors().get();
         if energy_amount < &factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {
             return user_rewards;
         }
 
-        let total_rewards = self.collect_and_get_rewards_for_week(module, week);
+        let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
         if total_rewards.is_empty() {
             return user_rewards;
         }
@@ -277,8 +276,7 @@ where
         // min between base rewards per week and computed rewards
         let user_reward = cmp::min(max_rewards, boosted_reward_amount);
         if user_reward > 0 {
-            module
-                .remaining_boosted_rewards_to_distribute(week)
+            sc.remaining_boosted_rewards_to_distribute(week)
                 .update(|amount| *amount -= &user_reward);
 
             user_rewards.push(EsdtTokenPayment::new(

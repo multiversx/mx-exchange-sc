@@ -116,13 +116,13 @@ where
 
     fn collect_rewards_for_week(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut results = ManagedVec::new();
-        let all_tokens = module.all_tokens().get();
+        let all_tokens = sc.all_tokens().get();
         for token in &all_tokens {
-            let opt_accumulated_fees = module.get_and_clear_acccumulated_fees(week, &token);
+            let opt_accumulated_fees = sc.get_and_clear_acccumulated_fees(week, &token);
             if let Some(accumulated_fees) = opt_accumulated_fees {
                 results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
             }
