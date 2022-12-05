@@ -77,6 +77,11 @@ pub trait LkmexTransfer:
     #[payable("*")]
     #[endpoint(lockFunds)]
     fn lock_funds(&self, receiver: ManagedAddress) {
+        require!(
+            !self.blockchain().is_smart_contract(&receiver),
+            "Cannot transfer to SC"
+        );
+
         let sender = self.blockchain().get_caller();
         let locked_funds_mapper = self.locked_funds(&receiver, &sender);
         require!(locked_funds_mapper.is_empty(), ALREADY_SENT_TO_ADDRESS);
