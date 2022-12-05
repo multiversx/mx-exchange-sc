@@ -18,12 +18,12 @@ pub trait WeeklyRewardsSplittingTraitsModule {
 
     fn collect_and_get_rewards_for_week(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let total_rewards_mapper = module.total_rewards_for_week(week);
+        let total_rewards_mapper = sc.total_rewards_for_week(week);
         if total_rewards_mapper.is_empty() {
-            let total_rewards = self.collect_rewards_for_week(module, week);
+            let total_rewards = self.collect_rewards_for_week(sc, week);
             total_rewards_mapper.set(&total_rewards);
 
             total_rewards
@@ -34,7 +34,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
 
     fn get_user_rewards_for_week(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
         energy_amount: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
@@ -44,7 +44,7 @@ pub trait WeeklyRewardsSplittingTraitsModule {
             return user_rewards;
         }
 
-        let total_rewards = self.collect_and_get_rewards_for_week(module, week);
+        let total_rewards = self.collect_and_get_rewards_for_week(sc, week);
         for weekly_reward in &total_rewards {
             let reward_amount = weekly_reward.amount * energy_amount / total_energy;
             if reward_amount > 0 {
@@ -61,18 +61,18 @@ pub trait WeeklyRewardsSplittingTraitsModule {
 
     fn collect_rewards_for_week(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>;
 
     fn get_claim_progress_mapper(
         &self,
-        module: &Self::WeeklyRewardsSplittingMod,
+        sc: &Self::WeeklyRewardsSplittingMod,
         user: &ManagedAddress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> SingleValueMapper<
         <Self::WeeklyRewardsSplittingMod as ContractBase>::Api,
         ClaimProgress<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     > {
-        module.current_claim_progress(user)
+        sc.current_claim_progress(user)
     }
 }
