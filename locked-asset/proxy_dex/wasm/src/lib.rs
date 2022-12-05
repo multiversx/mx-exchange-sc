@@ -11,6 +11,8 @@ elrond_wasm_node::wasm_endpoints! {
         addPairToIntermediate
         exitFarmProxy
         getAssetTokenId
+        getEnergyFactoryAddress
+        getExtendedAttributesActivationNonce
         getIntermediatedFarms
         getIntermediatedPairs
         getLockedAssetTokenId
@@ -20,6 +22,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeIntermediatedFarm
         removeIntermediatedPair
         removeLiquidityProxy
+        setEnergyFactoryAddress
         setTransferRoleLockedFarmToken
         setTransferRoleLockedLpToken
         unsetTransferRoleLockedFarmToken

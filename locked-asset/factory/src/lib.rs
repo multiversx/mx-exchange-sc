@@ -5,7 +5,7 @@ use common_structs::{
     Epoch, LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockPeriod, UnlockScheduleEx,
 };
 
-mod attr_ex_helper;
+pub mod attr_ex_helper;
 mod cache;
 mod events;
 pub mod locked_asset;
@@ -143,7 +143,8 @@ pub trait LockedAssetFactory:
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
 
-        let attributes = self.get_attributes_ex(&token_id, token_nonce);
+        let attr_ex_activation = self.extended_attributes_activation_nonce().get();
+        let attributes = self.get_attributes_ex(&token_id, token_nonce, attr_ex_activation);
         let unlock_schedule = &attributes.unlock_schedule;
 
         let month_start_epoch = self.get_month_start_epoch(self.blockchain().get_block_epoch());
