@@ -74,9 +74,9 @@ impl<M: ManagedTypeApi> Energy<M> {
         self.last_update_epoch = current_epoch;
     }
 
-    pub fn add_energy_raw(&mut self, locked_token_amount: BigUint<M>, energy_amount: BigUint<M>) {
+    pub fn add_energy_raw(&mut self, locked_token_amount: BigUint<M>, energy_amount: BigInt<M>) {
         self.total_locked_tokens += locked_token_amount;
-        self.amount += BigInt::from(energy_amount);
+        self.amount += energy_amount;
     }
 
     pub fn remove_energy_raw(
