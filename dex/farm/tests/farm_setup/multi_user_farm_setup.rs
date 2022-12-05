@@ -492,10 +492,10 @@ where
             .assert_ok();
     }
 
-    pub fn update_energy_for_user(&mut self, error: bool) {
+    pub fn update_energy_for_user(&mut self) {
         let b_mock = &mut self.b_mock;
         let user_addr = &self.first_user;
-        let result = b_mock.execute_tx(
+        let _ = b_mock.execute_tx(
             &self.first_user,
             &self.farm_wrapper,
             &rust_biguint!(0),
@@ -503,12 +503,6 @@ where
                 sc.update_energy_for_user(managed_address!(user_addr));
             },
         );
-
-        if error {
-            result.assert_error(4, "Can update only after claim rewards")
-        } else {
-            result.assert_ok();
-        }
     }
 
     pub fn check_farm_claim_progress_energy(&mut self, expected_user_energy: u64) {
@@ -516,13 +510,19 @@ where
         let user_addr = &self.first_user;
         b_mock
             .execute_query(&self.farm_wrapper, |sc| {
-                let current_claim_progress = sc
-                    .current_claim_progress(&managed_address!(&user_addr))
-                    .get();
-                assert_eq!(
-                    managed_biguint!(expected_user_energy),
-                    current_claim_progress.energy.get_energy_amount()
-                );
+                let current_claim_progress_mapper =
+                    sc.current_claim_progress(&managed_address!(user_addr));
+                if expected_user_energy > 0 {
+                    assert_eq!(
+                        managed_biguint!(expected_user_energy),
+                        current_claim_progress_mapper
+                            .get()
+                            .energy
+                            .get_energy_amount()
+                    );
+                } else {
+                    assert!(current_claim_progress_mapper.is_empty())
+                }
             })
             .assert_ok();
     }
