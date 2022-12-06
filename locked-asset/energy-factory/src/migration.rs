@@ -21,6 +21,8 @@ pub trait SimpleLockMigrationModule:
     + elrond_wasm_modules::pause::PauseModule
     + utils::UtilsModule
 {
+    /// Sets the energy amounts and token amounts for users. Overwrites any existing values.
+    /// Expects any number of pairs of (user address, token amount, energy amount).
     #[only_owner]
     #[endpoint(setEnergyForOldTokens)]
     fn set_energy_for_old_tokens(
@@ -29,12 +31,11 @@ pub trait SimpleLockMigrationModule:
     ) {
         self.require_paused();
 
+        let current_epoch = self.blockchain().get_block_epoch();
         for user_energy in users_energy {
             let (user, total_locked_tokens, energy_amount) = user_energy.into_tuple();
-            self.update_energy(&user, |energy: &mut Energy<Self::Api>| {
-                energy.set_energy_raw(total_locked_tokens, energy_amount);
-            });
-
+            let new_energy = Energy::new(energy_amount, current_epoch, total_locked_tokens);
+            self.set_energy_entry(&user, new_energy);
             self.user_updated_old_tokens_energy().add(&user);
         }
     }
