@@ -122,8 +122,20 @@ pub trait UnlockWithPenaltyModule:
             TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG
         );
 
+        let new_lock_epochs = match opt_new_lock_period {
+            Some(lock_epochs) => {
+                let tentative_new_unlock_epoch = current_epoch + lock_epochs;
+                let start_of_month_epoch =
+                    self.unlock_epoch_to_start_of_month(tentative_new_unlock_epoch);
+                let epochs_diff_from_month_start =
+                    tentative_new_unlock_epoch - start_of_month_epoch;
+
+                lock_epochs - epochs_diff_from_month_start
+            }
+            None => 0,
+        };
+
         let prev_lock_epochs = attributes.unlock_epoch - current_epoch;
-        let new_lock_epochs = opt_new_lock_period.unwrap_or(0);
         require!(new_lock_epochs < prev_lock_epochs, "Invalid reduce choice");
 
         let mut energy = self.get_updated_energy_entry_for_user(caller);
@@ -159,10 +171,9 @@ pub trait UnlockWithPenaltyModule:
             / (MAX_PENALTY_PERCENTAGE - new_penalty_percentage)
     }
 
-    /// Calculates the penalty that would be incurred if token_amount tokens
-    /// were to have their locking period reduce to new_unlock_epoch
-    /// new_unlock_epoch must be either be current epoch (i.e. full unlock)
-    /// or one of the available lock options
+    /// Calculates the penalty that would be incurred if `token_amount` tokens
+    /// were to have their lock epochs reduced from `prev_lock_epochs` to
+    /// `new_lock_epochs`. For full unlock, `new_lock_epochs` should be 0.
     #[view(getPenaltyAmount)]
     fn calculate_penalty_amount(
         &self,
@@ -173,12 +184,7 @@ pub trait UnlockWithPenaltyModule:
         require!(prev_lock_epochs > 0, TOKEN_CAN_BE_UNLOCKED_ALREADY_ERR_MSG);
         require!(new_lock_epochs < prev_lock_epochs, "Invalid new lock epoch");
 
-        let is_full_unlock = new_lock_epochs == 0;
-        if !is_full_unlock {
-            self.require_is_listed_lock_option(new_lock_epochs);
-        }
-
-        let penalty_percentage_unlock = if is_full_unlock {
+        let penalty_percentage_unlock = if new_lock_epochs == 0 {
             self.calculate_penalty_percentage_full_unlock(prev_lock_epochs)
         } else {
             self.calculate_penalty_percentage_partial_unlock(prev_lock_epochs, new_lock_epochs)
