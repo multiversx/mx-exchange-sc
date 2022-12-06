@@ -184,7 +184,7 @@ pub trait ProxyFarmModule:
         let mut payment_used_for_exit = payment.clone();
         payment_used_for_exit.amount = exit_amount.clone();
         let wrapped_attributes_used_for_exit_farm: WrappedFarmTokenAttributes<Self::Api> =
-            full_wrapped_farm_attributes.clone().into_part(&exit_amount);
+            full_wrapped_farm_attributes.into_part(&exit_amount);
         let wrapped_farm_tokens_for_initial_tokens = WrappedFarmToken {
             payment: payment_used_for_exit,
             attributes: wrapped_attributes_used_for_exit_farm.clone(),
