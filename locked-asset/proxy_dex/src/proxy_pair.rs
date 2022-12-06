@@ -177,19 +177,12 @@ pub trait ProxyPairModule:
             output_payments.push(attributes.locked_tokens.clone());
         } else {
             let extra_locked_tokens = locked_token_amount_available - base_asset_amount_received;
-            if extra_locked_tokens > 0 {
-                self.send().esdt_local_burn(
-                    &attributes.locked_tokens.token_identifier,
-                    attributes.locked_tokens.token_nonce,
-                    &extra_locked_tokens,
-                );
-                self.deduct_energy_from_user(
-                    &caller,
-                    &attributes.locked_tokens.token_identifier,
-                    attributes.locked_tokens.token_nonce,
-                    &extra_locked_tokens,
-                );
-            }
+            self.burn_locked_tokens_and_update_energy(
+                &attributes.locked_tokens.token_identifier,
+                attributes.locked_tokens.token_nonce,
+                &extra_locked_tokens,
+                &caller,
+            );
 
             let mut locked_tokens_out = attributes.locked_tokens.clone();
             locked_tokens_out.amount = base_asset_amount_received.clone();

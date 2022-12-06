@@ -16,10 +16,6 @@ pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
-pub struct CompoundRewardsFarmResultWrapper<M: ManagedTypeApi> {
-    pub new_farm_token: EsdtTokenPayment<M>,
-}
-
 #[elrond_wasm::module]
 pub trait FarmInteractionsModule {
     fn call_enter_farm(
@@ -89,25 +85,6 @@ pub trait FarmInteractionsModule {
             new_farm_token,
             rewards,
         }
-    }
-
-    fn call_compound_rewards_farm(
-        &self,
-        farm_address: ManagedAddress,
-        farm_token: EsdtTokenPayment,
-    ) -> CompoundRewardsFarmResultWrapper<Self::Api> {
-        let original_caller = self.blockchain().get_caller();
-        let new_farm_token = self
-            .farm_contract_proxy(farm_address)
-            .compound_rewards_endpoint(original_caller)
-            .add_esdt_token_transfer(
-                farm_token.token_identifier,
-                farm_token.token_nonce,
-                farm_token.amount,
-            )
-            .execute_on_dest_context();
-
-        CompoundRewardsFarmResultWrapper { new_farm_token }
     }
 
     #[proxy]
