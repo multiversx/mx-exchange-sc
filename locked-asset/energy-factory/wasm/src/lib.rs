@@ -32,6 +32,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeSCAddressFromWhitelist
         revertUnstake
         setBurnRoleLockedToken
+        setEnergyForOldTokens
         setTokenUnstakeAddress
         setTransferRoleLockedToken
         setUserEnergyAfterLockedTokenTransfer
@@ -39,6 +40,5 @@ elrond_wasm_node::wasm_endpoints! {
         unlockTokens
         unpause
         updateEnergyAfterOldTokenUnlock
-        updateEnergyForOldTokens
     )
 }
