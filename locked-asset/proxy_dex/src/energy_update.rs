@@ -8,7 +8,9 @@ use simple_lock::locked_token::LockedTokenAttributes;
 static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
 #[elrond_wasm::module]
-pub trait EnergyUpdateModule: energy_query::EnergyQueryModule + utils::UtilsModule {
+pub trait EnergyUpdateModule:
+    energy_query::EnergyQueryModule + utils::UtilsModule + crate::proxy_common::ProxyCommonModule
+{
     fn burn_locked_tokens_and_update_energy(
         &self,
         token_id: &TokenIdentifier,
@@ -37,17 +39,21 @@ pub trait EnergyUpdateModule: energy_query::EnergyQueryModule + utils::UtilsModu
 
         let energy_factory_addr = self.energy_factory_address().get();
         let new_locked_token_id = self.get_locked_token_id(&energy_factory_addr);
-        if token_id == &new_locked_token_id {
+        let is_new_token = token_id == &new_locked_token_id;
+        let is_old_token = !self.factory_address_for_locked_token(token_id).is_empty();
+        if is_new_token {
             let attributes: LockedTokenAttributes<Self::Api> =
                 self.get_token_attributes(token_id, token_nonce);
             energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
-        } else {
+        } else if is_old_token {
             let attributes: OldLockedTokenAttributes<Self::Api> =
                 self.get_token_attributes(token_id, token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
             }
+        } else {
+            sc_panic!("Invalid token for energy update");
         }
 
         self.set_energy_in_factory(user.clone(), energy, energy_factory_addr);

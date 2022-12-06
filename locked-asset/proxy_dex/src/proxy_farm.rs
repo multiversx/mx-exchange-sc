@@ -237,6 +237,9 @@ pub trait ProxyFarmModule:
 
         let penalty_amount = &wrapped_farm_tokens.payment.amount - &farming_tokens_amount_from_farm;
         let proxy_farming_token = &wrapped_farm_tokens.attributes.proxy_farming_token;
+        let mut remaining_proxy_tokens = proxy_farming_token.clone();
+        remaining_proxy_tokens.amount -= &penalty_amount;
+
         let is_locked_token = self
             .locked_token_ids()
             .contains(&proxy_farming_token.token_identifier);
@@ -248,21 +251,15 @@ pub trait ProxyFarmModule:
                 caller,
             );
 
-            let mut remaining_locked_tokens = proxy_farming_token.clone();
-            remaining_locked_tokens.amount -= penalty_amount;
-
-            return remaining_locked_tokens;
+            return remaining_proxy_tokens;
         }
-
-        let mut remaining_wrapped_lp = proxy_farming_token.clone();
-        remaining_wrapped_lp.amount -= penalty_amount;
 
         let wrapped_lp_tokens_mapper = self.wrapped_lp_token();
         let old_wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> = self
             .get_attributes_as_part_of_fixed_supply(proxy_farming_token, &wrapped_lp_tokens_mapper);
         let new_wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> = self
             .get_attributes_as_part_of_fixed_supply(
-                &remaining_wrapped_lp,
+                &remaining_proxy_tokens,
                 &wrapped_lp_tokens_mapper,
             );
         let extra_locked_tokens = &old_wrapped_lp_attributes.locked_tokens.amount
@@ -274,7 +271,8 @@ pub trait ProxyFarmModule:
             caller,
         );
 
-        wrapped_lp_tokens_mapper.nft_create(remaining_wrapped_lp.amount, &new_wrapped_lp_attributes)
+        wrapped_lp_tokens_mapper
+            .nft_create(remaining_proxy_tokens.amount, &new_wrapped_lp_attributes)
     }
 
     #[payable("*")]
