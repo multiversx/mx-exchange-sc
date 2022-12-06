@@ -1,7 +1,7 @@
 mod energy_factory_setup;
 
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
-use elrond_wasm::types::{BigInt, ManagedVec};
+use elrond_wasm::types::{BigInt, ManagedVec, MultiValueEncoded};
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
@@ -59,11 +59,15 @@ fn extend_lock_period_old_token_test() {
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
             sc.set_paused(true);
-            sc.update_energy_for_old_tokens(
+            let mut users_energy = MultiValueEncoded::new();
+            let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
                 BigInt::from(user_energy_amount.clone()),
-            );
+            )
+                .into();
+            users_energy.push(user_energy);
+            sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
                 BigInt::from(user_energy_amount.clone()),
@@ -172,11 +176,15 @@ fn min_period_migrated_token_test() {
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
             sc.set_paused(true);
-            sc.update_energy_for_old_tokens(
+            let mut users_energy = MultiValueEncoded::new();
+            let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
                 BigInt::from(user_energy_amount.clone()),
-            );
+            )
+                .into();
+            users_energy.push(user_energy);
+            sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
                 BigInt::from(user_energy_amount.clone()),
@@ -276,11 +284,16 @@ fn min_period_migrated_token_test2() {
         .b_mock
         .execute_tx(&setup.owner, &setup.sc_wrapper, &rust_zero, |sc| {
             sc.set_paused(true);
-            sc.update_energy_for_old_tokens(
+
+            let mut users_energy = MultiValueEncoded::new();
+            let user_energy = (
                 managed_address!(&first_user),
                 managed_biguint!(USER_BALANCE),
                 BigInt::from(user_energy_amount.clone()),
-            );
+            )
+                .into();
+            users_energy.push(user_energy);
+            sc.set_energy_for_old_tokens(users_energy);
 
             let expected_energy = Energy::new(
                 BigInt::from(user_energy_amount.clone()),

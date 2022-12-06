@@ -21,22 +21,24 @@ pub trait SimpleLockMigrationModule:
     + elrond_wasm_modules::pause::PauseModule
     + utils::UtilsModule
 {
+    /// Sets the energy amounts and token amounts for users. Overwrites any existing values.
+    /// Expects any number of pairs of (user address, token amount, energy amount).
     #[only_owner]
-    #[endpoint(updateEnergyForOldTokens)]
-    fn update_energy_for_old_tokens(
+    #[endpoint(setEnergyForOldTokens)]
+    fn set_energy_for_old_tokens(
         &self,
-        user: ManagedAddress,
-        total_locked_tokens: BigUint,
-        energy_amount: BigInt,
+        users_energy: MultiValueEncoded<MultiValue3<ManagedAddress, BigUint, BigInt>>,
     ) {
         self.require_paused();
-        self.require_old_tokens_energy_not_updated(&user);
 
-        self.update_energy(&user, |energy: &mut Energy<Self::Api>| {
-            energy.add_energy_raw(total_locked_tokens, energy_amount);
-        });
-
-        self.user_updated_old_tokens_energy().add(&user);
+        let user_updated_energy_mapper = self.user_updated_old_tokens_energy();
+        let current_epoch = self.blockchain().get_block_epoch();
+        for user_energy in users_energy {
+            let (user, total_locked_tokens, energy_amount) = user_energy.into_tuple();
+            let new_energy = Energy::new(energy_amount, current_epoch, total_locked_tokens);
+            self.set_energy_entry(&user, new_energy);
+            user_updated_energy_mapper.add(&user);
+        }
     }
 
     #[endpoint(updateEnergyAfterOldTokenUnlock)]
@@ -160,13 +162,6 @@ pub trait SimpleLockMigrationModule:
         require!(
             caller == old_factory_address,
             "May only call this through old factory SC"
-        );
-    }
-
-    fn require_old_tokens_energy_not_updated(&self, address: &ManagedAddress) {
-        require!(
-            !self.user_updated_old_tokens_energy().contains(address),
-            "Energy for old tokens already updated"
         );
     }
 
