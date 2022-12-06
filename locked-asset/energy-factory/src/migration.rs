@@ -31,12 +31,13 @@ pub trait SimpleLockMigrationModule:
     ) {
         self.require_paused();
 
+        let user_updated_energy_mapper = self.user_updated_old_tokens_energy();
         let current_epoch = self.blockchain().get_block_epoch();
         for user_energy in users_energy {
             let (user, total_locked_tokens, energy_amount) = user_energy.into_tuple();
             let new_energy = Energy::new(energy_amount, current_epoch, total_locked_tokens);
             self.set_energy_entry(&user, new_energy);
-            self.user_updated_old_tokens_energy().add(&user);
+            user_updated_energy_mapper.add(&user);
         }
     }
 
