@@ -18,11 +18,14 @@ elrond_wasm_node::wasm_endpoints! {
         getLockedAssetTokenId
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
+        isPaused
+        pause
         removeWhitelist
         setBurnRoleForAddress
         setNewFactoryAddress
         setTransferRoleForAddress
         unlockAssets
+        unpause
         unsetTransferRoleForAddress
         whitelist
     )

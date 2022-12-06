@@ -42,9 +42,12 @@ pub trait LockedAssetFactory:
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
     + migration::LockedTokenMigrationModule
+    + elrond_wasm_modules::pause::PauseModule
 {
     #[init]
-    fn init(&self) {}
+    fn init(&self) {
+        self.set_paused(true);
+    }
 
     #[only_owner]
     #[endpoint]
@@ -68,6 +71,8 @@ pub trait LockedAssetFactory:
         start_epoch: Epoch,
         unlock_period: UnlockPeriod<Self::Api>,
     ) -> OldEsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -103,6 +108,8 @@ pub trait LockedAssetFactory:
         address: ManagedAddress,
         start_epoch: Epoch,
     ) -> OldEsdtTokenPayment<Self::Api> {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -139,6 +146,8 @@ pub trait LockedAssetFactory:
     #[payable("*")]
     #[endpoint(unlockAssets)]
     fn unlock_assets(&self) {
+        self.require_not_paused();
+        
         let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let locked_token_id = self.locked_asset_token_id().get();
         require!(token_id == locked_token_id, "Bad payment token");
