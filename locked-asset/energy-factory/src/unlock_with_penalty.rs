@@ -126,10 +126,13 @@ pub trait UnlockWithPenaltyModule:
         let mut new_lock_epochs = opt_new_lock_period.unwrap_or(0);
         require!(new_lock_epochs < prev_lock_epochs, "Invalid reduce choice");
 
-        let tentative_new_unlock_epoch = current_epoch + new_lock_epochs;
-        let start_of_month_epoch = self.unlock_epoch_to_start_of_month(tentative_new_unlock_epoch);
-        let epochs_diff_from_month_start = tentative_new_unlock_epoch - start_of_month_epoch;
-        new_lock_epochs -= epochs_diff_from_month_start;
+        if new_lock_epochs > 0 {
+            let tentative_new_unlock_epoch = current_epoch + new_lock_epochs;
+            let start_of_month_epoch =
+                self.unlock_epoch_to_start_of_month(tentative_new_unlock_epoch);
+            let epochs_diff_from_month_start = tentative_new_unlock_epoch - start_of_month_epoch;
+            new_lock_epochs -= epochs_diff_from_month_start;
+        }
 
         let mut energy = self.get_updated_energy_entry_for_user(caller);
         energy.deplete_after_early_unlock(&payment.amount, attributes.unlock_epoch, current_epoch);
