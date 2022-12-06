@@ -179,24 +179,36 @@ pub trait ProxyFarmModule:
         let mut remaining_wrapped_tokens = payment.clone();
         remaining_wrapped_tokens.amount = exit_result.remaining_farm_tokens.amount;
 
-        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &exit_amount);
         self.burn_if_base_asset(&exit_result.farming_tokens);
 
-        let wrapped_attributes_for_initial_tokens =
-            full_wrapped_farm_attributes.into_part(&exit_result.farming_tokens.amount);
-        let initial_proxy_farming_tokens = wrapped_attributes_for_initial_tokens
-            .proxy_farming_token
-            .clone();
+        let mut payment_used_for_exit = payment.clone();
+        payment_used_for_exit.amount = exit_amount.clone();
+        let wrapped_attributes_used_for_exit_farm: WrappedFarmTokenAttributes<Self::Api> =
+            full_wrapped_farm_attributes.clone().into_part(&exit_amount);
+        let wrapped_farm_tokens_for_initial_tokens = WrappedFarmToken {
+            payment: payment_used_for_exit,
+            attributes: wrapped_attributes_used_for_exit_farm.clone(),
+        };
+
         let caller = self.blockchain().get_caller();
+        let initial_proxy_farming_tokens = self
+            .handle_farm_penalty_and_get_output_proxy_farming_token(
+                &caller,
+                wrapped_farm_tokens_for_initial_tokens,
+                exit_result.farming_tokens.amount,
+            );
+
         self.send_payment_non_zero(&caller, &initial_proxy_farming_tokens);
         self.send_payment_non_zero(&caller, &exit_result.reward_tokens);
         self.send_payment_non_zero(&caller, &remaining_wrapped_tokens);
+
+        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &exit_amount);
 
         self.emit_exit_farm_proxy_event(
             &caller,
             &farm_address,
             payment,
-            wrapped_attributes_for_initial_tokens,
+            wrapped_attributes_used_for_exit_farm,
             exit_result.reward_tokens.clone(),
         );
 
@@ -206,6 +218,63 @@ pub trait ProxyFarmModule:
             remaining_wrapped_tokens,
         )
             .into()
+    }
+
+    fn handle_farm_penalty_and_get_output_proxy_farming_token(
+        &self,
+        caller: &ManagedAddress,
+        wrapped_farm_tokens: WrappedFarmToken<Self::Api>,
+        farming_tokens_amount_from_farm: BigUint,
+    ) -> EsdtTokenPayment {
+        require!(
+            wrapped_farm_tokens.payment.amount >= farming_tokens_amount_from_farm,
+            "Invalid payments received from Farm"
+        );
+
+        if wrapped_farm_tokens.payment.amount == farming_tokens_amount_from_farm {
+            return wrapped_farm_tokens.attributes.proxy_farming_token;
+        }
+
+        let penalty_amount = &wrapped_farm_tokens.payment.amount - &farming_tokens_amount_from_farm;
+        let proxy_farming_token = &wrapped_farm_tokens.attributes.proxy_farming_token;
+        let is_locked_token = self
+            .locked_token_ids()
+            .contains(&proxy_farming_token.token_identifier);
+        if is_locked_token {
+            self.burn_locked_tokens_and_update_energy(
+                &proxy_farming_token.token_identifier,
+                proxy_farming_token.token_nonce,
+                &penalty_amount,
+                caller,
+            );
+
+            let mut remaining_locked_tokens = proxy_farming_token.clone();
+            remaining_locked_tokens.amount -= penalty_amount;
+
+            return remaining_locked_tokens;
+        }
+
+        let mut remaining_wrapped_lp = proxy_farming_token.clone();
+        remaining_wrapped_lp.amount -= penalty_amount;
+
+        let wrapped_lp_tokens_mapper = self.wrapped_lp_token();
+        let old_wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> = self
+            .get_attributes_as_part_of_fixed_supply(proxy_farming_token, &wrapped_lp_tokens_mapper);
+        let new_wrapped_lp_attributes: WrappedLpTokenAttributes<Self::Api> = self
+            .get_attributes_as_part_of_fixed_supply(
+                &remaining_wrapped_lp,
+                &wrapped_lp_tokens_mapper,
+            );
+        let extra_locked_tokens = &old_wrapped_lp_attributes.locked_tokens.amount
+            - &new_wrapped_lp_attributes.locked_tokens.amount;
+        self.burn_locked_tokens_and_update_energy(
+            &new_wrapped_lp_attributes.locked_tokens.token_identifier,
+            new_wrapped_lp_attributes.locked_tokens.token_nonce,
+            &extra_locked_tokens,
+            caller,
+        );
+
+        wrapped_lp_tokens_mapper.nft_create(remaining_wrapped_lp.amount, &new_wrapped_lp_attributes)
     }
 
     #[payable("*")]
@@ -252,49 +321,6 @@ pub trait ProxyFarmModule:
         );
 
         (new_wrapped_token, claim_result.rewards).into()
-    }
-
-    #[payable("*")]
-    #[endpoint(compoundRewardsProxy)]
-    fn compound_rewards_proxy(&self, farm_address: ManagedAddress) -> EsdtTokenPayment {
-        self.require_is_intermediated_farm(&farm_address);
-        self.require_wrapped_farm_token_id_not_empty();
-        self.require_wrapped_lp_token_id_not_empty();
-
-        let wrapped_farm_token_mapper = self.wrapped_farm_token();
-        let payment = self.call_value().single_esdt();
-        wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
-
-        let wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &wrapped_farm_token_mapper);
-        let comp_result = self.call_compound_rewards_farm(
-            farm_address.clone(),
-            wrapped_farm_attributes.farm_token.clone(),
-        );
-
-        wrapped_farm_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
-
-        let new_wrapped_farm_attributes = WrappedFarmTokenAttributes {
-            farm_token: comp_result.new_farm_token,
-            proxy_farming_token: wrapped_farm_attributes.proxy_farming_token.clone(),
-        };
-        let new_token_amount = new_wrapped_farm_attributes.get_total_supply();
-        let new_wrapped_token =
-            wrapped_farm_token_mapper.nft_create(new_token_amount, &new_wrapped_farm_attributes);
-
-        let caller = self.blockchain().get_caller();
-        self.send_payment_non_zero(&caller, &new_wrapped_token);
-
-        self.emit_compound_rewards_farm_proxy_event(
-            &caller,
-            &farm_address,
-            payment,
-            wrapped_farm_attributes,
-            new_wrapped_token.clone(),
-            new_wrapped_farm_attributes,
-        );
-
-        new_wrapped_token
     }
 
     fn require_wrapped_farm_token_id_not_empty(&self) {

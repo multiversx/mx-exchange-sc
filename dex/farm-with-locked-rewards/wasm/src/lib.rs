@@ -14,7 +14,6 @@ elrond_wasm_node::wasm_endpoints! {
         calculateRewardsForGivenPosition
         claimRewards
         collectUndistributedBoostedRewards
-        compoundRewards
         endProduceRewards
         enterFarm
         exitFarm

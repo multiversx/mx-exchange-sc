@@ -1,5 +1,6 @@
 elrond_wasm::imports!();
 
+use common_structs::{Nonce, OldLockedTokenAttributes};
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -8,6 +9,22 @@ static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
 #[elrond_wasm::module]
 pub trait EnergyUpdateModule: energy_query::EnergyQueryModule + utils::UtilsModule {
+    fn burn_locked_tokens_and_update_energy(
+        &self,
+        token_id: &TokenIdentifier,
+        token_nonce: Nonce,
+        token_amount: &BigUint,
+        user_address: &ManagedAddress,
+    ) {
+        if token_amount == &0u64 {
+            return;
+        }
+
+        self.deduct_energy_from_user(user_address, token_id, token_nonce, token_amount);
+        self.send()
+            .esdt_local_burn(token_id, token_nonce, token_amount);
+    }
+
     fn deduct_energy_from_user(
         &self,
         user: &ManagedAddress,
@@ -15,18 +32,24 @@ pub trait EnergyUpdateModule: energy_query::EnergyQueryModule + utils::UtilsModu
         token_nonce: u64,
         token_amount: &BigUint,
     ) {
+        let current_epoch = self.blockchain().get_block_epoch();
+        let mut energy = self.get_energy_entry(user);
+
         let energy_factory_addr = self.energy_factory_address().get();
-        let locked_token_id = self.get_locked_token_id(&energy_factory_addr);
-        if token_id != &locked_token_id {
-            return;
+        let new_locked_token_id = self.get_locked_token_id(&energy_factory_addr);
+        if token_id == &new_locked_token_id {
+            let attributes: LockedTokenAttributes<Self::Api> =
+                self.get_token_attributes(token_id, token_nonce);
+            energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
+        } else {
+            let attributes: OldLockedTokenAttributes<Self::Api> =
+                self.get_token_attributes(token_id, token_nonce);
+            let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
+            for pair in epoch_amount_pairs.pairs {
+                energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
+            }
         }
 
-        let current_epoch = self.blockchain().get_block_epoch();
-        let attributes: LockedTokenAttributes<Self::Api> =
-            self.get_token_attributes(token_id, token_nonce);
-
-        let mut energy = self.get_energy_entry(user);
-        energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
         self.set_energy_in_factory(user.clone(), energy, energy_factory_addr);
     }
 

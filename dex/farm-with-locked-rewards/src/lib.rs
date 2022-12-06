@@ -147,21 +147,6 @@ pub trait Farm:
     }
 
     #[payable("*")]
-    #[endpoint(compoundRewards)]
-    fn compound_rewards_endpoint(
-        &self,
-        opt_orig_caller: OptionalValue<ManagedAddress>,
-    ) -> EsdtTokenPayment {
-        let caller = self.blockchain().get_caller();
-        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
-        let output_farm_token_payment = self.compound_rewards::<NoMintWrapper<Self>>(orig_caller);
-        self.send_payment_non_zero(&caller, &output_farm_token_payment);
-
-        output_farm_token_payment
-    }
-
-    #[payable("*")]
     #[endpoint(exitFarm)]
     fn exit_farm_endpoint(
         &self,
