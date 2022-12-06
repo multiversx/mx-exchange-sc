@@ -149,10 +149,11 @@ pub trait LockedAssetFactory:
         )
     }
 
-    /// Can be called even if paused.
     #[payable("*")]
     #[endpoint(unlockAssets)]
     fn unlock_assets(&self) {
+        self.require_not_paused();
+
         let (token_id, token_nonce, amount) = self.call_value().single_esdt().into_tuple();
         let locked_token_id = self.locked_asset_token().get_token_id();
         require!(token_id == locked_token_id, "Bad payment token");
