@@ -13,7 +13,7 @@ use elrond_wasm_debug::{
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
-use farm_boosted_yields::FarmBoostedYieldsModule;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
