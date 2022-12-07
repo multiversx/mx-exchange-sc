@@ -264,11 +264,19 @@ fn farm_change_boosted_yields_factors_test() {
                 user_rewards_energy_const: managed_biguint!(1u64),
                 user_rewards_farm_const: managed_biguint!(1u64),
             };
-            expected_config.update(current_week, Some(new_factors));
+            expected_config.update(current_week, Some(new_factors.clone()));
             assert_eq!(expected_config, sc.boosted_yields_config().get());
 
-            let factors_prev_week = expected_config.get_factors_for_week(current_week - 1);
-            assert_eq!(factors_prev_week, &default_factors);
+            let factors_prev_week = expected_config
+                .get_factors_for_week(current_week - 1)
+                .clone();
+            assert_eq!(factors_prev_week, default_factors);
+
+            expected_config.update(current_week + 1, Some(new_factors));
+            let factors_older_week = expected_config
+                .get_factors_for_week(current_week - 2)
+                .clone();
+            assert_eq!(factors_prev_week, factors_older_week);
         })
         .assert_ok();
 }
