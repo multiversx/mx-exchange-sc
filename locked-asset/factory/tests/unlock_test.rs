@@ -5,7 +5,7 @@ use elrond_wasm_debug::{
     managed_address, managed_biguint, rust_biguint, testing_framework::*, DebugApi,
 };
 
-const SC_WASM_PATH: &'static str = "output/factory.wasm";
+const SC_WASM_PATH: &str = "output/factory.wasm";
 
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::energy::{Energy, EnergyModule};
