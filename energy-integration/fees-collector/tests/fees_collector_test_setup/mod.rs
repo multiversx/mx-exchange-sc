@@ -157,7 +157,6 @@ where
                 let mut tokens = MultiValueEncoded::new();
                 tokens.push(managed_token_id!(FIRST_TOKEN_ID));
                 tokens.push(managed_token_id!(SECOND_TOKEN_ID));
-                tokens.push(managed_token_id!(LOCKED_TOKEN_ID));
 
                 sc.add_known_tokens(tokens);
 

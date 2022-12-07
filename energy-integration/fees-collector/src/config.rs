@@ -1,16 +1,15 @@
+use unwrappable::Unwrappable;
+
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
-pub trait ConfigModule {
+pub trait ConfigModule: utils::UtilsModule {
     #[only_owner]
     #[endpoint(addKnownContracts)]
     fn add_known_contracts(&self, contracts: MultiValueEncoded<ManagedAddress>) {
         let mut mapper = self.known_contracts();
         for sc in contracts {
-            require!(
-                self.blockchain().is_smart_contract(&sc),
-                "Invalid SC address"
-            );
+            self.require_sc_address(&sc);
             let _ = mapper.insert(sc);
         }
     }
@@ -30,7 +29,7 @@ pub trait ConfigModule {
         let mut all_tokens_vec = self.all_tokens().get();
         let known_tokens_mapper = self.known_tokens();
         for token in tokens {
-            require!(token.is_valid_esdt_identifier(), "Invalid token ID");
+            self.require_valid_token_id(&token);
 
             if !known_tokens_mapper.contains(&token) {
                 known_tokens_mapper.add(&token);
@@ -46,14 +45,15 @@ pub trait ConfigModule {
     fn remove_known_tokens(&self, tokens: MultiValueEncoded<TokenIdentifier>) {
         let mut all_tokens_vec = self.all_tokens().get();
         let known_tokens_mapper = self.known_tokens();
+        let empty_token_id = TokenIdentifier::from(ManagedBuffer::new());
         for token in tokens {
             if known_tokens_mapper.contains(&token) {
-                known_tokens_mapper.remove(&token);
+                let index = all_tokens_vec.find(&token).unwrap_or_panic::<Self::Api>();
+                all_tokens_vec
+                    .set(index, &empty_token_id)
+                    .unwrap_or_panic::<Self::Api>();
 
-                unsafe {
-                    let index = all_tokens_vec.find(&token).unwrap_unchecked();
-                    all_tokens_vec.remove(index);
-                }
+                known_tokens_mapper.remove(&token);
             }
         }
 

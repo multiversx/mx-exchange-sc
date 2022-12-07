@@ -10,6 +10,7 @@ pub trait AdditionalLockedTokensModule:
     + crate::fees_accumulation::FeesAccumulationModule
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
+    + utils::UtilsModule
 {
     #[only_owner]
     #[endpoint(setLockedTokensPerBlock)]

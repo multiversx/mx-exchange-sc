@@ -1,8 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
+use common_types::PaymentsVec;
 pub use common_types::{Epoch, Week};
 use energy_query::Energy;
+
+use crate::USER_MAX_CLAIM_WEEKS;
 
 #[elrond_wasm::module]
 pub trait WeeklyRewardsSplittingEventsModule {
@@ -12,7 +15,7 @@ pub trait WeeklyRewardsSplittingEventsModule {
         user: &ManagedAddress,
         current_week: Week,
         energy: &Energy<Self::Api>,
-        all_payments: &ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>>,
+        all_payments: &ArrayVec<PaymentsVec<Self::Api>, USER_MAX_CLAIM_WEEKS>,
     ) {
         self.claim_multi_event(user, current_week, energy, all_payments);
     }
@@ -43,7 +46,7 @@ pub trait WeeklyRewardsSplittingEventsModule {
         #[indexed] user: &ManagedAddress,
         #[indexed] current_week: Week,
         #[indexed] energy: &Energy<Self::Api>,
-        all_payments: &ManagedVec<Self::Api, EsdtTokenPayment<Self::Api>>,
+        all_payments: &ArrayVec<PaymentsVec<Self::Api>, USER_MAX_CLAIM_WEEKS>,
     );
 
     #[event("update_user_energy_event")]

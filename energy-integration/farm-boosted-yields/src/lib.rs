@@ -151,7 +151,12 @@ pub trait FarmBoostedYieldsModule:
 
         let mut total = BigUint::zero();
         for rew in &rewards {
-            total += rew.amount;
+            if rew.is_empty() {
+                continue;
+            }
+
+            let rew_payment = rew.get(0);
+            total += rew_payment.amount;
         }
 
         total

@@ -10,6 +10,7 @@ pub trait FeesAccumulationModule:
     crate::config::ConfigModule
     + crate::events::FeesCollectorEventsModule
     + week_timekeeping::WeekTimekeepingModule
+    + utils::UtilsModule
 {
     /// Pair SC will deposit the fees through this endpoint
     /// Deposits for current week are accessible starting next week
@@ -23,42 +24,35 @@ pub trait FeesAccumulationModule:
         );
 
         let payment = self.call_value().single_esdt();
-        require!(
-            self.known_tokens().contains(&payment.token_identifier),
-            "Invalid payment token"
-        );
-        let current_week = self.get_current_week();
-
-        if payment.token_nonce > 0 {
-            require!(
-                payment.token_identifier == self.locked_token_id().get(),
-                "Invalid locked token"
-            );
+        let locked_token_id = self.locked_token_id().get();
+        if payment.token_identifier == locked_token_id {
             self.send().esdt_local_burn(
                 &payment.token_identifier,
                 payment.token_nonce,
                 &payment.amount,
             );
+        } else {
+            require!(
+                self.known_tokens().contains(&payment.token_identifier),
+                "Invalid payment token"
+            );
         }
+
+        let current_week = self.get_current_week();
         self.accumulated_fees(current_week, &payment.token_identifier)
             .update(|amt| *amt += &payment.amount);
 
         self.emit_deposit_swap_fees_event(caller, current_week, payment);
     }
 
-    fn get_and_clear_acccumulated_fees(
-        &self,
-        week: Week,
-        token: &TokenIdentifier,
-    ) -> Option<BigUint> {
+    fn get_and_clear_acccumulated_fees(&self, week: Week, token: &TokenIdentifier) -> BigUint {
         let mapper = self.accumulated_fees(week, token);
         let value = mapper.get();
         if value > 0 {
             mapper.clear();
-            Some(value)
-        } else {
-            None
         }
+
+        value
     }
 
     fn get_base_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {

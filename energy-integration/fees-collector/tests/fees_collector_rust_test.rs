@@ -313,6 +313,11 @@ fn claim_second_week_test() {
                 0,
                 managed_biguint!(USER_BALANCE / 2),
             ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(0),
+            ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
         .assert_ok();
@@ -358,6 +363,11 @@ fn claim_second_week_test() {
                 managed_token_id!(SECOND_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(0),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -419,6 +429,11 @@ fn claim_second_week_test() {
                 managed_token_id!(SECOND_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(0),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -1046,11 +1061,6 @@ fn claim_locked_rewards_with_energy_update_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(LOCKED_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 100),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(FIRST_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
@@ -1059,6 +1069,11 @@ fn claim_locked_rewards_with_energy_update_test() {
                 managed_token_id!(SECOND_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 100),
             ));
             assert_eq!(expected_total_rewards, sc.total_rewards_for_week(1).get());
         })
@@ -1115,11 +1130,6 @@ fn claim_locked_rewards_with_energy_update_test() {
 
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(LOCKED_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 100),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(FIRST_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
@@ -1128,6 +1138,11 @@ fn claim_locked_rewards_with_energy_update_test() {
                 managed_token_id!(SECOND_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 100),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 
@@ -1192,11 +1207,6 @@ fn claim_locked_rewards_with_energy_update_test() {
         .execute_query(&fc_setup.fc_wrapper, |sc| {
             let mut expected_total_rewards = ManagedVec::new();
             expected_total_rewards.push(EsdtTokenPayment::new(
-                managed_token_id!(LOCKED_TOKEN_ID),
-                0,
-                managed_biguint!(USER_BALANCE / 100),
-            ));
-            expected_total_rewards.push(EsdtTokenPayment::new(
                 managed_token_id!(FIRST_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE),
@@ -1205,6 +1215,11 @@ fn claim_locked_rewards_with_energy_update_test() {
                 managed_token_id!(SECOND_TOKEN_ID),
                 0,
                 managed_biguint!(USER_BALANCE / 2),
+            ));
+            expected_total_rewards.push(EsdtTokenPayment::new(
+                managed_token_id!(LOCKED_TOKEN_ID),
+                0,
+                managed_biguint!(USER_BALANCE / 100),
             ));
             assert_eq!(sc.total_rewards_for_week(1).get(), expected_total_rewards);
 

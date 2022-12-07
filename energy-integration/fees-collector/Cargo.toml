@@ -42,6 +42,9 @@ path = "../common-types"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
+[dependencies.unwrappable]
+path = "../../common/traits/unwrappable"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.36.1"
 
