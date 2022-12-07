@@ -196,9 +196,14 @@ pub trait LockedAssetFactory:
         self.send()
             .esdt_local_burn(&locked_token_id, token_nonce, &amount);
 
-        let unlockable_amounts_per_epoch =
-            amounts_per_epoch.get_unlockable_entries(month_start_epoch);
-        self.update_energy_after_unlock(caller.clone(), unlockable_amounts_per_epoch);
+        let initial_amounts_per_epoch = attributes.get_unlock_amounts_per_epoch(&amount);
+        let final_amounts_per_epoch =
+            output_locked_asset_attributes.get_unlock_amounts_per_epoch(&locked_remaining);
+        self.update_energy_after_unlock(
+            caller.clone(),
+            initial_amounts_per_epoch,
+            final_amounts_per_epoch,
+        );
 
         self.emit_unlock_assets_event(
             &caller,
