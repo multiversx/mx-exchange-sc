@@ -1,7 +1,6 @@
 #![no_std]
 
 elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
 
 use core::cmp;
 
@@ -10,6 +9,8 @@ use week_timekeeping::Week;
 use weekly_rewards_splitting::{
     base_impl::WeeklyRewardsSplittingTraitsModule, USER_MAX_CLAIM_WEEKS,
 };
+
+pub mod boosted_yields_factors;
 
 const MAX_PERCENT: u64 = 10_000;
 
@@ -27,18 +28,10 @@ impl<M: ManagedTypeApi> SplitReward<M> {
     }
 }
 
-#[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, PartialEq, Debug)]
-pub struct BoostedYieldsFactors<M: ManagedTypeApi> {
-    pub max_rewards_factor: BigUint<M>,
-    pub user_rewards_energy_const: BigUint<M>,
-    pub user_rewards_farm_const: BigUint<M>,
-    pub min_energy_amount: BigUint<M>,
-    pub min_farm_amount: BigUint<M>,
-}
-
 #[elrond_wasm::module]
 pub trait FarmBoostedYieldsModule:
-    config::ConfigModule
+    boosted_yields_factors::BoostedYieldsFactorsModule
+    + config::ConfigModule
     + week_timekeeping::WeekTimekeepingModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
@@ -55,35 +48,6 @@ pub trait FarmBoostedYieldsModule:
         require!(percentage <= MAX_PERCENT, "Invalid percentage");
 
         self.boosted_yields_rewards_percentage().set(percentage);
-    }
-
-    #[endpoint(setBoostedYieldsFactors)]
-    fn set_boosted_yields_factors(
-        &self,
-        max_rewards_factor: BigUint,
-        user_rewards_energy_const: BigUint,
-        user_rewards_farm_const: BigUint,
-        min_energy_amount: BigUint,
-        min_farm_amount: BigUint,
-    ) {
-        self.require_caller_has_admin_permissions();
-        require!(
-            max_rewards_factor > 0
-                && user_rewards_energy_const > 0
-                && user_rewards_farm_const > 0
-                && min_energy_amount > 0
-                && min_farm_amount > 0,
-            "Values must be greater than 0"
-        );
-
-        let factors = BoostedYieldsFactors {
-            max_rewards_factor,
-            user_rewards_energy_const,
-            user_rewards_farm_const,
-            min_energy_amount,
-            min_farm_amount,
-        };
-        self.boosted_yields_factors().set(factors);
     }
 
     #[endpoint(collectUndistributedBoostedRewards)]
@@ -142,7 +106,7 @@ pub trait FarmBoostedYieldsModule:
         user: &ManagedAddress,
         farm_token_amount: BigUint,
     ) -> BigUint {
-        if self.boosted_yields_factors().is_empty() {
+        if self.boosted_yields_config().is_empty() {
             return BigUint::zero();
         }
 
@@ -178,10 +142,6 @@ pub trait FarmBoostedYieldsModule:
     #[view(getUndistributedBoostedRewards)]
     #[storage_mapper("undistributedBoostedRewards")]
     fn undistributed_boosted_rewards(&self) -> SingleValueMapper<BigUint>;
-
-    #[view(getBoostedYieldsFactors)]
-    #[storage_mapper("boostedYieldsFactors")]
-    fn boosted_yields_factors(&self) -> SingleValueMapper<BoostedYieldsFactors<Self::Api>>;
 }
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
@@ -205,6 +165,8 @@ where
         sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
+        sc.update_boosted_yields_config();
+
         let reward_token_id = sc.reward_token_id().get();
         let rewards_mapper = sc.accumulated_rewards_for_week(week);
         let total_rewards = rewards_mapper.get();
@@ -224,7 +186,7 @@ where
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
-        if sc.boosted_yields_factors().is_empty() {
+        if sc.boosted_yields_config().is_empty() {
             return user_rewards;
         }
 
@@ -233,7 +195,8 @@ where
             return user_rewards;
         }
 
-        let factors = sc.boosted_yields_factors().get();
+        let config = sc.get_updated_boosted_yields_config();
+        let factors = config.get_factors_for_week(week);
         if energy_amount < &factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {

@@ -2,7 +2,11 @@ use common_structs::FarmTokenAttributes;
 use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, DebugApi};
 
 pub mod farm_setup;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
+use farm_boosted_yields::boosted_yields_factors::{BoostedYieldsConfig, BoostedYieldsFactors};
 use farm_setup::multi_user_farm_setup::*;
+use permissions_module::{Permissions, PermissionsModule};
+use week_timekeeping::WeekTimekeepingModule;
 
 #[test]
 fn farm_with_no_boost_test() {
@@ -212,6 +216,69 @@ fn farm_with_boosted_yields_test() {
         REWARD_TOKEN_ID,
         &rust_biguint!(second_receveived_reward_amt),
     );
+}
+
+#[test]
+fn farm_change_boosted_yields_factors_test() {
+    let _ = DebugApi::dummy();
+    let mut farm_setup = MultiUserFarmSetup::new(
+        farm::contract_obj,
+        energy_factory_mock::contract_obj,
+        energy_update::contract_obj,
+    );
+
+    farm_setup.set_boosted_yields_rewards_percentage(BOOSTED_YIELDS_PERCENTAGE);
+    farm_setup.set_boosted_yields_factors();
+    farm_setup.b_mock.set_block_epoch(10);
+
+    let farm_addr = farm_setup.farm_wrapper.address_ref().clone();
+    farm_setup
+        .b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            let current_week = sc.get_current_week();
+            let default_factors = BoostedYieldsFactors::<DebugApi> {
+                max_rewards_factor: managed_biguint!(MAX_REWARDS_FACTOR),
+                min_energy_amount: managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                min_farm_amount: managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+                user_rewards_energy_const: managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                user_rewards_farm_const: managed_biguint!(USER_REWARDS_FARM_CONST),
+            };
+
+            let mut expected_config =
+                BoostedYieldsConfig::new(current_week - 1, default_factors.clone());
+            assert_eq!(expected_config, sc.boosted_yields_config().get());
+
+            sc.add_permissions(managed_address!(&farm_addr), Permissions::all());
+            sc.set_boosted_yields_factors(
+                managed_biguint!(1u64),
+                managed_biguint!(1u64),
+                managed_biguint!(1u64),
+                managed_biguint!(1u64),
+                managed_biguint!(1u64),
+            );
+
+            let new_factors = BoostedYieldsFactors::<DebugApi> {
+                max_rewards_factor: managed_biguint!(1u64),
+                min_energy_amount: managed_biguint!(1u64),
+                min_farm_amount: managed_biguint!(1u64),
+                user_rewards_energy_const: managed_biguint!(1u64),
+                user_rewards_farm_const: managed_biguint!(1u64),
+            };
+            expected_config.update(current_week, Some(new_factors.clone()));
+            assert_eq!(expected_config, sc.boosted_yields_config().get());
+
+            let factors_prev_week = expected_config
+                .get_factors_for_week(current_week - 1)
+                .clone();
+            assert_eq!(factors_prev_week, default_factors);
+
+            expected_config.update(current_week + 1, Some(new_factors));
+            let factors_older_week = expected_config
+                .get_factors_for_week(current_week - 2)
+                .clone();
+            assert_eq!(factors_prev_week, factors_older_week);
+        })
+        .assert_ok();
 }
 
 #[test]

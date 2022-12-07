@@ -28,6 +28,7 @@ pub trait ClaimBoostOnlyModule:
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + crate::base_functions::BaseFunctionsModule
 {
     fn claim_only_boosted_payment(
