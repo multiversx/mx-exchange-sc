@@ -137,11 +137,7 @@ pub trait BoostedYieldsFactorsModule:
 
     fn get_updated_boosted_yields_config(&self) -> BoostedYieldsConfig<Self::Api> {
         let opt_config = self.try_get_boosted_yields_config();
-        let mut config = opt_config.unwrap_or_else(|| sc_panic!(NO_CONFIG_ERR_MSG));
-        let current_week = self.get_current_week();
-        config.update(current_week, None);
-
-        config
+        opt_config.unwrap_or_else(|| sc_panic!(NO_CONFIG_ERR_MSG))
     }
 
     fn try_get_boosted_yields_config(&self) -> Option<BoostedYieldsConfig<Self::Api>> {
@@ -158,11 +154,8 @@ pub trait BoostedYieldsFactorsModule:
     }
 
     fn update_boosted_yields_config(&self) {
-        let mapper = self.boosted_yields_config();
-        require!(!mapper.is_empty(), NO_CONFIG_ERR_MSG);
-
         let updated_config = self.get_updated_boosted_yields_config();
-        mapper.set(&updated_config);
+        self.boosted_yields_config().set(&updated_config);
     }
 
     #[view(getBoostedYieldsFactors)]
