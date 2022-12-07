@@ -16,7 +16,7 @@ use pausable::{PausableModule, State};
 
 use ::config as farm_config;
 use farm::*;
-use farm_boosted_yields::FarmBoostedYieldsModule;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_config::ConfigModule as _;
 use farm_token::FarmTokenModule;
 

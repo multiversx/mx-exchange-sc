@@ -165,11 +165,7 @@ where
         sc: &Self::WeeklyRewardsSplittingMod,
         week: Week,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
-        let config_mapper = sc.boosted_yields_config();
-        if !config_mapper.is_empty() {
-            let current_week = sc.get_current_week();
-            config_mapper.update(|config| config.update(current_week, None));
-        }
+        sc.update_boosted_yields_config();
 
         let reward_token_id = sc.reward_token_id().get();
         let rewards_mapper = sc.accumulated_rewards_for_week(week);
@@ -199,9 +195,7 @@ where
             return user_rewards;
         }
 
-        let current_week = sc.get_current_week();
-        let mut config = sc.boosted_yields_config().get();
-        config.update(current_week, None);
+        let config = sc.get_updated_boosted_yields_config();
         let factors = config.get_factors_for_week(week);
         if energy_amount < &factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount

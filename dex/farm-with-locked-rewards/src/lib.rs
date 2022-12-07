@@ -186,9 +186,8 @@ pub trait Farm:
             orig_caller.clone(),
         );
 
-        let boosted_yields_config_mapper = self.boosted_yields_config();
-        if !boosted_yields_config_mapper.is_empty() {
-            let config = boosted_yields_config_mapper.get();
+        let opt_config = self.try_get_boosted_yields_config();
+        if let Some(config) = opt_config {
             let boosted_yields_factors = config.get_latest_factors();
             self.clear_user_energy(
                 &orig_caller,
