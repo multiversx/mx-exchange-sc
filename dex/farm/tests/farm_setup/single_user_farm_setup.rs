@@ -15,7 +15,7 @@ type RustBigUint = num_bigint::BigUint;
 use config::*;
 use farm::exit_penalty::ExitPenaltyModule;
 use farm::*;
-use farm_boosted_yields::FarmBoostedYieldsModule;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 

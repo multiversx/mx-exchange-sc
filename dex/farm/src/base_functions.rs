@@ -60,6 +60,7 @@ pub trait BaseFunctionsModule:
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + utils::UtilsModule
     + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule

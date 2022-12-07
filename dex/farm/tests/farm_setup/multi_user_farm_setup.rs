@@ -18,6 +18,7 @@ use energy_factory_mock::EnergyFactoryMock;
 use energy_query::{Energy, EnergyQueryModule};
 use energy_update::EnergyUpdate;
 use farm::Farm;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};

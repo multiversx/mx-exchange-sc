@@ -46,6 +46,7 @@ pub trait Farm:
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
     + week_timekeeping::WeekTimekeepingModule
     + weekly_rewards_splitting::WeeklyRewardsSplittingModule
     + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
@@ -173,9 +174,10 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
-        let boosted_yields_factors_mapper = self.boosted_yields_factors();
-        if !boosted_yields_factors_mapper.is_empty() {
-            let boosted_yields_factors = boosted_yields_factors_mapper.get();
+        let boosted_yields_config_mapper = self.boosted_yields_config();
+        if !boosted_yields_config_mapper.is_empty() {
+            let config = boosted_yields_config_mapper.get();
+            let boosted_yields_factors = config.get_latest_factors();
             self.clear_user_energy(
                 &orig_caller,
                 &remaining_farm_payment.amount,

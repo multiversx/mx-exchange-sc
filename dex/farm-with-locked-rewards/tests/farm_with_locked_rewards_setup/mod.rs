@@ -17,6 +17,7 @@ use fees_collector_mock::*;
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm;
