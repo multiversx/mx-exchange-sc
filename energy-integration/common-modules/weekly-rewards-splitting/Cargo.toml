@@ -23,8 +23,5 @@ path = "../../common-types"
 [dependencies.unwrappable]
 path = "../../../common/traits/unwrappable"
 
-[dependencies.mergeable]
-path = "../../../common/traits/mergeable"
-
 [dependencies.math]
 path = "../../../common/modules/math"
