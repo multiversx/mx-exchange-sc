@@ -22,6 +22,9 @@ path = "../../common/modules/token_merge_helper"
 [dependencies.energy-factory]
 path = "../energy-factory"
 
+[dev-dependencies.simple-lock]
+path = "../simple-lock"
+
 [dependencies.elrond-wasm]
 version = "=0.36.1"
 features = ["esdt-token-payment-legacy-decode",]

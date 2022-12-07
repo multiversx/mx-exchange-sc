@@ -62,8 +62,6 @@ pub trait SimpleLockMigrationModule:
             for pair in initial_epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
             }
-        });
-        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
             for pair in final_epoch_amount_pairs.pairs {
                 energy.add_after_token_lock(&pair.amount, pair.epoch, current_epoch);
             }
