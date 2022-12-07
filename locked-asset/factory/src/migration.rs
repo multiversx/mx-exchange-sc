@@ -13,7 +13,8 @@ mod energy_factory_proxy {
         fn update_energy_after_old_token_unlock(
             &self,
             original_caller: ManagedAddress,
-            epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
+            initial_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
+            final_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
         );
     }
 }
@@ -35,12 +36,17 @@ pub trait LockedTokenMigrationModule:
     fn update_energy_after_unlock(
         &self,
         caller: ManagedAddress,
-        epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
+        initial_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
+        final_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
         let new_factory_address = self.new_factory_address().get();
         let _: IgnoreValue = self
             .new_factory_proxy_builder(new_factory_address)
-            .update_energy_after_old_token_unlock(caller, epoch_amount_pairs)
+            .update_energy_after_old_token_unlock(
+                caller,
+                initial_epoch_amount_pairs,
+                final_epoch_amount_pairs,
+            )
             .execute_on_dest_context();
     }
 
