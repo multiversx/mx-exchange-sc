@@ -16,7 +16,6 @@ pub mod update_claim_progress_energy;
 use base_impl::WeeklyRewardsSplittingTraitsModule;
 use common_types::PaymentsVec;
 use energy_query::Energy;
-use mergeable::Mergeable;
 use week_timekeeping::{Week, EPOCHS_IN_WEEK};
 
 #[derive(TypeAbi, TopEncode, TopDecode, Clone, PartialEq, Debug)]
@@ -106,11 +105,11 @@ pub trait WeeklyRewardsSplittingModule:
             let weeks_to_claim = core::cmp::min(total_weeks_to_claim, USER_MAX_CLAIM_WEEKS);
             for _ in 0..weeks_to_claim {
                 let rewards_for_week = self.claim_single(wrapper, &mut claim_progress);
-                all_rewards = self.group_payments(all_rewards, rewards_for_week);
+                if !rewards_for_week.is_empty() {
+                    all_rewards.append_vec(rewards_for_week);
+                }
             }
         }
-
-        self.clear_zero_payments(&mut all_rewards);
 
         claim_progress.week = current_week;
         claim_progress.energy = current_user_energy;
@@ -147,41 +146,6 @@ pub trait WeeklyRewardsSplittingModule:
         claim_progress.advance_week();
 
         user_rewards
-    }
-
-    fn group_payments(
-        &self,
-        first: PaymentsVec<Self::Api>,
-        second: PaymentsVec<Self::Api>,
-    ) -> PaymentsVec<Self::Api> {
-        if first.is_empty() {
-            return second;
-        }
-        if second.is_empty() {
-            return first;
-        }
-
-        let mut merged_payments = PaymentsVec::new();
-        for (mut first_payment, second_payment) in first.iter().zip(second.iter()) {
-            first_payment.merge_with(second_payment);
-            merged_payments.push(first_payment);
-        }
-
-        merged_payments
-    }
-
-    fn clear_zero_payments(&self, payments: &mut PaymentsVec<Self::Api>) {
-        let mut i = 0;
-        let mut len = payments.len();
-        while i < len {
-            let payment = payments.get(i);
-            if payment.amount > 0 {
-                i += 1;
-            } else {
-                payments.remove(i);
-                len -= 1;
-            }
-        }
     }
 
     #[view(getLastActiveWeekForUser)]
