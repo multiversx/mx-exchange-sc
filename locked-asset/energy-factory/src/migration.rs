@@ -45,7 +45,8 @@ pub trait SimpleLockMigrationModule:
     fn update_energy_after_old_token_unlock(
         &self,
         original_caller: ManagedAddress,
-        epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
+        initial_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
+        final_epoch_amount_pairs: UnlockEpochAmountPairs<Self::Api>,
     ) {
         if self.blockchain().is_smart_contract(&original_caller) {
             return;
@@ -55,10 +56,16 @@ pub trait SimpleLockMigrationModule:
         self.require_caller_old_factory();
         self.require_old_tokens_energy_was_updated(&original_caller);
 
+        let current_epoch = self.blockchain().get_block_epoch();
+
         self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
-            let current_epoch = self.blockchain().get_block_epoch();
-            for pair in epoch_amount_pairs.pairs {
-                energy.refund_after_token_unlock(&pair.amount, pair.epoch, current_epoch);
+            for pair in initial_epoch_amount_pairs.pairs {
+                energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
+            }
+        });
+        self.update_energy(&original_caller, |energy: &mut Energy<Self::Api>| {
+            for pair in final_epoch_amount_pairs.pairs {
+                energy.add_after_token_lock(&pair.amount, pair.epoch, current_epoch);
             }
         });
     }
