@@ -12,14 +12,20 @@ pub const UNBOND_EPOCHS: u64 = 0;
 
 #[elrond_wasm::contract]
 pub trait MetabondingStaking:
-    locked_asset_token::LockedAssetTokenModule + events::EventsModule
+    locked_asset_token::LockedAssetTokenModule
+    + events::EventsModule
+    + elrond_wasm_modules::pause::PauseModule
 {
     #[init]
-    fn init(&self) {}
+    fn init(&self) {
+        self.set_paused(true);
+    }
 
     #[payable("*")]
     #[endpoint(stakeLockedAsset)]
     fn stake_locked_asset(&self) {
+        self.require_not_paused();
+
         let payments = self.call_value().all_esdt_transfers();
         self.require_all_locked_asset_payments(&payments);
 
@@ -38,6 +44,8 @@ pub trait MetabondingStaking:
 
     #[endpoint]
     fn unstake(&self, amount: BigUint) {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         let entry_mapper = self.entry_for_user(&caller);
         require!(!entry_mapper.is_empty(), "Must stake first");
@@ -60,6 +68,8 @@ pub trait MetabondingStaking:
 
     #[endpoint]
     fn unbond(&self) {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         let entry_mapper = self.entry_for_user(&caller);
         require!(!entry_mapper.is_empty(), "Must stake first");
@@ -131,5 +141,9 @@ pub trait MetabondingStaking:
         }
 
         result
+    }
+
+    fn require_not_paused(&self) {
+        require!(self.not_paused(), "SC is paused");
     }
 }
