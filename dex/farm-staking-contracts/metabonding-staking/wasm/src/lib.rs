@@ -14,8 +14,11 @@ elrond_wasm_node::wasm_endpoints! {
         getTotalLockedAssetSupply
         getUserEntry
         getUserList
+        isPaused
+        pause
         stakeLockedAsset
         unbond
+        unpause
         unstake
     )
 }
