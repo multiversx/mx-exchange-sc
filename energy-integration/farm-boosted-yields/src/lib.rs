@@ -4,6 +4,7 @@ elrond_wasm::imports!();
 
 use core::cmp;
 
+use boosted_yields_factors::BoostedYieldsConfig;
 use common_types::PaymentsVec;
 use week_timekeeping::Week;
 use weekly_rewards_splitting::{
@@ -106,11 +107,14 @@ pub trait FarmBoostedYieldsModule:
         user: &ManagedAddress,
         farm_token_amount: BigUint,
     ) -> BigUint {
-        if self.boosted_yields_config().is_empty() {
-            return BigUint::zero();
-        }
-
-        let wrapper = FarmBoostedYieldsWrapper::new(farm_token_amount);
+        let opt_config = self.try_get_boosted_yields_config();
+        let config = match opt_config {
+            Some(c) => c,
+            None => {
+                return BigUint::zero();
+            }
+        };
+        let wrapper = FarmBoostedYieldsWrapper::new(farm_token_amount, config);
         let rewards = self.claim_multi(&wrapper, user);
 
         let mut total = BigUint::zero();
@@ -146,11 +150,18 @@ pub trait FarmBoostedYieldsModule:
 
 pub struct FarmBoostedYieldsWrapper<T: FarmBoostedYieldsModule> {
     pub user_farm_amount: BigUint<<T as ContractBase>::Api>,
+    pub boosted_yields_config: BoostedYieldsConfig<<T as ContractBase>::Api>,
 }
 
 impl<T: FarmBoostedYieldsModule> FarmBoostedYieldsWrapper<T> {
-    pub fn new(user_farm_amount: BigUint<<T as ContractBase>::Api>) -> FarmBoostedYieldsWrapper<T> {
-        FarmBoostedYieldsWrapper { user_farm_amount }
+    pub fn new(
+        user_farm_amount: BigUint<<T as ContractBase>::Api>,
+        boosted_yields_config: BoostedYieldsConfig<<T as ContractBase>::Api>,
+    ) -> FarmBoostedYieldsWrapper<T> {
+        FarmBoostedYieldsWrapper {
+            user_farm_amount,
+            boosted_yields_config,
+        }
     }
 }
 
@@ -186,17 +197,12 @@ where
         total_energy: &BigUint<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api>,
     ) -> PaymentsVec<<Self::WeeklyRewardsSplittingMod as ContractBase>::Api> {
         let mut user_rewards = ManagedVec::new();
-        if sc.boosted_yields_config().is_empty() {
-            return user_rewards;
-        }
-
         let farm_supply_for_week = sc.farm_supply_for_week(week).get();
         if total_energy == &0 || farm_supply_for_week == 0 {
             return user_rewards;
         }
 
-        let config = sc.get_updated_boosted_yields_config();
-        let factors = config.get_factors_for_week(week);
+        let factors = self.boosted_yields_config.get_factors_for_week(week);
         if energy_amount < &factors.min_energy_amount
             || self.user_farm_amount < factors.min_farm_amount
         {
