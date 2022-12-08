@@ -18,15 +18,14 @@ pub struct BaseAssetOtherTokenRefPair<'a, M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait ProxyCommonModule {
+pub trait ProxyCommonModule: energy_query::EnergyQueryModule {
     fn require_exactly_one_locked<'a>(
         &self,
         first_payment: &'a EsdtTokenPayment,
         second_payment: &'a EsdtTokenPayment,
     ) -> LockedUnlockedTokenRefPair<'a, Self::Api> {
-        let token_mapper = self.locked_token_ids();
-        let first_is_locked = token_mapper.contains(&first_payment.token_identifier);
-        let second_is_locked = token_mapper.contains(&second_payment.token_identifier);
+        let first_is_locked = self.is_locked_token(&first_payment.token_identifier);
+        let second_is_locked = self.is_locked_token(&second_payment.token_identifier);
 
         if first_is_locked {
             require!(!second_is_locked, INVALID_PAYMENTS_ERR_MSG);
@@ -50,7 +49,7 @@ pub trait ProxyCommonModule {
         first_payment: &'a EsdtTokenPayment,
         second_payment: &'a EsdtTokenPayment,
     ) -> BaseAssetOtherTokenRefPair<'a, Self::Api> {
-        let base_asset_token_id = self.asset_token().get_token_id();
+        let base_asset_token_id = self.get_base_token_id();
         let is_first_token = first_payment.token_identifier == base_asset_token_id;
         let is_second_token = second_payment.token_identifier == base_asset_token_id;
 
@@ -72,8 +71,8 @@ pub trait ProxyCommonModule {
     }
 
     fn get_underlying_token(&self, token_id: TokenIdentifier) -> TokenIdentifier {
-        if self.locked_token_ids().contains(&token_id) {
-            self.asset_token().get_token_id()
+        if self.is_locked_token(&token_id) {
+            self.get_base_token_id()
         } else {
             token_id
         }
@@ -84,7 +83,7 @@ pub trait ProxyCommonModule {
         token_id: TokenIdentifier,
         token_nonce: Nonce,
     ) -> TokenIdentifier {
-        if self.locked_token_ids().contains(&token_id) {
+        if self.is_locked_token(&token_id) {
             return token_id;
         }
 
@@ -96,27 +95,43 @@ pub trait ProxyCommonModule {
         attributes.locked_tokens.token_identifier
     }
 
+    fn is_locked_token(&self, token_id: &TokenIdentifier) -> bool {
+        let new_locked_token_id = self.get_locked_token_id();
+        if token_id == &new_locked_token_id {
+            return true;
+        }
+
+        let old_locked_token_id = self.old_locked_token_id().get();
+        token_id == &old_locked_token_id
+    }
+
+    fn get_factory_address_for_locked_token(&self, token_id: &TokenIdentifier) -> ManagedAddress {
+        let new_locked_token_id = self.get_locked_token_id();
+        if token_id == &new_locked_token_id {
+            return self.energy_factory_address().get();
+        }
+
+        let old_locked_token_id = self.old_locked_token_id().get();
+        require!(token_id == &old_locked_token_id, "Invalid locked token ID");
+
+        self.old_factory_address().get()
+    }
+
     fn burn_if_base_asset(&self, tokens: &EsdtTokenPayment) {
-        let asset_token_id = self.asset_token().get_token_id();
+        let asset_token_id = self.get_base_token_id();
         if tokens.token_identifier == asset_token_id {
             self.send()
                 .esdt_local_burn(&tokens.token_identifier, 0, &tokens.amount);
         }
     }
 
-    #[view(getAssetTokenId)]
-    #[storage_mapper("assetTokenId")]
-    fn asset_token(&self) -> FungibleTokenMapper<Self::Api>;
+    #[view(getOldLockedTokenId)]
+    #[storage_mapper("oldLockedTokenId")]
+    fn old_locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
 
-    #[view(getLockedTokenIds)]
-    #[storage_mapper("lockedTokenIds")]
-    fn locked_token_ids(&self) -> UnorderedSetMapper<TokenIdentifier>;
-
-    #[storage_mapper("factoryAddressForLockedToken")]
-    fn factory_address_for_locked_token(
-        &self,
-        locked_token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<ManagedAddress>;
+    #[view(getOldFactoryAddress)]
+    #[storage_mapper("oldFactoryAddress")]
+    fn old_factory_address(&self) -> SingleValueMapper<ManagedAddress>;
 
     #[view(getWrappedLpTokenId)]
     #[storage_mapper("wrappedLpTokenId")]

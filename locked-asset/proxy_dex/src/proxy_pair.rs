@@ -39,7 +39,9 @@ pub trait ProxyPairModule:
 
         let input_token_refs = self.require_exactly_one_locked(&first_payment, &second_payment);
         let asset_amount = input_token_refs.locked_token_ref.amount.clone();
-        let _ = self.asset_token().mint(asset_amount);
+        let asset_token_id = self.get_base_token_id();
+        self.send()
+            .esdt_local_mint(&asset_token_id, 0, &asset_amount);
 
         let first_unlocked_token_id =
             self.get_underlying_token(first_payment.token_identifier.clone());
@@ -103,7 +105,8 @@ pub trait ProxyPairModule:
         locked_token_leftover.amount = received_token_refs.base_asset_token_ref.amount.clone();
 
         if locked_token_leftover.amount > 0 {
-            self.asset_token().burn(&locked_token_leftover.amount);
+            self.send()
+                .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
         }
 
         let mut output_payments = ManagedVec::new();

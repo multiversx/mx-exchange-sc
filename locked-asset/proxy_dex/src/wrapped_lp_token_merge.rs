@@ -15,6 +15,7 @@ pub trait WrappedLpTokenMerge:
     + token_send::TokenSendModule
     + proxy_common::ProxyCommonModule
     + utils::UtilsModule
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(mergeWrappedLpTokens)]
@@ -71,9 +72,7 @@ pub trait WrappedLpTokenMerge:
             .attributes
             .locked_tokens
             .token_identifier;
-        let factory_address = self
-            .factory_address_for_locked_token(&locked_token_id)
-            .get();
+        let factory_address = self.get_factory_address_for_locked_token(&locked_token_id);
 
         let wrapped_lp_token_mapper = self.wrapped_lp_token();
         merge_wrapped_lp_tokens(
