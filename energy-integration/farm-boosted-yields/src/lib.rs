@@ -75,9 +75,6 @@ pub trait FarmBoostedYieldsModule:
             self.undistributed_boosted_rewards()
                 .update(|total_amount| *total_amount += rewards_to_distribute);
             rewards_to_distribute_mapper.clear();
-
-            self.total_rewards_for_week(week).clear();
-            self.total_energy_for_week(week).clear();
         }
 
         last_collect_week_mapper.set(last_collect_week);

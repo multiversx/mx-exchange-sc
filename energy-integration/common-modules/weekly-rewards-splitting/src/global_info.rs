@@ -4,6 +4,8 @@ use common_types::Week;
 use energy_query::Energy;
 use week_timekeeping::EPOCHS_IN_WEEK;
 
+use crate::USER_MAX_CLAIM_WEEKS;
+
 #[elrond_wasm::module]
 pub trait WeeklyRewardsGlobalInfo:
     crate::events::WeeklyRewardsSplittingEventsModule
@@ -75,6 +77,15 @@ pub trait WeeklyRewardsGlobalInfo:
         self.total_locked_tokens_for_week(current_week)
             .set(&total_tokens);
         last_week_tokens_mapper.clear();
+
+        // clear entries that are not accessible anymore
+        // users can claim only for weeks of
+        // (current_week - 1), (current_week - 2), ... (current_week - USER_MAX_CLAIM_WEEKS)
+        if current_week > USER_MAX_CLAIM_WEEKS + 1 {
+            let inaccessible_week = current_week - USER_MAX_CLAIM_WEEKS - 1;
+            self.total_rewards_for_week(inaccessible_week).clear();
+            self.total_energy_for_week(inaccessible_week).clear();
+        }
     }
 
     fn update_and_get_total_tokens_amounts_after_user_energy_update(

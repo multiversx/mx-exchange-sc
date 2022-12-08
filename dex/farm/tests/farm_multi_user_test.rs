@@ -7,6 +7,7 @@ use farm_boosted_yields::boosted_yields_factors::{BoostedYieldsConfig, BoostedYi
 use farm_setup::multi_user_farm_setup::*;
 use permissions_module::{Permissions, PermissionsModule};
 use week_timekeeping::WeekTimekeepingModule;
+use weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo;
 
 #[test]
 fn farm_with_no_boost_test() {
@@ -703,6 +704,33 @@ fn farm_multiple_claim_weeks_with_collect_undistributed_rewards_test() {
     farm_setup.check_remaining_boosted_rewards_to_distribute(1, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(2, 0);
     farm_setup.check_remaining_boosted_rewards_to_distribute(3, 0);
+
+    // check entries are not empty
+    farm_setup
+        .b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            assert!(!sc.total_rewards_for_week(1).is_empty());
+            assert!(!sc.total_energy_for_week(1).is_empty());
+
+            assert!(!sc.total_rewards_for_week(3).is_empty());
+            assert!(!sc.total_energy_for_week(3).is_empty());
+        })
+        .assert_ok();
+
+    farm_setup.claim_rewards(&second_user, 11, second_farm_token_amount);
+
+    // check 3rd entry was cleared automatically
+    // 1st entry was not cleared, as we paused for too long
+    farm_setup
+        .b_mock
+        .execute_query(&farm_setup.farm_wrapper, |sc| {
+            assert!(!sc.total_rewards_for_week(1).is_empty());
+            assert!(!sc.total_energy_for_week(1).is_empty());
+
+            assert!(sc.total_rewards_for_week(3).is_empty());
+            assert!(sc.total_energy_for_week(3).is_empty());
+        })
+        .assert_ok();
 }
 
 #[test]
