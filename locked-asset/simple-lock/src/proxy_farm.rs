@@ -56,6 +56,20 @@ pub trait ProxyFarmModule:
         );
     }
 
+    #[only_owner]
+    #[endpoint(setTransferRoleProxyFarmToken)]
+    fn set_transfer_role_proxy_farm_token(&self, opt_address: OptionalValue<ManagedAddress>) {
+        let address = match opt_address {
+            OptionalValue::Some(addr) => addr,
+            OptionalValue::None => self.blockchain().get_sc_address(),
+        };
+        self.farm_proxy_token().set_local_roles_for_address(
+            &address,
+            &[EsdtLocalRole::Transfer],
+            None,
+        );
+    }
+
     /// Add a farm to the whitelist.
     /// Currently, two types of farms are supported, denoted by the `farm_type` argument:
     /// `0` - SimpleFarm - rewards are fungible tokens
