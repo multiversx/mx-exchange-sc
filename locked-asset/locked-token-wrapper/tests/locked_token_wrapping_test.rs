@@ -230,7 +230,6 @@ fn both_tokens_wrap_unwrap_test() {
         ],
     );
 
-    // simulate first user lock - 1_000 tokens for 20 epochs
     let first_user_unlock_epoch = 1_700;
     b_mock.set_nft_balance(
         &first_user,
@@ -386,10 +385,11 @@ fn both_tokens_wrap_unwrap_test() {
         })
         .assert_ok();
 
-    // unwrap tokens
+    // simulate the passing of 1 epoch
     current_epoch += 1;
     b_mock.set_block_epoch(current_epoch);
 
+    // unwrap tokens
     b_mock
         .execute_esdt_transfer(
             &first_user,
