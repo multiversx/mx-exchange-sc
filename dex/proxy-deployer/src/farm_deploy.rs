@@ -20,7 +20,7 @@ pub trait FarmDeployModule {
 
         let farm_template = self.farm_template_address().get();
         let code_metadata =
-            CodeMetadata::PAYABLE_BY_SC & CodeMetadata::READABLE & CodeMetadata::UPGRADEABLE;
+            CodeMetadata::PAYABLE_BY_SC | CodeMetadata::READABLE | CodeMetadata::UPGRADEABLE;
         let (new_farm_address, ()) = self
             .farm_deploy_proxy()
             .init(
