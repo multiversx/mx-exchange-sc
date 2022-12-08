@@ -83,7 +83,7 @@ impl<M: ManagedTypeApi> BoostedYieldsConfig<M> {
         }
 
         let offset = self.last_update_week - week;
-        if offset > BOOSTED_YIELDS_FACTORS_ARRAY_LEN {
+        if offset >= BOOSTED_YIELDS_FACTORS_ARRAY_LEN {
             M::error_api_impl().signal_error(INVALID_CONFIG_WEEK_ERR_MSG);
         }
 
