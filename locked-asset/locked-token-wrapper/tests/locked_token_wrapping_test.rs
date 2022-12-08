@@ -13,6 +13,7 @@ use simple_lock::locked_token::LockedTokenAttributes;
 
 static BASE_ASSET_TOKEN_ID: &[u8] = b"FREEEE-123456";
 static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";
+static LEGACY_LOCKED_TOKEN_ID: &[u8] = b"LEGACY-123456";
 static WRAPPED_TOKEN_ID: &[u8] = b"WRAPPED-123456";
 
 #[test]
@@ -41,6 +42,7 @@ fn token_wrap_unwrap_test() {
     b_mock
         .execute_tx(&owner, &locked_token_wrapper, &rust_zero, |sc| {
             sc.init(
+                managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
                 managed_token_id!(LOCKED_TOKEN_ID),
                 managed_address!(energy_factory.address_ref()),
             );
@@ -103,7 +105,8 @@ fn token_wrap_unwrap_test() {
         WRAPPED_TOKEN_ID,
         1,
         &rust_biguint!(500),
-        Some(&WrappedTokenAttributes {
+        Some(&WrappedTokenAttributes::<DebugApi> {
+            locked_token_id: managed_token_id!(LOCKED_TOKEN_ID),
             locked_token_nonce: 1,
         }),
     );
@@ -127,7 +130,8 @@ fn token_wrap_unwrap_test() {
         WRAPPED_TOKEN_ID,
         1,
         &rust_biguint!(500),
-        &WrappedTokenAttributes {
+        &WrappedTokenAttributes::<DebugApi> {
+            locked_token_id: managed_token_id!(LOCKED_TOKEN_ID),
             locked_token_nonce: 1,
         },
     );
