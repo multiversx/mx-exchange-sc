@@ -36,9 +36,11 @@ pub trait ClaimBoostOnlyModule:
         caller: &ManagedAddress,
         payment: &EsdtTokenPayment,
     ) -> EsdtTokenPayment {
-        let reward_token_id = self.reward_token_id().get();
+        let farm_token_mapper = self.farm_token();
+        farm_token_mapper.require_same_token(&payment.token_identifier);
+
         let token_attributes =
-            self.get_attributes_as_part_of_fixed_supply(payment, &self.farm_token());
+            self.get_attributes_as_part_of_fixed_supply(payment, &farm_token_mapper);
         let reward = Wrapper::<Self>::calculate_boosted_rewards(
             self,
             caller,
@@ -49,6 +51,7 @@ pub trait ClaimBoostOnlyModule:
             self.reward_reserve().update(|reserve| *reserve -= &reward);
         }
 
+        let reward_token_id = self.reward_token_id().get();
         EsdtTokenPayment::new(reward_token_id, 0, reward)
     }
 }
