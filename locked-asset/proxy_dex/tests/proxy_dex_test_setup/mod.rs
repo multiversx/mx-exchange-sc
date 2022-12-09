@@ -494,10 +494,6 @@ impl CallableContract for DummySc {
     fn call(&self, _fn_name: &[u8]) -> bool {
         true
     }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
-    }
 }
 
 impl DummySc {
