@@ -70,11 +70,9 @@ pub trait FarmBoostedYieldsModule:
         }
 
         for week in first_collect_week..=last_collect_week {
-            let rewards_to_distribute_mapper = self.remaining_boosted_rewards_to_distribute(week);
-            let rewards_to_distribute = rewards_to_distribute_mapper.get();
+            let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
             self.undistributed_boosted_rewards()
                 .update(|total_amount| *total_amount += rewards_to_distribute);
-            rewards_to_distribute_mapper.clear();
         }
 
         last_collect_week_mapper.set(last_collect_week);
@@ -179,10 +177,7 @@ where
         sc.update_boosted_yields_config();
 
         let reward_token_id = sc.reward_token_id().get();
-        let rewards_mapper = sc.accumulated_rewards_for_week(week);
-        let total_rewards = rewards_mapper.get();
-        rewards_mapper.clear();
-
+        let total_rewards = sc.accumulated_rewards_for_week(week).take();
         sc.remaining_boosted_rewards_to_distribute(week)
             .set(&total_rewards);
 

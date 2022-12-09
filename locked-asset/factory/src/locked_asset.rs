@@ -188,7 +188,7 @@ pub trait LockedAssetModule:
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
-    fn locked_asset_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn locked_asset_token(&self) -> NonFungibleTokenMapper;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]

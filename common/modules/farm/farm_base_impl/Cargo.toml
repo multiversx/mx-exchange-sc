@@ -50,11 +50,11 @@ path = "../../../traits/mergeable"
 path = "../../../traits/fixed-supply-token"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
