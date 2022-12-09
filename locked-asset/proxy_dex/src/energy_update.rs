@@ -32,6 +32,10 @@ pub trait EnergyUpdateModule:
         token_nonce: u64,
         token_amount: &BigUint,
     ) {
+        if self.blockchain().is_smart_contract(user) {
+            return;
+        }
+
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(user);
 

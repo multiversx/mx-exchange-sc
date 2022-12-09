@@ -39,7 +39,7 @@ pub trait FeesCollector:
         tokens.push(locked_token_id.clone());
         self.add_known_tokens(tokens);
 
-        self.locked_token_id().set(locked_token_id);
+        self.locked_token_id().set_if_empty(locked_token_id);
         self.energy_factory_address().set(&energy_factory_address);
     }
 
