@@ -85,6 +85,7 @@ pub trait FactoryModule {
         first_token_id: &TokenIdentifier,
         second_token_id: &TokenIdentifier,
         owner: &ManagedAddress,
+        initial_liquidity_adder: &ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
     ) {
