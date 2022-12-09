@@ -186,8 +186,7 @@ pub trait EnableSwapByUserModule:
     }
 
     fn require_state_active_no_swaps(&self, pair_address: &ManagedAddress) {
-        let storage_key = ManagedBuffer::new_from_bytes(PAIR_STATE_STORAGE_KEY);
-        let state: State = self.read_storage_from_pair(pair_address, &storage_key);
+        let state: State = self.read_storage_from_pair(pair_address, PAIR_STATE_STORAGE_KEY);
         require!(
             state == State::PartialActive,
             "Pair not in ActiveNoSwaps state"
