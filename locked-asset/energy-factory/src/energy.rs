@@ -159,6 +159,11 @@ impl<M: ManagedTypeApi> Energy<M> {
             BigUint::zero()
         }
     }
+
+    #[inline]
+    pub fn get_energy_amount_raw(&self) -> &BigInt<M> {
+        &self.amount
+    }
 }
 
 #[elrond_wasm::module]
