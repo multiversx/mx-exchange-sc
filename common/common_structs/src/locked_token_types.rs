@@ -44,23 +44,6 @@ pub struct UnlockMilestoneEx {
 }
 
 #[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    PartialEq,
-    TypeAbi,
-    NestedEncode,
-    NestedDecode,
-    Clone,
-    Copy,
-    Debug,
-)]
-pub struct InitialUnlockMilestoneEx {
-    pub unlock_epoch: u64,
-    pub unlock_percent: u8,
-}
-
-#[derive(
     TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, TypeAbi, Debug,
 )]
 pub struct UnlockSchedule<M: ManagedTypeApi> {
@@ -86,21 +69,6 @@ impl<M: ManagedTypeApi> UnlockSchedule<M> {
 )]
 pub struct UnlockScheduleEx<M: ManagedTypeApi> {
     pub unlock_milestones: ManagedVec<M, UnlockMilestoneEx>,
-}
-
-#[derive(
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    Clone,
-    ManagedVecItem,
-    TypeAbi,
-    PartialEq,
-    Debug,
-)]
-pub struct InitialUnlockScheduleEx<M: ManagedTypeApi> {
-    pub unlock_milestones: ManagedVec<M, InitialUnlockMilestoneEx>,
 }
 
 impl<M: ManagedTypeApi> UnlockScheduleEx<M> {
@@ -184,30 +152,13 @@ pub struct LockedAssetTokenAttributesEx<M: ManagedTypeApi> {
     pub is_merged: bool,
 }
 
-#[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
-)]
-pub struct InitialLockedAssetTokenAttributesEx<M: ManagedTypeApi> {
-    pub unlock_schedule: InitialUnlockScheduleEx<M>,
-    pub is_merged: bool,
-}
-
-impl<M: ManagedTypeApi> InitialLockedAssetTokenAttributesEx<M> {
+impl<M: ManagedTypeApi> LockedAssetTokenAttributes<M> {
     pub fn migrate_to_new_attributes(&self) -> LockedAssetTokenAttributesEx<M> {
         let mut updated_unlock_milestones: ManagedVec<M, UnlockMilestoneEx> = ManagedVec::new();
         for unlock_milestone in self.unlock_schedule.unlock_milestones.into_iter() {
             let updated_milestone = UnlockMilestoneEx {
                 unlock_epoch: unlock_milestone.unlock_epoch,
-                unlock_percent: u64::from(unlock_milestone.unlock_percent)
-                    * UPDATE_PERCENTAGE_CONST,
+                unlock_percent: unlock_milestone.unlock_percent as u64 * UPDATE_PERCENTAGE_CONST,
             };
             updated_unlock_milestones.push(updated_milestone);
         }

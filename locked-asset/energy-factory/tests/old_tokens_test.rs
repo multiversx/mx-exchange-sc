@@ -1,8 +1,8 @@
 mod energy_factory_setup;
 
 use common_structs::{
-    InitialLockedAssetTokenAttributesEx, InitialUnlockMilestoneEx, InitialUnlockScheduleEx,
-    LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx,
+    LockedAssetTokenAttributes, LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx,
+    UnlockSchedule, UnlockScheduleEx,
 };
 use elrond_wasm::types::{BigInt, ManagedVec, MultiValueEncoded};
 use elrond_wasm_modules::pause::PauseModule;
@@ -371,18 +371,18 @@ fn check_initial_old_unlock_schedule_decode_test() {
 
     let first_unlock_epoch = 91; // 3 months
     let second_unlock_epoch = 121; // 9 months
-    let mut unlock_milestones = ManagedVec::<DebugApi, InitialUnlockMilestoneEx>::new();
-    unlock_milestones.push(InitialUnlockMilestoneEx {
+    let mut unlock_milestones = ManagedVec::<DebugApi, UnlockMilestone>::new();
+    unlock_milestones.push(UnlockMilestone {
         unlock_percent: 40u8,
         unlock_epoch: first_unlock_epoch,
     });
-    unlock_milestones.push(InitialUnlockMilestoneEx {
+    unlock_milestones.push(UnlockMilestone {
         unlock_percent: 60u8,
         unlock_epoch: second_unlock_epoch,
     });
-    let old_token_attributes = InitialLockedAssetTokenAttributesEx {
+    let old_token_attributes = LockedAssetTokenAttributes {
         is_merged: false,
-        unlock_schedule: InitialUnlockScheduleEx { unlock_milestones },
+        unlock_schedule: UnlockSchedule { unlock_milestones },
     };
 
     let first_user = setup.first_user.clone();
