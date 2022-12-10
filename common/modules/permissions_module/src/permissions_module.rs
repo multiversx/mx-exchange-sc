@@ -22,6 +22,16 @@ pub trait PermissionsModule {
         self.remove_permissions(address, Permissions::ADMIN);
     }
 
+    #[only_owner]
+    #[endpoint(updateOwner)]
+    fn update_owner_endpoint(&self, previous_owner: ManagedAddress) {
+        let caller = self.blockchain().get_caller();
+        let previous_owner_permissions = self.permissions(previous_owner.clone()).get();
+
+        self.permissions(previous_owner).clear();
+        self.permissions(caller).set(previous_owner_permissions);
+    }
+
     fn set_permissions(&self, address: ManagedAddress, permissions: Permissions) {
         self.permissions(address).set(permissions);
     }
