@@ -23,8 +23,8 @@ pub trait PermissionsModule {
     }
 
     #[only_owner]
-    #[endpoint(updateOwner)]
-    fn update_owner_endpoint(&self, previous_owner: ManagedAddress) {
+    #[endpoint(updateOwnerOrAdmin)]
+    fn update_owner_or_admin_endpoint(&self, previous_owner: ManagedAddress) {
         let caller = self.blockchain().get_caller();
         let previous_owner_permissions = self.permissions(previous_owner.clone()).get();
 
