@@ -60,7 +60,7 @@ pub trait LockedAssetFactory:
     #[endpoint(removeWhitelist)]
     fn remove_whitelist(&self, address: ManagedAddress) {
         let is_removed = self.whitelisted_contracts().remove(&address);
-        require!(is_removed, "ManagedAddresss not whitelisted");
+        require!(is_removed, "ManagedAddress not whitelisted");
     }
 
     #[endpoint(createAndForwardCustomPeriod)]
