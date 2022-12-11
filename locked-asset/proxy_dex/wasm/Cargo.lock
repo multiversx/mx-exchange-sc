@@ -110,6 +110,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "elrond-wasm-modules"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "868f3dd7ae064f23b626cb197c83caa3bdadadd9cbc58d5a8ceff99942d04a47"
+dependencies = [
+ "elrond-wasm",
+]
+
+[[package]]
 name = "elrond-wasm-node"
 version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -141,6 +150,7 @@ dependencies = [
  "common_errors",
  "common_structs",
  "elrond-wasm",
+ "elrond-wasm-modules",
  "token_merge",
 ]
 
