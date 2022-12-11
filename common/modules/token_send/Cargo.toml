@@ -14,4 +14,5 @@ path = "../../common_structs"
 path = "../../common_errors"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]

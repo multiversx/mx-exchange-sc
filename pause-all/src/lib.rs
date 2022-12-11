@@ -1,6 +1,7 @@
 #![no_std]
 
-use ongoing_pause_operation::{OngoingOperation, CONTINUE_OP, STOP_OP};
+use elrond_wasm_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
+use ongoing_pause_operation::{OngoingOperation, MIN_GAS_TO_SAVE_PROGRESS};
 
 elrond_wasm::imports!();
 
@@ -20,7 +21,10 @@ mod pause_proxy {
 pub mod ongoing_pause_operation;
 
 #[elrond_wasm::contract]
-pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
+pub trait PauseAll:
+    ongoing_pause_operation::OngoingPauseOperationModule
+    + elrond_wasm_modules::ongoing_operation::OngoingOperationModule
+{
     #[init]
     fn init(&self) {}
 
@@ -67,7 +71,7 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
         let whitelist = self.pausable_contracts();
         let whitelist_len = whitelist.len();
 
-        let run_result = self.run_while_it_has_gas(|| {
+        let run_result = self.run_while_it_has_gas(MIN_GAS_TO_SAVE_PROGRESS, || {
             if current_index > whitelist_len {
                 return STOP_OP;
             }
@@ -88,9 +92,7 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
     }
 
     fn call_pause(&self, sc_addr: ManagedAddress) {
-        self.pause_proxy(sc_addr)
-            .pause()
-            .execute_on_dest_context_ignore_result();
+        let _: IgnoreValue = self.pause_proxy(sc_addr).pause().execute_on_dest_context();
     }
 
     /// Will unpause the given list of contracts.
@@ -117,7 +119,7 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
         let whitelist = self.pausable_contracts();
         let whitelist_len = whitelist.len();
 
-        let run_result = self.run_while_it_has_gas(|| {
+        let run_result = self.run_while_it_has_gas(MIN_GAS_TO_SAVE_PROGRESS, || {
             if current_index > whitelist_len {
                 return STOP_OP;
             }
@@ -138,9 +140,7 @@ pub trait PauseAll: ongoing_pause_operation::OngoingPauseOperationModule {
     }
 
     fn call_resume(&self, sc_addr: ManagedAddress) {
-        self.pause_proxy(sc_addr)
-            .resume()
-            .execute_on_dest_context_ignore_result();
+        let _: IgnoreValue = self.pause_proxy(sc_addr).resume().execute_on_dest_context();
     }
 
     #[proxy]

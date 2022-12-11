@@ -20,7 +20,7 @@ const MAX_TOKEN_DECIMALS: u32 = 18;
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + events::EventsModule
-    + locking_module::LockingModule
+    + locking_module::locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
@@ -95,7 +95,7 @@ pub trait PriceDiscovery:
         self.unlock_epoch().set(unlock_epoch);
 
         let price_precision = 10u64.pow(launched_token_decimals);
-        self.price_precision().set(&price_precision);
+        self.price_precision().set(price_precision);
         self.min_launched_token_price()
             .set(&min_launched_token_price);
 

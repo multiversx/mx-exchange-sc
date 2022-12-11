@@ -1,0 +1,28 @@
+[package]
+name = "energy-update"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.elrond-wasm-modules]
+version = "=0.36.1"
+
+[dependencies.farm]
+path = "../../dex/farm"
+
+[dependencies.weekly-rewards-splitting]
+path = "../common-modules/weekly-rewards-splitting"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "=0.36.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"

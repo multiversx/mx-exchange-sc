@@ -1,5 +1,3 @@
-#![no_std]
-
 elrond_wasm::imports!();
 
 #[elrond_wasm::module]
@@ -18,7 +16,7 @@ pub trait LockingModule {
     #[only_owner]
     #[endpoint(setUnlockEpoch)]
     fn set_unlock_epoch(&self, new_epoch: u64) {
-        self.unlock_epoch().set(&new_epoch);
+        self.unlock_epoch().set(new_epoch);
     }
 
     #[inline]
@@ -50,7 +48,7 @@ pub trait LockingModule {
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
-            .lock_tokens(unlock_epoch, opt_dest)
+            .lock_tokens_endpoint(unlock_epoch, opt_dest)
             .with_egld_or_single_esdt_token_transfer(token_id, 0, amount)
             .execute_on_dest_context()
     }

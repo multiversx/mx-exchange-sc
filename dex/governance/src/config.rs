@@ -103,19 +103,19 @@ pub trait Config {
     fn try_change_min_weight_for_proposal(&self, new_value: BigUint) {
         require!(new_value != 0u64, ERROR_ZERO_VALUE);
 
-        self.min_weight_for_proposal().set(&new_value);
+        self.min_weight_for_proposal().set(new_value);
     }
 
     fn try_change_voting_delay_in_blocks(&self, new_value: u64) {
         require!(new_value != 0, ERROR_ZERO_VALUE);
 
-        self.voting_delay_in_blocks().set(&new_value);
+        self.voting_delay_in_blocks().set(new_value);
     }
 
     fn try_change_voting_period_in_blocks(&self, new_value: u64) {
         require!(new_value != 0, ERROR_ZERO_VALUE);
 
-        self.voting_period_in_blocks().set(&new_value);
+        self.voting_period_in_blocks().set(new_value);
     }
 
     #[view(getGovernanceTokenId)]

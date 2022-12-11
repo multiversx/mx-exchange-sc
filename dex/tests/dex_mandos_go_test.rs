@@ -4,15 +4,15 @@ fn add_liquidity_go() {
 }
 
 #[test]
+fn calculate_rewards_for_given_position_go() {
+    elrond_wasm_debug::mandos_go("mandos/calculate_rewards_for_given_position.scen.json");
+}
+
+#[test]
 fn calculate_rewards_for_given_position_after_compound_go() {
     elrond_wasm_debug::mandos_go(
         "mandos/calculate_rewards_for_given_position_after_compound.scen.json",
     );
-}
-
-#[test]
-fn calculate_rewards_for_given_position_go() {
-    elrond_wasm_debug::mandos_go("mandos/calculate_rewards_for_given_position.scen.json");
 }
 
 #[test]
@@ -36,7 +36,7 @@ fn complete_setup_go() {
 }
 
 #[test]
-fn compound_rewards_setup_go() {
+fn compound_rewards_go() {
     elrond_wasm_debug::mandos_go("mandos/compound_rewards.scen.json");
 }
 
@@ -48,6 +48,11 @@ fn create_pair_twice_go() {
 #[test]
 fn enter_farm_go() {
     elrond_wasm_debug::mandos_go("mandos/enter_farm.scen.json");
+}
+
+#[test]
+fn enter_farm_with_merge_tokens_go() {
+    elrond_wasm_debug::mandos_go("mandos/enter_farm_with_merge_tokens.scen.json");
 }
 
 #[test]
@@ -141,8 +146,18 @@ fn remove_liquidity_go() {
 }
 
 #[test]
+fn remove_liquidity_and_buyback_and_burn_token_go() {
+    elrond_wasm_debug::mandos_go("mandos/remove_liquidity_and_buyback_and_burn_token.scen.json");
+}
+
+#[test]
 fn remove_liquidity_twice_go() {
     elrond_wasm_debug::mandos_go("mandos/remove_liquidity_twice.scen.json");
+}
+
+#[test]
+fn remove_pair_go() {
+    elrond_wasm_debug::mandos_go("mandos/remove_pair.scen.json");
 }
 
 #[test]

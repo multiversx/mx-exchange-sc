@@ -1,0 +1,27 @@
+[package]
+name = "weekly-rewards-splitting"
+version = "0.0.0"
+authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.energy-query]
+path = "../energy-query"
+
+[dependencies.week-timekeeping]
+path = "../week-timekeeping"
+
+[dependencies.common-types]
+path = "../../common-types"
+
+[dependencies.unwrappable]
+path = "../../../common/traits/unwrappable"
+
+[dependencies.math]
+path = "../../../common/modules/math"

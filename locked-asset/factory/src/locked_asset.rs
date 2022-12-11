@@ -3,15 +3,11 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
-use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
+use crate::attr_ex_helper::PRECISION_EX_INCREASE;
 
 pub const ONE_MILLION: u64 = 1_000_000u64;
 pub const TEN_THOUSAND: u64 = 10_000u64;
-pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
-pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const DOUBLE_MAX_MILESTONES_IN_SCHEDULE: usize = 2 * MAX_MILESTONES_IN_SCHEDULE;
-
-use core::fmt::Debug;
 
 #[derive(ManagedVecItem)]
 pub struct LockedTokenEx<M: ManagedTypeApi> {
@@ -19,27 +15,10 @@ pub struct LockedTokenEx<M: ManagedTypeApi> {
     pub attributes: LockedAssetTokenAttributesEx<M>,
 }
 
-#[derive(ManagedVecItem, Clone)]
-pub struct EpochAmountPair<M: ManagedTypeApi> {
-    pub epoch: u64,
-    pub amount: BigUint<M>,
-}
-
-impl<M> Debug for EpochAmountPair<M>
-where
-    M: ManagedTypeApi,
-{
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("EpochAmountPair")
-            .field("epoch", &self.epoch)
-            .field("amount", &self.amount)
-            .finish()
-    }
-}
-
 #[elrond_wasm::module]
-pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrExHelper {
-    #[inline]
+pub trait LockedAssetModule:
+    token_send::TokenSendModule + crate::attr_ex_helper::AttrExHelper
+{
     fn create_and_send_locked_assets(
         &self,
         amount: &BigUint,
@@ -72,16 +51,6 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
     ) -> EsdtTokenPayment<Self::Api> {
         self.locked_asset_token()
             .nft_add_quantity_and_send(address, sft_nonce, amount)
-    }
-
-    fn get_unlock_amount(
-        &self,
-        amount: &BigUint,
-        current_epoch: Epoch,
-        unlock_milestones: &ManagedVec<UnlockMilestoneEx>,
-    ) -> BigUint {
-        amount * &BigUint::from(self.get_unlock_percent(current_epoch, unlock_milestones))
-            / PERCENTAGE_TOTAL_EX
     }
 
     fn get_unlock_percent(
@@ -125,10 +94,12 @@ pub trait LockedAssetModule: token_send::TokenSendModule + attr_ex_helper::AttrE
                 let new_unlock_percent =
                     old_milestone.unlock_percent * PRECISION_EX_INCREASE * ONE_MILLION
                         / unlock_percent_remaining;
-                unlock_milestones_merged.push(UnlockMilestoneEx {
-                    unlock_epoch: old_milestone.unlock_epoch,
-                    unlock_percent: new_unlock_percent,
-                });
+                unsafe {
+                    unlock_milestones_merged.push_unchecked(UnlockMilestoneEx {
+                        unlock_epoch: old_milestone.unlock_epoch,
+                        unlock_percent: new_unlock_percent,
+                    });
+                }
             }
         }
 

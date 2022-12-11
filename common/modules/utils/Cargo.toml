@@ -1,0 +1,21 @@
+[package]
+name = "utils"
+version = "0.0.0"
+authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.common_structs]
+path = "../../common_structs"
+
+[dependencies.fixed-supply-token]
+path = "../../traits/fixed-supply-token"
+
+[dependencies.mergeable]
+path = "../../traits/mergeable"

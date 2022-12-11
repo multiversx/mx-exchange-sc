@@ -135,6 +135,25 @@
             }
         },
         {
+            "step": "scCall",
+            "txId": "unpause",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:locked_asset_factory",
+                "value": "0",
+                "function": "unpause",
+                "arguments": [],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": "*",
+                "status": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
             "step": "scDeploy",
             "txId": "1",
             "tx": {

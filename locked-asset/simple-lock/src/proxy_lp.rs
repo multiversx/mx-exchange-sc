@@ -36,25 +36,12 @@ pub trait ProxyLpModule:
     ) {
         let payment_amount = self.call_value().egld_value();
 
-        self.lp_proxy_token().issue(
+        self.lp_proxy_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,
             token_display_name,
             token_ticker,
             num_decimals,
-            None,
-        );
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRolesLpProxyToken)]
-    fn set_local_roles_lp_proxy_token(&self) {
-        self.lp_proxy_token().set_local_roles(
-            &[
-                EsdtLocalRole::NftCreate,
-                EsdtLocalRole::NftAddQuantity,
-                EsdtLocalRole::NftBurn,
-            ],
             None,
         );
     }
@@ -109,7 +96,7 @@ pub trait ProxyLpModule:
         second_token_id: TokenIdentifier,
     ) {
         let was_removed = self.known_liquidity_pools().swap_remove(&lp_address);
-        require!(was_removed, "Liquidty Pool address now known");
+        require!(was_removed, "Liquidty Pool address not known");
 
         let correct_order_mapper =
             self.lp_address_for_token_pair(&first_token_id, &second_token_id);

@@ -8,5 +8,17 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
 
+[dependencies.mergeable]
+path = "../traits/mergeable"
+
+[dependencies.fixed-supply-token]
+path = "../traits/fixed-supply-token"
+
+[dependencies.unwrappable]
+path = "../traits/unwrappable"
+
+[dependencies.math]
+path = "../modules/math"

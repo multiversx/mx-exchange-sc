@@ -1,0 +1,25 @@
+[package]
+name = "governance-v2"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.energy-query]
+path = "../common-modules/energy-query"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dev-dependencies.elrond-wasm-debug]
+version = "=0.36.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.energy-factory-mock]
+path = "../energy-factory-mock"

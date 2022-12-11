@@ -6,21 +6,21 @@ use common_structs::*;
 use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
 
 use super::locked_asset;
-use super::locked_asset::{
-    EpochAmountPair, LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, MAX_MILESTONES_IN_SCHEDULE,
-    ONE_MILLION, PERCENTAGE_TOTAL_EX,
-};
+use super::locked_asset::{LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, ONE_MILLION};
 
 #[elrond_wasm::module]
 pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
     + token_send::TokenSendModule
-    + token_merge::TokenMergeModule
+    + token_merge_helper::TokenMergeHelperModule
     + attr_ex_helper::AttrExHelper
+    + elrond_wasm_modules::pause::PauseModule
 {
     #[payable("*")]
-    #[endpoint(mergeLockedAssetTokens)]
-    fn merge_locked_asset_tokens(&self) -> EsdtTokenPayment<Self::Api> {
+    #[endpoint(mergeTokens)]
+    fn merge_tokens(&self) -> EsdtTokenPayment {
+        self.require_not_paused();
+
         let caller = self.blockchain().get_caller();
         let payments_vec = self.call_value().all_esdt_transfers();
         require!(!payments_vec.is_empty(), "Empty payment vec");
@@ -98,10 +98,12 @@ pub trait LockedAssetTokenMergeModule:
             let unlock_percent = &(&el.amount * PRECISION_EX_INCREASE * ONE_MILLION) / amount_total;
 
             // Accumulate even the percents of 0
-            unlock_milestones_merged.push(UnlockMilestoneEx {
-                unlock_epoch: el.epoch,
-                unlock_percent: unlock_percent.to_u64().unwrap(),
-            })
+            unsafe {
+                unlock_milestones_merged.push_unchecked(UnlockMilestoneEx {
+                    unlock_epoch: el.epoch,
+                    unlock_percent: unlock_percent.to_u64().unwrap_unchecked(),
+                });
+            }
         }
 
         self.distribute_leftover(&mut unlock_milestones_merged);
@@ -127,14 +129,16 @@ pub trait LockedAssetTokenMergeModule:
                     array.len() < DOUBLE_MAX_MILESTONES_IN_SCHEDULE,
                     "too many unlock milestones"
                 );
-                array.push(EpochAmountPair {
-                    epoch: milestone.unlock_epoch,
-                    amount: self.rule_of_three(
-                        &BigUint::from(milestone.unlock_percent),
-                        &BigUint::from(PERCENTAGE_TOTAL_EX),
-                        &locked_token.token_amount.amount,
-                    ),
-                });
+                unsafe {
+                    array.push_unchecked(EpochAmountPair {
+                        epoch: milestone.unlock_epoch,
+                        amount: self.rule_of_three(
+                            &BigUint::from(milestone.unlock_percent),
+                            &BigUint::from(PERCENTAGE_TOTAL_EX),
+                            &locked_token.token_amount.amount,
+                        ),
+                    });
+                }
             }
             sum += &locked_token.token_amount.amount;
         }
@@ -155,9 +159,13 @@ pub trait LockedAssetTokenMergeModule:
                     amount: &last.amount + &elem.amount,
                 };
                 unlock_epoch_amount_merged.pop();
-                unlock_epoch_amount_merged.push(new_elem);
+                unsafe {
+                    unlock_epoch_amount_merged.push_unchecked(new_elem);
+                }
             } else {
-                unlock_epoch_amount_merged.push(elem.clone());
+                unsafe {
+                    unlock_epoch_amount_merged.push_unchecked(elem.clone());
+                }
             }
         }
         require!(sum != 0u64, "Sum cannot be zero");

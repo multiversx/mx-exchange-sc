@@ -6,6 +6,7 @@ pub mod staking_farm_with_lp_staking_contract_setup;
 elrond_wasm::imports!();
 
 use constants::*;
+use elrond_wasm::elrond_codec::Empty;
 use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use staking_farm_with_lp_staking_contract_interactions::*;
@@ -308,12 +309,12 @@ fn test_stake_farm_through_proxy_with_merging() {
         setup.stake_farm_lp_proxy_multiple(1, 600_000_000, dual_yield_token_payments);
 
     // check user staking farm tokens
-    setup.b_mock.check_nft_balance(
+    setup.b_mock.check_nft_balance::<Empty>(
         &setup.user_addr,
         DUAL_YIELD_TOKEN_ID,
         first_dual_yield_token_nonce,
         &rust_biguint!(0),
-        Some(&vec![0, 1, 4, 400000000, 0, 1, 4, 400000000]), //old attributes
+        None,
     );
     setup.b_mock.execute_in_managed_environment(|| {
         setup.b_mock.check_nft_balance(
@@ -339,12 +340,12 @@ fn test_stake_farm_through_proxy_with_merging() {
 
     // check proxy SC tokens
     setup.b_mock.execute_in_managed_environment(|| {
-        setup.b_mock.check_nft_balance(
+        setup.b_mock.check_nft_balance::<Empty>(
             setup.proxy_wrapper.address_ref(),
             LP_FARM_TOKEN_ID,
             2,
             &rust_biguint!(1_000_000_000),
-            Some(&vec![0, 0, 0, 0, 0, 4, 1000000000, 0, 4, 1000000000]), //current attributes
+            None, //current attributes
         )
     });
 }

@@ -1,0 +1,44 @@
+[package]
+name = "locked-token-wrapper"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+
+[dependencies.elrond-wasm-modules]
+version = "=0.36.1"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.simple-lock]
+path = "../simple-lock"
+
+[dependencies.energy-factory]
+path = "../energy-factory"
+
+[dependencies.lkmex-transfer]
+path = "../lkmex-transfer"
+
+[dependencies.energy-factory-mock]
+path = "../../energy-integration/energy-factory-mock"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "=0.36.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"

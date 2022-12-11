@@ -6,10 +6,6 @@
             "path": "add_liquidity_proxy.scen.json"
         },
         {
-            "step": "externalSteps",
-            "path": "steps/setup_farm_contract.steps.json"
-        },
-        {
             "step": "scCall",
             "txId": "5",
             "tx": {

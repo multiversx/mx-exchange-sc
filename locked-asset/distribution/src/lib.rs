@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 #![allow(clippy::type_complexity)]
 
 use common_structs::{UnlockMilestone, UnlockPeriod};
@@ -43,9 +42,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
             "Asset token ID is not a valid esdt identifier"
         );
 
-        self.asset_token_id().set(&asset_token_id);
+        self.asset_token_id().set_if_empty(&asset_token_id);
         self.locked_asset_factory_address()
-            .set(&locked_asset_factory_address);
+            .set_if_empty(&locked_asset_factory_address);
     }
 
     #[only_owner]
@@ -110,7 +109,8 @@ pub trait Distribution: global_op::GlobalOperationModule {
         for elem in locked_assets.iter() {
             let amount = elem.biguint;
             let spread_epoch = elem.epoch;
-            self.locked_asset_factory_proxy(to.clone())
+            let _: IgnoreValue = self
+                .locked_asset_factory_proxy(to.clone())
                 .create_and_forward_custom_period(
                     amount.clone(),
                     caller.clone(),
@@ -118,7 +118,8 @@ pub trait Distribution: global_op::GlobalOperationModule {
                     unlock_period.clone(),
                 )
                 .with_gas_limit(gas_limit_per_execute)
-                .execute_on_dest_context_ignore_result();
+                .execute_on_dest_context();
+
             cummulated_amount += amount;
         }
 

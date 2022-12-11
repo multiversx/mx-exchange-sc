@@ -1,0 +1,33 @@
+[package]
+name = "farm-boosted-yields"
+version = "0.0.0"
+authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.config]
+path = "../../common/modules/farm/config"
+
+[dependencies.pausable]
+path = "../../common/modules/pausable"
+
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
+[dependencies.week-timekeeping]
+path = "../common-modules/week-timekeeping"
+
+[dependencies.weekly-rewards-splitting]
+path = "../common-modules/weekly-rewards-splitting"
+
+[dependencies.energy-query]
+path = "../common-modules/energy-query"
+
+[dependencies.common-types]
+path = "../common-types"

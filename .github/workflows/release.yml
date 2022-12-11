@@ -9,53 +9,48 @@ on:
       title:
         required: true
         description: Release title
-      image:
+      image_tag:
         type: choice
         required: true
-        description: Frozen image (with tag)
-        options: 
-        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-001
-        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-002
-        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-003
-        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-004
-        - elrondnetwork/elrond-sdk-erdpy-rust:frozen-005
+        description: Image elrondnetwork/build-contract-rust
+        options:
+        - v3.1.0
 
 permissions:
   contents: write
 
-env:
-  # https://github.com/actions/runner/issues/863 ($HOME is overridden for containers)
-  ELROND_HOME: /home/elrond
-  REPO_PATH: /home/elrond/sc-dex-rs
-  REPO_URL: https://github.com/ElrondNetwork/sc-dex-rs.git
-
 jobs:
   build:
     runs-on: ubuntu-latest
+<<<<<<< HEAD
+=======
     # See: https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
     container: 
       image: ${{ github.event.inputs.image }}
+>>>>>>> main
     steps:
-      # We don't use actions/checkout, since we want to control the location of the repository,
-      # in order to achieve deterministic builds.
-      - name: Check out code
-        run: |
-          echo "Cloning ref: $GITHUB_REF_NAME"
-          cd $ELROND_HOME && git clone $REPO_URL --branch=$GITHUB_REF_NAME --depth=1
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.GITHUB_REF_NAME }}
+          fetch-depth: 0
+          repository: ${{ env.GITHUB_REPOSITORY }}
 
-      - name: Build WASM files
+      - name: Download build script
         run: |
-          # Setting $HOME is required by erdpy.
-          export HOME=$ELROND_HOME
-          cd $REPO_PATH && bash ./build-wasm.sh
+          wget https://raw.githubusercontent.com/ElrondNetwork/elrond-sdk-images-build-contract-rust/${{ github.event.inputs.image_tag }}/build_with_docker.py
+
+      - name: Build contract
+        run: |
+          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --output=/home/runner/work/output-from-docker
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
           name: built-contracts
           path: |
-            ${{ env.REPO_PATH }}/**/output/*.wasm
-            ${{ env.REPO_PATH }}/**/output/*.abi.json
+            /home/runner/work/output-from-docker/**/*.wasm
+            /home/runner/work/output-from-docker/**/*.abi.json
           if-no-files-found: error
 
   release:
@@ -76,9 +71,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+<<<<<<< HEAD
+          echo "Built using Docker image: **elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }}**." >> notes.txt
+          echo "" >> notes.txt
+          echo "## Codehash (blake2b):" >> notes.txt
+=======
           echo "Built using Docker image: **${{ github.event.inputs.image }}**." >> notes.txt
           echo "" >> notes.txt
           echo "## Codehashes (SHA 256):" >> notes.txt
+>>>>>>> main
           echo "" >> notes.txt
 
           for i in $(find ./assets -type f -name *.wasm); do

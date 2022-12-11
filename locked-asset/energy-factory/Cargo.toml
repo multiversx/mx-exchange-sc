@@ -1,0 +1,45 @@
+[package]
+name = "energy-factory"
+version = "0.0.0"
+authors = [ "you",]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.simple-lock]
+path = "../simple-lock"
+
+[dependencies.common_structs]
+path = "../../common/common_structs"
+
+[dependencies.utils]
+path = "../../common/modules/utils"
+
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
+[dependencies.math]
+path = "../../common/modules/math"
+
+[dependencies.mergeable]
+path = "../../common/traits/mergeable"
+
+[dependencies.unwrappable]
+path = "../../common/traits/unwrappable"
+
+[dependencies.elrond-wasm]
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
+
+[dependencies.elrond-wasm-modules]
+version = "=0.36.1"
+
+[dev-dependencies.elrond-wasm-debug]
+version = "=0.36.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"

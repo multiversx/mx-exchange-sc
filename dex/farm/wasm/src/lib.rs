@@ -8,42 +8,62 @@ elrond_wasm_node::wasm_endpoints! {
     farm
     (
         callBack
+        addAdmin
+        addSCAddressToWhitelist
         addToPauseWhitelist
         calculateRewardsForGivenPosition
         claimRewards
+        collectUndistributedBoostedRewards
         compoundRewards
-        end_produce_rewards
+        endProduceRewards
         enterFarm
         exitFarm
+        getBoostedYieldsFactors
+        getBoostedYieldsRewardsPercenatage
         getBurnGasLimit
+        getCurrentClaimProgress
+        getCurrentWeek
         getDivisionSafetyConstant
-        getFarmMigrationConfiguration
+        getEnergyFactoryAddress
+        getFarmSupplyForWeek
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
+        getFirstWeekStartEpoch
+        getLastActiveWeekForUser
+        getLastGlobalUpdateWeek
         getLastRewardBlockNonce
-        getLockedAssetFactoryManagedAddress
         getMinimumFarmingEpoch
         getPairContractManagedAddress
         getPenaltyPercent
         getPerBlockRewardAmount
+        getPermissions
+        getRemainingBoostedRewardsToDistribute
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
         getState
+        getTotalEnergyForWeek
+        getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
+        getUndistributedBoostedRewards
+        getUserEnergyForWeek
+        isSCAddressWhitelisted
         mergeFarmTokens
-        migrateFromV1_2Farm
         pause
         registerFarmToken
+        removeAdmin
         removeFromPauseWhitelist
+        removeSCAddressFromWhitelist
         resume
-        setFarmMigrationConfig
-        setFarmTokenSupply
+        setBoostedYieldsFactors
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
         setPerBlockRewardAmount
-        setRpsAndStartRewards
         set_burn_gas_limit
         set_minimum_farming_epochs
         set_penalty_percent
         startProduceRewards
+        updateEnergyForUser
     )
 }

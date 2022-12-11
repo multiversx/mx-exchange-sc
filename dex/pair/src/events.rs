@@ -1,5 +1,5 @@
 use crate::contexts::add_liquidity::AddLiquidityContext;
-use crate::contexts::base::Context;
+use crate::contexts::base::StorageCache;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::contexts::swap::SwapContext;
 
@@ -69,23 +69,33 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
 }
 
 #[elrond_wasm::module]
-pub trait EventsModule {
-    fn emit_swap_event(&self, context: &SwapContext<Self::Api>) {
+pub trait EventsModule:
+    crate::config::ConfigModule
+    + token_send::TokenSendModule
+    + permissions_module::PermissionsModule
+    + pausable::PausableModule
+{
+    fn emit_swap_event(&self, storage_cache: &StorageCache<Self>, context: SwapContext<Self::Api>) {
         let epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
         self.swap_event(
-            context.get_token_in(),
-            context.get_token_out(),
-            context.get_caller(),
+            &context.input_token_id.clone(),
+            &context.output_token_id.clone(),
+            &caller,
             epoch,
             &SwapEvent {
-                caller: context.get_caller().clone(),
-                token_id_in: context.get_token_in().clone(),
-                token_amount_in: context.get_final_input_amount().clone(),
-                token_id_out: context.get_token_out().clone(),
-                token_amount_out: context.get_final_output_amount().clone(),
-                fee_amount: context.get_fee_amount().clone(),
-                token_in_reserve: context.get_reserve_in().clone(),
-                token_out_reserve: context.get_reserve_out().clone(),
+                caller: caller.clone(),
+                token_id_in: context.input_token_id,
+                token_amount_in: context.final_input_amount,
+                token_id_out: context.output_token_id,
+                token_amount_out: context.final_output_amount,
+                fee_amount: context.fee_amount,
+                token_in_reserve: storage_cache
+                    .get_reserve_in(context.swap_tokens_order)
+                    .clone(),
+                token_out_reserve: storage_cache
+                    .get_reserve_out(context.swap_tokens_order)
+                    .clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -95,21 +105,22 @@ pub trait EventsModule {
 
     fn emit_swap_no_fee_and_forward_event(
         &self,
-        context: &SwapContext<Self::Api>,
-        destination: &ManagedAddress,
+        context: SwapContext<Self::Api>,
+        destination: ManagedAddress,
     ) {
         let epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
         self.swap_no_fee_and_forward_event(
-            &context.get_swap_args().output_token_id,
-            context.get_caller(),
+            &context.output_token_id.clone(),
+            &caller,
             epoch,
             &SwapNoFeeAndForwardEvent {
-                caller: context.get_caller().clone(),
-                token_id_in: context.get_payment().token_identifier.clone(),
-                token_amount_in: context.get_payment().amount.clone(),
-                token_id_out: context.get_swap_args().output_token_id.clone(),
-                token_amount_out: context.get_final_output_amount().clone(),
-                destination: destination.clone(),
+                caller: caller.clone(),
+                token_id_in: context.input_token_id,
+                token_amount_in: context.input_token_amount,
+                token_id_out: context.output_token_id,
+                token_amount_out: context.final_output_amount,
+                destination,
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -117,24 +128,29 @@ pub trait EventsModule {
         )
     }
 
-    fn emit_add_liquidity_event(&self, context: &AddLiquidityContext<Self::Api>) {
+    fn emit_add_liquidity_event(
+        &self,
+        storage_cache: &StorageCache<Self>,
+        context: AddLiquidityContext<Self::Api>,
+    ) {
         let epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
         self.add_liquidity_event(
-            context.get_first_token_id(),
-            context.get_second_token_id(),
-            context.get_caller(),
+            &storage_cache.first_token_id,
+            &storage_cache.second_token_id,
+            &caller,
             epoch,
             &AddLiquidityEvent {
-                caller: context.get_caller().clone(),
-                first_token_id: context.get_first_token_id().clone(),
-                first_token_amount: context.get_first_amount_optimal().clone(),
-                second_token_id: context.get_second_token_id().clone(),
-                second_token_amount: context.get_second_amount_optimal().clone(),
-                lp_token_id: context.get_lp_token_id().clone(),
-                lp_token_amount: context.get_liquidity_added().clone(),
-                lp_supply: context.get_lp_token_supply().clone(),
-                first_token_reserves: context.get_first_token_reserve().clone(),
-                second_token_reserves: context.get_second_token_reserve().clone(),
+                caller: caller.clone(),
+                first_token_id: storage_cache.first_token_id.clone(),
+                first_token_amount: context.first_token_optimal_amount,
+                second_token_id: storage_cache.second_token_id.clone(),
+                second_token_amount: context.second_token_optimal_amount,
+                lp_token_id: storage_cache.lp_token_id.clone(),
+                lp_token_amount: context.liq_added,
+                lp_supply: storage_cache.lp_token_supply.clone(),
+                first_token_reserves: storage_cache.first_token_reserve.clone(),
+                second_token_reserves: storage_cache.second_token_reserve.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),
@@ -142,24 +158,29 @@ pub trait EventsModule {
         )
     }
 
-    fn emit_remove_liquidity_event(&self, context: &RemoveLiquidityContext<Self::Api>) {
+    fn emit_remove_liquidity_event(
+        &self,
+        storage_cache: &StorageCache<Self>,
+        context: RemoveLiquidityContext<Self::Api>,
+    ) {
         let epoch = self.blockchain().get_block_epoch();
+        let caller = self.blockchain().get_caller();
         self.remove_liquidity_event(
-            context.get_first_token_id(),
-            context.get_second_token_id(),
-            context.get_caller(),
+            &storage_cache.first_token_id,
+            &storage_cache.second_token_id,
+            &caller,
             epoch,
             &RemoveLiquidityEvent {
-                caller: context.get_caller().clone(),
-                first_token_id: context.get_first_token_id().clone(),
-                first_token_amount: context.get_first_token_amount_removed().clone(),
-                second_token_id: context.get_second_token_id().clone(),
-                second_token_amount: context.get_second_token_amount_removed().clone(),
-                lp_token_id: context.get_lp_token_id().clone(),
-                lp_token_amount: context.get_lp_token_payment().amount.clone(),
-                lp_supply: context.get_lp_token_supply().clone(),
-                first_token_reserves: context.get_first_token_reserve().clone(),
-                second_token_reserves: context.get_second_token_reserve().clone(),
+                caller: caller.clone(),
+                first_token_id: storage_cache.first_token_id.clone(),
+                first_token_amount: context.first_token_amount_removed,
+                second_token_id: storage_cache.second_token_id.clone(),
+                second_token_amount: context.second_token_amount_removed,
+                lp_token_id: storage_cache.lp_token_id.clone(),
+                lp_token_amount: context.lp_token_payment_amount,
+                lp_supply: storage_cache.lp_token_supply.clone(),
+                first_token_reserves: storage_cache.first_token_reserve.clone(),
+                second_token_reserves: storage_cache.second_token_reserve.clone(),
                 block: self.blockchain().get_block_nonce(),
                 epoch,
                 timestamp: self.blockchain().get_block_timestamp(),

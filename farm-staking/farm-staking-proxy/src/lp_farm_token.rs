@@ -1,10 +1,10 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::FarmTokenAttributes;
+use common_structs::{FarmToken, FarmTokenAttributes};
 
 #[elrond_wasm::module]
-pub trait LpFarmTokenModule: token_merge::TokenMergeModule {
+pub trait LpFarmTokenModule: token_merge_helper::TokenMergeHelperModule {
     fn get_lp_tokens_in_farm_position(
         &self,
         farm_token_nonce: u64,
@@ -22,7 +22,7 @@ pub trait LpFarmTokenModule: token_merge::TokenMergeModule {
         self.rule_of_three_non_zero_result(
             farm_token_amount,
             &attributes.current_farm_amount,
-            &attributes.initial_farming_amount,
+            &attributes.get_initial_farming_tokens(),
         )
     }
 

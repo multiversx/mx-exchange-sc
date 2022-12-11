@@ -20,7 +20,7 @@ pub struct FarmProxyTokenAttributes<M: ManagedTypeApi> {
     pub farming_token_locked_nonce: u64,
 }
 
-pub type EnterFarmThroughProxyResultType<M> = EsdtTokenPayment<M>;
+pub type EnterFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ExitFarmThroughProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type FarmClaimRewardsThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
@@ -46,25 +46,12 @@ pub trait ProxyFarmModule:
     ) {
         let payment_amount = self.call_value().egld_value();
 
-        self.farm_proxy_token().issue(
+        self.farm_proxy_token().issue_and_set_all_roles(
             EsdtTokenType::Meta,
             payment_amount,
             token_display_name,
             token_ticker,
             num_decimals,
-            None,
-        );
-    }
-
-    #[only_owner]
-    #[endpoint(setLocalRolesFarmProxyToken)]
-    fn set_local_roles_farm_proxy_token(&self) {
-        self.farm_proxy_token().set_local_roles(
-            &[
-                EsdtLocalRole::NftCreate,
-                EsdtLocalRole::NftAddQuantity,
-                EsdtLocalRole::NftBurn,
-            ],
             None,
         );
     }
@@ -102,7 +89,7 @@ pub trait ProxyFarmModule:
         farm_type: FarmType,
     ) {
         let was_removed = self.known_farms().swap_remove(&farm_address);
-        require!(was_removed, "Farm address now known");
+        require!(was_removed, "Farm address not known");
 
         let mapper_by_token = self.farm_address_for_token(&farming_token_id, farm_type);
         require!(
@@ -184,15 +171,16 @@ pub trait ProxyFarmModule:
         };
 
         let caller = self.blockchain().get_caller();
-        farm_proxy_token_mapper.nft_create_and_send(
+        let farm_tokens = farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
             &proxy_farm_token_attributes,
-        )
+        );
+
+        (farm_tokens, enter_farm_result.reward_tokens).into()
     }
 
     /// Exit a farm previously entered through `enterFarmLockedToken`.
-    /// The original farming tokens will be unlocked automatically if unlock_epoch has passed.
     ///
     /// Expected payment: FARM_PROXY tokens
     ///
@@ -201,7 +189,10 @@ pub trait ProxyFarmModule:
     /// - farm reward tokens
     #[payable("*")]
     #[endpoint(exitFarmLockedToken)]
-    fn exit_farm_locked_token(&self) -> ExitFarmThroughProxyResultType<Self::Api> {
+    fn exit_farm_locked_token(
+        &self,
+        exit_amount: BigUint,
+    ) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
@@ -215,6 +206,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
+            exit_amount,
         );
         require!(
             exit_farm_result.initial_farming_tokens.token_identifier

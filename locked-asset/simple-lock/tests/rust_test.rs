@@ -30,7 +30,7 @@ fn lock_unlock_test() {
         .execute_tx(&owner_addr, &sc_wrapper, &rust_zero, |sc| {
             sc.init();
             sc.locked_token()
-                .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
         })
         .assert_ok();
 
@@ -57,7 +57,7 @@ fn lock_unlock_test() {
             0,
             &lock_amount,
             |sc| {
-                let payment_result = sc.lock_tokens(10, OptionalValue::None);
+                let payment_result = sc.lock_tokens_endpoint(10, OptionalValue::None);
                 lock_token_nonce = payment_result.token_nonce;
             },
         )
@@ -86,7 +86,7 @@ fn lock_unlock_test() {
             lock_token_nonce,
             &lock_amount,
             |sc| {
-                sc.unlock_tokens(OptionalValue::None);
+                sc.unlock_tokens_endpoint(OptionalValue::None);
             },
         )
         .assert_user_error("Cannot unlock yet");
@@ -102,7 +102,7 @@ fn lock_unlock_test() {
             lock_token_nonce,
             &lock_amount,
             |sc| {
-                sc.unlock_tokens(OptionalValue::None);
+                sc.unlock_tokens_endpoint(OptionalValue::None);
             },
         )
         .assert_ok();
@@ -119,7 +119,7 @@ fn lock_unlock_test() {
             0,
             &rust_biguint!(100),
             |sc| {
-                let payment_result = sc.lock_tokens(10, OptionalValue::None);
+                let payment_result = sc.lock_tokens_endpoint(10, OptionalValue::None);
                 assert_eq!(payment_result.token_nonce, lock_token_nonce);
             },
         )
@@ -134,7 +134,7 @@ fn lock_unlock_test() {
             0,
             &rust_biguint!(100),
             |sc| {
-                let payment_result = sc.lock_tokens(15, OptionalValue::None);
+                let payment_result = sc.lock_tokens_endpoint(15, OptionalValue::None);
                 assert_eq!(payment_result.token_nonce, lock_token_nonce + 1);
             },
         )
@@ -149,7 +149,7 @@ fn lock_unlock_test() {
             0,
             &rust_biguint!(100),
             |sc| {
-                let payment_result = sc.lock_tokens(5, OptionalValue::None);
+                let payment_result = sc.lock_tokens_endpoint(5, OptionalValue::None);
                 assert_eq!(
                     payment_result.token_identifier,
                     managed_token_id!(FREE_TOKEN_ID)

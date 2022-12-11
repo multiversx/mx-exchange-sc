@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(generic_associated_types)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
@@ -47,9 +46,10 @@ pub trait Router:
             self.state().set(false);
         } else {
             self.check_is_pair_sc(&address);
-            self.pair_contract_proxy(address)
+            let _: IgnoreValue = self
+                .pair_contract_proxy(address)
                 .pause()
-                .execute_on_dest_context_ignore_result();
+                .execute_on_dest_context();
         }
     }
 
@@ -60,9 +60,10 @@ pub trait Router:
             self.state().set(true);
         } else {
             self.check_is_pair_sc(&address);
-            self.pair_contract_proxy(address)
+            let _: IgnoreValue = self
+                .pair_contract_proxy(address)
                 .resume()
-                .execute_on_dest_context_ignore_result();
+                .execute_on_dest_context();
         }
     }
 
@@ -73,6 +74,7 @@ pub trait Router:
         second_token_id: TokenIdentifier,
         initial_liquidity_adder: ManagedAddress,
         opt_fee_percents: OptionalValue<MultiValue2<u64, u64>>,
+        mut admins: MultiValueEncoded<ManagedAddress>,
     ) -> ManagedAddress {
         require!(self.is_active(), "Not active");
         let owner = self.owner().get();
@@ -116,6 +118,8 @@ pub trait Router:
             }
         }
 
+        admins.push(caller.clone());
+
         let address = self.create_pair(
             &first_token_id,
             &second_token_id,
@@ -123,6 +127,7 @@ pub trait Router:
             total_fee_percent_requested,
             special_fee_percent_requested,
             &initial_liquidity_adder,
+            admins,
         );
 
         self.emit_create_pair_event(
@@ -167,7 +172,7 @@ pub trait Router:
         );
 
         self.upgrade_pair(
-            &pair_address,
+            pair_address,
             &first_token_id,
             &second_token_id,
             &self.owner().get(),
@@ -331,9 +336,10 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        self.pair_contract_proxy(pair_address)
+        let _: IgnoreValue = self
+            .pair_contract_proxy(pair_address)
             .set_fee_on(true, fee_to_address, fee_token)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     #[only_owner]
@@ -347,9 +353,10 @@ pub trait Router:
         require!(self.is_active(), "Not active");
         self.check_is_pair_sc(&pair_address);
 
-        self.pair_contract_proxy(pair_address)
+        let _: IgnoreValue = self
+            .pair_contract_proxy(pair_address)
             .set_fee_on(false, fee_to_address, fee_token)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     #[callback]
@@ -363,9 +370,10 @@ pub trait Router:
         match result {
             ManagedAsyncCallResult::Ok(()) => {
                 self.pair_temporary_owner().remove(address);
-                self.pair_contract_proxy(address.clone())
+                let _: IgnoreValue = self
+                    .pair_contract_proxy(address.clone())
                     .set_lp_token_identifier(token_id.unwrap_esdt())
-                    .execute_on_dest_context_ignore_result();
+                    .execute_on_dest_context();
             }
             ManagedAsyncCallResult::Err(_) => {
                 if token_id.is_egld() && returned_tokens > 0u64 {
@@ -383,7 +391,7 @@ pub trait Router:
     #[only_owner]
     #[endpoint(setPairCreationEnabled)]
     fn set_pair_creation_enabled(&self, enabled: bool) {
-        self.pair_creation_enabled().set(&enabled);
+        self.pair_creation_enabled().set(enabled);
     }
 
     #[view(getPairCreationEnabled)]

@@ -26,14 +26,29 @@
                     }
                 ],
                 "function": "exitFarm",
-                "arguments": [],
+                "arguments": [
+                    "100,000,000"
+                ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
             },
             "expect": {
                 "out": [
-                    "0x0000000a4d45582d61626364656600000000000000000000000405f5e100",
-                    "0x0000000a4d45582d616263646566000000000000000000000002c350"
+                    {
+                        "1-token_id": "nested:str:MEX-abcdef",
+                        "2-nonce": "u64:0",
+                        "3-amount": "biguint:100,000,000"
+                    },
+                    {
+                        "1-token_id": "nested:str:MEX-abcdef",
+                        "2-nonce": "u64:0",
+                        "3-amount": "biguint:50,000"
+                    },
+                    {
+                        "1-token_id": "nested:str:FARM-abcdef",
+                        "2-nonce": "u64:1",
+                        "3-amount": "biguint:0"
+                    }
                 ],
                 "status": "0",
                 "message": "",

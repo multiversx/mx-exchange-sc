@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_wasm::api::{StorageReadApi, StorageReadApiImpl};
 use pair::config::ProxyTrait as _;
 use pausable::{ProxyTrait as _, State};
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -149,8 +148,8 @@ pub trait EnableSwapByUserModule:
     }
 
     fn get_pair_lp_token_id(&self, pair_address: &ManagedAddress) -> TokenIdentifier {
-        let storage_key = ManagedBuffer::new_from_bytes(PAIR_LP_TOKEN_ID_STORAGE_KEY);
-        let lp_token_id: TokenIdentifier = self.read_storage_from_pair(pair_address, &storage_key);
+        let lp_token_id: TokenIdentifier =
+            self.read_storage_from_pair(pair_address, PAIR_LP_TOKEN_ID_STORAGE_KEY);
         require!(
             lp_token_id.is_valid_esdt_identifier(),
             "Invalid LP token received from pair"
@@ -187,8 +186,7 @@ pub trait EnableSwapByUserModule:
     }
 
     fn require_state_active_no_swaps(&self, pair_address: &ManagedAddress) {
-        let storage_key = ManagedBuffer::new_from_bytes(PAIR_STATE_STORAGE_KEY);
-        let state: State = self.read_storage_from_pair(pair_address, &storage_key);
+        let state: State = self.read_storage_from_pair(pair_address, PAIR_STATE_STORAGE_KEY);
         require!(
             state == State::PartialActive,
             "Pair not in ActiveNoSwaps state"
@@ -200,9 +198,8 @@ pub trait EnableSwapByUserModule:
         pair_address: &ManagedAddress,
         caller: &ManagedAddress,
     ) {
-        let storage_key = ManagedBuffer::new_from_bytes(PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY);
         let opt_initial_liq_adder: Option<ManagedAddress> =
-            self.read_storage_from_pair(pair_address, &storage_key);
+            self.read_storage_from_pair(pair_address, PAIR_INITIAL_LIQ_ADDER_STORAGE_KEY);
 
         match opt_initial_liq_adder {
             Some(initial_liq_adder) => {
@@ -216,32 +213,27 @@ pub trait EnableSwapByUserModule:
     }
 
     fn set_fee_percents(&self, pair_address: ManagedAddress) {
-        self.user_pair_proxy(pair_address)
+        let _: IgnoreValue = self
+            .user_pair_proxy(pair_address)
             .set_fee_percent(USER_DEFINED_TOTAL_FEE_PERCENT, DEFAULT_SPECIAL_FEE_PERCENT)
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     fn pair_resume(&self, pair_address: ManagedAddress) {
-        self.user_pair_proxy(pair_address)
+        let _: IgnoreValue = self
+            .user_pair_proxy(pair_address)
             .resume()
-            .execute_on_dest_context_ignore_result();
+            .execute_on_dest_context();
     }
 
     fn read_storage_from_pair<T: TopDecode>(
         &self,
         pair_address: &ManagedAddress,
-        storage_key: &ManagedBuffer,
+        storage_key: &[u8],
     ) -> T {
-        let result_buffer = ManagedBuffer::new();
-        Self::Api::storage_read_api_impl().storage_load_from_address(
-            pair_address.get_raw_handle(),
-            storage_key.get_raw_handle(),
-            result_buffer.get_raw_handle(),
-        );
-
-        T::top_decode(result_buffer).unwrap_or_else(|_| {
-            sc_panic!("Failed to deserialize result after storage read from pair")
-        })
+        let key_buffer = ManagedBuffer::new_from_bytes(storage_key);
+        self.storage_raw()
+            .read_from_address(pair_address, key_buffer)
     }
 
     #[proxy]

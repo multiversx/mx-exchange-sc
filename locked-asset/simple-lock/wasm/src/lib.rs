@@ -26,8 +26,6 @@ elrond_wasm_node::wasm_endpoints! {
         removeFarmFromWhitelist
         removeLiquidityLockedToken
         removeLpFromWhitelist
-        setLocalRolesFarmProxyToken
-        setLocalRolesLpProxyToken
         unlockTokens
     )
 }

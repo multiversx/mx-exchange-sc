@@ -12,6 +12,7 @@ pub mod fuzz_data_tests {
         testing_framework::*, DebugApi,
     };
     use elrond_wasm_debug::{managed_biguint, HashMap};
+    use farm::exit_penalty::ExitPenaltyModule;
     use pausable::{PausableModule, State};
     use std::cell::Cell;
 
@@ -45,7 +46,7 @@ pub mod fuzz_data_tests {
     pub const MEX_FARM_TOKEN_ID: &[u8] = b"MEXFARM-abcdef";
     pub const LOCKED_MEX_TOKEN_ID: &[u8] = b"LKMEX-abcdef";
     pub const FACTORY_LOCK_NONCE: u64 = 1;
-    pub const MIN_FARMING_EPOCHS: u8 = 2;
+    pub const MIN_FARMING_EPOCHS: u64 = 2;
     pub const FARM_PENALTY_PERCENT: u64 = 10;
     pub const OWNER_EGLD_BALANCE: u64 = 100_000_000;
     pub const USER_TOTAL_MEX_TOKENS: u64 = 100_000_000_000;
@@ -363,7 +364,8 @@ pub mod fuzz_data_tests {
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
-                    OptionalValue::None,
+                    ManagedAddress::<DebugApi>::zero(),
+                    MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
 
                 let lp_token_id = managed_token_id!(lp_token);
@@ -438,15 +440,17 @@ pub mod fuzz_data_tests {
                     farming_token_id,
                     division_safety_constant,
                     pair_address,
+                    ManagedAddress::<DebugApi>::zero(),
+                    MultiValueEncoded::new(),
                 );
 
                 let farm_token_id = managed_token_id!(farm_token);
-                sc.farm_token().set_token_id(&farm_token_id);
+                sc.farm_token().set_token_id(farm_token_id);
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
-                sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(&FARM_PENALTY_PERCENT);
+                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
+                sc.penalty_percent().set(FARM_PENALTY_PERCENT);
 
                 sc.state().set(&State::Active);
                 sc.produce_rewards_enabled().set(&true);
@@ -545,7 +549,7 @@ pub mod fuzz_data_tests {
                 ]));
                 sc.init(asset_token_id, default_unlock_period);
                 sc.set_init_epoch(FACTORY_LOCK_NONCE);
-                sc.locked_asset_token().set_token_id(&locked_asset_token_id);
+                sc.locked_asset_token().set_token_id(locked_asset_token_id);
             })
             .assert_ok();
 
@@ -647,7 +651,7 @@ pub mod fuzz_data_tests {
             .execute_tx(owner_addr, &locking_sc_wrapper, &rust_zero, |sc| {
                 sc.init();
                 sc.locked_token()
-                    .set_token_id(&managed_token_id!(LOCKED_TOKEN_ID));
+                    .set_token_id(managed_token_id!(LOCKED_TOKEN_ID));
             })
             .assert_ok();
 
@@ -681,7 +685,7 @@ pub mod fuzz_data_tests {
                 );
 
                 sc.redeem_token()
-                    .set_token_id(&managed_token_id!(DISC_REDEEM_TOKEN_ID));
+                    .set_token_id(managed_token_id!(DISC_REDEEM_TOKEN_ID));
             })
             .assert_ok();
 

@@ -1,15 +1,19 @@
 use elrond_wasm::types::Address;
 use elrond_wasm_debug::{
-    managed_biguint, rust_biguint,
+    managed_address, managed_biguint, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
     tx_mock::TxInputESDT,
     DebugApi,
 };
 
-use farm_staking::UnbondSftAttributes;
-use farm_staking::*;
+use farm_staking::{
+    compound_stake_farm_rewards::CompoundStakeFarmRewardsModule, stake_farm::StakeFarmModule,
+    token_attributes::UnbondSftAttributes, unbond_farm::UnbondFarmModule,
+    unstake_farm::UnstakeFarmModule,
+};
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::*;
+use sc_whitelist_module::SCWhitelistModule;
 
 use crate::{
     constants::*,
@@ -95,6 +99,12 @@ where
             &mut b_mock,
             &staking_farm_wrapper,
         );
+
+        b_mock
+            .execute_tx(&owner_addr, &lp_farm_wrapper, &rust_zero, |sc| {
+                sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
+            })
+            .assert_ok();
 
         FarmStakingSetup {
             owner_addr,
@@ -250,7 +260,11 @@ where
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
                     let received_tokens = sc
-                        .unstake_farm_tokens(managed_biguint!(1), managed_biguint!(1))
+                        .unstake_farm_tokens(
+                            managed_biguint!(1),
+                            managed_biguint!(1),
+                            managed_biguint!(dual_yield_token_amount),
+                        )
                         .to_vec();
                     let mut vec_index = 0;
 

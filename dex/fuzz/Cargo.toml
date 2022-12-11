@@ -8,10 +8,11 @@ edition = "2018"
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-debug]
-version = "0.33.0"
+version = "=0.36.1"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"
@@ -30,9 +31,6 @@ path = "../../common/common_structs"
 
 [dependencies.farm-staking]
 path = "../../farm-staking/farm-staking"
-
-[dependencies.farm_with_lock]
-path = "../farm_with_lock"
 
 [dependencies.factory]
 path = "../../locked-asset/factory"

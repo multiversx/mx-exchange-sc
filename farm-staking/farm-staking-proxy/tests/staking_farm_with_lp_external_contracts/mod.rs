@@ -1,12 +1,13 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole};
+use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxInputESDT;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
 };
 
+use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
 use pair::safe_price::SafePriceModule;
 use pair::*;
@@ -15,6 +16,7 @@ use pausable::{PausableModule, State};
 
 use ::config as farm_config;
 use farm::*;
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_config::ConfigModule as _;
 use farm_token::FarmTokenModule;
 
@@ -49,7 +51,8 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                OptionalValue::None,
+                ManagedAddress::<DebugApi>::zero(),
+                MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
 
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
@@ -220,12 +223,14 @@ where
                 farming_token_id,
                 division_safety_constant,
                 pair_address,
+                ManagedAddress::<DebugApi>::zero(),
+                MultiValueEncoded::new(),
             );
 
             let farm_token_id = managed_token_id!(LP_FARM_TOKEN_ID);
-            sc.farm_token().set_token_id(&farm_token_id);
+            sc.farm_token().set_token_id(farm_token_id);
 
-            sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
+            sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
             sc.penalty_percent().set(&PENALTY_PERCENT);
 
             sc.state().set(&State::Active);
@@ -234,6 +239,18 @@ where
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
                 .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
+        })
+        .assert_ok();
+
+    b_mock
+        .execute_tx(&owner_addr, &farm_wrapper, &rust_biguint!(0), |sc| {
+            sc.set_boosted_yields_factors(
+                managed_biguint!(USER_REWARDS_BASE_CONST),
+                managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                managed_biguint!(USER_REWARDS_FARM_CONST),
+                managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+            );
         })
         .assert_ok();
 
@@ -291,12 +308,16 @@ fn enter_farm<FarmObjBuilder>(
 
     b_mock
         .execute_esdt_multi_transfer(user_address, farm_wrapper, &payments, |sc| {
-            let payment = sc.enter_farm();
+            let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
+            let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
             assert_eq!(
-                payment.token_identifier,
+                out_farm_token.token_identifier,
                 managed_token_id!(LP_FARM_TOKEN_ID)
             );
-            assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
+            assert_eq!(
+                out_farm_token.amount,
+                managed_biguint!(expected_total_out_amount)
+            );
         })
         .assert_ok();
 }

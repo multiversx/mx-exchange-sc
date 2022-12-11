@@ -1,0 +1,72 @@
+////////////////////////////////////////////////////
+////////////////// AUTO-GENERATED //////////////////
+////////////////////////////////////////////////////
+
+#![no_std]
+
+elrond_wasm_node::wasm_endpoints! {
+    farm_with_locked_rewards
+    (
+        callBack
+        addAdmin
+        addSCAddressToWhitelist
+        addToPauseWhitelist
+        calculateRewardsForGivenPosition
+        claimRewards
+        collectUndistributedBoostedRewards
+        endProduceRewards
+        enterFarm
+        exitFarm
+        getBoostedYieldsFactors
+        getBoostedYieldsRewardsPercenatage
+        getBurnGasLimit
+        getCurrentClaimProgress
+        getCurrentWeek
+        getDivisionSafetyConstant
+        getEnergyFactoryAddress
+        getFarmSupplyForWeek
+        getFarmTokenId
+        getFarmTokenSupply
+        getFarmingTokenId
+        getFirstWeekStartEpoch
+        getLastActiveWeekForUser
+        getLastGlobalUpdateWeek
+        getLastRewardBlockNonce
+        getLockEpochs
+        getLockingScAddress
+        getMinimumFarmingEpoch
+        getPairContractManagedAddress
+        getPenaltyPercent
+        getPerBlockRewardAmount
+        getPermissions
+        getRemainingBoostedRewardsToDistribute
+        getRewardPerShare
+        getRewardReserve
+        getRewardTokenId
+        getState
+        getTotalEnergyForWeek
+        getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
+        getUndistributedBoostedRewards
+        getUserEnergyForWeek
+        isSCAddressWhitelisted
+        mergeFarmTokens
+        pause
+        registerFarmToken
+        removeAdmin
+        removeFromPauseWhitelist
+        removeSCAddressFromWhitelist
+        resume
+        setBoostedYieldsFactors
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
+        setLockEpochs
+        setLockingScAddress
+        setPerBlockRewardAmount
+        set_burn_gas_limit
+        set_minimum_farming_epochs
+        set_penalty_percent
+        startProduceRewards
+        updateEnergyForUser
+    )
+}

@@ -20,9 +20,10 @@ pub trait MetabondingStaking:
         locked_asset_token_id: TokenIdentifier,
         locked_asset_factory_address: ManagedAddress,
     ) {
-        self.locked_asset_token_id().set(&locked_asset_token_id);
+        self.locked_asset_token_id()
+            .set_if_empty(&locked_asset_token_id);
         self.locked_asset_factory_address()
-            .set(&locked_asset_factory_address);
+            .set_if_empty(&locked_asset_factory_address);
     }
 
     #[payable("*")]

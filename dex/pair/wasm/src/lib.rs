@@ -7,6 +7,7 @@
 elrond_wasm_node::wasm_endpoints! {
     pair
     (
+        addAdmin
         addInitialLiquidity
         addLiquidity
         addToPauseWhitelist
@@ -20,6 +21,8 @@ elrond_wasm_node::wasm_endpoints! {
         getExternSwapGasLimit
         getFeeDestinations
         getFeeState
+        getFeesCollectorAddress
+        getFeesCollectorCutPercentage
         getFirstTokenId
         getInitialLiquidtyAdder
         getLockingDeadlineEpoch
@@ -28,6 +31,7 @@ elrond_wasm_node::wasm_endpoints! {
         getNumAddsByAddress
         getNumRemovesByAddress
         getNumSwapsByAddress
+        getPermissions
         getReserve
         getReservesAndTotalSupply
         getRouterManagedAddress
@@ -42,6 +46,7 @@ elrond_wasm_node::wasm_endpoints! {
         getUnlockEpoch
         getWhitelistedManagedAddresses
         pause
+        removeAdmin
         removeFromPauseWhitelist
         removeLiquidity
         removeLiquidityAndBuyBackAndBurnToken
@@ -51,6 +56,7 @@ elrond_wasm_node::wasm_endpoints! {
         setBPAddConfig
         setBPRemoveConfig
         setBPSwapConfig
+        setExternSwapGasLimit
         setFeeOn
         setFeePercents
         setLockingDeadlineEpoch
@@ -59,7 +65,7 @@ elrond_wasm_node::wasm_endpoints! {
         setMaxObservationsPerRecord
         setStateActiveNoSwaps
         setUnlockEpoch
-        set_extern_swap_gas_limit
+        setupFeesCollector
         swapNoFeeAndForward
         swapTokensFixedInput
         swapTokensFixedOutput

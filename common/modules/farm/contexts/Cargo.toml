@@ -22,8 +22,8 @@ path = "../rewards"
 [dependencies.token_send]
 path = "../../token_send"
 
-[dependencies.token_merge]
-path = "../../token_merge"
+[dependencies.token_merge_helper]
+path = "../../token_merge_helper"
 
 [dependencies.config]
 path = "../config"
@@ -31,8 +31,12 @@ path = "../config"
 [dependencies.pausable]
 path = "../../pausable"
 
+[dependencies.permissions_module]
+path = "../../permissions_module"
+
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "0.33.0"
+version = "=0.36.1"

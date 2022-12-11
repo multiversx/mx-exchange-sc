@@ -9,10 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "0.33.0"
+version = "=0.36.1"
+features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "0.33.0"
+version = "=0.36.1"
 
 [dependencies]
 hex-literal = "0.3.1"
@@ -29,14 +30,14 @@ path = "../../dex/pair"
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
-[dependencies.token_merge]
-path = "../../common/modules/token_merge"
+[dependencies.token_merge_helper]
+path = "../../common/modules/token_merge_helper"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "0.33.0"
+version = "=0.36.1"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -49,3 +50,9 @@ path = "../../common/modules/farm/rewards"
 
 [dev-dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
+
+[dev-dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
+[dev-dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"

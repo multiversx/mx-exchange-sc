@@ -7,6 +7,7 @@
 elrond_wasm_node::wasm_endpoints! {
     factory
     (
+        callBack
         createAndForward
         createAndForwardCustomPeriod
         getAssetTokenId
@@ -17,15 +18,19 @@ elrond_wasm_node::wasm_endpoints! {
         getLockedAssetTokenId
         getUnlockScheduleForSFTNonce
         getWhitelistedContracts
+        isPaused
         lockAssets
-        mergeLockedAssetTokens
+        mergeTokens
+        pause
         registerLockedAssetToken
         removeWhitelist
         setInitEpoch
+        setLockedTokenBurnRoleForAddress
+        setNewFactoryAddress
+        setTransferRoleOldLockedToken
         setUnlockPeriod
         unlockAssets
+        unpause
         whitelist
     )
 }
-
-elrond_wasm_node::wasm_empty_callback! {}

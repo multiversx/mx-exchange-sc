@@ -50,7 +50,8 @@
                     "str:WEGLD-abcdef",
                     "str:LPTOK-abcdef",
                     "1000000000000",
-                    "sc:pair_contract"
+                    "sc:pair_contract",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
                 ],
                 "gasLimit": "100,000,000",
                 "gasPrice": "0"
