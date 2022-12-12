@@ -14,8 +14,8 @@ use governance::*;
 
 use pair_mock::*;
 
-pub const GOVERNANCE_WASM_PATH: &'static str = "governance/output/governance.wasm";
-pub const PAIR_MOCK_WASM_PATH: &'static str = "pair-mock/output/pair-mock.wasm";
+pub const GOVERNANCE_WASM_PATH: &str = "governance/output/governance.wasm";
+pub const PAIR_MOCK_WASM_PATH: &str = "pair-mock/output/pair-mock.wasm";
 pub const VOTE_NFT_ID: &[u8] = b"VOTE-abcdef";
 pub const FAKE_TOKEN_ID: &[u8] = b"FAKE-abcdef";
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
@@ -259,7 +259,7 @@ fn test_basic_propose() {
             assert_eq!(0, proposal.creation_block);
             assert_eq!(managed_address!(&owner_address), proposal.proposer);
             assert_eq!(0, proposal.description.len());
-            assert_eq!(false, proposal.was_executed);
+            assert!(!proposal.was_executed);
             assert_eq!(0, proposal.actions.len());
             assert_eq!(
                 managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),
@@ -546,7 +546,7 @@ fn test_vote() {
             assert_eq!(0, proposal.creation_block);
             assert_eq!(managed_address!(&Address::zero()), proposal.proposer);
             assert_eq!(0, proposal.description.len());
-            assert_eq!(false, proposal.was_executed);
+            assert!(!proposal.was_executed);
             assert_eq!(0, proposal.actions.len());
             assert_eq!(managed_biguint!(101), proposal.num_upvotes,);
             assert_eq!(managed_biguint!(102), proposal.num_downvotes);
@@ -664,7 +664,7 @@ fn test_basic_propose_with_lpmex() {
             assert_eq!(0, proposal.creation_block);
             assert_eq!(managed_address!(&owner_address), proposal.proposer);
             assert_eq!(0, proposal.description.len());
-            assert_eq!(false, proposal.was_executed);
+            assert!(!proposal.was_executed);
             assert_eq!(0, proposal.actions.len());
             assert_eq!(
                 managed_biguint!(MIN_WEIGHT_FOR_PROPOSAL),

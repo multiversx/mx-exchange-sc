@@ -1,6 +1,6 @@
 // Pair constants
 
-pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
+pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
 pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const RIDE_TOKEN_ID: &[u8] = b"RIDE-abcdef";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // also farming token ID for LP farm
@@ -15,7 +15,7 @@ pub const BLOCK_NONCE_AFTER_PAIR_SETUP: u64 = 100;
 
 // LP farm constants
 
-pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
+pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
 pub const LP_FARM_TOKEN_ID: &[u8] = b"LPFARM-abcdef";
 pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000;
 pub const MIN_FARMING_EPOCHS: u64 = 2;

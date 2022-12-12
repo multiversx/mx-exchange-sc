@@ -51,12 +51,11 @@ pub mod fuzz_factory_test {
             return;
         }
 
-        let mut payments = Vec::new();
-        payments.push(TxInputESDT {
+        let payments = vec![TxInputESDT {
             token_identifier: token_id.to_vec(),
             nonce: 0,
-            value: amount_to_lock.clone(),
-        });
+            value: amount_to_lock,
+        }];
 
         let mut locked_asset_nonce = FACTORY_LOCK_NONCE;
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
@@ -115,21 +114,18 @@ pub mod fuzz_factory_test {
 
         let token_id = factory_setup.token.as_bytes();
         let locked_token_id = factory_setup.locked_token.as_bytes();
-        let locked_token_nonce: &u64;
 
         // Choose a random locked token nonce to try to unlock
         let chosen_nonce = caller.locked_asset_nonces.choose(&mut fuzzer_data.rng);
-        match chosen_nonce {
-            Some(chosen_nonce) => {
-                locked_token_nonce = chosen_nonce;
-            }
+        let locked_token_nonce = match chosen_nonce {
+            Some(chosen_nonce) => *chosen_nonce,
             None => {
                 println!("Factory unlock error: Caller does not have any locked tokens");
                 fuzzer_data.statistics.factory_unlock_misses += 1;
 
                 return;
             }
-        }
+        };
 
         let seed = fuzzer_data
             .rng
@@ -146,7 +142,7 @@ pub mod fuzz_factory_test {
         let locked_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
             &caller.address,
             locked_token_id,
-            *locked_token_nonce,
+            locked_token_nonce,
         );
 
         if locked_token_before < amount_to_unlock {
@@ -160,12 +156,11 @@ pub mod fuzz_factory_test {
             }
         }
 
-        let mut payments = Vec::new();
-        payments.push(TxInputESDT {
+        let payments = vec![TxInputESDT {
             token_identifier: locked_token_id.to_vec(),
-            nonce: *locked_token_nonce,
-            value: amount_to_unlock.clone(),
-        });
+            nonce: locked_token_nonce,
+            value: amount_to_unlock,
+        }];
 
         let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_multi_transfer(
             &caller.address,
@@ -184,7 +179,7 @@ pub mod fuzz_factory_test {
         let locked_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
             &caller.address,
             locked_token_id,
-            *locked_token_nonce,
+            locked_token_nonce,
         );
 
         let unlocked_amount = rust_biguint!(seed);
