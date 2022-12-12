@@ -116,43 +116,6 @@ fn test_safe_price() {
 }
 
 #[test]
-fn test_swap_protect() {
-    let mut pair_setup = PairSetup::new(pair::contract_obj);
-
-    pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
-    );
-
-    let protect_until_block = 10;
-    let max_volume_percent = 10_000;
-    let max_num_swaps = 2;
-    pair_setup.set_swap_protect(protect_until_block, max_volume_percent, max_num_swaps);
-
-    pair_setup.swap_fixed_input_expect_error(
-        WEGLD_TOKEN_ID,
-        500_000,
-        MEX_TOKEN_ID,
-        1,
-        "swap amount in too large",
-    );
-
-    pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 1, 996);
-    pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, 1, 994);
-
-    pair_setup.swap_fixed_input_expect_error(
-        WEGLD_TOKEN_ID,
-        1_000,
-        MEX_TOKEN_ID,
-        1,
-        "too many swaps by address",
-    );
-
-    pair_setup.b_mock.set_block_nonce(protect_until_block + 1);
-
-    pair_setup.swap_fixed_input(WEGLD_TOKEN_ID, 500_000, MEX_TOKEN_ID, 1, 331_672);
-}
-
-#[test]
 fn test_locked_asset() {
     let mut pair_setup = PairSetup::new(pair::contract_obj);
 
