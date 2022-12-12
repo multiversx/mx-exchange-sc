@@ -42,6 +42,7 @@ where
                 div_const,
                 max_apr,
                 UNBOND_EPOCHS,
+                0,
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
