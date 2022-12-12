@@ -2,7 +2,7 @@
 name = "permissions_module"
 version = "0.0.0"
 authors = [ "Dorin Iancu <dorin.iancu@elrond.com>", "Claudiu-Marcel Bruda <claudiu.bruda@elrond.com>" ]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/permissions_module.rs"
