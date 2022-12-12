@@ -17,8 +17,9 @@ elrond_wasm_node::wasm_endpoints! {
         endProduceRewards
         enterFarm
         exitFarm
+        getAccumulatedRewardsForWeek
         getBoostedYieldsFactors
-        getBoostedYieldsRewardsPercenatage
+        getBoostedYieldsRewardsPercentage
         getBurnGasLimit
         getCurrentClaimProgress
         getCurrentWeek
