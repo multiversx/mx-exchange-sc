@@ -18,7 +18,7 @@ use farm_staking::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 
-const FARM_WASM_PATH: &'static str = "farm/output/farm-staking.wasm";
+const FARM_WASM_PATH: &str = "farm/output/farm-staking.wasm";
 
 const REWARD_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // reward token ID
 const FARMING_TOKEN_ID: &[u8] = b"RIDE-abcdef"; // farming token ID
@@ -79,8 +79,8 @@ where
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(PER_BLOCK_REWARD_AMOUNT));
 
-            sc.state().set(&State::Active);
-            sc.produce_rewards_enabled().set(&true);
+            sc.state().set(State::Active);
+            sc.produce_rewards_enabled().set(true);
         })
         .assert_ok();
 
@@ -222,6 +222,7 @@ fn unbond_farm<FarmObjBuilder>(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn unstake_farm<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     farm_token_amount: u64,
@@ -288,6 +289,7 @@ fn unstake_farm<FarmObjBuilder>(
     );
 }
 
+#[allow(clippy::too_many_arguments)]
 fn claim_rewards<FarmObjBuilder>(
     farm_setup: &mut FarmSetup<FarmObjBuilder>,
     farm_token_amount: u64,
@@ -435,7 +437,7 @@ fn test_unstake_farm() {
     set_block_epoch(&mut farm_setup, current_epoch);
     set_block_nonce(&mut farm_setup, current_block);
 
-    let block_diff = current_block - 0;
+    let block_diff = current_block;
     let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
 
     // ~= 4 * 10 = 40
@@ -606,7 +608,7 @@ fn test_unbond() {
     set_block_epoch(&mut farm_setup, current_epoch);
     set_block_nonce(&mut farm_setup, current_block);
 
-    let block_diff = current_block - 0;
+    let block_diff = current_block;
     let expected_rewards_unbounded = block_diff * PER_BLOCK_REWARD_AMOUNT;
 
     // ~= 4 * 10 = 40
