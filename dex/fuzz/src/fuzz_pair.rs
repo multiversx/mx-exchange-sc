@@ -280,7 +280,7 @@ pub mod fuzz_pair_test {
             let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
                 &caller.address,
                 &swap_pair.pair_wrapper,
-                &payment_token_id,
+                payment_token_id,
                 0,
                 &rust_biguint!(payment_amount),
                 |sc| {
@@ -328,7 +328,7 @@ pub mod fuzz_pair_test {
             let tx_result = fuzzer_data.blockchain_wrapper.execute_esdt_transfer(
                 &caller.address,
                 &swap_pair.pair_wrapper,
-                &payment_token_id,
+                payment_token_id,
                 0,
                 &rust_biguint!(payment_amount),
                 |sc| {

@@ -125,7 +125,7 @@ fn test_overview_but_changes_in_per_reward_block() {
 }
 
 fn parse_biguint(str: &str) -> RustBigUint {
-    let str_without_underscores = str.to_owned().replace("_", "");
+    let str_without_underscores = str.to_owned().replace('_', "");
     RustBigUint::parse_bytes(str_without_underscores.as_bytes(), 10).unwrap()
 }
 

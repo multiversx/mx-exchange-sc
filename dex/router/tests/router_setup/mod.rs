@@ -6,8 +6,8 @@ use elrond_wasm_debug::{
     testing_framework::*, DebugApi,
 };
 
-pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
-pub const ROUTER_WASM_PATH: &'static str = "router/output/router.wasm";
+pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
+pub const ROUTER_WASM_PATH: &str = "router/output/router.wasm";
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
 pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const USDC_TOKEN_ID: &[u8] = b"USDC-abcdef";
@@ -102,7 +102,7 @@ where
                 let lp_token_id = managed_token_id!(LPMEX_TOKEN_ID);
                 sc.lp_token_identifier().set(&lp_token_id);
 
-                sc.state().set(&State::Active);
+                sc.state().set(State::Active);
             })
             .assert_ok();
 
@@ -129,7 +129,7 @@ where
                 let lp_token_id = managed_token_id!(LPUSDC_TOKEN_ID);
                 sc.lp_token_identifier().set(&lp_token_id);
 
-                sc.state().set(&State::Active);
+                sc.state().set(State::Active);
             })
             .assert_ok();
 
@@ -271,7 +271,7 @@ where
                     for x in args.iter() {
                         swap_operations.push(MultiValue4::from((
                             managed_address!(&x.0),
-                            managed_buffer!(&x.1),
+                            managed_buffer!(x.1),
                             managed_token_id!(x.2.to_owned()),
                             managed_biguint!(x.3),
                         )));

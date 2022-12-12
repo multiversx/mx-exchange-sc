@@ -4,6 +4,8 @@ pub mod fuzz_farm_test {
     elrond_wasm::imports!();
     elrond_wasm::derive_imports!();
 
+    use std::cmp::Ordering;
+
     use elrond_wasm_debug::tx_mock::TxInputESDT;
     use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 
@@ -60,7 +62,7 @@ pub mod fuzz_farm_test {
         payments.push(TxInputESDT {
             token_identifier: lp_token_id.to_vec(),
             nonce: 0,
-            value: farm_in_amount.clone(),
+            value: farm_in_amount,
         });
 
         //randomly add all existing farm positions for merge
@@ -191,10 +193,12 @@ pub mod fuzz_farm_test {
                 reward_token_id,
                 0,
             );
-            if reward_token_after > reward_token_before {
-                fuzzer_data.statistics.exit_farm_with_rewards += 1;
-            } else if reward_token_after < reward_token_before {
-                println!("Exit farm warning: Lost reward tokens while exiting farm");
+            match reward_token_after.cmp(&reward_token_before) {
+                Ordering::Greater => fuzzer_data.statistics.exit_farm_with_rewards += 1,
+                Ordering::Less => {
+                    println!("Exit farm warning: Lost reward tokens while exiting farm")
+                }
+                Ordering::Equal => {}
             }
         } else {
             println!("Exit farm error: {}", tx_result_string);
@@ -281,10 +285,12 @@ pub mod fuzz_farm_test {
                 reward_token_id,
                 0,
             );
-            if reward_token_after > reward_token_before {
-                fuzzer_data.statistics.claim_rewards_with_rewards += 1;
-            } else if reward_token_after < reward_token_before {
-                println!("Claim rewards warning: Lost reward tokens while claiming rewards");
+            match reward_token_after.cmp(&reward_token_before) {
+                Ordering::Greater => fuzzer_data.statistics.claim_rewards_with_rewards += 1,
+                Ordering::Less => {
+                    println!("Claim rewards warning: Lost reward tokens while claiming rewards")
+                }
+                Ordering::Equal => {}
             }
 
             // Clear previous farm positions
