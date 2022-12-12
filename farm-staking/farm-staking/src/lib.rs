@@ -74,7 +74,7 @@ pub trait FarmStaking:
         self.try_set_min_unbond_epochs(min_unbond_epochs);
 
         let per_block_reward = self.per_block_reward_amount().get();
-        let current_block_nonce = self.blockchain().get_block_epoch();
+        let current_block_nonce = self.blockchain().get_block_nonce();
         let block_nonce_diff = current_block_nonce - upgrade_block;
         let rewards_since_upgrade = per_block_reward * block_nonce_diff;
 
