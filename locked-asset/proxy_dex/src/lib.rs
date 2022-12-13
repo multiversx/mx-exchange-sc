@@ -36,7 +36,8 @@ pub trait ProxyDexImpl:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
-    + locking_module::lock_with_energy_module::LockWithEnergyModule
+    + locking_module::locking_module::LockingModule
+
 {
     /// asset_token_id: underlying asset token ID, which is used to interact with
     ///     pair/farm contracts
