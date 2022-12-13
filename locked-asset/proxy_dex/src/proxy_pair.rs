@@ -223,7 +223,7 @@ pub trait ProxyPairModule:
 
             // burn base asset, as we only need to send the locked tokens
             let new_amount_to_burn =
-                attributes.locked_tokens.amount.clone() - remaining_locked_amount;
+                &attributes.locked_tokens.amount - &remaining_locked_amount;
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &new_amount_to_burn);
 
