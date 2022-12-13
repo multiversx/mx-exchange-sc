@@ -211,6 +211,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub fn to_rust_biguint(
     managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {

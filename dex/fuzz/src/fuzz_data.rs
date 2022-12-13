@@ -31,10 +31,10 @@ pub mod fuzz_data_tests {
     use rand::prelude::StdRng;
     use rand::SeedableRng;
 
-    pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
-    pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
-    pub const FACTORY_WASM_PATH: &'static str = "factory/output/factory.wasm";
-    pub const PD_WASM_PATH: &'static str = "../output/price-discovery.wasm";
+    pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
+    pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
+    pub const FACTORY_WASM_PATH: &str = "factory/output/factory.wasm";
+    pub const PD_WASM_PATH: &str = "../output/price-discovery.wasm";
 
     pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
     pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
@@ -343,17 +343,17 @@ pub mod fuzz_data_tests {
 
         let pair_wrapper = blockchain_wrapper.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(owner_addr),
             pair_builder,
             PAIR_WASM_PATH,
         );
 
         blockchain_wrapper
-            .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
+            .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
                 let first_token_id = managed_token_id!(first_token);
                 let second_token_id = managed_token_id!(second_token);
-                let router_address = managed_address!(&owner_addr);
-                let router_owner_address = managed_address!(&owner_addr);
+                let router_address = managed_address!(owner_addr);
+                let router_owner_address = managed_address!(owner_addr);
                 let total_fee_percent = TOTAL_FEE_PERCENT;
                 let special_fee_percent = SPECIAL_FEE_PERCENT;
 
@@ -371,7 +371,7 @@ pub mod fuzz_data_tests {
                 let lp_token_id = managed_token_id!(lp_token);
                 config::ConfigModule::lp_token_identifier(&sc).set(&lp_token_id);
 
-                pausable::PausableModule::state(&sc).set(&pausable::State::Active);
+                pausable::PausableModule::state(&sc).set(pausable::State::Active);
             })
             .assert_ok();
 
@@ -423,13 +423,13 @@ pub mod fuzz_data_tests {
 
         let farm_wrapper = blockchain_wrapper.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(owner_addr),
             farm_builder,
             FARM_WASM_PATH,
         );
 
         blockchain_wrapper
-            .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+            .execute_tx(owner_addr, &farm_wrapper, &rust_zero, |sc| {
                 let reward_token_id = managed_token_id!(reward_token);
                 let farming_token_id = managed_token_id!(farming_token);
                 let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
@@ -452,8 +452,8 @@ pub mod fuzz_data_tests {
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(FARM_PENALTY_PERCENT);
 
-                sc.state().set(&State::Active);
-                sc.produce_rewards_enabled().set(&true);
+                sc.state().set(State::Active);
+                sc.produce_rewards_enabled().set(true);
             })
             .assert_ok();
 
@@ -520,13 +520,13 @@ pub mod fuzz_data_tests {
 
         let factory_wrapper = blockchain_wrapper.create_sc_account(
             &rust_zero,
-            Some(&owner_addr),
+            Some(owner_addr),
             factory_builder,
             FACTORY_WASM_PATH,
         );
 
         blockchain_wrapper
-            .execute_tx(&owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
+            .execute_tx(owner_addr, &factory_wrapper, &rust_biguint!(0), |sc| {
                 let asset_token_id = managed_token_id!(MEX_TOKEN_ID);
                 let locked_asset_token_id = managed_token_id!(LOCKED_MEX_TOKEN_ID);
                 let default_unlock_period = MultiValueEncoded::from(ManagedVec::from(vec![

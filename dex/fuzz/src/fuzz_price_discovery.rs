@@ -59,13 +59,13 @@ pub mod fuzz_price_discovery_test {
         );
 
         let sc_launched_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_LAUNCHED_TOKEN_ID,
             0,
         );
 
         let sc_accepted_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_ACCEPTED_TOKEN_ID,
             0,
         );
@@ -100,13 +100,13 @@ pub mod fuzz_price_discovery_test {
         );
 
         let sc_launched_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_LAUNCHED_TOKEN_ID,
             0,
         );
 
         let sc_accepted_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_ACCEPTED_TOKEN_ID,
             0,
         );
@@ -122,14 +122,12 @@ pub mod fuzz_price_discovery_test {
                 fuzzer_data.statistics.price_discovery_deposit_misses += 1;
                 return;
             }
-        } else if tx_result_msg_is_empty {
-            if sc_launched_token_after != sc_launched_token_before + &deposit_amount {
-                println!(
-                    "Price discovery deposit error: sc launched token final balance is incorrect"
-                );
-                fuzzer_data.statistics.price_discovery_deposit_misses += 1;
-                return;
-            }
+        } else if tx_result_msg_is_empty
+            && sc_launched_token_after != sc_launched_token_before + &deposit_amount
+        {
+            println!("Price discovery deposit error: sc launched token final balance is incorrect");
+            fuzzer_data.statistics.price_discovery_deposit_misses += 1;
+            return;
         }
 
         if !tx_result_msg_is_empty {
@@ -186,13 +184,13 @@ pub mod fuzz_price_discovery_test {
         let redeem_token_in_amount = rust_biguint!(seed);
 
         let sc_launched_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_LAUNCHED_TOKEN_ID,
             0,
         );
 
         let sc_accepted_token_before = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_ACCEPTED_TOKEN_ID,
             0,
         );
@@ -232,13 +230,13 @@ pub mod fuzz_price_discovery_test {
         );
 
         let sc_launched_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_LAUNCHED_TOKEN_ID,
             0,
         );
 
         let sc_accepted_token_after = fuzzer_data.blockchain_wrapper.get_esdt_balance(
-            &price_disc.pd_wrapper.address_ref(),
+            price_disc.pd_wrapper.address_ref(),
             DISC_ACCEPTED_TOKEN_ID,
             0,
         );
@@ -254,14 +252,14 @@ pub mod fuzz_price_discovery_test {
                 fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
                 return;
             }
-        } else if tx_result_msg_is_empty {
-            if sc_launched_token_after != sc_launched_token_before - &withdrawn_amount {
-                println!(
-                    "Price discovery withdraw error: sc launched token final balance is incorrect"
-                );
-                fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
-                return;
-            }
+        } else if tx_result_msg_is_empty
+            && sc_launched_token_after != sc_launched_token_before - &withdrawn_amount
+        {
+            println!(
+                "Price discovery withdraw error: sc launched token final balance is incorrect"
+            );
+            fuzzer_data.statistics.price_discovery_withdraw_misses += 1;
+            return;
         }
 
         if !tx_result_msg_is_empty {

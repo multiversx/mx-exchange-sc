@@ -49,12 +49,12 @@ where
             sc.farm_token()
                 .set_token_id(managed_token_id!(STAKING_FARM_TOKEN_ID));
 
-            sc.state().set(&State::Active);
-            sc.produce_rewards_enabled().set(&true);
+            sc.state().set(State::Active);
+            sc.produce_rewards_enabled().set(true);
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(STAKING_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
-                .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
+                .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
             sc.reward_capacity().set(&managed_biguint!(REWARD_CAPACITY));
         })
         .assert_ok();
@@ -114,7 +114,7 @@ where
         b_mock.create_sc_account(&rust_zero, Some(owner_addr), builder, PROXY_WASM_PATH);
 
     b_mock
-        .execute_tx(&owner_addr, &proxy_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner_addr, &proxy_wrapper, &rust_zero, |sc| {
             sc.init(
                 managed_address!(lp_farm_address),
                 managed_address!(staking_farm_address),

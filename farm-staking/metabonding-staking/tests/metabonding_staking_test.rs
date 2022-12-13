@@ -332,7 +332,7 @@ fn test_unbond() {
         .b_mock
         .execute_query(&setup.mbs_wrapper, |sc| {
             let entry_is_empty = sc.entry_for_user(&managed_address!(&user_addr)).is_empty();
-            assert_eq!(entry_is_empty, true);
+            assert!(entry_is_empty);
         })
         .assert_ok();
 }
