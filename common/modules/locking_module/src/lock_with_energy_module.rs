@@ -62,16 +62,16 @@ pub trait LockWithEnergyModule {
         opt_dest: OptionalValue<ManagedAddress>,
         token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-        lock_epochs: OptionalValue<u64>,
+        opt_lock_epochs: Option<u64>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        let unlock_epoch = match lock_epochs {
-            OptionalValue::Some(epochs) => epochs,
-            OptionalValue::None => self.lock_epochs().get(),
+        let lock_epochs = match lock_epochs {
+            Some(epochs) => epochs,
+           None => self.lock_epochs().get(),
         };
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 
         proxy_instance
-            .lock_tokens_endpoint(unlock_epoch, opt_dest)
+            .lock_tokens_endpoint(lock_epochs, opt_dest)
             .with_egld_or_single_esdt_token_transfer(token_id, 0, amount)
             .execute_on_dest_context()
     }
