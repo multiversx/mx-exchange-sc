@@ -39,7 +39,7 @@ pub trait FeesCollector:
         tokens.push(locked_token_id.clone());
         self.add_known_tokens(tokens);
 
-        self.locked_token_id().set(locked_token_id);
+        self.locked_token_id().set_if_empty(locked_token_id);
         self.energy_factory_address().set(&energy_factory_address);
     }
 
@@ -61,9 +61,8 @@ pub trait FeesCollector:
         let mut opt_locked_rewards = None;
         for reward in &rewards {
             if reward.token_identifier == locked_token_id {
-                let energy_factory_addr = self.energy_factory_address().get();
                 let locked_rewards = self.lock_virtual(
-                    self.get_base_token_id(&energy_factory_addr),
+                    self.get_base_token_id(),
                     reward.amount,
                     caller.clone(),
                     caller.clone(),

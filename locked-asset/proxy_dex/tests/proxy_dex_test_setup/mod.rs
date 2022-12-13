@@ -424,18 +424,10 @@ where
 
     b_mock
         .execute_tx(owner, &proxy_wrapper, &rust_zero, |sc| {
-            let mut locked_token_factory_address_token_pairs = MultiValueEncoded::new();
-            locked_token_factory_address_token_pairs.push(
-                (
-                    managed_token_id!(LOCKED_TOKEN_ID),
-                    managed_address!(simple_lock_addr),
-                )
-                    .into(),
-            );
-
             sc.init(
-                managed_token_id!(MEX_TOKEN_ID),
-                locked_token_factory_address_token_pairs,
+                managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                managed_address!(simple_lock_addr),
+                managed_address!(simple_lock_addr),
             );
 
             sc.wrapped_lp_token()
