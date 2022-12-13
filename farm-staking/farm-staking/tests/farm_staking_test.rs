@@ -2,7 +2,8 @@ use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
 use elrond_wasm_debug::{
-    managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+    DebugApi,
 };
 
 type RustBigUint = num_bigint::BigUint;
@@ -173,6 +174,7 @@ fn stake_farm<FarmObjBuilder>(
         reward_per_share: managed_biguint!(expected_reward_per_share),
         compounded_reward: managed_biguint!(expected_compounded_reward),
         current_farm_amount: managed_biguint!(expected_total_out_amount),
+        original_owner: managed_address!(&farm_setup.user_address),
     };
     b_mock.check_nft_balance(
         &farm_setup.user_address,
@@ -338,6 +340,7 @@ fn claim_rewards<FarmObjBuilder>(
         reward_per_share: managed_biguint!(expected_reward_per_share),
         compounded_reward: managed_biguint!(0),
         current_farm_amount: managed_biguint!(farm_token_amount),
+        original_owner: managed_address!(&farm_setup.user_address),
     };
 
     b_mock.check_nft_balance(

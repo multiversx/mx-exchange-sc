@@ -23,6 +23,7 @@ pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
+    pub original_owner: ManagedAddress<M>,
 }
 
 #[derive(ManagedVecItem, Clone)]
@@ -74,18 +75,20 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {
             reward_per_share: self.reward_per_share,
             compounded_reward: new_compounded_reward,
             current_farm_amount: new_current_farm_amount,
+            original_owner: self.original_owner,
         }
     }
 }
 
 impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
-    /// farm staking tokens can always be merged with each other
     #[inline]
-    fn can_merge_with(&self, _other: &Self) -> bool {
-        true
+    fn can_merge_with(&self, other: &Self) -> bool {
+        self.original_owner == other.original_owner
     }
 
     fn merge_with(&mut self, other: Self) {
+        self.error_if_not_mergeable(&other);
+
         let first_supply = self.get_total_supply();
         let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average_round_up(

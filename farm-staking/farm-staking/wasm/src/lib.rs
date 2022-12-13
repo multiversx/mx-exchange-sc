@@ -14,23 +14,40 @@ elrond_wasm_node::wasm_endpoints! {
         calculateRewardsForGivenPosition
         claimRewards
         claimRewardsWithNewValue
+        collectUndistributedBoostedRewards
         compoundRewards
         endProduceRewards
         getAccumulatedRewards
+        getAccumulatedRewardsForWeek
         getAnnualPercentageRewards
+        getBoostedYieldsFactors
+        getBoostedYieldsRewardsPercentage
+        getCurrentClaimProgress
+        getCurrentWeek
         getDivisionSafetyConstant
+        getEnergyFactoryAddress
+        getFarmSupplyForWeek
         getFarmTokenId
         getFarmTokenSupply
         getFarmingTokenId
+        getFirstWeekStartEpoch
+        getLastActiveWeekForUser
+        getLastGlobalUpdateWeek
         getLastRewardBlockNonce
         getMinUnbondEpochs
         getPerBlockRewardAmount
         getPermissions
+        getRemainingBoostedRewardsToDistribute
         getRewardCapacity
         getRewardPerShare
         getRewardReserve
         getRewardTokenId
         getState
+        getTotalEnergyForWeek
+        getTotalLockedTokensForWeek
+        getTotalRewardsForWeek
+        getUndistributedBoostedRewards
+        getUserEnergyForWeek
         isSCAddressWhitelisted
         mergeFarmTokens
         pause
@@ -39,6 +56,9 @@ elrond_wasm_node::wasm_endpoints! {
         removeFromPauseWhitelist
         removeSCAddressFromWhitelist
         resume
+        setBoostedYieldsFactors
+        setBoostedYieldsRewardsPercentage
+        setEnergyFactoryAddress
         setMaxApr
         setMinUnbondEpochs
         setPerBlockRewardAmount
@@ -49,5 +69,7 @@ elrond_wasm_node::wasm_endpoints! {
         unbondFarm
         unstakeFarm
         unstakeFarmThroughProxy
+        updateEnergyForUser
+        updateOwnerOrAdmin
     )
 }

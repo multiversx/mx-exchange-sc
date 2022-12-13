@@ -11,6 +11,18 @@ path = "src/lib.rs"
 [dependencies.farm]
 path = "../../dex/farm"
 
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../energy-integration/common-modules/weekly-rewards-splitting"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
+
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
