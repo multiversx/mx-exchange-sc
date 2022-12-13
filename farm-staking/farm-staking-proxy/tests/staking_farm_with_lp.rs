@@ -300,11 +300,10 @@ fn test_stake_farm_through_proxy_with_merging() {
         )
     });
 
-    let mut dual_yield_token_payments = Vec::new();
-    dual_yield_token_payments.push(NonceAmountPair {
+    let dual_yield_token_payments = vec![NonceAmountPair {
         nonce: first_dual_yield_token_nonce,
         amount: 400_000_000,
-    });
+    }];
     let new_dual_yield_token_nonce =
         setup.stake_farm_lp_proxy_multiple(1, 600_000_000, dual_yield_token_payments);
 

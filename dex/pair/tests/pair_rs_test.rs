@@ -210,7 +210,7 @@ fn test_locked_asset() {
         .execute_esdt_transfer(
             &pair_setup.user_address,
             &pair_setup.pair_wrapper,
-            &MEX_TOKEN_ID,
+            MEX_TOKEN_ID,
             0,
             &rust_biguint!(1_000),
             |sc| {
@@ -585,11 +585,9 @@ fn add_liquidity_through_simple_lock_proxy() {
         .b_mock
         .execute_query(&locking_sc_wrapper, |sc| {
             assert_eq!(sc.known_liquidity_pools().len(), 1);
-            assert_eq!(
-                sc.known_liquidity_pools()
-                    .contains(&managed_address!(&lp_address)),
-                true
-            );
+            assert!(sc
+                .known_liquidity_pools()
+                .contains(&managed_address!(&lp_address)));
         })
         .assert_ok();
 }

@@ -13,8 +13,8 @@ use factory::locked_asset::LockedAssetModule;
 use factory::*;
 use metabonding_staking::MetabondingStaking;
 
-pub const METABONDING_STAKING_WASM_PATH: &'static str = "1.wasm";
-pub const LOCKED_ASSET_FACTORY_WASM_PATH: &'static str = "2.wasm";
+pub const METABONDING_STAKING_WASM_PATH: &str = "1.wasm";
+pub const LOCKED_ASSET_FACTORY_WASM_PATH: &str = "2.wasm";
 pub const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-123456";
 

@@ -130,7 +130,7 @@ where
     let total_amount = farm_in_amount + second_farm_in_amount;
     let first_reward_share = 0;
     let second_reward_share =
-        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+        DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
     let expected_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_amount
@@ -170,7 +170,7 @@ fn test_exit_farm_after_enter_twice() {
 
     let first_reward_share = 0;
     let second_reward_share =
-        0 + DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
+        DIVISION_SAFETY_CONSTANT * 10 * PER_BLOCK_REWARD_AMOUNT / current_farm_supply;
     let prev_reward_per_share = (first_reward_share * farm_in_amount
         + second_reward_share * second_farm_in_amount
         + total_farm_token
@@ -288,7 +288,7 @@ fn test_farm_through_simple_lock() {
     );
 
     b_mock.set_esdt_balance(
-        &lock_wrapper.address_ref(),
+        lock_wrapper.address_ref(),
         LP_TOKEN_ID,
         &rust_biguint!(1_000_000_000),
     );
