@@ -36,6 +36,46 @@ pub trait LockWithEnergyModule {
             .execute_on_dest_context()
     }
 
+    #[inline]
+    fn lock_tokens(
+        &self,
+        token_id: EgldOrEsdtTokenIdentifier,
+        amount: BigUint,
+        lock_epochs: OptionalValue<u64>,
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        self.lock_common(OptionalValue::None, token_id, amount, lock_epochs)
+    }
+
+    #[inline]
+    fn lock_tokens_and_forward(
+        &self,
+        to: ManagedAddress,
+        token_id: EgldOrEsdtTokenIdentifier,
+        amount: BigUint,
+        lock_epochs: OptionalValue<u64>,
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        self.lock_common(OptionalValue::Some(to), token_id, amount, lock_epochs)
+    }
+
+    fn lock_common(
+        &self,
+        opt_dest: OptionalValue<ManagedAddress>,
+        token_id: EgldOrEsdtTokenIdentifier,
+        amount: BigUint,
+        lock_epochs: OptionalValue<u64>,
+    ) -> EgldOrEsdtTokenPayment<Self::Api> {
+        let unlock_epoch = match lock_epochs {
+            OptionalValue::Some(epochs) => epochs,
+            OptionalValue::None => self.lock_epochs().get(),
+        };
+        let mut proxy_instance = self.get_locking_sc_proxy_instance();
+
+        proxy_instance
+            .lock_tokens_endpoint(unlock_epoch, opt_dest)
+            .with_egld_or_single_esdt_token_transfer(token_id, 0, amount)
+            .execute_on_dest_context()
+    }
+
     fn get_locking_sc_proxy_instance(&self) -> energy_factory::Proxy<Self::Api> {
         let locking_sc_address = self.locking_sc_address().get();
         self.locking_sc_proxy_obj(locking_sc_address)

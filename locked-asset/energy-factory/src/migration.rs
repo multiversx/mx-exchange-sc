@@ -131,6 +131,7 @@ pub trait SimpleLockMigrationModule:
         self.to_esdt_payment(new_locked_tokens)
     }
 
+    #[endpoint(calculateNewUnlockEpochForOldToken)]
     fn calculate_new_unlock_epoch_for_old_token(
         &self,
         unlock_epoch_amount_pairs: &UnlockEpochAmountPairs<Self::Api>,

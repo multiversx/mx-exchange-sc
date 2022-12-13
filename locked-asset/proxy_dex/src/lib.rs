@@ -36,6 +36,7 @@ pub trait ProxyDexImpl:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
+    + locking_module::lock_with_energy_module::LockWithEnergyModule
 {
     #[init]
     fn init(
