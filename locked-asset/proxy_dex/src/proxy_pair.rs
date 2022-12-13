@@ -169,18 +169,18 @@ pub trait ProxyPairModule:
                 .token_identifier
                 .clone();
             let remaining_locked_amount = base_asset_amount_received - locked_token_amount_available;
-            // let locked_tokens_payment = self.lock_virtual(asset_token_id.clone(), remaining_locked_amount, caller.clone(), caller.clone());
+
+            // Lock the difference from IL and send
             let _ = self.lock_tokens_and_forward(
                 caller.clone(),
                 EgldOrEsdtTokenIdentifier::esdt(asset_token_id.clone()),
                 remaining_locked_amount,
             );
-            // EgldOrEsdtTokenIdentifier::new(asset_token_id.get_handle())
+
             // burn base asset, as we only need to send the locked tokens
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &attributes.locked_tokens.amount);
 
-            // output_payments.push(locked_tokens_payment);
             output_payments.push(attributes.locked_tokens.clone());
         } else {
             let extra_locked_tokens = locked_token_amount_available - base_asset_amount_received;
