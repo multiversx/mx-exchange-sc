@@ -41,9 +41,9 @@ pub trait LockWithEnergyModule {
         &self,
         token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-        lock_epochs: OptionalValue<u64>,
+        opt_lock_epochs: Option<u64>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        self.lock_common(OptionalValue::None, token_id, amount, lock_epochs)
+        self.lock_common(OptionalValue::None, token_id, amount, opt_lock_epochs)
     }
 
     #[inline]
@@ -52,9 +52,9 @@ pub trait LockWithEnergyModule {
         to: ManagedAddress,
         token_id: EgldOrEsdtTokenIdentifier,
         amount: BigUint,
-        lock_epochs: OptionalValue<u64>,
+        opt_lock_epochs: Option<u64>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        self.lock_common(OptionalValue::Some(to), token_id, amount, lock_epochs)
+        self.lock_common(OptionalValue::Some(to), token_id, amount, opt_lock_epochs)
     }
 
     fn lock_common(
@@ -64,9 +64,9 @@ pub trait LockWithEnergyModule {
         amount: BigUint,
         opt_lock_epochs: Option<u64>,
     ) -> EgldOrEsdtTokenPayment<Self::Api> {
-        let lock_epochs = match lock_epochs {
+        let lock_epochs = match opt_lock_epochs {
             Some(epochs) => epochs,
-           None => self.lock_epochs().get(),
+            None => self.lock_epochs().get(),
         };
         let mut proxy_instance = self.get_locking_sc_proxy_instance();
 

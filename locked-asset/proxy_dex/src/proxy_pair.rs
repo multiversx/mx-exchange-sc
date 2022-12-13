@@ -218,12 +218,11 @@ pub trait ProxyPairModule:
                 caller.clone(),
                 EgldOrEsdtTokenIdentifier::esdt(asset_token_id.clone()),
                 remaining_locked_amount.clone(),
-                OptionalValue::Some(unlock_epoch_for_current_locked_tokens),
+                Option::Some(unlock_epoch_for_current_locked_tokens),
             );
 
             // burn base asset, as we only need to send the locked tokens
-            let new_amount_to_burn =
-                &attributes.locked_tokens.amount - &remaining_locked_amount;
+            let new_amount_to_burn = &attributes.locked_tokens.amount - &remaining_locked_amount;
             self.send()
                 .esdt_local_burn(&asset_token_id, 0, &new_amount_to_burn);
 
