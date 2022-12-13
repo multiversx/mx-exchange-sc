@@ -68,7 +68,6 @@ where
                 division_safety_constant,
                 managed_biguint!(MAX_APR),
                 MIN_UNBOND_EPOCHS,
-                0,
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
