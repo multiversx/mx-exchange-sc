@@ -33,14 +33,18 @@ pub trait UnstakeFarmModule:
     #[payable("*")]
     #[endpoint(unstakeFarm)]
     fn unstake_farm(&self) -> ExitFarmResultType<Self::Api> {
+        let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
 
-        self.unstake_farm_common(payment, None)
+        self.unstake_farm_common(caller, payment, None)
     }
 
     #[payable("*")]
     #[endpoint(unstakeFarmThroughProxy)]
-    fn unstake_farm_through_proxy(&self) -> ExitFarmResultType<Self::Api> {
+    fn unstake_farm_through_proxy(
+        &self,
+        original_caller: ManagedAddress,
+    ) -> ExitFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
 
@@ -54,20 +58,22 @@ pub trait UnstakeFarmModule:
             "Invalid staking token received"
         );
 
-        self.unstake_farm_common(second_payment, Some(first_payment.amount))
+        self.unstake_farm_common(original_caller, second_payment, Some(first_payment.amount))
     }
 
     fn unstake_farm_common(
         &self,
+        original_caller: ManagedAddress,
         payment: EsdtTokenPayment,
         opt_unbond_amount: Option<BigUint>,
     ) -> ExitFarmResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        let exit_result = self.exit_farm_base::<FarmStakingWrapper<Self>>(caller.clone(), payment);
+        let exit_result = self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller, payment);
 
         let unbond_token_amount =
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);
         let farm_token_id = exit_result.storage_cache.farm_token_id.clone();
+
+        let caller = self.blockchain().get_caller();
         let unbond_farm_token =
             self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
 

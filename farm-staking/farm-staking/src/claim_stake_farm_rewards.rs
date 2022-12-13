@@ -33,7 +33,9 @@ pub trait ClaimStakeFarmRewardsModule:
     #[payable("*")]
     #[endpoint(claimRewards)]
     fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
-        self.claim_rewards_common(None)
+        let caller = self.blockchain().get_caller();
+
+        self.claim_rewards_common(caller, None)
     }
 
     #[payable("*")]
@@ -41,21 +43,22 @@ pub trait ClaimStakeFarmRewardsModule:
     fn claim_rewards_with_new_value(
         &self,
         new_farming_amount: BigUint,
+        original_caller: ManagedAddress,
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
 
-        self.claim_rewards_common(Some(new_farming_amount))
+        self.claim_rewards_common(original_caller, Some(new_farming_amount))
     }
 
     fn claim_rewards_common(
         &self,
+        original_caller: ManagedAddress,
         opt_new_farming_amount: Option<BigUint>,
     ) -> ClaimRewardsResultType<Self::Api> {
-        let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
         let claim_result = self.claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
-            caller.clone(),
+            original_caller,
             ManagedVec::from_single_item(payment),
         );
 
@@ -72,6 +75,7 @@ pub trait ClaimStakeFarmRewardsModule:
         );
         virtual_farm_token.payment.token_nonce = new_farm_token_nonce;
 
+        let caller = self.blockchain().get_caller();
         self.send_payment_non_zero(&caller, &virtual_farm_token.payment);
         self.send_payment_non_zero(&caller, &claim_result.rewards);
 
