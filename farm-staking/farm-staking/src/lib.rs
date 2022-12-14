@@ -5,6 +5,7 @@
 #![feature(trait_alias)]
 
 use base_impl_wrapper::FarmStakingWrapper;
+use common_structs::Nonce;
 use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
@@ -54,6 +55,7 @@ pub trait FarmStaking:
         division_safety_constant: BigUint,
         max_apr: BigUint,
         min_unbond_epochs: u64,
+        upgrade_block: Nonce,
         owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -70,6 +72,23 @@ pub trait FarmStaking:
         self.max_annual_percentage_rewards().set(&max_apr);
 
         self.try_set_min_unbond_epochs(min_unbond_epochs);
+
+        let per_block_reward = self.per_block_reward_amount().get();
+        let current_block_nonce = self.blockchain().get_block_nonce();
+        let block_nonce_diff = current_block_nonce - upgrade_block;
+        let rewards_since_upgrade = per_block_reward * block_nonce_diff;
+
+        let accumulated_rewards_before = self.accumulated_rewards().update(|acc| {
+            let before = (*acc).clone();
+            *acc += &rewards_since_upgrade;
+
+            let capacity = self.reward_capacity().get();
+            *acc = core::cmp::min((*acc).clone(), capacity);
+
+            before
+        });
+        self.reward_reserve()
+            .update(|r| *r += accumulated_rewards_before);
     }
 
     #[payable("*")]
