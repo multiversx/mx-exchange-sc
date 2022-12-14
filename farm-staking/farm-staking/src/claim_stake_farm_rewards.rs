@@ -45,13 +45,17 @@ pub trait ClaimStakeFarmRewardsModule:
     ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
-        let claim_result = self.claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
-            caller.clone(),
-            ManagedVec::from_single_item(payment),
-        );
+        let mut claim_result = self
+            .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
+                caller.clone(),
+                ManagedVec::from_single_item(payment),
+            );
 
         let mut virtual_farm_token = claim_result.new_farm_token.clone();
         if let Some(new_amount) = opt_new_farming_amount {
+            claim_result.storage_cache.farm_token_supply -= &virtual_farm_token.payment.amount;
+            claim_result.storage_cache.farm_token_supply += &new_amount;
+
             virtual_farm_token.payment.amount = new_amount.clone();
             virtual_farm_token.attributes.current_farm_amount = new_amount;
         }
