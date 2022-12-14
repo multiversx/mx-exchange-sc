@@ -1,13 +1,9 @@
 #![no_std]
-#![allow(clippy::vec_init_then_push)]
 
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-const DEFAULT_EXTERN_SWAP_GAS_LIMIT: u64 = 50000000;
-
 mod amm;
-pub mod bot_protection;
 pub mod config;
 mod contexts;
 pub mod errors;
@@ -47,7 +43,6 @@ pub trait Pair<ContractReader>:
     + token_send::TokenSendModule
     + events::EventsModule
     + safe_price::SafePriceModule
-    + bot_protection::BPModule
     + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
     + permissions_module::PermissionsModule
@@ -71,19 +66,18 @@ pub trait Pair<ContractReader>:
             ERROR_NOT_AN_ESDT
         );
         require!(first_token_id != second_token_id, ERROR_SAME_TOKENS);
+
         let lp_token_id = self.lp_token_identifier().get();
         require!(first_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
         require!(second_token_id != lp_token_id, ERROR_POOL_TOKEN_IS_PLT);
-        self.set_fee_percents(total_fee_percent, special_fee_percent);
 
+        self.set_fee_percents(total_fee_percent, special_fee_percent);
         self.state().set(State::Inactive);
-        self.extern_swap_gas_limit()
-            .set_if_empty(DEFAULT_EXTERN_SWAP_GAS_LIMIT);
 
         self.router_address().set(&router_address);
-        self.router_owner_address().set(&router_owner_address);
-        self.first_token_id().set(&first_token_id);
-        self.second_token_id().set(&second_token_id);
+        self.first_token_id().set_if_empty(&first_token_id);
+        self.second_token_id().set_if_empty(&second_token_id);
+
         let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
             Some(initial_liquidity_adder)
         } else {
@@ -231,7 +225,7 @@ pub trait Pair<ContractReader>:
         );
         self.set_optimal_amounts(&mut add_liq_context, &storage_cache);
 
-        let liq_added = if storage_cache.lp_token_supply == 0u64 {
+        add_liq_context.liq_added = if storage_cache.lp_token_supply == 0u64 {
             self.pool_add_initial_liquidity(
                 &add_liq_context.first_token_optimal_amount,
                 &add_liq_context.second_token_optimal_amount,
@@ -244,8 +238,6 @@ pub trait Pair<ContractReader>:
                 &mut storage_cache,
             )
         };
-        self.require_can_proceed_add(&storage_cache.lp_token_supply, &liq_added);
-        add_liq_context.liq_added = liq_added;
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
@@ -311,10 +303,6 @@ pub trait Pair<ContractReader>:
             second_token_amount_min,
         );
         self.pool_remove_liquidity(&mut remove_liq_context, &mut storage_cache);
-        self.require_can_proceed_remove(
-            &storage_cache.lp_token_supply,
-            &remove_liq_context.lp_token_payment_amount,
-        );
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
@@ -361,10 +349,6 @@ pub trait Pair<ContractReader>:
         let mut remove_liq_context =
             RemoveLiquidityContext::new(payment.amount, BigUint::from(1u64), BigUint::from(1u64));
         self.pool_remove_liquidity(&mut remove_liq_context, &mut storage_cache);
-        self.require_can_proceed_remove(
-            &storage_cache.lp_token_supply,
-            &remove_liq_context.lp_token_payment_amount,
-        );
 
         self.burn(
             &storage_cache.lp_token_id,
@@ -435,7 +419,6 @@ pub trait Pair<ContractReader>:
         require!(amount_out > 0u64, ERROR_ZERO_AMOUNT);
 
         swap_context.final_output_amount = amount_out;
-        self.require_can_proceed_swap(&swap_context, &storage_cache);
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
@@ -490,7 +473,6 @@ pub trait Pair<ContractReader>:
             swap_tokens_order,
         );
         self.perform_swap_fixed_input(&mut swap_context, &mut storage_cache);
-        self.require_can_proceed_swap(&swap_context, &storage_cache);
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
@@ -555,7 +537,6 @@ pub trait Pair<ContractReader>:
             swap_tokens_order,
         );
         self.perform_swap_fixed_output(&mut swap_context, &mut storage_cache);
-        self.require_can_proceed_swap(&swap_context, &storage_cache);
 
         let new_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,

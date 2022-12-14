@@ -12,12 +12,6 @@ pub const MAX_FEE_PERCENTAGE: u64 = 5_000;
 pub trait ConfigModule:
     token_send::TokenSendModule + permissions_module::PermissionsModule + pausable::PausableModule
 {
-    #[endpoint(setExternSwapGasLimit)]
-    fn set_extern_swap_gas_limit(&self, gas_limit: u64) {
-        self.require_caller_has_owner_permissions();
-        self.extern_swap_gas_limit().set(gas_limit);
-    }
-
     #[endpoint(setStateActiveNoSwaps)]
     fn set_state_active_no_swaps(&self) {
         self.require_caller_has_owner_permissions();
@@ -55,14 +49,6 @@ pub trait ConfigModule:
     #[view(getRouterManagedAddress)]
     #[storage_mapper("router_address")]
     fn router_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getRouterOwnerManagedAddress)]
-    #[storage_mapper("router_owner_address")]
-    fn router_owner_address(&self) -> SingleValueMapper<ManagedAddress>;
-
-    #[view(getExternSwapGasLimit)]
-    #[storage_mapper("extern_swap_gas_limit")]
-    fn extern_swap_gas_limit(&self) -> SingleValueMapper<u64>;
 
     #[storage_mapper("lpTokenIdentifier")]
     fn lp_token_identifier(&self) -> SingleValueMapper<TokenIdentifier>;
