@@ -1,9 +1,7 @@
 elrond_wasm::imports!();
 
-use core::mem::swap;
-
 use farm::{
-    base_functions::{ClaimRewardsResultType, ExitFarmResultType},
+    base_functions::ClaimRewardsResultType, EnterFarmResultType, ExitFarmWithPartialPosResultType,
     ProxyTrait as _,
 };
 use farm_staking::{
@@ -34,20 +32,9 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
             .claim_rewards_endpoint(orig_caller)
-            .add_esdt_token_transfer(
-                lp_farm_token_id.clone(),
-                lp_farm_token_nonce,
-                lp_farm_token_amount,
-            )
+            .add_esdt_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context();
-        let (mut new_lp_farm_tokens, mut lp_farm_rewards) = lp_farm_result.into_tuple();
-
-        self.swap_payments_if_wrong_order(
-            &mut new_lp_farm_tokens,
-            &mut lp_farm_rewards,
-            &lp_farm_token_id,
-            b"lp_farm_claim_rewards",
-        );
+        let (new_lp_farm_tokens, lp_farm_rewards) = lp_farm_result.into_tuple();
 
         LpFarmClaimRewardsResult {
             new_lp_farm_tokens,
@@ -64,33 +51,26 @@ pub trait ExternalContractsInteractionsModule:
         let orig_caller = self.blockchain().get_caller();
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
-        let exit_farm_result: ExitFarmResultType<Self::Api> = self
+        let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
             .exit_farm_endpoint(exit_amount, orig_caller)
             .add_esdt_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context();
-        let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
-        let expected_lp_token_id = self.lp_token_id().get();
-
-        self.swap_payments_if_wrong_order(
-            &mut lp_tokens,
-            &mut lp_farm_rewards,
-            &expected_lp_token_id,
-            b"lp_farm_exit",
-        );
+        let (lp_tokens, lp_farm_rewards, remaining_farm_tokens) = exit_farm_result.into_tuple();
 
         LpFarmExitResult {
             lp_tokens,
             lp_farm_rewards,
+            remaining_farm_tokens,
         }
     }
 
     fn merge_lp_farm_tokens(
         &self,
         caller: ManagedAddress,
-        base_lp_token: EsdtTokenPayment<Self::Api>,
-        mut additional_lp_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
-    ) -> EsdtTokenPayment<Self::Api> {
+        base_lp_token: EsdtTokenPayment,
+        mut additional_lp_tokens: PaymentsVec<Self::Api>,
+    ) -> EsdtTokenPayment {
         if additional_lp_tokens.is_empty() {
             return base_lp_token;
         }
@@ -99,7 +79,7 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens_endpoint(OptionalValue::Some(caller))
+            .merge_farm_tokens_endpoint(caller)
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context()
     }
@@ -111,15 +91,18 @@ pub trait ExternalContractsInteractionsModule:
         staking_token_amount: BigUint,
         staking_farm_tokens: PaymentsVec<Self::Api>,
     ) -> StakingFarmEnterResult<Self::Api> {
+        let orig_caller = self.blockchain().get_caller();
         let staking_farm_address = self.staking_farm_address().get();
-        let received_staking_farm_token: EsdtTokenPayment = self
+        let enter_result: EnterFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .stake_farm_through_proxy(staking_token_amount)
+            .stake_farm_through_proxy(staking_token_amount, orig_caller)
             .with_multi_token_transfer(staking_farm_tokens)
             .execute_on_dest_context();
+        let (received_staking_farm_token, boosted_rewards) = enter_result.into_tuple();
 
         StakingFarmEnterResult {
             received_staking_farm_token,
+            boosted_rewards,
         }
     }
 
@@ -130,25 +113,18 @@ pub trait ExternalContractsInteractionsModule:
         staking_farm_token_amount: BigUint,
         new_staking_farm_value: BigUint,
     ) -> StakingFarmClaimRewardsResult<Self::Api> {
+        let orig_caller = self.blockchain().get_caller();
         let staking_farm_address = self.staking_farm_address().get();
         let staking_farm_result: ClaimRewardsResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .claim_rewards_with_new_value(new_staking_farm_value)
+            .claim_rewards_with_new_value(new_staking_farm_value, orig_caller)
             .add_esdt_token_transfer(
-                staking_farm_token_id.clone(),
+                staking_farm_token_id,
                 staking_farm_token_nonce,
                 staking_farm_token_amount,
             )
             .execute_on_dest_context();
-        let (mut new_staking_farm_tokens, mut staking_farm_rewards) =
-            staking_farm_result.into_tuple();
-
-        self.swap_payments_if_wrong_order(
-            &mut new_staking_farm_tokens,
-            &mut staking_farm_rewards,
-            &staking_farm_token_id,
-            b"staking_farm_claim_rewards",
-        );
+        let (new_staking_farm_tokens, staking_farm_rewards) = staking_farm_result.into_tuple();
 
         StakingFarmClaimRewardsResult {
             new_staking_farm_tokens,
@@ -161,33 +137,30 @@ pub trait ExternalContractsInteractionsModule:
         staking_tokens: EsdtTokenPayment<Self::Api>,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
+        exit_amount: BigUint,
     ) -> StakingFarmExitResult<Self::Api> {
+        let orig_caller = self.blockchain().get_caller();
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut payments = ManagedVec::from_single_item(staking_tokens);
         payments.push(EsdtTokenPayment::new(
-            staking_farm_token_id.clone(),
+            staking_farm_token_id,
             farm_token_nonce,
             farm_token_amount,
         ));
 
         let staking_farm_address = self.staking_farm_address().get();
-        let unstake_result: ExitFarmResultType<Self::Api> = self
+        let unstake_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .unstake_farm_through_proxy()
+            .unstake_farm_through_proxy(orig_caller)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context();
-        let (mut unbond_staking_farm_token, mut staking_rewards) = unstake_result.into_tuple();
-
-        self.swap_payments_if_wrong_order(
-            &mut unbond_staking_farm_token,
-            &mut staking_rewards,
-            &staking_farm_token_id,
-            b"staking_farm_unstake",
-        );
+        let (unbond_staking_farm_token, staking_rewards, remaining_farm_tokens) =
+            unstake_result.into_tuple();
 
         StakingFarmExitResult {
             unbond_staking_farm_token,
             staking_rewards,
+            remaining_farm_tokens,
         }
     }
 
@@ -243,25 +216,6 @@ pub trait ExternalContractsInteractionsModule:
             second_token_info.amount
         } else {
             sc_panic!("Invalid Pair contract called");
-        }
-    }
-
-    fn swap_payments_if_wrong_order(
-        &self,
-        first_payment: &mut EsdtTokenPayment<Self::Api>,
-        second_payment: &mut EsdtTokenPayment<Self::Api>,
-        expected_first_payment_id: &TokenIdentifier,
-        called_function_name: &[u8],
-    ) {
-        if &first_payment.token_identifier != expected_first_payment_id {
-            if &second_payment.token_identifier == expected_first_payment_id {
-                swap(first_payment, second_payment);
-            } else {
-                sc_panic!(
-                    "Invalid tokens received on {}",
-                    ManagedBuffer::new_from_bytes(called_function_name)
-                );
-            }
         }
     }
 

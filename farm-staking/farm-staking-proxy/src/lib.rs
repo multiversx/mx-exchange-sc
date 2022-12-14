@@ -1,15 +1,13 @@
 #![no_std]
 
+use result_types::{ClaimDualYieldResult, StakeProxyResult, UnstakeResult};
+
 elrond_wasm::imports!();
 
 pub mod dual_yield_token;
 pub mod external_contracts_interactions;
 pub mod lp_farm_token;
 pub mod result_types;
-
-pub type StakeResult<Api> = EsdtTokenPayment<Api>;
-pub type ClaimDualYieldResult<Api> = MultiValueEncoded<Api, EsdtTokenPayment<Api>>;
-pub type UnstakeResult<Api> = MultiValueEncoded<Api, EsdtTokenPayment<Api>>;
 
 #[elrond_wasm::contract]
 pub trait FarmStakingProxy:
@@ -18,6 +16,8 @@ pub trait FarmStakingProxy:
     + lp_farm_token::LpFarmTokenModule
     + token_merge_helper::TokenMergeHelperModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + utils::UtilsModule
+    + token_send::TokenSendModule
 {
     #[init]
     fn init(
@@ -30,52 +30,31 @@ pub trait FarmStakingProxy:
         staking_farm_token_id: TokenIdentifier,
         lp_token_id: TokenIdentifier,
     ) {
-        require!(
-            self.blockchain().is_smart_contract(&lp_farm_address),
-            "Invalid LP Farm address"
-        );
-        require!(
-            self.blockchain().is_smart_contract(&staking_farm_address),
-            "Invalid Staking Farm address"
-        );
-        require!(
-            self.blockchain().is_smart_contract(&pair_address),
-            "Invalid Pair address"
-        );
-        require!(
-            staking_token_id.is_valid_esdt_identifier(),
-            "Invalid Staking token ID"
-        );
-        require!(
-            lp_farm_token_id.is_valid_esdt_identifier(),
-            "Invalid Farm token ID"
-        );
-        require!(
-            staking_farm_token_id.is_valid_esdt_identifier(),
-            "Invalid Staking Farm token ID"
-        );
+        self.require_sc_address(&lp_farm_address);
+        self.require_sc_address(&staking_farm_address);
+        self.require_sc_address(&pair_address);
 
-        require!(
-            lp_token_id.is_valid_esdt_identifier(),
-            "Invalide LP token ID"
-        );
+        self.require_valid_token_id(&staking_token_id);
+        self.require_valid_token_id(&lp_farm_token_id);
+        self.require_valid_token_id(&staking_farm_token_id);
+        self.require_valid_token_id(&lp_token_id);
 
         self.lp_farm_address().set(&lp_farm_address);
         self.staking_farm_address().set(&staking_farm_address);
         self.pair_address().set(&pair_address);
-        self.staking_token_id().set(&staking_token_id);
-        self.lp_farm_token_id().set(&lp_farm_token_id);
-        self.staking_farm_token_id().set(&staking_farm_token_id);
-        self.lp_token_id().set(&lp_token_id);
+
+        self.staking_token_id().set_if_empty(&staking_token_id);
+        self.lp_farm_token_id().set_if_empty(&lp_farm_token_id);
+        self.staking_farm_token_id()
+            .set_if_empty(&staking_farm_token_id);
+        self.lp_token_id().set_if_empty(&lp_token_id);
     }
 
     #[payable("*")]
     #[endpoint(stakeFarmTokens)]
-    fn stake_farm_tokens(&self) -> StakeResult<Self::Api> {
-        let payments = self.call_value().all_esdt_transfers();
-        let lp_farm_token_payment: EsdtTokenPayment<Self::Api> = payments
-            .try_get(0)
-            .unwrap_or_else(|| sc_panic!("empty payments"));
+    fn stake_farm_tokens(&self) -> StakeProxyResult<Self::Api> {
+        let payments = self.get_non_empty_payments();
+        let lp_farm_token_payment = payments.get(0);
         let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
 
         let lp_farm_token_id = self.lp_farm_token_id().get();
@@ -112,9 +91,9 @@ pub trait FarmStakingProxy:
             &lp_farm_token_payment.amount,
         );
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
-        let received_staking_farm_token = self
-            .staking_farm_enter(staking_token_amount, additional_staking_farm_tokens)
-            .received_staking_farm_token;
+        let staking_farm_enter_result =
+            self.staking_farm_enter(staking_token_amount, additional_staking_farm_tokens);
+        let received_staking_farm_token = staking_farm_enter_result.received_staking_farm_token;
 
         let caller = self.blockchain().get_caller();
         let merged_lp_farm_tokens = self.merge_lp_farm_tokens(
@@ -123,13 +102,18 @@ pub trait FarmStakingProxy:
             additional_lp_farm_tokens,
         );
 
-        self.create_and_send_dual_yield_tokens(
-            &caller,
+        let new_dual_yield_tokens = self.create_dual_yield_tokens(
             merged_lp_farm_tokens.token_nonce,
             merged_lp_farm_tokens.amount,
             received_staking_farm_token.token_nonce,
             received_staking_farm_token.amount,
-        )
+        );
+        let output_payments = StakeProxyResult {
+            dual_yield_tokens: new_dual_yield_tokens,
+            boosted_rewards: staking_farm_enter_result.boosted_rewards,
+        };
+
+        output_payments.send_and_return(self, &caller)
     }
 
     #[payable("*")]
@@ -175,32 +159,14 @@ pub trait FarmStakingProxy:
             new_staking_farm_tokens.amount,
         );
 
-        self.send_claim_payments(
-            lp_farm_claim_rewards_result.lp_farm_rewards,
-            staking_farm_claim_rewards_result.staking_farm_rewards,
-            new_dual_yield_tokens,
-        )
-    }
-
-    fn send_claim_payments(
-        &self,
-        lp_farm_rewards: EsdtTokenPayment<Self::Api>,
-        staking_farm_rewards: EsdtTokenPayment<Self::Api>,
-        new_dual_yield_tokens: EsdtTokenPayment<Self::Api>,
-    ) -> ClaimDualYieldResult<Self::Api> {
-        let mut user_output_payments = ManagedVec::new();
-        if lp_farm_rewards.amount > 0 {
-            user_output_payments.push(lp_farm_rewards);
-        }
-        if staking_farm_rewards.amount > 0 {
-            user_output_payments.push(staking_farm_rewards);
-        }
-        user_output_payments.push(new_dual_yield_tokens);
-
         let caller = self.blockchain().get_caller();
-        self.send().direct_multi(&caller, &user_output_payments);
+        let claim_result = ClaimDualYieldResult {
+            lp_farm_rewards: lp_farm_claim_rewards_result.lp_farm_rewards,
+            staking_farm_rewards: staking_farm_claim_rewards_result.staking_farm_rewards,
+            new_dual_yield_tokens,
+        };
 
-        user_output_payments.into()
+        claim_result.send_and_return(self, &caller)
     }
 
     #[payable("*")]
@@ -218,10 +184,13 @@ pub trait FarmStakingProxy:
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
         let lp_farm_token_amount =
             self.get_lp_farm_token_amount_equivalent(&attributes, &payment_amount);
+
+        // for lp farm exit, we send exit_amount = actual amount
+        // TODO: think if this could somehow be calculated and received from front-end?
         let lp_farm_exit_result = self.lp_farm_exit(
             attributes.lp_farm_token_nonce,
+            lp_farm_token_amount.clone(),
             lp_farm_token_amount,
-            exit_amount,
         );
 
         let remove_liq_result = self.pair_remove_liquidity(
@@ -232,45 +201,28 @@ pub trait FarmStakingProxy:
 
         let staking_farm_token_amount =
             self.get_staking_farm_token_amount_equivalent(&payment_amount);
+        require!(
+            staking_farm_token_amount >= exit_amount,
+            "Invalid exit amount"
+        );
+
         let staking_farm_exit_result = self.staking_farm_unstake(
             remove_liq_result.staking_token_payment,
             attributes.staking_farm_token_nonce,
             staking_farm_token_amount,
+            exit_amount,
         );
-        let unstake_result = self.send_unstake_payments(
-            remove_liq_result.other_token_payment,
-            lp_farm_exit_result.lp_farm_rewards,
-            staking_farm_exit_result.staking_rewards,
-            staking_farm_exit_result.unbond_staking_farm_token,
-        );
+
+        let caller = self.blockchain().get_caller();
+        let unstake_result = UnstakeResult {
+            other_token_payment: remove_liq_result.other_token_payment,
+            lp_farm_rewards: lp_farm_exit_result.lp_farm_rewards,
+            staking_rewards: staking_farm_exit_result.staking_rewards,
+            unbond_staking_farm_token: staking_farm_exit_result.unbond_staking_farm_token,
+        };
 
         self.burn_dual_yield_tokens(payment_nonce, &payment_amount);
 
-        unstake_result
-    }
-
-    fn send_unstake_payments(
-        &self,
-        other_token_payment: EsdtTokenPayment<Self::Api>,
-        lp_farm_rewards: EsdtTokenPayment<Self::Api>,
-        staking_rewards: EsdtTokenPayment<Self::Api>,
-        unbond_staking_farm_token: EsdtTokenPayment<Self::Api>,
-    ) -> UnstakeResult<Self::Api> {
-        let caller = self.blockchain().get_caller();
-        let mut user_payments = ManagedVec::new();
-        if other_token_payment.amount > 0 {
-            user_payments.push(other_token_payment);
-        }
-        if lp_farm_rewards.amount > 0 {
-            user_payments.push(lp_farm_rewards);
-        }
-        if staking_rewards.amount > 0 {
-            user_payments.push(staking_rewards);
-        }
-        user_payments.push(unbond_staking_farm_token);
-
-        self.send().direct_multi(&caller, &user_payments);
-
-        user_payments.into()
+        unstake_result.send_and_return(self, &caller)
     }
 }
