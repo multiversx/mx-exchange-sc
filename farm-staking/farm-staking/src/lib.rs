@@ -56,6 +56,7 @@ pub trait FarmStaking:
         max_apr: BigUint,
         min_unbond_epochs: u64,
         upgrade_block: Nonce,
+        new_farm_supply: BigUint,
         owner: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -89,6 +90,10 @@ pub trait FarmStaking:
         });
         self.reward_reserve()
             .update(|r| *r += accumulated_rewards_before);
+
+        if new_farm_supply > 0 {
+            self.farm_token_supply().set(new_farm_supply);
+        }
     }
 
     #[payable("*")]

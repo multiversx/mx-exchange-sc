@@ -43,6 +43,7 @@ where
                 max_apr,
                 UNBOND_EPOCHS,
                 0,
+                managed_biguint!(0),
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );

@@ -69,6 +69,7 @@ where
                 managed_biguint!(MAX_APR),
                 MIN_UNBOND_EPOCHS,
                 0,
+                managed_biguint!(0),
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::new(),
             );
