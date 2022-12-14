@@ -66,6 +66,8 @@ pub trait ClaimStakeFarmRewardsModule:
         if let Some(new_amount) = opt_new_farming_amount {
             virtual_farm_token.payment.amount = new_amount.clone();
             virtual_farm_token.attributes.current_farm_amount = new_amount;
+
+            self.set_farm_supply_for_current_week(&claim_result.storage_cache.farm_token_supply);
         }
 
         let new_farm_token_nonce = self.send().esdt_nft_create_compact(
