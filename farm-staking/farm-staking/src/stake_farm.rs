@@ -81,6 +81,8 @@ pub trait StakeFarmModule:
         self.send_payment_non_zero(&caller, &new_farm_token);
         self.send_payment_non_zero(&caller, &boosted_rewards);
 
+        self.set_farm_supply_for_current_week(&enter_result.storage_cache.farm_token_supply);
+
         self.emit_enter_farm_event(
             &caller,
             enter_result.context.farming_token_payment,

@@ -1,12 +1,14 @@
 elrond_wasm::imports!();
 
-use farm::base_functions::ExitFarmResultType;
+use farm::ExitFarmWithPartialPosResultType;
+use mergeable::Mergeable;
 
 use crate::{base_impl_wrapper::FarmStakingWrapper, token_attributes::UnbondSftAttributes};
 
 #[elrond_wasm::module]
 pub trait UnstakeFarmModule:
     crate::custom_rewards::CustomRewardsModule
+    + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
     + rewards::RewardsModule
     + config::ConfigModule
     + events::EventsModule
@@ -32,19 +34,20 @@ pub trait UnstakeFarmModule:
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]
-    fn unstake_farm(&self) -> ExitFarmResultType<Self::Api> {
+    fn unstake_farm(&self, exit_amount: BigUint) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
 
-        self.unstake_farm_common(caller, payment, None)
+        self.unstake_farm_common(caller, payment, exit_amount, None)
     }
 
     #[payable("*")]
     #[endpoint(unstakeFarmThroughProxy)]
     fn unstake_farm_through_proxy(
         &self,
+        exit_amount: BigUint,
         original_caller: ManagedAddress,
-    ) -> ExitFarmResultType<Self::Api> {
+    ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
         self.require_sc_address_whitelisted(&caller);
 
@@ -58,16 +61,41 @@ pub trait UnstakeFarmModule:
             "Invalid staking token received"
         );
 
-        self.unstake_farm_common(original_caller, second_payment, Some(first_payment.amount))
+        self.unstake_farm_common(
+            original_caller,
+            second_payment,
+            exit_amount,
+            Some(first_payment.amount),
+        )
     }
 
     fn unstake_farm_common(
         &self,
         original_caller: ManagedAddress,
-        payment: EsdtTokenPayment,
+        mut payment: EsdtTokenPayment,
+        exit_amount: BigUint,
         opt_unbond_amount: Option<BigUint>,
-    ) -> ExitFarmResultType<Self::Api> {
-        let exit_result = self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller, payment);
+    ) -> ExitFarmWithPartialPosResultType<Self::Api> {
+        require!(
+            payment.amount >= exit_amount,
+            "Exit amount is bigger than the payment amount"
+        );
+
+        let boosted_rewards_full_position =
+            self.claim_only_boosted_payment(&original_caller, &payment);
+        let remaining_farm_payment = EsdtTokenPayment::new(
+            payment.token_identifier.clone(),
+            payment.token_nonce,
+            &payment.amount - &exit_amount,
+        );
+
+        payment.amount = exit_amount;
+
+        let mut exit_result =
+            self.exit_farm_base::<FarmStakingWrapper<Self>>(original_caller.clone(), payment);
+        exit_result
+            .reward_payment
+            .merge_with(boosted_rewards_full_position);
 
         let unbond_token_amount =
             opt_unbond_amount.unwrap_or(exit_result.farming_token_payment.amount);
@@ -78,6 +106,9 @@ pub trait UnstakeFarmModule:
             self.create_and_send_unbond_tokens(&caller, farm_token_id, unbond_token_amount);
 
         self.send_payment_non_zero(&caller, &exit_result.reward_payment);
+        self.send_payment_non_zero(&caller, &remaining_farm_payment);
+
+        self.clear_user_energy_if_needed(&original_caller, &remaining_farm_payment.amount);
 
         self.emit_exit_farm_event(
             &caller,
@@ -87,7 +118,12 @@ pub trait UnstakeFarmModule:
             exit_result.storage_cache,
         );
 
-        (unbond_farm_token, exit_result.reward_payment).into()
+        (
+            unbond_farm_token,
+            exit_result.reward_payment,
+            remaining_farm_payment,
+        )
+            .into()
     }
 
     fn create_and_send_unbond_tokens(
@@ -95,7 +131,7 @@ pub trait UnstakeFarmModule:
         to: &ManagedAddress,
         farm_token_id: TokenIdentifier,
         amount: BigUint,
-    ) -> EsdtTokenPayment<Self::Api> {
+    ) -> EsdtTokenPayment {
         let min_unbond_epochs = self.min_unbond_epochs().get();
         let current_epoch = self.blockchain().get_block_epoch();
         let nft_nonce = self.send().esdt_nft_create_compact(

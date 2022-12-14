@@ -151,7 +151,7 @@ pub trait ExternalContractsInteractionsModule:
         let staking_farm_address = self.staking_farm_address().get();
         let unstake_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
-            .unstake_farm_through_proxy(orig_caller)
+            .unstake_farm_through_proxy(exit_amount, orig_caller)
             .with_multi_token_transfer(payments)
             .execute_on_dest_context();
         let (unbond_staking_farm_token, staking_rewards, remaining_farm_tokens) =

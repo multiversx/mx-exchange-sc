@@ -268,9 +268,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result = sc.unstake_farm();
+                    let multi_result = sc.unstake_farm(managed_biguint!(farm_token_amount));
 
-                    let (first_result, second_result) = multi_result.into_tuple();
+                    let (first_result, second_result, _) = multi_result.into_tuple();
 
                     assert_eq!(
                         first_result.token_identifier,
