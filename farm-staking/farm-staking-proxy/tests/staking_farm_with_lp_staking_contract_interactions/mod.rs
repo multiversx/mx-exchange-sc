@@ -239,6 +239,7 @@ where
         dual_yield_nonce
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn unstake_proxy(
         &mut self,
         dual_yield_token_nonce: u64,

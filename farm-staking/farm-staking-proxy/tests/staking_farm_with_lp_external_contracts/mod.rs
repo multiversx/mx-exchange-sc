@@ -36,11 +36,11 @@ where
         b_mock.create_sc_account(&rust_zero, Some(owner_addr), pair_builder, PAIR_WASM_PATH);
 
     b_mock
-        .execute_tx(&owner_addr, &pair_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner_addr, &pair_wrapper, &rust_zero, |sc| {
             let first_token_id = managed_token_id!(WEGLD_TOKEN_ID);
             let second_token_id = managed_token_id!(RIDE_TOKEN_ID);
-            let router_address = managed_address!(&owner_addr);
-            let router_owner_address = managed_address!(&owner_addr);
+            let router_address = managed_address!(owner_addr);
+            let router_owner_address = managed_address!(owner_addr);
             let total_fee_percent = 300u64;
             let special_fee_percent = 50u64;
 
@@ -58,7 +58,7 @@ where
             let lp_token_id = managed_token_id!(LP_TOKEN_ID);
             sc.lp_token_identifier().set(&lp_token_id);
 
-            sc.state().set(&pausable::State::Active);
+            sc.state().set(pausable::State::Active);
             sc.set_max_observations_per_record(10);
         })
         .assert_ok();
@@ -68,12 +68,12 @@ where
 
     // set user balance
     b_mock.set_esdt_balance(
-        &user_addr,
+        user_addr,
         WEGLD_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_WEGLD_TOKENS),
     );
     b_mock.set_esdt_balance(
-        &user_addr,
+        user_addr,
         RIDE_TOKEN_ID,
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
@@ -108,7 +108,7 @@ where
     b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
 
     add_liquidity(
-        &user_addr,
+        user_addr,
         b_mock,
         &pair_wrapper,
         1_001_000_000,
@@ -140,6 +140,7 @@ where
     pair_wrapper
 }
 
+#[allow(clippy::too_many_arguments)]
 fn add_liquidity<PairObjBuilder>(
     user_address: &Address,
     b_mock: &mut BlockchainStateWrapper,
@@ -207,12 +208,12 @@ where
 {
     let rust_zero = rust_biguint!(0u64);
     let farm_wrapper =
-        b_mock.create_sc_account(&rust_zero, Some(&owner_addr), farm_builder, FARM_WASM_PATH);
+        b_mock.create_sc_account(&rust_zero, Some(owner_addr), farm_builder, FARM_WASM_PATH);
 
     // init farm contract
 
     b_mock
-        .execute_tx(&owner_addr, &farm_wrapper, &rust_zero, |sc| {
+        .execute_tx(owner_addr, &farm_wrapper, &rust_zero, |sc| {
             let reward_token_id = managed_token_id!(RIDE_TOKEN_ID);
             let farming_token_id = managed_token_id!(LP_TOKEN_ID);
             let division_safety_constant = managed_biguint!(DIVISION_SAFETY_CONSTANT);
@@ -231,19 +232,19 @@ where
             sc.farm_token().set_token_id(farm_token_id);
 
             sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
-            sc.penalty_percent().set(&PENALTY_PERCENT);
+            sc.penalty_percent().set(PENALTY_PERCENT);
 
-            sc.state().set(&State::Active);
-            sc.produce_rewards_enabled().set(&true);
+            sc.state().set(State::Active);
+            sc.produce_rewards_enabled().set(true);
             sc.per_block_reward_amount()
                 .set(&managed_biguint!(LP_FARM_PER_BLOCK_REWARD_AMOUNT));
             sc.last_reward_block_nonce()
-                .set(&BLOCK_NONCE_AFTER_PAIR_SETUP);
+                .set(BLOCK_NONCE_AFTER_PAIR_SETUP);
         })
         .assert_ok();
 
     b_mock
-        .execute_tx(&owner_addr, &farm_wrapper, &rust_biguint!(0), |sc| {
+        .execute_tx(owner_addr, &farm_wrapper, &rust_biguint!(0), |sc| {
             sc.set_boosted_yields_factors(
                 managed_biguint!(USER_REWARDS_BASE_CONST),
                 managed_biguint!(USER_REWARDS_ENERGY_CONST),

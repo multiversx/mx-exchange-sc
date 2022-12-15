@@ -16,7 +16,7 @@ use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 use rewards::*;
 
-pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
+pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
 
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef"; // farming token ID
@@ -98,11 +98,11 @@ where
 
                 sc.per_block_reward_amount()
                     .set(&to_managed_biguint(per_block_reward_amount));
-                sc.minimum_farming_epochs().set(&MIN_FARMING_EPOCHS);
-                sc.penalty_percent().set(&PENALTY_PERCENT);
+                sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
+                sc.penalty_percent().set(PENALTY_PERCENT);
 
-                sc.state().set(&State::Active);
-                sc.produce_rewards_enabled().set(&true);
+                sc.state().set(State::Active);
+                sc.produce_rewards_enabled().set(true);
             })
             .assert_ok();
 
@@ -139,12 +139,11 @@ where
     }
 
     pub fn enter_farm(&mut self, caller: &Address, farm_in_amount: RustBigUint) {
-        let mut payments = Vec::new();
-        payments.push(TxInputESDT {
+        let payments = vec![TxInputESDT {
             token_identifier: LP_TOKEN_ID.to_vec(),
             nonce: 0,
-            value: farm_in_amount.clone(),
-        });
+            value: farm_in_amount,
+        }];
 
         let mut expected_total_out_amount = RustBigUint::default();
         for payment in payments.iter() {
@@ -153,7 +152,7 @@ where
 
         let b_mock = &mut self.blockchain_wrapper;
         b_mock
-            .execute_esdt_multi_transfer(&caller, &self.farm_wrapper, &payments, |sc| {
+            .execute_esdt_multi_transfer(caller, &self.farm_wrapper, &payments, |sc| {
                 let enter_farm_result = sc.enter_farm_endpoint(OptionalValue::None);
                 let (out_farm_token, _reward_token) = enter_farm_result.into_tuple();
                 assert_eq!(
@@ -179,7 +178,7 @@ where
         let b_mock = &mut self.blockchain_wrapper;
         b_mock
             .execute_esdt_transfer(
-                &caller,
+                caller,
                 &self.farm_wrapper,
                 FARM_TOKEN_ID,
                 farm_token_nonce,
@@ -205,7 +204,7 @@ where
             )
             .assert_ok();
 
-        b_mock.check_esdt_balance(&caller, MEX_TOKEN_ID, &expected_mex_balance);
+        b_mock.check_esdt_balance(caller, MEX_TOKEN_ID, &expected_mex_balance);
     }
 
     pub fn reward_per_block_rate_change(&mut self, new_rate: RustBigUint) {

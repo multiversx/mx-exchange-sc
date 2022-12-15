@@ -145,16 +145,11 @@ where
         }),
     );
 
-    let balance_u64 = new_user_balance
-        .clone()
-        .to_bigint()
-        .unwrap()
-        .to_u64()
-        .unwrap();
+    let balance_u64 = new_user_balance.to_bigint().unwrap().to_u64().unwrap();
 
     // reduce lock period from 2 years to 1 year
     let second_penalty_percentage = 3_333u64; // (6_000 - 4_000) / (10_000 - 4_000) = 0.33 => 3_333
-    let second_expected_penalty_amount = &new_user_balance * &second_penalty_percentage / 10_000u64;
+    let second_expected_penalty_amount = &new_user_balance * second_penalty_percentage / 10_000u64;
     let second_penalty_amount =
         setup.get_penalty_amount(balance_u64, LOCK_OPTIONS[1], LOCK_OPTIONS[0]);
     assert_eq!(second_penalty_amount, second_expected_penalty_amount);
@@ -188,7 +183,7 @@ where
     // reduce lock period from 1 years to 0
     let final_penalty_percentage = 3_888u64; // 0 + (350 - 0) * (4_000 - 0) / (360 - 0) = 3_888
     let final_expected_penalty_amount =
-        &balance_after_second_reduce * &final_penalty_percentage / 10_000u64;
+        &balance_after_second_reduce * final_penalty_percentage / 10_000u64;
     let final_penalty_amount = setup.get_penalty_amount(new_amount_u64, LOCK_OPTIONS[0] - 10, 0);
     assert_eq!(final_penalty_amount, final_expected_penalty_amount);
 

@@ -122,7 +122,7 @@ where
         let mut results = ManagedVec::new();
         let all_tokens = sc.all_tokens().get();
         for token in &all_tokens {
-            let opt_accumulated_fees = sc.get_and_clear_acccumulated_fees(week, &token);
+            let opt_accumulated_fees = sc.get_and_clear_accumulated_fees(week, &token);
             if let Some(accumulated_fees) = opt_accumulated_fees {
                 results.push(EsdtTokenPayment::new(token, 0, accumulated_fees));
             }
