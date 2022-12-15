@@ -2,7 +2,7 @@
 name = "sc_whitelist_module"
 version = "0.0.0"
 authors = [ "you" ]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/sc_whitelist_module.rs"

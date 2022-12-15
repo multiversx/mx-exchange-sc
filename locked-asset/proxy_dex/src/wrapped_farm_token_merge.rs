@@ -17,6 +17,7 @@ pub trait WrappedFarmTokenMerge:
     + crate::proxy_common::ProxyCommonModule
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + utils::UtilsModule
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(mergeWrappedFarmTokens)]
@@ -79,9 +80,7 @@ pub trait WrappedFarmTokenMerge:
             proxy_farming_token.token_nonce,
         );
 
-        let factory_address = self
-            .factory_address_for_locked_token(&locked_token_id)
-            .get();
+        let factory_address = self.get_factory_address_for_locked_token(&locked_token_id);
 
         let wrapped_lp_token_mapper = self.wrapped_lp_token();
         let wrapped_farm_token_mapper = self.wrapped_farm_token();
