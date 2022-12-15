@@ -44,7 +44,7 @@ pub trait FeesAccumulationModule:
         self.emit_deposit_swap_fees_event(caller, current_week, payment);
     }
 
-    fn get_and_clear_acccumulated_fees(
+    fn get_and_clear_accumulated_fees(
         &self,
         week: Week,
         token: &TokenIdentifier,

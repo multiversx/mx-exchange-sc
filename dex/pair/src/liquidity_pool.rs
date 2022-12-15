@@ -47,7 +47,8 @@ pub trait LiquidityPoolModule:
         second_token_optimal_amount: &BigUint,
         storage_cache: &mut StorageCache<Self>,
     ) -> BigUint {
-        let liquidity = self.biguint_min(first_token_optimal_amount, second_token_optimal_amount);
+        let liquidity =
+            core::cmp::min(first_token_optimal_amount, second_token_optimal_amount).clone();
         let minimum_liquidity = BigUint::from(MINIMUM_LIQUIDITY);
         require!(liquidity > minimum_liquidity, ERROR_FIRST_LIQUDITY);
 
@@ -213,13 +214,5 @@ pub trait LiquidityPoolModule:
         *storage_cache.get_mut_reserve_out(swap_tokens_order) -= &amount_out;
 
         amount_out
-    }
-
-    fn biguint_min(&self, a: &BigUint, b: &BigUint) -> BigUint {
-        if a < b {
-            a.clone()
-        } else {
-            b.clone()
-        }
     }
 }
