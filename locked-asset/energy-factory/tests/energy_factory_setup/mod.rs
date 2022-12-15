@@ -25,6 +25,7 @@ use unbond_sc_mock::*;
 pub const EPOCHS_IN_YEAR: u64 = 360;
 pub const EPOCHS_IN_WEEK: u64 = 7;
 pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
+pub const FIRST_UPDATED_BLOCK_NONCE: u64 = 2_286_815; // first nonce for updated legacy attributes
 
 pub static BASE_ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 pub static LOCKED_TOKEN_ID: &[u8] = b"LOCKED-123456";

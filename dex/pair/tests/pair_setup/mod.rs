@@ -17,7 +17,6 @@ pub const LP_PROXY_TOKEN_ID: &[u8] = b"LPPROXY-abcdef";
 pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
-use pair::bot_protection::*;
 use pair::config::ConfigModule as PairConfigModule;
 use pair::safe_price::*;
 use pair::*;
@@ -174,31 +173,6 @@ where
             .assert_ok();
     }
 
-    pub fn swap_fixed_input_expect_error(
-        &mut self,
-        payment_token_id: &[u8],
-        payment_amount: u64,
-        desired_token_id: &[u8],
-        desired_amount_min: u64,
-        expected_message: &str,
-    ) {
-        self.b_mock
-            .execute_esdt_transfer(
-                &self.user_address,
-                &self.pair_wrapper,
-                payment_token_id,
-                0,
-                &rust_biguint!(payment_amount),
-                |sc| {
-                    sc.swap_tokens_fixed_input(
-                        managed_token_id!(desired_token_id),
-                        managed_biguint!(desired_amount_min),
-                    );
-                },
-            )
-            .assert_user_error(expected_message);
-    }
-
     pub fn swap_fixed_output(
         &mut self,
         payment_token_id: &[u8],
@@ -263,28 +237,6 @@ where
             final_desired_token_balance,
             initial_desired_token_balance + desired_token_swap_amount
         );
-    }
-
-    pub fn set_swap_protect(
-        &mut self,
-        protect_stop_block: u64,
-        volume_percent: u64,
-        max_num_actions_per_address: u64,
-    ) {
-        self.b_mock
-            .execute_tx(
-                &self.owner_address,
-                &self.pair_wrapper,
-                &rust_biguint!(0),
-                |sc| {
-                    sc.set_bp_swap_config(
-                        protect_stop_block,
-                        volume_percent,
-                        max_num_actions_per_address,
-                    );
-                },
-            )
-            .assert_ok();
     }
 
     #[allow(clippy::too_many_arguments)]

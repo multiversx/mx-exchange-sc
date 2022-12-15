@@ -125,10 +125,11 @@ pub trait FarmBoostedYieldsModule:
         total
     }
 
-    #[view(getBoostedYieldsRewardsPercenatage)]
+    #[view(getBoostedYieldsRewardsPercentage)]
     #[storage_mapper("boostedYieldsRewardsPercentage")]
     fn boosted_yields_rewards_percentage(&self) -> SingleValueMapper<u64>;
 
+    #[view(getAccumulatedRewardsForWeek)]
     #[storage_mapper("accumulatedRewardsForWeek")]
     fn accumulated_rewards_for_week(&self, week: Week) -> SingleValueMapper<BigUint>;
 

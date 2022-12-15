@@ -49,5 +49,6 @@ elrond_wasm_node::wasm_endpoints! {
         unbondFarm
         unstakeFarm
         unstakeFarmThroughProxy
+        updateOwnerOrAdmin
     )
 }
