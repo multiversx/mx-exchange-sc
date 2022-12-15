@@ -2,7 +2,7 @@
 name = "farm_token"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/farm_token.rs"
