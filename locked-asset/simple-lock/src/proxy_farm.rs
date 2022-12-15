@@ -91,13 +91,13 @@ pub trait ProxyFarmModule:
         let was_removed = self.known_farms().swap_remove(&farm_address);
         require!(was_removed, "Farm address not known");
 
-        let mapper_by_token = self.farm_address_for_token(&farming_token_id, farm_type);
+        let stored_addr = self
+            .farm_address_for_token(&farming_token_id, farm_type)
+            .take();
         require!(
-            mapper_by_token.get() == farm_address,
+            stored_addr == farm_address,
             "Farm address does not match the given token and farm type"
         );
-
-        mapper_by_token.clear();
     }
 
     /// Enter farm with LOCKED tokens.
@@ -339,5 +339,5 @@ pub trait ProxyFarmModule:
 
     #[view(getFarmProxyTokenId)]
     #[storage_mapper("farmProxyTokenId")]
-    fn farm_proxy_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn farm_proxy_token(&self) -> NonFungibleTokenMapper;
 }

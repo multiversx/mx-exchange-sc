@@ -24,10 +24,6 @@ impl CallableContract for UnbondScMock {
             fn_name == DEPOSIT_FEES_FN_NAME
         }
     }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
-    }
 }
 
 impl UnbondScMock {

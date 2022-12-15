@@ -117,5 +117,5 @@ pub trait LockedTokenModule:
 
     #[view(getLockedTokenId)]
     #[storage_mapper("lockedTokenId")]
-    fn locked_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn locked_token(&self) -> NonFungibleTokenMapper;
 }
