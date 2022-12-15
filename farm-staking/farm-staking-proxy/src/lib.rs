@@ -181,16 +181,17 @@ pub trait FarmStakingProxy:
             self.call_value().single_esdt().into_tuple();
         self.dual_yield_token().require_same_token(&payment_token);
 
-        let attributes = self.get_dual_yield_token_attributes(payment_nonce);
-        let lp_farm_token_amount =
-            self.get_lp_farm_token_amount_equivalent(&attributes, &payment_amount);
+        require!(payment_amount >= exit_amount, "Invalid exit amount");
 
-        // for lp farm exit, we send exit_amount = actual amount
-        // TODO: think if this could somehow be calculated and received from front-end?
+        let attributes = self.get_dual_yield_token_attributes(payment_nonce);
+        let full_lp_farm_token_amount =
+            self.get_lp_farm_token_amount_equivalent(&attributes, &payment_amount);
+        let lp_farm_exit_amount =
+            self.get_lp_farm_token_amount_equivalent(&attributes, &exit_amount);
         let lp_farm_exit_result = self.lp_farm_exit(
             attributes.lp_farm_token_nonce,
-            lp_farm_token_amount.clone(),
-            lp_farm_token_amount,
+            full_lp_farm_token_amount,
+            lp_farm_exit_amount,
         );
 
         let remove_liq_result = self.pair_remove_liquidity(
@@ -199,18 +200,14 @@ pub trait FarmStakingProxy:
             pair_second_token_min_amount,
         );
 
-        let staking_farm_token_amount =
+        let full_staking_farm_token_amount =
             self.get_staking_farm_token_amount_equivalent(&payment_amount);
-        require!(
-            staking_farm_token_amount >= exit_amount,
-            "Invalid exit amount"
-        );
-
+        let staking_farm_exit_amount = self.get_staking_farm_token_amount_equivalent(&exit_amount);
         let staking_farm_exit_result = self.staking_farm_unstake(
             remove_liq_result.staking_token_payment,
             attributes.staking_farm_token_nonce,
-            staking_farm_token_amount,
-            exit_amount,
+            full_staking_farm_token_amount,
+            staking_farm_exit_amount,
         );
 
         let caller = self.blockchain().get_caller();

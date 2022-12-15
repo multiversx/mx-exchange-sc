@@ -59,7 +59,7 @@ pub trait ClaimStakeFarmRewardsModule:
         let payment = self.call_value().single_esdt();
         let mut claim_result = self
             .claim_rewards_base_no_farm_token_mint::<FarmStakingWrapper<Self>>(
-                caller.clone(),
+                original_caller,
                 ManagedVec::from_single_item(payment),
             );
 
