@@ -17,7 +17,7 @@ pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPaym
 
 #[elrond_wasm::module]
 pub trait ExternalContractsInteractionsModule:
-    crate::lp_farm_token::LpFarmTokenModule + token_merge_helper::TokenMergeHelperModule
+    crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule
 {
     // lp farm
 
