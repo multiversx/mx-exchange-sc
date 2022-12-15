@@ -151,9 +151,9 @@ pub trait ProxyCommonModule: energy_query::EnergyQueryModule {
 
     #[view(getWrappedLpTokenId)]
     #[storage_mapper("wrappedLpTokenId")]
-    fn wrapped_lp_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn wrapped_lp_token(&self) -> NonFungibleTokenMapper;
 
     #[view(getWrappedFarmTokenId)]
     #[storage_mapper("wrappedFarmTokenId")]
-    fn wrapped_farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn wrapped_farm_token(&self) -> NonFungibleTokenMapper;
 }

@@ -1,7 +1,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::exit_farm_context::elrond_codec::TopEncode;
 use common_errors::ERROR_BAD_PAYMENTS;
 use common_structs::PaymentAttributesPair;
 use elrond_wasm::contract_base::BlockchainWrapper;

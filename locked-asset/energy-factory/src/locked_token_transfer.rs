@@ -41,5 +41,5 @@ pub trait LockedTokenTransferModule:
     }
 
     #[storage_mapper("tokenTransferWhitelist")]
-    fn token_transfer_whitelist(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn token_transfer_whitelist(&self) -> WhitelistMapper<ManagedAddress>;
 }
