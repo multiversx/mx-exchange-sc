@@ -48,11 +48,8 @@ pub trait ProxyFarmModule:
         let proxy_farming_token = self.pop_first_payment(&mut payments);
 
         let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
-        let is_input_locked_token = self
-            .locked_token_ids()
-            .contains(&proxy_farming_token.token_identifier);
-
-        let farm_farming_token_pair = if is_input_locked_token {
+        let farm_farming_token_pair = if self.is_locked_token(&proxy_farming_token.token_identifier)
+        {
             self.enter_farm_locked_token(farm_address.clone(), proxy_farming_token.clone())
         } else if proxy_farming_token.token_identifier == wrapped_lp_token_id {
             self.enter_farm_wrapped_lp(farm_address.clone(), proxy_farming_token.clone())
@@ -109,7 +106,11 @@ pub trait ProxyFarmModule:
         farm_address: ManagedAddress,
         locked_token: EsdtTokenPayment,
     ) -> FarmingFarmTokenPair<Self::Api> {
-        let minted_asset_tokens = self.asset_token().mint(locked_token.amount);
+        let asset_token_id = self.get_base_token_id();
+        self.send()
+            .esdt_local_mint(&asset_token_id, 0, &locked_token.amount);
+
+        let minted_asset_tokens = EsdtTokenPayment::new(asset_token_id, 0, locked_token.amount);
         let enter_result = self.call_enter_farm(
             farm_address,
             minted_asset_tokens.token_identifier.clone(),
@@ -240,10 +241,7 @@ pub trait ProxyFarmModule:
         let mut remaining_proxy_tokens = proxy_farming_token.clone();
         remaining_proxy_tokens.amount -= &penalty_amount;
 
-        let is_locked_token = self
-            .locked_token_ids()
-            .contains(&proxy_farming_token.token_identifier);
-        if is_locked_token {
+        if self.is_locked_token(&proxy_farming_token.token_identifier) {
             self.burn_locked_tokens_and_update_energy(
                 &proxy_farming_token.token_identifier,
                 proxy_farming_token.token_nonce,

@@ -61,9 +61,8 @@ pub trait FeesCollector:
         let mut opt_locked_rewards = None;
         for reward in &rewards {
             if reward.token_identifier == locked_token_id {
-                let energy_factory_addr = self.energy_factory_address().get();
                 let locked_rewards = self.lock_virtual(
-                    self.get_base_token_id(&energy_factory_addr),
+                    self.get_base_token_id(),
                     reward.amount,
                     caller.clone(),
                     caller.clone(),
