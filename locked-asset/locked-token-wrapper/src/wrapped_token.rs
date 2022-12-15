@@ -6,7 +6,8 @@ use common_structs::Nonce;
 pub static WRAPPED_TOKEN_NAME: &[u8] = b"WrappedLKMEX";
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
-pub struct WrappedTokenAttributes {
+pub struct WrappedTokenAttributes<M: ManagedTypeApi> {
+    pub locked_token_id: TokenIdentifier<M>,
     pub locked_token_nonce: Nonce,
 }
 
@@ -57,11 +58,9 @@ pub trait WrappedTokenModule:
         caller: &ManagedAddress,
         token: EsdtTokenPayment,
     ) -> EsdtTokenPayment {
-        self.locked_token()
-            .require_same_token(&token.token_identifier);
-
         let wrapped_token_mapper = self.wrapped_token();
         let wrapped_token_attributes = WrappedTokenAttributes {
+            locked_token_id: token.token_identifier,
             locked_token_nonce: token.token_nonce,
         };
         let wrapped_token_nonce = self.get_or_create_nonce_for_attributes(
@@ -77,15 +76,14 @@ pub trait WrappedTokenModule:
         let wrapped_token_mapper = self.wrapped_token();
         wrapped_token_mapper.require_same_token(&token.token_identifier);
 
-        let wrapped_token_attributes: WrappedTokenAttributes =
+        let wrapped_token_attributes: WrappedTokenAttributes<Self::Api> =
             wrapped_token_mapper.get_token_attributes(token.token_nonce);
 
         self.send()
             .esdt_local_burn(&token.token_identifier, token.token_nonce, &token.amount);
 
-        let locked_token_id = self.locked_token().get_token_id();
         EsdtTokenPayment::new(
-            locked_token_id,
+            wrapped_token_attributes.locked_token_id,
             wrapped_token_attributes.locked_token_nonce,
             token.amount,
         )
@@ -94,6 +92,10 @@ pub trait WrappedTokenModule:
     #[view(getLockedTokenId)]
     #[storage_mapper("lockedTokenId")]
     fn locked_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+
+    #[view(getOldLockedTokenId)]
+    #[storage_mapper("oldLockedTokenId")]
+    fn old_locked_token(&self) -> NonFungibleTokenMapper<Self::Api>;
 
     #[view(getWrappedTokenId)]
     #[storage_mapper("wrappedTokenId")]
