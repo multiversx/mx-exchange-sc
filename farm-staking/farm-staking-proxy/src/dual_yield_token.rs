@@ -22,7 +22,7 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for DualYieldTokenAttributes<M> {
         }
 
         let new_lp_farm_token_amount =
-            self.rule_of_three(payment_amount, &self.lp_farm_token_amount);
+            self.rule_of_three_non_zero_result(payment_amount, &self.lp_farm_token_amount);
         let new_staking_farm_token_amount = payment_amount.clone();
 
         DualYieldTokenAttributes {
