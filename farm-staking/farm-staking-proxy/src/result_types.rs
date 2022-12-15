@@ -92,6 +92,7 @@ pub struct UnstakeResult<M: ManagedTypeApi> {
     pub lp_farm_rewards: EsdtTokenPayment<M>,
     pub staking_rewards: EsdtTokenPayment<M>,
     pub unbond_staking_farm_token: EsdtTokenPayment<M>,
+    pub remaining_dual_yield_tokens: EsdtTokenPayment<M>,
 }
 
 impl<M: ManagedTypeApi> UnstakeResult<M> {
@@ -105,6 +106,7 @@ impl<M: ManagedTypeApi> UnstakeResult<M> {
         payments.push(self.lp_farm_rewards.clone());
         payments.push(self.staking_rewards.clone());
         payments.push(self.unbond_staking_farm_token.clone());
+        payments.push(self.remaining_dual_yield_tokens.clone());
 
         sc.send_multiple_tokens_if_not_zero(to, &payments);
 

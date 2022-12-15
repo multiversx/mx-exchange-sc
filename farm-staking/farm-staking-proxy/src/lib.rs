@@ -181,7 +181,10 @@ pub trait FarmStakingProxy:
             self.call_value().single_esdt().into_tuple();
         self.dual_yield_token().require_same_token(&payment_token);
 
-        require!(payment_amount >= exit_amount, "Invalid exit amount");
+        require!(
+            exit_amount > 0 && exit_amount <= payment_amount,
+            "Invalid exit amount"
+        );
 
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
         let full_lp_farm_token_amount =
@@ -211,14 +214,17 @@ pub trait FarmStakingProxy:
         );
 
         let caller = self.blockchain().get_caller();
+        let remaining_dual_yield_tokens =
+            EsdtTokenPayment::new(payment_token, payment_nonce, &payment_amount - &exit_amount);
         let unstake_result = UnstakeResult {
             other_token_payment: remove_liq_result.other_token_payment,
             lp_farm_rewards: lp_farm_exit_result.lp_farm_rewards,
             staking_rewards: staking_farm_exit_result.staking_rewards,
             unbond_staking_farm_token: staking_farm_exit_result.unbond_staking_farm_token,
+            remaining_dual_yield_tokens,
         };
 
-        self.burn_dual_yield_tokens(payment_nonce, &payment_amount);
+        self.burn_dual_yield_tokens(payment_nonce, &exit_amount);
 
         unstake_result.send_and_return(self, &caller)
     }
