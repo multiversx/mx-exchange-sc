@@ -41,10 +41,7 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         for _ in 0..nr_pos_to_shift {
             let bucket_mapper = self.locked_tokens_in_bucket(first_bucket_id);
             let bucket = if !bucket_mapper.is_empty() {
-                let b = bucket_mapper.get();
-                bucket_mapper.clear();
-
-                b
+                bucket_mapper.take()
             } else {
                 LockedTokensBucket::default()
             };

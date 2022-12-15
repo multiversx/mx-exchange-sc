@@ -4,7 +4,6 @@ elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
 use common_structs::Nonce;
-use elrond_wasm::elrond_codec::TopEncode;
 
 #[elrond_wasm::module]
 pub trait FarmTokenModule:
@@ -86,7 +85,7 @@ pub trait FarmTokenModule:
 
     #[view(getFarmTokenId)]
     #[storage_mapper("farm_token_id")]
-    fn farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn farm_token(&self) -> NonFungibleTokenMapper;
 
     #[view(getFarmTokenSupply)]
     #[storage_mapper("farm_token_supply")]

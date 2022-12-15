@@ -196,5 +196,5 @@ pub trait SimpleLockMigrationModule:
     fn min_migrated_token_locked_period(&self) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("userUpdatedOldTokensEnergy")]
-    fn user_updated_old_tokens_energy(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn user_updated_old_tokens_energy(&self) -> WhitelistMapper<ManagedAddress>;
 }

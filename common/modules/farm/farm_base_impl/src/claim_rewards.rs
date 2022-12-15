@@ -1,6 +1,6 @@
 elrond_wasm::imports!();
 
-use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
+use crate::base_traits_impl::FarmContract;
 use common_structs::{PaymentAttributesPair, PaymentsVec};
 use contexts::{
     claim_rewards_context::ClaimRewardsContext,

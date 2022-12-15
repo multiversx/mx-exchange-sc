@@ -26,14 +26,14 @@ path = "../energy-factory"
 path = "../simple-lock"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dependencies]
 wee_alloc = "0.4"

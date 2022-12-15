@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

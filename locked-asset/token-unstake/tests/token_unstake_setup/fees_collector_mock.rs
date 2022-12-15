@@ -14,10 +14,6 @@ impl CallableContract for FeesCollectorMock {
     fn call(&self, fn_name: &[u8]) -> bool {
         fn_name == DEPOSIT_FN_NAME
     }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
-    }
 }
 
 impl FeesCollectorMock {
