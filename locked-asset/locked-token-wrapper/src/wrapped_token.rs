@@ -97,10 +97,6 @@ pub trait WrappedTokenModule:
     #[storage_mapper("oldLockedTokenId")]
     fn old_locked_token(&self) -> NonFungibleTokenMapper;
 
-    #[view(getOldLockedTokenId)]
-    #[storage_mapper("oldLockedTokenId")]
-    fn old_locked_token(&self) -> NonFungibleTokenMapper<Self::Api>;
-
     #[view(getWrappedTokenId)]
     #[storage_mapper("wrappedTokenId")]
     fn wrapped_token(&self) -> NonFungibleTokenMapper;
