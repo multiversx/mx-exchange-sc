@@ -211,6 +211,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub fn to_rust_biguint(
     managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {
@@ -493,10 +494,6 @@ impl ContractBase for DummySc {
 impl CallableContract for DummySc {
     fn call(&self, _fn_name: &[u8]) -> bool {
         true
-    }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
     }
 }
 

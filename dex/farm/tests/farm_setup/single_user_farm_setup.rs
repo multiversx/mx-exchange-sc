@@ -19,7 +19,7 @@ use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};
 
-pub const FARM_WASM_PATH: &'static str = "farm/output/farm.wasm";
+pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
 
 pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef"; // reward token ID
@@ -88,8 +88,8 @@ where
                 sc.minimum_farming_epochs().set(MIN_FARMING_EPOCHS);
                 sc.penalty_percent().set(PENALTY_PERCENT);
 
-                sc.state().set(&State::Active);
-                sc.produce_rewards_enabled().set(&true);
+                sc.state().set(State::Active);
+                sc.produce_rewards_enabled().set(true);
             })
             .assert_ok();
 
@@ -259,6 +259,7 @@ where
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn claim_rewards(
         &mut self,
         farm_token_amount: u64,

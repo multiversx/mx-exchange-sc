@@ -1,7 +1,10 @@
 elrond_wasm::imports!();
 
 use crate::energy::Energy;
-use common_structs::{Epoch, OldLockedTokenAttributes, UnlockEpochAmountPairs};
+use common_structs::{
+    Epoch, InitialOldLockedTokenAttributes, OldLockedTokenAttributes, UnlockEpochAmountPairs,
+    LOCKED_TOKEN_ACTIVATION_NONCE,
+};
 use math::safe_sub;
 use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 use unwrappable::Unwrappable;
@@ -105,7 +108,16 @@ pub trait SimpleLockMigrationModule:
         energy: &mut Energy<Self::Api>,
     ) -> EsdtTokenPayment {
         let attributes: OldLockedTokenAttributes<Self::Api> =
-            self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+            if payment.token_nonce < LOCKED_TOKEN_ACTIVATION_NONCE {
+                let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> =
+                    self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+                initial_attributes.migrate_to_new_attributes()
+            } else {
+                let updated_attributes: OldLockedTokenAttributes<Self::Api> =
+                    self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+                updated_attributes
+            };
+
         self.send().esdt_local_burn(
             &payment.token_identifier,
             payment.token_nonce,
@@ -184,5 +196,5 @@ pub trait SimpleLockMigrationModule:
     fn min_migrated_token_locked_period(&self) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("userUpdatedOldTokensEnergy")]
-    fn user_updated_old_tokens_energy(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn user_updated_old_tokens_energy(&self) -> WhitelistMapper<ManagedAddress>;
 }
