@@ -1,15 +1,13 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use elrond_codec::TopEncode;
-
 const INITIAL_SFT_AMOUNT: u32 = 1;
 
 #[elrond_wasm::module]
 pub trait TokenAttributesModule {
     fn get_or_create_nonce_for_attributes<T: TopEncode + NestedEncode>(
         &self,
-        nft_mapper: &NonFungibleTokenMapper<Self::Api>,
+        nft_mapper: &NonFungibleTokenMapper,
         token_name: &ManagedBuffer,
         attributes: &T,
     ) -> u64 {

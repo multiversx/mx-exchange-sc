@@ -106,7 +106,7 @@ pub trait ProxyCommonModule {
 
     #[view(getAssetTokenId)]
     #[storage_mapper("assetTokenId")]
-    fn asset_token(&self) -> FungibleTokenMapper<Self::Api>;
+    fn asset_token(&self) -> FungibleTokenMapper;
 
     #[view(getLockedTokenIds)]
     #[storage_mapper("lockedTokenIds")]
@@ -120,9 +120,9 @@ pub trait ProxyCommonModule {
 
     #[view(getWrappedLpTokenId)]
     #[storage_mapper("wrappedLpTokenId")]
-    fn wrapped_lp_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn wrapped_lp_token(&self) -> NonFungibleTokenMapper;
 
     #[view(getWrappedFarmTokenId)]
     #[storage_mapper("wrappedFarmTokenId")]
-    fn wrapped_farm_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn wrapped_farm_token(&self) -> NonFungibleTokenMapper;
 }
