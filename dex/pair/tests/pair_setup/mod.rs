@@ -6,7 +6,7 @@ use elrond_wasm_debug::{
     DebugApi,
 };
 
-pub const PAIR_WASM_PATH: &'static str = "pair/output/pair.wasm";
+pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
 pub const MEX_TOKEN_ID: &[u8] = b"MEX-abcdef";
 pub const WEGLD_TOKEN_ID: &[u8] = b"WEGLD-abcdef";
 pub const LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
@@ -17,7 +17,6 @@ pub const LP_PROXY_TOKEN_ID: &[u8] = b"LPPROXY-abcdef";
 pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
-use pair::bot_protection::*;
 use pair::config::ConfigModule as PairConfigModule;
 use pair::safe_price::*;
 use pair::*;
@@ -68,7 +67,7 @@ where
                 let lp_token_id = managed_token_id!(LP_TOKEN_ID);
                 sc.lp_token_identifier().set(&lp_token_id);
 
-                sc.state().set(&State::Active);
+                sc.state().set(State::Active);
                 sc.set_max_observations_per_record(10);
             })
             .assert_ok();
@@ -96,6 +95,7 @@ where
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn add_liquidity(
         &mut self,
         first_token_amount: u64,
@@ -156,7 +156,7 @@ where
             .execute_esdt_transfer(
                 &self.user_address,
                 &self.pair_wrapper,
-                &payment_token_id,
+                payment_token_id,
                 0,
                 &rust_biguint!(payment_amount),
                 |sc| {
@@ -171,31 +171,6 @@ where
                 },
             )
             .assert_ok();
-    }
-
-    pub fn swap_fixed_input_expect_error(
-        &mut self,
-        payment_token_id: &[u8],
-        payment_amount: u64,
-        desired_token_id: &[u8],
-        desired_amount_min: u64,
-        expected_message: &str,
-    ) {
-        self.b_mock
-            .execute_esdt_transfer(
-                &self.user_address,
-                &self.pair_wrapper,
-                &payment_token_id,
-                0,
-                &rust_biguint!(payment_amount),
-                |sc| {
-                    sc.swap_tokens_fixed_input(
-                        managed_token_id!(desired_token_id),
-                        managed_biguint!(desired_amount_min),
-                    );
-                },
-            )
-            .assert_user_error(expected_message);
     }
 
     pub fn swap_fixed_output(
@@ -220,7 +195,7 @@ where
             .execute_esdt_transfer(
                 &self.user_address,
                 &self.pair_wrapper,
-                &payment_token_id,
+                payment_token_id,
                 0,
                 &rust_biguint!(payment_amount_max),
                 |sc| {
@@ -231,10 +206,10 @@ where
 
                     let (desired_token_output, payment_token_residuum) = ret.into_tuple();
                     payment_token_swap_amount = num_bigint::BigUint::from_bytes_be(
-                        &payment_token_residuum.amount.to_bytes_be().as_slice(),
+                        payment_token_residuum.amount.to_bytes_be().as_slice(),
                     );
                     desired_token_swap_amount = num_bigint::BigUint::from_bytes_be(
-                        &desired_token_output.amount.to_bytes_be().as_slice(),
+                        desired_token_output.amount.to_bytes_be().as_slice(),
                     );
 
                     assert_eq!(
@@ -264,28 +239,7 @@ where
         );
     }
 
-    pub fn set_swap_protect(
-        &mut self,
-        protect_stop_block: u64,
-        volume_percent: u64,
-        max_num_actions_per_address: u64,
-    ) {
-        self.b_mock
-            .execute_tx(
-                &self.owner_address,
-                &self.pair_wrapper,
-                &rust_biguint!(0),
-                |sc| {
-                    sc.set_bp_swap_config(
-                        protect_stop_block,
-                        volume_percent,
-                        max_num_actions_per_address,
-                    );
-                },
-            )
-            .assert_ok();
-    }
-
+    #[allow(clippy::too_many_arguments)]
     pub fn check_current_safe_state(
         &mut self,
         from: u64,
@@ -323,6 +277,7 @@ where
             .assert_ok();
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn check_future_safe_state(
         &mut self,
         from: u64,

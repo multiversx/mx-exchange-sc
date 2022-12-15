@@ -2,6 +2,7 @@ elrond_wasm::imports!();
 
 use core::marker::PhantomData;
 
+use contexts::storage_cache::StorageCache;
 use farm_base_impl::base_traits_impl::FarmContract;
 
 use crate::token_attributes::StakingFarmTokenAttributes;
@@ -43,21 +44,47 @@ where
         let current_block_nonce = sc.blockchain().get_block_nonce();
         let last_reward_nonce = sc.last_reward_block_nonce().get();
 
-        if current_block_nonce > last_reward_nonce {
-            let extra_rewards_unbounded =
-                Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
+        if current_block_nonce <= last_reward_nonce {
+            return BigUint::zero();
+        }
 
-            let farm_token_supply = sc.farm_token_supply().get();
-            let extra_rewards_apr_bounded_per_block = sc.get_amount_apr_bounded(&farm_token_supply);
+        let extra_rewards_unbounded =
+            Self::calculate_per_block_rewards(sc, current_block_nonce, last_reward_nonce);
 
-            let block_nonce_diff = current_block_nonce - last_reward_nonce;
-            let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
+        let farm_token_supply = sc.farm_token_supply().get();
+        let extra_rewards_apr_bounded_per_block = sc.get_amount_apr_bounded(&farm_token_supply);
 
-            sc.last_reward_block_nonce().set(current_block_nonce);
+        let block_nonce_diff = current_block_nonce - last_reward_nonce;
+        let extra_rewards_apr_bounded = extra_rewards_apr_bounded_per_block * block_nonce_diff;
 
-            core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
-        } else {
-            BigUint::zero()
+        sc.last_reward_block_nonce().set(current_block_nonce);
+
+        core::cmp::min(extra_rewards_unbounded, extra_rewards_apr_bounded)
+    }
+
+    fn generate_aggregated_rewards(
+        sc: &Self::FarmSc,
+        storage_cache: &mut StorageCache<Self::FarmSc>,
+    ) {
+        let accumulated_rewards_mapper = sc.accumulated_rewards();
+        let mut accumulated_rewards = accumulated_rewards_mapper.get();
+        let reward_capacity = sc.reward_capacity().get();
+        let remaining_rewards = &reward_capacity - &accumulated_rewards;
+
+        let mut total_reward = Self::mint_per_block_rewards(sc, &storage_cache.reward_token_id);
+        total_reward = core::cmp::min(total_reward, remaining_rewards);
+        if total_reward == 0 {
+            return;
+        }
+
+        storage_cache.reward_reserve += &total_reward;
+        accumulated_rewards += &total_reward;
+        accumulated_rewards_mapper.set(&accumulated_rewards);
+
+        if storage_cache.farm_token_supply > 0 {
+            let increase = (&total_reward * &storage_cache.division_safety_constant)
+                / &storage_cache.farm_token_supply;
+            storage_cache.reward_per_share += &increase;
         }
     }
 

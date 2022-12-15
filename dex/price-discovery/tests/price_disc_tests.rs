@@ -202,7 +202,7 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder>(
     let withdraw_amt = rust_biguint!(400_000_000);
     call_withdraw(pd_setup, &first_user_address, &withdraw_amt).assert_ok();
 
-    let penalty_amount = &withdraw_amt * &penalty_percentage / MAX_PERCENTAGE;
+    let penalty_amount = &withdraw_amt * penalty_percentage / MAX_PERCENTAGE;
     let withdrawn_amount = &withdraw_amt - &penalty_amount;
 
     pd_setup.blockchain_wrapper.check_nft_balance(
@@ -216,7 +216,7 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder>(
     // check that the SC burned the tokens
     // 1 remains for ESDTNFTAddQuantity purposes
     pd_setup.blockchain_wrapper.check_nft_balance(
-        &pd_setup.pd_wrapper.address_ref(),
+        pd_setup.pd_wrapper.address_ref(),
         REDEEM_TOKEN_ID,
         ACCEPTED_TOKEN_REDEEM_NONCE,
         &rust_biguint!(1),
@@ -231,7 +231,7 @@ pub fn withdraw_ok_steps<PriceDiscObjBuilder>(
 
     let sc_balance_before = rust_biguint!(1_500_000_000);
     pd_setup.blockchain_wrapper.check_esdt_balance(
-        &pd_setup.pd_wrapper.address_ref(),
+        pd_setup.pd_wrapper.address_ref(),
         ACCEPTED_TOKEN_ID,
         &(&sc_balance_before - &withdrawn_amount),
     );

@@ -13,7 +13,7 @@ use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use simple_lock::locked_token::LockedTokenModule;
 use simple_lock::SimpleLock;
 
-const PD_WASM_PATH: &'static str = "../output/price-discovery.wasm";
+const PD_WASM_PATH: &str = "../output/price-discovery.wasm";
 
 pub const LAUNCHED_TOKEN_ID: &[u8] = b"SOCOOLWOW-123456";
 pub const ACCEPTED_TOKEN_ID: &[u8] = b"USDC-123456";
