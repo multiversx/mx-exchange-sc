@@ -3,8 +3,6 @@ elrond_wasm::derive_imports!();
 
 use week_timekeeping::Week;
 
-static BASE_TOKEN_ID_STORAGE_KEY: &[u8] = b"baseAssetTokenId";
-
 #[elrond_wasm::module]
 pub trait FeesAccumulationModule:
     crate::config::ConfigModule
@@ -51,21 +49,12 @@ pub trait FeesAccumulationModule:
         week: Week,
         token: &TokenIdentifier,
     ) -> Option<BigUint> {
-        let mapper = self.accumulated_fees(week, token);
-        let value = mapper.get();
+        let value = self.accumulated_fees(week, token).take();
         if value > 0 {
-            mapper.clear();
             Some(value)
         } else {
             None
         }
-    }
-
-    fn get_base_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {
-        self.storage_raw().read_from_address(
-            energy_factory_addr,
-            ManagedBuffer::new_from_bytes(BASE_TOKEN_ID_STORAGE_KEY),
-        )
     }
 
     #[view(getAccumulatedFees)]

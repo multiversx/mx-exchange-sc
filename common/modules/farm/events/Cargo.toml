@@ -2,7 +2,7 @@
 name = "events"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/events.rs"
@@ -14,5 +14,5 @@ path = "../../../common_structs"
 path = "../contexts"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]

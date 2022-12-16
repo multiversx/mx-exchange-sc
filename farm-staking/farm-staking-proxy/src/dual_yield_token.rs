@@ -60,5 +60,5 @@ pub trait DualYieldTokenModule:
 
     #[view(getDualYieldTokenId)]
     #[storage_mapper("dualYieldTokenId")]
-    fn dual_yield_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn dual_yield_token(&self) -> NonFungibleTokenMapper;
 }

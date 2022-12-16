@@ -2,7 +2,7 @@
 name = "farm_token"
 version = "0.0.0"
 authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/farm_token.rs"
@@ -26,8 +26,8 @@ path = "../../pausable"
 path = "../../permissions_module"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+version = "=0.37.0"

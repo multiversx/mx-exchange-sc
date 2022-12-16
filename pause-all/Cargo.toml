@@ -2,7 +2,7 @@
 name = "pause-all"
 version = "0.0.0"
 authors = [ "you",]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [lib]
@@ -12,14 +12,14 @@ path = "src/lib.rs"
 path = "../common/modules/pausable"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dev-dependencies.farm]
 path = "../dex/farm"

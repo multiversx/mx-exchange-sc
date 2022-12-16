@@ -2,7 +2,7 @@
 name = "pair-mock"
 version = "0.0.0"
 authors = [ "you",]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [lib]
@@ -12,11 +12,11 @@ path = "src/pair.rs"
 path = "../../common/common_errors"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dependencies.itertools]
 version = "0.10.1"

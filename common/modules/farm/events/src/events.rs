@@ -3,7 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::elrond_codec::TopEncode;
 use common_structs::PaymentAttributesPair;
 use contexts::{
     claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
