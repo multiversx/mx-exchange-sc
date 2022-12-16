@@ -3,7 +3,6 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::elrond_codec::TopEncode;
 use common_errors::{
     ERROR_NOT_A_FARM_TOKEN, ERROR_NO_TOKEN_TO_MERGE, ERROR_TOO_MANY_ADDITIONAL_PAYMENTS,
     ERROR_ZERO_AMOUNT,

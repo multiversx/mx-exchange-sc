@@ -4,7 +4,6 @@ use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
-use elrond_wasm::elrond_codec::TopEncode;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
 use rewards::RewardsModule;

@@ -2,7 +2,7 @@
 name = "locked-token-wrapper-wasm"
 version = "0.0.0"
 authors = [ "you",]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [lib]
@@ -24,8 +24,8 @@ panic = "abort"
 path = ".."
 
 [dependencies.elrond-wasm-node]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dependencies.elrond-wasm-output]
-version = "=0.36.1"
+version = "=0.37.0"
 features = [ "wasm-output-mode",]

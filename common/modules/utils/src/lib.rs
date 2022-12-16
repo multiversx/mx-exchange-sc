@@ -3,7 +3,6 @@
 elrond_wasm::imports!();
 
 use common_structs::{PaymentAttributesPair, PaymentsVec};
-use elrond_wasm::elrond_codec::TopEncode;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
 
@@ -74,7 +73,7 @@ pub trait UtilsModule {
     fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
         &self,
         payment: &EsdtTokenPayment,
-        mapper: &NonFungibleTokenMapper<Self::Api>,
+        mapper: &NonFungibleTokenMapper,
     ) -> T {
         let attr: T = mapper.get_token_attributes(payment.token_nonce);
         attr.into_part(&payment.amount)
@@ -85,7 +84,7 @@ pub trait UtilsModule {
     >(
         &self,
         mut payments: PaymentsVec<Self::Api>,
-        mapper: &NonFungibleTokenMapper<Self::Api>,
+        mapper: &NonFungibleTokenMapper,
     ) -> T {
         let first_payment = self.pop_first_payment(&mut payments);
         let base_attributes: T =
@@ -105,7 +104,7 @@ pub trait UtilsModule {
         &self,
         mut base_attributes: T,
         payments: &PaymentsVec<Self::Api>,
-        mapper: &NonFungibleTokenMapper<Self::Api>,
+        mapper: &NonFungibleTokenMapper,
     ) -> T {
         for payment in payments {
             let attributes: T = self.get_attributes_as_part_of_fixed_supply(&payment, mapper);
@@ -127,7 +126,7 @@ pub trait UtilsModule {
         &self,
         base_attributes: T,
         payments: &PaymentsVec<Self::Api>,
-        mapper: &NonFungibleTokenMapper<Self::Api>,
+        mapper: &NonFungibleTokenMapper,
     ) -> PaymentAttributesPair<Self::Api, T> {
         let output_attributes =
             self.merge_attributes_from_payments(base_attributes, payments, mapper);

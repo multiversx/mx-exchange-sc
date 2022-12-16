@@ -6,6 +6,8 @@ elrond_wasm::derive_imports!();
 pub use energy_factory::energy::Energy;
 
 static USER_ENERGY_STORAGE_KEY: &[u8] = b"userEnergy";
+static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
+static BASE_TOKEN_ID_STORAGE_KEY: &[u8] = b"baseAssetTokenId";
 
 #[elrond_wasm::module]
 pub trait EnergyQueryModule {
@@ -38,7 +40,7 @@ pub trait EnergyQueryModule {
             return Energy::new_zero_energy(current_epoch);
         }
 
-        let energy_buffer: ManagedBuffer = self.read_storage_from_energy_factory(user);
+        let energy_buffer: ManagedBuffer = self.read_energy_from_factory(user);
         if !energy_buffer.is_empty() {
             let mut user_energy: Energy<Self::Api> = Energy::top_decode(energy_buffer)
                 .unwrap_or_else(|_| sc_panic!("Failed decoding result from energy factory"));
@@ -50,13 +52,29 @@ pub trait EnergyQueryModule {
         }
     }
 
-    fn read_storage_from_energy_factory<T: TopDecode>(&self, user: &ManagedAddress) -> T {
-        let energy_factory_address = self.energy_factory_address().get();
+    fn get_base_token_id(&self) -> TokenIdentifier {
+        self.read_raw_storage_from_energy_factory(ManagedBuffer::new_from_bytes(
+            BASE_TOKEN_ID_STORAGE_KEY,
+        ))
+    }
+
+    fn get_locked_token_id(&self) -> TokenIdentifier {
+        self.read_raw_storage_from_energy_factory(ManagedBuffer::new_from_bytes(
+            LOCKED_TOKEN_ID_STORAGE_KEY,
+        ))
+    }
+
+    fn read_energy_from_factory<T: TopDecode>(&self, user: &ManagedAddress) -> T {
         let mut key_buffer = ManagedBuffer::new_from_bytes(USER_ENERGY_STORAGE_KEY);
         key_buffer.append(user.as_managed_buffer());
 
+        self.read_raw_storage_from_energy_factory(key_buffer)
+    }
+
+    fn read_raw_storage_from_energy_factory<T: TopDecode>(&self, key: ManagedBuffer) -> T {
+        let energy_factory_address = self.energy_factory_address().get();
         self.storage_raw()
-            .read_from_address(&energy_factory_address, key_buffer)
+            .read_from_address(&energy_factory_address, key)
     }
 
     #[proxy]

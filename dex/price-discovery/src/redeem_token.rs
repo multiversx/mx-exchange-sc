@@ -76,7 +76,7 @@ pub trait RedeemTokenModule:
 
     #[view(getRedeemTokenId)]
     #[storage_mapper("redeemTokenId")]
-    fn redeem_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn redeem_token(&self) -> NonFungibleTokenMapper;
 
     #[view(getRedeemTokenTotalCirculatingSupply)]
     #[storage_mapper("totalCirculatingSupply")]

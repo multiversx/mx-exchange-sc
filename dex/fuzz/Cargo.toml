@@ -2,17 +2,17 @@
 name = "fuzz"
 version = "0.0.0"
 authors = [ "sorin-petreasca <sorin.petreasca@elrond.com>",]
-edition = "2018"
+edition = "2021"
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"

@@ -3,14 +3,14 @@ name = "farm-with-locked-rewards-meta"
 
 version = "0.0.0"
 authors = [ "you",]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [dependencies.farm-with-locked-rewards]
 path = ".."
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"

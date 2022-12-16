@@ -2,24 +2,24 @@
 name = "simple-lock"
 version = "0.0.0"
 authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
-edition = "2018"
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "=0.36.1"
+version = "=0.37.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+version = "=0.37.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

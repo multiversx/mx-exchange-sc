@@ -47,5 +47,5 @@ pub trait SCWhitelistModule {
     }
 
     #[storage_mapper("scWhitelistAddresses")]
-    fn sc_whitelist_addresses(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn sc_whitelist_addresses(&self) -> WhitelistMapper<ManagedAddress>;
 }
