@@ -109,6 +109,7 @@ pub trait UnstakeFarmModule:
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
         self.clear_user_energy_if_needed(&original_caller, &remaining_farm_payment.amount);
+        self.set_farm_supply_for_current_week(&exit_result.storage_cache.farm_token_supply);
 
         self.emit_exit_farm_event(
             &caller,
