@@ -1,6 +1,8 @@
 elrond_wasm::imports!();
 
-use common_structs::{Nonce, OldLockedTokenAttributes};
+use common_structs::{
+    InitialOldLockedTokenAttributes, Nonce, OldLockedTokenAttributes, LOCKED_TOKEN_ACTIVATION_NONCE,
+};
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
@@ -47,7 +49,16 @@ pub trait EnergyUpdateModule:
             energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
         } else if is_old_token {
             let attributes: OldLockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(token_id, token_nonce);
+                if token_nonce < LOCKED_TOKEN_ACTIVATION_NONCE {
+                    let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> =
+                        self.get_token_attributes(token_id, token_nonce);
+                    initial_attributes.migrate_to_new_attributes()
+                } else {
+                    let updated_attributes: OldLockedTokenAttributes<Self::Api> =
+                        self.get_token_attributes(token_id, token_nonce);
+                    updated_attributes
+                };
+
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
