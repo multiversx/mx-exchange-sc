@@ -1,6 +1,4 @@
 #![no_std]
-#![feature(exact_size_is_empty)]
-#![allow(clippy::too_many_arguments)]
 #![allow(clippy::from_over_into)]
 #![feature(trait_alias)]
 
@@ -46,6 +44,15 @@ pub trait FarmStaking:
     + compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
     + unstake_farm::UnstakeFarmModule
     + unbond_farm::UnbondFarmModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + energy_query::EnergyQueryModule
 {
     #[init]
     fn init(
