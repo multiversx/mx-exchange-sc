@@ -13,12 +13,12 @@ pub trait LegacyTokenDecodeModule: utils::UtilsModule {
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
     ) -> OldLockedTokenAttributes<Self::Api> {
-            if token_nonce < LOCKED_TOKEN_ACTIVATION_NONCE {
-                let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> =
-                    self.get_token_attributes(token_id, token_nonce);
-                initial_attributes.migrate_to_new_attributes()
-            } else {
-                    self.get_token_attributes(token_id, token_nonce)
-            }
+        if token_nonce < LOCKED_TOKEN_ACTIVATION_NONCE {
+            let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> =
+                self.get_token_attributes(token_id, token_nonce);
+            initial_attributes.migrate_to_new_attributes()
+        } else {
+            self.get_token_attributes(token_id, token_nonce)
+        }
     }
 }
