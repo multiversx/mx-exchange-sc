@@ -47,6 +47,7 @@ pub trait SimpleLockEnergy:
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
     + locked_token_transfer::LockedTokenTransferModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.

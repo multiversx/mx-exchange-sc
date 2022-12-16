@@ -35,6 +35,7 @@ pub trait ProxyFarmModule:
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + crate::events::EventsModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
