@@ -250,7 +250,7 @@ pub trait GovernanceV2:
                 .with_gas_limit(action.gas_limit);
 
             for arg in &action.arguments {
-                contract_call.push_arg_managed_buffer(arg);
+                contract_call.push_raw_argument(arg);
             }
 
             contract_call.transfer_execute();

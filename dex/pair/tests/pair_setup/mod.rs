@@ -1,6 +1,6 @@
 use elrond_wasm::elrond_codec::multi_types::MultiValue3;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::tx_mock::TxInputESDT;
+use elrond_wasm_debug::tx_mock::TxTokenTransfer;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -107,12 +107,12 @@ where
         expected_second_amount: u64,
     ) {
         let payments = vec![
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: WEGLD_TOKEN_ID.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(first_token_amount),
             },
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: MEX_TOKEN_ID.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(second_token_amount),

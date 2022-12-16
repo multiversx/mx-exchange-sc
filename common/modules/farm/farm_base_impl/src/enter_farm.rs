@@ -62,7 +62,8 @@ pub trait BaseEnterFarmModule:
             &farm_token_mapper,
         );
 
-        self.burn_multi_esdt(&enter_farm_context.additional_farm_tokens);
+        self.send()
+            .esdt_local_burn_multi(&enter_farm_context.additional_farm_tokens);
 
         InternalEnterFarmResult {
             created_with_merge: !enter_farm_context.additional_farm_tokens.is_empty(),

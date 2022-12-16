@@ -47,7 +47,7 @@ pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
             let gas_limit = self.burn_gas_limit().get();
             self.pair_contract_proxy(pair_contract_address)
                 .remove_liquidity_and_burn_token(reward_token_id.clone())
-                .add_esdt_token_transfer(farming_token_id.clone(), 0, farming_amount.clone())
+                .with_esdt_transfer((farming_token_id.clone(), 0, farming_amount.clone()))
                 .with_gas_limit(gas_limit)
                 .transfer_execute();
         }

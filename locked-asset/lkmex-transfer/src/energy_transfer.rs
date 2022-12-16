@@ -19,8 +19,9 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(&from_user);
         for token in tokens {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(&token.token_identifier, token.token_nonce);
             require!(
                 attributes.unlock_epoch > current_epoch,
                 "Cannot transfer tokens that are unlockable"
@@ -49,8 +50,9 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let mut energy = self.get_energy_entry(&from_user);
 
         for token in tokens {
-            let attributes: OldLockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: OldLockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(&token.token_identifier, token.token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&token.amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
@@ -68,8 +70,9 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(&to_user);
         for token in tokens {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(&token.token_identifier, token.token_nonce);
             if attributes.unlock_epoch > current_epoch {
                 energy.add_after_token_lock(&token.amount, attributes.unlock_epoch, current_epoch);
             } else {
@@ -98,8 +101,9 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let mut energy = self.get_energy_entry(&to_user);
 
         for token in tokens {
-            let attributes: OldLockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: OldLockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(&token.token_identifier, token.token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&token.amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.add_after_token_lock(&pair.amount, pair.epoch, current_epoch);

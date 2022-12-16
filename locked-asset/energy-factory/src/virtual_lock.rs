@@ -42,10 +42,10 @@ pub trait VirtualLockModule:
         let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
 
         require!(
-            unlock_epoch  > current_epoch,
+            unlock_epoch > current_epoch,
             "Unlock epoch must be greater than the current epoch"
         );
-        
+
         let locked_tokens =
             self.update_energy(&energy_address, |energy: &mut Energy<Self::Api>| {
                 self.lock_base_asset(

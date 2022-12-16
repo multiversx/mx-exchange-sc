@@ -119,7 +119,7 @@ pub trait SimpleLockEnergy:
         let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
 
         require!(
-            unlock_epoch  > current_epoch,
+            unlock_epoch > current_epoch,
             "Unlock epoch must be greater than the current epoch"
         );
 

@@ -4,9 +4,9 @@ fn world() -> BlockchainMock {
     let mut blockchain = BlockchainMock::new();
     blockchain.set_current_dir_from_workspace("dex");
 
-    blockchain.register_contract_builder("file:router/output/router.wasm", router::ContractBuilder);
-    blockchain.register_contract_builder("file:pair/output/pair.wasm", pair::ContractBuilder);
-    blockchain.register_contract_builder("file:farm/output/farm.wasm", farm::ContractBuilder);
+    blockchain.register_contract("file:router/output/router.wasm", router::ContractBuilder);
+    blockchain.register_contract("file:pair/output/pair.wasm", pair::ContractBuilder);
+    blockchain.register_contract("file:farm/output/farm.wasm", farm::ContractBuilder);
 
     blockchain
 }
