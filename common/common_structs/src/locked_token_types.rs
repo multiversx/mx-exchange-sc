@@ -5,7 +5,6 @@ use crate::{Epoch, EpochAmountPair};
 
 pub const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 pub const PERCENTAGE_TOTAL_EX: u64 = 100_000u64;
-pub const _PRECISION_EXTENDED: u64 = 100_000u64; // 1% = 1_000;
 pub const PRECISION_EX_INCREASE: u64 = 1_000u64; // From 1 to 1_000;
 
 #[derive(
