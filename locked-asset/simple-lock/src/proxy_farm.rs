@@ -238,6 +238,15 @@ pub trait ProxyFarmModule:
             );
         }
 
+        if exit_farm_result.remaining_farm_tokens.amount > 0 {
+            self.send().direct_esdt(
+                &caller,
+                &exit_farm_result.remaining_farm_tokens.token_identifier,
+                exit_farm_result.remaining_farm_tokens.token_nonce,
+                &exit_farm_result.remaining_farm_tokens.amount,
+            );
+        }
+
         (lp_proxy_token_payment, exit_farm_result.reward_tokens).into()
     }
 
