@@ -181,6 +181,9 @@ pub trait ProxyFarmModule:
             &proxy_farm_token_attributes,
         );
 
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &enter_farm_result.reward_tokens);
+
         (farm_tokens, enter_farm_result.reward_tokens).into()
     }
 
