@@ -3,7 +3,7 @@ use common_structs::{
 };
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
-use elrond_wasm_debug::tx_mock::{TxInputESDT, TxResult};
+use elrond_wasm_debug::tx_mock::{TxResult, TxTokenTransfer};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -215,7 +215,7 @@ where
         )
     }
 
-    pub fn call_stake_locked_asset_multiple(&mut self, payments: &[TxInputESDT]) -> TxResult {
+    pub fn call_stake_locked_asset_multiple(&mut self, payments: &[TxTokenTransfer]) -> TxResult {
         self.b_mock.execute_esdt_multi_transfer(
             &self.user_address,
             &self.mbs_wrapper,

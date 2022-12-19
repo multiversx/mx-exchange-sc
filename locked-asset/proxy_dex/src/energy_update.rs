@@ -42,12 +42,14 @@ pub trait EnergyUpdateModule:
         let new_locked_token_id = self.get_locked_token_id();
         let old_locked_token_id = self.old_locked_token_id().get();
         if token_id == &new_locked_token_id {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(token_id, token_nonce);
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(token_id, token_nonce);
             energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
         } else if token_id == &old_locked_token_id {
-            let attributes: OldLockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(token_id, token_nonce);
+            let attributes: OldLockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(token_id, token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);

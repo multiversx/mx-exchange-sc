@@ -28,16 +28,6 @@ pub trait UtilsModule {
         )
     }
 
-    fn burn_multi_esdt(&self, payments: &PaymentsVec<Self::Api>) {
-        for payment in payments {
-            self.send().esdt_local_burn(
-                &payment.token_identifier,
-                payment.token_nonce,
-                &payment.amount,
-            );
-        }
-    }
-
     fn get_non_empty_payments(&self) -> PaymentsVec<Self::Api> {
         let payments = self.call_value().all_esdt_transfers();
         require!(!payments.is_empty(), ERR_EMPTY_PAYMENTS);
@@ -55,19 +45,6 @@ pub trait UtilsModule {
         payments.remove(0);
 
         first_payment
-    }
-
-    fn get_token_attributes<T: TopDecode>(
-        &self,
-        token_id: &TokenIdentifier,
-        token_nonce: u64,
-    ) -> T {
-        let own_sc_address = self.blockchain().get_sc_address();
-        let token_data =
-            self.blockchain()
-                .get_esdt_token_data(&own_sc_address, token_id, token_nonce);
-
-        token_data.decode_attributes()
     }
 
     fn get_attributes_as_part_of_fixed_supply<T: FixedSupplyToken<Self::Api> + TopDecode>(
@@ -93,7 +70,7 @@ pub trait UtilsModule {
 
         let output_attributes =
             self.merge_attributes_from_payments(base_attributes, &payments, mapper);
-        self.burn_multi_esdt(&payments);
+        self.send().esdt_local_burn_multi(&payments);
 
         output_attributes
     }

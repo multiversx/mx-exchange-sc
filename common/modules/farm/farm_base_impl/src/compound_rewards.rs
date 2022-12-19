@@ -87,7 +87,8 @@ pub trait BaseCompoundRewardsModule:
 
         let first_farm_token = &compound_rewards_context.first_farm_token.payment;
         farm_token_mapper.nft_burn(first_farm_token.token_nonce, &first_farm_token.amount);
-        self.burn_multi_esdt(&compound_rewards_context.additional_payments);
+        self.send()
+            .esdt_local_burn_multi(&compound_rewards_context.additional_payments);
 
         InternalCompoundRewardsResult {
             created_with_merge: !compound_rewards_context.additional_payments.is_empty(),

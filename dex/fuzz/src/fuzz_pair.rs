@@ -5,7 +5,7 @@ pub mod fuzz_pair_test {
     elrond_wasm::derive_imports!();
 
     use elrond_wasm_debug::{
-        managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT, DebugApi,
+        managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer, DebugApi,
     };
 
     use rand::prelude::*;
@@ -69,12 +69,12 @@ pub mod fuzz_pair_test {
         }
 
         let payments = vec![
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: first_token.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(first_token_amount),
             },
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: second_token.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(second_token_amount),
@@ -179,7 +179,7 @@ pub mod fuzz_pair_test {
             return;
         }
 
-        let payments = vec![TxInputESDT {
+        let payments = vec![TxTokenTransfer {
             token_identifier: lp_token.to_vec(),
             nonce: 0,
             value: rust_biguint!(lp_token_amount),

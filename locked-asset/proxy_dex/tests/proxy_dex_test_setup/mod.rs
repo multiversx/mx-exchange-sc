@@ -484,7 +484,7 @@ impl ContractBase for DummySc {
 }
 
 impl CallableContract for DummySc {
-    fn call(&self, _fn_name: &[u8]) -> bool {
+    fn call(&self, _fn_name: &str) -> bool {
         true
     }
 }

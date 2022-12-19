@@ -35,8 +35,8 @@ path = "../../pausable"
 path = "../../permissions_module"
 
 [dependencies.elrond-wasm]
-version = "=0.37.0"
+version = "=0.38.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.37.0"
+version = "=0.38.0"

@@ -57,7 +57,7 @@ pub trait FarmDeployModule {
             .with_gas_limit(gas_left);
 
         for arg in args {
-            contract_call.push_arg_managed_buffer(arg);
+            contract_call.push_raw_argument(arg);
         }
         let _: IgnoreValue = contract_call.execute_on_dest_context();
     }
