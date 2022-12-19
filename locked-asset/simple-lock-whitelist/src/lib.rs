@@ -19,6 +19,8 @@ pub trait SimpleLockWhitelist:
     + utils::UtilsModule
     + crate::old_farms_exit::OldFarmsExitModule
 {
+    /// Args: Token IDs that are accepted for the `lock` endpoint.
+    /// Any other token is rejected.
     #[init]
     fn init(&self, token_whitelist: MultiValueEncoded<TokenIdentifier>) {
         let mut whitelist = self.token_whitelist();
