@@ -1,7 +1,11 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
+use crate::{
+    error_messages::*,
+    farm_interactions::{ExitFarmResult, ExitFarmResultWrapper},
+    proxy_lp::LpProxyTokenAttributes,
+};
 
 #[derive(
     TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug, Clone, Copy,
@@ -193,6 +197,15 @@ pub trait ProxyFarmModule:
         &self,
         exit_amount: BigUint,
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
+        self.exit_farm_base_impl::<ExitFarmResultWrapper<Self::Api>>(OptionalValue::Some(
+            exit_amount,
+        ))
+    }
+
+    fn exit_farm_base_impl<ResultsType: ExitFarmResult<Self::Api>>(
+        &self,
+        opt_exit_amount: OptionalValue<BigUint>,
+    ) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
@@ -201,16 +214,17 @@ pub trait ProxyFarmModule:
             &farm_proxy_token_attributes.farming_token_id,
             farm_proxy_token_attributes.farm_type,
         );
-        let exit_farm_result = self.call_farm_exit(
+        let exit_farm_result = self.call_farm_exit::<ResultsType>(
             farm_address,
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
-            exit_amount,
+            opt_exit_amount,
         );
+
+        let initial_farming_tokens = exit_farm_result.get_initial_farming_tokens();
         require!(
-            exit_farm_result.initial_farming_tokens.token_identifier
-                == farm_proxy_token_attributes.farming_token_id,
+            initial_farming_tokens.token_identifier == farm_proxy_token_attributes.farming_token_id,
             INVALID_PAYMENTS_RECEIVED_FROM_FARM_ERR_MSG
         );
 
@@ -220,25 +234,21 @@ pub trait ProxyFarmModule:
         let lp_proxy_token_payment = EsdtTokenPayment::new(
             lp_proxy_token.get_token_id(),
             farm_proxy_token_attributes.farming_token_locked_nonce,
-            exit_farm_result.initial_farming_tokens.amount,
+            initial_farming_tokens.amount,
         );
-        self.send().direct_esdt(
-            &caller,
-            &lp_proxy_token_payment.token_identifier,
-            lp_proxy_token_payment.token_nonce,
-            &lp_proxy_token_payment.amount,
-        );
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &lp_proxy_token_payment);
 
-        if exit_farm_result.reward_tokens.amount > 0 {
-            self.send().direct_esdt(
-                &caller,
-                &exit_farm_result.reward_tokens.token_identifier,
-                exit_farm_result.reward_tokens.token_nonce,
-                &exit_farm_result.reward_tokens.amount,
-            );
+        let reward_tokens = exit_farm_result.get_reward_tokens();
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &reward_tokens);
+
+        let extra_payments = exit_farm_result.get_additional_tokens();
+        if !extra_payments.is_empty() {
+            self.send().direct_multi(&caller, &extra_payments);
         }
 
-        (lp_proxy_token_payment, exit_farm_result.reward_tokens).into()
+        (lp_proxy_token_payment, reward_tokens).into()
     }
 
     /// Claim rewards from a previously entered farm.

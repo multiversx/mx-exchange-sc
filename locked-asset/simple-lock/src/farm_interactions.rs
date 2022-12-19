@@ -5,13 +5,11 @@ elrond_wasm::derive_imports!();
 
 type EnterFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
-type ExitFarmResultType<BigUint> =
-    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
 const ENTER_FARM_RESULTS_LEN: usize = 2;
-const EXIT_FARM_RESULTS_LEN: usize = 3;
+const EXIT_FARM_BASE_RESULTS_LEN: usize = 2;
 const CLAIM_REWARDS_RESULTS_LEN: usize = 2;
 
 pub struct EnterFarmResultWrapper<M: ManagedTypeApi> {
@@ -34,9 +32,62 @@ pub struct FarmCompoundRewardsResultWrapper<M: ManagedTypeApi> {
     pub new_farm_tokens: EsdtTokenPayment<M>,
 }
 
+pub trait ExitFarmResult<M: ManagedTypeApi> {
+    fn new(
+        initial_farming_tokens: EsdtTokenPayment<M>,
+        reward_tokens: EsdtTokenPayment<M>,
+        additional_tokens: ManagedVec<M, EsdtTokenPayment<M>>,
+    ) -> Self;
+
+    fn get_initial_farming_tokens(&self) -> EsdtTokenPayment<M>;
+
+    fn get_reward_tokens(&self) -> EsdtTokenPayment<M>;
+
+    fn get_additional_results_expected_len() -> usize;
+
+    fn get_additional_tokens(&self) -> ManagedVec<M, EsdtTokenPayment<M>>;
+}
+
+impl<M: ManagedTypeApi> ExitFarmResult<M> for ExitFarmResultWrapper<M> {
+    fn new(
+        initial_farming_tokens: EsdtTokenPayment<M>,
+        reward_tokens: EsdtTokenPayment<M>,
+        additional_tokens: ManagedVec<M, EsdtTokenPayment<M>>,
+    ) -> Self {
+        ExitFarmResultWrapper {
+            initial_farming_tokens,
+            reward_tokens,
+            remaining_farm_tokens: additional_tokens.get(0),
+        }
+    }
+
+    #[inline]
+    fn get_initial_farming_tokens(&self) -> EsdtTokenPayment<M> {
+        self.initial_farming_tokens.clone()
+    }
+
+    #[inline]
+    fn get_reward_tokens(&self) -> EsdtTokenPayment<M> {
+        self.reward_tokens.clone()
+    }
+
+    #[inline]
+    fn get_additional_results_expected_len() -> usize {
+        1
+    }
+
+    fn get_additional_tokens(&self) -> ManagedVec<M, EsdtTokenPayment<M>> {
+        if self.remaining_farm_tokens.amount == 0 {
+            return ManagedVec::new();
+        }
+
+        ManagedVec::from_single_item(self.remaining_farm_tokens.clone())
+    }
+}
+
 mod farm_proxy {
     elrond_wasm::imports!();
-    use super::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
+    use super::{ClaimRewardsResultType, EnterFarmResultType};
 
     #[elrond_wasm::proxy]
     pub trait FarmProxy {
@@ -46,7 +97,10 @@ mod farm_proxy {
 
         #[payable("*")]
         #[endpoint(exitFarm)]
-        fn exit_farm(&self, exit_amount: BigUint) -> ExitFarmResultType<Self::Api>;
+        fn exit_farm(
+            &self,
+            exit_amount: OptionalValue<BigUint>,
+        ) -> MultiValueEncoded<EsdtTokenPayment>;
 
         #[payable("*")]
         #[endpoint(claimRewards)]
@@ -84,32 +138,34 @@ pub trait FarmInteractionsModule {
         }
     }
 
-    fn call_farm_exit(
+    fn call_farm_exit<ResultsType: ExitFarmResult<Self::Api>>(
         &self,
         farm_address: ManagedAddress,
         farm_token: TokenIdentifier,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
-        exit_amount: BigUint,
-    ) -> ExitFarmResultWrapper<Self::Api> {
+        opt_exit_amount: OptionalValue<BigUint>,
+    ) -> ResultsType {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
-            .exit_farm(exit_amount)
+            .exit_farm(opt_exit_amount)
             .with_esdt_transfer((farm_token, farm_token_nonce, farm_token_amount))
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
-        results_wrapper.trim_results_front(EXIT_FARM_RESULTS_LEN);
+        let additional_results_len = ResultsType::get_additional_results_expected_len();
+        results_wrapper.trim_results_front(EXIT_FARM_BASE_RESULTS_LEN + additional_results_len);
 
         let initial_farming_tokens = results_wrapper.decode_next_result();
         let reward_tokens = results_wrapper.decode_next_result();
-        let remaining_farm_tokens = results_wrapper.decode_next_result();
 
-        ExitFarmResultWrapper {
-            initial_farming_tokens,
-            reward_tokens,
-            remaining_farm_tokens,
+        let mut additional_tokens = ManagedVec::new();
+        for _ in 0..additional_results_len {
+            let additional_token = results_wrapper.decode_next_result();
+            additional_tokens.push(additional_token);
         }
+
+        ResultsType::new(initial_farming_tokens, reward_tokens, additional_tokens)
     }
 
     fn call_farm_claim_rewards(
