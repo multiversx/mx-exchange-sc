@@ -7,7 +7,7 @@ use elrond_wasm::{
     types::{BigInt, EsdtLocalRole, EsdtTokenPayment},
 };
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer,
     DebugApi,
 };
 use energy_factory::energy::EnergyModule;
@@ -181,12 +181,12 @@ fn farm_proxy_actions_test() {
     //////////////////////////////////////////// MERGE TOKENS /////////////////////////////////////
 
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(USER_BALANCE / 2),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WRAPPED_FARM_TOKEN_ID.to_vec(),
             nonce: 2,
             value: rust_biguint!(USER_BALANCE / 2),
@@ -257,12 +257,12 @@ fn farm_with_wrapped_lp_test() {
 
     // set the price to 1 EGLD = 2 MEX
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: locked_token_amount.clone(),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: other_token_amount.clone(),

@@ -109,12 +109,14 @@ pub trait SimpleLockMigrationModule:
     ) -> EsdtTokenPayment {
         let attributes: OldLockedTokenAttributes<Self::Api> =
             if payment.token_nonce < LOCKED_TOKEN_ACTIVATION_NONCE {
-                let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> =
-                    self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+                let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> = self
+                    .blockchain()
+                    .get_token_attributes(&payment.token_identifier, payment.token_nonce);
                 initial_attributes.migrate_to_new_attributes()
             } else {
-                let updated_attributes: OldLockedTokenAttributes<Self::Api> =
-                    self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+                let updated_attributes: OldLockedTokenAttributes<Self::Api> = self
+                    .blockchain()
+                    .get_token_attributes(&payment.token_identifier, payment.token_nonce);
                 updated_attributes
             };
 

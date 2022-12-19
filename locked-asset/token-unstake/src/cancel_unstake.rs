@@ -27,6 +27,7 @@ pub trait CancelUnstakeModule:
         for entry in &user_entries {
             let locked_tokens = entry.locked_tokens;
             let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
                 .get_token_attributes(&locked_tokens.token_identifier, locked_tokens.token_nonce);
             if attributes.unlock_epoch >= current_epoch {
                 energy.add_after_token_lock(

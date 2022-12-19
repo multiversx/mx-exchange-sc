@@ -9,10 +9,10 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.elrond-wasm]
-version = "=0.37.0"
+version = "=0.38.0"
 
 [dependencies.elrond-wasm-modules]
-version = "=0.37.0"
+version = "=0.38.0"
 
 [dependencies.utils]
 path = "../../common/modules/utils"
@@ -36,7 +36,7 @@ path = "../../energy-integration/common-modules/energy-query"
 path = "../../common/common_structs"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.37.0"
+version = "=0.38.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

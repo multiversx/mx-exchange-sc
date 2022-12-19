@@ -4,7 +4,7 @@ use common_structs::FarmTokenAttributes;
 use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::tx_mock::{TxContextStack, TxInputESDT};
+use elrond_wasm_debug::tx_mock::{TxContextStack, TxTokenTransfer};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -148,14 +148,14 @@ where
     pub fn enter_farm(
         &mut self,
         farm_in_amount: u64,
-        additional_farm_tokens: &[TxInputESDT],
+        additional_farm_tokens: &[TxTokenTransfer],
         expected_farm_token_nonce: u64,
         expected_reward_per_share: u64,
         expected_entering_epoch: u64,
         expected_compounded_reward: u64,
     ) {
         let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
-        payments.push(TxInputESDT {
+        payments.push(TxTokenTransfer {
             token_identifier: LP_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(farm_in_amount),

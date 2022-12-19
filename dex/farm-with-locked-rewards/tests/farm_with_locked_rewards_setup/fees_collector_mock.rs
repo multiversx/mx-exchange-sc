@@ -1,7 +1,7 @@
 use elrond_wasm::contract_base::{CallableContract, ContractBase};
 use elrond_wasm_debug::DebugApi;
 
-static DEPOSIT_FN_NAME: &[u8] = b"depositSwapFees";
+static DEPOSIT_FN_NAME: &str = "depositSwapFees";
 
 #[derive(Clone)]
 pub struct FeesCollectorMock {}
@@ -11,7 +11,7 @@ impl ContractBase for FeesCollectorMock {
 }
 
 impl CallableContract for FeesCollectorMock {
-    fn call(&self, fn_name: &[u8]) -> bool {
+    fn call(&self, fn_name: &str) -> bool {
         fn_name == DEPOSIT_FN_NAME
     }
 }

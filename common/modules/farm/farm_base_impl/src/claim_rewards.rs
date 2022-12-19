@@ -105,7 +105,8 @@ pub trait BaseClaimRewardsModule:
 
         let first_farm_token = &claim_rewards_context.first_farm_token.payment;
         farm_token_mapper.nft_burn(first_farm_token.token_nonce, &first_farm_token.amount);
-        self.burn_multi_esdt(&claim_rewards_context.additional_payments);
+        self.send()
+            .esdt_local_burn_multi(&claim_rewards_context.additional_payments);
 
         InternalClaimRewardsResult {
             created_with_merge: !claim_rewards_context.additional_payments.is_empty(),

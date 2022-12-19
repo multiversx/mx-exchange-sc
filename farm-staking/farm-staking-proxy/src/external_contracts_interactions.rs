@@ -34,11 +34,11 @@ pub trait ExternalContractsInteractionsModule:
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
             .claim_rewards_endpoint(orig_caller)
-            .add_esdt_token_transfer(
+            .with_esdt_transfer((
                 lp_farm_token_id.clone(),
                 lp_farm_token_nonce,
                 lp_farm_token_amount,
-            )
+            ))
             .execute_on_dest_context();
         let (mut new_lp_farm_tokens, mut lp_farm_rewards) = lp_farm_result.into_tuple();
 
@@ -67,7 +67,7 @@ pub trait ExternalContractsInteractionsModule:
         let exit_farm_result: ExitFarmResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
             .exit_farm_endpoint(exit_amount, orig_caller)
-            .add_esdt_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
+            .with_esdt_transfer((lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount))
             .execute_on_dest_context();
         let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
         let expected_lp_token_id = self.lp_token_id().get();
@@ -134,11 +134,11 @@ pub trait ExternalContractsInteractionsModule:
         let staking_farm_result: ClaimRewardsResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
             .claim_rewards_with_new_value(new_staking_farm_value)
-            .add_esdt_token_transfer(
+            .with_esdt_transfer((
                 staking_farm_token_id.clone(),
                 staking_farm_token_nonce,
                 staking_farm_token_amount,
-            )
+            ))
             .execute_on_dest_context();
         let (mut new_staking_farm_tokens, mut staking_farm_rewards) =
             staking_farm_result.into_tuple();
@@ -203,11 +203,7 @@ pub trait ExternalContractsInteractionsModule:
         let pair_withdraw_result: RemoveLiquidityResultType<Self::Api> = self
             .pair_proxy_obj(pair_address)
             .remove_liquidity(pair_first_token_min_amount, pair_second_token_min_amount)
-            .add_esdt_token_transfer(
-                lp_tokens.token_identifier,
-                lp_tokens.token_nonce,
-                lp_tokens.amount,
-            )
+            .with_esdt_transfer(lp_tokens)
             .execute_on_dest_context();
         let (pair_first_token_payment, pair_second_token_payment) =
             pair_withdraw_result.into_tuple();
