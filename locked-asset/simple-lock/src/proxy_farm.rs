@@ -177,6 +177,15 @@ pub trait ProxyFarmModule:
             &proxy_farm_token_attributes,
         );
 
+        if enter_farm_result.reward_tokens.amount > 0 {
+            self.send().direct_esdt(
+                &caller,
+                &enter_farm_result.reward_tokens.token_identifier,
+                enter_farm_result.reward_tokens.token_nonce,
+                &enter_farm_result.reward_tokens.amount,
+            );
+        }
+
         (farm_tokens, enter_farm_result.reward_tokens).into()
     }
 
