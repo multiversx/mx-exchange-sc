@@ -18,6 +18,7 @@ pub trait VirtualLockModule:
     + utils::UtilsModule
     + crate::extend_lock::ExtendLockModule
     + sc_whitelist_module::SCWhitelistModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[endpoint(lockVirtual)]
     fn lock_virtual(
