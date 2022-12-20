@@ -5,8 +5,8 @@ use elrond_wasm::{
 };
 use elrond_wasm_debug::DebugApi;
 
-static DEPOSIT_USER_TOKENS_FN_NAME: &[u8] = b"depositUserTokens";
-static DEPOSIT_FEES_FN_NAME: &[u8] = b"depositFees";
+static DEPOSIT_USER_TOKENS_FN_NAME: &str = "depositUserTokens";
+static DEPOSIT_FEES_FN_NAME: &str = "depositFees";
 
 #[derive(Clone)]
 pub struct UnbondScMock {}
@@ -16,7 +16,7 @@ impl ContractBase for UnbondScMock {
 }
 
 impl CallableContract for UnbondScMock {
-    fn call(&self, fn_name: &[u8]) -> bool {
+    fn call(&self, fn_name: &str) -> bool {
         if fn_name == DEPOSIT_USER_TOKENS_FN_NAME {
             self.send_to_user();
             true

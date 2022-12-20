@@ -175,7 +175,7 @@ pub trait FeeModule:
         let _: IgnoreValue = self
             .fees_collector_proxy(fees_collector_address)
             .deposit_swap_fees()
-            .add_esdt_token_transfer(token, 0, cut_amount)
+            .with_esdt_transfer((token, 0, cut_amount))
             .execute_on_dest_context();
     }
 
@@ -300,7 +300,7 @@ pub trait FeeModule:
             .pair_proxy()
             .contract(pair_address)
             .swap_no_fee(requested_token.clone(), destination_address.clone())
-            .add_esdt_token_transfer(available_token.clone(), 0, available_amount.clone())
+            .with_esdt_transfer((available_token.clone(), 0, available_amount.clone()))
             .execute_on_dest_context();
     }
 

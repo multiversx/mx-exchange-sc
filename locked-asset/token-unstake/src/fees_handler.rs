@@ -91,11 +91,7 @@ pub trait FeesHandlerModule:
         let _: IgnoreValue = self
             .fees_collector_proxy_builder(fees_collector_addr)
             .deposit_swap_fees()
-            .add_esdt_token_transfer(
-                payment.token_identifier,
-                payment.token_nonce,
-                payment.amount,
-            )
+            .with_esdt_transfer(payment)
             .execute_on_dest_context();
     }
 

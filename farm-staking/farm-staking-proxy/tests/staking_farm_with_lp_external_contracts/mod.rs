@@ -1,7 +1,7 @@
 use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::tx_mock::TxInputESDT;
+use elrond_wasm_debug::tx_mock::TxTokenTransfer;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
     DebugApi,
@@ -156,12 +156,12 @@ fn add_liquidity<PairObjBuilder>(
     PairObjBuilder: 'static + Copy + Fn() -> pair::ContractObj<DebugApi>,
 {
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(first_token_amount),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: RIDE_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(second_token_amount),
@@ -290,12 +290,12 @@ fn enter_farm<FarmObjBuilder>(
     b_mock: &mut BlockchainStateWrapper,
     farm_wrapper: &ContractObjWrapper<farm::ContractObj<DebugApi>, FarmObjBuilder>,
     farm_in_amount: u64,
-    additional_farm_tokens: &[TxInputESDT],
+    additional_farm_tokens: &[TxTokenTransfer],
 ) where
     FarmObjBuilder: 'static + Copy + Fn() -> farm::ContractObj<DebugApi>,
 {
     let mut payments = Vec::with_capacity(1 + additional_farm_tokens.len());
-    payments.push(TxInputESDT {
+    payments.push(TxTokenTransfer {
         token_identifier: LP_TOKEN_ID.to_vec(),
         nonce: 0,
         value: rust_biguint!(farm_in_amount),

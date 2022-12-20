@@ -1,4 +1,4 @@
-use elrond_wasm_debug::{rust_biguint, tx_mock::TxInputESDT, DebugApi};
+use elrond_wasm_debug::{rust_biguint, tx_mock::TxTokenTransfer, DebugApi};
 
 pub mod farm_staking_setup;
 use farm_staking::{
@@ -116,7 +116,7 @@ where
     farm_setup.set_block_nonce(10);
 
     let second_farm_in_amount = 200_000_000;
-    let prev_farm_tokens = [TxInputESDT {
+    let prev_farm_tokens = [TxTokenTransfer {
         token_identifier: FARM_TOKEN_ID.to_vec(),
         nonce: expected_farm_token_nonce,
         value: rust_biguint!(farm_in_amount),

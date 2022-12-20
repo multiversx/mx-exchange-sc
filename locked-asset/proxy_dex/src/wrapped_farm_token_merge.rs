@@ -35,7 +35,7 @@ pub trait WrappedFarmTokenMerge:
         let wrapped_farm_tokens =
             WrappedFarmToken::new_from_payments(&payments, &wrapped_farm_token_mapper);
 
-        self.burn_multi_esdt(&payments);
+        self.send().esdt_local_burn_multi(&payments);
 
         let merged_tokens = self
             .merge_wrapped_farm_tokens(&caller, farm_address, wrapped_farm_tokens)

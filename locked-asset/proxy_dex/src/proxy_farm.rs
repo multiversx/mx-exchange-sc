@@ -35,6 +35,7 @@ pub trait ProxyFarmModule:
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + crate::events::EventsModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[payable("*")]
     #[endpoint(enterFarmProxy)]
@@ -68,7 +69,7 @@ pub trait ProxyFarmModule:
             let wrapped_lp_tokens =
                 WrappedFarmToken::new_from_payments(&payments, &wrapped_farm_mapper);
 
-            self.burn_multi_esdt(&payments);
+            self.send().esdt_local_burn_multi(&payments);
 
             self.merge_wrapped_farm_tokens_with_virtual_pos(
                 &caller,
@@ -164,8 +165,9 @@ pub trait ProxyFarmModule:
         let payment = self.call_value().single_esdt();
         wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
 
-        let full_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> =
-            self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+        let full_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> = self
+            .blockchain()
+            .get_token_attributes(&payment.token_identifier, payment.token_nonce);
 
         let wrapped_farm_attributes_for_exit: WrappedFarmTokenAttributes<Self::Api> =
             full_wrapped_farm_attributes

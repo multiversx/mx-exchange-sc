@@ -3,7 +3,7 @@ mod farm_setup;
 use config::ConfigModule;
 use elrond_wasm::types::EsdtLocalRole;
 use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer,
     DebugApi,
 };
 use farm_setup::single_user_farm_setup::*;
@@ -120,7 +120,7 @@ where
     farm_setup.set_block_nonce(10);
 
     let second_farm_in_amount = 200_000_000;
-    let prev_farm_tokens = [TxInputESDT {
+    let prev_farm_tokens = [TxTokenTransfer {
         token_identifier: FARM_TOKEN_ID.to_vec(),
         nonce: expected_farm_token_nonce,
         value: rust_biguint!(farm_in_amount),
@@ -467,12 +467,12 @@ fn test_farm_through_simple_lock() {
 
     // user enter farm along with previous position
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(300_000_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
             nonce: 3,
             value: rust_biguint!(500_000_000),
@@ -532,22 +532,22 @@ fn test_farm_through_simple_lock() {
         .assert_ok();
 
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(100_000_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
             nonce: 4,
             value: rust_biguint!(800_000_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
             nonce: 5,
             value: rust_biguint!(50_000_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: FARM_PROXY_TOKEN_ID.to_vec(),
             nonce: 6,
             value: rust_biguint!(50_000_000),
