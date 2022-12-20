@@ -4,7 +4,7 @@ use core::mem::swap;
 
 use farm::{
     base_functions::{ClaimRewardsResultType, ExitFarmResultType},
-    ProxyTrait as _,
+    ExitFarmWithPartialPosResultType, ProxyTrait as _,
 };
 use farm_staking::{
     claim_stake_farm_rewards::ProxyTrait as _, stake_farm::ProxyTrait as _,
@@ -64,12 +64,13 @@ pub trait ExternalContractsInteractionsModule:
         let orig_caller = self.blockchain().get_caller();
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
-        let exit_farm_result: ExitFarmResultType<Self::Api> = self
+        let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
             .exit_farm_endpoint(exit_amount, orig_caller)
             .add_esdt_token_transfer(lp_farm_token_id, lp_farm_token_nonce, lp_farm_token_amount)
             .execute_on_dest_context();
-        let (mut lp_tokens, mut lp_farm_rewards) = exit_farm_result.into_tuple();
+        let (mut lp_tokens, mut lp_farm_rewards, remaining_farm_tokens) =
+            exit_farm_result.into_tuple();
         let expected_lp_token_id = self.lp_token_id().get();
 
         self.swap_payments_if_wrong_order(
@@ -82,6 +83,7 @@ pub trait ExternalContractsInteractionsModule:
         LpFarmExitResult {
             lp_tokens,
             lp_farm_rewards,
+            remaining_farm_tokens,
         }
     }
 
