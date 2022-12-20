@@ -183,8 +183,6 @@ pub trait ProxyFarmModule:
 
         self.send()
             .direct_non_zero_esdt_payment(&caller, &enter_farm_result.reward_tokens);
-        self.send()
-            .direct_non_zero_esdt_payment(&caller, &enter_farm_result.reward_tokens);
 
         (farm_tokens, enter_farm_result.reward_tokens).into()
     }
@@ -233,29 +231,36 @@ pub trait ProxyFarmModule:
             INVALID_PAYMENTS_RECEIVED_FROM_FARM_ERR_MSG
         );
 
-        let caller = self.blockchain().get_caller();
-
         let lp_proxy_token = self.lp_proxy_token();
         let lp_proxy_token_payment = EsdtTokenPayment::new(
             lp_proxy_token.get_token_id(),
             farm_proxy_token_attributes.farming_token_locked_nonce,
             initial_farming_tokens.amount,
         );
-        self.send()
-            .direct_non_zero_esdt_payment(&caller, &lp_proxy_token_payment);
+
+        let mut output_payments = ManagedVec::new();
+        if lp_proxy_token_payment.amount > 0 {
+            output_payments.push(lp_proxy_token_payment.clone());
+        }
 
         let reward_tokens = exit_farm_result.get_reward_tokens();
-        self.send()
-            .direct_non_zero_esdt_payment(&caller, &reward_tokens);
+        if reward_tokens.amount > 0 {
+            output_payments.push(reward_tokens.clone());
+        }
 
         let remaining_farm_tokens = exit_farm_result.get_remaining_farm_tokens();
         if remaining_farm_tokens.amount > 0 {
-            self.send().direct_esdt(
-                &caller,
-                &payment.token_identifier,
+            let farm_tokens_payment = EsdtTokenPayment::new(
+                payment.token_identifier,
                 payment.token_nonce,
-                &remaining_farm_tokens.amount,
+                remaining_farm_tokens.amount,
             );
+            output_payments.push(farm_tokens_payment);
+        }
+
+        if !output_payments.is_empty() {
+            let caller = self.blockchain().get_caller();
+            self.send().direct_multi(&caller, &output_payments);
         }
 
         (lp_proxy_token_payment, reward_tokens).into()
