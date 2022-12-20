@@ -107,16 +107,13 @@ pub trait FarmStakingProxy:
             additional_lp_farm_tokens,
         );
 
-        let new_dual_yield_attributes = DualYieldTokenAttributes {
-            lp_farm_token_nonce: merged_lp_farm_tokens.token_nonce,
-            lp_farm_token_amount: merged_lp_farm_tokens.amount,
-            staking_farm_token_nonce: received_staking_farm_token.token_nonce,
-            staking_farm_token_amount: received_staking_farm_token.amount,
-        };
-        let new_dual_yield_amount = new_dual_yield_attributes.get_total_supply();
-        let new_dual_yield_tokens =
-            dual_yield_token_mapper.nft_create(new_dual_yield_amount, &new_dual_yield_attributes);
-
+        let new_dual_yield_tokens = self.create_dual_yield_tokens(
+            &dual_yield_token_mapper,
+            merged_lp_farm_tokens.token_nonce,
+            merged_lp_farm_tokens.amount,
+            received_staking_farm_token.token_nonce,
+            received_staking_farm_token.amount,
+        );
         let output_payments = StakeProxyResult {
             dual_yield_tokens: new_dual_yield_tokens,
             boosted_rewards: staking_farm_enter_result.boosted_rewards,
@@ -157,16 +154,13 @@ pub trait FarmStakingProxy:
 
         let new_lp_farm_tokens = lp_farm_claim_rewards_result.new_lp_farm_tokens;
         let new_staking_farm_tokens = staking_farm_claim_rewards_result.new_staking_farm_tokens;
-
-        let new_dual_yield_attributes = DualYieldTokenAttributes {
-            lp_farm_token_nonce: new_lp_farm_tokens.token_nonce,
-            lp_farm_token_amount: new_lp_farm_tokens.amount,
-            staking_farm_token_nonce: new_staking_farm_tokens.token_nonce,
-            staking_farm_token_amount: new_staking_farm_tokens.amount,
-        };
-        let new_dual_yield_amount = new_dual_yield_attributes.get_total_supply();
-        let new_dual_yield_tokens =
-            dual_yield_token_mapper.nft_create(new_dual_yield_amount, &new_dual_yield_attributes);
+        let new_dual_yield_tokens = self.create_dual_yield_tokens(
+            &dual_yield_token_mapper,
+            new_lp_farm_tokens.token_nonce,
+            new_lp_farm_tokens.amount,
+            new_staking_farm_tokens.token_nonce,
+            new_staking_farm_tokens.amount,
+        );
 
         dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
@@ -228,15 +222,13 @@ pub trait FarmStakingProxy:
             let remaining_lp_farm_tokens = lp_farm_exit_result.remaining_farm_tokens.amount;
             let remaining_staking_farm_tokens =
                 staking_farm_exit_result.remaining_farm_tokens.amount;
-            let new_token_attributes = DualYieldTokenAttributes {
-                lp_farm_token_nonce: full_attributes.lp_farm_token_nonce,
-                lp_farm_token_amount: remaining_lp_farm_tokens,
-                staking_farm_token_nonce: full_attributes.staking_farm_token_nonce,
-                staking_farm_token_amount: remaining_staking_farm_tokens,
-            };
-            let new_total_dual_yield_tokens = new_token_attributes.get_total_supply();
-            let new_dual_yield_tokens = dual_yield_token_mapper
-                .nft_create(new_total_dual_yield_tokens, &new_token_attributes);
+            let new_dual_yield_tokens = self.create_dual_yield_tokens(
+                &dual_yield_token_mapper,
+                full_attributes.lp_farm_token_nonce,
+                remaining_lp_farm_tokens,
+                full_attributes.staking_farm_token_nonce,
+                remaining_staking_farm_tokens,
+            );
 
             Some(new_dual_yield_tokens)
         } else {

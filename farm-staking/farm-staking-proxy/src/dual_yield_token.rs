@@ -58,6 +58,25 @@ pub trait DualYieldTokenModule:
         );
     }
 
+    fn create_dual_yield_tokens(
+        &self,
+        mapper: &NonFungibleTokenMapper,
+        lp_farm_token_nonce: u64,
+        lp_farm_token_amount: BigUint,
+        staking_farm_token_nonce: u64,
+        staking_farm_token_amount: BigUint,
+    ) -> EsdtTokenPayment {
+        let new_dual_yield_attributes = DualYieldTokenAttributes {
+            lp_farm_token_nonce,
+            lp_farm_token_amount,
+            staking_farm_token_nonce,
+            staking_farm_token_amount,
+        };
+        let new_dual_yield_amount = new_dual_yield_attributes.get_total_supply();
+
+        mapper.nft_create(new_dual_yield_amount, &new_dual_yield_attributes)
+    }
+
     #[view(getDualYieldTokenId)]
     #[storage_mapper("dualYieldTokenId")]
     fn dual_yield_token(&self) -> NonFungibleTokenMapper;
