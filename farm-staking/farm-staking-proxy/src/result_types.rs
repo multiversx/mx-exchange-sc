@@ -12,6 +12,7 @@ pub struct LpFarmClaimRewardsResult<M: ManagedTypeApi> {
 pub struct LpFarmExitResult<M: ManagedTypeApi> {
     pub lp_tokens: EsdtTokenPayment<M>,
     pub lp_farm_rewards: EsdtTokenPayment<M>,
+    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 // staking farm

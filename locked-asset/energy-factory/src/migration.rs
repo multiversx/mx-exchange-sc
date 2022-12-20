@@ -1,10 +1,7 @@
 elrond_wasm::imports!();
 
 use crate::energy::Energy;
-use common_structs::{
-    Epoch, InitialOldLockedTokenAttributes, OldLockedTokenAttributes, UnlockEpochAmountPairs,
-    LOCKED_TOKEN_ACTIVATION_NONCE,
-};
+use common_structs::{Epoch, UnlockEpochAmountPairs};
 use math::safe_sub;
 use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 use unwrappable::Unwrappable;
@@ -23,6 +20,7 @@ pub trait SimpleLockMigrationModule:
     + crate::lock_options::LockOptionsModule
     + elrond_wasm_modules::pause::PauseModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     /// Sets the energy amounts and token amounts for users. Overwrites any existing values.
     /// Expects any number of pairs of (user address, token amount, energy amount).
@@ -107,19 +105,7 @@ pub trait SimpleLockMigrationModule:
         current_epoch: Epoch,
         energy: &mut Energy<Self::Api>,
     ) -> EsdtTokenPayment {
-        let attributes: OldLockedTokenAttributes<Self::Api> =
-            if payment.token_nonce < LOCKED_TOKEN_ACTIVATION_NONCE {
-                let initial_attributes: InitialOldLockedTokenAttributes<Self::Api> = self
-                    .blockchain()
-                    .get_token_attributes(&payment.token_identifier, payment.token_nonce);
-                initial_attributes.migrate_to_new_attributes()
-            } else {
-                let updated_attributes: OldLockedTokenAttributes<Self::Api> = self
-                    .blockchain()
-                    .get_token_attributes(&payment.token_identifier, payment.token_nonce);
-                updated_attributes
-            };
-
+        let attributes = self.decode_legacy_token(&payment.token_identifier, payment.token_nonce);
         self.send().esdt_local_burn(
             &payment.token_identifier,
             payment.token_nonce,

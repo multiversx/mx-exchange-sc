@@ -20,6 +20,7 @@ pub trait ProxyPairModule:
     + token_send::TokenSendModule
     + crate::events::EventsModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[payable("*")]
     #[endpoint(addLiquidityProxy)]
