@@ -250,8 +250,8 @@ pub trait ProxyFarmModule:
         if exit_farm_result.remaining_farm_tokens.amount > 0 {
             self.send().direct_esdt(
                 &caller,
-                &exit_farm_result.remaining_farm_tokens.token_identifier,
-                exit_farm_result.remaining_farm_tokens.token_nonce,
+                &payment.token_identifier,
+                payment.token_nonce,
                 &exit_farm_result.remaining_farm_tokens.amount,
             );
         }
