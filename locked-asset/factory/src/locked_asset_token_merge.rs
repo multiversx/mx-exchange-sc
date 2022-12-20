@@ -3,7 +3,7 @@ elrond_wasm::derive_imports!();
 
 use common_structs::*;
 
-use crate::attr_ex_helper::{self, PRECISION_EX_INCREASE};
+use crate::attr_ex_helper;
 
 use super::locked_asset;
 use super::locked_asset::{LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, ONE_MILLION};

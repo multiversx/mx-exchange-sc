@@ -29,6 +29,9 @@ path = "../../common/traits/mergeable"
 [dependencies.unwrappable]
 path = "../../common/traits/unwrappable"
 
+[dependencies.legacy_token_decode_module]
+path = "../../common/modules/legacy_token_decode_module"
+
 [dependencies.elrond-wasm]
 version = "=0.36.1"
 features = ["esdt-token-payment-legacy-decode",]
