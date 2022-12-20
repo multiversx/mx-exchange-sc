@@ -183,6 +183,8 @@ pub trait ProxyFarmModule:
 
         self.send()
             .direct_non_zero_esdt_payment(&caller, &enter_farm_result.reward_tokens);
+        self.send()
+            .direct_non_zero_esdt_payment(&caller, &enter_farm_result.reward_tokens);
 
         (farm_tokens, enter_farm_result.reward_tokens).into()
     }
@@ -246,9 +248,14 @@ pub trait ProxyFarmModule:
         self.send()
             .direct_non_zero_esdt_payment(&caller, &reward_tokens);
 
-        let extra_payments = exit_farm_result.get_additional_tokens();
-        if !extra_payments.is_empty() {
-            self.send().direct_multi(&caller, &extra_payments);
+        let remaining_farm_tokens = exit_farm_result.get_remaining_farm_tokens();
+        if remaining_farm_tokens.amount > 0 {
+            self.send().direct_esdt(
+                &caller,
+                &payment.token_identifier,
+                payment.token_nonce,
+                &remaining_farm_tokens.amount,
+            );
         }
 
         (lp_proxy_token_payment, reward_tokens).into()

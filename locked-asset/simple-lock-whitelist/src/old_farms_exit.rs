@@ -5,17 +5,19 @@ elrond_wasm::imports!();
 pub struct OldFarmExitResults<M: ManagedTypeApi> {
     pub initial_farming_tokens: EsdtTokenPayment<M>,
     pub reward_tokens: EsdtTokenPayment<M>,
+    pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
 impl<M: ManagedTypeApi> ExitFarmResult<M> for OldFarmExitResults<M> {
     fn new(
         initial_farming_tokens: EsdtTokenPayment<M>,
         reward_tokens: EsdtTokenPayment<M>,
-        _additional_tokens: ManagedVec<M, EsdtTokenPayment<M>>,
+        remaining_farm_tokens: EsdtTokenPayment<M>,
     ) -> Self {
         OldFarmExitResults {
             initial_farming_tokens,
             reward_tokens,
+            remaining_farm_tokens,
         }
     }
 
@@ -30,13 +32,8 @@ impl<M: ManagedTypeApi> ExitFarmResult<M> for OldFarmExitResults<M> {
     }
 
     #[inline]
-    fn get_additional_results_expected_len() -> usize {
-        0
-    }
-
-    #[inline]
-    fn get_additional_tokens(&self) -> ManagedVec<M, EsdtTokenPayment<M>> {
-        ManagedVec::new()
+    fn get_remaining_farm_tokens(&self) -> EsdtTokenPayment<M> {
+        self.remaining_farm_tokens.clone()
     }
 }
 
