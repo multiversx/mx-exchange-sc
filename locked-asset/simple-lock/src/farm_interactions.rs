@@ -136,7 +136,7 @@ pub trait FarmInteractionsModule {
         farm_token_amount: BigUint,
         opt_exit_amount: OptionalValue<BigUint>,
     ) -> ResultsType {
-        let additional_results = if opt_exit_amount.is_some() { 1 } else { 0 };
+        let additional_results = usize::from(opt_exit_amount.is_some());
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .exit_farm(opt_exit_amount)
