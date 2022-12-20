@@ -49,7 +49,7 @@ pub trait EnergyUpdateModule:
                 .blockchain()
                 .get_token_attributes(token_id, token_nonce);
             energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
-        } else if is_old_token {
+        } else if token_id == &old_locked_token_id {
             let attributes = self.decode_legacy_token(token_id, token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
             for pair in epoch_amount_pairs.pairs {
