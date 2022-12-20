@@ -182,11 +182,6 @@ pub trait FarmStakingProxy:
             self.call_value().single_esdt().into_tuple();
         self.dual_yield_token().require_same_token(&payment_token);
 
-        require!(
-            exit_amount > 0 && exit_amount <= payment_amount,
-            "Invalid exit amount"
-        );
-
         let attributes = self.get_dual_yield_token_attributes(payment_nonce);
         let total_for_nonce = attributes
             .get_total_dual_yield_tokens_for_position()
@@ -195,7 +190,10 @@ pub trait FarmStakingProxy:
             payment_amount == total_for_nonce,
             "Must exit with full position as payment"
         );
-        require!(exit_amount <= total_for_nonce, "Invalid exit amount");
+        require!(
+            exit_amount > 0 && exit_amount <= total_for_nonce,
+            "Invalid exit amount"
+        );
 
         let lp_farm_exit_amount =
             self.get_lp_farm_token_amount_equivalent(&attributes, &exit_amount);
