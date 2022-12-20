@@ -73,7 +73,7 @@ pub trait UnstakeModule:
         let _: IgnoreValue = self
             .token_unstake_sc_proxy_obj(locking_sc_address)
             .deposit_fees()
-            .add_esdt_token_transfer(fees.token_identifier, fees.token_nonce, fees.amount)
+            .with_esdt_transfer(fees)
             .execute_on_dest_context();
     }
 

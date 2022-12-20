@@ -5,7 +5,7 @@ use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    tx_mock::TxInputESDT, DebugApi,
+    tx_mock::TxTokenTransfer, DebugApi,
 };
 pub type RustBigUint = num_bigint::BigUint;
 
@@ -139,7 +139,7 @@ where
     }
 
     pub fn enter_farm(&mut self, caller: &Address, farm_in_amount: RustBigUint) {
-        let payments = vec![TxInputESDT {
+        let payments = vec![TxTokenTransfer {
             token_identifier: LP_TOKEN_ID.to_vec(),
             nonce: 0,
             value: farm_in_amount,

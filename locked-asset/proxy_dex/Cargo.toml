@@ -26,6 +26,9 @@ path = "../../dex/farm-with-locked-rewards"
 [dependencies.locking_module]
 path = "../../common/modules/locking_module"
 
+[dependencies.legacy_token_decode_module]
+path = "../../common/modules/legacy_token_decode_module"
+
 [dependencies.token_merge_helper]
 path = "../../common/modules/token_merge_helper"
 
@@ -42,14 +45,14 @@ path = "../../common/traits/mergeable"
 path = "../../common/traits/fixed-supply-token"
 
 [dependencies.elrond-wasm]
-version = "=0.37.0"
+version = "=0.38.0"
 features = ["esdt-token-payment-legacy-decode",]
 
 [dependencies.elrond-wasm-modules]
-version = "=0.37.0"
+version = "=0.38.0"
 
 [dev-dependencies.elrond-wasm-debug]
-version = "=0.37.0"
+version = "=0.38.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"

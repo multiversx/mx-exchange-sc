@@ -7,7 +7,7 @@ use elrond_wasm::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
-use elrond_wasm_debug::tx_mock::TxInputESDT;
+use elrond_wasm_debug::tx_mock::TxTokenTransfer;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -269,12 +269,12 @@ where
         let expected_farm_token_nonce = self.last_farm_token_nonce;
 
         let mut payments = Vec::new();
-        payments.push(TxInputESDT {
+        payments.push(TxTokenTransfer {
             token_identifier: FARMING_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(farming_token_amount),
         });
-        payments.push(TxInputESDT {
+        payments.push(TxTokenTransfer {
             token_identifier: FARM_TOKEN_ID.to_vec(),
             nonce: farm_token_nonce,
             value: rust_biguint!(farm_token_amount),
@@ -312,12 +312,12 @@ where
         let expected_farm_token_nonce = self.last_farm_token_nonce;
         let expected_farm_token_amount = first_token_amount + second_token_amount;
         let mut payments = Vec::new();
-        payments.push(TxInputESDT {
+        payments.push(TxTokenTransfer {
             token_identifier: FARM_TOKEN_ID.to_vec(),
             nonce: first_token_nonce,
             value: rust_biguint!(first_token_amount),
         });
-        payments.push(TxInputESDT {
+        payments.push(TxTokenTransfer {
             token_identifier: FARM_TOKEN_ID.to_vec(),
             nonce: second_token_nonce,
             value: rust_biguint!(second_token_amount),

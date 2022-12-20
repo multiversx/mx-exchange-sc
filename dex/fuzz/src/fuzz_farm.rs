@@ -6,7 +6,7 @@ pub mod fuzz_farm_test {
 
     use std::cmp::Ordering;
 
-    use elrond_wasm_debug::tx_mock::TxInputESDT;
+    use elrond_wasm_debug::tx_mock::TxTokenTransfer;
     use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 
     use crate::fuzz_data::fuzz_data_tests::*;
@@ -59,7 +59,7 @@ pub mod fuzz_farm_test {
         }
 
         let mut payments = Vec::new();
-        payments.push(TxInputESDT {
+        payments.push(TxTokenTransfer {
             token_identifier: lp_token_id.to_vec(),
             nonce: 0,
             value: farm_in_amount,
@@ -76,7 +76,7 @@ pub mod fuzz_farm_test {
                 );
 
                 if farm_token_amount > rust_zero {
-                    payments.push(TxInputESDT {
+                    payments.push(TxTokenTransfer {
                         token_identifier: farm_token_id.to_vec(),
                         nonce: *farm_token_nonce,
                         value: farm_token_amount.clone(),
@@ -248,7 +248,7 @@ pub mod fuzz_farm_test {
                 );
 
                 if farm_token_amount > rust_zero {
-                    payments.push(TxInputESDT {
+                    payments.push(TxTokenTransfer {
                         token_identifier: farm_token_id.to_vec(),
                         nonce: *farm_token_nonce,
                         value: farm_token_amount.clone(),
@@ -358,7 +358,7 @@ pub mod fuzz_farm_test {
                 );
 
                 if farm_token_amount > rust_zero {
-                    payments.push(TxInputESDT {
+                    payments.push(TxTokenTransfer {
                         token_identifier: farm_token_id.to_vec(),
                         nonce: *farm_token_nonce,
                         value: farm_token_amount.clone(),

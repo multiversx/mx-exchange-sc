@@ -73,7 +73,7 @@ pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
     ) -> EsdtTokenPayment<Self::Api> {
         self.pair_contract_proxy(pair_address)
             .swap_tokens_fixed_input(token_out, amount_out_min)
-            .add_esdt_token_transfer(token_in, 0, amount_in)
+            .with_esdt_transfer((token_in, 0, amount_in))
             .execute_on_dest_context()
     }
 
@@ -88,7 +88,7 @@ pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
         let call_result: MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> =
             self.pair_contract_proxy(pair_address)
                 .swap_tokens_fixed_output(token_out, amount_out)
-                .add_esdt_token_transfer(token_in, 0, amount_in_max)
+                .with_esdt_transfer((token_in, 0, amount_in_max))
                 .execute_on_dest_context();
 
         call_result.into_tuple()

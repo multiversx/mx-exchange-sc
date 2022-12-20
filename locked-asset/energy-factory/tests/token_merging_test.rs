@@ -10,7 +10,7 @@ use elrond_wasm::{
 };
 use elrond_wasm_debug::{
     managed_address, managed_token_id, testing_framework::BlockchainStateWrapper,
-    tx_mock::TxInputESDT,
+    tx_mock::TxTokenTransfer,
 };
 use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{
@@ -56,12 +56,12 @@ fn token_merging_test() {
         .assert_ok();
 
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(400_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 2,
             value: rust_biguint!(100_000),
@@ -126,12 +126,12 @@ fn token_merging_different_years_test() {
         .assert_ok();
 
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(400_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 2,
             value: rust_biguint!(100_000),
@@ -196,12 +196,12 @@ fn token_merging_different_years2_test() {
         .assert_ok();
 
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(400_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 2,
             value: rust_biguint!(100_000),
@@ -337,12 +337,12 @@ fn test_specific_tokens_merge() {
     b_mock.set_block_epoch(2_695);
 
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: first_balance.clone(),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 2,
             value: second_balance.clone(),

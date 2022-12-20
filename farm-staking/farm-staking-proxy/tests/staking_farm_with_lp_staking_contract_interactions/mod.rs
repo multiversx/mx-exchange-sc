@@ -2,7 +2,7 @@ use elrond_wasm::types::Address;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxInputESDT,
+    tx_mock::TxTokenTransfer,
     DebugApi,
 };
 
@@ -174,14 +174,14 @@ where
         let mut dual_yield_nonce = 0;
 
         let mut transfers = Vec::new();
-        transfers.push(TxInputESDT {
+        transfers.push(TxTokenTransfer {
             token_identifier: LP_FARM_TOKEN_ID.to_vec(),
             nonce: lp_farm_token_nonce,
             value: rust_biguint!(lp_farm_token_stake_amount),
         });
 
         for pair in dual_yield_tokens {
-            transfers.push(TxInputESDT {
+            transfers.push(TxTokenTransfer {
                 token_identifier: DUAL_YIELD_TOKEN_ID.to_vec(),
                 nonce: pair.nonce,
                 value: rust_biguint!(pair.amount),

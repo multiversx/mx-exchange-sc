@@ -6,7 +6,7 @@ use elrond_wasm::{
 };
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    tx_mock::TxInputESDT, DebugApi,
+    tx_mock::TxTokenTransfer, DebugApi,
 };
 use fees_collector::{
     config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
@@ -367,12 +367,12 @@ fn add_liquidity_through_simple_lock_proxy() {
 
     // add liquidity through simple-lock SC - one locked (WEGLD) token, one unlocked (MEX)
     let transfers = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(500_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: MEX_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(500_000),

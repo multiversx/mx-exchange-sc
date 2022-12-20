@@ -20,6 +20,7 @@ pub trait ProxyPairModule:
     + token_send::TokenSendModule
     + crate::events::EventsModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[payable("*")]
     #[endpoint(addLiquidityProxy)]
@@ -78,7 +79,7 @@ pub trait ProxyPairModule:
             let wrapped_lp_tokens =
                 WrappedLpToken::new_from_payments(&payments, &wrapped_lp_mapper);
 
-            self.burn_multi_esdt(&payments);
+            self.send().esdt_local_burn_multi(&payments);
 
             self.merge_wrapped_lp_tokens_with_virtual_pos(
                 &caller,

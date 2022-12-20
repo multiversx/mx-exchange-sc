@@ -4,7 +4,7 @@ pub mod fuzz_factory_test {
     elrond_wasm::imports!();
     elrond_wasm::derive_imports!();
 
-    use elrond_wasm_debug::tx_mock::TxInputESDT;
+    use elrond_wasm_debug::tx_mock::TxTokenTransfer;
     use elrond_wasm_debug::{rust_biguint, DebugApi};
 
     use crate::fuzz_data::fuzz_data_tests::*;
@@ -51,7 +51,7 @@ pub mod fuzz_factory_test {
             return;
         }
 
-        let payments = vec![TxInputESDT {
+        let payments = vec![TxTokenTransfer {
             token_identifier: token_id.to_vec(),
             nonce: 0,
             value: amount_to_lock,
@@ -156,7 +156,7 @@ pub mod fuzz_factory_test {
             }
         }
 
-        let payments = vec![TxInputESDT {
+        let payments = vec![TxTokenTransfer {
             token_identifier: locked_token_id.to_vec(),
             nonce: locked_token_nonce,
             value: amount_to_unlock,

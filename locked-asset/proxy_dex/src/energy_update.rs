@@ -1,13 +1,16 @@
 elrond_wasm::imports!();
 
-use common_structs::{Nonce, OldLockedTokenAttributes};
+use common_structs::Nonce;
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 #[elrond_wasm::module]
 pub trait EnergyUpdateModule:
-    energy_query::EnergyQueryModule + utils::UtilsModule + crate::proxy_common::ProxyCommonModule
+    energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + crate::proxy_common::ProxyCommonModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     fn burn_locked_tokens_and_update_energy(
         &self,
@@ -42,12 +45,12 @@ pub trait EnergyUpdateModule:
         let new_locked_token_id = self.get_locked_token_id();
         let old_locked_token_id = self.old_locked_token_id().get();
         if token_id == &new_locked_token_id {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(token_id, token_nonce);
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(token_id, token_nonce);
             energy.update_after_unlock_any(token_amount, attributes.unlock_epoch, current_epoch);
         } else if token_id == &old_locked_token_id {
-            let attributes: OldLockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(token_id, token_nonce);
+            let attributes = self.decode_legacy_token(token_id, token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(token_amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);

@@ -38,12 +38,12 @@ fn merge_common<M: CallTypeApi>(
     endpoint_name: &[u8],
     tokens: PaymentsVec<M>,
 ) -> EsdtTokenPayment<M> {
-    let mut contract_call = ContractCall::<M, EsdtTokenPayment<M>>::new_with_esdt_payment(
+    let mut contract_call = ContractCallWithMultiEsdt::<M, EsdtTokenPayment<M>>::new(
         sc_address,
         ManagedBuffer::new_from_bytes(endpoint_name),
         tokens,
     );
-    contract_call.push_endpoint_arg(&original_caller);
+    contract_call.proxy_arg(&original_caller);
 
     contract_call.execute_on_dest_context()
 }

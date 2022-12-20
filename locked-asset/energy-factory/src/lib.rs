@@ -47,6 +47,7 @@ pub trait SimpleLockEnergy:
     + virtual_lock::VirtualLockModule
     + sc_whitelist_module::SCWhitelistModule
     + locked_token_transfer::LockedTokenTransferModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     /// Args:
     /// - base_asset_token_id: The only token that is accepted for the lockTokens endpoint.
@@ -117,6 +118,11 @@ pub trait SimpleLockEnergy:
         let dest_address = self.dest_from_optional(opt_destination);
         let current_epoch = self.blockchain().get_block_epoch();
         let unlock_epoch = self.unlock_epoch_to_start_of_month(current_epoch + lock_epochs);
+
+        require!(
+            unlock_epoch > current_epoch,
+            "Unlock epoch must be greater than the current epoch"
+        );
 
         let output_tokens =
             self.lock_by_token_type(&dest_address, payment, unlock_epoch, current_epoch);

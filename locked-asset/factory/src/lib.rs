@@ -15,10 +15,9 @@ const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const FIRST_TOKEN_NONCE: u64 = 1;
 const EPOCHS_IN_MONTH: u64 = 30;
 
-use attr_ex_helper::PRECISION_EX_INCREASE;
 use common_structs::{
     Epoch, LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockPeriod,
-    UnlockSchedule, UnlockScheduleEx,
+    UnlockSchedule, UnlockScheduleEx, PRECISION_EX_INCREASE,
 };
 
 #[elrond_wasm::contract]

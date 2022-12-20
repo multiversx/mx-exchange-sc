@@ -41,9 +41,10 @@ pub trait FarmStakingProxy:
         self.require_valid_token_id(&staking_farm_token_id);
         self.require_valid_token_id(&lp_token_id);
 
-        self.lp_farm_address().set(&lp_farm_address);
-        self.staking_farm_address().set(&staking_farm_address);
-        self.pair_address().set(&pair_address);
+        self.lp_farm_address().set_if_empty(&lp_farm_address);
+        self.staking_farm_address()
+            .set_if_empty(&staking_farm_address);
+        self.pair_address().set_if_empty(&pair_address);
 
         self.staking_token_id().set_if_empty(&staking_token_id);
         self.lp_farm_token_id().set_if_empty(&lp_farm_token_id);
@@ -191,21 +192,20 @@ pub trait FarmStakingProxy:
         let dual_yield_token_mapper = self.dual_yield_token();
         dual_yield_token_mapper.require_same_token(&payment.token_identifier);
 
+        let full_attributes: DualYieldTokenAttributes<Self::Api> =
+            dual_yield_token_mapper.get_token_attributes(payment.token_nonce);
+        let total_for_nonce = full_attributes.get_total_supply();
+        require!(
+            payment.amount == total_for_nonce,
+            "Must exit with full position as payment"
+        );
         require!(
             exit_amount > 0 && exit_amount <= payment.amount,
             "Invalid exit amount"
         );
 
-        let full_attributes: DualYieldTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
-
-        let exit_payment = EsdtTokenPayment::new(
-            payment.token_identifier.clone(),
-            payment.token_nonce,
-            exit_amount.clone(),
-        );
         let exit_attributes: DualYieldTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&exit_payment, &dual_yield_token_mapper);
+            full_attributes.clone().into_part(&exit_amount);
 
         let lp_farm_exit_result = self.lp_farm_exit(
             full_attributes.lp_farm_token_nonce,
@@ -224,18 +224,32 @@ pub trait FarmStakingProxy:
             exit_attributes.staking_farm_token_amount,
         );
 
+        let opt_new_dual_yield_tokens = if exit_amount != total_for_nonce {
+            let remaining_lp_farm_tokens = lp_farm_exit_result.remaining_farm_tokens.amount;
+            let remaining_staking_farm_tokens =
+                staking_farm_exit_result.remaining_farm_tokens.amount;
+            let new_token_attributes = DualYieldTokenAttributes {
+                lp_farm_token_nonce: full_attributes.lp_farm_token_nonce,
+                lp_farm_token_amount: remaining_lp_farm_tokens,
+                staking_farm_token_nonce: full_attributes.staking_farm_token_nonce,
+                staking_farm_token_amount: remaining_staking_farm_tokens,
+            };
+            let new_total_dual_yield_tokens = new_token_attributes.get_total_supply();
+            let new_dual_yield_tokens = dual_yield_token_mapper
+                .nft_create(new_total_dual_yield_tokens, &new_token_attributes);
+
+            Some(new_dual_yield_tokens)
+        } else {
+            None
+        };
+
         let caller = self.blockchain().get_caller();
-        let remaining_dual_yield_tokens = EsdtTokenPayment::new(
-            payment.token_identifier,
-            payment.token_nonce,
-            &payment.amount - &exit_amount,
-        );
         let unstake_result = UnstakeResult {
             other_token_payment: remove_liq_result.other_token_payment,
             lp_farm_rewards: lp_farm_exit_result.lp_farm_rewards,
             staking_rewards: staking_farm_exit_result.staking_rewards,
             unbond_staking_farm_token: staking_farm_exit_result.unbond_staking_farm_token,
-            remaining_dual_yield_tokens,
+            opt_new_dual_yield_tokens,
         };
 
         dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
