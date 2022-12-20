@@ -36,6 +36,7 @@ pub trait ProxyDexImpl:
     + events::EventsModule
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     /// asset_token_id: underlying asset token ID, which is used to interact with
     ///     pair/farm contracts

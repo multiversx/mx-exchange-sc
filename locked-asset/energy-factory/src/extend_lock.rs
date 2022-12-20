@@ -21,6 +21,7 @@ pub trait ExtendLockModule:
     + crate::migration::SimpleLockMigrationModule
     + elrond_wasm_modules::pause::PauseModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     fn lock_by_token_type(
         &self,
