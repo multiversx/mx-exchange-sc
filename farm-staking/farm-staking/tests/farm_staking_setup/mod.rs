@@ -149,10 +149,19 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(&self.user_address, &self.farm_wrapper, &payments, |sc| {
-                let payment = sc.stake_farm_endpoint();
-                assert_eq!(payment.token_identifier, managed_token_id!(FARM_TOKEN_ID));
-                assert_eq!(payment.token_nonce, expected_farm_token_nonce);
-                assert_eq!(payment.amount, managed_biguint!(expected_total_out_amount));
+                let (new_farm_token_payment, _) = sc.stake_farm_endpoint().into_tuple();
+                assert_eq!(
+                    new_farm_token_payment.token_identifier,
+                    managed_token_id!(FARM_TOKEN_ID)
+                );
+                assert_eq!(
+                    new_farm_token_payment.token_nonce,
+                    expected_farm_token_nonce
+                );
+                assert_eq!(
+                    new_farm_token_payment.amount,
+                    managed_biguint!(expected_total_out_amount)
+                );
             })
             .assert_ok();
 
@@ -259,9 +268,9 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result = sc.unstake_farm();
+                    let multi_result = sc.unstake_farm(managed_biguint!(farm_token_amount));
 
-                    let (first_result, second_result) = multi_result.into_tuple();
+                    let (first_result, second_result, _) = multi_result.into_tuple();
 
                     assert_eq!(
                         first_result.token_identifier,

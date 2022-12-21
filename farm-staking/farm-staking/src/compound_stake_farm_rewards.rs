@@ -39,6 +39,8 @@ pub trait CompoundStakeFarmRewardsModule:
         let new_farm_token = compound_result.new_farm_token.payment.clone();
         self.send_payment_non_zero(&caller, &new_farm_token);
 
+        self.set_farm_supply_for_current_week(&compound_result.storage_cache.farm_token_supply);
+
         self.emit_compound_rewards_event(
             &caller,
             compound_result.context,

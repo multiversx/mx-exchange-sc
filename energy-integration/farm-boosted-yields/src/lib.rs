@@ -123,6 +123,27 @@ pub trait FarmBoostedYieldsModule:
         total
     }
 
+    fn set_farm_supply_for_current_week(&self, farm_supply: &BigUint) {
+        let current_week = self.get_current_week();
+        self.farm_supply_for_week(current_week).set(farm_supply);
+    }
+
+    fn clear_user_energy_if_needed(
+        &self,
+        original_caller: &ManagedAddress,
+        user_remaining_farm_tokens: &BigUint,
+    ) {
+        let opt_config = self.try_get_boosted_yields_config();
+        if let Some(config) = opt_config {
+            let boosted_yields_factors = config.get_latest_factors();
+            self.clear_user_energy(
+                original_caller,
+                user_remaining_farm_tokens,
+                &boosted_yields_factors.min_farm_amount,
+            );
+        }
+    }
+
     #[view(getBoostedYieldsRewardsPercentage)]
     #[storage_mapper("boostedYieldsRewardsPercentage")]
     fn boosted_yields_rewards_percentage(&self) -> SingleValueMapper<u64>;

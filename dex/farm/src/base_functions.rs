@@ -208,11 +208,6 @@ pub trait BaseFunctionsModule:
         self.per_block_reward_amount().set(&per_block_amount);
     }
 
-    fn set_farm_supply_for_current_week(&self, farm_supply: &BigUint) {
-        let current_week = self.get_current_week();
-        self.farm_supply_for_week(current_week).set(farm_supply);
-    }
-
     fn require_queried(&self) {
         let caller = self.blockchain().get_caller();
         let sc_address = self.blockchain().get_sc_address();
