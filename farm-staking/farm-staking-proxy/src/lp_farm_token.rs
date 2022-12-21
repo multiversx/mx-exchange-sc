@@ -1,29 +1,26 @@
 elrond_wasm::imports!();
 elrond_wasm::derive_imports!();
 
-use common_structs::{FarmToken, FarmTokenAttributes};
+use common_structs::FarmTokenAttributes;
+use fixed_supply_token::FixedSupplyToken;
 
 #[elrond_wasm::module]
-pub trait LpFarmTokenModule: token_merge_helper::TokenMergeHelperModule {
+pub trait LpFarmTokenModule {
     fn get_lp_tokens_in_farm_position(
         &self,
         farm_token_nonce: u64,
         farm_token_amount: &BigUint,
     ) -> BigUint {
-        let own_sc_address = self.blockchain().get_sc_address();
         let lp_farm_token_id = self.lp_farm_token_id().get();
-        let token_data = self.blockchain().get_esdt_token_data(
-            &own_sc_address,
-            &lp_farm_token_id,
-            farm_token_nonce,
-        );
-        let attributes = token_data.decode_attributes::<FarmTokenAttributes<Self::Api>>();
+        let attributes = self
+            .blockchain()
+            .get_token_attributes::<FarmTokenAttributes<Self::Api>>(
+                &lp_farm_token_id,
+                farm_token_nonce,
+            )
+            .into_part(farm_token_amount);
 
-        self.rule_of_three_non_zero_result(
-            farm_token_amount,
-            &attributes.current_farm_amount,
-            &attributes.get_initial_farming_tokens(),
-        )
+        attributes.current_farm_amount
     }
 
     #[view(getLpFarmTokenId)]
