@@ -1,5 +1,5 @@
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use elrond_wasm::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxTokenTransfer;
 use elrond_wasm_debug::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
@@ -9,6 +9,10 @@ use elrond_wasm_debug::{
 pub type RustBigUint = num_bigint::BigUint;
 
 use config::*;
+use energy_factory::energy::EnergyModule;
+use energy_query::{Energy, EnergyQueryModule};
+use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
+use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_staking::claim_stake_farm_rewards::ClaimStakeFarmRewardsModule;
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking::stake_farm::StakeFarmModule;
@@ -30,27 +34,44 @@ pub const TOTAL_REWARDS_AMOUNT: u64 = 1_000_000_000_000;
 
 pub const USER_TOTAL_RIDE_TOKENS: u64 = 5_000_000_000;
 
-#[allow(dead_code)] // owner_address is unused, at least for now
-pub struct FarmStakingSetup<FarmObjBuilder>
+pub const BOOSTED_YIELDS_PERCENTAGE: u64 = 2_500; // 25%
+pub const MAX_REWARDS_FACTOR: u64 = 10;
+pub const USER_REWARDS_ENERGY_CONST: u64 = 3;
+pub const USER_REWARDS_FARM_CONST: u64 = 2;
+pub const MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+pub const MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS: u64 = 1;
+
+pub struct FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
     pub b_mock: BlockchainStateWrapper,
     pub owner_address: Address,
     pub user_address: Address,
     pub farm_wrapper: ContractObjWrapper<farm_staking::ContractObj<DebugApi>, FarmObjBuilder>,
+    pub energy_factory_wrapper:
+        ContractObjWrapper<energy_factory::ContractObj<DebugApi>, EnergyFactoryBuilder>,
 }
 
-impl<FarmObjBuilder> FarmStakingSetup<FarmObjBuilder>
+impl<FarmObjBuilder, EnergyFactoryBuilder> FarmStakingSetup<FarmObjBuilder, EnergyFactoryBuilder>
 where
     FarmObjBuilder: 'static + Copy + Fn() -> farm_staking::ContractObj<DebugApi>,
+    EnergyFactoryBuilder: 'static + Copy + Fn() -> energy_factory::ContractObj<DebugApi>,
 {
-    pub fn new(farm_builder: FarmObjBuilder) -> Self {
+    pub fn new(farm_builder: FarmObjBuilder, energy_factory_builder: EnergyFactoryBuilder) -> Self {
         let rust_zero = rust_biguint!(0u64);
         let mut b_mock = BlockchainStateWrapper::new();
         let owner_addr = b_mock.create_user_account(&rust_zero);
         let farm_wrapper =
             b_mock.create_sc_account(&rust_zero, Some(&owner_addr), farm_builder, "farm-staking");
+
+        let energy_factory_wrapper = b_mock.create_sc_account(
+            &rust_zero,
+            Some(&owner_addr),
+            energy_factory_builder,
+            "energy_factory.wasm",
+        );
 
         // init farm contract
 
@@ -76,6 +97,9 @@ where
 
                 sc.state().set(State::Active);
                 sc.produce_rewards_enabled().set(true);
+
+                sc.energy_factory_address()
+                    .set(managed_address!(energy_factory_wrapper.address_ref()));
             })
             .assert_ok();
 
@@ -123,6 +147,7 @@ where
             owner_address: owner_addr,
             user_address: user_addr,
             farm_wrapper,
+            energy_factory_wrapper,
         }
     }
 
@@ -362,5 +387,60 @@ where
 
     pub fn set_block_epoch(&mut self, block_epoch: u64) {
         self.b_mock.set_block_epoch(block_epoch);
+    }
+
+    pub fn set_user_energy(
+        &mut self,
+        user: &Address,
+        energy: u64,
+        last_update_epoch: u64,
+        locked_tokens: u64,
+    ) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.energy_factory_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.user_energy(&managed_address!(user)).set(&Energy::new(
+                        BigInt::from(managed_biguint!(energy)),
+                        last_update_epoch,
+                        managed_biguint!(locked_tokens),
+                    ));
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_boosted_yields_rewards_percentage(&mut self, percentage: u64) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_boosted_yields_rewards_percentage(percentage);
+                },
+            )
+            .assert_ok();
+    }
+
+    pub fn set_boosted_yields_factors(&mut self) {
+        self.b_mock
+            .execute_tx(
+                &self.owner_address,
+                &self.farm_wrapper,
+                &rust_biguint!(0),
+                |sc| {
+                    sc.set_boosted_yields_factors(
+                        managed_biguint!(MAX_REWARDS_FACTOR),
+                        managed_biguint!(USER_REWARDS_ENERGY_CONST),
+                        managed_biguint!(USER_REWARDS_FARM_CONST),
+                        managed_biguint!(MIN_ENERGY_AMOUNT_FOR_BOOSTED_YIELDS),
+                        managed_biguint!(MIN_FARM_AMOUNT_FOR_BOOSTED_YIELDS),
+                    );
+                },
+            )
+            .assert_ok();
     }
 }
