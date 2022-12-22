@@ -12,6 +12,7 @@ pub trait LockedTokenWrapper:
     + lkmex_transfer::energy_transfer::EnergyTransferModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[init]
     fn init(

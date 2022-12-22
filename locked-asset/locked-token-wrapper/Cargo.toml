@@ -17,6 +17,9 @@ version = "=0.38.0"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.legacy_token_decode_module]
+path = "../../common/modules/legacy_token_decode_module"
+
 [dependencies.simple-lock]
 path = "../simple-lock"
 
