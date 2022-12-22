@@ -131,7 +131,7 @@ where
         }
     }
 
-    pub fn into_vec(&mut self) -> PaymentsVec<M> {
+    pub fn into_vec(self) -> PaymentsVec<M> {
         self.payments
     }
 }
