@@ -14,6 +14,7 @@ elrond_wasm_node::wasm_endpoints! {
         issueWrappedToken
         setEnergyFactoryAddress
         setTransferRoleWrappedToken
+        unsetTransferRoleWrappedToken
         unwrapLockedToken
         wrapLockedToken
     )
