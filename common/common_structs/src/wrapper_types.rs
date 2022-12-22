@@ -5,6 +5,8 @@ use core::ops::Deref;
 
 use unwrappable::Unwrappable;
 
+use crate::PaymentsVec;
+
 static NOT_ENOUGH_RESULTS_ERR_MSG: &[u8] = b"Not enough results";
 const FIRST_VEC_INDEX: usize = 0;
 
@@ -90,5 +92,52 @@ impl<M: ManagedTypeApi> RawResultWrapper<M> {
         self.raw_results.remove(FIRST_VEC_INDEX);
 
         result
+    }
+}
+
+pub struct PaymentsWrapper<M: ManagedTypeApi> {
+    payments: PaymentsVec<M>,
+}
+
+impl<M: ManagedTypeApi> PaymentsWrapper<M>
+where
+    M: ManagedTypeApi + SendApi,
+{
+    pub fn new() -> Self {
+        Self {
+            payments: ManagedVec::new(),
+        }
+    }
+
+    pub fn new_from_payments(payments: PaymentsVec<M>) -> Self {
+        Self { payments }
+    }
+
+    pub fn push(&mut self, payment: EsdtTokenPayment<M>) {
+        if payment.amount > 0 {
+            self.payments.push(payment);
+        }
+    }
+
+    pub fn send_to_address<T: SendApi>(&self, address: &ManagedAddress<M>) {
+        if !self.payments.is_empty() {
+            for payment in self.payments.iter() {
+                if payment.amount > 0 {
+                    let _ = T::send_api_impl().transfer_esdt_nft_execute(
+                        address,
+                        &payment.token_identifier,
+                        payment.token_nonce,
+                        &payment.amount,
+                        0,
+                        &ManagedBuffer::new(),
+                        &ManagedArgBuffer::new(),
+                    );
+                }
+            }
+        }
+    }
+
+    pub fn to_vec(&mut self) -> PaymentsVec<M> {
+        return self.payments.clone();
     }
 }
