@@ -119,21 +119,15 @@ where
         }
     }
 
-    pub fn send_to_address<T: SendApi>(&self, address: &ManagedAddress<M>) {
+    pub fn send_to_address(&self, address: &ManagedAddress<M>) {
         if !self.payments.is_empty() {
-            for payment in self.payments.iter() {
-                if payment.amount > 0 {
-                    let _ = T::send_api_impl().transfer_esdt_nft_execute(
-                        address,
-                        &payment.token_identifier,
-                        payment.token_nonce,
-                        &payment.amount,
-                        0,
-                        &ManagedBuffer::new(),
-                        &ManagedArgBuffer::new(),
-                    );
-                }
-            }
+            let _ = M::send_api_impl().multi_transfer_esdt_nft_execute(
+                address,
+                &self.payments,
+                0,
+                &ManagedBuffer::new(),
+                &ManagedArgBuffer::new(),
+            );
         }
     }
 
