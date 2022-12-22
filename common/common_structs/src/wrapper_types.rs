@@ -131,7 +131,7 @@ where
         }
     }
 
-    pub fn to_vec(&mut self) -> PaymentsVec<M> {
-        return self.payments.clone();
+    pub fn into_vec(&mut self) -> PaymentsVec<M> {
+        self.payments
     }
 }
