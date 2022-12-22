@@ -42,11 +42,11 @@ path = "../common-types"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
 [dev-dependencies.elrond-wasm-debug]
 version = "=0.38.0"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
-
-[dev-dependencies.sc_whitelist_module]
-path = "../../common/modules/sc_whitelist_module"
