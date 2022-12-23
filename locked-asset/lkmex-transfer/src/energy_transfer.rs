@@ -6,7 +6,11 @@ use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 #[elrond_wasm::module]
-pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsModule {
+pub trait EnergyTransferModule:
+    energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
+{
     fn deduct_energy_from_sender(
         &self,
         from_user: ManagedAddress,
@@ -50,9 +54,8 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let mut energy = self.get_energy_entry(&from_user);
 
         for token in tokens {
-            let attributes: OldLockedTokenAttributes<Self::Api> = self
-                .blockchain()
-                .get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: OldLockedTokenAttributes<Self::Api> =
+                self.decode_legacy_token(&token.token_identifier, token.token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&token.amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.update_after_unlock_any(&pair.amount, pair.epoch, current_epoch);
@@ -101,9 +104,7 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let mut energy = self.get_energy_entry(&to_user);
 
         for token in tokens {
-            let attributes: OldLockedTokenAttributes<Self::Api> = self
-                .blockchain()
-                .get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes = self.decode_legacy_token(&token.token_identifier, token.token_nonce);
             let epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&token.amount);
             for pair in epoch_amount_pairs.pairs {
                 energy.add_after_token_lock(&pair.amount, pair.epoch, current_epoch);
