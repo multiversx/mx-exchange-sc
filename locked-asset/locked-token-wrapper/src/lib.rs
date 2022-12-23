@@ -12,6 +12,7 @@ pub trait LockedTokenWrapper:
     + lkmex_transfer::energy_transfer::EnergyTransferModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[init]
     fn init(
@@ -38,18 +39,24 @@ pub trait LockedTokenWrapper:
     fn wrap_locked_token_endpoint(&self) -> EsdtTokenPayment {
         let payment = self.call_value().single_esdt();
         let caller = self.blockchain().get_caller();
+        let is_caller_sc = self.blockchain().is_smart_contract(&caller);
 
         if payment.token_identifier == self.locked_token().get_token_id() {
-            self.deduct_energy_from_sender(
-                caller.clone(),
-                &ManagedVec::from_single_item(payment.clone()),
-            );
+            if !is_caller_sc {
+                self.deduct_energy_from_sender(
+                    caller.clone(),
+                    &ManagedVec::from_single_item(payment.clone()),
+                );
+            }
+
             self.wrap_locked_token_and_send(&caller, payment)
         } else if payment.token_identifier == self.old_locked_token().get_token_id() {
-            self.deduct_old_token_energy_from_sender(
-                caller.clone(),
-                &ManagedVec::from_single_item(payment.clone()),
-            );
+            if !is_caller_sc {
+                self.deduct_old_token_energy_from_sender(
+                    caller.clone(),
+                    &ManagedVec::from_single_item(payment.clone()),
+                );
+            }
 
             self.wrap_locked_token_and_send(&caller, payment)
         } else {
@@ -64,17 +71,20 @@ pub trait LockedTokenWrapper:
         let caller = self.blockchain().get_caller();
         let original_locked_tokens = self.unwrap_locked_token(payment);
 
-        if original_locked_tokens.token_identifier == self.locked_token().get_token_id() {
-            self.add_energy_to_destination(
-                caller.clone(),
-                &ManagedVec::from_single_item(original_locked_tokens.clone()),
-            );
-        } else if original_locked_tokens.token_identifier == self.old_locked_token().get_token_id()
-        {
-            self.add_old_token_energy_to_destination(
-                caller.clone(),
-                &ManagedVec::from_single_item(original_locked_tokens.clone()),
-            );
+        if !self.blockchain().is_smart_contract(&caller) {
+            if original_locked_tokens.token_identifier == self.locked_token().get_token_id() {
+                self.add_energy_to_destination(
+                    caller.clone(),
+                    &ManagedVec::from_single_item(original_locked_tokens.clone()),
+                );
+            } else if original_locked_tokens.token_identifier
+                == self.old_locked_token().get_token_id()
+            {
+                self.add_old_token_energy_to_destination(
+                    caller.clone(),
+                    &ManagedVec::from_single_item(original_locked_tokens.clone()),
+                );
+            }
         }
 
         self.send().direct_esdt(

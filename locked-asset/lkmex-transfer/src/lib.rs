@@ -21,7 +21,10 @@ pub struct LockedFunds<M: ManagedTypeApi> {
 
 #[elrond_wasm::contract]
 pub trait LkmexTransfer:
-    energy_transfer::EnergyTransferModule + energy_query::EnergyQueryModule + utils::UtilsModule
+    energy_transfer::EnergyTransferModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[init]
     fn init(

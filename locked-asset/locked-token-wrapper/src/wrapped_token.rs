@@ -53,6 +53,22 @@ pub trait WrappedTokenModule:
         );
     }
 
+    /// Removes the transfer role for the given address.
+    #[only_owner]
+    #[endpoint(unsetTransferRoleWrappedToken)]
+    fn unset_transfer_role(&self, address: ManagedAddress) {
+        let wrapped_token_id = self.wrapped_token().get_token_id();
+        let system_sc_proxy = ESDTSystemSmartContractProxy::new_proxy_obj();
+        system_sc_proxy
+            .unset_special_roles(
+                &address,
+                &wrapped_token_id,
+                [EsdtLocalRole::Transfer][..].iter().cloned(),
+            )
+            .async_call()
+            .call_and_exit();
+    }
+
     fn wrap_locked_token_and_send(
         &self,
         caller: &ManagedAddress,
