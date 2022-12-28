@@ -13,6 +13,7 @@ use crate::{
 pub enum FarmType {
     SimpleFarm,
     FarmWithLockedRewards,
+    FarmWithBoostedRewards,
 }
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
