@@ -9,6 +9,7 @@ use elrond_wasm_debug::{
 };
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
+use legacy_token_decode_module::LOCKED_TOKEN_ACTIVATION_NONCE;
 use locked_token_wrapper::{
     wrapped_token::{WrappedTokenAttributes, WrappedTokenModule},
     LockedTokenWrapper,
@@ -275,7 +276,7 @@ fn both_tokens_wrap_unwrap_test() {
     b_mock.set_nft_balance(
         &second_user,
         LEGACY_LOCKED_TOKEN_ID,
-        3, // higher random nonce to avoid nonce caching conflicts
+        LOCKED_TOKEN_ACTIVATION_NONCE + 1,
         &rust_biguint!(user_balance),
         &old_token_attributes,
     );
@@ -329,7 +330,7 @@ fn both_tokens_wrap_unwrap_test() {
             &second_user,
             &locked_token_wrapper,
             LEGACY_LOCKED_TOKEN_ID,
-            3,
+            LOCKED_TOKEN_ACTIVATION_NONCE + 1,
             &rust_biguint!(user_half_balance),
             |sc| {
                 let _ = sc.wrap_locked_token_endpoint();
@@ -355,7 +356,7 @@ fn both_tokens_wrap_unwrap_test() {
         &rust_biguint!(user_half_balance),
         Some(&WrappedTokenAttributes::<DebugApi> {
             locked_token_id: managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
-            locked_token_nonce: 3,
+            locked_token_nonce: LOCKED_TOKEN_ACTIVATION_NONCE + 1,
         }),
     );
 
@@ -432,7 +433,7 @@ fn both_tokens_wrap_unwrap_test() {
     b_mock.check_nft_balance(
         &second_user,
         LEGACY_LOCKED_TOKEN_ID,
-        3,
+        LOCKED_TOKEN_ACTIVATION_NONCE + 1,
         &rust_biguint!(user_balance),
         Some(&old_token_attributes),
     );
