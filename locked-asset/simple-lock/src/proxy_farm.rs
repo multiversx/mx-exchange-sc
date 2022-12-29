@@ -161,7 +161,7 @@ pub trait ProxyFarmModule:
             lp_proxy_token_attributes.lp_token_id.clone(),
             proxy_lp_payment.amount,
             additional_farm_payments,
-            &caller,
+            caller.clone(),
         );
         let farm_tokens = enter_farm_result.farm_tokens;
         let proxy_farm_token_attributes = FarmProxyTokenAttributes {
@@ -203,6 +203,7 @@ pub trait ProxyFarmModule:
         &self,
         exit_amount: BigUint,
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
+        require!(exit_amount > 0u64, "Exit amount must be greater than 0");
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
@@ -218,7 +219,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
             exit_amount,
-            &caller,
+            caller.clone(),
         );
         require!(
             exit_farm_result.initial_farming_tokens.token_identifier
@@ -286,7 +287,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_id.clone(),
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
-            &caller,
+            caller.clone(),
         );
         require!(
             claim_rewards_result.new_farm_tokens.token_identifier

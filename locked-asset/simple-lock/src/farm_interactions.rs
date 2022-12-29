@@ -72,11 +72,11 @@ pub trait FarmInteractionsModule {
         farming_token: TokenIdentifier,
         farming_token_amount: BigUint,
         additional_farm_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
-        caller: &ManagedAddress,
+        caller: ManagedAddress,
     ) -> EnterFarmResultWrapper<Self::Api> {
         let mut contract_call = self
             .farm_proxy(farm_address)
-            .enter_farm(OptionalValue::Some(caller.clone()))
+            .enter_farm(caller)
             .add_esdt_token_transfer(farming_token, 0, farming_token_amount);
         for farm_token in &additional_farm_tokens {
             contract_call = contract_call.add_esdt_token_transfer(
@@ -106,11 +106,11 @@ pub trait FarmInteractionsModule {
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
         exit_amount: BigUint,
-        caller: &ManagedAddress,
+        caller: ManagedAddress,
     ) -> ExitFarmResultWrapper<Self::Api> {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
-            .exit_farm(exit_amount, OptionalValue::Some(caller.clone()))
+            .exit_farm(exit_amount, caller)
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
@@ -134,11 +134,11 @@ pub trait FarmInteractionsModule {
         farm_token: TokenIdentifier,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
-        caller: &ManagedAddress,
+        caller: ManagedAddress,
     ) -> FarmClaimRewardsResultWrapper<Self::Api> {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
-            .claim_rewards(OptionalValue::Some(caller.clone()))
+            .claim_rewards(caller)
             .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
             .execute_on_dest_context();
 
