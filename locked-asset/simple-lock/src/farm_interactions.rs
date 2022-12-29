@@ -5,6 +5,8 @@ elrond_wasm::derive_imports!();
 
 type EnterFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
+type ExitFarmResultType<BigUint> =
+    MultiValue3<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 type ClaimRewardsResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
@@ -75,26 +77,44 @@ impl<M: ManagedTypeApi> ExitFarmResult<M> for ExitFarmResultWrapper<M> {
     }
 }
 
+mod old_farm_proxy {
+    elrond_wasm::imports!();
+
+    #[elrond_wasm::proxy]
+    pub trait FarmProxy {
+        #[payable("*")]
+        #[endpoint(exitFarm)]
+        fn exit_farm(&self) -> MultiValueEncoded<EsdtTokenPayment>;
+    }
+}
+
 mod farm_proxy {
     elrond_wasm::imports!();
-    use super::{ClaimRewardsResultType, EnterFarmResultType};
+    use super::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 
     #[elrond_wasm::proxy]
     pub trait FarmProxy {
         #[payable("*")]
         #[endpoint(enterFarm)]
-        fn enter_farm(&self) -> EnterFarmResultType<Self::Api>;
+        fn enter_farm(
+            &self,
+            opt_orig_caller: OptionalValue<ManagedAddress>,
+        ) -> EnterFarmResultType<Self::Api>;
 
         #[payable("*")]
         #[endpoint(exitFarm)]
         fn exit_farm(
             &self,
-            exit_amount: OptionalValue<BigUint>,
-        ) -> MultiValueEncoded<EsdtTokenPayment>;
+            exit_amount: BigUint,
+            opt_orig_caller: OptionalValue<ManagedAddress>,
+        ) -> ExitFarmResultType<Self::Api>;
 
         #[payable("*")]
         #[endpoint(claimRewards)]
-        fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api>;
+        fn claim_rewards(
+            &self,
+            opt_orig_caller: OptionalValue<ManagedAddress>,
+        ) -> ClaimRewardsResultType<Self::Api>;
     }
 }
 
@@ -106,10 +126,11 @@ pub trait FarmInteractionsModule {
         farming_token: TokenIdentifier,
         farming_token_amount: BigUint,
         additional_farm_tokens: ManagedVec<EsdtTokenPayment<Self::Api>>,
+        caller: &ManagedAddress,
     ) -> EnterFarmResultWrapper<Self::Api> {
         let mut contract_call = self
             .farm_proxy(farm_address)
-            .enter_farm()
+            .enter_farm(OptionalValue::Some(caller.clone()))
             .with_esdt_transfer((farming_token, 0, farming_token_amount));
         for farm_token in &additional_farm_tokens {
             contract_call = contract_call.with_esdt_transfer(farm_token);
@@ -135,13 +156,22 @@ pub trait FarmInteractionsModule {
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
         opt_exit_amount: OptionalValue<BigUint>,
-    ) -> ResultsType {
+        caller: &ManagedAddress,
+    ) -> ExitFarmResultWrapper<Self::Api> {
         let additional_results = usize::from(opt_exit_amount.is_some());
-        let raw_results: RawResultsType<Self::Api> = self
-            .farm_proxy(farm_address)
-            .exit_farm(opt_exit_amount)
-            .with_esdt_transfer((farm_token.clone(), farm_token_nonce, farm_token_amount))
-            .execute_on_dest_context();
+
+        let raw_results: RawResultsType<Self::Api> = match opt_exit_amount {
+            OptionalValue::Some(exit_amount) => self
+                .farm_proxy(farm_address)
+                .exit_farm(exit_amount, OptionalValue::Some(caller.clone()))
+                .with_esdt_transfer((farm_token.clone(), farm_token_nonce, farm_token_amount))
+                .execute_on_dest_context(),
+            OptionalValue::None => self
+                .old_farm_proxy(farm_address)
+                .exit_farm()
+                .with_esdt_transfer((farm_token.clone(), farm_token_nonce, farm_token_amount))
+                .execute_on_dest_context(),
+        };
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
         results_wrapper.trim_results_front(EXIT_FARM_BASE_RESULTS_LEN + additional_results);
@@ -154,7 +184,11 @@ pub trait FarmInteractionsModule {
             EsdtTokenPayment::new(farm_token, farm_token_nonce, BigUint::zero())
         };
 
-        ResultsType::new(initial_farming_tokens, reward_tokens, remaining_farm_tokens)
+        ExitFarmResultWrapper {
+            initial_farming_tokens,
+            reward_tokens,
+            remaining_farm_tokens,
+        }
     }
 
     fn call_farm_claim_rewards(
@@ -163,10 +197,11 @@ pub trait FarmInteractionsModule {
         farm_token: TokenIdentifier,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
+        caller: &ManagedAddress,
     ) -> FarmClaimRewardsResultWrapper<Self::Api> {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
-            .claim_rewards()
+            .claim_rewards(OptionalValue::Some(caller.clone()))
             .with_esdt_transfer((farm_token, farm_token_nonce, farm_token_amount))
             .execute_on_dest_context();
 
@@ -184,4 +219,7 @@ pub trait FarmInteractionsModule {
 
     #[proxy]
     fn farm_proxy(&self, sc_address: ManagedAddress) -> farm_proxy::Proxy<Self::Api>;
+
+    #[proxy]
+    fn old_farm_proxy(&self, sc_address: ManagedAddress) -> old_farm_proxy::Proxy<Self::Api>;
 }

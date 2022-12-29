@@ -160,11 +160,13 @@ pub trait ProxyFarmModule:
 
         let farm_address =
             self.try_get_farm_address(&lp_proxy_token_attributes.lp_token_id, farm_type);
+        let caller = self.blockchain().get_caller();
         let enter_farm_result = self.call_farm_enter(
             farm_address,
             lp_proxy_token_attributes.lp_token_id.clone(),
             proxy_lp_payment.amount,
             additional_farm_payments,
+            &caller,
         );
         let farm_tokens = enter_farm_result.farm_tokens;
         let proxy_farm_token_attributes = FarmProxyTokenAttributes {
@@ -175,7 +177,6 @@ pub trait ProxyFarmModule:
             farming_token_locked_nonce: proxy_lp_payment.token_nonce,
         };
 
-        let caller = self.blockchain().get_caller();
         let farm_tokens = farm_proxy_token_mapper.nft_create_and_send(
             &caller,
             farm_tokens.amount,
@@ -201,6 +202,7 @@ pub trait ProxyFarmModule:
         &self,
         exit_amount: BigUint,
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
+        require!(exit_amount > 0, "Exit amount must be greater than 0");
         self.exit_farm_base_impl::<ExitFarmResultWrapper<Self::Api>>(OptionalValue::Some(
             exit_amount,
         ))
@@ -218,12 +220,14 @@ pub trait ProxyFarmModule:
             &farm_proxy_token_attributes.farming_token_id,
             farm_proxy_token_attributes.farm_type,
         );
+        let caller = self.blockchain().get_caller();
         let exit_farm_result = self.call_farm_exit::<ResultsType>(
             farm_address,
             farm_proxy_token_attributes.farm_token_id,
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
             opt_exit_amount,
+            &caller,
         );
 
         let initial_farming_tokens = exit_farm_result.get_initial_farming_tokens();
@@ -260,7 +264,6 @@ pub trait ProxyFarmModule:
         }
 
         if !output_payments.is_empty() {
-            let caller = self.blockchain().get_caller();
             self.send().direct_multi(&caller, &output_payments);
         }
 
@@ -287,11 +290,13 @@ pub trait ProxyFarmModule:
             &farm_proxy_token_attributes.farming_token_id,
             farm_proxy_token_attributes.farm_type,
         );
+        let caller = self.blockchain().get_caller();
         let claim_rewards_result = self.call_farm_claim_rewards(
             farm_address,
             farm_proxy_token_attributes.farm_token_id.clone(),
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
+            &caller,
         );
         require!(
             claim_rewards_result.new_farm_tokens.token_identifier
@@ -302,7 +307,6 @@ pub trait ProxyFarmModule:
         farm_proxy_token_attributes.farm_token_nonce =
             claim_rewards_result.new_farm_tokens.token_nonce;
 
-        let caller = self.blockchain().get_caller();
         let new_proxy_token_payment = self.farm_proxy_token().nft_create_and_send(
             &caller,
             claim_rewards_result.new_farm_tokens.amount,
