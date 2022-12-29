@@ -166,7 +166,7 @@ pub trait ProxyFarmModule:
             lp_proxy_token_attributes.lp_token_id.clone(),
             proxy_lp_payment.amount,
             additional_farm_payments,
-            &caller,
+            caller.clone(),
         );
         let farm_tokens = enter_farm_result.farm_tokens;
         let proxy_farm_token_attributes = FarmProxyTokenAttributes {
@@ -227,7 +227,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
             opt_exit_amount,
-            &caller,
+            caller.clone(),
         );
 
         let initial_farming_tokens = exit_farm_result.get_initial_farming_tokens();
@@ -296,7 +296,7 @@ pub trait ProxyFarmModule:
             farm_proxy_token_attributes.farm_token_id.clone(),
             farm_proxy_token_attributes.farm_token_nonce,
             payment.amount,
-            &caller,
+            caller.clone(),
         );
         require!(
             claim_rewards_result.new_farm_tokens.token_identifier
