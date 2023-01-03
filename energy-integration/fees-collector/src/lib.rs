@@ -86,8 +86,8 @@ pub trait FeesCollector:
             let locked_rewards = self.lock_virtual(
                 self.get_base_token_id(),
                 total_locked_token_rewards_amount,
-                caller.clone(),
-                original_caller.clone(),
+                caller,
+                original_caller,
             );
 
             rewards.push(locked_rewards);
