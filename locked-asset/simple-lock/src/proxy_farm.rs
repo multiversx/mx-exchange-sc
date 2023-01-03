@@ -214,9 +214,10 @@ pub trait ProxyFarmModule:
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
-            match opt_exit_amount.clone() {
-                OptionalValue::Some(exit_amount) => self
-                    .validate_payment_and_get_farm_proxy_token_attributes(&payment, &exit_amount),
+            match &opt_exit_amount {
+                OptionalValue::Some(exit_amount) => {
+                    self.validate_payment_and_get_farm_proxy_token_attributes(&payment, exit_amount)
+                }
                 OptionalValue::None => self.validate_payment_and_get_farm_proxy_token_attributes(
                     &payment,
                     &payment.amount,
