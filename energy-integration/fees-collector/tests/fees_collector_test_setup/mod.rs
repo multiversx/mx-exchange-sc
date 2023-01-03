@@ -1,4 +1,5 @@
 use elrond_wasm::{
+    elrond_codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
@@ -222,7 +223,7 @@ where
     pub fn claim(&mut self, user: &Address) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc.claim_rewards();
+                let _ = sc.claim_rewards(OptionalValue::None);
             })
     }
 

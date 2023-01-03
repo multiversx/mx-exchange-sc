@@ -27,6 +27,7 @@ pub trait FeesCollector:
     + week_timekeeping::WeekTimekeepingModule
     + elrond_wasm_modules::pause::PauseModule
     + utils::UtilsModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     #[init]
     fn init(&self, locked_token_id: TokenIdentifier, energy_factory_address: ManagedAddress) {
@@ -44,14 +45,19 @@ pub trait FeesCollector:
     }
 
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self) -> PaymentsVec<Self::Api> {
+    fn claim_rewards(
+        &self,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
 
         self.accumulate_additional_locked_tokens();
 
         let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
+
         let wrapper = FeesCollectorWrapper::new();
-        let rewards = self.claim_multi(&wrapper, &caller);
+        let rewards = self.claim_multi(&wrapper, &original_caller);
         let mut output_rewards = ManagedVec::new();
         if rewards.is_empty() {
             return output_rewards;
@@ -64,7 +70,7 @@ pub trait FeesCollector:
                 let locked_rewards = self.lock_virtual(
                     self.get_base_token_id(),
                     reward.amount,
-                    caller.clone(),
+                    original_caller.clone(),
                     caller.clone(),
                 );
                 opt_locked_rewards = Some(locked_rewards);
