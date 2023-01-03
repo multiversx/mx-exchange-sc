@@ -70,8 +70,8 @@ pub trait FeesCollector:
                 let locked_rewards = self.lock_virtual(
                     self.get_base_token_id(),
                     reward.amount,
-                    original_caller.clone(),
                     caller.clone(),
+                    original_caller.clone(),
                 );
                 opt_locked_rewards = Some(locked_rewards);
             } else {
