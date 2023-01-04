@@ -214,7 +214,15 @@ pub trait ProxyFarmModule:
     ) -> ExitFarmThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
-            self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
+            match &opt_exit_amount {
+                OptionalValue::Some(exit_amount) => {
+                    self.validate_payment_and_get_farm_proxy_token_attributes(&payment, exit_amount)
+                }
+                OptionalValue::None => self.validate_payment_and_get_farm_proxy_token_attributes(
+                    &payment,
+                    &payment.amount,
+                ),
+            };
 
         let farm_address = self.try_get_farm_address(
             &farm_proxy_token_attributes.farming_token_id,
@@ -284,7 +292,7 @@ pub trait ProxyFarmModule:
     fn farm_claim_rewards_locked_token(&self) -> FarmClaimRewardsThroughProxyResultType<Self::Api> {
         let payment: EsdtTokenPayment<Self::Api> = self.call_value().single_esdt();
         let mut farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
-            self.validate_payment_and_get_farm_proxy_token_attributes(&payment);
+            self.validate_payment_and_get_farm_proxy_token_attributes(&payment, &payment.amount);
 
         let farm_address = self.try_get_farm_address(
             &farm_proxy_token_attributes.farming_token_id,
@@ -342,6 +350,7 @@ pub trait ProxyFarmModule:
     fn validate_payment_and_get_farm_proxy_token_attributes(
         &self,
         payment: &EsdtTokenPayment<Self::Api>,
+        exit_amount: &BigUint,
     ) -> FarmProxyTokenAttributes<Self::Api> {
         require!(payment.amount > 0, NO_PAYMENT_ERR_MSG);
 
@@ -351,7 +360,7 @@ pub trait ProxyFarmModule:
         let farm_proxy_token_attributes: FarmProxyTokenAttributes<Self::Api> =
             farm_proxy_token_mapper.get_token_attributes(payment.token_nonce);
 
-        farm_proxy_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+        farm_proxy_token_mapper.nft_burn(payment.token_nonce, exit_amount);
 
         farm_proxy_token_attributes
     }
