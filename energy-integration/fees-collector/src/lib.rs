@@ -47,51 +47,53 @@ pub trait FeesCollector:
     #[endpoint(claimRewards)]
     fn claim_rewards(
         &self,
-        opt_orig_caller: OptionalValue<ManagedAddress>,
+        opt_original_caller: OptionalValue<ManagedAddress>,
     ) -> PaymentsVec<Self::Api> {
         require!(self.not_paused(), "Cannot claim while paused");
 
-        let caller = self.blockchain().get_caller();
-        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
-
         self.accumulate_additional_locked_tokens();
 
+        let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
+
         let wrapper = FeesCollectorWrapper::new();
-        let rewards = self.claim_multi(&wrapper, &orig_caller);
-        let mut output_rewards = ManagedVec::new();
+        let mut rewards = self.claim_multi(&wrapper, &original_caller);
         if rewards.is_empty() {
-            return output_rewards;
+            return rewards;
         }
 
-        let locked_token_id = self.locked_token_id().get();
-        let mut opt_locked_rewards = None;
-        for reward in &rewards {
-            if reward.token_identifier == locked_token_id {
-                let locked_rewards = self.lock_virtual(
-                    self.get_base_token_id(),
-                    reward.amount,
-                    caller.clone(),
-                    orig_caller.clone(),
-                );
-                opt_locked_rewards = Some(locked_rewards);
-            } else {
-                output_rewards.push(EsdtTokenPayment::new(
-                    reward.token_identifier,
-                    reward.token_nonce,
-                    reward.amount,
-                ));
+        let locked_token_id = self.get_locked_token_id();
+        let mut i = 0;
+        let mut len = rewards.len();
+        let mut total_locked_token_rewards_amount = BigUint::zero();
+        while i < len {
+            let rew = rewards.get(i);
+            if rew.token_identifier != locked_token_id {
+                i += 1;
+                continue;
             }
+
+            total_locked_token_rewards_amount += rew.amount;
+            len -= 1;
+            rewards.remove(i);
         }
 
-        if !output_rewards.is_empty() {
-            self.send().direct_multi(&caller, &output_rewards);
+        if !rewards.is_empty() {
+            self.send().direct_multi(&caller, &rewards);
         }
 
-        if let Some(locked_rewards) = opt_locked_rewards {
-            output_rewards.push(locked_rewards);
+        if total_locked_token_rewards_amount > 0 {
+            let locked_rewards = self.lock_virtual(
+                self.get_base_token_id(),
+                total_locked_token_rewards_amount,
+                caller,
+                original_caller,
+            );
+
+            rewards.push(locked_rewards);
         }
 
-        output_rewards
+        rewards
     }
 }
 
