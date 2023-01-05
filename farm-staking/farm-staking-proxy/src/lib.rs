@@ -20,6 +20,7 @@ pub trait FarmStakingProxy:
     + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + token_send::TokenSendModule
+    + sc_whitelist_module::SCWhitelistModule
 {
     #[init]
     fn init(
@@ -55,7 +56,12 @@ pub trait FarmStakingProxy:
 
     #[payable("*")]
     #[endpoint(stakeFarmTokens)]
-    fn stake_farm_tokens(&self) -> StakeProxyResult<Self::Api> {
+    fn stake_farm_tokens(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> StakeProxyResult<Self::Api> {
+        let caller = self.blockchain().get_caller();
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let payments = self.get_non_empty_payments();
         let lp_farm_token_payment = payments.get(0);
         let additional_payments = payments.slice(1, payments.len()).unwrap_or_default();
@@ -96,13 +102,15 @@ pub trait FarmStakingProxy:
             &lp_farm_token_payment.amount,
         );
         let staking_token_amount = self.get_lp_tokens_safe_price(lp_tokens_in_farm);
-        let staking_farm_enter_result =
-            self.staking_farm_enter(staking_token_amount, additional_staking_farm_tokens);
+        let staking_farm_enter_result = self.staking_farm_enter(
+            orig_caller.clone(),
+            staking_token_amount,
+            additional_staking_farm_tokens,
+        );
         let received_staking_farm_token = staking_farm_enter_result.received_staking_farm_token;
 
-        let caller = self.blockchain().get_caller();
         let merged_lp_farm_tokens = self.merge_lp_farm_tokens(
-            caller.clone(),
+            orig_caller,
             lp_farm_token_payment,
             additional_lp_farm_tokens,
         );
@@ -124,7 +132,12 @@ pub trait FarmStakingProxy:
 
     #[payable("*")]
     #[endpoint(claimDualYield)]
-    fn claim_dual_yield(&self) -> ClaimDualYieldResult<Self::Api> {
+    fn claim_dual_yield(
+        &self,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
+    ) -> ClaimDualYieldResult<Self::Api> {
+        let caller = self.blockchain().get_caller();
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let payment = self.call_value().single_esdt();
         let dual_yield_token_mapper = self.dual_yield_token();
         dual_yield_token_mapper.require_same_token(&payment.token_identifier);
@@ -141,11 +154,13 @@ pub trait FarmStakingProxy:
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_claim_rewards_result = self.lp_farm_claim_rewards(
+            orig_caller.clone(),
             lp_farm_token_id,
             attributes.lp_farm_token_nonce,
             attributes.lp_farm_token_amount,
         );
         let staking_farm_claim_rewards_result = self.staking_farm_claim_rewards(
+            orig_caller,
             staking_farm_token_id,
             attributes.staking_farm_token_nonce,
             attributes.staking_farm_token_amount,
@@ -181,7 +196,10 @@ pub trait FarmStakingProxy:
         pair_first_token_min_amount: BigUint,
         pair_second_token_min_amount: BigUint,
         exit_amount: BigUint,
+        opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> UnstakeResult<Self::Api> {
+        let caller = self.blockchain().get_caller();
+        let orig_caller = self.get_orig_caller_from_opt(&caller, opt_orig_caller);
         let payment = self.call_value().single_esdt();
         let dual_yield_token_mapper = self.dual_yield_token();
         dual_yield_token_mapper.require_same_token(&payment.token_identifier);
@@ -202,6 +220,7 @@ pub trait FarmStakingProxy:
             full_attributes.clone().into_part(&exit_amount);
 
         let lp_farm_exit_result = self.lp_farm_exit(
+            orig_caller.clone(),
             full_attributes.lp_farm_token_nonce,
             full_attributes.lp_farm_token_amount,
             exit_attributes.lp_farm_token_amount,
@@ -212,6 +231,7 @@ pub trait FarmStakingProxy:
             pair_second_token_min_amount,
         );
         let staking_farm_exit_result = self.staking_farm_unstake(
+            orig_caller,
             remove_liq_result.staking_token_payment,
             full_attributes.staking_farm_token_nonce,
             full_attributes.staking_farm_token_amount,

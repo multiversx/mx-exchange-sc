@@ -1,4 +1,4 @@
-use elrond_wasm::types::Address;
+use elrond_wasm::{elrond_codec::multi_types::OptionalValue, types::Address};
 use elrond_wasm_debug::{
     managed_address, managed_biguint, rust_biguint,
     testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
@@ -134,7 +134,8 @@ where
                 lp_farm_token_nonce,
                 &rust_biguint!(lp_farm_token_stake_amount),
                 |sc| {
-                    let dual_yield_tokens = sc.stake_farm_tokens().dual_yield_tokens;
+                    let dual_yield_tokens =
+                        sc.stake_farm_tokens(OptionalValue::None).dual_yield_tokens;
                     dual_yield_nonce = dual_yield_tokens.token_nonce;
 
                     assert_eq!(
@@ -190,7 +191,8 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(&self.user_addr, &self.proxy_wrapper, &transfers, |sc| {
-                let new_dual_yield_token = sc.stake_farm_tokens().dual_yield_tokens;
+                let new_dual_yield_token =
+                    sc.stake_farm_tokens(OptionalValue::None).dual_yield_tokens;
                 dual_yield_nonce = new_dual_yield_token.token_nonce;
             })
             .assert_ok();
@@ -216,7 +218,7 @@ where
                 dual_yield_token_nonce,
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
-                    let received_tokens = sc.claim_dual_yield();
+                    let received_tokens = sc.claim_dual_yield(OptionalValue::None);
                     let lp_farm_rewards = received_tokens.lp_farm_rewards;
                     let staking_farm_rewards = received_tokens.staking_farm_rewards;
                     let new_dual_yield_tokens = received_tokens.new_dual_yield_tokens;
@@ -264,6 +266,7 @@ where
                         managed_biguint!(1),
                         managed_biguint!(1),
                         managed_biguint!(dual_yield_token_amount),
+                        OptionalValue::None,
                     );
 
                     let wegld_payment = received_tokens.other_token_payment;

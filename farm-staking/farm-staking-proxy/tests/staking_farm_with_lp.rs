@@ -236,6 +236,7 @@ fn unstake_partial_position_test() {
                     managed_biguint!(1),
                     managed_biguint!(1),
                     managed_biguint!(dual_yield_token_amount / 4),
+                    OptionalValue::None,
                 );
             },
         )
@@ -255,6 +256,7 @@ fn unstake_partial_position_test() {
                     managed_biguint!(1),
                     managed_biguint!(1),
                     managed_biguint!(dual_yield_token_amount / 2),
+                    OptionalValue::None,
                 );
 
                 let wegld_payment = results.other_token_payment;
@@ -325,6 +327,7 @@ fn unstake_partial_position_test() {
                     managed_biguint!(1),
                     managed_biguint!(1),
                     managed_biguint!(new_dual_yield_token_amount),
+                    OptionalValue::None,
                 );
 
                 let wegld_payment = results.other_token_payment;
