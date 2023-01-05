@@ -23,11 +23,11 @@ pub trait ExternalContractsInteractionsModule:
 
     fn lp_farm_claim_rewards(
         &self,
+        orig_caller: ManagedAddress,
         lp_farm_token_id: TokenIdentifier,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
     ) -> LpFarmClaimRewardsResult<Self::Api> {
-        let orig_caller = self.blockchain().get_caller();
         let lp_farm_address = self.lp_farm_address().get();
         let lp_farm_result: ClaimRewardsResultType<Self::Api> = self
             .lp_farm_proxy_obj(lp_farm_address)
@@ -44,11 +44,11 @@ pub trait ExternalContractsInteractionsModule:
 
     fn lp_farm_exit(
         &self,
+        orig_caller: ManagedAddress,
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint,
         exit_amount: BigUint,
     ) -> LpFarmExitResult<Self::Api> {
-        let orig_caller = self.blockchain().get_caller();
         let lp_farm_token_id = self.lp_farm_token_id().get();
         let lp_farm_address = self.lp_farm_address().get();
         let exit_farm_result: ExitFarmWithPartialPosResultType<Self::Api> = self
@@ -67,7 +67,7 @@ pub trait ExternalContractsInteractionsModule:
 
     fn merge_lp_farm_tokens(
         &self,
-        caller: ManagedAddress,
+        orig_caller: ManagedAddress,
         base_lp_token: EsdtTokenPayment,
         mut additional_lp_tokens: PaymentsVec<Self::Api>,
     ) -> EsdtTokenPayment {
@@ -79,7 +79,7 @@ pub trait ExternalContractsInteractionsModule:
 
         let lp_farm_address = self.lp_farm_address().get();
         self.lp_farm_proxy_obj(lp_farm_address)
-            .merge_farm_tokens_endpoint(caller)
+            .merge_farm_tokens_endpoint(orig_caller)
             .with_multi_token_transfer(additional_lp_tokens)
             .execute_on_dest_context()
     }
@@ -88,10 +88,10 @@ pub trait ExternalContractsInteractionsModule:
 
     fn staking_farm_enter(
         &self,
+        orig_caller: ManagedAddress,
         staking_token_amount: BigUint,
         staking_farm_tokens: PaymentsVec<Self::Api>,
     ) -> StakingFarmEnterResult<Self::Api> {
-        let orig_caller = self.blockchain().get_caller();
         let staking_farm_address = self.staking_farm_address().get();
         let enter_result: EnterFarmResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
@@ -108,12 +108,12 @@ pub trait ExternalContractsInteractionsModule:
 
     fn staking_farm_claim_rewards(
         &self,
+        orig_caller: ManagedAddress,
         staking_farm_token_id: TokenIdentifier,
         staking_farm_token_nonce: u64,
         staking_farm_token_amount: BigUint,
         new_staking_farm_value: BigUint,
     ) -> StakingFarmClaimRewardsResult<Self::Api> {
-        let orig_caller = self.blockchain().get_caller();
         let staking_farm_address = self.staking_farm_address().get();
         let staking_farm_result: ClaimRewardsResultType<Self::Api> = self
             .staking_farm_proxy_obj(staking_farm_address)
@@ -134,12 +134,12 @@ pub trait ExternalContractsInteractionsModule:
 
     fn staking_farm_unstake(
         &self,
+        orig_caller: ManagedAddress,
         staking_tokens: EsdtTokenPayment<Self::Api>,
         farm_token_nonce: u64,
         farm_token_amount: BigUint,
         exit_amount: BigUint,
     ) -> StakingFarmExitResult<Self::Api> {
-        let orig_caller = self.blockchain().get_caller();
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut payments = ManagedVec::from_single_item(staking_tokens);
         payments.push(EsdtTokenPayment::new(
