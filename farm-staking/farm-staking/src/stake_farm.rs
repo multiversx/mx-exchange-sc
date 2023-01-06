@@ -55,11 +55,15 @@ pub trait StakeFarmModule:
 
     #[payable("*")]
     #[endpoint(stakeFarm)]
-    fn stake_farm_endpoint(&self) -> EnterFarmResultType<Self::Api> {
+    fn stake_farm_endpoint(
+        &self,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> EnterFarmResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
         let payments = self.get_non_empty_payments();
 
-        self.stake_farm_common(caller, payments)
+        self.stake_farm_common(original_caller, payments)
     }
 
     fn stake_farm_common(

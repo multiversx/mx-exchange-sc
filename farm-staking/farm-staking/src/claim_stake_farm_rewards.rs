@@ -32,10 +32,14 @@ pub trait ClaimStakeFarmRewardsModule:
 {
     #[payable("*")]
     #[endpoint(claimRewards)]
-    fn claim_rewards(&self) -> ClaimRewardsResultType<Self::Api> {
+    fn claim_rewards(
+        &self,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> ClaimRewardsResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
 
-        self.claim_rewards_common(caller, None)
+        self.claim_rewards_common(original_caller, None)
     }
 
     #[payable("*")]
