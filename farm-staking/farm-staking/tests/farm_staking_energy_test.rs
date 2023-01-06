@@ -1,4 +1,5 @@
 pub mod farm_staking_setup;
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 use farm_staking::{
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule, stake_farm::StakeFarmModule,
@@ -76,7 +77,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
             1,
             &rust_biguint!(farm_in_amount),
             |sc| {
-                let _ = sc.claim_rewards();
+                let _ = sc.claim_rewards(OptionalValue::None);
             },
         )
         .assert_ok();
@@ -104,7 +105,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
             0,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.stake_farm_endpoint();
+                let _ = sc.stake_farm_endpoint(OptionalValue::None);
             },
         )
         .assert_ok();
@@ -118,7 +119,7 @@ fn farm_staking_boosted_rewards_with_energy_test() {
             3,
             &rust_biguint!(10),
             |sc| {
-                let _ = sc.unstake_farm(managed_biguint!(10));
+                let _ = sc.unstake_farm(managed_biguint!(10), OptionalValue::None);
             },
         )
         .assert_ok();

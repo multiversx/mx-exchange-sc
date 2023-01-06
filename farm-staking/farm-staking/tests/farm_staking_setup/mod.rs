@@ -1,3 +1,4 @@
+use elrond_wasm::elrond_codec::multi_types::OptionalValue;
 use elrond_wasm::storage::mappers::StorageTokenWrapper;
 use elrond_wasm::types::{Address, BigInt, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use elrond_wasm_debug::tx_mock::TxTokenTransfer;
@@ -174,7 +175,8 @@ where
 
         self.b_mock
             .execute_esdt_multi_transfer(&self.user_address, &self.farm_wrapper, &payments, |sc| {
-                let (new_farm_token_payment, _) = sc.stake_farm_endpoint().into_tuple();
+                let (new_farm_token_payment, _) =
+                    sc.stake_farm_endpoint(OptionalValue::None).into_tuple();
                 assert_eq!(
                     new_farm_token_payment.token_identifier,
                     managed_token_id!(FARM_TOKEN_ID)
@@ -224,7 +226,7 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result = sc.claim_rewards();
+                    let multi_result = sc.claim_rewards(OptionalValue::None);
                     let (first_result, second_result) = multi_result.into_tuple();
 
                     assert_eq!(
@@ -293,7 +295,8 @@ where
                 farm_token_nonce,
                 &rust_biguint!(farm_token_amount),
                 |sc| {
-                    let multi_result = sc.unstake_farm(managed_biguint!(farm_token_amount));
+                    let multi_result =
+                        sc.unstake_farm(managed_biguint!(farm_token_amount), OptionalValue::None);
 
                     let (first_result, second_result, _) = multi_result.into_tuple();
 

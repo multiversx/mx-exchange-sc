@@ -34,11 +34,16 @@ pub trait UnstakeFarmModule:
 {
     #[payable("*")]
     #[endpoint(unstakeFarm)]
-    fn unstake_farm(&self, exit_amount: BigUint) -> ExitFarmWithPartialPosResultType<Self::Api> {
+    fn unstake_farm(
+        &self,
+        exit_amount: BigUint,
+        opt_original_caller: OptionalValue<ManagedAddress>,
+    ) -> ExitFarmWithPartialPosResultType<Self::Api> {
         let caller = self.blockchain().get_caller();
+        let original_caller = self.get_orig_caller_from_opt(&caller, opt_original_caller);
         let payment = self.call_value().single_esdt();
 
-        self.unstake_farm_common(caller, payment, exit_amount, None)
+        self.unstake_farm_common(original_caller, payment, exit_amount, None)
     }
 
     #[payable("*")]
