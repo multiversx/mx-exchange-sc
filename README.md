@@ -1,10 +1,10 @@
-# Maiar Exchange Smart Contracts
+# xExchange Smart Contracts
 
-This repository contains the principal Smart Contract components of Maiar Exchange.
+This repository contains the principal Smart Contract components of xExchange.
 
 This document is a brief description of the Smart Contracts. It covers the basic workflows that a user may do in order to succesfully interact with each contract. For those interested about more in-depth technical details, each contract will have its separate README in its own root directory.
 
-- [Maiar Exchange Smart Contracts](#maiar-exchange-smart-contracts)
+- [xExchange Smart Contracts](#xexchange-smart-contracts)
   - [DEX Contracts](#dex-contracts)
     - [Pair Contract](#pair-contract)
     - [Router Contract](#router-contract)
@@ -20,13 +20,13 @@ This document is a brief description of the Smart Contracts. It covers the basic
     - [DEX Proxy Contract](#dex-proxy-contract)
     - [Locked MEX Factory Contract](#locked-mex-factory-contract)
 
-Other Smart Contracts that are part of Maiar exchange, but are not part of this repository:
+Other Smart Contracts that are part of xExchange, but are not part of this repository:
 
-- [Egld wrapping](https://github.com/ElrondNetwork/sc-bridge-elrond/tree/main/egld-esdt-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
+- [Egld wrapping](https://github.com/elrondnetwork/sc-bridge-elrond/tree/main/egld-esdt-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
 
 ## DEX Contracts
 
-Core SCs of Maiar Exchange. They usually handle a few tokens and are used as primitives by the other contracts as they are built on top of them.
+Core SCs of xExchange. They usually handle a few tokens and are used as primitives by the other contracts as they are built on top of them.
 
 ### Pair Contract
 
@@ -74,6 +74,6 @@ This smart contract is used for distributing Locked MEX to the community. It rec
 
 This smart contract allows users to interact with the DEX using Locked MEX as fungible MEX for certain operations, such as adding liquidity and entering Farm contracts.
 
-### Locked MEX Factory Contract
+### xMEX Factory Contract
 
-Locked MEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create Locked MEX can just request them from only one place.
+xMEX is a Meta ESDT. Since there can be only one address (per shard) that can hold the role of creating a Meta ESDT, this contract was created so the multiple other contracts that need to create xMEX can just request them from only one place.
