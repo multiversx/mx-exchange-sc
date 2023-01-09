@@ -39,6 +39,10 @@ impl<M: ManagedTypeApi> NestedDecode for StakingFarmTokenAttributes<M> {
             ManagedAddress::zero()
         };
 
+        if !input.is_depleted() {
+            return DecodeError::INPUT_TOO_LONG;
+        }
+
         Result::Ok(StakingFarmTokenAttributes {
             reward_per_share,
             compounded_reward,
