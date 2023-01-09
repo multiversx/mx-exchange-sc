@@ -40,7 +40,7 @@ impl<M: ManagedTypeApi> NestedDecode for StakingFarmTokenAttributes<M> {
         };
 
         if !input.is_depleted() {
-            return DecodeError::INPUT_TOO_LONG;
+            return Result::Err(DecodeError::INPUT_TOO_LONG);
         }
 
         Result::Ok(StakingFarmTokenAttributes {
