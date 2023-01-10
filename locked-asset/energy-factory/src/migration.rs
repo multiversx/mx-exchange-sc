@@ -75,24 +75,31 @@ pub trait SimpleLockMigrationModule:
         self.require_not_paused();
 
         let caller = self.blockchain().get_caller();
-        self.require_old_tokens_energy_was_updated(&caller);
-
         let payments = self.get_non_empty_payments();
         let current_epoch = self.blockchain().get_block_epoch();
         let legacy_token_id = self.legacy_locked_token_id().get();
 
-        let mut output_payments = ManagedVec::new();
-        self.update_energy(&caller, |energy| {
-            for payment in &payments {
-                require!(
-                    payment.token_identifier == legacy_token_id,
-                    INVALID_PAYMENTS_ERR_MSG
-                );
+        let mut opt_energy = if !self.blockchain().is_smart_contract(&caller) {
+            Some(self.get_updated_energy_entry_for_user(&caller))
+        } else {
+            None
+        };
 
-                let new_token = self.migrate_single_old_token(payment, current_epoch, energy);
-                output_payments.push(new_token);
-            }
-        });
+        let mut output_payments = ManagedVec::new();
+        for payment in &payments {
+            require!(
+                payment.token_identifier == legacy_token_id,
+                INVALID_PAYMENTS_ERR_MSG
+            );
+
+            let new_token =
+                self.migrate_single_old_token(payment, current_epoch, opt_energy.as_mut());
+            output_payments.push(new_token);
+        }
+
+        if let Some(energy) = opt_energy {
+            self.set_energy_entry(&caller, energy);
+        }
 
         self.send().direct_multi(&caller, &output_payments);
 
@@ -103,7 +110,7 @@ pub trait SimpleLockMigrationModule:
         &self,
         payment: EsdtTokenPayment,
         current_epoch: Epoch,
-        energy: &mut Energy<Self::Api>,
+        opt_energy: Option<&mut Energy<Self::Api>>,
     ) -> EsdtTokenPayment {
         let attributes = self.decode_legacy_token(&payment.token_identifier, payment.token_nonce);
         self.send().esdt_local_burn(
@@ -115,6 +122,16 @@ pub trait SimpleLockMigrationModule:
         let unlock_epoch_amount_pairs = attributes.get_unlock_amounts_per_epoch(&payment.amount);
         let new_unlock_epoch = self
             .calculate_new_unlock_epoch_for_old_token(&unlock_epoch_amount_pairs, current_epoch);
+
+        let base_asset = EgldOrEsdtTokenIdentifier::esdt(self.base_asset_token_id().get());
+        let original_unlocked_tokens = EgldOrEsdtTokenPayment::new(base_asset, 0, payment.amount);
+        let new_locked_tokens = self.lock_tokens(original_unlocked_tokens, new_unlock_epoch);
+        let output_payment = self.to_esdt_payment(new_locked_tokens);
+        if opt_energy.is_none() {
+            return output_payment;
+        }
+
+        let energy = unsafe { opt_energy.unwrap_unchecked() };
         for epoch_amount_pair in unlock_epoch_amount_pairs.pairs {
             energy.update_after_unlock_epoch_change(
                 &epoch_amount_pair.amount,
@@ -124,11 +141,7 @@ pub trait SimpleLockMigrationModule:
             );
         }
 
-        let base_asset = EgldOrEsdtTokenIdentifier::esdt(self.base_asset_token_id().get());
-        let original_unlocked_tokens = EgldOrEsdtTokenPayment::new(base_asset, 0, payment.amount);
-        let new_locked_tokens = self.lock_tokens(original_unlocked_tokens, new_unlock_epoch);
-
-        self.to_esdt_payment(new_locked_tokens)
+        output_payment
     }
 
     fn calculate_new_unlock_epoch_for_old_token(
