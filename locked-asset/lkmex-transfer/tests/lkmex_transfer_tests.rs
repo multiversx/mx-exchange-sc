@@ -368,7 +368,7 @@ fn cancel_transfer_test() {
                 managed_address!(&user_addr),
                 managed_address!(&claimer_addr),
             );
-            assert!(sc.verify_blacklisted_address(&managed_address!(&claimer_addr)));
+            assert!(sc.is_address_blacklisted(&managed_address!(&claimer_addr)));
         })
         .assert_ok();
 
@@ -389,8 +389,10 @@ fn cancel_transfer_test() {
     // remove claimer from blacklist
     b_mock
         .execute_tx(&admin_addr, &transfer_sc_wrapper, &rust_zero, |sc| {
-            sc.remove_address_from_blacklist(managed_address!(&claimer_addr));
-            assert!(!sc.verify_blacklisted_address(&managed_address!(&claimer_addr)));
+            let mut addresses_to_remove_from_blacklist = MultiValueEncoded::new();
+            addresses_to_remove_from_blacklist.push(managed_address!(&claimer_addr));
+            sc.remove_address_from_blacklist(addresses_to_remove_from_blacklist);
+            assert!(!sc.is_address_blacklisted(&managed_address!(&claimer_addr)));
         })
         .assert_ok();
 

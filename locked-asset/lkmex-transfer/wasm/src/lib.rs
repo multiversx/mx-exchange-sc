@@ -7,18 +7,17 @@
 elrond_wasm_node::wasm_endpoints! {
     lkmex_transfer
     (
-        addAddressToBlacklist
         addAdmin
         cancelTransfer
         getAllSenders
         getEnergyFactoryAddress
         getPermissions
+        isAddressBlacklisted
         lockFunds
         removeAddressFromBlacklist
         removeAdmin
         setEnergyFactoryAddress
         updateOwnerOrAdmin
-        verifyBlacklistedAddress
         withdraw
     )
 }

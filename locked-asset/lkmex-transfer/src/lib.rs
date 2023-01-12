@@ -79,31 +79,22 @@ pub trait LkmexTransfer:
         self.add_energy_to_destination(sender, &locked_funds.funds);
     }
 
-    #[endpoint(addAddressToBlacklist)]
-    fn add_address_to_blacklist(&self, address: ManagedAddress) {
-        self.require_caller_has_admin_permissions();
-        let addresses_mapper = self.transfer_blacklist();
-        require!(!addresses_mapper.contains(&address), ADDRESS_BLACKLISTED);
-        addresses_mapper.add(&address);
-    }
-
     #[endpoint(removeAddressFromBlacklist)]
-    fn remove_address_from_blacklist(&self, address: ManagedAddress) {
+    fn remove_address_from_blacklist(&self, addresses: MultiValueEncoded<ManagedAddress>) {
         self.require_caller_has_admin_permissions();
+
         let addresses_mapper = self.transfer_blacklist();
-        require!(addresses_mapper.contains(&address), ADDRESS_NOT_BLACKLISTED);
-        addresses_mapper.remove(&address);
+        for address in addresses {
+            addresses_mapper.remove(&address);
+        }
     }
 
     fn require_address_not_blacklisted(&self, address: &ManagedAddress) {
-        require!(
-            !self.verify_blacklisted_address(address),
-            ADDRESS_BLACKLISTED
-        );
+        require!(!self.is_address_blacklisted(address), ADDRESS_BLACKLISTED);
     }
 
-    #[view(verifyBlacklistedAddress)]
-    fn verify_blacklisted_address(&self, address: &ManagedAddress) -> bool {
+    #[view(isAddressBlacklisted)]
+    fn is_address_blacklisted(&self, address: &ManagedAddress) -> bool {
         self.transfer_blacklist().contains(address)
     }
 
