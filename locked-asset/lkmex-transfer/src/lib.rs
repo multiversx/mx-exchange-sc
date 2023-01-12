@@ -21,7 +21,10 @@ pub struct LockedFunds<M: ManagedTypeApi> {
 
 #[elrond_wasm::contract]
 pub trait LkmexTransfer:
-    energy_transfer::EnergyTransferModule + energy_query::EnergyQueryModule + utils::UtilsModule
+    energy_transfer::EnergyTransferModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + permissions_module::PermissionsModule
 {
     #[init]
     fn init(
@@ -43,6 +46,7 @@ pub trait LkmexTransfer:
     #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
+        self.check_blacklisted_address(&receiver);
         let funds = self.get_unlocked_funds(&receiver, &sender);
         self.send().direct_multi(&receiver, &funds);
         self.locked_funds(&receiver, &sender).clear();
@@ -53,6 +57,43 @@ pub trait LkmexTransfer:
             .set(current_epoch);
 
         self.add_energy_to_destination(receiver, &funds);
+    }
+
+    #[endpoint]
+    fn cancel_transfer(&self, sender: ManagedAddress, receiver: ManagedAddress) {
+        self.require_caller_has_admin_permissions();
+        let locked_funds_mapper = self.locked_funds(&receiver, &sender);
+        require!(!locked_funds_mapper.is_empty(), TRANSFER_NON_EXISTENT);
+
+        let locked_funds = locked_funds_mapper.get();
+        locked_funds_mapper.clear();
+        self.all_senders(&receiver).swap_remove(&sender);
+        self.address_last_transfer_epoch(&sender).clear();
+        self.transfer_blacklist().add(&receiver);
+
+        self.send().direct_multi(&sender, &locked_funds.funds);
+        self.add_energy_to_destination(sender, &locked_funds.funds);
+    }
+
+    #[endpoint(addAddressToBlacklist)]
+    fn add_address_to_blacklist(&self, address: ManagedAddress) {
+        self.require_caller_has_admin_permissions();
+        let addresses_mapper = self.transfer_blacklist();
+        require!(!addresses_mapper.contains(&address), ADDRESS_BLACKLISTED);
+        addresses_mapper.add(&address);
+    }
+
+    #[endpoint(removeAddressFromBlacklist)]
+    fn remove_address_from_blacklist(&self, address: ManagedAddress) {
+        self.require_caller_has_admin_permissions();
+        let addresses_mapper = self.transfer_blacklist();
+        require!(addresses_mapper.contains(&address), ADDRESS_NOT_BLACKLISTED);
+        addresses_mapper.remove(&address);
+    }
+
+    fn check_blacklisted_address(&self, address: &ManagedAddress) {
+        let addresses_mapper = self.transfer_blacklist();
+        require!(!addresses_mapper.contains(&address), ADDRESS_BLACKLISTED);
     }
 
     fn get_unlocked_funds(
@@ -81,6 +122,7 @@ pub trait LkmexTransfer:
             !self.blockchain().is_smart_contract(&receiver),
             "Cannot transfer to SC"
         );
+        self.check_blacklisted_address(&receiver);
 
         let sender = self.blockchain().get_caller();
         let locked_funds_mapper = self.locked_funds(&receiver, &sender);
@@ -145,4 +187,7 @@ pub trait LkmexTransfer:
 
     #[storage_mapper("epochsCooldownDuration")]
     fn epochs_cooldown_duration(&self) -> SingleValueMapper<Epoch>;
+
+    #[storage_mapper("transferBlacklist")]
+    fn transfer_blacklist(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
 }
