@@ -9,7 +9,7 @@ elrond_wasm_node::wasm_endpoints! {
     (
         addAddressToBlacklist
         addAdmin
-        cancel_transfer
+        cancelTransfer
         getAllSenders
         getEnergyFactoryAddress
         getPermissions
@@ -18,6 +18,7 @@ elrond_wasm_node::wasm_endpoints! {
         removeAdmin
         setEnergyFactoryAddress
         updateOwnerOrAdmin
+        verifyBlacklistedAddress
         withdraw
     )
 }

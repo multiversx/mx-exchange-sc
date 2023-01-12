@@ -8,6 +8,7 @@ pub mod constants;
 pub mod energy_transfer;
 
 use common_structs::{Epoch, PaymentsVec};
+use permissions_module::Permissions;
 
 use crate::constants::*;
 
@@ -41,12 +42,15 @@ pub trait LkmexTransfer:
             .set(epochs_cooldown_duration);
         self.locked_token_id().set(locked_token_id);
         self.set_energy_factory_address(energy_factory_address);
+
+        let caller = self.blockchain().get_caller();
+        self.add_permissions(caller, Permissions::OWNER);
     }
 
     #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
-        self.check_blacklisted_address(&receiver);
+        self.require_address_not_blacklisted(&receiver);
         let funds = self.get_unlocked_funds(&receiver, &sender);
         self.send().direct_multi(&receiver, &funds);
         self.locked_funds(&receiver, &sender).clear();
@@ -59,7 +63,7 @@ pub trait LkmexTransfer:
         self.add_energy_to_destination(receiver, &funds);
     }
 
-    #[endpoint]
+    #[endpoint(cancelTransfer)]
     fn cancel_transfer(&self, sender: ManagedAddress, receiver: ManagedAddress) {
         self.require_caller_has_admin_permissions();
         let locked_funds_mapper = self.locked_funds(&receiver, &sender);
@@ -91,9 +95,16 @@ pub trait LkmexTransfer:
         addresses_mapper.remove(&address);
     }
 
-    fn check_blacklisted_address(&self, address: &ManagedAddress) {
-        let addresses_mapper = self.transfer_blacklist();
-        require!(!addresses_mapper.contains(&address), ADDRESS_BLACKLISTED);
+    fn require_address_not_blacklisted(&self, address: &ManagedAddress) {
+        require!(
+            !self.verify_blacklisted_address(address),
+            ADDRESS_BLACKLISTED
+        );
+    }
+
+    #[view(verifyBlacklistedAddress)]
+    fn verify_blacklisted_address(&self, address: &ManagedAddress) -> bool {
+        self.transfer_blacklist().contains(address)
     }
 
     fn get_unlocked_funds(
@@ -122,7 +133,7 @@ pub trait LkmexTransfer:
             !self.blockchain().is_smart_contract(&receiver),
             "Cannot transfer to SC"
         );
-        self.check_blacklisted_address(&receiver);
+        self.require_address_not_blacklisted(&receiver);
 
         let sender = self.blockchain().get_caller();
         let locked_funds_mapper = self.locked_funds(&receiver, &sender);
