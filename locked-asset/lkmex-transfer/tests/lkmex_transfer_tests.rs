@@ -368,7 +368,6 @@ fn cancel_transfer_test() {
                 managed_address!(&user_addr),
                 managed_address!(&claimer_addr),
             );
-            assert!(sc.is_address_blacklisted(&managed_address!(&claimer_addr)));
         })
         .assert_ok();
 
@@ -382,76 +381,6 @@ fn cancel_transfer_test() {
             let expected_energy =
                 Energy::new(expected_energy_amount, 5, managed_biguint!(USER_BALANCE));
             let actual_energy = sc.user_energy(&managed_address!(&user_addr)).get();
-            assert_eq!(expected_energy, actual_energy);
-        })
-        .assert_ok();
-
-    // remove claimer from blacklist
-    b_mock
-        .execute_tx(&admin_addr, &transfer_sc_wrapper, &rust_zero, |sc| {
-            let mut addresses_to_remove_from_blacklist = MultiValueEncoded::new();
-            addresses_to_remove_from_blacklist.push(managed_address!(&claimer_addr));
-            sc.remove_address_from_blacklist(addresses_to_remove_from_blacklist);
-            assert!(!sc.is_address_blacklisted(&managed_address!(&claimer_addr)));
-        })
-        .assert_ok();
-
-    // retry transfer after receiver was removed from the list
-    b_mock
-        .execute_esdt_transfer(
-            &user_addr,
-            &transfer_sc_wrapper,
-            LOCKED_TOKEN_ID,
-            1,
-            &rust_biguint!(USER_BALANCE / 2),
-            |sc| {
-                sc.lock_funds(managed_address!(&claimer_addr));
-            },
-        )
-        .assert_ok();
-
-    // check first user energy after transfer
-    b_mock
-        .execute_query(&factory_sc_wrapper, |sc| {
-            let unlock_epoch = sc.unlock_epoch_to_start_of_month(5 + LOCK_OPTIONS[0]);
-            let lock_epochs = unlock_epoch - 5;
-            let expected_energy_amount =
-                BigInt::from((USER_BALANCE / 2) as i64) * BigInt::from(lock_epochs as i64);
-            let expected_energy = Energy::new(
-                expected_energy_amount,
-                5,
-                managed_biguint!(USER_BALANCE / 2),
-            );
-            let actual_energy = sc.user_energy(&managed_address!(&user_addr)).get();
-            assert_eq!(expected_energy, actual_energy);
-        })
-        .assert_ok();
-
-    // pass 5 epochs
-    b_mock.set_block_epoch(10);
-
-    // second user claim
-    b_mock
-        .execute_tx(&claimer_addr, &transfer_sc_wrapper, &rust_zero, |sc| {
-            sc.withdraw(managed_address!(&user_addr));
-        })
-        .assert_ok();
-
-    // check second user energy
-    b_mock
-        .execute_query(&factory_sc_wrapper, |sc| {
-            let unlock_epoch = sc.unlock_epoch_to_start_of_month(5 + LOCK_OPTIONS[0]);
-            let lock_epochs = unlock_epoch - 5;
-            let expected_energy_amount =
-                BigInt::from((USER_BALANCE / 2) as i64) * BigInt::from(lock_epochs as i64);
-            let mut expected_energy = Energy::new(
-                expected_energy_amount,
-                5,
-                managed_biguint!(USER_BALANCE / 2),
-            );
-            expected_energy.deplete(10);
-
-            let actual_energy = sc.user_energy(&managed_address!(&claimer_addr)).get();
             assert_eq!(expected_energy, actual_energy);
         })
         .assert_ok();

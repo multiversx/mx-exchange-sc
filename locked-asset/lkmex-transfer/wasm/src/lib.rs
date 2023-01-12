@@ -12,9 +12,7 @@ elrond_wasm_node::wasm_endpoints! {
         getAllSenders
         getEnergyFactoryAddress
         getPermissions
-        isAddressBlacklisted
         lockFunds
-        removeAddressFromBlacklist
         removeAdmin
         setEnergyFactoryAddress
         updateOwnerOrAdmin
