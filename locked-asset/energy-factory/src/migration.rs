@@ -76,7 +76,10 @@ pub trait SimpleLockMigrationModule:
 
         let caller = self.blockchain().get_caller();
         let is_smart_contract_address = self.blockchain().is_smart_contract(&caller);
-        self.require_old_tokens_energy_was_updated(&caller);
+
+        if !is_smart_contract_address {
+            self.require_old_tokens_energy_was_updated(&caller);
+        }
 
         let payments = self.get_non_empty_payments();
         let current_epoch = self.blockchain().get_block_epoch();
