@@ -1,10 +1,12 @@
 ### Deployment Setup Steps ###
 
+
 # Deploy RIDE Staking Farm with RIDE rewards smart contract
 # $ deployStakeFarmContract $STAKING_TOKEN_ID 2500 10
 
 # Register new Farm Tokens
 # $ registerFarmToken $STAKING_FARM_ADDRESS StakedToken TOKENSTAKE 18
+
 
 # Run setup function
 # $ StakingSetup
