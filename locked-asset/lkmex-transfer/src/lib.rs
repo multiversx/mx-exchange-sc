@@ -46,11 +46,6 @@ pub trait LkmexTransfer:
     #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
-        require!(
-            !self.blockchain().is_smart_contract(&sender)
-                && !self.blockchain().is_smart_contract(&receiver),
-            "SCs cannot send or receive locked tokens"
-        );
         let funds = self.get_unlocked_funds(&receiver, &sender);
         self.send().direct_multi(&receiver, &funds);
         self.locked_funds(&receiver, &sender).clear();
