@@ -1,7 +1,7 @@
 use fixed_supply_token::FixedSupplyToken;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Debug, Clone)]
 pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
@@ -34,9 +34,9 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for DualYieldTokenAttributes<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait DualYieldTokenModule:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]

@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub static CANNOT_MERGE_ERR_MSG: &[u8] = b"Cannot merge";
 

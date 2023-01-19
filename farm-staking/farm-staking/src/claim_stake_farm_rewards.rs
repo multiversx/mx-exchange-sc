@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use farm::base_functions::ClaimRewardsResultType;
 
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ClaimStakeFarmRewardsModule:
     crate::custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
@@ -15,7 +15,7 @@ pub trait ClaimStakeFarmRewardsModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule

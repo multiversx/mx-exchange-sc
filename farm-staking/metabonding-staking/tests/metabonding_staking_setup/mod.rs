@@ -1,14 +1,14 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
-use elrond_wasm_debug::tx_mock::{TxResult, TxTokenTransfer};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{Address, EsdtLocalRole, ManagedVec};
+use multiversx_sc_scenario::whitebox::{TxResult, TxTokenTransfer};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*,
     DebugApi,
 };
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use factory::locked_asset::LockedAssetModule;
 use factory::*;
 use metabonding_staking::MetabondingStaking;

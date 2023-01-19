@@ -2,8 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod energy_update;
 pub mod events;
@@ -19,7 +19,7 @@ pub mod wrapped_farm_token_merge;
 pub mod wrapped_lp_attributes;
 pub mod wrapped_lp_token_merge;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait ProxyDexImpl:
     proxy_common::ProxyCommonModule
     + sc_whitelist::ScWhitelistModule
@@ -34,7 +34,7 @@ pub trait ProxyDexImpl:
     + energy_update::EnergyUpdateModule
     + energy_query::EnergyQueryModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {

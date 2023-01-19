@@ -1,18 +1,11 @@
 [package]
 name = "pair-abi"
-
 version = "0.0.0"
-authors = [ "you",]
+authors = ["you"]
 edition = "2021"
 publish = false
-
 [dependencies.pair]
 path = ".."
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dependencies.elrond-wasm-debug]
-version = "=0.38.0"
-
+[dependencies.multiversx-sc-meta]
+version = "0.39.2"

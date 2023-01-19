@@ -1,6 +1,6 @@
-use elrond_wasm::types::{Address, ManagedAddress, MultiValueEncoded, OperationCompletionStatus};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+use multiversx_sc::types::{Address, ManagedAddress, MultiValueEncoded, OperationCompletionStatus};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*,
     DebugApi,
 };
 use farm::Farm;

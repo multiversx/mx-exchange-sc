@@ -2,8 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
 use contexts::storage_cache::StorageCache;
@@ -19,7 +19,7 @@ use farm::{
 };
 use farm_base_impl::base_traits_impl::FarmContract;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
@@ -31,7 +31,7 @@ pub trait Farm:
     + permissions_module::PermissionsModule
     + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm::base_functions::BaseFunctionsModule
     + farm::exit_penalty::ExitPenaltyModule
     + farm::progress_update::ProgressUpdateModule

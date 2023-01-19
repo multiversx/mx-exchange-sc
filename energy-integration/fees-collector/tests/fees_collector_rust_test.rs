@@ -1,7 +1,7 @@
 mod fees_collector_test_setup;
 
-use elrond_wasm::types::{BigInt, EsdtTokenPayment, ManagedVec};
-use elrond_wasm_debug::{
+use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec};
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     DebugApi,
 };

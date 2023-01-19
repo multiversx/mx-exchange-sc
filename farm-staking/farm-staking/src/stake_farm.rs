@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
 use farm::EnterFarmResultType;
 
 use crate::base_impl_wrapper::FarmStakingWrapper;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait StakeFarmModule:
     crate::custom_rewards::CustomRewardsModule
     + crate::claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
@@ -17,7 +17,7 @@ pub trait StakeFarmModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule

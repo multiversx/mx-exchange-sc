@@ -1,14 +1,14 @@
 #![no_std]
 
-use elrond_wasm_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
+use multiversx_sc_modules::ongoing_operation::{CONTINUE_OP, STOP_OP};
 use ongoing_pause_operation::{OngoingOperation, MIN_GAS_TO_SAVE_PROGRESS};
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 mod pause_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait Pausable {
         #[endpoint]
         fn pause(&self);
@@ -20,10 +20,10 @@ mod pause_proxy {
 
 pub mod ongoing_pause_operation;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait PauseAll:
     ongoing_pause_operation::OngoingPauseOperationModule
-    + elrond_wasm_modules::ongoing_operation::OngoingOperationModule
+    + multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     #[init]
     fn init(&self) {}

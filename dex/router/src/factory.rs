@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 const TEMPORARY_OWNER_PERIOD_BLOCKS: u64 = 50;
 
@@ -16,7 +16,7 @@ pub struct PairContractMetadata<M: ManagedTypeApi> {
     address: ManagedAddress<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FactoryModule {
     #[proxy]
     fn pair_contract_deploy_proxy(&self) -> pair::Proxy<Self::Api>;

@@ -1,11 +1,10 @@
 [package]
 name = "fixed-supply-token"
 version = "0.0.0"
-authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
 edition = "2021"
 
 [lib]
 path = "src/lib.rs"
-
-[dependencies.elrond-wasm]
-version = "=0.38.0"
+[dependencies.multiversx-sc]
+version = "=0.39.2"

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use super::factory;
 
@@ -11,7 +11,7 @@ type SwapOperationType<M> =
 pub const SWAP_TOKENS_FIXED_INPUT_FUNC_NAME: &[u8] = b"swapTokensFixedInput";
 pub const SWAP_TOKENS_FIXED_OUTPUT_FUNC_NAME: &[u8] = b"swapTokensFixedOutput";
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait MultiPairSwap: factory::FactoryModule + token_send::TokenSendModule {
     #[payable("*")]
     #[endpoint(multiPairSwap)]

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::*;
 
@@ -8,13 +8,13 @@ use crate::attr_ex_helper;
 use super::locked_asset;
 use super::locked_asset::{LockedTokenEx, DOUBLE_MAX_MILESTONES_IN_SCHEDULE, ONE_MILLION};
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedAssetTokenMergeModule:
     locked_asset::LockedAssetModule
     + token_send::TokenSendModule
     + token_merge_helper::TokenMergeHelperModule
     + attr_ex_helper::AttrExHelper
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[payable("*")]
     #[endpoint(mergeTokens)]

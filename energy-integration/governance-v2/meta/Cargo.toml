@@ -3,12 +3,11 @@ name = "governance-v2-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = [ "you",]
+authors = ["you"]
 
 [dev-dependencies]
-
 [dependencies.governance-v2]
 path = ".."
 
-[dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc-meta]
+version = "0.39.2"

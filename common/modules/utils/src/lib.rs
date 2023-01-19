@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::{PaymentAttributesPair, PaymentsVec};
 use fixed_supply_token::FixedSupplyToken;
@@ -8,7 +8,7 @@ use mergeable::Mergeable;
 
 static ERR_EMPTY_PAYMENTS: &[u8] = b"No payments";
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UtilsModule {
     fn dest_from_optional(&self, opt_destination: OptionalValue<ManagedAddress>) -> ManagedAddress {
         match opt_destination {

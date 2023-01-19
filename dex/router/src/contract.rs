@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod enable_swap_by_user;
 mod events;
@@ -22,7 +22,7 @@ const DEFAULT_SPECIAL_FEE_PERCENT: u64 = 50;
 const MAX_TOTAL_FEE_PERCENT: u64 = 100_000;
 const USER_DEFINED_TOTAL_FEE_PERCENT: u64 = 1_000;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Router:
     factory::FactoryModule
     + events::EventsModule

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::config;
 
@@ -18,7 +18,7 @@ pub struct VoteNFTAttributes<M: ManagedTypeApi> {
     pub payment: EsdtTokenPayment<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait VoteHelper: config::Config {
     fn create_vote_nft(
         &self,

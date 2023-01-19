@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub use energy_factory::energy::Energy;
 
@@ -9,7 +9,7 @@ static USER_ENERGY_STORAGE_KEY: &[u8] = b"userEnergy";
 static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 static BASE_TOKEN_ID_STORAGE_KEY: &[u8] = b"baseAssetTokenId";
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EnergyQueryModule {
     #[only_owner]
     #[endpoint(setEnergyFactoryAddress)]

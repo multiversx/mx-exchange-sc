@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use core::cmp;
 
@@ -29,7 +29,7 @@ impl<M: ManagedTypeApi> SplitReward<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmBoostedYieldsModule:
     boosted_yields_factors::BoostedYieldsFactorsModule
     + config::ConfigModule

@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod caller_check;
 pub mod configurable;
@@ -21,7 +21,7 @@ const MAX_GAS_LIMIT_PER_BLOCK: u64 = 600_000_000;
 static ALREADY_VOTED_ERR_MSG: &[u8] = b"Already voted for this proposal";
 
 /// An empty contract. To be used as a template when starting a new contract from scratch.
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait GovernanceV2:
     configurable::ConfigurablePropertiesModule
     + events::EventsModule

@@ -1,11 +1,11 @@
 mod proxy_dex_test_setup;
 
-use elrond_wasm::{
-    elrond_codec::Empty,
+use multiversx_sc::{
+    codec::Empty,
     types::{BigInt, EsdtTokenPayment},
 };
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer,
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
     DebugApi,
 };
 use energy_factory::energy::EnergyModule;

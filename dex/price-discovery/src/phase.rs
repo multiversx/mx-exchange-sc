@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode, NestedEncode, PartialEq)]
 pub enum Phase<M: ManagedTypeApi> {
@@ -20,7 +20,7 @@ impl<M: ManagedTypeApi> Phase<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait PhaseModule:
     crate::common_storage::CommonStorageModule + crate::events::EventsModule
 {

@@ -1,6 +1,6 @@
 mod token_unstake_setup;
 
-use elrond_wasm_debug::{managed_address, managed_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_address, managed_biguint, DebugApi};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
 use token_unstake_setup::*;

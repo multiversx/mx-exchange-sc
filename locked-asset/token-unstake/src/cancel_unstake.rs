@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use energy_factory::unstake::ProxyTrait as _;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::events;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CancelUnstakeModule:
     crate::tokens_per_user::TokensPerUserModule
     + energy_query::EnergyQueryModule

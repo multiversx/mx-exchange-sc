@@ -1,13 +1,12 @@
 [package]
 name = "farm-staking"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["you"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.farm]
 path = "../../dex/farm"
 
@@ -77,15 +76,15 @@ path = "../../common/common_structs"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.2"
+features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.elrond-wasm-modules]
-version = "=0.38.0"
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.2"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.2"

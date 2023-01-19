@@ -1,9 +1,9 @@
-use elrond_wasm::elrond_codec::multi_types::{MultiValue2, OptionalValue};
-use elrond_wasm::types::MultiValueEncoded;
-use elrond_wasm::types::{Address, EsdtLocalRole, EsdtTokenPayment, ManagedVec};
-use elrond_wasm_debug::{
+use multiversx_sc::codec::multi_types::{MultiValue2, OptionalValue};
+use multiversx_sc::types::MultiValueEncoded;
+use multiversx_sc::types::{Address, EsdtLocalRole, EsdtTokenPayment, ManagedVec};
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    testing_framework::*, DebugApi,
+    whitebox::*, DebugApi,
 };
 
 use governance::config::*;

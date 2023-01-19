@@ -4,8 +4,8 @@ use common_structs::{
     LockedAssetTokenAttributes, LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx,
     UnlockSchedule, UnlockScheduleEx,
 };
-use elrond_wasm::types::{BigInt, ManagedVec, MultiValueEncoded};
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc::types::{BigInt, ManagedVec, MultiValueEncoded};
+use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
     migration::SimpleLockMigrationModule,
@@ -13,7 +13,7 @@ use energy_factory::{
 use energy_factory_setup::*;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id_wrapped, rust_biguint, DebugApi,
 };
 
@@ -99,7 +99,7 @@ fn extend_lock_period_old_token_test() {
         .assert_ok();
 
     // (40% * x * 90 + 60% * x * 120) / x = 36 + 72 = 108
-    let new_lock_epochs: elrond_wasm::types::BigUint<DebugApi> =
+    let new_lock_epochs: multiversx_sc::types::BigUint<DebugApi> =
         (managed_biguint!(40_000) * USER_BALANCE / 100_000u32
             * (first_unlock_epoch - current_epoch)
             + managed_biguint!(60_000) * USER_BALANCE / 100_000u32
@@ -313,7 +313,7 @@ fn min_period_migrated_token_test2() {
         .assert_ok();
 
     // (40% * x * 180 + 60% * x * 270) / x = 72 + 162 = 234
-    let new_lock_epochs: elrond_wasm::types::BigUint<DebugApi> =
+    let new_lock_epochs: multiversx_sc::types::BigUint<DebugApi> =
         (managed_biguint!(40_000) * USER_BALANCE / 100_000u32
             * (first_unlock_epoch - current_epoch)
             + managed_biguint!(60_000) * USER_BALANCE / 100_000u32
@@ -442,7 +442,7 @@ fn check_initial_old_unlock_schedule_decode_test() {
         .assert_ok();
 
     // (40% * x * 90 + 60% * x * 120) / x = 36 + 72 = 108
-    let new_lock_epochs: elrond_wasm::types::BigUint<DebugApi> =
+    let new_lock_epochs: multiversx_sc::types::BigUint<DebugApi> =
         (managed_biguint!(40_000) * USER_BALANCE / 100_000u32
             * (first_unlock_epoch - current_epoch)
             + managed_biguint!(60_000) * USER_BALANCE / 100_000u32

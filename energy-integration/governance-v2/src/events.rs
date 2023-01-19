@@ -1,9 +1,9 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::proposal::{GovernanceProposal, ProposalId};
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     #[event("proposalCreated")]
     fn proposal_created_event(

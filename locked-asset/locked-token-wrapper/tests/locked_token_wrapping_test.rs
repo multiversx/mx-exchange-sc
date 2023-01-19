@@ -1,11 +1,11 @@
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
-use elrond_wasm::{
+use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, ManagedVec},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::BlockchainStateWrapper, DebugApi,
+    whitebox::BlockchainStateWrapper, DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;

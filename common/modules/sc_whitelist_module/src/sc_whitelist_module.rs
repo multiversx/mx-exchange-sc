@@ -2,9 +2,9 @@
 
 use common_errors::ERROR_PARAMETERS;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait SCWhitelistModule {
     #[only_owner]
     #[endpoint(addSCAddressToWhitelist)]

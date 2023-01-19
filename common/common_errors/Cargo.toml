@@ -1,13 +1,11 @@
 [package]
 name = "common_errors"
 version = "0.0.0"
-authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+authors = ["catalin-neagu <catalin.neagu@elrond.com>"]
 edition = "2021"
 
 [lib]
 path = "src/lib.rs"
-
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
+[dependencies.multiversx-sc]
+version = "=0.39.2"
+features = ["esdt-token-payment-legacy-decode"]

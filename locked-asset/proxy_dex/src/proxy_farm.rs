@@ -1,7 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use fixed_supply_token::FixedSupplyToken;
 
@@ -20,7 +20,7 @@ pub type ExitFarmProxyResultType<M> =
     MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::proxy_common::ProxyCommonModule
     + crate::sc_whitelist::ScWhitelistModule

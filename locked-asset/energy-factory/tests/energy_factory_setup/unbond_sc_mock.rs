@@ -1,9 +1,9 @@
-use elrond_wasm::io::load_endpoint_args;
-use elrond_wasm::{
+use multiversx_sc::io::load_endpoint_args;
+use multiversx_sc::{
     contract_base::{CallableContract, ContractBase},
     types::ManagedAddress,
 };
-use elrond_wasm_debug::DebugApi;
+use multiversx_sc_scenario::DebugApi;
 
 static DEPOSIT_USER_TOKENS_FN_NAME: &str = "depositUserTokens";
 static DEPOSIT_FEES_FN_NAME: &str = "depositFees";

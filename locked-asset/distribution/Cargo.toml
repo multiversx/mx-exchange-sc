@@ -6,16 +6,14 @@ version = "0.0.0"
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
 [dependencies.factory]
 path = "../factory"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc]
+version = "=0.39.2"
+features = ["esdt-token-payment-legacy-decode"]
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.2"

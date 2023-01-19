@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_errors::{
     ERROR_NOT_A_FARM_TOKEN, ERROR_NO_TOKEN_TO_MERGE, ERROR_TOO_MANY_ADDITIONAL_PAYMENTS,
@@ -16,12 +16,12 @@ use token_merge_helper::{ValueWeight, WeightedAverageType};
 pub const MAX_ADDITIONAL_TOKENS: usize = 10;
 pub const MAX_TOTAL_TOKENS: usize = MAX_ADDITIONAL_TOKENS + 1;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmTokenMergeModule:
     token_merge_helper::TokenMergeHelperModule
     + farm_token::FarmTokenModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn create_farm_tokens_by_merging<AttributesType, AttributesMergingFunction>(
         &self,

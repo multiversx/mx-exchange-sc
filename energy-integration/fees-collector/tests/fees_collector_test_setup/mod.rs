@@ -1,14 +1,14 @@
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::*, tx_mock::TxResult, DebugApi,
+    whitebox::*, whitebox::TxResult, DebugApi,
 };
 
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use fees_collector::{config::ConfigModule, fees_accumulation::FeesAccumulationModule, *};

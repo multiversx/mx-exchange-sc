@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<token_unstake::AbiProvider>();
+    multiversx_sc_meta::cli_main::<token_unstake::AbiProvider>();
 }

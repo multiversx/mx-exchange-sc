@@ -1,8 +1,8 @@
 use common_types::Week;
 use weekly_rewards_splitting::USER_MAX_CLAIM_WEEKS;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 static INVALID_CONFIG_WEEK_ERR_MSG: &[u8] = b"Invalid config week";
 static NO_CONFIG_ERR_MSG: &[u8] = b"No config";
@@ -96,7 +96,7 @@ impl<M: ManagedTypeApi> BoostedYieldsConfig<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BoostedYieldsFactorsModule:
     permissions_module::PermissionsModule + week_timekeeping::WeekTimekeepingModule
 {

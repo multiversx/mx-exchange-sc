@@ -1,8 +1,8 @@
-use elrond_wasm::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
-use elrond_wasm_debug::{
+use multiversx_sc::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox::TxResult,
     DebugApi,
 };
 use energy_factory_mock::EnergyFactoryMock;

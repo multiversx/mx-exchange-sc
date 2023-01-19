@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Epoch;
 
@@ -166,7 +166,7 @@ impl<M: ManagedTypeApi> Energy<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EnergyModule: crate::events::EventsModule {
     fn update_energy<T, F: FnOnce(&mut Energy<Self::Api>) -> T>(
         &self,

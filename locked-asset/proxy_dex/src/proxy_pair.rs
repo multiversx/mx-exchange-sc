@@ -2,13 +2,13 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::vec_init_then_push)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
     + crate::sc_whitelist::ScWhitelistModule

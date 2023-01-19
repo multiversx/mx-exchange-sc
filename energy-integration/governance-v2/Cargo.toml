@@ -1,25 +1,24 @@
 [package]
 name = "governance-v2"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["you"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.energy-query]
 path = "../common-modules/energy-query"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc]
+version = "=0.39.2"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.2"
 
 [dev-dependencies.energy-factory-mock]
 path = "../energy-factory-mock"

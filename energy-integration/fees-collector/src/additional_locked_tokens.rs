@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_types::Week;
 
 pub const BLOCKS_IN_WEEK: u64 = 100_800;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait AdditionalLockedTokensModule:
     crate::config::ConfigModule
     + crate::fees_accumulation::FeesAccumulationModule

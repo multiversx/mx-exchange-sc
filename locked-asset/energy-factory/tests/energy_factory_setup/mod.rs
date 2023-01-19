@@ -2,18 +2,18 @@
 
 pub mod unbond_sc_mock;
 
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox::TxResult,
     DebugApi,
 };
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
     SimpleLockEnergy,
@@ -265,7 +265,7 @@ where
 }
 
 pub fn to_rust_biguint(
-    managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
+    managed_biguint: multiversx_sc::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }

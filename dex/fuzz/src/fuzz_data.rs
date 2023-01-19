@@ -1,15 +1,15 @@
 #[cfg(test)]
 pub mod fuzz_data_tests {
-    elrond_wasm::imports!();
-    elrond_wasm::derive_imports!();
+    multiversx_sc::imports!();
+    multiversx_sc::derive_imports!();
 
     use ::config::ConfigModule;
     use common_structs::UnlockMilestone;
-    use elrond_wasm::elrond_codec::Empty;
-    use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
-    use elrond_wasm_debug::{
+    use multiversx_sc::codec::Empty;
+    use multiversx_sc::types::{Address, BigUint, EsdtLocalRole};
+    use multiversx_sc_scenario::{
         managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-        testing_framework::*, DebugApi,
+        whitebox::*, DebugApi,
     };
     use factory::locked_asset::LockedAssetModule;
     use factory::*;

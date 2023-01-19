@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::base_traits_impl::FarmContract;
 use contexts::{
@@ -18,7 +18,7 @@ where
     pub reward_payment: EsdtTokenPayment<C::Api>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BaseExitFarmModule:
     rewards::RewardsModule
     + config::ConfigModule
@@ -27,7 +27,7 @@ pub trait BaseExitFarmModule:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
 {

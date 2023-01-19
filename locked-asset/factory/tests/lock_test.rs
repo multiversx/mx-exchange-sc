@@ -1,17 +1,17 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::{
+use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, ManagedVec, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
-    managed_biguint, managed_token_id, rust_biguint, testing_framework::*, DebugApi,
+use multiversx_sc_scenario::{
+    managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
 };
 
 const SC_WASM_PATH: &str = "output/factory.wasm";
 
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use factory::{locked_asset::LockedAssetModule, LockedAssetFactory};
 
 const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";

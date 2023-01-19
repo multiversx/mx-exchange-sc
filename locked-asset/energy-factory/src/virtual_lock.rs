@@ -1,20 +1,20 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::energy::Energy;
 use common_structs::Epoch;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait VirtualLockModule:
     simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
     + crate::energy::EnergyModule
     + crate::lock_options::LockOptionsModule
     + crate::events::EventsModule
     + crate::migration::SimpleLockMigrationModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
     + utils::UtilsModule
     + crate::extend_lock::ExtendLockModule
     + sc_whitelist_module::SCWhitelistModule

@@ -1,14 +1,14 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Nonce;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmTokenModule:
     permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[payable("EGLD")]
     #[endpoint(registerFarmToken)]

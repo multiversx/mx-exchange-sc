@@ -1,16 +1,16 @@
 use config::ConfigModule;
-use elrond_wasm::{
+use multiversx_sc::{
     contract_base::{CallableContract, ContractBase},
-    elrond_codec::multi_types::OptionalValue,
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
@@ -213,7 +213,7 @@ where
 
 #[allow(dead_code)]
 pub fn to_rust_biguint(
-    managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
+    managed_biguint: multiversx_sc::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }

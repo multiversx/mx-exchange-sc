@@ -2,15 +2,15 @@
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::{
+use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
-use elrond_wasm_debug::tx_mock::TxTokenTransfer;
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 

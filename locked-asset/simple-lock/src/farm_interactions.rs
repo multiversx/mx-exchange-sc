@@ -1,7 +1,7 @@
 use common_structs::{RawResultWrapper, RawResultsType};
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 type EnterFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -35,10 +35,10 @@ pub struct FarmCompoundRewardsResultWrapper<M: ManagedTypeApi> {
 }
 
 mod farm_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
     use super::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait FarmProxy {
         #[payable("*")]
         #[endpoint(enterFarm)]
@@ -54,7 +54,7 @@ mod farm_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmInteractionsModule {
     fn call_farm_enter(
         &self,

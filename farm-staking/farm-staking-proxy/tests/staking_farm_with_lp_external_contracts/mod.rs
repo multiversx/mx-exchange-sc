@@ -1,9 +1,9 @@
-use elrond_wasm::elrond_codec::multi_types::{MultiValue3, OptionalValue};
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::tx_mock::TxTokenTransfer;
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
+use multiversx_sc::codec::multi_types::{MultiValue3, OptionalValue};
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*,
     DebugApi,
 };
 

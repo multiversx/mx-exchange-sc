@@ -1,9 +1,9 @@
 mod farm_setup;
 
 use config::ConfigModule;
-use elrond_wasm::types::EsdtLocalRole;
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer,
+use multiversx_sc::types::EsdtLocalRole;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
     DebugApi,
 };
 use farm_setup::single_user_farm_setup::*;
@@ -195,7 +195,7 @@ fn test_exit_farm_after_enter_twice() {
 
 #[test]
 fn test_farm_through_simple_lock() {
-    use elrond_wasm::storage::mappers::StorageTokenWrapper;
+    use multiversx_sc::storage::mappers::StorageTokenWrapper;
     use simple_lock::locked_token::LockedTokenModule;
     use simple_lock::proxy_farm::ProxyFarmModule;
     use simple_lock::proxy_farm::*;

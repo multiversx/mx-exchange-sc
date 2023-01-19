@@ -1,18 +1,18 @@
 mod energy_factory_setup;
 
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{
         BigInt, BigUint, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
         MultiValueEncoded,
     },
 };
-use elrond_wasm_debug::{
-    managed_address, managed_token_id, testing_framework::BlockchainStateWrapper,
-    tx_mock::TxTokenTransfer,
+use multiversx_sc_scenario::{
+    managed_address, managed_token_id, whitebox::BlockchainStateWrapper,
+    whitebox::TxTokenTransfer,
 };
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
     token_merging::TokenMergingModule,
@@ -25,7 +25,7 @@ use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},
 };
 
-use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_token_id_wrapped, rust_biguint, DebugApi};
 
 #[test]
 fn token_merging_test() {

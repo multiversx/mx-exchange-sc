@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::Nonce;
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EnergyUpdateModule:
     energy_query::EnergyQueryModule
     + utils::UtilsModule

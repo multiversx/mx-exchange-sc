@@ -1,13 +1,13 @@
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
-use elrond_wasm::types::{BigInt, MultiValueEncoded};
-use elrond_wasm::types::{EsdtTokenPayment, ManagedVec, TokenIdentifier};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, rust_biguint, testing_framework::*, DebugApi,
+use multiversx_sc::types::{BigInt, MultiValueEncoded};
+use multiversx_sc::types::{EsdtTokenPayment, ManagedVec, TokenIdentifier};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, rust_biguint, whitebox::*, DebugApi,
 };
 
 const SC_WASM_PATH: &str = "output/factory.wasm";
 
-use elrond_wasm_modules::pause::PauseModule;
+use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::energy::{Energy, EnergyModule};
 use energy_factory::migration::SimpleLockMigrationModule;
 use factory::locked_asset_token_merge::*;

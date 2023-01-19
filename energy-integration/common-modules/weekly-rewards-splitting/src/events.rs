@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub use common_types::{Epoch, Week};
 use energy_query::Energy;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WeeklyRewardsSplittingEventsModule {
     #[inline]
     fn emit_claim_multi_event(

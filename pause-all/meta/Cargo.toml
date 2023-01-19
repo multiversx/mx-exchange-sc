@@ -3,12 +3,11 @@ name = "pause-all-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = [ "you",]
+authors = ["you"]
 
 [dev-dependencies]
-
 [dependencies.pause-all]
 path = ".."
 
-[dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc-meta]
+version = "0.39.2"

@@ -1,7 +1,7 @@
 use crate::phase::Phase;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode)]
 pub struct DepositEvent<M: ManagedTypeApi> {
@@ -38,7 +38,7 @@ pub struct RedeemEvent<M: ManagedTypeApi> {
     bought_token_amount: BigUint<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule: crate::common_storage::CommonStorageModule {
     fn emit_deposit_event(
         &self,

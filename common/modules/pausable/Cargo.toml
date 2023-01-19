@@ -1,15 +1,14 @@
 [package]
 name = "pausable"
 version = "0.0.0"
-authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
+authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
 edition = "2021"
 
 [lib]
 path = "src/pausable.rs"
-
 [dependencies.permissions_module]
 path = "../permissions_module"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.2"
+features = ["esdt-token-payment-legacy-decode"]

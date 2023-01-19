@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::proposal::{GovernanceProposal, ProposalId};
 
@@ -55,7 +55,7 @@ impl<M: ManagedTypeApi> ProposalVotes<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProposalStorageModule {
     fn clear_proposal(&self, proposal_id: ProposalId) {
         self.proposals().clear_entry(proposal_id);

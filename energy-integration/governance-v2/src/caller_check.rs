@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CallerCheckModule {
     fn require_caller_not_self(&self) {
         let caller = self.blockchain().get_caller();
