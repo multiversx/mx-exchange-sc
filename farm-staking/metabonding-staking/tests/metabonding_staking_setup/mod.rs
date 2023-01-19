@@ -1,17 +1,16 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use multiversx_sc::storage::mappers::StorageTokenWrapper;
-use multiversx_sc::types::{Address, EsdtLocalRole, ManagedVec};
-use multiversx_sc_scenario::whitebox::{TxResult, TxTokenTransfer};
-use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*,
-    DebugApi,
-};
-use multiversx_sc_modules::pause::PauseModule;
 use factory::locked_asset::LockedAssetModule;
 use factory::*;
 use metabonding_staking::MetabondingStaking;
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{Address, EsdtLocalRole, ManagedVec};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::whitebox::{TxResult, TxTokenTransfer};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+};
 
 pub const METABONDING_STAKING_WASM_PATH: &str = "1.wasm";
 pub const LOCKED_ASSET_FACTORY_WASM_PATH: &str = "2.wasm";

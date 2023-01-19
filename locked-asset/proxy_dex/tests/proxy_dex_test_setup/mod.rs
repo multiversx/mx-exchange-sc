@@ -1,22 +1,22 @@
 use config::ConfigModule;
-use multiversx_sc::{
-    contract_base::{CallableContract, ContractBase},
-    codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded},
-};
-use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
-    DebugApi,
-};
-use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    contract_base::{CallableContract, ContractBase},
+    storage::mappers::StorageTokenWrapper,
+    types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded},
+};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    DebugApi,
+};
 use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};

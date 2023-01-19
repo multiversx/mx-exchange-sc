@@ -11,8 +11,8 @@ use multiversx_sc_scenario::{
 
 const SC_WASM_PATH: &str = "output/factory.wasm";
 
-use multiversx_sc_modules::pause::PauseModule;
 use factory::{locked_asset::LockedAssetModule, LockedAssetFactory};
+use multiversx_sc_modules::pause::PauseModule;
 
 const ASSET_TOKEN_ID: &[u8] = b"MEX-123456";
 const LOCKED_ASSET_TOKEN_ID: &[u8] = b"LKMEX-123456";

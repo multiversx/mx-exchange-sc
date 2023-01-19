@@ -2,23 +2,23 @@
 
 pub mod fees_collector_mock;
 
-use multiversx_sc::{
-    codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, MultiValueEncoded},
-};
-use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
-    whitebox::TxResult,
-    DebugApi,
-};
-use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{
     energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
     SimpleLockEnergy,
 };
 use fees_collector_mock::*;
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    storage::mappers::StorageTokenWrapper,
+    types::{Address, EsdtLocalRole, MultiValueEncoded},
+};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint,
+    whitebox::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    DebugApi,
+};
 use simple_lock::locked_token::LockedTokenModule;
 use token_unstake::{
     cancel_unstake::CancelUnstakeModule, unbond_tokens::UnbondTokensModule, TokenUnstakeModule,

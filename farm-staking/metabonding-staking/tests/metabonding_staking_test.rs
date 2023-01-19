@@ -1,10 +1,12 @@
 pub mod metabonding_staking_setup;
-use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, whitebox::TxTokenTransfer};
 use metabonding_staking::{
     locked_asset_token::{LockedAssetTokenModule, UserEntry},
     UNBOND_EPOCHS,
 };
 use metabonding_staking_setup::*;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, rust_biguint, whitebox::TxTokenTransfer,
+};
 
 #[test]
 fn test_init() {

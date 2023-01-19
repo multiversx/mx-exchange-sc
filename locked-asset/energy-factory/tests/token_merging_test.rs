@@ -1,5 +1,12 @@
 mod energy_factory_setup;
 
+use energy_factory::{
+    energy::{Energy, EnergyModule},
+    token_merging::TokenMergingModule,
+    token_whitelist::TokenWhitelistModule,
+    SimpleLockEnergy,
+};
+use energy_factory_setup::*;
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
@@ -8,18 +15,10 @@ use multiversx_sc::{
         MultiValueEncoded,
     },
 };
-use multiversx_sc_scenario::{
-    managed_address, managed_token_id, whitebox::BlockchainStateWrapper,
-    whitebox::TxTokenTransfer,
-};
 use multiversx_sc_modules::pause::PauseModule;
-use energy_factory::{
-    energy::{Energy, EnergyModule},
-    token_merging::TokenMergingModule,
-    token_whitelist::TokenWhitelistModule,
-    SimpleLockEnergy,
+use multiversx_sc_scenario::{
+    managed_address, managed_token_id, whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer,
 };
-use energy_factory_setup::*;
 use simple_lock::{
     basic_lock_unlock::BasicLockUnlock,
     locked_token::{LockedTokenAttributes, LockedTokenModule},

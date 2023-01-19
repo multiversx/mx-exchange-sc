@@ -2,6 +2,9 @@ mod proxy_dex_test_setup;
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
+use energy_factory::energy::EnergyModule;
+use energy_query::Energy;
+use farm::exit_penalty::{DEFAULT_PENALTY_PERCENT, MAX_PERCENT};
 use multiversx_sc::{
     codec::Empty,
     types::{BigInt, EsdtLocalRole, EsdtTokenPayment},
@@ -10,9 +13,6 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
     DebugApi,
 };
-use energy_factory::energy::EnergyModule;
-use energy_query::Energy;
-use farm::exit_penalty::{DEFAULT_PENALTY_PERCENT, MAX_PERCENT};
 use num_traits::ToPrimitive;
 use proxy_dex::{
     proxy_farm::ProxyFarmModule, proxy_pair::ProxyPairModule,

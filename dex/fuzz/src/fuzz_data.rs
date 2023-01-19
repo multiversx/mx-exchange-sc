@@ -5,17 +5,17 @@ pub mod fuzz_data_tests {
 
     use ::config::ConfigModule;
     use common_structs::UnlockMilestone;
+    use factory::locked_asset::LockedAssetModule;
+    use factory::*;
+    use farm::exit_penalty::ExitPenaltyModule;
+    use farm::*;
+    use farm_token::FarmTokenModule;
     use multiversx_sc::codec::Empty;
     use multiversx_sc::types::{Address, BigUint, EsdtLocalRole};
     use multiversx_sc_scenario::{
         managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
         whitebox::*, DebugApi,
     };
-    use factory::locked_asset::LockedAssetModule;
-    use factory::*;
-    use farm::exit_penalty::ExitPenaltyModule;
-    use farm::*;
-    use farm_token::FarmTokenModule;
     use pair::*;
     use pausable::{PausableModule, State};
     use price_discovery::redeem_token::*;

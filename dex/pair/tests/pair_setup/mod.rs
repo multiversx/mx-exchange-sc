@@ -2,8 +2,7 @@ use multiversx_sc::codec::multi_types::MultiValue3;
 use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
 use multiversx_sc_scenario::whitebox::TxTokenTransfer;
 use multiversx_sc_scenario::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*,
-    DebugApi,
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
 };
 
 pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";

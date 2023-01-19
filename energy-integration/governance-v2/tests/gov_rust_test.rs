@@ -1,5 +1,11 @@
 mod gov_test_setup;
 
+use gov_test_setup::*;
+use governance_v2::{
+    configurable::ConfigurablePropertiesModule,
+    proposal::{FeeEntry, GovernanceAction, GovernanceProposal, ProposalFees},
+    proposal_storage::ProposalStorageModule,
+};
 use multiversx_sc::{
     arrayvec::ArrayVec,
     codec::Empty,
@@ -7,12 +13,6 @@ use multiversx_sc::{
 };
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, DebugApi,
-};
-use gov_test_setup::*;
-use governance_v2::{
-    configurable::ConfigurablePropertiesModule,
-    proposal::{FeeEntry, GovernanceAction, GovernanceProposal, ProposalFees},
-    proposal_storage::ProposalStorageModule,
 };
 
 #[test]

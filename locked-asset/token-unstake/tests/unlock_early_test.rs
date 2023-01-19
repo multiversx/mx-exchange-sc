@@ -1,8 +1,8 @@
 mod token_unstake_setup;
 
-use multiversx_sc_scenario::{managed_address, managed_biguint, DebugApi};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
+use multiversx_sc_scenario::{managed_address, managed_biguint, DebugApi};
 use token_unstake_setup::*;
 
 #[test]

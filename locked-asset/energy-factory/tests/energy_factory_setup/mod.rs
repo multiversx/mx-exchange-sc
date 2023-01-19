@@ -2,21 +2,21 @@
 
 pub mod unbond_sc_mock;
 
+use energy_factory::{
+    energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
+    SimpleLockEnergy,
+};
 use multiversx_sc::{
     codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, MultiValueEncoded},
 };
+use multiversx_sc_modules::pause::PauseModule;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     whitebox::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
-};
-use multiversx_sc_modules::pause::PauseModule;
-use energy_factory::{
-    energy::EnergyModule, unlock_with_penalty::UnlockWithPenaltyModule, unstake::UnstakeModule,
-    SimpleLockEnergy,
 };
 use simple_lock::locked_token::LockedTokenModule;
 

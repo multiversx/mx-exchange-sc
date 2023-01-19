@@ -2,9 +2,9 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use common_structs::PaymentsVec;
-use multiversx_sc::api::{CallTypeApi, StorageMapperApi};
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::ExternallyMergeable;
+use multiversx_sc::api::{CallTypeApi, StorageMapperApi};
 
 use crate::{
     external_merging::{merge_farm_tokens_through_farm, merge_locked_tokens_through_factory},

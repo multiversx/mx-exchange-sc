@@ -1,4 +1,11 @@
 use common_structs::{LockedAssetTokenAttributesEx, UnlockMilestoneEx, UnlockScheduleEx};
+use energy_factory_mock::EnergyFactoryMock;
+use energy_query::Energy;
+use legacy_token_decode_module::LOCKED_TOKEN_ACTIVATION_NONCE;
+use locked_token_wrapper::{
+    wrapped_token::{WrappedTokenAttributes, WrappedTokenModule},
+    LockedTokenWrapper,
+};
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, ManagedVec},
@@ -6,13 +13,6 @@ use multiversx_sc::{
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
     whitebox::BlockchainStateWrapper, DebugApi,
-};
-use energy_factory_mock::EnergyFactoryMock;
-use energy_query::Energy;
-use legacy_token_decode_module::LOCKED_TOKEN_ACTIVATION_NONCE;
-use locked_token_wrapper::{
-    wrapped_token::{WrappedTokenAttributes, WrappedTokenModule},
-    LockedTokenWrapper,
 };
 use simple_lock::locked_token::LockedTokenAttributes;
 

@@ -4,13 +4,13 @@ use common_structs::{
     LockedAssetTokenAttributes, LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx,
     UnlockSchedule, UnlockScheduleEx,
 };
-use multiversx_sc::types::{BigInt, ManagedVec, MultiValueEncoded};
-use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
     migration::SimpleLockMigrationModule,
 };
 use energy_factory_setup::*;
+use multiversx_sc::types::{BigInt, ManagedVec, MultiValueEncoded};
+use multiversx_sc_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use multiversx_sc_scenario::{

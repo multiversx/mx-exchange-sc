@@ -14,7 +14,6 @@ use multiversx_sc_scenario::{
 mod fees_collector_mock;
 use fees_collector_mock::*;
 
-use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
@@ -22,6 +21,7 @@ use farm_boosted_yields::FarmBoostedYieldsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
+use multiversx_sc_modules::pause::PauseModule;
 use pausable::{PausableModule, State};
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::LockedTokenModule;

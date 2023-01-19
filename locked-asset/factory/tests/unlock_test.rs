@@ -7,12 +7,12 @@ use multiversx_sc_scenario::{
 
 const SC_WASM_PATH: &str = "output/factory.wasm";
 
-use multiversx_sc_modules::pause::PauseModule;
 use energy_factory::energy::{Energy, EnergyModule};
 use energy_factory::migration::SimpleLockMigrationModule;
 use factory::locked_asset_token_merge::*;
 use factory::{locked_asset::*, LockedAssetFactory};
 use factory_setup::*;
+use multiversx_sc_modules::pause::PauseModule;
 
 mod factory_setup;
 

@@ -1,12 +1,12 @@
 mod farm_setup;
 
 use config::ConfigModule;
+use farm_setup::single_user_farm_setup::*;
 use multiversx_sc::types::EsdtLocalRole;
 use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
     DebugApi,
 };
-use farm_setup::single_user_farm_setup::*;
 
 #[test]
 fn test_farm_setup() {

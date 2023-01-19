@@ -1,6 +1,10 @@
 #![allow(dead_code)]
 
 use common_structs::UnlockMilestone;
+use energy_factory::SimpleLockEnergy;
+use factory::{
+    locked_asset::LockedAssetModule, migration::LockedTokenMigrationModule, LockedAssetFactory,
+};
 use multiversx_sc::{
     storage::mappers::StorageTokenWrapper,
     types::{Address, EsdtLocalRole, MultiValueEncoded},
@@ -9,10 +13,6 @@ use multiversx_sc_scenario::{
     managed_address, managed_token_id, rust_biguint,
     whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
-};
-use energy_factory::SimpleLockEnergy;
-use factory::{
-    locked_asset::LockedAssetModule, migration::LockedTokenMigrationModule, LockedAssetFactory,
 };
 use simple_lock::locked_token::LockedTokenModule;
 
