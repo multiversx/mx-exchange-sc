@@ -1,7 +1,7 @@
 [package]
 name = "fuzz"
 version = "0.0.0"
-authors = ["sorin-petreasca <sorin.petreasca@elrond.com>"]
+authors = ["sorin-petreasca <sorin.petreasca@multiversx.com>"]
 edition = "2021"
 
 [lib]

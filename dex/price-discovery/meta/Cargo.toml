@@ -3,7 +3,7 @@ name = "price-discovery-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = ["Dorin Iancu <dorin.iancu@elrond.com>"]
+authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
 [dependencies.price-discovery]
 path = ".."
 

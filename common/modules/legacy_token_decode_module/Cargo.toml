@@ -1,7 +1,7 @@
 [package]
 name = "legacy_token_decode_module"
 version = "0.0.0"
-authors = ["Sorin Petreasca <sorin.petreasca@elrond.com>"]
+authors = ["Sorin Petreasca <sorin.petreasca@multiversx.com>"]
 edition = "2018"
 
 [lib]

@@ -51,7 +51,7 @@ This endpoint will throw an error if the caller has nothing to claim or if the l
 
 ## Testing
 
-Aside from the mandos tests, there are a lot of tests that are available in the rust test suite.
+Aside from the scenario tests, there are a lot of tests that are available in the rust test suite.
 
 ## Interaction
 

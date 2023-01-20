@@ -1,7 +1,7 @@
 [package]
 name = "permissions_module"
 version = "0.0.0"
-authors = ["Dorin Iancu <dorin.iancu@elrond.com>", "Claudiu-Marcel Bruda <claudiu.bruda@elrond.com>"]
+authors = ["Dorin Iancu <dorin.iancu@multiversx.com>", "Claudiu-Marcel Bruda <claudiu.bruda@multiversx.com>"]
 edition = "2021"
 
 [lib]

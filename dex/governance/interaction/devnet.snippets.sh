@@ -1,5 +1,5 @@
 WALLET_PEM="/home/elrond/elrondsdk/erdpy-venv/lib/python3.8/site-packages/erdpy/testnet/wallets/users/mike.pem"
-PROXY="https://devnet-gateway.elrond.com"
+PROXY="https://devnet-gateway.multiversx.com"
 CHAIN_ID="D"
 
 GOVERNANCE_WASM_PATH="/home/elrond/Github/sc-dex-rs/dex/governance/output/governance.wasm"
