@@ -1,0 +1,946 @@
+version = 3
+[[package]]
+name = "ahash"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcb51a0695d8f838b1ee009b3fbf66bda078cd64590202a864a8f3e8c4315c47"
+dependencies = [ "getrandom 0.2.8", "once_cell", "version_check",]
+
+[[package]]
+name = "arrayvec"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
+
+[[package]]
+name = "autocfg"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
+
+[[package]]
+name = "bech32"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
+
+[[package]]
+name = "bitflags"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
+name = "block-buffer"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
+dependencies = [ "block-padding", "generic-array",]
+
+[[package]]
+name = "block-padding"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
+
+[[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+
+[[package]]
+name = "cargo_toml"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "363c7cfaa15f101415c4ac9e68706ca4a2277773932828b33f96e59d28c68e62"
+dependencies = [ "serde", "serde_derive", "toml",]
+
+[[package]]
+name = "cfg-if"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+
+[[package]]
+name = "cfg-if"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "common-types"
+version = "0.0.0"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "common_errors"
+version = "0.0.0"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "common_structs"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "fixed-supply-token", "math", "mergeable", "unwrappable",]
+
+[[package]]
+name = "config"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "elrond-wasm", "pausable", "permissions_module", "token_send",]
+
+[[package]]
+name = "contexts"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "elrond-wasm", "elrond-wasm-modules", "farm_token", "pausable", "permissions_module", "rewards", "token_merge_helper", "token_send",]
+
+[[package]]
+name = "cpufeatures"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28d997bd5e24a5928dd43e46dc529867e207907fe0b239c3477d924f7f2ca320"
+dependencies = [ "libc",]
+
+[[package]]
+name = "curve25519-dalek"
+version = "3.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90f9d052967f590a76e62eb387bd0bbb1b000182c3cefe5364db6b7211651bc0"
+dependencies = [ "byteorder", "digest", "rand_core 0.5.1", "subtle", "zeroize",]
+
+[[package]]
+name = "dex-tests"
+version = "0.0.0"
+dependencies = [ "common_structs", "config", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "factory", "farm", "farm-boosted-yields", "farm-staking", "farm-staking-proxy", "farm_token", "fees-collector", "governance", "locking_module", "num-bigint", "pair", "pausable", "rewards", "router", "simple-lock",]
+
+[[package]]
+name = "digest"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
+dependencies = [ "generic-array",]
+
+[[package]]
+name = "distribution"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "factory",]
+
+[[package]]
+name = "distribution-abi"
+version = "0.0.0"
+dependencies = [ "distribution", "elrond-wasm", "elrond-wasm-debug",]
+
+[[package]]
+name = "distribution-tests"
+version = "0.0.0"
+dependencies = [ "common_structs", "distribution", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "factory", "farm", "fees-collector", "hex", "lkmex-transfer", "num-bigint", "num-traits", "pair", "proxy_dex", "router", "simple-lock", "token-unstake",]
+
+[[package]]
+name = "ed25519"
+version = "1.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
+dependencies = [ "signature",]
+
+[[package]]
+name = "ed25519-dalek"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d"
+dependencies = [ "curve25519-dalek", "ed25519", "rand 0.7.3", "serde", "sha2", "zeroize",]
+
+[[package]]
+name = "either"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
+
+[[package]]
+name = "elrond-codec"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c85c5951864dd4816e1df2ceaccb0f22c64ff117ddcde1f53351ace4d785c47"
+dependencies = [ "arrayvec", "elrond-codec-derive", "num-bigint", "wee_alloc",]
+
+[[package]]
+name = "elrond-codec-derive"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a8987a7f506ae5b352ad7ac28fb13b9f600355c8b88a444881f86bc565c75cf"
+dependencies = [ "hex", "proc-macro2", "quote", "syn",]
+
+[[package]]
+name = "elrond-wasm"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ff7dd10f4a7133a2c6feb3f79e04953f9a3c1eda9f8444b43c1300f302e02fd"
+dependencies = [ "bitflags", "elrond-codec", "elrond-wasm-derive", "git-version", "hashbrown", "hex-literal", "num-traits", "wee_alloc",]
+
+[[package]]
+name = "elrond-wasm-debug"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d5edfe86985956f2de3a649bb1619c1f8b794b540e620461ba08f05086353fc"
+dependencies = [ "bech32", "cargo_toml", "ed25519-dalek", "elrond-wasm", "hex", "itertools", "mandos", "num-bigint", "num-traits", "pathdiff", "rand 0.8.5", "rand_pcg", "rand_seeder", "rustc_version", "serde", "serde_json", "sha2", "sha3", "toml",]
+
+[[package]]
+name = "elrond-wasm-derive"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60358989163ae1c28b79d7c687869874c765001bbdfa12a31dfd920350bc7a22"
+dependencies = [ "hex", "proc-macro2", "quote", "radix_trie", "syn",]
+
+[[package]]
+name = "elrond-wasm-modules"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "868f3dd7ae064f23b626cb197c83caa3bdadadd9cbc58d5a8ceff99942d04a47"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "endian-type"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
+
+[[package]]
+name = "energy-factory"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "hex", "legacy_token_decode_module", "math", "mergeable", "num-bigint", "num-traits", "sc_whitelist_module", "simple-lock", "unwrappable", "utils",]
+
+[[package]]
+name = "energy-factory-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "energy-factory",]
+
+[[package]]
+name = "energy-factory-mock"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "energy-query",]
+
+[[package]]
+name = "energy-factory-mock-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "energy-factory-mock",]
+
+[[package]]
+name = "energy-query"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "energy-factory",]
+
+[[package]]
+name = "energy-update"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "farm", "num-bigint", "weekly-rewards-splitting",]
+
+[[package]]
+name = "energy-update-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "energy-update",]
+
+[[package]]
+name = "events"
+version = "0.0.0"
+dependencies = [ "common_structs", "contexts", "elrond-wasm",]
+
+[[package]]
+name = "factory"
+version = "0.0.0"
+dependencies = [ "arrayvec", "common_errors", "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "hex", "itertools", "num-bigint", "num-traits", "simple-lock", "token_merge_helper", "token_send", "wee_alloc",]
+
+[[package]]
+name = "factory-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "factory",]
+
+[[package]]
+name = "farm"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "contexts", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory-mock", "energy-query", "energy-update", "events", "farm-boosted-yields", "farm_base_impl", "farm_token", "fixed-supply-token", "mergeable", "num-bigint", "pair", "pausable", "permissions_module", "rewards", "sc_whitelist_module", "simple-lock", "token_send", "utils", "week-timekeeping", "weekly-rewards-splitting",]
+
+[[package]]
+name = "farm-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "farm",]
+
+[[package]]
+name = "farm-boosted-yields"
+version = "0.0.0"
+dependencies = [ "common-types", "config", "elrond-wasm", "energy-query", "pausable", "permissions_module", "week-timekeeping", "weekly-rewards-splitting",]
+
+[[package]]
+name = "farm-staking"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "contexts", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "events", "farm", "farm_base_impl", "farm_token", "fixed-supply-token", "math", "mergeable", "num-bigint", "pair", "pausable", "permissions_module", "rewards", "sc_whitelist_module", "token_send", "utils",]
+
+[[package]]
+name = "farm-staking-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "farm-staking",]
+
+[[package]]
+name = "farm-staking-proxy"
+version = "0.0.0"
+dependencies = [ "common_structs", "config", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "farm", "farm-boosted-yields", "farm-staking", "farm_token", "hex-literal", "num-bigint", "pair", "pausable", "rewards", "sc_whitelist_module", "token_merge_helper",]
+
+[[package]]
+name = "farm-staking-proxy-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "farm-staking-proxy",]
+
+[[package]]
+name = "farm-with-locked-rewards"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "contexts", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "energy-query", "events", "farm", "farm-boosted-yields", "farm_base_impl", "farm_token", "fixed-supply-token", "locking_module", "mergeable", "num-bigint", "pausable", "permissions_module", "rewards", "sc_whitelist_module", "simple-lock", "token_send", "utils", "week-timekeeping", "weekly-rewards-splitting",]
+
+[[package]]
+name = "farm-with-locked-rewards-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "farm-with-locked-rewards",]
+
+[[package]]
+name = "farm_base_impl"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "contexts", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "events", "farm_token", "fixed-supply-token", "mergeable", "pausable", "permissions_module", "rewards", "token_merge_helper", "token_send", "utils",]
+
+[[package]]
+name = "farm_token"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "elrond-wasm", "elrond-wasm-modules", "pausable", "permissions_module", "token_send",]
+
+[[package]]
+name = "fees-collector"
+version = "0.0.0"
+dependencies = [ "common-types", "common_errors", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "energy-query", "locking_module", "num-bigint", "sc_whitelist_module", "simple-lock", "utils", "week-timekeeping", "weekly-rewards-splitting",]
+
+[[package]]
+name = "fees-collector-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "fees-collector",]
+
+[[package]]
+name = "fixed-supply-token"
+version = "0.0.0"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "fuzz"
+version = "0.0.0"
+dependencies = [ "common_structs", "config", "elrond-wasm", "elrond-wasm-debug", "factory", "farm", "farm-staking", "farm_token", "num-bigint", "pair", "pair-mock", "pausable", "price-discovery", "rand 0.8.5", "rewards", "router", "simple-lock",]
+
+[[package]]
+name = "generic-array"
+version = "0.14.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bff49e947297f3312447abdca79f45f4738097cc82b06e72054d2223f601f1b9"
+dependencies = [ "typenum", "version_check",]
+
+[[package]]
+name = "getrandom"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fc3cb4d91f53b50155bdcfd23f6a4c39ae1969c2ae85982b135750cccaf5fce"
+dependencies = [ "cfg-if 1.0.0", "libc", "wasi 0.9.0+wasi-snapshot-preview1",]
+
+[[package]]
+name = "getrandom"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
+dependencies = [ "cfg-if 1.0.0", "libc", "wasi 0.11.0+wasi-snapshot-preview1",]
+
+[[package]]
+name = "git-version"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6b0decc02f4636b9ccad390dcbe77b722a77efedfa393caf8379a51d5c61899"
+dependencies = [ "git-version-macro", "proc-macro-hack",]
+
+[[package]]
+name = "git-version-macro"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe69f1cbdb6e28af2bac214e943b99ce8a0a06b447d15d3e61161b0423139f3f"
+dependencies = [ "proc-macro-hack", "proc-macro2", "quote", "syn",]
+
+[[package]]
+name = "governance"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "num-bigint", "pair-mock",]
+
+[[package]]
+name = "governance-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "governance",]
+
+[[package]]
+name = "governance-v2"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "energy-factory-mock", "energy-query", "num-bigint",]
+
+[[package]]
+name = "governance-v2-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "governance-v2",]
+
+[[package]]
+name = "hashbrown"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
+dependencies = [ "ahash",]
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hex-literal"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
+
+[[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [ "either",]
+
+[[package]]
+name = "itoa"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
+
+[[package]]
+name = "keccak"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3afef3b6eff9ce9d8ff9b3601125eec7f0c8cbac7abd14f355d053fa56c98768"
+dependencies = [ "cpufeatures",]
+
+[[package]]
+name = "legacy_token_decode_module"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "utils",]
+
+[[package]]
+name = "libc"
+version = "0.2.139"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
+
+[[package]]
+name = "lkmex-transfer"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "energy-query", "num-bigint", "simple-lock", "utils",]
+
+[[package]]
+name = "lkmex-transfer-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "lkmex-transfer",]
+
+[[package]]
+name = "locked-token-wrapper"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "energy-factory-mock", "energy-query", "hex", "lkmex-transfer", "num-bigint", "num-traits", "simple-lock", "utils",]
+
+[[package]]
+name = "locked-token-wrapper-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "locked-token-wrapper",]
+
+[[package]]
+name = "locking_module"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "energy-factory", "simple-lock",]
+
+[[package]]
+name = "mandos"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1842e74cfde878e86af08648332c357e63135763f554ffbd6e82f110defdbeaf"
+dependencies = [ "bech32", "hex", "num-bigint", "num-traits", "serde", "serde_json", "sha3",]
+
+[[package]]
+name = "math"
+version = "0.0.0"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "memory_units"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
+
+[[package]]
+name = "mergeable"
+version = "0.0.0"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "metabonding-staking"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "factory", "num-bigint",]
+
+[[package]]
+name = "metabonding-staking-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "metabonding-staking",]
+
+[[package]]
+name = "nibble_vec"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8d77f3db4bce033f4d04db08079b2ef1c3d02b44e86f25d08886fafa7756ffa"
+
+[[package]]
+name = "num-bigint"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
+dependencies = [ "autocfg", "num-integer", "num-traits",]
+
+[[package]]
+name = "num-integer"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "225d3389fb3509a24c93f5c29eb6bde2586b98d9f016636dff58d7c6f7569cd9"
+dependencies = [ "autocfg", "num-traits",]
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [ "autocfg",]
+
+[[package]]
+name = "once_cell"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
+
+[[package]]
+name = "opaque-debug"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "pair"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "elrond-wasm", "elrond-wasm-debug", "fees-collector", "itertools", "num-bigint", "pausable", "permissions_module", "simple-lock", "token_send",]
+
+[[package]]
+name = "pair-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "pair",]
+
+[[package]]
+name = "pair-mock"
+version = "0.0.0"
+dependencies = [ "common_errors", "elrond-wasm", "elrond-wasm-debug", "itertools",]
+
+[[package]]
+name = "pair-mock-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "pair-mock",]
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
+
+[[package]]
+name = "pausable"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "permissions_module",]
+
+[[package]]
+name = "pause-all"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "farm", "pair", "pausable",]
+
+[[package]]
+name = "pause-all-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "pause-all",]
+
+[[package]]
+name = "permissions_module"
+version = "0.0.0"
+dependencies = [ "bitflags", "common_errors", "elrond-wasm",]
+
+[[package]]
+name = "ppv-lite86"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
+
+[[package]]
+name = "price-discovery"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "hex", "hex-literal", "locking_module", "num-bigint", "num-traits", "simple-lock",]
+
+[[package]]
+name = "price-discovery-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "price-discovery",]
+
+[[package]]
+name = "proc-macro-hack"
+version = "0.5.20+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
+
+[[package]]
+name = "proc-macro2"
+version = "1.0.49"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57a8eca9f9c4ffde41714334dee777596264c7825420f521abc92b5b5deb63a5"
+dependencies = [ "unicode-ident",]
+
+[[package]]
+name = "proxy-deployer"
+version = "0.0.0"
+dependencies = [ "config", "elrond-wasm", "elrond-wasm-debug", "farm", "farm_token", "num-bigint", "pausable",]
+
+[[package]]
+name = "proxy-deployer-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm-debug", "proxy-deployer",]
+
+[[package]]
+name = "proxy_dex"
+version = "0.0.0"
+dependencies = [ "common_structs", "config", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "energy-query", "farm", "farm-boosted-yields", "farm-with-locked-rewards", "farm_base_impl", "farm_token", "fixed-supply-token", "hex", "itertools", "legacy_token_decode_module", "locking_module", "mergeable", "num-bigint", "num-traits", "pair", "pausable", "rewards", "sc_whitelist_module", "simple-lock", "token_merge_helper", "token_send", "utils",]
+
+[[package]]
+name = "proxy_dex-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "proxy_dex",]
+
+[[package]]
+name = "quote"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8856d8364d252a14d474036ea1358d63c9e6965c8e5c1885c18f73d70bff9c7b"
+dependencies = [ "proc-macro2",]
+
+[[package]]
+name = "radix_trie"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d3681b28cd95acfb0560ea9441f82d6a4504fa3b15b97bd7b6e952131820e95"
+dependencies = [ "endian-type", "nibble_vec",]
+
+[[package]]
+name = "rand"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03"
+dependencies = [ "getrandom 0.1.16", "libc", "rand_chacha 0.2.2", "rand_core 0.5.1", "rand_hc",]
+
+[[package]]
+name = "rand"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+dependencies = [ "libc", "rand_chacha 0.3.1", "rand_core 0.6.4",]
+
+[[package]]
+name = "rand_chacha"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4c8ed856279c9737206bf725bf36935d8666ead7aa69b52be55af369d193402"
+dependencies = [ "ppv-lite86", "rand_core 0.5.1",]
+
+[[package]]
+name = "rand_chacha"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
+dependencies = [ "ppv-lite86", "rand_core 0.6.4",]
+
+[[package]]
+name = "rand_core"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
+dependencies = [ "getrandom 0.1.16",]
+
+[[package]]
+name = "rand_core"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
+dependencies = [ "getrandom 0.2.8",]
+
+[[package]]
+name = "rand_hc"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
+dependencies = [ "rand_core 0.5.1",]
+
+[[package]]
+name = "rand_pcg"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16abd0c1b639e9eb4d7c50c0b8100b0d0f849be2349829c740fe8e6eb4816429"
+dependencies = [ "rand_core 0.5.1",]
+
+[[package]]
+name = "rand_seeder"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf2890aaef0aa82719a50e808de264f9484b74b442e1a3a0e5ee38243ac40bdb"
+dependencies = [ "rand_core 0.6.4",]
+
+[[package]]
+name = "rewards"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "config", "elrond-wasm", "elrond-wasm-modules", "farm_token", "pausable", "permissions_module", "token_send",]
+
+[[package]]
+name = "router"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "locking_module", "pair", "pausable", "simple-lock", "token_send",]
+
+[[package]]
+name = "router-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "router",]
+
+[[package]]
+name = "rustc_version"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
+dependencies = [ "semver",]
+
+[[package]]
+name = "ryu"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b4b9743ed687d4b4bcedf9ff5eaa7398495ae14e61cba0a295704edbc7decde"
+
+[[package]]
+name = "sc_whitelist_module"
+version = "0.0.0"
+dependencies = [ "common_errors", "elrond-wasm",]
+
+[[package]]
+name = "semver"
+version = "1.0.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58bc9567378fc7690d6b2addae4e60ac2eeea07becb2c64b9f218b53865cba2a"
+
+[[package]]
+name = "serde"
+version = "1.0.152"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
+dependencies = [ "serde_derive",]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.152"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af487d118eecd09402d70a5d72551860e788df87b464af30e5ea6a38c75c541e"
+dependencies = [ "proc-macro2", "quote", "syn",]
+
+[[package]]
+name = "serde_json"
+version = "1.0.91"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
+dependencies = [ "itoa", "ryu", "serde",]
+
+[[package]]
+name = "sha2"
+version = "0.9.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d58a1e1bf39749807d89cf2d98ac2dfa0ff1cb3faa38fbb64dd88ac8013d800"
+dependencies = [ "block-buffer", "cfg-if 1.0.0", "cpufeatures", "digest", "opaque-debug",]
+
+[[package]]
+name = "sha3"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f81199417d4e5de3f04b1e871023acea7389672c4135918f05aa9cbf2f2fa809"
+dependencies = [ "block-buffer", "digest", "keccak", "opaque-debug",]
+
+[[package]]
+name = "signature"
+version = "1.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
+
+[[package]]
+name = "simple-lock"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "hex", "num-bigint", "num-traits",]
+
+[[package]]
+name = "simple-lock-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "simple-lock",]
+
+[[package]]
+name = "simple-lock-whitelist"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "hex", "num-bigint", "num-traits", "simple-lock", "utils",]
+
+[[package]]
+name = "simple-lock-whitelist-meta"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "simple-lock-whitelist",]
+
+[[package]]
+name = "subtle"
+version = "2.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
+
+[[package]]
+name = "syn"
+version = "1.0.107"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f4064b5b16e03ae50984a5a8ed5d4f8803e6bc1fd170a3cda91a1be4b18e3f5"
+dependencies = [ "proc-macro2", "quote", "unicode-ident",]
+
+[[package]]
+name = "synstructure"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
+dependencies = [ "proc-macro2", "quote", "syn", "unicode-xid",]
+
+[[package]]
+name = "token-unstake"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "elrond-wasm-debug", "elrond-wasm-modules", "energy-factory", "energy-query", "hex", "mergeable", "num-bigint", "num-traits", "simple-lock", "utils", "week-timekeeping",]
+
+[[package]]
+name = "token-unstake-abi"
+version = "0.0.0"
+dependencies = [ "elrond-wasm", "elrond-wasm-debug", "token-unstake",]
+
+[[package]]
+name = "token_merge_helper"
+version = "0.0.0"
+dependencies = [ "common_errors", "elrond-wasm",]
+
+[[package]]
+name = "token_send"
+version = "0.0.0"
+dependencies = [ "common_errors", "common_structs", "elrond-wasm",]
+
+[[package]]
+name = "toml"
+version = "0.5.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4f7f0dd8d50a853a531c426359045b1998f04219d88799810762cd4ad314234"
+dependencies = [ "serde",]
+
+[[package]]
+name = "typenum"
+version = "1.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
+
+[[package]]
+name = "unicode-ident"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84a22b9f218b40614adcb3f4ff08b703773ad44fa9423e4e0d346d5db86e4ebc"
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unwrappable"
+version = "0.0.0"
+dependencies = [ "elrond-wasm",]
+
+[[package]]
+name = "utils"
+version = "0.0.0"
+dependencies = [ "common_structs", "elrond-wasm", "fixed-supply-token", "mergeable",]
+
+[[package]]
+name = "version_check"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "wasi"
+version = "0.9.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
+
+[[package]]
+name = "wasi"
+version = "0.11.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
+
+[[package]]
+name = "wee_alloc"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbb3b5a6b2bb17cb6ad44a2e68a43e8d2722c997da10e928665c72ec6c0a0b8e"
+dependencies = [ "cfg-if 0.1.10", "libc", "memory_units", "winapi",]
+
+[[package]]
+name = "week-timekeeping"
+version = "0.0.0"
+dependencies = [ "common-types", "elrond-wasm",]
+
+[[package]]
+name = "weekly-rewards-splitting"
+version = "0.0.0"
+dependencies = [ "common-types", "elrond-wasm", "energy-query", "math", "unwrappable", "week-timekeeping",]
+
+[[package]]
+name = "winapi"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
+dependencies = [ "winapi-i686-pc-windows-gnu", "winapi-x86_64-pc-windows-gnu",]
+
+[[package]]
+name = "winapi-i686-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-x86_64-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "zeroize"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4756f7db3f7b5574938c3eb1c117038b8e07f95ee6718c0efad4ac21508f1efd"
+dependencies = [ "zeroize_derive",]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44bf07cb3e50ea2003396695d58bf46bc9887a1f362260446fad6bc4e79bd36c"
+dependencies = [ "proc-macro2", "quote", "syn", "synstructure",]
+
