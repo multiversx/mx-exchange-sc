@@ -14,6 +14,9 @@ path = "../../common/common_structs"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
 [dependencies.simple-lock]
 path = "../simple-lock"
 

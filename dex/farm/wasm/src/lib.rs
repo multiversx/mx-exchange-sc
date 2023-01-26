@@ -66,5 +66,6 @@ elrond_wasm_node::wasm_endpoints! {
         set_penalty_percent
         startProduceRewards
         updateEnergyForUser
+        updateOwnerOrAdmin
     )
 }
