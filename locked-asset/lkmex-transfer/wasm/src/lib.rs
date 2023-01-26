@@ -7,10 +7,15 @@
 elrond_wasm_node::wasm_endpoints! {
     lkmex_transfer
     (
+        addAdmin
+        cancelTransfer
         getAllSenders
         getEnergyFactoryAddress
+        getPermissions
         lockFunds
+        removeAdmin
         setEnergyFactoryAddress
+        updateOwnerOrAdmin
         withdraw
     )
 }
