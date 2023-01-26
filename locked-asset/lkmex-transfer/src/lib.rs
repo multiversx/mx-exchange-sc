@@ -8,6 +8,7 @@ pub mod constants;
 pub mod energy_transfer;
 
 use common_structs::{Epoch, PaymentsVec};
+use permissions_module::Permissions;
 
 use crate::constants::*;
 
@@ -21,7 +22,10 @@ pub struct LockedFunds<M: ManagedTypeApi> {
 
 #[elrond_wasm::contract]
 pub trait LkmexTransfer:
-    energy_transfer::EnergyTransferModule + energy_query::EnergyQueryModule + utils::UtilsModule
+    energy_transfer::EnergyTransferModule
+    + energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + permissions_module::PermissionsModule
 {
     #[init]
     fn init(
@@ -38,6 +42,9 @@ pub trait LkmexTransfer:
             .set(epochs_cooldown_duration);
         self.locked_token_id().set(locked_token_id);
         self.set_energy_factory_address(energy_factory_address);
+
+        let caller = self.blockchain().get_caller();
+        self.add_permissions(caller, Permissions::OWNER);
     }
 
     #[endpoint]
@@ -53,6 +60,21 @@ pub trait LkmexTransfer:
             .set(current_epoch);
 
         self.add_energy_to_destination(receiver, &funds);
+    }
+
+    #[endpoint(cancelTransfer)]
+    fn cancel_transfer(&self, sender: ManagedAddress, receiver: ManagedAddress) {
+        self.require_caller_has_admin_permissions();
+        let locked_funds_mapper = self.locked_funds(&receiver, &sender);
+        require!(!locked_funds_mapper.is_empty(), TRANSFER_NON_EXISTENT);
+
+        let locked_funds = locked_funds_mapper.get();
+        locked_funds_mapper.clear();
+        self.all_senders(&receiver).swap_remove(&sender);
+        self.address_last_transfer_epoch(&sender).clear();
+
+        self.send().direct_multi(&sender, &locked_funds.funds);
+        self.add_energy_to_destination(sender, &locked_funds.funds);
     }
 
     fn get_unlocked_funds(
