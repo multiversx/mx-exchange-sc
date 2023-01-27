@@ -152,6 +152,7 @@ where
                 lp_farm_token_amount: managed_biguint!(lp_farm_token_stake_amount),
                 staking_farm_token_nonce: expected_staking_farm_token_nonce,
                 staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
+                user_staking_farm_token_amount: managed_biguint!(0),
             };
 
             self.b_mock.check_nft_balance(

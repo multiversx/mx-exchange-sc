@@ -92,6 +92,7 @@ pub struct UnstakeResult<M: ManagedTypeApi> {
     pub lp_farm_rewards: EsdtTokenPayment<M>,
     pub staking_rewards: EsdtTokenPayment<M>,
     pub unbond_staking_farm_token: EsdtTokenPayment<M>,
+    pub opt_unbond_staking_farm_token_for_user_pos: Option<EsdtTokenPayment<M>>,
     pub opt_new_dual_yield_tokens: Option<EsdtTokenPayment<M>>,
 }
 
@@ -106,6 +107,10 @@ impl<M: ManagedTypeApi> UnstakeResult<M> {
         payments.push(self.lp_farm_rewards.clone());
         payments.push(self.staking_rewards.clone());
         payments.push(self.unbond_staking_farm_token.clone());
+
+        if let Some(unbond_for_user_pos) = &self.opt_unbond_staking_farm_token_for_user_pos {
+            payments.push(unbond_for_user_pos.clone());
+        }
 
         if let Some(new_dual_yield_tokens) = &self.opt_new_dual_yield_tokens {
             payments.push(new_dual_yield_tokens.clone());
