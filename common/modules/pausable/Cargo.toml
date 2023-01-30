@@ -10,5 +10,5 @@ path = "src/pausable.rs"
 path = "../permissions_module"
 
 [dependencies.multiversx-sc]
-version = "=0.39.2"
+version = "=0.39.4"
 features = ["esdt-token-payment-legacy-decode"]

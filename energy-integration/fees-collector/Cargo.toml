@@ -8,11 +8,11 @@ publish = false
 [lib]
 path = "src/lib.rs"
 [dependencies.multiversx-sc]
-version = "=0.39.2"
+version = "=0.39.4"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.multiversx-sc-modules]
-version = "=0.39.2"
+version = "=0.39.4"
 
 [dependencies.energy-query]
 path = "../common-modules/energy-query"
@@ -48,7 +48,7 @@ path = "../../common/common_errors"
 num-bigint = "0.4.2"
 
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.2"
+version = "=0.39.4"
 
 [dev-dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"

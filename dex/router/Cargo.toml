@@ -14,7 +14,7 @@ path = "../../common/modules/token_send"
 path = "../../common/modules/pausable"
 
 [dependencies.multiversx-sc]
-version = "=0.39.2"
+version = "=0.39.4"
 features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.pair]
@@ -26,4 +26,4 @@ path = "../../common/modules/locking_module"
 [dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
 [dev-dependencies.multiversx-sc-scenario]
-version = "=0.39.2"
+version = "=0.39.4"
