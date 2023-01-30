@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    tx_mock::TxTokenTransfer, DebugApi,
+use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{Address, BigUint, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
+    whitebox::*, DebugApi,
 };
 pub type RustBigUint = num_bigint::BigUint;
 

@@ -1,9 +1,9 @@
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::types::EsdtLocalRole;
-use elrond_wasm_debug::{managed_biguint, managed_token_id_wrapped, testing_framework::*};
-use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
+use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::types::EsdtLocalRole;
+use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped, whitebox::*};
+use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use simple_lock::locked_token::*;
 use simple_lock::SimpleLock;
 

@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use farm::{
     base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
@@ -16,7 +16,7 @@ pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmInteractionsModule {
     fn call_enter_farm(
         &self,

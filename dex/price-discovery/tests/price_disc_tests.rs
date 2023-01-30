@@ -1,6 +1,6 @@
-use elrond_wasm::elrond_codec::Empty;
-use elrond_wasm_debug::{managed_biguint, managed_token_id_wrapped};
-use elrond_wasm_debug::{rust_biguint, DebugApi};
+use multiversx_sc::codec::Empty;
+use multiversx_sc_scenario::{managed_biguint, managed_token_id_wrapped};
+use multiversx_sc_scenario::{rust_biguint, DebugApi};
 use price_discovery::common_storage::*;
 use price_discovery::redeem_token::*;
 use price_discovery::PriceDiscovery;

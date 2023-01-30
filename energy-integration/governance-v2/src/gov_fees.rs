@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{
     errors::*,
@@ -8,7 +8,7 @@ use crate::{
 
 const MIN_AMOUNT_PER_DEPOSIT: u64 = 1;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait GovFeesModule:
     crate::configurable::ConfigurablePropertiesModule
     + crate::proposal_storage::ProposalStorageModule

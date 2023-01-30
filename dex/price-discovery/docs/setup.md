@@ -1,7 +1,7 @@
 # Setup docs
 
 The contract defines two tokens:
-- launched_token_id - the token identifier of the newly launched token on the Elrond DEX
+- launched_token_id - the token identifier of the newly launched token on the XExchange.
 - accepted_token_id - an already established token, that will be used to determine the price of the launched token
 
 Additionally, a min price is also defined by the following arguments:

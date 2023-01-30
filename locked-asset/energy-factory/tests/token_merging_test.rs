@@ -1,18 +1,5 @@
 mod energy_factory_setup;
 
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
-    types::{
-        BigInt, BigUint, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
-        MultiValueEncoded,
-    },
-};
-use elrond_wasm_debug::{
-    managed_address, managed_token_id, testing_framework::BlockchainStateWrapper,
-    tx_mock::TxTokenTransfer,
-};
-use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{
     energy::{Energy, EnergyModule},
     token_merging::TokenMergingModule,
@@ -20,12 +7,24 @@ use energy_factory::{
     SimpleLockEnergy,
 };
 use energy_factory_setup::*;
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    storage::mappers::StorageTokenWrapper,
+    types::{
+        BigInt, BigUint, EgldOrEsdtTokenIdentifier, EgldOrEsdtTokenPayment, EsdtLocalRole,
+        MultiValueEncoded,
+    },
+};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::{
+    managed_address, managed_token_id, whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer,
+};
 use simple_lock::{
     basic_lock_unlock::BasicLockUnlock,
     locked_token::{LockedTokenAttributes, LockedTokenModule},
 };
 
-use elrond_wasm_debug::{managed_token_id_wrapped, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_token_id_wrapped, rust_biguint, DebugApi};
 
 #[test]
 fn token_merging_test() {

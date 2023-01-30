@@ -1,8 +1,8 @@
-use elrond_wasm::{elrond_codec::multi_types::OptionalValue, types::Address};
-use elrond_wasm_debug::{
+use multiversx_sc::{codec::multi_types::OptionalValue, types::Address};
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxTokenTransfer,
+    whitebox::TxTokenTransfer,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 

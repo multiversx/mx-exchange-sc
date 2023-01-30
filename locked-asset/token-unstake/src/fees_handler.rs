@@ -1,13 +1,13 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000;
 
 use crate::{events, tokens_per_user::UnstakePair};
 
 pub mod fees_collector_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait FeesCollectorProxy {
         #[payable("*")]
         #[endpoint(depositSwapFees)]
@@ -15,7 +15,7 @@ pub mod fees_collector_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FeesHandlerModule:
     crate::tokens_per_user::TokensPerUserModule
     + energy_query::EnergyQueryModule

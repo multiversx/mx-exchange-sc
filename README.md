@@ -22,7 +22,7 @@ This document is a brief description of the Smart Contracts. It covers the basic
 
 Other Smart Contracts that are part of Maiar exchange, but are not part of this repository:
 
-- [Egld wrapping](https://github.com/ElrondNetwork/sc-bridge-elrond/tree/main/egld-esdt-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
+- [Egld wrapping](https://github.com/multiversx/mx-sdk-rs/tree/master/contracts/core/wegld-swap) used for swapping EGLD to an ESDT and reversed with an exchange rate of 1:1.
 
 ## DEX Contracts
 

@@ -1,10 +1,10 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod farm_deploy;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait ProxyDeployer: farm_deploy::FarmDeployModule {
     #[init]
     fn init(&self, farm_template_address: ManagedAddress) {

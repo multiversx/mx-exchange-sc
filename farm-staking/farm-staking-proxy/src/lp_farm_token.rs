@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::FarmTokenAttributes;
 use fixed_supply_token::FixedSupplyToken;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LpFarmTokenModule {
     fn get_lp_tokens_in_farm_position(
         &self,

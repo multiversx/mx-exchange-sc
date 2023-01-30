@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<energy_update::AbiProvider>();
+    multiversx_sc_meta::cli_main::<energy_update::AbiProvider>();
 }

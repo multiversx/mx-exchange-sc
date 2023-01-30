@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_types::{PaymentsVec, Week};
 use core::marker::PhantomData;
@@ -11,7 +11,7 @@ pub mod config;
 pub mod events;
 pub mod fees_accumulation;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait FeesCollector:
     config::ConfigModule
     + events::FeesCollectorEventsModule
@@ -25,7 +25,7 @@ pub trait FeesCollector:
     + locking_module::lock_with_energy_module::LockWithEnergyModule
     + energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
     + utils::UtilsModule
     + sc_whitelist_module::SCWhitelistModule
 {

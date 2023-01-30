@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use super::amm;
 use super::config;
@@ -13,9 +13,9 @@ use common_structs::TokenPair;
 use fees_collector::fees_accumulation::ProxyTrait as _;
 
 mod self_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait PairProxy {
         #[payable("*")]
         #[endpoint(swapNoFeeAndForward)]
@@ -23,7 +23,7 @@ mod self_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FeeModule:
     config::ConfigModule
     + liquidity_pool::LiquidityPoolModule

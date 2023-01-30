@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use energy_factory::virtual_lock::ProxyTrait as _;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockWithEnergyModule {
     #[only_owner]
     #[endpoint(setLockingScAddress)]

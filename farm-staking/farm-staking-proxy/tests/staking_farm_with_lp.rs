@@ -3,13 +3,13 @@ pub mod staking_farm_with_lp_external_contracts;
 pub mod staking_farm_with_lp_staking_contract_interactions;
 pub mod staking_farm_with_lp_staking_contract_setup;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use constants::*;
-use elrond_wasm::elrond_codec::Empty;
-use elrond_wasm_debug::{managed_biguint, managed_token_id, rust_biguint, DebugApi};
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 use farm_staking_proxy::FarmStakingProxy;
+use multiversx_sc::codec::Empty;
+use multiversx_sc_scenario::{managed_biguint, managed_token_id, rust_biguint, DebugApi};
 use staking_farm_with_lp_staking_contract_interactions::*;
 
 #[test]

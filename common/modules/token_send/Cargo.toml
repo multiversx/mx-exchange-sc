@@ -1,18 +1,17 @@
 [package]
 name = "token_send"
 version = "0.0.0"
-authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+authors = ["catalin-neagu <catalin.neagu@multiversx.com>"]
 edition = "2021"
 
 [lib]
 path = "src/token_send.rs"
-
 [dependencies.common_structs]
 path = "../../common_structs"
 
 [dependencies.common_errors]
 path = "../../common_errors"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]

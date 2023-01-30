@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::error_messages::*;
 use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
@@ -18,12 +18,12 @@ pub type AddLiquidityThroughProxyResultType<M> =
 pub type RemoveLiquidityThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyLpModule:
     crate::locked_token::LockedTokenModule
     + crate::lp_interactions::LpInteractionsModule
     + crate::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]

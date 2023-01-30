@@ -6,7 +6,6 @@ publish = false
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
@@ -44,20 +43,12 @@ path = "../../common/traits/mergeable"
 [dependencies.fixed-supply-token]
 path = "../../common/traits/fixed-supply-token"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.elrond-wasm-modules]
-version = "=0.38.0"
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
-
-[dev-dependencies]
-num-bigint = "0.4.2"
-num-traits = "0.2"
-hex = "0.4"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
 
 [dependencies.energy-factory]
 path = "../energy-factory"
@@ -67,6 +58,14 @@ path = "../../energy-integration/common-modules/energy-query"
 
 [dependencies.simple-lock]
 path = "../simple-lock"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"
 
 [dev-dependencies.pausable]
 path = "../../common/modules/pausable"

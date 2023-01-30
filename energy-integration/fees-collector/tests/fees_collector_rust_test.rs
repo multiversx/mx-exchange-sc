@@ -1,14 +1,14 @@
 mod fees_collector_test_setup;
 
-use elrond_wasm::types::{BigInt, EsdtTokenPayment, ManagedVec};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    DebugApi,
-};
 use energy_query::Energy;
 use fees_collector::additional_locked_tokens::{AdditionalLockedTokensModule, BLOCKS_IN_WEEK};
 use fees_collector::fees_accumulation::FeesAccumulationModule;
 use fees_collector_test_setup::*;
+use multiversx_sc::types::{BigInt, EsdtTokenPayment, ManagedVec};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    DebugApi,
+};
 use simple_lock::locked_token::LockedTokenAttributes;
 use weekly_rewards_splitting::locked_token_buckets::LockedTokensBucket;
 use weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule;

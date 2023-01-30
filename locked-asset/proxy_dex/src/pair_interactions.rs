@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use pair::{AddLiquidityResultType, ProxyTrait as _, RemoveLiquidityResultType};
 
@@ -13,7 +13,7 @@ pub struct RemoveLiqudityResultWrapper<M: ManagedTypeApi> {
     pub second_token_received: EsdtTokenPayment<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait PairInteractionsModule {
     fn call_add_liquidity(
         &self,

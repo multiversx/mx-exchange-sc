@@ -2,8 +2,8 @@ use common_structs::Nonce;
 
 use crate::wrapped_lp_attributes::WrappedLpTokenAttributes;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub static INVALID_PAYMENTS_ERR_MSG: &[u8] = b"Invalid payments";
 pub const MIN_MERGE_PAYMENTS: usize = 2;
@@ -17,7 +17,7 @@ pub struct BaseAssetOtherTokenRefPair<'a, M: ManagedTypeApi> {
     pub other_token_ref: &'a EsdtTokenPayment<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyCommonModule: energy_query::EnergyQueryModule {
     fn require_exactly_one_locked<'a>(
         &self,

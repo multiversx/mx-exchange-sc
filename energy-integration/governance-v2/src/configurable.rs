@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-/// # Elrond smart contract module - Governance
+/// # MultiversX smart contract module - Governance
 ///
 /// This is a standard smart contract module, that when added to a smart contract offers governance features:
 /// - proposing actions
@@ -27,7 +27,7 @@ elrond_wasm::imports!();
 /// Please note that although the main contract can modify the module's storage directly, it is not recommended to do so,
 /// as that defeats the whole purpose of having governance. These parameters should only be modified through actions.
 ///
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ConfigurablePropertiesModule:
     crate::caller_check::CallerCheckModule + energy_query::EnergyQueryModule
 {

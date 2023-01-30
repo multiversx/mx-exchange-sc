@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::error_messages::*;
 
@@ -22,10 +22,10 @@ pub struct RemoveLiquidityResultWrapper<M: ManagedTypeApi> {
 // Must manually declare, as Pair SC already depends on simple-lock
 // This avoids circular dependency
 mod lp_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
     use super::{AddLiquidityResultType, RemoveLiquidityResultType};
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait LpProxy {
         #[payable("*")]
         #[endpoint(addLiquidity)]
@@ -45,7 +45,7 @@ mod lp_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LpInteractionsModule {
     fn call_pair_add_liquidity(
         &self,

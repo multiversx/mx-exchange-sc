@@ -1,4 +1,4 @@
-use elrond_wasm_debug::{rust_biguint, tx_mock::TxTokenTransfer, DebugApi};
+use multiversx_sc_scenario::{rust_biguint, whitebox::TxTokenTransfer, DebugApi};
 
 pub mod farm_staking_setup;
 use farm_staking::{

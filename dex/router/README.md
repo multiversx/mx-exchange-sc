@@ -89,8 +89,8 @@ In order to simplify the issuing of LP tokens and their management, the Router s
 
 There are four test suites around this contract:
 
-- __mandos__ tests are located in the _dex/mandos_ directory. The tests can be ran using __mandos-test__
-- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust test using __cargo-test__. This test suite is to be preferred and will be extended and maintained over the mandos tests because the testing framework offers programmatic testing.
+- __scenario__ tests are located in the _dex/scenarios_ directory. The tests can be ran using __mandos-test__
+- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust test using __cargo-test__. This test suite is to be preferred and will be extended and maintained over the scenario tests because the testing framework offers programmatic testing.
 - __legolas__ tests are python scripts that use actual live transactions on testing setups
 
 ## Interaction

@@ -1,8 +1,8 @@
 #![no_std]
 #![allow(clippy::vec_init_then_push)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod constants;
 pub mod energy_transfer;
@@ -19,7 +19,7 @@ pub struct LockedFunds<M: ManagedTypeApi> {
     locked_epoch: Epoch,
 }
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LkmexTransfer:
     energy_transfer::EnergyTransferModule
     + energy_query::EnergyQueryModule

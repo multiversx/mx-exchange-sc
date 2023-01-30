@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_types::PaymentsVec;
 use week_timekeeping::Week;

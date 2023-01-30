@@ -1,28 +1,23 @@
 #[cfg(test)]
 pub mod fuzz_data_tests {
-    elrond_wasm::imports!();
-    elrond_wasm::derive_imports!();
+    multiversx_sc::imports!();
+    multiversx_sc::derive_imports!();
 
     use ::config::ConfigModule;
     use common_structs::UnlockMilestone;
-    use elrond_wasm::elrond_codec::Empty;
-    use elrond_wasm::types::{Address, BigUint, EsdtLocalRole};
-    use elrond_wasm_debug::{
-        managed_address, managed_token_id, managed_token_id_wrapped, rust_biguint,
-        testing_framework::*, DebugApi,
-    };
-    use elrond_wasm_debug::{managed_biguint, HashMap};
-    use farm::exit_penalty::ExitPenaltyModule;
-    use pausable::{PausableModule, State};
-    use std::cell::Cell;
-
-    type RustBigUint = num_bigint::BigUint;
-
     use factory::locked_asset::LockedAssetModule;
     use factory::*;
+    use farm::exit_penalty::ExitPenaltyModule;
     use farm::*;
     use farm_token::FarmTokenModule;
+    use multiversx_sc::codec::Empty;
+    use multiversx_sc::types::{Address, BigUint, EsdtLocalRole};
+    use multiversx_sc_scenario::{
+        managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+        whitebox::*, DebugApi,
+    };
     use pair::*;
+    use pausable::{PausableModule, State};
     use price_discovery::redeem_token::*;
     use price_discovery::*;
     use simple_lock::locked_token::LockedTokenModule;
@@ -30,6 +25,10 @@ pub mod fuzz_data_tests {
 
     use rand::prelude::StdRng;
     use rand::SeedableRng;
+    use std::cell::Cell;
+    use std::collections::HashMap;
+
+    type RustBigUint = num_bigint::BigUint;
 
     pub const FARM_WASM_PATH: &str = "farm/output/farm.wasm";
     pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";

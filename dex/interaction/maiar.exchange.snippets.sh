@@ -1,7 +1,7 @@
 #!/bin/bash
 
 WALLET_PEM="~/Documents/shared_folder/elrond_testnet_wallet.pem"
-PROXY="https://testnet-gateway.elrond.com"
+PROXY="https://testnet-gateway.multiversx.com"
 CHAIN_ID="T"
 ROUTE_ADDRESS="erd1qqqqqqqqqqqqqpgqnqf6qpnd7y3m6wpkur9u8hg37rvhn5ae0n4se7lw39"
 ESDT_ISSUE_ADDRESS="erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"

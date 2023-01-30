@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode)]
 pub struct CreatePairEvent<M: ManagedTypeApi> {
@@ -22,7 +22,7 @@ pub struct UserPairSwapEnabledEvent<M: ManagedTypeApi> {
     pair_address: ManagedAddress<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_create_pair_event(
         self,

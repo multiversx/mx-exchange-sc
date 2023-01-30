@@ -1,15 +1,15 @@
-use elrond_wasm::elrond_codec::Empty;
-use elrond_wasm::types::{Address, EsdtLocalRole};
-use elrond_wasm_debug::tx_mock::TxResult;
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id_wrapped, testing_framework::*,
+use multiversx_sc::codec::Empty;
+use multiversx_sc::types::{Address, EsdtLocalRole};
+use multiversx_sc_scenario::whitebox::TxResult;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id_wrapped, whitebox::*,
 };
-use elrond_wasm_debug::{managed_token_id, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_token_id, rust_biguint, DebugApi};
 
 use price_discovery::redeem_token::*;
 use price_discovery::*;
 
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
 use simple_lock::locked_token::LockedTokenModule;
 use simple_lock::SimpleLock;
 

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::{Nonce, UnlockScheduleEx};
 
@@ -7,7 +7,7 @@ use crate::attr_ex_helper;
 
 use super::locked_asset;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CacheModule:
     locked_asset::LockedAssetModule + token_send::TokenSendModule + attr_ex_helper::AttrExHelper
 {

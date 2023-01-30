@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 /// out = (min_out * (max_in - current_in) + max_out * (current_in - min_in)) / (max_in - min_in)
 /// https://en.wikipedia.org/wiki/Linear_interpolation

@@ -1,19 +1,18 @@
 [package]
 name = "energy-update"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dependencies.elrond-wasm-modules]
-version = "=0.38.0"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
 
 [dependencies.farm]
 path = "../../dex/farm"
@@ -21,8 +20,8 @@ path = "../../dex/farm"
 [dependencies.weekly-rewards-splitting]
 path = "../common-modules/weekly-rewards-splitting"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
-
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

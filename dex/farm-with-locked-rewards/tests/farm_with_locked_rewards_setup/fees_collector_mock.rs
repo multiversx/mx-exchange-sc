@@ -1,5 +1,5 @@
-use elrond_wasm::contract_base::{CallableContract, ContractBase};
-use elrond_wasm_debug::DebugApi;
+use multiversx_sc::contract_base::{CallableContract, ContractBase};
+use multiversx_sc_scenario::DebugApi;
 
 static DEPOSIT_FN_NAME: &str = "depositSwapFees";
 

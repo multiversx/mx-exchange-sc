@@ -1,7 +1,7 @@
 WALLET_PEM="~/Documents/shared_folder/elrond_testnet_wallet.pem"
 DEPLOY_TRANSACTION=$(erdpy data load --key=deployTransaction-devnet)
 DEPLOY_GAS="1000000000"
-PROXY="https://testnet-gateway.elrond.com"
+PROXY="https://testnet-gateway.multiversx.com"
 CHAIN_ID="T"
 
 

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Epoch;
 use unwrappable::Unwrappable;
@@ -17,7 +17,7 @@ pub struct LockOption {
 pub const MAX_LOCK_OPTIONS: usize = 10;
 pub type AllLockOptions = ArrayVec<LockOption, MAX_LOCK_OPTIONS>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockOptionsModule {
     fn get_lock_options(&self) -> AllLockOptions {
         let options = self.lock_options().get();

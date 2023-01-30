@@ -1,15 +1,15 @@
 mod proxy_dex_test_setup;
 
-use elrond_wasm::{
-    elrond_codec::Empty,
-    types::{BigInt, EsdtTokenPayment},
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer,
-    DebugApi,
-};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
+use multiversx_sc::{
+    codec::Empty,
+    types::{BigInt, EsdtTokenPayment},
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
+    DebugApi,
+};
 use num_traits::ToPrimitive;
 use proxy_dex::{
     proxy_pair::ProxyPairModule, wrapped_lp_attributes::WrappedLpTokenAttributes,

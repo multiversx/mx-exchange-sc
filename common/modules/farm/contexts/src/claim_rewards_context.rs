@@ -1,9 +1,9 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_errors::{ERROR_BAD_PAYMENTS, ERROR_EMPTY_PAYMENTS};
 use common_structs::PaymentAttributesPair;
-use elrond_wasm::contract_base::BlockchainWrapper;
+use multiversx_sc::contract_base::BlockchainWrapper;
 
 pub struct ClaimRewardsContext<M, T>
 where

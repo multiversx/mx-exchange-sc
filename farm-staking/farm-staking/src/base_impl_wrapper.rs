@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use core::marker::PhantomData;
 
@@ -15,7 +15,7 @@ pub trait FarmStakingTraits =
         + farm_token::FarmTokenModule
         + pausable::PausableModule
         + permissions_module::PermissionsModule
-        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
         + farm_boosted_yields::FarmBoostedYieldsModule;
 
 pub struct FarmStakingWrapper<T>

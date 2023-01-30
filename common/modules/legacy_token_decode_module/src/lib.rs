@@ -1,12 +1,12 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::{InitialOldLockedTokenAttributes, Nonce, OldLockedTokenAttributes};
 
 pub const LOCKED_TOKEN_ACTIVATION_NONCE: u64 = 2_286_815u64;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LegacyTokenDecodeModule {
     fn decode_legacy_token(
         &self,

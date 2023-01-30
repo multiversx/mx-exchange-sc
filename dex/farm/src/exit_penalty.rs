@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_errors::ERROR_PARAMETERS;
 use common_structs::Epoch;
@@ -10,7 +10,7 @@ pub const DEFAULT_BURN_GAS_LIMIT: u64 = 50_000_000;
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 pub const MAX_MINIMUM_FARMING_EPOCHS: u64 = 30;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ExitPenaltyModule: permissions_module::PermissionsModule {
     #[only_owner]
     #[endpoint]

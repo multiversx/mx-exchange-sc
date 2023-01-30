@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<pair_mock::AbiProvider>();
+    multiversx_sc_meta::cli_main::<pair_mock::AbiProvider>();
 }

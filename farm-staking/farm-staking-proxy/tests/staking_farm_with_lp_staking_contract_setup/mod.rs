@@ -1,8 +1,8 @@
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::{
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
     DebugApi,
 };
 

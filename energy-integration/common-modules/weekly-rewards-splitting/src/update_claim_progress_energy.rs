@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_types::Week;
 use energy_query::Energy;
@@ -7,7 +7,7 @@ use crate::ClaimProgress;
 
 pub static ERROR_ENERGY_UPDATE_SAME_WEEK: &[u8] = b"Can update only after claim rewards";
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UpdateClaimProgressEnergyModule:
     energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule

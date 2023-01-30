@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::{error_messages::*, proxy_lp::LpProxyTokenAttributes};
 
@@ -26,14 +26,14 @@ pub type FarmClaimRewardsThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type FarmCompoundRewardsThroughProxyResultType<M> = EsdtTokenPayment<M>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::farm_interactions::FarmInteractionsModule
     + crate::lp_interactions::LpInteractionsModule
     + crate::locked_token::LockedTokenModule
     + crate::proxy_lp::ProxyLpModule
     + crate::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]

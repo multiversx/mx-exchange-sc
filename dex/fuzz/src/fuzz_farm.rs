@@ -1,13 +1,13 @@
 #[cfg(test)]
 pub mod fuzz_farm_test {
 
-    elrond_wasm::imports!();
-    elrond_wasm::derive_imports!();
+    multiversx_sc::imports!();
+    multiversx_sc::derive_imports!();
 
     use std::cmp::Ordering;
 
-    use elrond_wasm_debug::tx_mock::TxTokenTransfer;
-    use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
+    use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+    use multiversx_sc_scenario::{managed_biguint, rust_biguint, DebugApi};
 
     use crate::fuzz_data::fuzz_data_tests::*;
     use farm::*;

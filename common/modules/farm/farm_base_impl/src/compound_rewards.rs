@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::base_traits_impl::FarmContract;
 use common_errors::ERROR_DIFFERENT_TOKEN_IDS;
@@ -21,7 +21,7 @@ where
     pub created_with_merge: bool,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BaseCompoundRewardsModule:
     rewards::RewardsModule
     + config::ConfigModule
@@ -30,7 +30,7 @@ pub trait BaseCompoundRewardsModule:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
 {

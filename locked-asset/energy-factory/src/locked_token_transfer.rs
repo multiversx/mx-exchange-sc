@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::energy::Energy;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedTokenTransferModule:
     utils::UtilsModule + crate::energy::EnergyModule + crate::events::EventsModule
 {

@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub static CANNOT_UNWRAP_MSG: &[u8] = b"Cannot unwrap value";
 

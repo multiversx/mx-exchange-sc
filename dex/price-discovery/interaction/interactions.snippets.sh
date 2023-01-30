@@ -7,7 +7,7 @@
 #  issueRedeemToken DTKEGLDRedeemToken DTKEGLDRT 18
 
 WALLET_PEM=""
-PROXY="https://testnet-gateway.elrond.com"
+PROXY="https://testnet-gateway.multiversx.com"
 CHAIN_ID="T"
 
 ZERO_ADDRESS="erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu"

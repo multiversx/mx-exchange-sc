@@ -17,7 +17,7 @@
 
 
 WALLET_PEM=""
-PROXY="https://devnet-gateway.elrond.com"
+PROXY="https://devnet-gateway.multiversx.com"
 CHAIN_ID="D"
 
 

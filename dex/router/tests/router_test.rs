@@ -1,6 +1,6 @@
 mod router_setup;
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
 };
@@ -14,9 +14,9 @@ use router::{
 };
 use router_setup::*;
 
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::BlockchainStateWrapper, tx_mock::TxTokenTransfer, DebugApi,
+    whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer, DebugApi,
 };
 use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},

@@ -1,12 +1,11 @@
 [package]
 name = "farm_base_impl"
 version = "0.0.0"
-authors = [ "catalin-neagu <catalin.neagu@elrond.com>",]
+authors = ["catalin-neagu <catalin.neagu@multiversx.com>"]
 edition = "2021"
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.config]
 path = "../config"
 
@@ -49,12 +48,11 @@ path = "../../../traits/mergeable"
 [dependencies.fixed-supply-token]
 path = "../../../traits/fixed-supply-token"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.elrond-wasm-modules]
-version = "=0.38.0"
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

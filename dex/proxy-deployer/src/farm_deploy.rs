@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use farm::ProxyTrait as _;
 
 const DIVISION_SAFETY_CONST: u64 = 1_000_000_000_000_000_000;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmDeployModule {
     #[endpoint(deployFarm)]
     fn deploy_farm(
