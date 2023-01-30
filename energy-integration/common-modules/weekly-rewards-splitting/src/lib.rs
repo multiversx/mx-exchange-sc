@@ -54,10 +54,6 @@ pub trait WeeklyRewardsSplittingModule:
         wrapper: &WRSM,
         user: &ManagedAddress,
     ) -> PaymentsVec<Self::Api> {
-        if self.blockchain().is_smart_contract(user) {
-            return PaymentsVec::new();
-        }
-
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(user);
 
