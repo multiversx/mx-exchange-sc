@@ -75,7 +75,11 @@ pub trait SimpleLockMigrationModule:
         self.require_not_paused();
 
         let caller = self.blockchain().get_caller();
-        self.require_old_tokens_energy_was_updated(&caller);
+        let is_smart_contract_address = self.blockchain().is_smart_contract(&caller);
+
+        if !is_smart_contract_address {
+            self.require_old_tokens_energy_was_updated(&caller);
+        }
 
         let payments = self.get_non_empty_payments();
         let current_epoch = self.blockchain().get_block_epoch();
@@ -89,7 +93,12 @@ pub trait SimpleLockMigrationModule:
                     INVALID_PAYMENTS_ERR_MSG
                 );
 
-                let new_token = self.migrate_single_old_token(payment, current_epoch, energy);
+                let new_token = self.migrate_single_old_token(
+                    payment,
+                    is_smart_contract_address,
+                    current_epoch,
+                    energy,
+                );
                 output_payments.push(new_token);
             }
         });
@@ -102,6 +111,7 @@ pub trait SimpleLockMigrationModule:
     fn migrate_single_old_token(
         &self,
         payment: EsdtTokenPayment,
+        is_smart_contract_address: bool,
         current_epoch: Epoch,
         energy: &mut Energy<Self::Api>,
     ) -> EsdtTokenPayment {
@@ -116,12 +126,20 @@ pub trait SimpleLockMigrationModule:
         let new_unlock_epoch = self
             .calculate_new_unlock_epoch_for_old_token(&unlock_epoch_amount_pairs, current_epoch);
         for epoch_amount_pair in unlock_epoch_amount_pairs.pairs {
-            energy.update_after_unlock_epoch_change(
-                &epoch_amount_pair.amount,
-                epoch_amount_pair.epoch,
-                new_unlock_epoch,
-                current_epoch,
-            );
+            if is_smart_contract_address {
+                energy.add_after_token_lock(
+                    &epoch_amount_pair.amount,
+                    new_unlock_epoch,
+                    current_epoch,
+                );
+            } else {
+                energy.update_after_unlock_epoch_change(
+                    &epoch_amount_pair.amount,
+                    epoch_amount_pair.epoch,
+                    new_unlock_epoch,
+                    current_epoch,
+                );
+            }
         }
 
         let base_asset = EgldOrEsdtTokenIdentifier::esdt(self.base_asset_token_id().get());
