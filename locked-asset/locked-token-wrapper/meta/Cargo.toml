@@ -3,7 +3,7 @@ name = "locked-token-wrapper-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = ["you"]
+authors = ["MultiversX <contact@multiversx.com>"]
 
 [dev-dependencies]
 [dependencies.locked-token-wrapper]
