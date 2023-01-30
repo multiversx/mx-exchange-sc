@@ -16,10 +16,6 @@ pub trait EnergyTransferModule:
         from_user: ManagedAddress,
         tokens: &PaymentsVec<Self::Api>,
     ) {
-        if self.blockchain().is_smart_contract(&from_user) {
-            return;
-        }
-
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(&from_user);
         for token in tokens {
@@ -66,10 +62,6 @@ pub trait EnergyTransferModule:
     }
 
     fn add_energy_to_destination(&self, to_user: ManagedAddress, tokens: &PaymentsVec<Self::Api>) {
-        if self.blockchain().is_smart_contract(&to_user) {
-            return;
-        }
-
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(&to_user);
         for token in tokens {

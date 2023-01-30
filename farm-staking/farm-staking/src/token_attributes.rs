@@ -2,7 +2,7 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes};
-use elrond_wasm::elrond_codec::NestedDecodeInput;
+use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 use fixed_supply_token::FixedSupplyToken;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;
@@ -20,7 +20,7 @@ pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
 impl<M: ManagedTypeApi> TopDecode for StakingFarmTokenAttributes<M> {
     fn top_decode<I>(input: I) -> Result<Self, DecodeError>
     where
-        I: elrond_codec::TopDecodeInput,
+        I: TopDecodeInput,
     {
         let mut buffer = input.into_nested_buffer();
         Self::dep_decode(&mut buffer)
