@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "ahash"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf6ccdb167abbf410dcb915cabd428929d7f6a04980b54a11f26a39f1c7f7107"
+checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
 dependencies = [
  "cfg-if 1.0.0",
  "once_cell",
@@ -99,9 +99,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
 
 [[package]]
 name = "endian-type"
@@ -339,9 +339,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc"
-version = "0.39.2"
+version = "0.39.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ea71ae46a951d0dae879252a9c83f4de97ebfbaa47f41d99fae7b4f5c0c4916"
+checksum = "ecfb3e03ac6e08114963a54e15a3c78c28e57cc0e31836e870450b35085bdf8d"
 dependencies = [
  "bitflags",
  "hashbrown",
@@ -376,9 +376,9 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-derive"
-version = "0.39.2"
+version = "0.39.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd39e9fba50cedfc42649906fc8941593083881dc43b0f13e92908bc1f489a14"
+checksum = "b6eb54a7d452eb09f5de159ee9b4d1fb9ec79cf49f1602ebd3efc8532015a4ea"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -389,18 +389,18 @@ dependencies = [
 
 [[package]]
 name = "multiversx-sc-modules"
-version = "0.39.2"
+version = "0.39.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e9bbd212d54741af3edab8bbfb3ca7724bdd1b411e598a0a7f07d0478a7a815"
+checksum = "f12284a3e31c0852b6ca0ce8306d3f404c3712b996a05ed78e97e765c98461f3"
 dependencies = [
  "multiversx-sc",
 ]
 
 [[package]]
 name = "multiversx-sc-wasm-adapter"
-version = "0.39.2"
+version = "0.39.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99d796db7b875a6c088187d188826f0e0762b14e06412f1c6b7991efd06a297e"
+checksum = "ee69fa831cdd5a7ea1aedbb6356a55792b821396f48360a6194f4131eddd1045"
 dependencies = [
  "multiversx-sc",
  "wee_alloc",
