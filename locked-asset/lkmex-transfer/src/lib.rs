@@ -51,6 +51,7 @@ pub trait LkmexTransfer:
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
         let funds = self.get_unlocked_funds(&receiver, &sender);
+        self.add_energy_to_destination(receiver.clone(), &funds);
         self.send().direct_multi(&receiver, &funds);
         self.locked_funds(&receiver, &sender).clear();
         self.all_senders(&receiver).swap_remove(&sender);
@@ -58,8 +59,6 @@ pub trait LkmexTransfer:
         let current_epoch = self.blockchain().get_block_epoch();
         self.address_last_transfer_epoch(&receiver)
             .set(current_epoch);
-
-        self.add_energy_to_destination(receiver, &funds);
     }
 
     #[endpoint(cancelTransfer)]
@@ -73,8 +72,8 @@ pub trait LkmexTransfer:
         self.all_senders(&receiver).swap_remove(&sender);
         self.address_last_transfer_epoch(&sender).clear();
 
+        self.add_energy_to_destination(sender.clone(), &locked_funds.funds);
         self.send().direct_multi(&sender, &locked_funds.funds);
-        self.add_energy_to_destination(sender, &locked_funds.funds);
     }
 
     fn get_unlocked_funds(
