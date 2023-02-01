@@ -164,7 +164,6 @@ pub trait FarmStakingProxy:
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let lp_farm_token_id = self.lp_farm_token_id().get();
-        let total_staking_farm_token_amount = attributes.get_total_staking_token_amount();
         let lp_farm_claim_rewards_result = self.lp_farm_claim_rewards(
             orig_caller.clone(),
             lp_farm_token_id,
@@ -175,7 +174,7 @@ pub trait FarmStakingProxy:
             orig_caller,
             staking_farm_token_id,
             attributes.staking_farm_token_nonce,
-            total_staking_farm_token_amount,
+            attributes.staking_farm_token_amount,
             new_staking_farm_value,
         );
 
