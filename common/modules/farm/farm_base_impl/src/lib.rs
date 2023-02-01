@@ -4,8 +4,8 @@
 #![feature(trait_alias)]
 #![feature(associated_type_defaults)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod base_farm_init;
 pub mod base_farm_validation;
@@ -15,7 +15,7 @@ pub mod compound_rewards;
 pub mod enter_farm;
 pub mod exit_farm;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmBaseImpl:
     rewards::RewardsModule
     + config::ConfigModule
@@ -24,7 +24,7 @@ pub trait FarmBaseImpl:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_farm_init::BaseFarmInitModule
     + base_farm_validation::BaseFarmValidationModule
     + enter_farm::BaseEnterFarmModule

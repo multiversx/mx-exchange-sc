@@ -1,13 +1,13 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::base_functions::Wrapper;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ClaimBoostOnlyModule:
     config::ConfigModule
     + rewards::RewardsModule
     + farm_token::FarmTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + week_timekeeping::WeekTimekeepingModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule

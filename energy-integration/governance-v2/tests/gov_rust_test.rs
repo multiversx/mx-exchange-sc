@@ -1,18 +1,18 @@
 mod gov_test_setup;
 
-use elrond_wasm::{
-    arrayvec::ArrayVec,
-    elrond_codec::Empty,
-    types::{EsdtTokenPayment, ManagedVec},
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, DebugApi,
-};
 use gov_test_setup::*;
 use governance_v2::{
     configurable::ConfigurablePropertiesModule,
     proposal::{FeeEntry, GovernanceAction, GovernanceProposal, ProposalFees},
     proposal_storage::ProposalStorageModule,
+};
+use multiversx_sc::{
+    arrayvec::ArrayVec,
+    codec::Empty,
+    types::{EsdtTokenPayment, ManagedVec},
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, DebugApi,
 };
 
 #[test]

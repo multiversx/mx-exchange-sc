@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use factory::locked_asset_token_merge::ProxyTrait as _;
 
@@ -28,7 +28,7 @@ impl<M: ManagedTypeApi> UserEntry<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedAssetTokenModule {
     fn require_all_locked_asset_payments(&self, payments: &PaymentsVec<Self::Api>) {
         require!(!payments.is_empty(), "No payments");

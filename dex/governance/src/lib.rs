@@ -3,8 +3,8 @@
 
 use proposal::ProposalCreationArgs;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod config;
 pub mod errors;
@@ -18,7 +18,7 @@ use crate::errors::*;
 use crate::proposal::*;
 use crate::vote::*;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Governance:
     config::Config
     + validation::Validation

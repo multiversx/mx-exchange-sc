@@ -1,8 +1,8 @@
-use elrond_wasm::elrond_codec::NestedDecodeInput;
 use fixed_supply_token::FixedSupplyToken;
+use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, PartialEq, Debug, Clone)]
 pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
@@ -37,7 +37,7 @@ impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
 impl<M: ManagedTypeApi> TopDecode for DualYieldTokenAttributes<M> {
     fn top_decode<I>(input: I) -> Result<Self, DecodeError>
     where
-        I: elrond_codec::TopDecodeInput,
+        I: TopDecodeInput,
     {
         let mut buffer = input.into_nested_buffer();
         Self::dep_decode(&mut buffer)
@@ -102,9 +102,9 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for DualYieldTokenAttributes<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait DualYieldTokenModule:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]

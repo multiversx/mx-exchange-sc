@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use farm::{
     base_functions::ClaimRewardsResultType, EnterFarmResultType, ExitFarmWithPartialPosResultType,
@@ -15,7 +15,7 @@ use pair::RemoveLiquidityResultType;
 
 pub type SafePriceResult<Api> = MultiValue2<EsdtTokenPayment<Api>, EsdtTokenPayment<Api>>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ExternalContractsInteractionsModule:
     crate::lp_farm_token::LpFarmTokenModule + utils::UtilsModule
 {

@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use contexts::storage_cache::StorageCache;
 
 use crate::token_attributes::UnbondSftAttributes;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UnbondFarmModule:
     crate::custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
@@ -15,7 +15,7 @@ pub trait UnbondFarmModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule

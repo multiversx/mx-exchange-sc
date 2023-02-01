@@ -1,8 +1,8 @@
 use crate::events;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UnbondTokensModule:
     crate::tokens_per_user::TokensPerUserModule
     + crate::fees_handler::FeesHandlerModule

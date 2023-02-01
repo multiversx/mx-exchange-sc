@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::PaymentsVec;
 use math::weighted_average_round_up;
@@ -50,13 +50,13 @@ impl<M: ManagedTypeApi + BlockchainApi> Mergeable<M> for LockedAmountWeightAttri
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TokenMergingModule:
     simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
     + crate::penalty::LocalPenaltyModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule

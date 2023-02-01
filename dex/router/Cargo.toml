@@ -1,25 +1,21 @@
 [package]
 name = "router"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/contract.rs"
-
 [dependencies.token_send]
 path = "../../common/modules/token_send"
 
 [dependencies.pausable]
 path = "../../common/modules/pausable"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.pair]
 path = "../pair"
@@ -29,3 +25,5 @@ path = "../../common/modules/locking_module"
 
 [dependencies.simple-lock]
 path = "../../locked-asset/simple-lock"
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

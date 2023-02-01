@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::config::MAX_PERCENTAGE;
 
 use super::config;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait AmmModule:
     config::ConfigModule
     + token_send::TokenSendModule

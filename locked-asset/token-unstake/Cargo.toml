@@ -1,27 +1,15 @@
 [package]
 name = "token-unstake"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
-
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
-
-[dev-dependencies.elrond-wasm-modules]
-version = "=0.38.0"
-
-[dev-dependencies]
-num-bigint = "0.4.2"
-num-traits = "0.2"
-hex = "0.4"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.mergeable]
 path = "../../common/traits/mergeable"
@@ -43,3 +31,14 @@ path = "../energy-factory"
 
 [dependencies.simple-lock]
 path = "../simple-lock"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"
+
+[dev-dependencies.multiversx-sc-modules]
+version = "=0.39.4"

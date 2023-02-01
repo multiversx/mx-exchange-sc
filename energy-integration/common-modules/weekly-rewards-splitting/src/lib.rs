@@ -2,8 +2,8 @@
 #![feature(trait_alias)]
 #![feature(int_roundings)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub const USER_MAX_CLAIM_WEEKS: usize = 4;
 
@@ -40,7 +40,7 @@ impl<M: ManagedTypeApi> ClaimProgress<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WeeklyRewardsSplittingModule:
     energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule

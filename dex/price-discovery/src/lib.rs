@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{
     common_storage::MAX_PERCENTAGE,
@@ -16,14 +16,14 @@ static INVALID_PAYMENT_ERR_MSG: &[u8] = b"Invalid payment token";
 static BELOW_MIN_PRICE_ERR_MSG: &[u8] = b"Launched token below min price";
 const MAX_TOKEN_DECIMALS: u32 = 18;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait PriceDiscovery:
     common_storage::CommonStorageModule
     + events::EventsModule
     + locking_module::locking_module::LockingModule
     + phase::PhaseModule
     + redeem_token::RedeemTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     /// For explanations regarding what each parameter means, please refer to docs/setup.md
     #[init]

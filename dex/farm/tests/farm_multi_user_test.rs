@@ -1,5 +1,5 @@
 use common_structs::FarmTokenAttributes;
-use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 
 pub mod farm_setup;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;

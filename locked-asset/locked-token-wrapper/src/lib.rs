@@ -1,13 +1,13 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod wrapped_token;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LockedTokenWrapper:
     wrapped_token::WrappedTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
     + lkmex_transfer::energy_transfer::EnergyTransferModule
     + energy_query::EnergyQueryModule

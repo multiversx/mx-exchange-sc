@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_types::Week;
 use energy_query::Energy;
@@ -6,7 +6,7 @@ use week_timekeeping::EPOCHS_IN_WEEK;
 
 use crate::USER_MAX_CLAIM_WEEKS;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WeeklyRewardsGlobalInfo:
     crate::events::WeeklyRewardsSplittingEventsModule
     + crate::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule

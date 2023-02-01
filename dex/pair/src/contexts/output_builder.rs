@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{
     AddLiquidityResultType, RemoveLiquidityResultType, SwapTokensFixedInputResultType,
@@ -10,7 +10,7 @@ use super::{
     remove_liquidity::RemoveLiquidityContext, swap::SwapContext,
 };
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait OutputBuilderModule:
     crate::config::ConfigModule
     + token_send::TokenSendModule

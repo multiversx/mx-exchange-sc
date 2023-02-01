@@ -3,8 +3,8 @@ use crate::contexts::base::StorageCache;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::contexts::swap::SwapContext;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode)]
 pub struct SwapEvent<M: ManagedTypeApi> {
@@ -68,7 +68,7 @@ pub struct RemoveLiquidityEvent<M: ManagedTypeApi> {
     timestamp: u64,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule:
     crate::config::ConfigModule
     + token_send::TokenSendModule

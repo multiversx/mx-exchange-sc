@@ -1,16 +1,16 @@
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{BigInt, EsdtLocalRole, MultiValueEncoded};
-use elrond_wasm_debug::{managed_address, managed_biguint, testing_framework::*};
-use elrond_wasm_debug::{managed_token_id, rust_biguint};
+use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{BigInt, EsdtLocalRole, MultiValueEncoded};
+use multiversx_sc_scenario::{managed_address, managed_biguint, whitebox::*};
+use multiversx_sc_scenario::{managed_token_id, rust_biguint};
 
-use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::energy::EnergyModule;
 use energy_factory::lock_options::LockOptionsModule;
 use energy_factory::locked_token_transfer::LockedTokenTransferModule;
 use energy_factory::SimpleLockEnergy;
 use energy_query::Energy;
 use lkmex_transfer::LkmexTransfer;
+use multiversx_sc_modules::pause::PauseModule;
 use simple_lock::locked_token::LockedTokenModule;
 
 pub const EPOCHS_IN_YEAR: u64 = 360;

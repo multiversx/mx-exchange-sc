@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test {
 
-    elrond_wasm::imports!();
-    elrond_wasm::derive_imports!();
+    multiversx_sc::imports!();
+    multiversx_sc::derive_imports!();
 
     use std::time::SystemTime;
 
@@ -12,7 +12,7 @@ mod test {
     use crate::fuzz_pair::fuzz_pair_test::*;
     use crate::fuzz_price_discovery::fuzz_price_discovery_test::*;
 
-    use elrond_wasm_debug::DebugApi;
+    use multiversx_sc_scenario::DebugApi;
 
     use rand::distributions::weighted::WeightedIndex;
     use rand::prelude::*;

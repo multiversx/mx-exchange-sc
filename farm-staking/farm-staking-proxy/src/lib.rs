@@ -7,19 +7,19 @@ use crate::dual_yield_token::DualYieldTokenAttributes;
 
 use mergeable::Mergeable;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod dual_yield_token;
 pub mod external_contracts_interactions;
 pub mod lp_farm_token;
 pub mod result_types;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait FarmStakingProxy:
     dual_yield_token::DualYieldTokenModule
     + external_contracts_interactions::ExternalContractsInteractionsModule
     + lp_farm_token::LpFarmTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
     + token_send::TokenSendModule
     + sc_whitelist_module::SCWhitelistModule

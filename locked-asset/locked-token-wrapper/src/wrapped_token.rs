@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Nonce;
 
@@ -11,9 +11,9 @@ pub struct WrappedTokenAttributes<M: ManagedTypeApi> {
     pub locked_token_nonce: Nonce,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WrappedTokenModule:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
 {
     #[only_owner]

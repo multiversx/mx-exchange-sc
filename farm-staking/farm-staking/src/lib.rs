@@ -8,8 +8,8 @@ use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod base_impl_wrapper;
 pub mod claim_only_boosted_staking_rewards;
@@ -21,7 +21,7 @@ pub mod token_attributes;
 pub mod unbond_farm;
 pub mod unstake_farm;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait FarmStaking:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
@@ -32,7 +32,7 @@ pub trait FarmStaking:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule

@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::base_traits_impl::FarmContract;
 use common_structs::{PaymentAttributesPair, PaymentsVec};
@@ -20,7 +20,7 @@ where
     pub created_with_merge: bool,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BaseClaimRewardsModule:
     rewards::RewardsModule
     + config::ConfigModule
@@ -29,7 +29,7 @@ pub trait BaseClaimRewardsModule:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
 {

@@ -1,9 +1,9 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TokenSendModule {
     fn send_multiple_tokens_if_not_zero(
         &self,

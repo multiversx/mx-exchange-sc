@@ -1,11 +1,11 @@
 pub mod farm_staking_setup;
-use elrond_wasm::elrond_codec::multi_types::OptionalValue;
-use elrond_wasm_debug::{managed_biguint, rust_biguint, DebugApi};
 use farm_staking::{
     claim_stake_farm_rewards::ClaimStakeFarmRewardsModule, stake_farm::StakeFarmModule,
     unstake_farm::UnstakeFarmModule,
 };
 use farm_staking_setup::*;
+use multiversx_sc::codec::multi_types::OptionalValue;
+use multiversx_sc_scenario::{managed_biguint, rust_biguint, DebugApi};
 
 #[test]
 fn farm_staking_with_energy_setup_test() {

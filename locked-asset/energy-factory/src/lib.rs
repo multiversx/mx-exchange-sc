@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod energy;
 pub mod events;
@@ -24,11 +24,11 @@ use unwrappable::Unwrappable;
 
 use crate::energy::Energy;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait SimpleLockEnergy:
     simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
     + token_whitelist::TokenWhitelistModule
     + energy::EnergyModule
@@ -39,7 +39,7 @@ pub trait SimpleLockEnergy:
     + extend_lock::ExtendLockModule
     + migration::SimpleLockMigrationModule
     + events::EventsModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
     + local_roles::LocalRolesModule
     + token_merging::TokenMergingModule
     + penalty::LocalPenaltyModule

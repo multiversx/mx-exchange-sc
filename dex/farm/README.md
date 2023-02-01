@@ -94,7 +94,7 @@ This endpoint merges two or more farm positions together and returns a single co
 
 ## Testing
 
-Aside from the mandos tests, there are a lot of tests that are available in the rust test suite.
+Aside from the scenario tests, there are a lot of tests that are available in the rust test suite.
 
 ## Interaction
 

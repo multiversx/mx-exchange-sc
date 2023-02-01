@@ -1,15 +1,15 @@
-use elrond_wasm::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    tx_mock::TxResult,
-    DebugApi,
-};
 use energy_factory_mock::EnergyFactoryMock;
 use energy_query::Energy;
 use governance_v2::gov_fees::GovFeesModule;
 use governance_v2::{
     configurable::ConfigurablePropertiesModule, proposal_storage::VoteType, GovernanceV2,
+};
+use multiversx_sc::types::{Address, BigInt, ManagedVec, MultiValueEncoded};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
+    whitebox::TxResult,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    DebugApi,
 };
 
 pub const MIN_ENERGY_FOR_PROPOSE: u64 = 500;

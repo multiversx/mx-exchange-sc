@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::{
     proxy_common::{INVALID_PAYMENTS_ERR_MSG, MIN_MERGE_PAYMENTS},
@@ -9,7 +9,7 @@ use fixed_supply_token::FixedSupplyToken;
 
 use super::proxy_common;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WrappedLpTokenMerge:
     token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule

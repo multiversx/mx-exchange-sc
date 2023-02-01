@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::base::StorageCache;
 use crate::contexts::base::SwapTokensOrder;
@@ -11,7 +11,7 @@ use super::config;
 
 const MINIMUM_LIQUIDITY: u64 = 1_000;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LiquidityPoolModule:
     amm::AmmModule
     + config::ConfigModule

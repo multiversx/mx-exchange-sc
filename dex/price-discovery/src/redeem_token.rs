@@ -1,14 +1,14 @@
-use elrond_wasm::elrond_codec::Empty;
+use multiversx_sc::codec::Empty;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub const LAUNCHED_TOKEN_REDEEM_NONCE: u64 = 1;
 pub const ACCEPTED_TOKEN_REDEEM_NONCE: u64 = 2;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait RedeemTokenModule:
     crate::common_storage::CommonStorageModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]

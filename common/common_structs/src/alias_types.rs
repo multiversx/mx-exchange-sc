@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::{LockedAssetTokenAttributes, LockedAssetTokenAttributesEx, UnlockSchedule};
 

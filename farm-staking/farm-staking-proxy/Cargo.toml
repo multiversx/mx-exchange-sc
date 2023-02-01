@@ -1,22 +1,22 @@
 [package]
 name = "farm-staking-proxy"
 version = "0.0.0"
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dependencies.elrond-wasm-modules]
-version = "=0.38.0"
-
 [dependencies]
 hex-literal = "0.3.1"
+
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
+
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
 
 [dependencies.farm]
 path = "../../dex/farm"
@@ -33,20 +33,11 @@ path = "../../common/modules/pausable"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.38.0"
-
-[dev-dependencies]
-num-bigint = "0.4.2"
-
 [dependencies.config]
 path = "../../common/modules/farm/config"
 
 [dependencies.rewards]
 path = "../../common/modules/farm/rewards"
-
-[dev-dependencies.farm_token]
-path = "../../common/modules/farm/farm_token"
 
 [dependencies.utils]
 path = "../../common/modules/utils"
@@ -62,6 +53,15 @@ path = "../../common/traits/mergeable"
 
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"
+
+[dev-dependencies.farm_token]
+path = "../../common/modules/farm/farm_token"
 
 [dev-dependencies.farm-boosted-yields]
 path = "../../energy-integration/farm-boosted-yields"

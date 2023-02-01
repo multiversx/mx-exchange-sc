@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use config::ConfigModule;
@@ -14,7 +14,7 @@ pub trait AllBaseFarmImplTraits =
         + farm_token::FarmTokenModule
         + permissions_module::PermissionsModule
         + pausable::PausableModule
-        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
 
 pub trait FarmContract {
     type FarmSc: AllBaseFarmImplTraits;

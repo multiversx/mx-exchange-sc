@@ -3,13 +3,9 @@ name = "simple-lock-whitelist-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = [ "Dorin Iancu <dorin.iancu@elrond.com>" ]
-
+authors = ["Dorin Iancu <dorin.iancu@multiversx.com>"]
 [dependencies.simple-lock-whitelist]
 path = ".."
 
-[dependencies.elrond-wasm]
-version = "=0.38.0"
-
-[dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc-meta]
+version = "0.39.4"

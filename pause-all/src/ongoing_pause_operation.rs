@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub const MIN_GAS_TO_SAVE_PROGRESS: u64 = 10_000_000;
 const FIRST_INDEX: usize = 1;
@@ -16,9 +16,9 @@ pub enum OngoingOperation {
     },
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait OngoingPauseOperationModule:
-    elrond_wasm_modules::ongoing_operation::OngoingOperationModule
+    multiversx_sc_modules::ongoing_operation::OngoingOperationModule
 {
     fn load_pause_all_operation(&self) -> usize {
         let current_op: OngoingOperation = self.load_operation();

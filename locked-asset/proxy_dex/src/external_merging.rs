@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
-use elrond_wasm::api::CallTypeApi;
+use multiversx_sc::api::CallTypeApi;
 
 pub static FACTORY_MERGE_TOKENS_ENDPOINT_NAME: &[u8] = b"mergeTokens";
 pub static FARM_MERGE_TOKENS_ENDPOINT_NAME: &[u8] = b"mergeFarmTokens";

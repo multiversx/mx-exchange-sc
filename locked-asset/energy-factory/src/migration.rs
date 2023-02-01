@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::energy::Energy;
 use common_structs::{Epoch, UnlockEpochAmountPairs};
@@ -8,17 +8,17 @@ use unwrappable::Unwrappable;
 
 const TOKEN_MIGRATION_LOCK_EPOCHS_FACTOR: u64 = 4;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait SimpleLockMigrationModule:
     simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_whitelist::TokenWhitelistModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
     + crate::lock_options::LockOptionsModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {

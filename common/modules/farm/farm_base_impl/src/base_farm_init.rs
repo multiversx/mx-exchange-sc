@@ -1,16 +1,16 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_errors::{ERROR_NOT_AN_ESDT, ERROR_SAME_TOKEN_IDS, ERROR_ZERO_AMOUNT};
 use pausable::State;
 use permissions_module::Permissions;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BaseFarmInitModule:
     config::ConfigModule
     + farm_token::FarmTokenModule
     + permissions_module::PermissionsModule
     + pausable::PausableModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     fn base_farm_init(
         &self,

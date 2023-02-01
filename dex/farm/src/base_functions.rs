@@ -1,8 +1,8 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::from_over_into)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use core::marker::PhantomData;
 
@@ -41,7 +41,7 @@ impl<M: ManagedTypeApi> Into<ExitFarmResultType<M>> for ExitFarmResultWrapper<M>
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BaseFunctionsModule:
     rewards::RewardsModule
     + config::ConfigModule
@@ -50,7 +50,7 @@ pub trait BaseFunctionsModule:
     + pausable::PausableModule
     + permissions_module::PermissionsModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + exit_penalty::ExitPenaltyModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule

@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod events;
 pub mod locked_asset_token;
@@ -10,7 +10,7 @@ use locked_asset_token::UserEntry;
 pub type SnapshotEntry<M> = MultiValue2<ManagedAddress<M>, BigUint<M>>;
 pub const UNBOND_EPOCHS: u64 = 3;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait MetabondingStaking:
     locked_asset_token::LockedAssetTokenModule + events::EventsModule
 {

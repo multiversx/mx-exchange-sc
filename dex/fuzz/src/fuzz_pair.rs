@@ -1,11 +1,11 @@
 #[cfg(test)]
 pub mod fuzz_pair_test {
 
-    elrond_wasm::imports!();
-    elrond_wasm::derive_imports!();
+    multiversx_sc::imports!();
+    multiversx_sc::derive_imports!();
 
-    use elrond_wasm_debug::{
-        managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer, DebugApi,
+    use multiversx_sc_scenario::{
+        managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer, DebugApi,
     };
 
     use rand::prelude::*;

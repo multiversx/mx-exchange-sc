@@ -2,17 +2,17 @@ mod proxy_dex_test_setup;
 
 use common_structs::FarmTokenAttributes;
 use config::ConfigModule;
-use elrond_wasm::{
-    elrond_codec::Empty,
-    types::{BigInt, EsdtLocalRole, EsdtTokenPayment},
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxTokenTransfer,
-    DebugApi,
-};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
 use farm::exit_penalty::{DEFAULT_PENALTY_PERCENT, MAX_PERCENT};
+use multiversx_sc::{
+    codec::Empty,
+    types::{BigInt, EsdtLocalRole, EsdtTokenPayment},
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
+    DebugApi,
+};
 use num_traits::ToPrimitive;
 use proxy_dex::{
     proxy_farm::ProxyFarmModule, proxy_pair::ProxyPairModule,

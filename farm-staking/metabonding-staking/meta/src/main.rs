@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<metabonding_staking::AbiProvider>();
+    multiversx_sc_meta::cli_main::<metabonding_staking::AbiProvider>();
 }

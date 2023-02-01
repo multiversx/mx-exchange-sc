@@ -3,12 +3,11 @@ name = "energy-factory-mock-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 
 [dev-dependencies]
-
 [dependencies.energy-factory-mock]
 path = ".."
 
-[dependencies.elrond-wasm-debug]
-version = "=0.38.0"
+[dependencies.multiversx-sc-meta]
+version = "0.39.4"

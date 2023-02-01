@@ -26,7 +26,7 @@
 
 
 WALLET_PEM=""
-PROXY="https://devnet-gateway.elrond.com"
+PROXY="https://devnet-gateway.multiversx.com"
 CHAIN_ID="D"
 DIVISION_SAFETY_CONSTANT="0xE8D4A51000" # 10^12 value in HEX
 

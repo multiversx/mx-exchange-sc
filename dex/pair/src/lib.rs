@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 mod amm;
 pub mod config;
@@ -34,7 +34,7 @@ pub type SwapTokensFixedInputResultType<BigUint> = EsdtTokenPayment<BigUint>;
 pub type SwapTokensFixedOutputResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Pair<ContractReader>:
     amm::AmmModule
     + fee::FeeModule
