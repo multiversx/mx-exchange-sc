@@ -12,6 +12,7 @@ use farm_staking_config::ConfigModule as _;
 
 use farm_staking::custom_rewards::CustomRewardsModule;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenModule;
+
 use farm_staking_proxy::*;
 use farm_token::FarmTokenModule;
 use pausable::{PausableModule, State};

@@ -12,7 +12,11 @@ use farm_staking::{
     unstake_farm::UnstakeFarmModule,
 };
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
-use farm_staking_proxy::*;
+use farm_staking_proxy::proxy_actions::claim::ProxyClaimModule;
+
+use farm_staking_proxy::proxy_actions::stake::ProxyStakeModule;
+use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
+
 use sc_whitelist_module::SCWhitelistModule;
 
 use crate::{
