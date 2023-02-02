@@ -8,8 +8,6 @@ multiversx_sc::imports!();
 use constants::*;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
 
-
-
 use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
 
 use multiversx_sc::codec::Empty;
