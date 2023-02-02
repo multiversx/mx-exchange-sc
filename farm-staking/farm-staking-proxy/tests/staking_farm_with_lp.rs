@@ -7,7 +7,11 @@ multiversx_sc::imports!();
 
 use constants::*;
 use farm_staking_proxy::dual_yield_token::DualYieldTokenAttributes;
-use farm_staking_proxy::FarmStakingProxy;
+
+
+
+use farm_staking_proxy::proxy_actions::unstake::ProxyUnstakeModule;
+
 use multiversx_sc::codec::Empty;
 use multiversx_sc_scenario::{managed_biguint, managed_token_id, rust_biguint, DebugApi};
 use staking_farm_with_lp_staking_contract_interactions::*;
