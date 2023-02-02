@@ -16,8 +16,14 @@ use crate::constants::*;
     TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, TypeAbi, Debug,
 )]
 pub struct LockedFunds<M: ManagedTypeApi> {
-    funds: PaymentsVec<M>,
-    locked_epoch: Epoch,
+    pub funds: PaymentsVec<M>,
+    pub locked_epoch: Epoch,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+pub struct ScheduledTransfer<M: ManagedTypeApi> {
+    pub sender: ManagedAddress<M>,
+    pub locked_funds: LockedFunds<M>,
 }
 
 #[elrond_wasm::contract]
@@ -142,6 +148,25 @@ pub trait LkmexTransfer:
             epochs_since_last_transfer > epochs_cooldown_duration,
             CALLER_ON_COOLDOWN
         )
+    }
+
+    #[view(getScheduledTransfers)]
+    fn get_scheduled_transfers(
+        &self,
+        receiver: ManagedAddress,
+    ) -> MultiValueEncoded<ScheduledTransfer<Self::Api>> {
+        let mut result = MultiValueEncoded::new();
+        for sender in self.all_senders(&receiver).iter() {
+            let locked_funds = self.locked_funds(&receiver, &sender).get();
+            let scheduled_transfer = ScheduledTransfer {
+                sender,
+                locked_funds,
+            };
+
+            result.push(scheduled_transfer);
+        }
+
+        result
     }
 
     #[storage_mapper("lockedFunds")]
