@@ -121,3 +121,27 @@ impl<M: ManagedTypeApi> UnstakeResult<M> {
         self
     }
 }
+
+#[derive(TypeAbi, TopEncode, TopDecode)]
+pub struct MergeResult<M: ManagedTypeApi> {
+    pub lp_farm_rewards: EsdtTokenPayment<M>,
+    pub staking_farm_rewards: EsdtTokenPayment<M>,
+    pub new_dual_yield_tokens: EsdtTokenPayment<M>,
+}
+
+impl<M: ManagedTypeApi> MergeResult<M> {
+    pub fn send_and_return<SC: token_send::TokenSendModule<Api = M>>(
+        self,
+        sc: &SC,
+        to: &ManagedAddress<M>,
+    ) -> Self {
+        let mut payments = ManagedVec::new();
+        payments.push(self.lp_farm_rewards.clone());
+        payments.push(self.staking_farm_rewards.clone());
+        payments.push(self.new_dual_yield_tokens.clone());
+
+        sc.send_multiple_tokens_if_not_zero(to, &payments);
+
+        self
+    }
+}
