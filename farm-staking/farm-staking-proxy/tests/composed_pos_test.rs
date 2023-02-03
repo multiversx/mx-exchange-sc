@@ -123,7 +123,7 @@ fn combine_metastaking_with_staking_pos_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 2,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS),
-            staking_farm_token_nonce: 4,
+            staking_farm_token_nonce: 6,
             staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
             user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount),
         }),
@@ -329,7 +329,7 @@ fn combine_metastaking_with_staking_pos_partial_actions_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 2,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 2),
-            staking_farm_token_nonce: 4,
+            staking_farm_token_nonce: 6,
             staking_farm_token_amount: managed_biguint!(expected_staking_token_amount / 2),
             user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount),
         }),

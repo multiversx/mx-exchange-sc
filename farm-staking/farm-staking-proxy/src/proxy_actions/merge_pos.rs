@@ -2,9 +2,8 @@ use common_structs::PaymentsVec;
 
 use crate::{dual_yield_token::DualYieldTokenAttributes, result_types::MergeResult};
 
-use super::claim::InternalClaimResult;
-
 use mergeable::Mergeable;
+use unwrappable::Unwrappable;
 
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
@@ -33,30 +32,43 @@ pub trait ProxyMergePosModule:
         let dual_yield_token_mapper = self.dual_yield_token();
         dual_yield_token_mapper.require_same_token(&dual_yield_token.token_identifier);
 
-        let caller = self.blockchain().get_caller();
-        let claim_result = self.claim_rewards_before_merge(&caller, dual_yield_token, &payments);
-        let new_dual_yield_tokens = self.merge_into_single_metastaking_token(
-            &dual_yield_token_mapper,
-            claim_result.new_dual_yield_attributes,
-            payments,
-        );
+        let mut attributes: DualYieldTokenAttributes<Self::Api> = self
+            .get_attributes_as_part_of_fixed_supply(&dual_yield_token, &dual_yield_token_mapper);
+        dual_yield_token_mapper.nft_burn(dual_yield_token.token_nonce, &dual_yield_token.amount);
 
+        let caller = self.blockchain().get_caller();
+        let staking_farm_rewards = self.claim_staking_rewards_before_merge(&caller, &payments);
+
+        for farm_staking_token in &payments {
+            attributes.user_staking_farm_token_amount += &farm_staking_token.amount;
+        }
+
+        let mut dual_yield_claim_result =
+            self.claim_dual_yield(&caller, OptionalValue::None, attributes);
+        dual_yield_claim_result
+            .staking_farm_rewards
+            .merge_with(staking_farm_rewards);
+
+        let new_dual_yield_tokens = self.create_dual_yield_tokens(
+            &dual_yield_token_mapper,
+            &dual_yield_claim_result.new_dual_yield_attributes,
+        );
         let merge_result = MergeResult {
-            lp_farm_rewards: claim_result.lp_farm_rewards,
-            staking_farm_rewards: claim_result.staking_farm_rewards,
+            lp_farm_rewards: dual_yield_claim_result.lp_farm_rewards,
+            staking_farm_rewards: dual_yield_claim_result.staking_farm_rewards,
             new_dual_yield_tokens,
         };
+
         merge_result.send_and_return(self, &caller)
     }
 
-    fn claim_rewards_before_merge(
+    fn claim_staking_rewards_before_merge(
         &self,
         caller: &ManagedAddress,
-        dual_yield_token: EsdtTokenPayment,
         farm_staking_tokens: &PaymentsVec<Self::Api>,
-    ) -> InternalClaimResult<Self::Api> {
+    ) -> EsdtTokenPayment {
         let staking_farm_token_id = self.staking_farm_token_id().get();
-        let mut claim_result = self.claim_dual_yield(caller, OptionalValue::None, dual_yield_token);
+        let mut opt_staking_farm_rewards = Option::<EsdtTokenPayment>::None;
         for farm_staking_token in farm_staking_tokens {
             require!(
                 farm_staking_token.token_identifier == staking_farm_token_id,
@@ -71,9 +83,12 @@ pub trait ProxyMergePosModule:
                 farm_staking_token.amount,
             );
 
-            claim_result
-                .staking_farm_rewards
-                .merge_with(staking_claim_result.staking_farm_rewards);
+            match &mut opt_staking_farm_rewards {
+                Some(rew) => rew.merge_with(staking_claim_result.staking_farm_rewards),
+                None => {
+                    opt_staking_farm_rewards = Some(staking_claim_result.staking_farm_rewards);
+                }
+            };
 
             let new_staking_farm_tokens = staking_claim_result.new_staking_farm_tokens;
             self.send().esdt_local_burn(
@@ -83,19 +98,6 @@ pub trait ProxyMergePosModule:
             );
         }
 
-        claim_result
-    }
-
-    fn merge_into_single_metastaking_token(
-        &self,
-        dual_yield_token_mapper: &NonFungibleTokenMapper,
-        mut attributes: DualYieldTokenAttributes<Self::Api>,
-        farm_staking_tokens: PaymentsVec<Self::Api>,
-    ) -> EsdtTokenPayment {
-        for farm_staking_token in &farm_staking_tokens {
-            attributes.user_staking_farm_token_amount += &farm_staking_token.amount;
-        }
-
-        self.create_dual_yield_tokens(dual_yield_token_mapper, &attributes)
+        opt_staking_farm_rewards.unwrap_or_panic::<Self::Api>()
     }
 }
