@@ -223,7 +223,7 @@ where
                 dual_yield_token_nonce,
                 &rust_biguint!(dual_yield_token_amount),
                 |sc| {
-                    let received_tokens = sc.claim_dual_yield(OptionalValue::None);
+                    let received_tokens = sc.claim_dual_yield_endpoint(OptionalValue::None);
                     let lp_farm_rewards = received_tokens.lp_farm_rewards;
                     let staking_farm_rewards = received_tokens.staking_farm_rewards;
                     let new_dual_yield_tokens = received_tokens.new_dual_yield_tokens;
