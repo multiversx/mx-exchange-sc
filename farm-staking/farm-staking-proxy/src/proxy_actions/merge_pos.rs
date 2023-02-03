@@ -39,12 +39,17 @@ pub trait ProxyMergePosModule:
         let caller = self.blockchain().get_caller();
         let staking_farm_rewards = self.claim_staking_rewards_before_merge(&caller, &payments);
 
+        let staking_amount_before_merge = attributes.get_total_staking_token_amount();
         for farm_staking_token in &payments {
             attributes.user_staking_farm_token_amount += &farm_staking_token.amount;
         }
 
-        let mut dual_yield_claim_result =
-            self.claim_dual_yield(&caller, OptionalValue::None, attributes);
+        let mut dual_yield_claim_result = self.claim_dual_yield(
+            &caller,
+            OptionalValue::None,
+            staking_amount_before_merge,
+            attributes,
+        );
         dual_yield_claim_result
             .staking_farm_rewards
             .merge_with(staking_farm_rewards);
