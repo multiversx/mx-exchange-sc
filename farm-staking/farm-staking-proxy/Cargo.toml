@@ -51,6 +51,9 @@ path = "../../common/traits/fixed-supply-token"
 [dependencies.mergeable]
 path = "../../common/traits/mergeable"
 
+[dependencies.unwrappable]
+path = "../../common/traits/unwrappable"
+
 [dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"
 

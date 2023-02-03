@@ -24,12 +24,17 @@ pub trait ProxyClaimModule:
         &self,
         opt_orig_caller: OptionalValue<ManagedAddress>,
     ) -> ClaimDualYieldResult<Self::Api> {
-        let caller = self.blockchain().get_caller();
         let payment = self.call_value().single_esdt();
-        let internal_claim_result = self.claim_dual_yield(&caller, opt_orig_caller, payment);
+        let dual_yield_token_mapper = self.dual_yield_token();
+        dual_yield_token_mapper.require_same_token(&payment.token_identifier);
+
+        let caller = self.blockchain().get_caller();
+        let attributes: DualYieldTokenAttributes<Self::Api> =
+            self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
+        let internal_claim_result = self.claim_dual_yield(&caller, opt_orig_caller, attributes);
 
         let new_dual_yield_tokens = self.create_dual_yield_tokens(
-            &self.dual_yield_token(),
+            &dual_yield_token_mapper,
             &internal_claim_result.new_dual_yield_attributes,
         );
         let claim_result = ClaimDualYieldResult {
@@ -38,6 +43,8 @@ pub trait ProxyClaimModule:
             new_dual_yield_tokens,
         };
 
+        dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
+
         claim_result.send_and_return(self, &caller)
     }
 
@@ -45,14 +52,9 @@ pub trait ProxyClaimModule:
         &self,
         caller: &ManagedAddress,
         opt_orig_caller: OptionalValue<ManagedAddress>,
-        payment: EsdtTokenPayment,
+        attributes: DualYieldTokenAttributes<Self::Api>,
     ) -> InternalClaimResult<Self::Api> {
         let orig_caller = self.get_orig_caller_from_opt(caller, opt_orig_caller);
-        let dual_yield_token_mapper = self.dual_yield_token();
-        dual_yield_token_mapper.require_same_token(&payment.token_identifier);
-
-        let attributes: DualYieldTokenAttributes<Self::Api> =
-            self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
 
         let lp_tokens_in_position = self.get_lp_tokens_in_farm_position(
             attributes.lp_farm_token_nonce,
@@ -87,8 +89,6 @@ pub trait ProxyClaimModule:
             staking_farm_token_amount: lp_tokens_safe_price,
             user_staking_farm_token_amount: attributes.user_staking_farm_token_amount,
         };
-
-        dual_yield_token_mapper.nft_burn(payment.token_nonce, &payment.amount);
 
         InternalClaimResult {
             lp_farm_rewards: lp_farm_claim_rewards_result.lp_farm_rewards,
