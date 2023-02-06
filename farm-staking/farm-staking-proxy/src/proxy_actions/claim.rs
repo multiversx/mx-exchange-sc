@@ -31,7 +31,12 @@ pub trait ProxyClaimModule:
         let caller = self.blockchain().get_caller();
         let attributes: DualYieldTokenAttributes<Self::Api> =
             self.get_attributes_as_part_of_fixed_supply(&payment, &dual_yield_token_mapper);
-        let internal_claim_result = self.claim_dual_yield(&caller, opt_orig_caller, attributes);
+        let internal_claim_result = self.claim_dual_yield(
+            &caller,
+            opt_orig_caller,
+            attributes.get_total_staking_token_amount(),
+            attributes,
+        );
 
         let new_dual_yield_tokens = self.create_dual_yield_tokens(
             &dual_yield_token_mapper,
@@ -52,6 +57,7 @@ pub trait ProxyClaimModule:
         &self,
         caller: &ManagedAddress,
         opt_orig_caller: OptionalValue<ManagedAddress>,
+        staking_claim_amount: BigUint,
         attributes: DualYieldTokenAttributes<Self::Api>,
     ) -> InternalClaimResult<Self::Api> {
         let orig_caller = self.get_orig_caller_from_opt(caller, opt_orig_caller);
@@ -76,7 +82,7 @@ pub trait ProxyClaimModule:
             orig_caller,
             staking_farm_token_id,
             attributes.staking_farm_token_nonce,
-            attributes.staking_farm_token_amount,
+            staking_claim_amount,
             new_staking_farm_value,
         );
 
