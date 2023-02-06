@@ -123,9 +123,9 @@ fn combine_metastaking_with_staking_pos_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 2,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS),
-            staking_farm_token_nonce: 6,
-            staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
-            user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount),
+            virtual_pos_token_nonce: 6,
+            virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount),
+            real_pos_token_amount: managed_biguint!(composed_pos_full_amount),
         }),
     );
 
@@ -152,9 +152,9 @@ fn combine_metastaking_with_staking_pos_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 3,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS),
-            staking_farm_token_nonce: 7,
-            staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
-            user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount),
+            virtual_pos_token_nonce: 7,
+            virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount),
+            real_pos_token_amount: managed_biguint!(composed_pos_full_amount),
         }),
     );
 
@@ -181,9 +181,9 @@ fn combine_metastaking_with_staking_pos_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 4,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS),
-            staking_farm_token_nonce: 8,
-            staking_farm_token_amount: managed_biguint!(expected_staking_token_amount),
-            user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount),
+            virtual_pos_token_nonce: 8,
+            virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount),
+            real_pos_token_amount: managed_biguint!(composed_pos_full_amount),
         }),
     );
 
@@ -329,9 +329,9 @@ fn combine_metastaking_with_staking_pos_partial_actions_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 2,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 2),
-            staking_farm_token_nonce: 6,
-            staking_farm_token_amount: managed_biguint!(expected_staking_token_amount / 2),
-            user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount),
+            virtual_pos_token_nonce: 6,
+            virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount / 2),
+            real_pos_token_amount: managed_biguint!(composed_pos_full_amount),
         }),
     );
 
@@ -358,9 +358,9 @@ fn combine_metastaking_with_staking_pos_partial_actions_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 3,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 4),
-            staking_farm_token_nonce: 7,
-            staking_farm_token_amount: managed_biguint!(expected_staking_token_amount / 4),
-            user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount / 2),
+            virtual_pos_token_nonce: 7,
+            virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount / 4),
+            real_pos_token_amount: managed_biguint!(composed_pos_full_amount / 2),
         }),
     );
 
@@ -413,9 +413,9 @@ fn combine_metastaking_with_staking_pos_partial_actions_test() {
         Some(&DualYieldTokenAttributes::<DebugApi> {
             lp_farm_token_nonce: 3,
             lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 8),
-            staking_farm_token_nonce: 7,
-            staking_farm_token_amount: managed_biguint!(expected_staking_token_amount / 8),
-            user_staking_farm_token_amount: managed_biguint!(composed_pos_full_amount / 4),
+            virtual_pos_token_nonce: 7,
+            virtual_pos_token_amount: managed_biguint!(expected_staking_token_amount / 8),
+            real_pos_token_amount: managed_biguint!(composed_pos_full_amount / 4),
         }),
     );
 

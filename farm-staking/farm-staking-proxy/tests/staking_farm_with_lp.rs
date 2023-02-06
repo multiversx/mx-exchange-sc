@@ -302,9 +302,9 @@ fn unstake_partial_position_test() {
     let expected_new_dual_yield_attributes = DualYieldTokenAttributes::<DebugApi> {
         lp_farm_token_nonce: 1,
         lp_farm_token_amount: managed_biguint!(USER_TOTAL_LP_TOKENS / 2),
-        staking_farm_token_nonce: 1,
-        staking_farm_token_amount: managed_biguint!(1_001_000_000 / 2),
-        user_staking_farm_token_amount: managed_biguint!(0),
+        virtual_pos_token_nonce: 1,
+        virtual_pos_token_amount: managed_biguint!(1_001_000_000 / 2),
+        real_pos_token_amount: managed_biguint!(0),
     };
     let new_dual_yield_token_nonce = dual_yield_token_nonce_after_stake + 1;
     let new_dual_yield_token_amount = dual_yield_token_amount / 2;
@@ -462,9 +462,9 @@ fn test_stake_farm_through_proxy_with_merging() {
             Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 1,
                 lp_farm_token_amount: managed_biguint!(400_000_000),
-                staking_farm_token_nonce: 1,
-                staking_farm_token_amount: managed_biguint!(400_000_000),
-                user_staking_farm_token_amount: managed_biguint!(0),
+                virtual_pos_token_nonce: 1,
+                virtual_pos_token_amount: managed_biguint!(400_000_000),
+                real_pos_token_amount: managed_biguint!(0),
             }),
         )
     });
@@ -493,9 +493,9 @@ fn test_stake_farm_through_proxy_with_merging() {
             Some(&DualYieldTokenAttributes::<DebugApi> {
                 lp_farm_token_nonce: 2,
                 lp_farm_token_amount: managed_biguint!(1_000_000_000),
-                staking_farm_token_nonce: 2,
-                staking_farm_token_amount: managed_biguint!(1_000_000_000),
-                user_staking_farm_token_amount: managed_biguint!(0),
+                virtual_pos_token_nonce: 2,
+                virtual_pos_token_amount: managed_biguint!(1_000_000_000),
+                real_pos_token_amount: managed_biguint!(0),
             }),
         )
     });
