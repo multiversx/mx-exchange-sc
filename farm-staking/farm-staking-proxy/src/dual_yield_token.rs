@@ -17,14 +17,14 @@ impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
     pub fn new(
         lp_farm_token_nonce: u64,
         lp_farm_token_amount: BigUint<M>,
-        staking_farm_token_nonce: u64,
-        staking_farm_token_amount: BigUint<M>,
+        virtual_pos_token_nonce: u64,
+        virtual_pos_token_amount: BigUint<M>,
     ) -> Self {
         DualYieldTokenAttributes {
             lp_farm_token_nonce,
             lp_farm_token_amount,
-            virtual_pos_token_nonce: staking_farm_token_nonce,
-            virtual_pos_token_amount: staking_farm_token_amount,
+            virtual_pos_token_nonce,
+            virtual_pos_token_amount,
             real_pos_token_amount: BigUint::zero(),
         }
     }
@@ -48,19 +48,19 @@ impl<M: ManagedTypeApi> NestedDecode for DualYieldTokenAttributes<M> {
     fn dep_decode<I: NestedDecodeInput>(input: &mut I) -> Result<Self, DecodeError> {
         let lp_farm_token_nonce = u64::dep_decode(input)?;
         let lp_farm_token_amount = BigUint::dep_decode(input)?;
-        let staking_farm_token_nonce = u64::dep_decode(input)?;
-        let staking_farm_token_amount = BigUint::dep_decode(input)?;
+        let virtual_pos_token_nonce = u64::dep_decode(input)?;
+        let virtual_pos_token_amount = BigUint::dep_decode(input)?;
 
         if input.is_depleted() {
             return Result::Ok(DualYieldTokenAttributes::new(
                 lp_farm_token_nonce,
                 lp_farm_token_amount,
-                staking_farm_token_nonce,
-                staking_farm_token_amount,
+                virtual_pos_token_nonce,
+                virtual_pos_token_amount,
             ));
         }
 
-        let user_staking_farm_token_amount = BigUint::dep_decode(input)?;
+        let real_pos_token_amount = BigUint::dep_decode(input)?;
 
         if !input.is_depleted() {
             return Result::Err(DecodeError::INPUT_TOO_LONG);
@@ -69,9 +69,9 @@ impl<M: ManagedTypeApi> NestedDecode for DualYieldTokenAttributes<M> {
         Result::Ok(DualYieldTokenAttributes {
             lp_farm_token_nonce,
             lp_farm_token_amount,
-            virtual_pos_token_nonce: staking_farm_token_nonce,
-            virtual_pos_token_amount: staking_farm_token_amount,
-            real_pos_token_amount: user_staking_farm_token_amount,
+            virtual_pos_token_nonce,
+            virtual_pos_token_amount,
+            real_pos_token_amount,
         })
     }
 }
@@ -88,16 +88,15 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for DualYieldTokenAttributes<M> {
 
         let new_lp_farm_token_amount =
             self.rule_of_three_non_zero_result(payment_amount, &self.lp_farm_token_amount);
-        let new_staking_farm_token_amount = payment_amount.clone();
-        let new_additional_token_amount =
-            self.rule_of_three(payment_amount, &self.real_pos_token_amount);
+        let new_virtual_pos_amount = payment_amount.clone();
+        let new_real_pos_amount = self.rule_of_three(payment_amount, &self.real_pos_token_amount);
 
         DualYieldTokenAttributes {
             lp_farm_token_nonce: self.lp_farm_token_nonce,
             lp_farm_token_amount: new_lp_farm_token_amount,
             virtual_pos_token_nonce: self.virtual_pos_token_nonce,
-            virtual_pos_token_amount: new_staking_farm_token_amount,
-            real_pos_token_amount: new_additional_token_amount,
+            virtual_pos_token_amount: new_virtual_pos_amount,
+            real_pos_token_amount: new_real_pos_amount,
         }
     }
 }

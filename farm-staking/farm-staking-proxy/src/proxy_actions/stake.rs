@@ -36,7 +36,7 @@ pub trait ProxyStakeModule:
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let mut additional_staking_farm_tokens = ManagedVec::new();
         let mut additional_lp_farm_tokens = ManagedVec::new();
-        let mut total_user_staking_tokens = BigUint::zero();
+        let mut total_user_real_staking_tokens = BigUint::zero();
         for p in &additional_payments {
             let attributes: DualYieldTokenAttributes<Self::Api> =
                 self.get_attributes_as_part_of_fixed_supply(&p, &dual_yield_token_mapper);
@@ -53,7 +53,7 @@ pub trait ProxyStakeModule:
                 attributes.lp_farm_token_amount,
             ));
 
-            total_user_staking_tokens += attributes.real_pos_token_amount;
+            total_user_real_staking_tokens += attributes.real_pos_token_amount;
 
             dual_yield_token_mapper.nft_burn(p.token_nonce, &p.amount);
         }
@@ -77,13 +77,13 @@ pub trait ProxyStakeModule:
         );
 
         let new_staking_farm_token_amount =
-            &received_staking_farm_token.amount - &total_user_staking_tokens;
+            &received_staking_farm_token.amount - &total_user_real_staking_tokens;
         let new_attributes = DualYieldTokenAttributes {
             lp_farm_token_nonce: merged_lp_farm_tokens.token_nonce,
             lp_farm_token_amount: merged_lp_farm_tokens.amount,
             virtual_pos_token_nonce: received_staking_farm_token.token_nonce,
             virtual_pos_token_amount: new_staking_farm_token_amount,
-            real_pos_token_amount: total_user_staking_tokens,
+            real_pos_token_amount: total_user_real_staking_tokens,
         };
         let new_dual_yield_tokens =
             self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);

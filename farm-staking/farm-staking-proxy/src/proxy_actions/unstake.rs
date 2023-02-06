@@ -82,16 +82,16 @@ pub trait ProxyUnstakeModule:
 
         let opt_new_dual_yield_tokens = if exit_amount != total_for_nonce {
             let remaining_lp_farm_tokens = lp_farm_exit_result.remaining_farm_tokens.amount;
-            let remaining_staking_farm_tokens =
+            let remaining_virtual_farm_tokens =
                 full_attributes.virtual_pos_token_amount - exit_attributes.virtual_pos_token_amount;
-            let remaining_user_staking_farm_tokens =
+            let remaining_real_farm_tokens =
                 full_attributes.real_pos_token_amount - exit_attributes.real_pos_token_amount;
             let new_attributes = DualYieldTokenAttributes {
                 lp_farm_token_nonce: full_attributes.lp_farm_token_nonce,
                 lp_farm_token_amount: remaining_lp_farm_tokens,
                 virtual_pos_token_nonce: full_attributes.virtual_pos_token_nonce,
-                virtual_pos_token_amount: remaining_staking_farm_tokens,
-                real_pos_token_amount: remaining_user_staking_farm_tokens,
+                virtual_pos_token_amount: remaining_virtual_farm_tokens,
+                real_pos_token_amount: remaining_real_farm_tokens,
             };
             let new_dual_yield_tokens =
                 self.create_dual_yield_tokens(&dual_yield_token_mapper, &new_attributes);
