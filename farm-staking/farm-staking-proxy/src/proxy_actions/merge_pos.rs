@@ -41,7 +41,7 @@ pub trait ProxyMergePosModule:
 
         let staking_amount_before_merge = attributes.get_total_staking_token_amount();
         for farm_staking_token in &payments {
-            attributes.user_staking_farm_token_amount += &farm_staking_token.amount;
+            attributes.real_pos_token_amount += &farm_staking_token.amount;
         }
 
         let mut dual_yield_claim_result = self.claim_dual_yield(

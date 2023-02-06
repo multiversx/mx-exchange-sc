@@ -67,8 +67,7 @@ pub trait ProxyClaimModule:
             &attributes.lp_farm_token_amount,
         );
         let lp_tokens_safe_price = self.get_lp_tokens_safe_price(lp_tokens_in_position);
-        let new_staking_farm_value =
-            &lp_tokens_safe_price + &attributes.user_staking_farm_token_amount;
+        let new_staking_farm_value = &lp_tokens_safe_price + &attributes.real_pos_token_amount;
 
         let staking_farm_token_id = self.staking_farm_token_id().get();
         let lp_farm_token_id = self.lp_farm_token_id().get();
@@ -81,7 +80,7 @@ pub trait ProxyClaimModule:
         let staking_farm_claim_rewards_result = self.staking_farm_claim_rewards(
             orig_caller,
             staking_farm_token_id,
-            attributes.staking_farm_token_nonce,
+            attributes.virtual_pos_token_nonce,
             staking_claim_amount,
             new_staking_farm_value,
         );
@@ -91,9 +90,9 @@ pub trait ProxyClaimModule:
         let new_attributes = DualYieldTokenAttributes {
             lp_farm_token_nonce: new_lp_farm_tokens.token_nonce,
             lp_farm_token_amount: new_lp_farm_tokens.amount,
-            staking_farm_token_nonce: new_staking_farm_tokens.token_nonce,
-            staking_farm_token_amount: lp_tokens_safe_price,
-            user_staking_farm_token_amount: attributes.user_staking_farm_token_amount,
+            virtual_pos_token_nonce: new_staking_farm_tokens.token_nonce,
+            virtual_pos_token_amount: lp_tokens_safe_price,
+            real_pos_token_amount: attributes.real_pos_token_amount,
         };
 
         InternalClaimResult {

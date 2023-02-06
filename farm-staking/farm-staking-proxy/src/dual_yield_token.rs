@@ -8,9 +8,9 @@ multiversx_sc::derive_imports!();
 pub struct DualYieldTokenAttributes<M: ManagedTypeApi> {
     pub lp_farm_token_nonce: u64,
     pub lp_farm_token_amount: BigUint<M>,
-    pub staking_farm_token_nonce: u64,
-    pub staking_farm_token_amount: BigUint<M>,
-    pub user_staking_farm_token_amount: BigUint<M>,
+    pub virtual_pos_token_nonce: u64,
+    pub virtual_pos_token_amount: BigUint<M>,
+    pub real_pos_token_amount: BigUint<M>,
 }
 
 impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
@@ -23,14 +23,14 @@ impl<M: ManagedTypeApi> DualYieldTokenAttributes<M> {
         DualYieldTokenAttributes {
             lp_farm_token_nonce,
             lp_farm_token_amount,
-            staking_farm_token_nonce,
-            staking_farm_token_amount,
-            user_staking_farm_token_amount: BigUint::zero(),
+            virtual_pos_token_nonce: staking_farm_token_nonce,
+            virtual_pos_token_amount: staking_farm_token_amount,
+            real_pos_token_amount: BigUint::zero(),
         }
     }
 
     pub fn get_total_staking_token_amount(&self) -> BigUint<M> {
-        &self.staking_farm_token_amount + &self.user_staking_farm_token_amount
+        &self.virtual_pos_token_amount + &self.real_pos_token_amount
     }
 }
 
@@ -69,16 +69,16 @@ impl<M: ManagedTypeApi> NestedDecode for DualYieldTokenAttributes<M> {
         Result::Ok(DualYieldTokenAttributes {
             lp_farm_token_nonce,
             lp_farm_token_amount,
-            staking_farm_token_nonce,
-            staking_farm_token_amount,
-            user_staking_farm_token_amount,
+            virtual_pos_token_nonce: staking_farm_token_nonce,
+            virtual_pos_token_amount: staking_farm_token_amount,
+            real_pos_token_amount: user_staking_farm_token_amount,
         })
     }
 }
 
 impl<M: ManagedTypeApi> FixedSupplyToken<M> for DualYieldTokenAttributes<M> {
     fn get_total_supply(&self) -> BigUint<M> {
-        self.staking_farm_token_amount.clone()
+        self.virtual_pos_token_amount.clone()
     }
 
     fn into_part(self, payment_amount: &BigUint<M>) -> Self {
@@ -90,14 +90,14 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for DualYieldTokenAttributes<M> {
             self.rule_of_three_non_zero_result(payment_amount, &self.lp_farm_token_amount);
         let new_staking_farm_token_amount = payment_amount.clone();
         let new_additional_token_amount =
-            self.rule_of_three(payment_amount, &self.user_staking_farm_token_amount);
+            self.rule_of_three(payment_amount, &self.real_pos_token_amount);
 
         DualYieldTokenAttributes {
             lp_farm_token_nonce: self.lp_farm_token_nonce,
             lp_farm_token_amount: new_lp_farm_token_amount,
-            staking_farm_token_nonce: self.staking_farm_token_nonce,
-            staking_farm_token_amount: new_staking_farm_token_amount,
-            user_staking_farm_token_amount: new_additional_token_amount,
+            virtual_pos_token_nonce: self.virtual_pos_token_nonce,
+            virtual_pos_token_amount: new_staking_farm_token_amount,
+            real_pos_token_amount: new_additional_token_amount,
         }
     }
 }
