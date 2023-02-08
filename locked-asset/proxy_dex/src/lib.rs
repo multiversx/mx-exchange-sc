@@ -36,6 +36,7 @@ pub trait ProxyDexImpl:
     + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + utils::UtilsModule
+    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[init]

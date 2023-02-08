@@ -6,7 +6,10 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
+use common_structs::{Epoch, OldLockedTokenAttributes};
+use energy_factory::{lock_options::EPOCHS_PER_YEAR, migration::ProxyTrait as _};
 use fixed_supply_token::FixedSupplyToken;
+use simple_lock::locked_token::LockedTokenAttributes;
 
 #[multiversx_sc::module]
 pub trait ProxyPairModule:
@@ -20,6 +23,7 @@ pub trait ProxyPairModule:
     + token_send::TokenSendModule
     + crate::events::EventsModule
     + utils::UtilsModule
+    + locking_module::lock_with_energy_module::LockWithEnergyModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
 {
     #[payable("*")]
@@ -170,14 +174,25 @@ pub trait ProxyPairModule:
                 .base_asset_token_ref
                 .token_identifier
                 .clone();
-            let unlocked_amount = base_asset_amount_received - locked_token_amount_available;
-            let unlocked_tokens = EsdtTokenPayment::new(asset_token_id.clone(), 0, unlocked_amount);
+            let remaining_locked_amount =
+                base_asset_amount_received - locked_token_amount_available;
+
+            let unlock_epoch_for_current_locked_tokens =
+                self.get_unlock_epoch_for_locked_tokens(&attributes, &payment);
+
+            // Lock the difference from IL and send
+            let _ = self.lock_tokens_and_forward(
+                caller.clone(),
+                EgldOrEsdtTokenIdentifier::esdt(asset_token_id.clone()),
+                remaining_locked_amount.clone(),
+                Option::Some(unlock_epoch_for_current_locked_tokens),
+            );
 
             // burn base asset, as we only need to send the locked tokens
+            let new_amount_to_burn = &attributes.locked_tokens.amount - &remaining_locked_amount;
             self.send()
-                .esdt_local_burn(&asset_token_id, 0, &attributes.locked_tokens.amount);
+                .esdt_local_burn(&asset_token_id, 0, &new_amount_to_burn);
 
-            output_payments.push(unlocked_tokens);
             output_payments.push(attributes.locked_tokens.clone());
         } else {
             let extra_locked_tokens = locked_token_amount_available - base_asset_amount_received;
@@ -219,6 +234,51 @@ pub trait ProxyPairModule:
         );
 
         output_payments.into()
+    }
+
+    fn get_unlock_epoch_for_locked_tokens(
+        &self,
+        attributes: &WrappedLpTokenAttributes<Self::Api>,
+        payment: &EsdtTokenPayment,
+    ) -> Epoch {
+        let old_locked_token_id = self.old_locked_token_id().get();
+        let new_locked_token_id = self.get_locked_token_id();
+        let current_epoch = self.blockchain().get_block_epoch();
+
+        let mut unlock_epoch_for_current_locked_tokens = if attributes
+            .locked_tokens
+            .token_identifier
+            == new_locked_token_id
+        {
+            let locked_token_attributes: LockedTokenAttributes<Self::Api> = self
+                .get_token_attributes(
+                    &attributes.locked_tokens.token_identifier,
+                    attributes.locked_tokens.token_nonce,
+                );
+            locked_token_attributes.unlock_epoch
+        } else if attributes.locked_tokens.token_identifier == old_locked_token_id {
+            // old LKMEX
+            let old_token_attributes: OldLockedTokenAttributes<Self::Api> =
+                self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+            let unlock_epoch_amount_pairs =
+                old_token_attributes.get_unlock_amounts_per_epoch(&payment.amount);
+
+            let sc_address = self.energy_factory_address().get();
+            let unlock_epoch_for_old_token: Epoch = self
+                .energy_factory_proxy(sc_address)
+                .calculate_new_unlock_epoch_for_old_token(&unlock_epoch_amount_pairs, current_epoch)
+                .execute_on_dest_context();
+
+            unlock_epoch_for_old_token
+        } else {
+            EPOCHS_PER_YEAR * 4
+        };
+
+        if unlock_epoch_for_current_locked_tokens < current_epoch {
+            unlock_epoch_for_current_locked_tokens = current_epoch;
+        }
+
+        unlock_epoch_for_current_locked_tokens
     }
 
     fn require_wrapped_lp_token_id_not_empty(&self) {

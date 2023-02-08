@@ -113,6 +113,12 @@ where
         );
 
         b_mock
+            .execute_tx(&owner, &proxy_wrapper, &rust_zero, |sc| {
+                sc.set_locking_sc_address(managed_address!(simple_lock_wrapper.address_ref()));
+            })
+            .assert_ok();
+
+        b_mock
             .execute_tx(&owner, &farm_locked_wrapper, &rust_zero, |sc| {
                 sc.add_sc_address_to_whitelist(managed_address!(proxy_wrapper.address_ref()));
             })
