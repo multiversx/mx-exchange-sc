@@ -28,7 +28,6 @@ pub trait BaseClaimRewardsModule:
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + events::EventsModule
     + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
