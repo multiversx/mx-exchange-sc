@@ -16,6 +16,7 @@ pub mod claim_only_boosted_staking_rewards;
 pub mod claim_stake_farm_rewards;
 pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
 pub mod unbond_farm;
@@ -41,6 +42,7 @@ pub trait FarmStaking:
     + farm_base_impl::exit_farm::BaseExitFarmModule
     + farm::progress_update::ProgressUpdateModule
     + utils::UtilsModule
+    + farm_token_roles::FarmTokenRolesModule
     + stake_farm::StakeFarmModule
     + claim_stake_farm_rewards::ClaimStakeFarmRewardsModule
     + compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
