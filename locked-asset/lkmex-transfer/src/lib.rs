@@ -46,14 +46,15 @@ pub trait LkmexTransfer:
     #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
+        let receiver_last_transfer_mapper = self.receiver_last_transfer_epoch(&receiver);
+        self.check_address_on_cooldown(&receiver_last_transfer_mapper);
         let funds = self.get_unlocked_funds(&receiver, &sender);
         self.send().direct_multi(&receiver, &funds);
         self.locked_funds(&receiver, &sender).clear();
         self.all_senders(&receiver).swap_remove(&sender);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.address_last_transfer_epoch(&receiver)
-            .set(current_epoch);
+        receiver_last_transfer_mapper.set(current_epoch);
 
         self.add_energy_to_destination(receiver, &funds);
     }
@@ -81,15 +82,10 @@ pub trait LkmexTransfer:
     #[endpoint(lockFunds)]
     fn lock_funds(&self, receiver: ManagedAddress) {
         let sender = self.blockchain().get_caller();
-        require!(
-            !self.blockchain().is_smart_contract(&sender)
-                && !self.blockchain().is_smart_contract(&receiver),
-            "SCs cannot send or receive locked tokens"
-        );
-
         let locked_funds_mapper = self.locked_funds(&receiver, &sender);
         require!(locked_funds_mapper.is_empty(), ALREADY_SENT_TO_ADDRESS);
-        self.check_address_on_cooldown(&sender);
+        let sender_last_transfer_mapper = self.sender_last_transfer_epoch(&sender);
+        self.check_address_on_cooldown(&sender_last_transfer_mapper);
 
         let payments = self.call_value().all_esdt_transfers();
         let locked_token_id = self.locked_token_id().get();
@@ -107,12 +103,11 @@ pub trait LkmexTransfer:
             funds: payments,
             locked_epoch: current_epoch,
         });
-        self.address_last_transfer_epoch(&sender).set(current_epoch);
+        sender_last_transfer_mapper.set(current_epoch);
         self.all_senders(&receiver).insert(sender);
     }
 
-    fn check_address_on_cooldown(&self, address: &ManagedAddress) {
-        let last_transfer_mapper = self.address_last_transfer_epoch(address);
+    fn check_address_on_cooldown(&self, last_transfer_mapper: &SingleValueMapper<Epoch>) {
         if last_transfer_mapper.is_empty() {
             return;
         }
@@ -138,8 +133,11 @@ pub trait LkmexTransfer:
     #[storage_mapper("allSenders")]
     fn all_senders(&self, receiver: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[storage_mapper("addressLastTransferEpoch")]
-    fn address_last_transfer_epoch(&self, owner: &ManagedAddress) -> SingleValueMapper<Epoch>;
+    #[storage_mapper("senderLastTransferEpoch")]
+    fn sender_last_transfer_epoch(&self, sender: &ManagedAddress) -> SingleValueMapper<Epoch>;
+
+    #[storage_mapper("receiverLastTransferEpoch")]
+    fn receiver_last_transfer_epoch(&self, receiver: &ManagedAddress) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("lockedTokenId")]
     fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;
