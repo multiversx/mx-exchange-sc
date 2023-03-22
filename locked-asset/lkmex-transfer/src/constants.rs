@@ -4,3 +4,4 @@ pub static CALLER_ON_COOLDOWN: &[u8] = b"caller cannot use this contract at this
 pub static TOKENS_STILL_LOCKED: &[u8] = b"requested funds are still locked";
 pub static ALREADY_SENT_TO_ADDRESS: &[u8] =
     b"caller already sent unclaimed funds to the destination address";
+pub static TRANSFER_NON_EXISTENT: &[u8] = b"The transfer does not exist";

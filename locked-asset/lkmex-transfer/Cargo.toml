@@ -13,6 +13,9 @@ path = "../../common/common_structs"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
+
 [dependencies.legacy_token_decode_module]
 path = "../../common/modules/legacy_token_decode_module"
 
