@@ -78,6 +78,7 @@ pub trait LkmexTransfer:
         let locked_funds = locked_funds_mapper.get();
         locked_funds_mapper.clear();
         self.all_senders(&receiver).swap_remove(&sender);
+        self.sender_last_transfer_epoch(&sender).clear();
 
         self.add_energy_to_destination(sender.clone(), &locked_funds.funds);
         self.send().direct_multi(&sender, &locked_funds.funds);
