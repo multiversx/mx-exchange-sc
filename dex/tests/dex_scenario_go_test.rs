@@ -147,7 +147,9 @@ fn remove_liquidity_go() {
 
 #[test]
 fn remove_liquidity_and_buyback_and_burn_token_go() {
-    multiversx_sc_scenario::run_go("scenarios/remove_liquidity_and_buyback_and_burn_token.scen.json");
+    multiversx_sc_scenario::run_go(
+        "scenarios/remove_liquidity_and_buyback_and_burn_token.scen.json",
+    );
 }
 
 #[test]

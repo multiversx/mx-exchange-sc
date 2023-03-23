@@ -2,10 +2,10 @@ multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes};
-use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 use fixed_supply_token::FixedSupplyToken;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;
+use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
 static NOT_IMPLEMENTED_ERR_MSG: &[u8] = b"Conversion not implemented";
 

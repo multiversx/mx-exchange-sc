@@ -18,6 +18,15 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     lkmex_transfer
     (
+        addAdmin
+        cancelTransfer
+        getAllSenders
+        getEnergyFactoryAddress
+        getPermissions
+        lockFunds
+        removeAdmin
+        setEnergyFactoryAddress
+        updateOwnerOrAdmin
         withdraw
         lockFunds
         getAllSenders

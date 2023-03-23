@@ -7,6 +7,7 @@ use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
     DebugApi,
 };
+use sc_whitelist_module::SCWhitelistModule;
 
 #[test]
 fn test_farm_setup() {
@@ -211,18 +212,6 @@ fn test_farm_through_simple_lock() {
     let mut farm_setup = SingleUserFarmSetup::new(farm::contract_obj);
     let b_mock = &mut farm_setup.blockchain_wrapper;
 
-    // change farming token for farm
-    b_mock
-        .execute_tx(
-            &farm_setup.owner_address,
-            &farm_setup.farm_wrapper,
-            &rust_zero,
-            |sc| {
-                sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
-            },
-        )
-        .assert_ok();
-
     // setup simple lock SC
     let lock_wrapper = b_mock.create_sc_account(
         &rust_zero,
@@ -247,6 +236,19 @@ fn test_farm_through_simple_lock() {
                 FarmType::SimpleFarm,
             );
         })
+        .assert_ok();
+
+    // change farming token for farm + whitelist simple lock contract
+    b_mock
+        .execute_tx(
+            &farm_setup.owner_address,
+            &farm_setup.farm_wrapper,
+            &rust_zero,
+            |sc| {
+                sc.farming_token_id().set(&managed_token_id!(LP_TOKEN_ID));
+                sc.add_sc_address_to_whitelist(managed_address!(lock_wrapper.address_ref()));
+            },
+        )
         .assert_ok();
 
     b_mock.set_esdt_local_roles(
