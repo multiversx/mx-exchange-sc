@@ -77,7 +77,11 @@ pub trait FarmInteractionsModule {
         let mut contract_call = self
             .farm_proxy(farm_address)
             .enter_farm(caller)
-            .with_esdt_transfer(farming_token, 0, farming_token_amount);
+            .with_esdt_transfer(EsdtTokenPayment::new(
+                farming_token,
+                0,
+                farming_token_amount,
+            ));
 
         for farm_token in &additional_farm_tokens {
             contract_call = contract_call.with_esdt_transfer(farm_token);
@@ -108,7 +112,11 @@ pub trait FarmInteractionsModule {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .exit_farm(exit_amount, caller)
-            .with_esdt_transfer(farm_token, farm_token_nonce, farm_token_amount)
+            .with_esdt_transfer(EsdtTokenPayment::new(
+                farm_token,
+                farm_token_nonce,
+                farm_token_amount,
+            ))
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
@@ -136,7 +144,11 @@ pub trait FarmInteractionsModule {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .claim_rewards(caller)
-            .with_esdt_transfer(farm_token, farm_token_nonce, farm_token_amount)
+            .with_esdt_transfer(EsdtTokenPayment::new(
+                farm_token,
+                farm_token_nonce,
+                farm_token_amount,
+            ))
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
