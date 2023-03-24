@@ -8,6 +8,7 @@ pub mod constants;
 pub mod energy_transfer;
 
 use common_structs::{Epoch, PaymentsVec};
+use permissions_module::Permissions;
 
 use crate::constants::*;
 
@@ -15,8 +16,14 @@ use crate::constants::*;
     TopEncode, TopDecode, NestedEncode, NestedDecode, Clone, ManagedVecItem, TypeAbi, Debug,
 )]
 pub struct LockedFunds<M: ManagedTypeApi> {
-    funds: PaymentsVec<M>,
-    locked_epoch: Epoch,
+    pub funds: PaymentsVec<M>,
+    pub locked_epoch: Epoch,
+}
+
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+pub struct ScheduledTransfer<M: ManagedTypeApi> {
+    pub sender: ManagedAddress<M>,
+    pub locked_funds: LockedFunds<M>,
 }
 
 #[multiversx_sc::contract]
@@ -25,6 +32,7 @@ pub trait LkmexTransfer:
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
+    + permissions_module::PermissionsModule
 {
     #[init]
     fn init(
@@ -41,6 +49,9 @@ pub trait LkmexTransfer:
             .set(epochs_cooldown_duration);
         self.locked_token_id().set(locked_token_id);
         self.set_energy_factory_address(energy_factory_address);
+
+        let caller = self.blockchain().get_caller();
+        self.add_permissions(caller, Permissions::OWNER);
     }
 
     #[endpoint]
@@ -49,14 +60,28 @@ pub trait LkmexTransfer:
         let receiver_last_transfer_mapper = self.receiver_last_transfer_epoch(&receiver);
         self.check_address_on_cooldown(&receiver_last_transfer_mapper);
         let funds = self.get_unlocked_funds(&receiver, &sender);
+        self.add_energy_to_destination(receiver.clone(), &funds);
         self.send().direct_multi(&receiver, &funds);
         self.locked_funds(&receiver, &sender).clear();
         self.all_senders(&receiver).swap_remove(&sender);
 
         let current_epoch = self.blockchain().get_block_epoch();
         receiver_last_transfer_mapper.set(current_epoch);
+    }
 
-        self.add_energy_to_destination(receiver, &funds);
+    #[endpoint(cancelTransfer)]
+    fn cancel_transfer(&self, sender: ManagedAddress, receiver: ManagedAddress) {
+        self.require_caller_has_admin_permissions();
+        let locked_funds_mapper = self.locked_funds(&receiver, &sender);
+        require!(!locked_funds_mapper.is_empty(), TRANSFER_NON_EXISTENT);
+
+        let locked_funds = locked_funds_mapper.get();
+        locked_funds_mapper.clear();
+        self.all_senders(&receiver).swap_remove(&sender);
+        self.sender_last_transfer_epoch(&sender).clear();
+
+        self.add_energy_to_destination(sender.clone(), &locked_funds.funds);
+        self.send().direct_multi(&sender, &locked_funds.funds);
     }
 
     fn get_unlocked_funds(
@@ -120,6 +145,25 @@ pub trait LkmexTransfer:
             epochs_since_last_transfer > epochs_cooldown_duration,
             CALLER_ON_COOLDOWN
         )
+    }
+
+    #[view(getScheduledTransfers)]
+    fn get_scheduled_transfers(
+        &self,
+        receiver: ManagedAddress,
+    ) -> MultiValueEncoded<ScheduledTransfer<Self::Api>> {
+        let mut result = MultiValueEncoded::new();
+        for sender in self.all_senders(&receiver).iter() {
+            let locked_funds = self.locked_funds(&receiver, &sender).get();
+            let scheduled_transfer = ScheduledTransfer {
+                sender,
+                locked_funds,
+            };
+
+            result.push(scheduled_transfer);
+        }
+
+        result
     }
 
     #[storage_mapper("lockedFunds")]

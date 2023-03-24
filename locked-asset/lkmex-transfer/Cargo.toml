@@ -15,6 +15,8 @@ path = "../../common/modules/utils"
 
 [dependencies.legacy_token_decode_module]
 path = "../../common/modules/legacy_token_decode_module"
+[dependencies.permissions_module]
+path = "../../common/modules/permissions_module"
 
 [dependencies.simple-lock]
 path = "../simple-lock"
