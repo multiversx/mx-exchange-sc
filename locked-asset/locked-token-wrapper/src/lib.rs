@@ -47,14 +47,13 @@ pub trait LockedTokenWrapper:
         );
 
         let payment = self.call_value().single_esdt();
-        let original_locked_tokens = self.unwrap_locked_token(payment);
+        let locked_token_id = self.get_locked_token_id();
+        let original_locked_tokens = self.unwrap_locked_token(locked_token_id, payment);
 
-        if original_locked_tokens.token_identifier == self.get_locked_token_id() {
-            self.add_energy_to_destination(
-                caller.clone(),
-                &ManagedVec::from_single_item(original_locked_tokens.clone()),
-            );
-        }
+        self.add_energy_to_destination(
+            caller.clone(),
+            &ManagedVec::from_single_item(original_locked_tokens.clone()),
+        );
 
         self.send().direct_esdt(
             &caller,

@@ -151,6 +151,7 @@ dependencies = [
  "energy-query",
  "legacy_token_decode_module",
  "multiversx-sc",
+ "permissions_module",
  "simple-lock",
  "utils",
 ]
@@ -291,6 +292,15 @@ name = "once_cell"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f61fba1741ea2b3d6a1e3178721804bb716a68a6aeba1149b5d52e3d464ea66"
+
+[[package]]
+name = "permissions_module"
+version = "0.0.0"
+dependencies = [
+ "bitflags",
+ "common_errors",
+ "multiversx-sc",
+]
 
 [[package]]
 name = "proc-macro2"

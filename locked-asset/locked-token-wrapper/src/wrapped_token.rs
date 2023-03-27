@@ -6,8 +6,7 @@ use common_structs::Nonce;
 pub static WRAPPED_TOKEN_NAME: &[u8] = b"WrappedLKMEX";
 
 #[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, PartialEq, Debug)]
-pub struct WrappedTokenAttributes<M: ManagedTypeApi> {
-    pub locked_token_id: TokenIdentifier<M>,
+pub struct WrappedTokenAttributes {
     pub locked_token_nonce: Nonce,
 }
 
@@ -76,7 +75,6 @@ pub trait WrappedTokenModule:
     ) -> EsdtTokenPayment {
         let wrapped_token_mapper = self.wrapped_token();
         let wrapped_token_attributes = WrappedTokenAttributes {
-            locked_token_id: token.token_identifier,
             locked_token_nonce: token.token_nonce,
         };
         let wrapped_token_nonce = self.get_or_create_nonce_for_attributes(
@@ -88,18 +86,22 @@ pub trait WrappedTokenModule:
         wrapped_token_mapper.nft_add_quantity_and_send(caller, wrapped_token_nonce, token.amount)
     }
 
-    fn unwrap_locked_token(&self, token: EsdtTokenPayment) -> EsdtTokenPayment {
+    fn unwrap_locked_token(
+        &self,
+        locked_token_id: TokenIdentifier,
+        token: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
         let wrapped_token_mapper = self.wrapped_token();
         wrapped_token_mapper.require_same_token(&token.token_identifier);
 
-        let wrapped_token_attributes: WrappedTokenAttributes<Self::Api> =
+        let wrapped_token_attributes: WrappedTokenAttributes =
             wrapped_token_mapper.get_token_attributes(token.token_nonce);
 
         self.send()
             .esdt_local_burn(&token.token_identifier, token.token_nonce, &token.amount);
 
         EsdtTokenPayment::new(
-            wrapped_token_attributes.locked_token_id,
+            locked_token_id,
             wrapped_token_attributes.locked_token_nonce,
             token.amount,
         )
