@@ -103,8 +103,7 @@ fn token_wrap_unwrap_test() {
         WRAPPED_TOKEN_ID,
         1,
         &rust_biguint!(500),
-        Some(&WrappedTokenAttributes::<DebugApi> {
-            locked_token_id: managed_token_id!(LOCKED_TOKEN_ID),
+        Some(&WrappedTokenAttributes {
             locked_token_nonce: 1,
         }),
     );
@@ -128,8 +127,7 @@ fn token_wrap_unwrap_test() {
         WRAPPED_TOKEN_ID,
         1,
         &rust_biguint!(500),
-        &WrappedTokenAttributes::<DebugApi> {
-            locked_token_id: managed_token_id!(LOCKED_TOKEN_ID),
+        &WrappedTokenAttributes {
             locked_token_nonce: 1,
         },
     );
@@ -269,8 +267,7 @@ fn tokens_wrap_unwrap_test2() {
         WRAPPED_TOKEN_ID,
         1,
         &rust_biguint!(user_half_balance),
-        Some(&WrappedTokenAttributes::<DebugApi> {
-            locked_token_id: managed_token_id!(LOCKED_TOKEN_ID),
+        Some(&WrappedTokenAttributes {
             locked_token_nonce: 1,
         }),
     );
