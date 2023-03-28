@@ -1,13 +1,12 @@
 [package]
 name = "proxy-deployer"
 version = "0.0.0"
-authors = [ "you",]
-edition = "2018"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.farm]
 path = "../farm"
 
@@ -20,12 +19,12 @@ path = "../../common/modules/farm/config"
 [dependencies.farm_token]
 path = "../../common/modules/farm/farm_token"
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

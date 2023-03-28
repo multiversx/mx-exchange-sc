@@ -1,7 +1,7 @@
 use common_structs::{RawResultWrapper, RawResultsType};
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 type EnterFarmResultType<BigUint> =
     MultiValue2<EsdtTokenPayment<BigUint>, EsdtTokenPayment<BigUint>>;
@@ -35,10 +35,10 @@ pub struct FarmCompoundRewardsResultWrapper<M: ManagedTypeApi> {
 }
 
 mod farm_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
     use super::{ClaimRewardsResultType, EnterFarmResultType, ExitFarmResultType};
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait FarmProxy {
         #[payable("*")]
         #[endpoint(enterFarm)]
@@ -64,7 +64,7 @@ mod farm_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmInteractionsModule {
     fn call_farm_enter(
         &self,
@@ -77,13 +77,14 @@ pub trait FarmInteractionsModule {
         let mut contract_call = self
             .farm_proxy(farm_address)
             .enter_farm(caller)
-            .add_esdt_token_transfer(farming_token, 0, farming_token_amount);
+            .with_esdt_transfer(EsdtTokenPayment::new(
+                farming_token,
+                0,
+                farming_token_amount,
+            ));
+
         for farm_token in &additional_farm_tokens {
-            contract_call = contract_call.add_esdt_token_transfer(
-                farm_token.token_identifier,
-                farm_token.token_nonce,
-                farm_token.amount,
-            );
+            contract_call = contract_call.with_esdt_transfer(farm_token);
         }
 
         let raw_results: RawResultsType<Self::Api> = contract_call.execute_on_dest_context();
@@ -111,7 +112,11 @@ pub trait FarmInteractionsModule {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .exit_farm(exit_amount, caller)
-            .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
+            .with_esdt_transfer(EsdtTokenPayment::new(
+                farm_token,
+                farm_token_nonce,
+                farm_token_amount,
+            ))
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);
@@ -139,7 +144,11 @@ pub trait FarmInteractionsModule {
         let raw_results: RawResultsType<Self::Api> = self
             .farm_proxy(farm_address)
             .claim_rewards(caller)
-            .add_esdt_token_transfer(farm_token, farm_token_nonce, farm_token_amount)
+            .with_esdt_transfer(EsdtTokenPayment::new(
+                farm_token,
+                farm_token_nonce,
+                farm_token_amount,
+            ))
             .execute_on_dest_context();
 
         let mut results_wrapper = RawResultWrapper::new(raw_results);

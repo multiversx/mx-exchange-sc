@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::energy::Energy;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedTokenTransferModule:
     utils::UtilsModule + crate::energy::EnergyModule + crate::events::EventsModule
 {
@@ -41,5 +41,5 @@ pub trait LockedTokenTransferModule:
     }
 
     #[storage_mapper("tokenTransferWhitelist")]
-    fn token_transfer_whitelist(&self) -> WhitelistMapper<Self::Api, ManagedAddress>;
+    fn token_transfer_whitelist(&self) -> WhitelistMapper<ManagedAddress>;
 }

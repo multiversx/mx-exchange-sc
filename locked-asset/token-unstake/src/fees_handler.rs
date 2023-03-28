@@ -1,14 +1,13 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub const MAX_PENALTY_PERCENTAGE: u64 = 10_000;
-static LOCKED_TOKEN_ID_STORAGE_KEY: &[u8] = b"lockedTokenId";
 
 use crate::{events, tokens_per_user::UnstakePair};
 
 pub mod fees_collector_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait FeesCollectorProxy {
         #[payable("*")]
         #[endpoint(depositSwapFees)]
@@ -16,7 +15,7 @@ pub mod fees_collector_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FeesHandlerModule:
     crate::tokens_per_user::TokensPerUserModule
     + energy_query::EnergyQueryModule
@@ -62,7 +61,7 @@ pub trait FeesHandlerModule:
         );
 
         let payment = self.call_value().single_esdt();
-        let locked_token_id = self.get_locked_token_id(&energy_factory_addr);
+        let locked_token_id = self.get_locked_token_id();
         require!(payment.token_identifier == locked_token_id, "Invalid token");
 
         self.burn_penalty(payment);
@@ -92,19 +91,8 @@ pub trait FeesHandlerModule:
         let _: IgnoreValue = self
             .fees_collector_proxy_builder(fees_collector_addr)
             .deposit_swap_fees()
-            .add_esdt_token_transfer(
-                payment.token_identifier,
-                payment.token_nonce,
-                payment.amount,
-            )
+            .with_esdt_transfer(payment)
             .execute_on_dest_context();
-    }
-
-    fn get_locked_token_id(&self, energy_factory_addr: &ManagedAddress) -> TokenIdentifier {
-        self.storage_raw().read_from_address(
-            energy_factory_addr,
-            ManagedBuffer::new_from_bytes(LOCKED_TOKEN_ID_STORAGE_KEY),
-        )
     }
 
     #[proxy]

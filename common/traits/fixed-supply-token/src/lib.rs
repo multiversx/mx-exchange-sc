@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub trait FixedSupplyToken<M: ManagedTypeApi> {
     fn get_total_supply(&self) -> BigUint<M>;

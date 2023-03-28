@@ -2,8 +2,8 @@
 
 use permissions_module::Permissions;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(TypeAbi, TopEncode, TopDecode, PartialEq, Copy, Clone, Debug)]
 pub enum State {
@@ -12,7 +12,7 @@ pub enum State {
     PartialActive,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait PausableModule: permissions_module::PermissionsModule {
     #[endpoint(addToPauseWhitelist)]
     fn add_to_pause_whitelist(&self, address_list: MultiValueEncoded<ManagedAddress>) {

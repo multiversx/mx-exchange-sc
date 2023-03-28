@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Nonce;
 
@@ -10,9 +10,9 @@ pub struct WrappedTokenAttributes {
     pub locked_token_nonce: Nonce,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WrappedTokenModule:
-    elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::token_attributes::TokenAttributesModule
 {
     #[only_owner]
@@ -73,9 +73,6 @@ pub trait WrappedTokenModule:
         caller: &ManagedAddress,
         token: EsdtTokenPayment,
     ) -> EsdtTokenPayment {
-        self.locked_token()
-            .require_same_token(&token.token_identifier);
-
         let wrapped_token_mapper = self.wrapped_token();
         let wrapped_token_attributes = WrappedTokenAttributes {
             locked_token_nonce: token.token_nonce,
@@ -89,7 +86,11 @@ pub trait WrappedTokenModule:
         wrapped_token_mapper.nft_add_quantity_and_send(caller, wrapped_token_nonce, token.amount)
     }
 
-    fn unwrap_locked_token(&self, token: EsdtTokenPayment) -> EsdtTokenPayment {
+    fn unwrap_locked_token(
+        &self,
+        locked_token_id: TokenIdentifier,
+        token: EsdtTokenPayment,
+    ) -> EsdtTokenPayment {
         let wrapped_token_mapper = self.wrapped_token();
         wrapped_token_mapper.require_same_token(&token.token_identifier);
 
@@ -99,7 +100,6 @@ pub trait WrappedTokenModule:
         self.send()
             .esdt_local_burn(&token.token_identifier, token.token_nonce, &token.amount);
 
-        let locked_token_id = self.locked_token().get_token_id();
         EsdtTokenPayment::new(
             locked_token_id,
             wrapped_token_attributes.locked_token_nonce,
@@ -107,11 +107,7 @@ pub trait WrappedTokenModule:
         )
     }
 
-    #[view(getLockedTokenId)]
-    #[storage_mapper("lockedTokenId")]
-    fn locked_token(&self) -> NonFungibleTokenMapper<Self::Api>;
-
     #[view(getWrappedTokenId)]
     #[storage_mapper("wrappedTokenId")]
-    fn wrapped_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn wrapped_token(&self) -> NonFungibleTokenMapper;
 }

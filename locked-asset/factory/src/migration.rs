@@ -1,9 +1,9 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::UnlockEpochAmountPairs;
 use energy_factory::migration::ProxyTrait as _;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedTokenMigrationModule:
     crate::locked_asset::LockedAssetModule
     + token_send::TokenSendModule

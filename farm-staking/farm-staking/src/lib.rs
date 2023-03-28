@@ -1,6 +1,4 @@
 #![no_std]
-#![feature(exact_size_is_empty)]
-#![allow(clippy::too_many_arguments)]
 #![allow(clippy::from_over_into)]
 #![feature(trait_alias)]
 
@@ -10,19 +8,21 @@ use farm_base_impl::base_traits_impl::FarmContract;
 use fixed_supply_token::FixedSupplyToken;
 use token_attributes::StakingFarmTokenAttributes;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod base_impl_wrapper;
+pub mod claim_only_boosted_staking_rewards;
 pub mod claim_stake_farm_rewards;
 pub mod compound_stake_farm_rewards;
 pub mod custom_rewards;
+pub mod farm_token_roles;
 pub mod stake_farm;
 pub mod token_attributes;
 pub mod unbond_farm;
 pub mod unstake_farm;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait FarmStaking:
     custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
@@ -33,19 +33,31 @@ pub trait FarmStaking:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + farm_base_impl::enter_farm::BaseEnterFarmModule
     + farm_base_impl::claim_rewards::BaseClaimRewardsModule
     + farm_base_impl::compound_rewards::BaseCompoundRewardsModule
     + farm_base_impl::exit_farm::BaseExitFarmModule
+    + farm::progress_update::ProgressUpdateModule
     + utils::UtilsModule
+    + farm_token_roles::FarmTokenRolesModule
     + stake_farm::StakeFarmModule
     + claim_stake_farm_rewards::ClaimStakeFarmRewardsModule
     + compound_stake_farm_rewards::CompoundStakeFarmRewardsModule
     + unstake_farm::UnstakeFarmModule
     + unbond_farm::UnbondFarmModule
+    + claim_only_boosted_staking_rewards::ClaimOnlyBoostedStakingRewardsModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + energy_query::EnergyQueryModule
 {
     #[init]
     fn init(
@@ -75,14 +87,16 @@ pub trait FarmStaking:
     #[payable("*")]
     #[endpoint(mergeFarmTokens)]
     fn merge_farm_tokens_endpoint(&self) -> EsdtTokenPayment<Self::Api> {
+        let caller = self.blockchain().get_caller();
+        self.check_claim_progress_for_merge(&caller);
+
         let payments = self.get_non_empty_payments();
         let token_mapper = self.farm_token();
         let output_attributes: StakingFarmTokenAttributes<Self::Api> =
             self.merge_from_payments_and_burn(payments, &token_mapper);
         let new_token_amount = output_attributes.get_total_supply();
-        let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
 
-        let caller = self.blockchain().get_caller();
+        let merged_farm_token = token_mapper.nft_create(new_token_amount, &output_attributes);
         self.send_payment_non_zero(&caller, &merged_farm_token);
 
         merged_farm_token

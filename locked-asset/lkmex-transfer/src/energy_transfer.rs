@@ -1,12 +1,16 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
 use energy_factory::locked_token_transfer::ProxyTrait as _;
 use energy_query::Energy;
 use simple_lock::locked_token::LockedTokenAttributes;
 
-#[elrond_wasm::module]
-pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsModule {
+#[multiversx_sc::module]
+pub trait EnergyTransferModule:
+    energy_query::EnergyQueryModule
+    + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
+{
     fn deduct_energy_from_sender(
         &self,
         from_user: ManagedAddress,
@@ -15,8 +19,9 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(&from_user);
         for token in tokens {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(&token.token_identifier, token.token_nonce);
             require!(
                 attributes.unlock_epoch > current_epoch,
                 "Cannot transfer tokens that are unlockable"
@@ -36,8 +41,9 @@ pub trait EnergyTransferModule: energy_query::EnergyQueryModule + utils::UtilsMo
         let current_epoch = self.blockchain().get_block_epoch();
         let mut energy = self.get_energy_entry(&to_user);
         for token in tokens {
-            let attributes: LockedTokenAttributes<Self::Api> =
-                self.get_token_attributes(&token.token_identifier, token.token_nonce);
+            let attributes: LockedTokenAttributes<Self::Api> = self
+                .blockchain()
+                .get_token_attributes(&token.token_identifier, token.token_nonce);
             if attributes.unlock_epoch > current_epoch {
                 energy.add_after_token_lock(&token.amount, attributes.unlock_epoch, current_epoch);
             } else {

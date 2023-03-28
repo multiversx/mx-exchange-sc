@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use farm::ProxyTrait as _;
 
 const DIVISION_SAFETY_CONST: u64 = 1_000_000_000_000_000_000;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmDeployModule {
     #[endpoint(deployFarm)]
     fn deploy_farm(
@@ -20,7 +20,7 @@ pub trait FarmDeployModule {
 
         let farm_template = self.farm_template_address().get();
         let code_metadata =
-            CodeMetadata::PAYABLE_BY_SC & CodeMetadata::READABLE & CodeMetadata::UPGRADEABLE;
+            CodeMetadata::PAYABLE_BY_SC | CodeMetadata::READABLE | CodeMetadata::UPGRADEABLE;
         let (new_farm_address, ()) = self
             .farm_deploy_proxy()
             .init(
@@ -57,7 +57,7 @@ pub trait FarmDeployModule {
             .with_gas_limit(gas_left);
 
         for arg in args {
-            contract_call.push_arg_managed_buffer(arg);
+            contract_call.push_raw_argument(arg);
         }
         let _: IgnoreValue = contract_call.execute_on_dest_context();
     }

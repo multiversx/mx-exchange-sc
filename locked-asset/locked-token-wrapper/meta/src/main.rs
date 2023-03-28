@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<locked_token_wrapper::AbiProvider>();
+    multiversx_sc_meta::cli_main::<locked_token_wrapper::AbiProvider>();
 }

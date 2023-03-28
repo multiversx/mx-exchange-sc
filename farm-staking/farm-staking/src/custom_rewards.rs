@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Epoch;
 use contexts::storage_cache::StorageCache;
@@ -11,7 +11,7 @@ pub const MAX_PERCENT: u64 = 10_000;
 pub const BLOCKS_IN_YEAR: u64 = 31_536_000 / 6; // seconds_in_year / 6_seconds_per_block
 const MAX_MIN_UNBOND_EPOCHS: u64 = 30;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait CustomRewardsModule:
     rewards::RewardsModule
     + config::ConfigModule
@@ -19,7 +19,16 @@ pub trait CustomRewardsModule:
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(topUpRewards)]

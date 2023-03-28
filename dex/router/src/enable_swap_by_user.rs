@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use pair::config::ProxyTrait as _;
 use pausable::{ProxyTrait as _, State};
@@ -24,7 +24,7 @@ pub struct SafePriceResult<M: ManagedTypeApi> {
     pub safe_price_in_common_token: BigUint<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EnableSwapByUserModule:
     crate::factory::FactoryModule + crate::events::EventsModule
 {

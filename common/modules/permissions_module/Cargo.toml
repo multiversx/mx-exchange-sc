@@ -1,18 +1,18 @@
 [package]
 name = "permissions_module"
 version = "0.0.0"
-authors = [ "Dorin Iancu <dorin.iancu@elrond.com>", "Claudiu-Marcel Bruda <claudiu.bruda@elrond.com>" ]
-edition = "2018"
+authors = ["Dorin Iancu <dorin.iancu@multiversx.com>", "Claudiu-Marcel Bruda <claudiu.bruda@multiversx.com>"]
+edition = "2021"
 
 [lib]
 path = "src/permissions_module.rs"
 
-[dependencies.common_errors]
-path = "../../common_errors"
-
 [dependencies]
 bitflags = "1.3.2"
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.common_errors]
+path = "../../common_errors"
+
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]

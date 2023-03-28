@@ -1,18 +1,18 @@
 #![allow(dead_code)]
 
 use common_structs::UnlockMilestone;
-use elrond_wasm::{
-    storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, MultiValueEncoded},
-};
-use elrond_wasm_debug::{
-    managed_address, managed_token_id, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    DebugApi,
-};
 use energy_factory::SimpleLockEnergy;
 use factory::{
     locked_asset::LockedAssetModule, migration::LockedTokenMigrationModule, LockedAssetFactory,
+};
+use multiversx_sc::{
+    storage::mappers::StorageTokenWrapper,
+    types::{Address, EsdtLocalRole, MultiValueEncoded},
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_token_id, rust_biguint,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    DebugApi,
 };
 use simple_lock::locked_token::LockedTokenModule;
 

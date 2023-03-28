@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod basic_lock_unlock;
 pub mod error_messages;
@@ -11,11 +11,11 @@ pub mod proxy_farm;
 pub mod proxy_lp;
 pub mod token_attributes;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait SimpleLock:
     basic_lock_unlock::BasicLockUnlock
     + locked_token::LockedTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + proxy_lp::ProxyLpModule
     + proxy_farm::ProxyFarmModule
     + lp_interactions::LpInteractionsModule

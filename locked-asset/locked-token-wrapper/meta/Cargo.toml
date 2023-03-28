@@ -1,14 +1,13 @@
 [package]
 name = "locked-token-wrapper-meta"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 publish = false
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 
 [dev-dependencies]
-
 [dependencies.locked-token-wrapper]
 path = ".."
 
-[dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+[dependencies.multiversx-sc-meta]
+version = "0.39.4"

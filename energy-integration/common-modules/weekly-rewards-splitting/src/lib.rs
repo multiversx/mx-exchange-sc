@@ -2,8 +2,8 @@
 #![feature(trait_alias)]
 #![feature(int_roundings)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub const USER_MAX_CLAIM_WEEKS: usize = 4;
 
@@ -40,7 +40,7 @@ impl<M: ManagedTypeApi> ClaimProgress<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WeeklyRewardsSplittingModule:
     energy_query::EnergyQueryModule
     + week_timekeeping::WeekTimekeepingModule
@@ -54,13 +54,8 @@ pub trait WeeklyRewardsSplittingModule:
         wrapper: &WRSM,
         user: &ManagedAddress,
     ) -> PaymentsVec<Self::Api> {
-        if self.blockchain().is_smart_contract(user) {
-            return PaymentsVec::new();
-        }
-
         let current_week = self.get_current_week();
         let current_user_energy = self.get_energy_entry(user);
-        let current_energy_amount = current_user_energy.get_energy_amount();
 
         let claim_progress_mapper = wrapper.get_claim_progress_mapper(self, user);
         let is_new_user = claim_progress_mapper.is_empty();
@@ -95,7 +90,9 @@ pub trait WeeklyRewardsSplittingModule:
         // Then, they wait for a long period, and start claiming,
         // getting rewards they shouldn't have access to.
         // In this case, they receive no rewards, and their progress is reset
-        if current_energy_amount >= calculated_energy_for_current_epoch.get_energy_amount() {
+        if current_user_energy.get_energy_amount_raw()
+            >= calculated_energy_for_current_epoch.get_energy_amount_raw()
+        {
             let total_weeks_to_claim = current_week - claim_progress.week;
             if total_weeks_to_claim > USER_MAX_CLAIM_WEEKS {
                 let extra_weeks = total_weeks_to_claim - USER_MAX_CLAIM_WEEKS;

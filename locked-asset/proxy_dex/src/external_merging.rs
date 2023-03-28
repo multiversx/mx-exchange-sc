@@ -1,7 +1,7 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::PaymentsVec;
-use elrond_wasm::api::CallTypeApi;
+use multiversx_sc::api::CallTypeApi;
 
 pub static FACTORY_MERGE_TOKENS_ENDPOINT_NAME: &[u8] = b"mergeTokens";
 pub static FARM_MERGE_TOKENS_ENDPOINT_NAME: &[u8] = b"mergeFarmTokens";
@@ -38,12 +38,12 @@ fn merge_common<M: CallTypeApi>(
     endpoint_name: &[u8],
     tokens: PaymentsVec<M>,
 ) -> EsdtTokenPayment<M> {
-    let mut contract_call = ContractCall::<M, EsdtTokenPayment<M>>::new_with_esdt_payment(
+    let mut contract_call = ContractCallWithMultiEsdt::<M, EsdtTokenPayment<M>>::new(
         sc_address,
         ManagedBuffer::new_from_bytes(endpoint_name),
         tokens,
     );
-    contract_call.push_endpoint_arg(&original_caller);
+    contract_call.proxy_arg(&original_caller);
 
     contract_call.execute_on_dest_context()
 }

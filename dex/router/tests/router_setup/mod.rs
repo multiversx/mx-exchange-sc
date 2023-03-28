@@ -1,9 +1,9 @@
-use elrond_wasm::elrond_codec::multi_types::{MultiValue4, OptionalValue};
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
-use elrond_wasm_debug::tx_mock::TxInputESDT;
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint,
-    testing_framework::*, DebugApi,
+use multiversx_sc::codec::multi_types::{MultiValue4, OptionalValue};
+use multiversx_sc::types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded};
+use multiversx_sc_scenario::whitebox::TxTokenTransfer;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_buffer, managed_token_id, rust_biguint, whitebox::*,
+    DebugApi,
 };
 
 pub const PAIR_WASM_PATH: &str = "pair/output/pair.wasm";
@@ -197,12 +197,12 @@ where
 
     pub fn add_liquidity(&mut self) {
         let payments = vec![
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: WEGLD_TOKEN_ID.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(ADD_LIQUIDITY_TOKENS),
             },
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: MEX_TOKEN_ID.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(ADD_LIQUIDITY_TOKENS),
@@ -224,12 +224,12 @@ where
             .assert_ok();
 
         let payments = vec![
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: WEGLD_TOKEN_ID.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(ADD_LIQUIDITY_TOKENS),
             },
-            TxInputESDT {
+            TxTokenTransfer {
                 token_identifier: USDC_TOKEN_ID.to_vec(),
                 nonce: 0,
                 value: rust_biguint!(ADD_LIQUIDITY_TOKENS),

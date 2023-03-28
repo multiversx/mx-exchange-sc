@@ -1,32 +1,26 @@
 [package]
 name = "factory-wasm"
 version = "0.0.0"
-authors = [ "you",]
-edition = "2018"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
-crate-type = [ "cdylib",]
+crate-type = ["cdylib"]
 
 [workspace]
-members = [ ".",]
+members = ["."]
 
 [dev-dependencies]
-
 [profile.release]
 codegen-units = 1
 opt-level = "z"
 lto = true
 debug = false
 panic = "abort"
-
 [dependencies.factory]
 default-features = false
 path = ".."
 
-[dependencies.elrond-wasm-node]
-version = "=0.36.1"
-
-[dependencies.elrond-wasm-output]
-version = "=0.36.1"
-features = ["wasm-output-mode"]
+[dependencies.multiversx-sc-wasm-adapter]
+version = "=0.39.4"

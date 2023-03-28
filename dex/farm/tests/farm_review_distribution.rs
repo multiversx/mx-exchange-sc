@@ -2,8 +2,8 @@ mod farm_setup;
 
 use std::ops::Mul;
 
-use elrond_wasm_debug::rust_biguint;
 use farm_setup::farm_rewards_distr_setup::*;
+use multiversx_sc_scenario::rust_biguint;
 
 #[test]
 fn test_overview() {

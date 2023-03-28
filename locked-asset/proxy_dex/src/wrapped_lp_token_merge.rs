@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::{
     proxy_common::{INVALID_PAYMENTS_ERR_MSG, MIN_MERGE_PAYMENTS},
@@ -9,12 +9,13 @@ use fixed_supply_token::FixedSupplyToken;
 
 use super::proxy_common;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WrappedLpTokenMerge:
     token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
     + proxy_common::ProxyCommonModule
     + utils::UtilsModule
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(mergeWrappedLpTokens)]
@@ -29,7 +30,7 @@ pub trait WrappedLpTokenMerge:
         let wrapped_token_mapper = self.wrapped_lp_token();
         let wrapped_lp_tokens = WrappedLpToken::new_from_payments(&payments, &wrapped_token_mapper);
 
-        self.burn_multi_esdt(&payments);
+        self.send().esdt_local_burn_multi(&payments);
 
         let merged_tokens = self
             .merge_wrapped_lp_tokens(&caller, wrapped_lp_tokens)
@@ -71,9 +72,7 @@ pub trait WrappedLpTokenMerge:
             .attributes
             .locked_tokens
             .token_identifier;
-        let factory_address = self
-            .factory_address_for_locked_token(&locked_token_id)
-            .get();
+        let factory_address = self.get_factory_address_for_locked_token(&locked_token_id);
 
         let wrapped_lp_token_mapper = self.wrapped_lp_token();
         merge_wrapped_lp_tokens(

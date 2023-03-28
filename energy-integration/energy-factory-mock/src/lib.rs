@@ -1,10 +1,10 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use energy_query::Energy;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait EnergyFactoryMock {
     #[init]
     fn init(&self) {}
@@ -54,4 +54,7 @@ pub trait EnergyFactoryMock {
 
     #[storage_mapper("userEnergy")]
     fn user_energy(&self, user: &ManagedAddress) -> SingleValueMapper<Energy<Self::Api>>;
+
+    #[storage_mapper("lockedTokenId")]
+    fn locked_token(&self) -> NonFungibleTokenMapper;
 }

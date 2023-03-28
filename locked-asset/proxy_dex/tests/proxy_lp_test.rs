@@ -1,15 +1,15 @@
 mod proxy_dex_test_setup;
 
-use elrond_wasm::{
-    elrond_codec::Empty,
-    types::{BigInt, EsdtTokenPayment},
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, tx_mock::TxInputESDT,
-    DebugApi,
-};
 use energy_factory::energy::EnergyModule;
 use energy_query::Energy;
+use multiversx_sc::{
+    codec::Empty,
+    types::{BigInt, EsdtTokenPayment},
+};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::TxTokenTransfer,
+    DebugApi,
+};
 use num_traits::ToPrimitive;
 use proxy_dex::{
     proxy_pair::ProxyPairModule, wrapped_lp_attributes::WrappedLpTokenAttributes,
@@ -43,12 +43,12 @@ fn add_remove_liquidity_proxy_test() {
 
     // set the price to 1 EGLD = 2 MEX
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: locked_token_amount.clone(),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: other_token_amount.clone(),
@@ -241,12 +241,12 @@ fn tripple_add_liquidity_proxy_test() {
 
     // set the price to 1 EGLD = 2 MEX
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: locked_token_amount1.clone(),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: other_token_amount.clone(),
@@ -324,12 +324,12 @@ fn tripple_add_liquidity_proxy_test() {
     );
 
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: locked_token_amount2,
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: other_token_amount.clone(),
@@ -410,12 +410,12 @@ fn tripple_add_liquidity_proxy_test() {
 
     // Third add liquidity
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: locked_token_amount1.clone(),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: other_token_amount2,
@@ -507,12 +507,12 @@ fn wrapped_lp_token_merge_test() {
 
     // set the price to 1 EGLD = 2 MEX
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: locked_token_amount.clone(),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WEGLD_TOKEN_ID.to_vec(),
             nonce: 0,
             value: other_token_amount.clone(),
@@ -536,12 +536,12 @@ fn wrapped_lp_token_merge_test() {
     let first_amount = rust_biguint!(150_000_000);
     let second_amount = rust_biguint!(250_000_000);
     let tokens_to_merge = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
             value: first_amount,
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: WRAPPED_LP_TOKEN_ID.to_vec(),
             nonce: 1,
             value: second_amount,

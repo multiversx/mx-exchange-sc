@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::config;
 
 mod price_provider_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait PriceProvider {
         #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
         fn update_and_get_tokens_for_given_position_with_safe_price(
@@ -15,7 +15,7 @@ mod price_provider_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait Lib: config::Config {
     fn get_vote_weight(&self, payment: &EsdtTokenPayment<Self::Api>) -> BigUint {
         let mex_token_id = self.mex_token_id().get();

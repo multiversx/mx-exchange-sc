@@ -1,28 +1,55 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
 use math::weighted_average_round_up;
 use mergeable::Mergeable;
+use multiversx_sc::codec::{NestedDecodeInput, TopDecodeInput};
 
 static NOT_IMPLEMENTED_ERR_MSG: &[u8] = b"Conversion not implemented";
 
-#[derive(
-    ManagedVecItem,
-    TopEncode,
-    TopDecode,
-    NestedEncode,
-    NestedDecode,
-    TypeAbi,
-    Clone,
-    PartialEq,
-    Debug,
-)]
+#[derive(ManagedVecItem, TopEncode, NestedEncode, TypeAbi, Clone, PartialEq, Debug)]
 pub struct StakingFarmTokenAttributes<M: ManagedTypeApi> {
     pub reward_per_share: BigUint<M>,
     pub compounded_reward: BigUint<M>,
     pub current_farm_amount: BigUint<M>,
+    pub original_owner: ManagedAddress<M>,
+}
+
+impl<M: ManagedTypeApi> TopDecode for StakingFarmTokenAttributes<M> {
+    fn top_decode<I>(input: I) -> Result<Self, DecodeError>
+    where
+        I: TopDecodeInput,
+    {
+        let mut buffer = input.into_nested_buffer();
+        Self::dep_decode(&mut buffer)
+    }
+}
+
+impl<M: ManagedTypeApi> NestedDecode for StakingFarmTokenAttributes<M> {
+    fn dep_decode<I: NestedDecodeInput>(input: &mut I) -> Result<Self, DecodeError> {
+        let reward_per_share = BigUint::dep_decode(input)?;
+        let compounded_reward = BigUint::dep_decode(input)?;
+        let current_farm_amount = BigUint::dep_decode(input)?;
+
+        let original_owner = if !input.is_depleted() {
+            ManagedAddress::dep_decode(input)?
+        } else {
+            ManagedAddress::zero()
+        };
+
+        if !input.is_depleted() {
+            return Result::Err(DecodeError::INPUT_TOO_LONG);
+        }
+
+        Result::Ok(StakingFarmTokenAttributes {
+            reward_per_share,
+            compounded_reward,
+            current_farm_amount,
+            original_owner,
+        })
+    }
 }
 
 #[derive(ManagedVecItem, Clone)]
@@ -74,18 +101,20 @@ impl<M: ManagedTypeApi> FixedSupplyToken<M> for StakingFarmTokenAttributes<M> {
             reward_per_share: self.reward_per_share,
             compounded_reward: new_compounded_reward,
             current_farm_amount: new_current_farm_amount,
+            original_owner: self.original_owner,
         }
     }
 }
 
 impl<M: ManagedTypeApi> Mergeable<M> for StakingFarmTokenAttributes<M> {
-    /// farm staking tokens can always be merged with each other
     #[inline]
-    fn can_merge_with(&self, _other: &Self) -> bool {
-        true
+    fn can_merge_with(&self, other: &Self) -> bool {
+        self.original_owner == other.original_owner
     }
 
     fn merge_with(&mut self, other: Self) {
+        self.error_if_not_mergeable(&other);
+
         let first_supply = self.get_total_supply();
         let second_supply = other.get_total_supply();
         self.reward_per_share = weighted_average_round_up(

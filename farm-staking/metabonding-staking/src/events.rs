@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::locked_asset_token::UserEntry;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     #[event("stakeEvent")]
     fn stake_event(

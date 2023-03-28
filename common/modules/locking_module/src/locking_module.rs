@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockingModule {
     #[only_owner]
     #[endpoint(setLockingScAddress)]
@@ -49,7 +49,7 @@ pub trait LockingModule {
 
         proxy_instance
             .lock_tokens_endpoint(unlock_epoch, opt_dest)
-            .with_egld_or_single_esdt_token_transfer(token_id, 0, amount)
+            .with_egld_or_single_esdt_transfer((token_id, 0, amount))
             .execute_on_dest_context()
     }
 

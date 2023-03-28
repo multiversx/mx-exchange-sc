@@ -1,9 +1,9 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::errors::*;
 use crate::proposal::*;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait Config {
     #[endpoint(changeQuorum)]
     fn change_quorum(&self, new_value: BigUint) {

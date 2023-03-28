@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use core::cmp;
 
@@ -29,7 +29,7 @@ impl<M: ManagedTypeApi> SplitReward<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmBoostedYieldsModule:
     boosted_yields_factors::BoostedYieldsFactorsModule
     + config::ConfigModule
@@ -70,11 +70,9 @@ pub trait FarmBoostedYieldsModule:
         }
 
         for week in first_collect_week..=last_collect_week {
-            let rewards_to_distribute_mapper = self.remaining_boosted_rewards_to_distribute(week);
-            let rewards_to_distribute = rewards_to_distribute_mapper.get();
+            let rewards_to_distribute = self.remaining_boosted_rewards_to_distribute(week).take();
             self.undistributed_boosted_rewards()
                 .update(|total_amount| *total_amount += rewards_to_distribute);
-            rewards_to_distribute_mapper.clear();
         }
 
         last_collect_week_mapper.set(last_collect_week);
@@ -123,6 +121,27 @@ pub trait FarmBoostedYieldsModule:
         }
 
         total
+    }
+
+    fn set_farm_supply_for_current_week(&self, farm_supply: &BigUint) {
+        let current_week = self.get_current_week();
+        self.farm_supply_for_week(current_week).set(farm_supply);
+    }
+
+    fn clear_user_energy_if_needed(
+        &self,
+        original_caller: &ManagedAddress,
+        user_remaining_farm_tokens: &BigUint,
+    ) {
+        let opt_config = self.try_get_boosted_yields_config();
+        if let Some(config) = opt_config {
+            let boosted_yields_factors = config.get_latest_factors();
+            self.clear_user_energy(
+                original_caller,
+                user_remaining_farm_tokens,
+                &boosted_yields_factors.min_farm_amount,
+            );
+        }
     }
 
     #[view(getBoostedYieldsRewardsPercentage)]
@@ -180,10 +199,7 @@ where
         sc.update_boosted_yields_config();
 
         let reward_token_id = sc.reward_token_id().get();
-        let rewards_mapper = sc.accumulated_rewards_for_week(week);
-        let total_rewards = rewards_mapper.get();
-        rewards_mapper.clear();
-
+        let total_rewards = sc.accumulated_rewards_for_week(week).take();
         sc.remaining_boosted_rewards_to_distribute(week)
             .set(&total_rewards);
 

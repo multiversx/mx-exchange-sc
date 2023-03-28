@@ -1,22 +1,22 @@
 use config::ConfigModule;
-use elrond_wasm::{
-    contract_base::{CallableContract, ContractBase},
-    elrond_codec::multi_types::OptionalValue,
-    storage::mappers::StorageTokenWrapper,
-    types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded},
-};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::{BlockchainStateWrapper, ContractObjWrapper},
-    DebugApi,
-};
-use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{locked_token_transfer::LockedTokenTransferModule, SimpleLockEnergy};
 use energy_query::EnergyQueryModule;
 use farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule;
 use farm_token::FarmTokenModule;
 use farm_with_locked_rewards::Farm as FarmLocked;
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
+    contract_base::{CallableContract, ContractBase},
+    storage::mappers::StorageTokenWrapper,
+    types::{Address, EsdtLocalRole, ManagedAddress, MultiValueEncoded},
+};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
+    whitebox::{BlockchainStateWrapper, ContractObjWrapper},
+    DebugApi,
+};
 use pair::{config::ConfigModule as OtherConfigModule, safe_price::SafePriceModule, Pair};
 use pausable::{PausableModule, State};
 use proxy_dex::{proxy_common::ProxyCommonModule, sc_whitelist::ScWhitelistModule, ProxyDexImpl};
@@ -213,7 +213,7 @@ where
 
 #[allow(dead_code)]
 pub fn to_rust_biguint(
-    managed_biguint: elrond_wasm::types::BigUint<DebugApi>,
+    managed_biguint: multiversx_sc::types::BigUint<DebugApi>,
 ) -> num_bigint::BigUint {
     num_bigint::BigUint::from_bytes_be(managed_biguint.to_bytes_be().as_slice())
 }
@@ -424,18 +424,10 @@ where
 
     b_mock
         .execute_tx(owner, &proxy_wrapper, &rust_zero, |sc| {
-            let mut locked_token_factory_address_token_pairs = MultiValueEncoded::new();
-            locked_token_factory_address_token_pairs.push(
-                (
-                    managed_token_id!(LOCKED_TOKEN_ID),
-                    managed_address!(simple_lock_addr),
-                )
-                    .into(),
-            );
-
             sc.init(
-                managed_token_id!(MEX_TOKEN_ID),
-                locked_token_factory_address_token_pairs,
+                managed_token_id!(LEGACY_LOCKED_TOKEN_ID),
+                managed_address!(simple_lock_addr),
+                managed_address!(simple_lock_addr),
             );
 
             sc.wrapped_lp_token()
@@ -492,12 +484,8 @@ impl ContractBase for DummySc {
 }
 
 impl CallableContract for DummySc {
-    fn call(&self, _fn_name: &[u8]) -> bool {
+    fn call(&self, _fn_name: &str) -> bool {
         true
-    }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
     }
 }
 

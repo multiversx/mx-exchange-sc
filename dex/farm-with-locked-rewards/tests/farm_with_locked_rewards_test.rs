@@ -1,5 +1,5 @@
 use common_structs::FarmTokenAttributes;
-use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, DebugApi};
+use multiversx_sc_scenario::{managed_address, managed_biguint, rust_biguint, DebugApi};
 use simple_lock::locked_token::LockedTokenAttributes;
 
 use crate::farm_with_locked_rewards_setup::{

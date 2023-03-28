@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::*;
 
@@ -13,7 +13,7 @@ pub struct LockedTokenEx<M: ManagedTypeApi> {
     pub attributes: LockedAssetTokenAttributesEx<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockedAssetModule:
     token_send::TokenSendModule + crate::attr_ex_helper::AttrExHelper
 {
@@ -186,7 +186,7 @@ pub trait LockedAssetModule:
 
     #[view(getLockedAssetTokenId)]
     #[storage_mapper("locked_asset_token_id")]
-    fn locked_asset_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn locked_asset_token(&self) -> NonFungibleTokenMapper;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]

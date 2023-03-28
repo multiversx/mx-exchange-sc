@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ConfigModule {
     #[only_owner]
     #[endpoint(addKnownContracts)]
@@ -74,7 +74,7 @@ pub trait ConfigModule {
     fn known_contracts(&self) -> UnorderedSetMapper<ManagedAddress>;
 
     #[storage_mapper("knownTokens")]
-    fn known_tokens(&self) -> WhitelistMapper<Self::Api, TokenIdentifier>;
+    fn known_tokens(&self) -> WhitelistMapper<TokenIdentifier>;
 
     #[storage_mapper("allTokens")]
     fn all_tokens(&self) -> SingleValueMapper<ManagedVec<TokenIdentifier>>;

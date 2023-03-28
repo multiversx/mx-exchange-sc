@@ -1,14 +1,14 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Nonce;
 use pausable::State;
 
 pub const DEFAULT_NFT_DEPOSIT_MAX_LEN: usize = 10;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ConfigModule: pausable::PausableModule + permissions_module::PermissionsModule {
     #[inline]
     fn is_active(&self) -> bool {

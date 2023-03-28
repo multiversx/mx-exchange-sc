@@ -1,10 +1,10 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use contexts::storage_cache::StorageCache;
 
 use crate::token_attributes::UnbondSftAttributes;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UnbondFarmModule:
     crate::custom_rewards::CustomRewardsModule
     + rewards::RewardsModule
@@ -15,10 +15,19 @@ pub trait UnbondFarmModule:
     + sc_whitelist_module::SCWhitelistModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + farm_base_impl::base_farm_init::BaseFarmInitModule
     + farm_base_impl::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
+    + farm_boosted_yields::FarmBoostedYieldsModule
+    + farm_boosted_yields::boosted_yields_factors::BoostedYieldsFactorsModule
+    + week_timekeeping::WeekTimekeepingModule
+    + weekly_rewards_splitting::WeeklyRewardsSplittingModule
+    + weekly_rewards_splitting::events::WeeklyRewardsSplittingEventsModule
+    + weekly_rewards_splitting::global_info::WeeklyRewardsGlobalInfo
+    + weekly_rewards_splitting::locked_token_buckets::WeeklyRewardsLockedTokenBucketsModule
+    + weekly_rewards_splitting::update_claim_progress_energy::UpdateClaimProgressEnergyModule
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(unbondFarm)]

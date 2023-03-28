@@ -1,7 +1,7 @@
 mod token_unstake_setup;
 
-use elrond_wasm::types::{EsdtTokenPayment, ManagedVec};
-use elrond_wasm_debug::{
+use multiversx_sc::types::{EsdtTokenPayment, ManagedVec};
+use multiversx_sc_scenario::{
     managed_address, managed_token_id, managed_token_id_wrapped, rust_biguint, DebugApi,
 };
 use num_bigint::ToBigInt;

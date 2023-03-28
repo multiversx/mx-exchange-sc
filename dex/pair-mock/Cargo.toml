@@ -1,23 +1,21 @@
 [package]
 name = "pair-mock"
 version = "0.0.0"
-authors = [ "you",]
-edition = "2018"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/pair.rs"
-
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.itertools]
 version = "0.10.1"
 default-features = false
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

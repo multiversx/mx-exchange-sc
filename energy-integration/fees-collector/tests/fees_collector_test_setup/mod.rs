@@ -1,17 +1,18 @@
-use elrond_wasm::{
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{Address, BigInt, EsdtLocalRole, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::*, tx_mock::TxResult, DebugApi,
+    whitebox::TxResult, whitebox::*, DebugApi,
 };
 
-use elrond_wasm_modules::pause::PauseModule;
 use energy_factory::{energy::EnergyModule, SimpleLockEnergy};
 use energy_query::{Energy, EnergyQueryModule};
 use fees_collector::{config::ConfigModule, fees_accumulation::FeesAccumulationModule, *};
 use locking_module::lock_with_energy_module::LockWithEnergyModule;
+use multiversx_sc_modules::pause::PauseModule;
 use sc_whitelist_module::SCWhitelistModule;
 use simple_lock::locked_token::{LockedTokenAttributes, LockedTokenModule};
 use week_timekeeping::{Week, WeekTimekeepingModule, EPOCHS_IN_WEEK};
@@ -222,7 +223,7 @@ where
     pub fn claim(&mut self, user: &Address) -> TxResult {
         self.b_mock
             .execute_tx(user, &self.fc_wrapper, &rust_biguint!(0), |sc| {
-                let _ = sc.claim_rewards();
+                let _ = sc.claim_rewards(OptionalValue::None);
             })
     }
 

@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_structs::Epoch;
 
@@ -159,9 +159,14 @@ impl<M: ManagedTypeApi> Energy<M> {
             BigUint::zero()
         }
     }
+
+    #[inline]
+    pub fn get_energy_amount_raw(&self) -> &BigInt<M> {
+        &self.amount
+    }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EnergyModule: crate::events::EventsModule {
     fn update_energy<T, F: FnOnce(&mut Energy<Self::Api>) -> T>(
         &self,
@@ -176,13 +181,7 @@ pub trait EnergyModule: crate::events::EventsModule {
     }
 
     fn set_energy_entry(&self, user: &ManagedAddress, new_energy: Energy<Self::Api>) {
-        require!(
-            !self.blockchain().is_smart_contract(user),
-            "Only user accounts can have energy"
-        );
-
         let prev_energy = self.get_updated_energy_entry_for_user(user);
-
         self.user_energy(user).set(&new_energy);
         self.emit_energy_updated_event(user, prev_energy, new_energy);
     }

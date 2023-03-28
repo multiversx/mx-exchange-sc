@@ -1,7 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use fixed_supply_token::FixedSupplyToken;
 
@@ -20,7 +20,7 @@ pub type ExitFarmProxyResultType<M> =
     MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 pub type ClaimRewardsFarmProxyResultType<M> = MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyFarmModule:
     crate::proxy_common::ProxyCommonModule
     + crate::sc_whitelist::ScWhitelistModule
@@ -49,11 +49,8 @@ pub trait ProxyFarmModule:
         let proxy_farming_token = self.pop_first_payment(&mut payments);
 
         let wrapped_lp_token_id = self.wrapped_lp_token().get_token_id();
-        let is_input_locked_token = self
-            .locked_token_ids()
-            .contains(&proxy_farming_token.token_identifier);
-
-        let farm_farming_token_pair = if is_input_locked_token {
+        let farm_farming_token_pair = if self.is_locked_token(&proxy_farming_token.token_identifier)
+        {
             self.enter_farm_locked_token(farm_address.clone(), proxy_farming_token.clone())
         } else if proxy_farming_token.token_identifier == wrapped_lp_token_id {
             self.enter_farm_wrapped_lp(farm_address.clone(), proxy_farming_token.clone())
@@ -72,7 +69,7 @@ pub trait ProxyFarmModule:
             let wrapped_lp_tokens =
                 WrappedFarmToken::new_from_payments(&payments, &wrapped_farm_mapper);
 
-            self.burn_multi_esdt(&payments);
+            self.send().esdt_local_burn_multi(&payments);
 
             self.merge_wrapped_farm_tokens_with_virtual_pos(
                 &caller,
@@ -110,7 +107,11 @@ pub trait ProxyFarmModule:
         farm_address: ManagedAddress,
         locked_token: EsdtTokenPayment,
     ) -> FarmingFarmTokenPair<Self::Api> {
-        let minted_asset_tokens = self.asset_token().mint(locked_token.amount);
+        let asset_token_id = self.get_base_token_id();
+        self.send()
+            .esdt_local_mint(&asset_token_id, 0, &locked_token.amount);
+
+        let minted_asset_tokens = EsdtTokenPayment::new(asset_token_id, 0, locked_token.amount);
         let enter_result = self.call_enter_farm(
             farm_address,
             minted_asset_tokens.token_identifier.clone(),
@@ -164,8 +165,9 @@ pub trait ProxyFarmModule:
         let payment = self.call_value().single_esdt();
         wrapped_farm_token_mapper.require_same_token(&payment.token_identifier);
 
-        let full_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> =
-            self.get_token_attributes(&payment.token_identifier, payment.token_nonce);
+        let full_wrapped_farm_attributes: WrappedFarmTokenAttributes<Self::Api> = self
+            .blockchain()
+            .get_token_attributes(&payment.token_identifier, payment.token_nonce);
 
         let wrapped_farm_attributes_for_exit: WrappedFarmTokenAttributes<Self::Api> =
             full_wrapped_farm_attributes
@@ -241,10 +243,7 @@ pub trait ProxyFarmModule:
         let mut remaining_proxy_tokens = proxy_farming_token.clone();
         remaining_proxy_tokens.amount -= &penalty_amount;
 
-        let is_locked_token = self
-            .locked_token_ids()
-            .contains(&proxy_farming_token.token_identifier);
-        if is_locked_token {
+        if self.is_locked_token(&proxy_farming_token.token_identifier) {
             self.burn_locked_tokens_and_update_energy(
                 &proxy_farming_token.token_identifier,
                 proxy_farming_token.token_nonce,

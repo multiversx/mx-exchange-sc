@@ -1,17 +1,13 @@
 [package]
 name = "metabonding-staking-meta"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 publish = false
-authors = [ "you",]
+authors = ["MultiversX <contact@multiversx.com>"]
 
 [dev-dependencies]
-
 [dependencies.metabonding-staking]
 path = ".."
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-
-[dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+[dependencies.multiversx-sc-meta]
+version = "0.39.4"

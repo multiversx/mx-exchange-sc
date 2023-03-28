@@ -1,7 +1,7 @@
-use elrond_wasm::contract_base::{CallableContract, ContractBase};
-use elrond_wasm_debug::DebugApi;
+use multiversx_sc::contract_base::{CallableContract, ContractBase};
+use multiversx_sc_scenario::DebugApi;
 
-static DEPOSIT_FN_NAME: &[u8] = b"depositSwapFees";
+static DEPOSIT_FN_NAME: &str = "depositSwapFees";
 
 #[derive(Clone)]
 pub struct FeesCollectorMock {}
@@ -11,12 +11,8 @@ impl ContractBase for FeesCollectorMock {
 }
 
 impl CallableContract for FeesCollectorMock {
-    fn call(&self, fn_name: &[u8]) -> bool {
+    fn call(&self, fn_name: &str) -> bool {
         fn_name == DEPOSIT_FN_NAME
-    }
-
-    fn clone_obj(&self) -> Box<dyn CallableContract> {
-        Box::new(self.clone())
     }
 }
 

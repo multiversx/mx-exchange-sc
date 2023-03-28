@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait LockingWrapperModule:
     crate::config::ConfigModule
     + token_send::TokenSendModule
@@ -60,7 +60,7 @@ pub trait LockingWrapperModule:
 
         let payment: EgldOrEsdtTokenPayment<Self::Api> = proxy_instance
             .lock_tokens_endpoint(unlock_epoch, opt_dest)
-            .add_esdt_token_transfer(token_id, 0, amount)
+            .with_esdt_transfer((token_id, 0, amount))
             .execute_on_dest_context();
         let (token_id, token_nonce, amount) = payment.into_tuple();
 

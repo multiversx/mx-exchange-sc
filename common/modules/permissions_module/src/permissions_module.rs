@@ -6,9 +6,9 @@ use common_errors::ERROR_PERMISSION_DENIED;
 
 pub use permissions::Permissions;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait PermissionsModule {
     #[endpoint(addAdmin)]
     fn add_admin_endpoint(&self, address: ManagedAddress) {

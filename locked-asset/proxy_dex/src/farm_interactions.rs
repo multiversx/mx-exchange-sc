@@ -1,4 +1,4 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use farm::{
     base_functions::{ClaimRewardsResultType, ClaimRewardsResultWrapper},
@@ -16,7 +16,7 @@ pub struct ExitFarmResultWrapper<M: ManagedTypeApi> {
     pub remaining_farm_tokens: EsdtTokenPayment<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FarmInteractionsModule {
     fn call_enter_farm(
         &self,
@@ -28,7 +28,7 @@ pub trait FarmInteractionsModule {
         let enter_farm_result: EnterFarmResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
             .enter_farm_endpoint(original_caller)
-            .add_esdt_token_transfer(farming_token_id, 0, farming_token_amount)
+            .with_esdt_transfer((farming_token_id, 0, farming_token_amount))
             .execute_on_dest_context();
 
         let (output_farm_token_payment, rewards_payment) = enter_farm_result.into_tuple();
@@ -49,11 +49,7 @@ pub trait FarmInteractionsModule {
         let raw_result: ExitFarmWithPartialPosResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
             .exit_farm_endpoint(exit_amount, original_caller)
-            .add_esdt_token_transfer(
-                farm_token.token_identifier,
-                farm_token.token_nonce,
-                farm_token.amount,
-            )
+            .with_esdt_transfer(farm_token)
             .execute_on_dest_context();
         let (farming_tokens, reward_tokens, remaining_farm_tokens) = raw_result.into_tuple();
 
@@ -73,11 +69,7 @@ pub trait FarmInteractionsModule {
         let raw_result: ClaimRewardsResultType<Self::Api> = self
             .farm_contract_proxy(farm_address)
             .claim_rewards_endpoint(original_caller)
-            .add_esdt_token_transfer(
-                farm_token.token_identifier,
-                farm_token.token_nonce,
-                farm_token.amount,
-            )
+            .with_esdt_transfer(farm_token)
             .execute_on_dest_context();
         let (new_farm_token, rewards) = raw_result.into_tuple();
 

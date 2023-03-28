@@ -1,10 +1,10 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use weekly_rewards_splitting::update_claim_progress_energy::ProxyTrait as _;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait EnergyUpdate {
     #[init]
     fn init(&self) {}

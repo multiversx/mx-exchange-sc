@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use itertools::Itertools;
 
@@ -14,7 +14,7 @@ pub const DEFAULT_LP_TOKEN_ID: &[u8] = b"LPTOK-abcdef";
 pub const DEFAULT_STATE: bool = true;
 pub const DEFAULT_SKIP_MINTING_LP_TOKENS: bool = true;
 
-#[elrond_wasm::derive::contract]
+#[multiversx_sc::derive::contract]
 pub trait PairMock {
     #[init]
     fn init(

@@ -1,21 +1,23 @@
 [package]
 name = "locked-token-wrapper"
 version = "0.0.0"
-authors = [ "you",]
-edition = "2018"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-
-[dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
 
 [dependencies.utils]
 path = "../../common/modules/utils"
+
+[dependencies.legacy_token_decode_module]
+path = "../../common/modules/legacy_token_decode_module"
 
 [dependencies.simple-lock]
 path = "../simple-lock"
@@ -35,10 +37,10 @@ path = "../../energy-integration/common-modules/energy-query"
 [dependencies.common_structs]
 path = "../../common/common_structs"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
-
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

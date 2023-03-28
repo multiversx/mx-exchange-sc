@@ -4,10 +4,10 @@ use common_structs::UnlockMilestoneEx;
 use common_structs::UnlockScheduleEx;
 use common_structs::PRECISION_EX_INCREASE;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait AttrExHelper {
     fn get_attributes_ex(
         &self,

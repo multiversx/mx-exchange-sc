@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::error_messages::*;
 use crate::locked_token::{LockedTokenAttributes, PreviousStatusFlag, UnlockedPaymentWrapper};
@@ -18,12 +18,12 @@ pub type AddLiquidityThroughProxyResultType<M> =
 pub type RemoveLiquidityThroughProxyResultType<M> =
     MultiValue2<EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyLpModule:
     crate::locked_token::LockedTokenModule
     + crate::lp_interactions::LpInteractionsModule
     + crate::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
 {
     #[only_owner]
     #[payable("EGLD")]
@@ -104,19 +104,11 @@ pub trait ProxyLpModule:
             self.lp_address_for_token_pair(&second_token_id, &first_token_id);
 
         if !correct_order_mapper.is_empty() {
-            require!(
-                correct_order_mapper.get() == lp_address,
-                LP_REMOVAL_WRONG_PAIR
-            );
-
-            correct_order_mapper.clear();
+            let stored_lp_addr = correct_order_mapper.take();
+            require!(stored_lp_addr == lp_address, LP_REMOVAL_WRONG_PAIR);
         } else if !reverse_order_mapper.is_empty() {
-            require!(
-                reverse_order_mapper.get() == lp_address,
-                LP_REMOVAL_WRONG_PAIR
-            );
-
-            reverse_order_mapper.clear();
+            let stored_lp_addr = reverse_order_mapper.take();
+            require!(stored_lp_addr == lp_address, LP_REMOVAL_WRONG_PAIR);
         } else {
             sc_panic!(LP_REMOVAL_WRONG_PAIR);
         }
@@ -389,5 +381,5 @@ pub trait ProxyLpModule:
 
     #[view(getLpProxyTokenId)]
     #[storage_mapper("lpProxyTokenId")]
-    fn lp_proxy_token(&self) -> NonFungibleTokenMapper<Self::Api>;
+    fn lp_proxy_token(&self) -> NonFungibleTokenMapper;
 }

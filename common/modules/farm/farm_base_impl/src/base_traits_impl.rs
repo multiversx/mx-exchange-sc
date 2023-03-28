@@ -1,10 +1,9 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_structs::{FarmToken, FarmTokenAttributes, Nonce};
 use config::ConfigModule;
 use contexts::storage_cache::StorageCache;
 use core::marker::PhantomData;
-use elrond_wasm::elrond_codec::TopEncode;
 use fixed_supply_token::FixedSupplyToken;
 use mergeable::Mergeable;
 use rewards::RewardsModule;
@@ -15,7 +14,7 @@ pub trait AllBaseFarmImplTraits =
         + farm_token::FarmTokenModule
         + permissions_module::PermissionsModule
         + pausable::PausableModule
-        + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
+        + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule;
 
 pub trait FarmContract {
     type FarmSc: AllBaseFarmImplTraits;

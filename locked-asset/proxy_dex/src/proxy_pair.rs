@@ -2,13 +2,13 @@
 #![allow(clippy::comparison_chain)]
 #![allow(clippy::vec_init_then_push)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::wrapped_lp_attributes::{WrappedLpToken, WrappedLpTokenAttributes};
 use fixed_supply_token::FixedSupplyToken;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait ProxyPairModule:
     crate::proxy_common::ProxyCommonModule
     + crate::sc_whitelist::ScWhitelistModule
@@ -40,7 +40,9 @@ pub trait ProxyPairModule:
 
         let input_token_refs = self.require_exactly_one_locked(&first_payment, &second_payment);
         let asset_amount = input_token_refs.locked_token_ref.amount.clone();
-        let _ = self.asset_token().mint(asset_amount);
+        let asset_token_id = self.get_base_token_id();
+        self.send()
+            .esdt_local_mint(&asset_token_id, 0, &asset_amount);
 
         let first_unlocked_token_id =
             self.get_underlying_token(first_payment.token_identifier.clone());
@@ -77,7 +79,7 @@ pub trait ProxyPairModule:
             let wrapped_lp_tokens =
                 WrappedLpToken::new_from_payments(&payments, &wrapped_lp_mapper);
 
-            self.burn_multi_esdt(&payments);
+            self.send().esdt_local_burn_multi(&payments);
 
             self.merge_wrapped_lp_tokens_with_virtual_pos(
                 &caller,
@@ -104,7 +106,8 @@ pub trait ProxyPairModule:
         locked_token_leftover.amount = received_token_refs.base_asset_token_ref.amount.clone();
 
         if locked_token_leftover.amount > 0 {
-            self.asset_token().burn(&locked_token_leftover.amount);
+            self.send()
+                .esdt_local_burn(&asset_token_id, 0, &locked_token_leftover.amount);
         }
 
         let mut output_payments = ManagedVec::new();

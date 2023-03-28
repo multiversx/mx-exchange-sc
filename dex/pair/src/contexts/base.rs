@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::State;
 
@@ -56,7 +56,7 @@ where
         {
             SwapTokensOrder::ReverseOrder
         } else {
-            elrond_wasm::contract_base::ErrorHelper::<C::Api>::signal_error_with_message(
+            multiversx_sc::contract_base::ErrorHelper::<C::Api>::signal_error_with_message(
                 &b"Invalid tokens"[..],
             );
         }

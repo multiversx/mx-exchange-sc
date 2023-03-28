@@ -1,15 +1,26 @@
 [package]
 name = "farm-staking"
 version = "0.0.0"
-authors = [ "you",]
-edition = "2018"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
-
 [dependencies.farm]
 path = "../../dex/farm"
+
+[dependencies.farm-boosted-yields]
+path = "../../energy-integration/farm-boosted-yields"
+
+[dependencies.weekly-rewards-splitting]
+path = "../../energy-integration/common-modules/weekly-rewards-splitting"
+
+[dependencies.week-timekeeping]
+path = "../../energy-integration/common-modules/week-timekeeping"
+
+[dependencies.energy-query]
+path = "../../energy-integration/common-modules/energy-query"
 
 [dependencies.config]
 path = "../../common/modules/farm/config"
@@ -65,15 +76,15 @@ path = "../../common/common_structs"
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.elrond-wasm-modules]
-version = "=0.36.1"
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

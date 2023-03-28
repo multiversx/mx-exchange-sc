@@ -1,10 +1,12 @@
 pub mod metabonding_staking_setup;
-use elrond_wasm_debug::{managed_address, managed_biguint, rust_biguint, tx_mock::TxInputESDT};
 use metabonding_staking::{
     locked_asset_token::{LockedAssetTokenModule, UserEntry},
     UNBOND_EPOCHS,
 };
 use metabonding_staking_setup::*;
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, rust_biguint, whitebox::TxTokenTransfer,
+};
 
 #[test]
 fn test_init() {
@@ -71,12 +73,12 @@ fn test_stake_multiple() {
     let mut setup =
         MetabondingStakingSetup::new(metabonding_staking::contract_obj, factory::contract_obj);
     let payments = [
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_ASSET_TOKEN_ID.to_vec(),
             nonce: 3,
             value: rust_biguint!(100_000_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_ASSET_TOKEN_ID.to_vec(),
             nonce: 4,
             value: rust_biguint!(1_000_000),

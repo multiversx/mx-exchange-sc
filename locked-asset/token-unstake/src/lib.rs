@@ -1,6 +1,6 @@
 #![no_std]
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 pub mod cancel_unstake;
 pub mod events;
@@ -10,7 +10,7 @@ pub mod unbond_tokens;
 
 use crate::fees_handler::MAX_PENALTY_PERCENTAGE;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait TokenUnstakeModule:
     tokens_per_user::TokensPerUserModule
     + unbond_tokens::UnbondTokensModule

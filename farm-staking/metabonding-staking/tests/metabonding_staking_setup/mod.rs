@@ -1,17 +1,16 @@
 use common_structs::{
     LockedAssetTokenAttributesEx, UnlockMilestone, UnlockMilestoneEx, UnlockScheduleEx,
 };
-use elrond_wasm::storage::mappers::StorageTokenWrapper;
-use elrond_wasm::types::{Address, EsdtLocalRole, ManagedVec};
-use elrond_wasm_debug::tx_mock::{TxInputESDT, TxResult};
-use elrond_wasm_debug::{
-    managed_address, managed_biguint, managed_token_id, rust_biguint, testing_framework::*,
-    DebugApi,
-};
-use elrond_wasm_modules::pause::PauseModule;
 use factory::locked_asset::LockedAssetModule;
 use factory::*;
 use metabonding_staking::MetabondingStaking;
+use multiversx_sc::storage::mappers::StorageTokenWrapper;
+use multiversx_sc::types::{Address, EsdtLocalRole, ManagedVec};
+use multiversx_sc_modules::pause::PauseModule;
+use multiversx_sc_scenario::whitebox::{TxResult, TxTokenTransfer};
+use multiversx_sc_scenario::{
+    managed_address, managed_biguint, managed_token_id, rust_biguint, whitebox::*, DebugApi,
+};
 
 pub const METABONDING_STAKING_WASM_PATH: &str = "1.wasm";
 pub const LOCKED_ASSET_FACTORY_WASM_PATH: &str = "2.wasm";
@@ -215,7 +214,7 @@ where
         )
     }
 
-    pub fn call_stake_locked_asset_multiple(&mut self, payments: &[TxInputESDT]) -> TxResult {
+    pub fn call_stake_locked_asset_multiple(&mut self, payments: &[TxTokenTransfer]) -> TxResult {
         self.b_mock.execute_esdt_multi_transfer(
             &self.user_address,
             &self.mbs_wrapper,

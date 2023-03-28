@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::energy::Energy;
 
@@ -9,7 +9,7 @@ pub struct EnergyUpdatedEvent<M: ManagedTypeApi> {
     pub new_energy_entry: Energy<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_energy_updated_event(
         &self,

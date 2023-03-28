@@ -1,19 +1,18 @@
 [package]
 name = "fees-collector"
 version = "0.0.0"
-authors = [ "you",]
-edition = "2018"
+authors = ["MultiversX <contact@multiversx.com>"]
+edition = "2021"
 publish = false
 
 [lib]
 path = "src/lib.rs"
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-features = ["esdt-token-payment-legacy-decode",]
-
-[dependencies.elrond-wasm-modules]
-version = "=0.36.1"
+[dependencies.multiversx-sc-modules]
+version = "=0.39.4"
 
 [dependencies.energy-query]
 path = "../common-modules/energy-query"
@@ -36,17 +35,20 @@ path = "../../common/modules/locking_module"
 [dependencies.utils]
 path = "../../common/modules/utils"
 
+[dependencies.sc_whitelist_module]
+path = "../../common/modules/sc_whitelist_module"
+
 [dependencies.common-types]
 path = "../common-types"
 
 [dependencies.common_errors]
 path = "../../common/common_errors"
 
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
-
 [dev-dependencies]
 num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"
 
 [dev-dependencies.sc_whitelist_module]
 path = "../../common/modules/sc_whitelist_module"

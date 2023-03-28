@@ -1,6 +1,6 @@
 mod router_setup;
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, ManagedAddress, ManagedVec, MultiValueEncoded},
 };
@@ -14,9 +14,9 @@ use router::{
 };
 use router_setup::*;
 
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    testing_framework::BlockchainStateWrapper, tx_mock::TxInputESDT, DebugApi,
+    whitebox::BlockchainStateWrapper, whitebox::TxTokenTransfer, DebugApi,
 };
 use simple_lock::{
     locked_token::{LockedTokenAttributes, LockedTokenModule},
@@ -194,12 +194,12 @@ fn user_enable_pair_swaps_through_router_test() {
 
     // add liquidity
     let payments = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: CUSTOM_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(USER_CUSTOM_TOKEN_BALANCE),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: USDC_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(USER_USDC_BALANCE),

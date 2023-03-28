@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use energy_query::Energy;
 use math::safe_sub;
@@ -28,7 +28,7 @@ impl<M: ManagedTypeApi> Default for LockedTokensBucket<M> {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WeeklyRewardsLockedTokenBucketsModule {
     fn shift_buckets_and_update_tokens_energy(
         &self,
@@ -41,10 +41,7 @@ pub trait WeeklyRewardsLockedTokenBucketsModule {
         for _ in 0..nr_pos_to_shift {
             let bucket_mapper = self.locked_tokens_in_bucket(first_bucket_id);
             let bucket = if !bucket_mapper.is_empty() {
-                let b = bucket_mapper.get();
-                bucket_mapper.clear();
-
-                b
+                bucket_mapper.take()
             } else {
                 LockedTokensBucket::default()
             };

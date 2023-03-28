@@ -2,13 +2,13 @@
 
 use simple_lock::error_messages::INVALID_PAYMENTS_ERR_MSG;
 
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait SimpleLockWhitelist:
     simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + simple_lock::proxy_lp::ProxyLpModule
     + simple_lock::proxy_farm::ProxyFarmModule
     + simple_lock::lp_interactions::LpInteractionsModule

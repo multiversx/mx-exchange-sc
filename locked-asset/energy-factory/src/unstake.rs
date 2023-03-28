@@ -1,11 +1,11 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use crate::energy::Energy;
 
 mod token_unstake_proxy {
-    elrond_wasm::imports!();
+    multiversx_sc::imports!();
 
-    #[elrond_wasm::proxy]
+    #[multiversx_sc::proxy]
     pub trait TokenUnstakeProxy {
         #[payable("*")]
         #[endpoint(depositUserTokens)]
@@ -17,14 +17,14 @@ mod token_unstake_proxy {
     }
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait UnstakeModule:
     simple_lock::basic_lock_unlock::BasicLockUnlock
     + simple_lock::locked_token::LockedTokenModule
     + simple_lock::token_attributes::TokenAttributesModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::token_merging::TokenMergingModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
     + crate::penalty::LocalPenaltyModule
     + crate::energy::EnergyModule
     + crate::events::EventsModule
@@ -73,7 +73,7 @@ pub trait UnstakeModule:
         let _: IgnoreValue = self
             .token_unstake_sc_proxy_obj(locking_sc_address)
             .deposit_fees()
-            .add_esdt_token_transfer(fees.token_identifier, fees.token_nonce, fees.amount)
+            .with_esdt_transfer(fees)
             .execute_on_dest_context();
     }
 

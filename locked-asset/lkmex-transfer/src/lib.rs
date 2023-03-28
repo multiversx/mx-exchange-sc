@@ -1,8 +1,8 @@
 #![no_std]
 #![allow(clippy::vec_init_then_push)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod constants;
 pub mod energy_transfer;
@@ -26,11 +26,12 @@ pub struct ScheduledTransfer<M: ManagedTypeApi> {
     pub locked_funds: LockedFunds<M>,
 }
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LkmexTransfer:
     energy_transfer::EnergyTransferModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
+    + legacy_token_decode_module::LegacyTokenDecodeModule
     + permissions_module::PermissionsModule
 {
     #[init]
@@ -56,6 +57,8 @@ pub trait LkmexTransfer:
     #[endpoint]
     fn withdraw(&self, sender: ManagedAddress) {
         let receiver = self.blockchain().get_caller();
+        let receiver_last_transfer_mapper = self.receiver_last_transfer_epoch(&receiver);
+        self.check_address_on_cooldown(&receiver_last_transfer_mapper);
         let funds = self.get_unlocked_funds(&receiver, &sender);
         self.add_energy_to_destination(receiver.clone(), &funds);
         self.send().direct_multi(&receiver, &funds);
@@ -63,8 +66,7 @@ pub trait LkmexTransfer:
         self.all_senders(&receiver).swap_remove(&sender);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.address_last_transfer_epoch(&receiver)
-            .set(current_epoch);
+        receiver_last_transfer_mapper.set(current_epoch);
     }
 
     #[endpoint(cancelTransfer)]
@@ -76,7 +78,7 @@ pub trait LkmexTransfer:
         let locked_funds = locked_funds_mapper.get();
         locked_funds_mapper.clear();
         self.all_senders(&receiver).swap_remove(&sender);
-        self.address_last_transfer_epoch(&sender).clear();
+        self.sender_last_transfer_epoch(&sender).clear();
 
         self.add_energy_to_destination(sender.clone(), &locked_funds.funds);
         self.send().direct_multi(&sender, &locked_funds.funds);
@@ -104,15 +106,11 @@ pub trait LkmexTransfer:
     #[payable("*")]
     #[endpoint(lockFunds)]
     fn lock_funds(&self, receiver: ManagedAddress) {
-        require!(
-            !self.blockchain().is_smart_contract(&receiver),
-            "Cannot transfer to SC"
-        );
-
         let sender = self.blockchain().get_caller();
         let locked_funds_mapper = self.locked_funds(&receiver, &sender);
         require!(locked_funds_mapper.is_empty(), ALREADY_SENT_TO_ADDRESS);
-        self.check_address_on_cooldown(&sender);
+        let sender_last_transfer_mapper = self.sender_last_transfer_epoch(&sender);
+        self.check_address_on_cooldown(&sender_last_transfer_mapper);
 
         let payments = self.call_value().all_esdt_transfers();
         let locked_token_id = self.locked_token_id().get();
@@ -130,12 +128,11 @@ pub trait LkmexTransfer:
             funds: payments,
             locked_epoch: current_epoch,
         });
-        self.address_last_transfer_epoch(&sender).set(current_epoch);
+        sender_last_transfer_mapper.set(current_epoch);
         self.all_senders(&receiver).insert(sender);
     }
 
-    fn check_address_on_cooldown(&self, address: &ManagedAddress) {
-        let last_transfer_mapper = self.address_last_transfer_epoch(address);
+    fn check_address_on_cooldown(&self, last_transfer_mapper: &SingleValueMapper<Epoch>) {
         if last_transfer_mapper.is_empty() {
             return;
         }
@@ -180,8 +177,11 @@ pub trait LkmexTransfer:
     #[storage_mapper("allSenders")]
     fn all_senders(&self, receiver: &ManagedAddress) -> UnorderedSetMapper<ManagedAddress>;
 
-    #[storage_mapper("addressLastTransferEpoch")]
-    fn address_last_transfer_epoch(&self, owner: &ManagedAddress) -> SingleValueMapper<Epoch>;
+    #[storage_mapper("senderLastTransferEpoch")]
+    fn sender_last_transfer_epoch(&self, sender: &ManagedAddress) -> SingleValueMapper<Epoch>;
+
+    #[storage_mapper("receiverLastTransferEpoch")]
+    fn receiver_last_transfer_epoch(&self, receiver: &ManagedAddress) -> SingleValueMapper<Epoch>;
 
     #[storage_mapper("lockedTokenId")]
     fn locked_token_id(&self) -> SingleValueMapper<TokenIdentifier>;

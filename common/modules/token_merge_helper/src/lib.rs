@@ -1,7 +1,7 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use common_errors::ERROR_ZERO_AMOUNT;
 
@@ -16,7 +16,7 @@ pub enum WeightedAverageType {
     Ceil,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TokenMergeHelperModule {
     fn weighted_average(
         &self,

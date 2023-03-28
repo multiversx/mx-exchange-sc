@@ -1,8 +1,8 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
 use common_types::Week;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait FeesCollectorEventsModule {
     fn emit_deposit_swap_fees_event(
         self,

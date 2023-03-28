@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::proxy_common::INVALID_PAYMENTS_ERR_MSG;
 use crate::proxy_common::MIN_MERGE_PAYMENTS;
@@ -9,7 +9,7 @@ use crate::wrapped_farm_attributes::WrappedFarmTokenAttributes;
 
 use fixed_supply_token::FixedSupplyToken;
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait WrappedFarmTokenMerge:
     token_merge_helper::TokenMergeHelperModule
     + token_send::TokenSendModule
@@ -17,6 +17,7 @@ pub trait WrappedFarmTokenMerge:
     + crate::proxy_common::ProxyCommonModule
     + crate::wrapped_lp_token_merge::WrappedLpTokenMerge
     + utils::UtilsModule
+    + energy_query::EnergyQueryModule
 {
     #[payable("*")]
     #[endpoint(mergeWrappedFarmTokens)]
@@ -34,7 +35,7 @@ pub trait WrappedFarmTokenMerge:
         let wrapped_farm_tokens =
             WrappedFarmToken::new_from_payments(&payments, &wrapped_farm_token_mapper);
 
-        self.burn_multi_esdt(&payments);
+        self.send().esdt_local_burn_multi(&payments);
 
         let merged_tokens = self
             .merge_wrapped_farm_tokens(&caller, farm_address, wrapped_farm_tokens)
@@ -79,9 +80,7 @@ pub trait WrappedFarmTokenMerge:
             proxy_farming_token.token_nonce,
         );
 
-        let factory_address = self
-            .factory_address_for_locked_token(&locked_token_id)
-            .get();
+        let factory_address = self.get_factory_address_for_locked_token(&locked_token_id);
 
         let wrapped_lp_token_mapper = self.wrapped_lp_token();
         let wrapped_farm_token_mapper = self.wrapped_farm_token();

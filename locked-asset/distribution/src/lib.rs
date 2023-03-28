@@ -3,8 +3,8 @@
 
 use common_structs::{UnlockMilestone, UnlockPeriod};
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 mod global_op;
 
@@ -30,7 +30,7 @@ pub struct CommunityDistribution<M: ManagedTypeApi> {
     pub after_planning_amount: BigUint<M>,
 }
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Distribution: global_op::GlobalOperationModule {
     #[proxy]
     fn locked_asset_factory_proxy(&self, to: ManagedAddress) -> factory::Proxy<Self::Api>;

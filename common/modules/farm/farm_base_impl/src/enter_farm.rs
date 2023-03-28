@@ -1,6 +1,6 @@
-elrond_wasm::imports!();
+multiversx_sc::imports!();
 
-use crate::{base_traits_impl::FarmContract, elrond_codec::TopEncode};
+use crate::base_traits_impl::FarmContract;
 use common_structs::{PaymentAttributesPair, PaymentsVec};
 use contexts::{
     enter_farm_context::EnterFarmContext,
@@ -18,7 +18,7 @@ where
     pub created_with_merge: bool,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait BaseEnterFarmModule:
     rewards::RewardsModule
     + config::ConfigModule
@@ -26,8 +26,7 @@ pub trait BaseEnterFarmModule:
     + farm_token::FarmTokenModule
     + pausable::PausableModule
     + permissions_module::PermissionsModule
-    + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + crate::base_farm_validation::BaseFarmValidationModule
     + utils::UtilsModule
 {
@@ -62,7 +61,8 @@ pub trait BaseEnterFarmModule:
             &farm_token_mapper,
         );
 
-        self.burn_multi_esdt(&enter_farm_context.additional_farm_tokens);
+        self.send()
+            .esdt_local_burn_multi(&enter_farm_context.additional_farm_tokens);
 
         InternalEnterFarmResult {
             created_with_merge: !enter_farm_context.additional_farm_tokens.is_empty(),

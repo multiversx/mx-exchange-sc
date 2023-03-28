@@ -2,8 +2,8 @@
 #![allow(clippy::too_many_arguments)]
 #![feature(exact_size_is_empty)]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 pub mod base_functions;
 pub mod claim_boost_only;
@@ -24,7 +24,7 @@ pub type EnterFarmResultType<M> = DoubleMultiPayment<M>;
 pub type ExitFarmWithPartialPosResultType<M> =
     MultiValue3<EsdtTokenPayment<M>, EsdtTokenPayment<M>, EsdtTokenPayment<M>>;
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait Farm:
     rewards::RewardsModule
     + config::ConfigModule
@@ -34,7 +34,7 @@ pub trait Farm:
     + permissions_module::PermissionsModule
     + sc_whitelist_module::SCWhitelistModule
     + events::EventsModule
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + base_functions::BaseFunctionsModule
     + exit_penalty::ExitPenaltyModule
     + progress_update::ProgressUpdateModule
@@ -174,15 +174,7 @@ pub trait Farm:
         self.send_payment_non_zero(&caller, &exit_farm_result.rewards);
         self.send_payment_non_zero(&caller, &remaining_farm_payment);
 
-        let opt_config = self.try_get_boosted_yields_config();
-        if let Some(config) = opt_config {
-            let boosted_yields_factors = config.get_latest_factors();
-            self.clear_user_energy(
-                &orig_caller,
-                &remaining_farm_payment.amount,
-                &boosted_yields_factors.min_farm_amount,
-            );
-        }
+        self.clear_user_energy_if_needed(&orig_caller, &remaining_farm_payment.amount);
 
         (
             exit_farm_result.farming_tokens,

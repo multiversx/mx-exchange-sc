@@ -1,12 +1,11 @@
 [package]
 name = "distribution-tests"
 version = "0.0.0"
-edition = "2018"
+edition = "2021"
 publish = false
-
-[dependencies.elrond-wasm]
-version = "=0.36.1"
-features = ["esdt-token-payment-legacy-decode",]
+[dependencies.multiversx-sc]
+version = "=0.39.4"
+features = ["esdt-token-payment-legacy-decode"]
 
 [dependencies.farm]
 path = "../dex/farm"
@@ -44,13 +43,13 @@ path = "lkmex-transfer"
 [dependencies.token-unstake]
 path = "token-unstake"
 
-[dev-dependencies.elrond-wasm-modules]
-version = "=0.36.1"
-
-[dev-dependencies.elrond-wasm-debug]
-version = "=0.36.1"
-
 [dev-dependencies]
 num-bigint = "0.4.2"
 num-traits = "0.2"
 hex = "0.4"
+
+[dev-dependencies.multiversx-sc-modules]
+version = "=0.39.4"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.39.4"

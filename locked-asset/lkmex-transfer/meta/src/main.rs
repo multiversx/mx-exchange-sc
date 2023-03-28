@@ -1,3 +1,3 @@
 fn main() {
-    elrond_wasm_debug::meta::perform::<lkmex_transfer::AbiProvider>();
+    multiversx_sc_meta::cli_main::<lkmex_transfer::AbiProvider>();
 }

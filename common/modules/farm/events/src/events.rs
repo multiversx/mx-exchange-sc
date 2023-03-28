@@ -1,9 +1,8 @@
 #![no_std]
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-use crate::elrond_codec::TopEncode;
 use common_structs::PaymentAttributesPair;
 use contexts::{
     claim_rewards_context::{ClaimRewardsContext, CompoundRewardsContext},
@@ -58,7 +57,7 @@ pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
     created_with_merge: bool,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_enter_farm_event<
         'a,

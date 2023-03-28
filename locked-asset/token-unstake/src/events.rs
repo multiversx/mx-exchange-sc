@@ -1,9 +1,9 @@
 use crate::tokens_per_user::UnstakePair;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait EventsModule {
     fn emit_unlocked_tokens_event(
         &self,

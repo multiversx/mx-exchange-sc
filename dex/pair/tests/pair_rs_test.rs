@@ -1,15 +1,15 @@
 mod pair_setup;
-use elrond_wasm::{
-    elrond_codec::multi_types::OptionalValue,
+use fees_collector::{
+    config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
+};
+use multiversx_sc::{
+    codec::multi_types::OptionalValue,
     storage::mappers::StorageTokenWrapper,
     types::{EsdtLocalRole, MultiValueEncoded},
 };
-use elrond_wasm_debug::{
+use multiversx_sc_scenario::{
     managed_address, managed_biguint, managed_token_id, managed_token_id_wrapped, rust_biguint,
-    tx_mock::TxInputESDT, DebugApi,
-};
-use fees_collector::{
-    config::ConfigModule, fees_accumulation::FeesAccumulationModule, FeesCollector,
+    whitebox::TxTokenTransfer, DebugApi,
 };
 use pair::{config::MAX_PERCENTAGE, fee::FeeModule, locking_wrapper::LockingWrapperModule, Pair};
 use pair_setup::*;
@@ -367,12 +367,12 @@ fn add_liquidity_through_simple_lock_proxy() {
 
     // add liquidity through simple-lock SC - one locked (WEGLD) token, one unlocked (MEX)
     let transfers = vec![
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: LOCKED_TOKEN_ID.to_vec(),
             nonce: 1,
             value: rust_biguint!(500_000),
         },
-        TxInputESDT {
+        TxTokenTransfer {
             token_identifier: MEX_TOKEN_ID.to_vec(),
             nonce: 0,
             value: rust_biguint!(500_000),

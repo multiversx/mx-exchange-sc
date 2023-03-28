@@ -1,5 +1,5 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 #[derive(
     ManagedVecItem,
@@ -18,7 +18,7 @@ pub struct UnstakePair<M: ManagedTypeApi> {
     pub unlocked_tokens: EsdtTokenPayment<M>,
 }
 
-#[elrond_wasm::module]
+#[multiversx_sc::module]
 pub trait TokensPerUserModule {
     #[view(getUnbondEpochs)]
     #[storage_mapper("unbondEpochs")]

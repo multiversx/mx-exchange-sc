@@ -201,8 +201,8 @@ This endpoint is used to convert LP tokens into MEX and then burn it. The way it
 
 There are four test suites around this contract:
 
-- __mandos__ tests are located in the _dex/mandos_ directory. The tests can be ran using __mandos-test__
-- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust tests using __cargo-test__. This test suite is to be preferred and will be extended and maintained over the mandos tests because the testing framework offers programmatic testing.
+- __scenario__ tests are located in the _dex/scenarios_ directory. The tests can be ran using __mandos-test__
+- __rust__ tests are written using __rust_testing_framework__. The tests can be ran as any other rust tests using __cargo-test__. This test suite is to be preferred and will be extended and maintained over the scenario tests because the testing framework offers programmatic testing.
 - __fuzzing__ tests are located in the _dex/fuzz_ directory. The tests can also be ran using __cargo-test__
 - __legolas__ tests are python scripts that use actual live transactions on testing setups
 

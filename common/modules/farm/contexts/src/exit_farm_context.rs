@@ -1,10 +1,9 @@
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
-use crate::exit_farm_context::elrond_codec::TopEncode;
 use common_errors::ERROR_BAD_PAYMENTS;
 use common_structs::PaymentAttributesPair;
-use elrond_wasm::contract_base::BlockchainWrapper;
+use multiversx_sc::contract_base::BlockchainWrapper;
 
 pub struct ExitFarmContext<M, T>
 where

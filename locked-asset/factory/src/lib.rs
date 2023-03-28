@@ -8,8 +8,8 @@ pub mod locked_asset;
 pub mod locked_asset_token_merge;
 pub mod migration;
 
-elrond_wasm::imports!();
-elrond_wasm::derive_imports!();
+multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 const ADDITIONAL_AMOUNT_TO_CREATE: u64 = 1;
 const FIRST_TOKEN_NONCE: u64 = 1;
@@ -20,7 +20,7 @@ use common_structs::{
     UnlockSchedule, UnlockScheduleEx, PRECISION_EX_INCREASE,
 };
 
-#[elrond_wasm::contract]
+#[multiversx_sc::contract]
 pub trait LockedAssetFactory:
     locked_asset::LockedAssetModule
     + cache::CacheModule
@@ -29,9 +29,9 @@ pub trait LockedAssetFactory:
     + locked_asset_token_merge::LockedAssetTokenMergeModule
     + events::EventsModule
     + attr_ex_helper::AttrExHelper
-    + elrond_wasm_modules::default_issue_callbacks::DefaultIssueCallbacksModule
+    + multiversx_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + migration::LockedTokenMigrationModule
-    + elrond_wasm_modules::pause::PauseModule
+    + multiversx_sc_modules::pause::PauseModule
 {
     #[init]
     fn init(
