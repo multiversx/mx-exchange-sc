@@ -5,6 +5,7 @@ on:
     branches: [ main, feat/* ]
   pull_request:
     branches: [ main, feat/* ]
+  workflow_dispatch:
 
 permissions:
   actions: write
