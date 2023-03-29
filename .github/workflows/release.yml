@@ -42,5 +42,3 @@ jobs:
       image_tag: ${{ github.event.inputs.image_tag }}
       attach_to_existing_release: true
       contract_name: ${{ github.event.inputs.contract }}
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
