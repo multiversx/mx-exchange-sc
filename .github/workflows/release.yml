@@ -1,81 +1,15 @@
-name: Create release
+name: On release build and attach artifacts
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        required: true
-        description: Release tag
-      title:
-        required: true
-        description: Release title
-      image_tag:
-        type: choice
-        required: true
-        description: Image elrondnetwork/build-contract-rust
-        options:
-        - v3.1.0
+  release:
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.GITHUB_REF_NAME }}
-          fetch-depth: 0
-          repository: ${{ env.GITHUB_REPOSITORY }}
-
-      - name: Download build script
-        run: |
-          wget https://raw.githubusercontent.com/ElrondNetwork/elrond-sdk-images-build-contract-rust/${{ github.event.inputs.image_tag }}/build_with_docker.py
-
-      - name: Build contract
-        run: |
-          python3 ./build_with_docker.py --no-docker-tty --image=elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }} --project=. --output=/home/runner/work/output-from-docker
-
-      - name: Save artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: built-contracts
-          path: |
-            /home/runner/work/output-from-docker/**/*.wasm
-            /home/runner/work/output-from-docker/**/*.abi.json
-          if-no-files-found: error
-
-  release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: "0"
-
-      - name: Download all workflow artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: assets
-
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Built using Docker image: **elrondnetwork/build-contract-rust:${{ github.event.inputs.image_tag }}**." >> notes.txt
-          echo "" >> notes.txt
-          echo "## Codehash (blake2b):" >> notes.txt
-          echo "" >> notes.txt
-
-          for i in $(find ./assets -type f -name *.wasm); do
-            filename=$(basename ${i})
-            checksum=($(b2sum -l 256 ${i}))
-            echo " - **${filename}**: \`${checksum}\`" >> notes.txt
-          done
-
-          gh release create ${{ github.event.inputs.tag }} --target=$GITHUB_SHA --prerelease --title="${{ github.event.inputs.title }}" --generate-notes --notes-file=notes.txt
-          sleep 10
-          gh release upload ${{ github.event.inputs.tag }} $(find ./assets -type f)
+    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v2.2.6
+    with:
+      image_tag: v4.1.4
+      attach_to_existing_release: true
