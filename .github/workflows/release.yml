@@ -42,10 +42,9 @@ jobs:
           # Give some time for processing the request
           sleep 10
 
-  build:
-    needs: [release]
-    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v2.2.6
-    with:
-      image_tag: ${{ github.event.inputs.image_tag }}
-      attach_to_existing_release: true
-      contract_name: ${{ github.event.inputs.contract }}
+      - name: Build
+        uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v2.2.6
+        with:
+          image_tag: ${{ github.event.inputs.image_tag }}
+          attach_to_existing_release: true
+          contract_name: ${{ github.event.inputs.contract }}
