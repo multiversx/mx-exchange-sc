@@ -1,7 +1,6 @@
-name: Create release
+name: On release build and attach artifacts
 
 on:
-  on:
   release:
     types: [published]
 
