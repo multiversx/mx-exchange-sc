@@ -1,50 +1,16 @@
 name: Create release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        required: true
-        description: Release tag
-      title:
-        required: true
-        description: Release title
-      contract:
-        required: false
-        description: Contract name if only one needed
-      image_tag:
-        type: choice
-        required: true
-        description: Image multiversx/sdk-rust-contract-builder
-        options:
-        - v4.1.4
-        - v4.1.1
+  on:
+  release:
+    types: [published]
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ env.GITHUB_REF_NAME }}
-          fetch-depth: 0
-          repository: ${{ env.GITHUB_REPOSITORY }}
-
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create ${{ github.event.inputs.tag }} --target=$GITHUB_SHA --prerelease --title="${{ github.event.inputs.title }}" --generate-notes
-          # Give some time for processing the request
-          sleep 10
-
-      - name: Build
-        uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v2.2.6
-        with:
-          image_tag: ${{ github.event.inputs.image_tag }}
-          attach_to_existing_release: true
-          contract_name: ${{ github.event.inputs.contract }}
+  build:
+    uses: multiversx/mx-sc-actions/.github/workflows/reproducible-build.yml@v2.2.6
+    with:
+      image_tag: v4.1.4
+      attach_to_existing_release: true
