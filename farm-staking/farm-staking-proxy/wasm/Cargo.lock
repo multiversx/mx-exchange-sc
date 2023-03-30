@@ -225,6 +225,7 @@ dependencies = [
  "farm-staking",
  "fixed-supply-token",
  "hex-literal",
+ "mergeable",
  "multiversx-sc",
  "multiversx-sc-modules",
  "pair",
@@ -232,6 +233,7 @@ dependencies = [
  "rewards",
  "sc_whitelist_module",
  "token_send",
+ "unwrappable",
  "utils",
 ]
 

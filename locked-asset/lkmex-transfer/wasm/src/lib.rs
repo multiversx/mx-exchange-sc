@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                            5
+// Endpoints:                           11
 // Async Callback (empty):               1
-// Total number of exported functions:   7
+// Total number of exported functions:  13
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -18,20 +18,17 @@ multiversx_sc_wasm_adapter::panic_handler!();
 multiversx_sc_wasm_adapter::endpoints! {
     lkmex_transfer
     (
-        addAdmin
-        cancelTransfer
-        getAllSenders
-        getEnergyFactoryAddress
-        getPermissions
-        lockFunds
-        removeAdmin
-        setEnergyFactoryAddress
-        updateOwnerOrAdmin
         withdraw
+        cancelTransfer
         lockFunds
+        getScheduledTransfers
         getAllSenders
         setEnergyFactoryAddress
         getEnergyFactoryAddress
+        addAdmin
+        removeAdmin
+        updateOwnerOrAdmin
+        getPermissions
     )
 }
 
