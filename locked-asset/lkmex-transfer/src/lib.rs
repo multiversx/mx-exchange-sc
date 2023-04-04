@@ -6,6 +6,7 @@ multiversx_sc::derive_imports!();
 
 pub mod constants;
 pub mod energy_transfer;
+pub mod events;
 
 use common_structs::{Epoch, PaymentsVec};
 use permissions_module::Permissions;
@@ -29,6 +30,7 @@ pub struct ScheduledTransfer<M: ManagedTypeApi> {
 #[multiversx_sc::contract]
 pub trait LkmexTransfer:
     energy_transfer::EnergyTransferModule
+    + events::LkmexTransferEventsModule
     + energy_query::EnergyQueryModule
     + utils::UtilsModule
     + legacy_token_decode_module::LegacyTokenDecodeModule
@@ -67,6 +69,8 @@ pub trait LkmexTransfer:
 
         let current_epoch = self.blockchain().get_block_epoch();
         receiver_last_transfer_mapper.set(current_epoch);
+
+        self.emit_withdraw_event(sender, receiver, funds);
     }
 
     #[endpoint(cancelTransfer)]
@@ -82,6 +86,8 @@ pub trait LkmexTransfer:
 
         self.add_energy_to_destination(sender.clone(), &locked_funds.funds);
         self.send().direct_multi(&sender, &locked_funds.funds);
+
+        self.emit_cancel_transfer_event(sender, receiver, locked_funds);
     }
 
     fn get_unlocked_funds(
@@ -125,11 +131,13 @@ pub trait LkmexTransfer:
 
         let current_epoch = self.blockchain().get_block_epoch();
         self.locked_funds(&receiver, &sender).set(LockedFunds {
-            funds: payments,
+            funds: payments.clone(),
             locked_epoch: current_epoch,
         });
         sender_last_transfer_mapper.set(current_epoch);
-        self.all_senders(&receiver).insert(sender);
+        self.all_senders(&receiver).insert(sender.clone());
+
+        self.emit_lock_funds_event(sender, receiver, current_epoch, payments);
     }
 
     fn check_address_on_cooldown(&self, last_transfer_mapper: &SingleValueMapper<Epoch>) {
