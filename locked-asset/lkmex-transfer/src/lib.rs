@@ -135,7 +135,7 @@ pub trait LkmexTransfer:
 
         let current_epoch = self.blockchain().get_block_epoch();
         let locked_funds = LockedFunds {
-            funds: payments.clone(),
+            funds: payments,
             locked_epoch: current_epoch,
         };
         self.locked_funds(&receiver, &sender)
