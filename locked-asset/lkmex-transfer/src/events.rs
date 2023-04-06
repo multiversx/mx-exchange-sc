@@ -1,7 +1,14 @@
 multiversx_sc::imports!();
+multiversx_sc::derive_imports!();
 
 use crate::LockedFunds;
-use common_structs::{Epoch, PaymentsVec};
+
+#[derive(TypeAbi, TopEncode)]
+pub struct LkmexTransferEvent<M: ManagedTypeApi> {
+    sender: ManagedAddress<M>,
+    receiver: ManagedAddress<M>,
+    locked_funds: LockedFunds<M>,
+}
 
 #[multiversx_sc::module]
 pub trait LkmexTransferEventsModule {
@@ -9,9 +16,14 @@ pub trait LkmexTransferEventsModule {
         self,
         sender: ManagedAddress,
         receiver: ManagedAddress,
-        payments: PaymentsVec<Self::Api>,
+        locked_funds: LockedFunds<Self::Api>,
     ) {
-        self.withdraw_event(sender, receiver, payments);
+        let event_data = LkmexTransferEvent {
+            sender,
+            receiver,
+            locked_funds,
+        };
+        self.withdraw_event(event_data);
     }
 
     fn emit_cancel_transfer_event(
@@ -20,41 +32,34 @@ pub trait LkmexTransferEventsModule {
         receiver: ManagedAddress,
         locked_funds: LockedFunds<Self::Api>,
     ) {
-        self.cancel_transfer_event(sender, receiver, locked_funds);
+        let event_data = LkmexTransferEvent {
+            sender,
+            receiver,
+            locked_funds,
+        };
+        self.cancel_transfer_event(event_data);
     }
 
     fn emit_lock_funds_event(
         &self,
         sender: ManagedAddress,
         receiver: ManagedAddress,
-        current_epoch: Epoch,
-        payments: PaymentsVec<Self::Api>,
+        locked_funds: LockedFunds<Self::Api>,
     ) {
-        self.lock_funds_event(sender, receiver, current_epoch, payments);
+        let event_data = LkmexTransferEvent {
+            sender,
+            receiver,
+            locked_funds,
+        };
+        self.lock_funds_event(event_data);
     }
 
     #[event("withdraw_event")]
-    fn withdraw_event(
-        &self,
-        #[indexed] sender: ManagedAddress,
-        #[indexed] receiver: ManagedAddress,
-        payments: PaymentsVec<Self::Api>,
-    );
+    fn withdraw_event(&self, event_data: LkmexTransferEvent<Self::Api>);
 
     #[event("cancel_transfer_event")]
-    fn cancel_transfer_event(
-        &self,
-        #[indexed] sender: ManagedAddress,
-        #[indexed] receiver: ManagedAddress,
-        locked_funds: LockedFunds<Self::Api>,
-    );
+    fn cancel_transfer_event(&self, event_data: LkmexTransferEvent<Self::Api>);
 
     #[event("lock_funds_event")]
-    fn lock_funds_event(
-        &self,
-        #[indexed] sender: ManagedAddress,
-        #[indexed] receiver: ManagedAddress,
-        #[indexed] current_epoch: Epoch,
-        payments: PaymentsVec<Self::Api>,
-    );
+    fn lock_funds_event(&self, event_data: LkmexTransferEvent<Self::Api>);
 }

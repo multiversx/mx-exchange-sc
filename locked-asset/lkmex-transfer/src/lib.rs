@@ -70,7 +70,11 @@ pub trait LkmexTransfer:
         let current_epoch = self.blockchain().get_block_epoch();
         receiver_last_transfer_mapper.set(current_epoch);
 
-        self.emit_withdraw_event(sender, receiver, funds);
+        let locked_funds = LockedFunds {
+            funds,
+            locked_epoch: current_epoch,
+        };
+        self.emit_withdraw_event(sender, receiver, locked_funds);
     }
 
     #[endpoint(cancelTransfer)]
@@ -130,14 +134,16 @@ pub trait LkmexTransfer:
         self.deduct_energy_from_sender(sender.clone(), &payments);
 
         let current_epoch = self.blockchain().get_block_epoch();
-        self.locked_funds(&receiver, &sender).set(LockedFunds {
+        let locked_funds = LockedFunds {
             funds: payments.clone(),
             locked_epoch: current_epoch,
-        });
+        };
+        self.locked_funds(&receiver, &sender)
+            .set(locked_funds.clone());
         sender_last_transfer_mapper.set(current_epoch);
         self.all_senders(&receiver).insert(sender.clone());
 
-        self.emit_lock_funds_event(sender, receiver, current_epoch, payments);
+        self.emit_lock_funds_event(sender, receiver, locked_funds);
     }
 
     fn check_address_on_cooldown(&self, last_transfer_mapper: &SingleValueMapper<Epoch>) {
