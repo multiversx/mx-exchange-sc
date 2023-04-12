@@ -47,6 +47,10 @@ pub trait EnergyUpdateModule:
         token_nonce: u64,
         token_amount: &BigUint,
     ) {
+        if self.blockchain().is_smart_contract(user) {
+            return;
+        }
+
         let energy_factory_addr = self.energy_factory_address().get();
         let legacy_locked_token_id = self.get_legacy_locked_token_id(&energy_factory_addr);
         if token_id != &legacy_locked_token_id {
