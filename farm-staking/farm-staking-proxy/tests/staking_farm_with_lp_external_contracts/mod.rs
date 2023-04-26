@@ -50,6 +50,7 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
+                SAFE_PRICE_DIVISION_SAFETY_CONSTANT,
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
@@ -58,7 +59,7 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(pausable::State::Active);
-            sc.set_max_observations_per_record(10);
+            sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
         })
         .assert_ok();
 

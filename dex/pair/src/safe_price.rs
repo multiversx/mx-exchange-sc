@@ -3,83 +3,69 @@ multiversx_sc::derive_imports!();
 
 use crate::{
     amm, config,
-    errors::{ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT},
+    errors::{
+        ERROR_SAFE_PRICE_MAX_OBSERVATIONS, ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST,
+        ERROR_UNKNOWN_TOKEN, ERROR_ZERO_AMOUNT,
+    },
 };
 
-const MAX_OBSERVATIONS_PER_RECORD: u64 = 100;
+pub const DIVISION_SAFETY_CONSTANT: u64 = 1_000_000_000_000_000_000;
 
-type Block = u64;
+type Round = u64;
 
-#[derive(Clone, TopEncode, TopDecode)]
-pub struct CumulativeState<M: ManagedTypeApi> {
-    pub first_obs_block: Block,
-    pub last_obs_block: Block,
-    pub num_observations: u64,
-    pub first_token_reserve_last_obs: BigUint<M>,
-    pub second_token_reserve_last_obs: BigUint<M>,
-    pub first_token_reserve_weighted: BigUint<M>,
-    pub second_token_reserve_weighted: BigUint<M>,
+#[derive(Clone, TopEncode, TopDecode, TypeAbi)]
+pub struct SafePriceInfo {
+    pub current_index: usize,
+    pub max_observations: usize,
+    pub default_safe_price_rounds_offset: u64,
+    pub division_safety_constant: u64,
 }
 
-impl<M: ManagedTypeApi> Default for CumulativeState<M> {
+impl Default for SafePriceInfo {
     fn default() -> Self {
-        CumulativeState {
-            first_obs_block: 0,
-            last_obs_block: 0,
-            num_observations: 0,
-            first_token_reserve_last_obs: BigUint::zero(),
-            second_token_reserve_last_obs: BigUint::zero(),
-            first_token_reserve_weighted: BigUint::zero(),
-            second_token_reserve_weighted: BigUint::zero(),
+        SafePriceInfo {
+            current_index: 0,
+            max_observations: 0,
+            default_safe_price_rounds_offset: 0,
+            division_safety_constant: 0,
         }
     }
 }
 
-impl<M: ManagedTypeApi> CumulativeState<M> {
-    fn new(block: u64, first_reserve: &BigUint<M>, second_reserve: &BigUint<M>) -> Self {
-        CumulativeState {
-            first_obs_block: block,
-            last_obs_block: block,
-            num_observations: 0,
-            first_token_reserve_last_obs: first_reserve.clone(),
-            second_token_reserve_last_obs: second_reserve.clone(),
-            first_token_reserve_weighted: first_reserve.clone(),
-            second_token_reserve_weighted: second_reserve.clone(),
+#[derive(ManagedVecItem, Clone, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
+pub struct PriceObservation<M: ManagedTypeApi> {
+    pub first_token_price_accumulated: BigUint<M>,
+    pub second_token_price_accumulated: BigUint<M>,
+    pub weight_accumulated: u64,
+    pub recording_round: Round,
+}
+
+impl<M: ManagedTypeApi> Default for PriceObservation<M> {
+    fn default() -> Self {
+        PriceObservation {
+            first_token_price_accumulated: BigUint::zero(),
+            second_token_price_accumulated: BigUint::zero(),
+            weight_accumulated: 0,
+            recording_round: 0,
         }
     }
+}
 
-    fn contains_block(&self, block: u64) -> bool {
-        self.first_obs_block <= block && block <= self.last_obs_block
-    }
-
-    fn is_default(&self) -> bool {
-        self.first_obs_block == 0
-    }
-
-    fn update(
+impl<M: ManagedTypeApi> PriceObservation<M> {
+    fn compute_new_observation(
         &mut self,
-        current_block: u64,
-        first_reserve: BigUint<M>,
-        second_reserve: BigUint<M>,
+        new_round: Round,
+        new_first_reserve: &BigUint<M>,
+        new_second_reserve: &BigUint<M>,
+        division_safety_constant: u64,
     ) {
-        if self.is_default() {
-            return;
-        }
-
-        let current_weight = self.last_obs_block - self.first_obs_block + 1;
-        let new_weight = current_block - self.last_obs_block;
-
-        self.last_obs_block = current_block;
-        self.num_observations += 1;
-        self.first_token_reserve_weighted = (&self.first_token_reserve_weighted * current_weight
-            + &self.first_token_reserve_last_obs * new_weight)
-            / (current_weight + new_weight);
-        self.second_token_reserve_weighted = (&self.second_token_reserve_weighted * current_weight
-            + &self.second_token_reserve_last_obs * new_weight)
-            / (current_weight + new_weight);
-
-        self.first_token_reserve_last_obs = first_reserve;
-        self.second_token_reserve_last_obs = second_reserve;
+        let new_weight = new_round - self.recording_round;
+        self.first_token_price_accumulated += BigUint::from(new_weight)
+            * (new_second_reserve * division_safety_constant / new_first_reserve);
+        self.second_token_price_accumulated += BigUint::from(new_weight)
+            * (new_first_reserve * division_safety_constant / new_second_reserve);
+        self.weight_accumulated += new_weight;
+        self.recording_round = new_round;
     }
 }
 
@@ -96,72 +82,151 @@ pub trait SafePriceModule:
         &self,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
-        self.update_safe_state_on_the_fly();
-
-        let c_state = self.get_current_state_or_default();
-        let total_supply = self.lp_token_supply().get();
+        let lp_total_supply = self.lp_token_supply().get();
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let big_zero = BigUint::zero();
+        if lp_total_supply != 0 {
+            return MultiValue2::from((
+                EsdtTokenPayment::new(first_token_id, 0, BigUint::zero()),
+                EsdtTokenPayment::new(second_token_id, 0, BigUint::zero()),
+            ));
+        }
 
-        let pool_initialized = total_supply != big_zero
-            && c_state.first_token_reserve_weighted != big_zero
-            && c_state.second_token_reserve_weighted != big_zero;
+        self.update_safe_state_on_the_fly();
 
-        let (first_token_worth, second_token_worth) = if pool_initialized {
-            let first_worth = &liquidity * &c_state.first_token_reserve_weighted / &total_supply;
-            let second_worth = &liquidity * &c_state.second_token_reserve_weighted / &total_supply;
+        let safe_price_info = self.safe_price_info().get();
+        let current_round = self.blockchain().get_block_round();
+        let offset_round = current_round - safe_price_info.default_safe_price_rounds_offset;
+        let price_observations = self.price_observations().get();
 
-            (first_worth, second_worth)
-        } else {
-            (big_zero.clone(), big_zero)
-        };
+        let first_price_observation = self.get_price_observation(
+            safe_price_info.current_index,
+            safe_price_info.max_observations,
+            &price_observations,
+            offset_round,
+        );
+        let last_price_observation = self.get_price_observation(
+            safe_price_info.current_index,
+            safe_price_info.max_observations,
+            &price_observations,
+            current_round,
+        );
 
-        MultiValue2::from((
-            EsdtTokenPayment::new(first_token_id, 0, first_token_worth),
-            EsdtTokenPayment::new(second_token_id, 0, second_token_worth),
-        ))
+        let first_token_reserve = self.pair_reserve(&first_token_id).get();
+        let second_token_reserve = self.pair_reserve(&second_token_id).get();
+        let first_token_worth = &liquidity * &first_token_reserve / &lp_total_supply;
+        let second_token_worth = &liquidity * &second_token_reserve / &lp_total_supply;
+
+        let first_token_payment = EsdtTokenPayment::new(first_token_id, 0, first_token_worth);
+        let second_token_payment = EsdtTokenPayment::new(second_token_id, 0, second_token_worth);
+        let first_token_weighted = self.compute_weighted_price(
+            &first_price_observation,
+            &last_price_observation,
+            safe_price_info.division_safety_constant,
+            first_token_payment,
+        );
+
+        let second_token_weighted = self.compute_weighted_price(
+            &first_price_observation,
+            &last_price_observation,
+            safe_price_info.division_safety_constant,
+            second_token_payment,
+        );
+
+        MultiValue2::from((first_token_weighted, second_token_weighted))
     }
 
     #[endpoint(updateAndGetSafePrice)]
     fn update_and_get_safe_price(
         &self,
+        start_round: Round,
+        end_round: Round,
         input: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
         self.update_safe_state_on_the_fly();
 
+        let safe_price_info = self.safe_price_info().get();
+        let price_observations = self.price_observations().get();
+        let first_price_observation = self.get_price_observation(
+            safe_price_info.current_index,
+            safe_price_info.max_observations,
+            &price_observations,
+            start_round,
+        );
+        let last_price_observation = self.get_price_observation(
+            safe_price_info.current_index,
+            safe_price_info.max_observations,
+            &price_observations,
+            end_round,
+        );
+
+        self.compute_weighted_price(
+            &first_price_observation,
+            &last_price_observation,
+            safe_price_info.division_safety_constant,
+            input,
+        )
+    }
+
+    fn compute_weighted_price(
+        &self,
+        first_price_observation: &PriceObservation<Self::Api>,
+        last_price_observation: &PriceObservation<Self::Api>,
+        division_safety_constant: u64,
+        input: EsdtTokenPayment<Self::Api>,
+    ) -> EsdtTokenPayment<Self::Api> {
         let first_token_id = self.first_token_id().get();
         let second_token_id = self.second_token_id().get();
-        let c_state = self.get_current_state_or_default();
 
-        let (r_in, r_out, t_out) = if input.token_identifier == first_token_id {
-            let r_in = c_state.first_token_reserve_weighted.clone();
-            let r_out = c_state.second_token_reserve_weighted;
-            let t_out = second_token_id;
-
-            (r_in, r_out, t_out)
+        let (token_out, weighted_price) = if input.token_identifier == first_token_id {
+            let price = self.compute_first_token_weighted_price(
+                first_price_observation,
+                last_price_observation,
+            );
+            (second_token_id, price)
         } else if input.token_identifier == second_token_id {
-            let r_in = c_state.second_token_reserve_weighted.clone();
-            let r_out = c_state.first_token_reserve_weighted;
-            let t_out = first_token_id;
-
-            (r_in, r_out, t_out)
+            let price = self.compute_second_token_weighted_price(
+                first_price_observation,
+                last_price_observation,
+            );
+            (first_token_id, price)
         } else {
             sc_panic!(ERROR_UNKNOWN_TOKEN);
         };
-        require!(
-            input.amount != 0u64 && r_in != 0u64 && r_out != 0u64,
-            ERROR_ZERO_AMOUNT
-        );
+        require!(weighted_price > 0u64, ERROR_ZERO_AMOUNT);
 
-        EsdtTokenPayment::new(t_out, 0, self.quote(&input.amount, &r_in, &r_out))
+        EsdtTokenPayment::new(
+            token_out,
+            0,
+            weighted_price * input.amount / division_safety_constant,
+        )
     }
 
-    #[endpoint(setMaxObservationsPerRecord)]
-    fn set_max_observations_per_record(&self, max_observations_per_record: u64) {
+    #[endpoint(updateSafePriceInfo)]
+    fn update_safe_price_info(
+        &self,
+        new_max_observations: usize,
+        default_safe_price_rounds_offset: u64,
+    ) {
         self.require_caller_has_owner_permissions();
-        self.max_observations_per_record()
-            .set(max_observations_per_record);
+        let safe_price_info_mapper = self.safe_price_info();
+        let mut safe_price_info = if !safe_price_info_mapper.is_empty() {
+            safe_price_info_mapper.get()
+        } else {
+            SafePriceInfo {
+                current_index: 0,
+                max_observations: 0,
+                default_safe_price_rounds_offset: 0,
+                division_safety_constant: DIVISION_SAFETY_CONSTANT,
+            }
+        };
+        require!(
+            new_max_observations >= safe_price_info.max_observations,
+            ERROR_SAFE_PRICE_MAX_OBSERVATIONS
+        );
+        safe_price_info.max_observations = new_max_observations;
+        safe_price_info.default_safe_price_rounds_offset = default_safe_price_rounds_offset;
+        safe_price_info_mapper.set(safe_price_info);
     }
 
     fn update_safe_state_on_the_fly(&self) {
@@ -172,107 +237,215 @@ pub trait SafePriceModule:
     }
 
     fn update_safe_state(&self, first_token_reserve: &BigUint, second_token_reserve: &BigUint) {
-        let current_block = self.blockchain().get_block_nonce();
-        let mut current_state = self.get_current_state_or_default();
-        let mut future_state = self.get_future_state_or_default();
-
         //Skip executing if reserves are 0. This will only happen once, first add_liq after init.
         if first_token_reserve == &0u64 || second_token_reserve == &0u64 {
             return;
         }
 
-        //Skip executing the update more than once per block.
-        if current_state.contains_block(current_block) {
-            return;
+        let current_round = self.blockchain().get_block_round();
+        let safe_price_info_mapper = self.safe_price_info();
+        let mut safe_price_info = safe_price_info_mapper.get();
+        let pending_price_observation: PriceObservation<<Self as ContractBase>::Api> =
+            if !self.pending_price_observation().is_empty() {
+                self.pending_price_observation().get()
+            } else {
+                PriceObservation::default()
+            };
+        let price_observations_mapper = self.price_observations();
+        let mut price_observations = if !price_observations_mapper.is_empty() {
+            price_observations_mapper.get()
+        } else {
+            ManagedVec::new()
+        };
+
+        // Save the previously computed price observation, if it's the last one from the previous block
+        if pending_price_observation.recording_round < current_round
+            && pending_price_observation.recording_round > 0
+        {
+            let new_index = if price_observations.len() == 0 {
+                0
+            } else {
+                (safe_price_info.current_index + 1) % safe_price_info.max_observations
+            };
+
+            safe_price_info.current_index = new_index;
+
+            if price_observations.len() == safe_price_info.max_observations {
+                let _ = price_observations.set(new_index, &pending_price_observation);
+            } else {
+                price_observations.push(pending_price_observation);
+            }
+
+            price_observations_mapper.set(&price_observations);
+            safe_price_info_mapper.set(&safe_price_info);
         }
 
-        //Will be executed just once to initialize the current state.
-        if current_state.is_default() {
-            current_state =
-                CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
-        }
+        let mut current_price_observation =
+            match price_observations.try_get(safe_price_info.current_index) {
+                Some(price_observation) => price_observation,
+                None => PriceObservation::default(),
+            };
 
-        //Will be executed just once to initialize the future state.
-        if self.has_half_max_observations(&current_state) && future_state.is_default() {
-            future_state =
-                CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
-        }
-
-        //At this point, future state is already initialized and contains half
-        //of the observations that the current state contains.
-        if self.has_max_observations(&current_state) {
-            current_state = future_state.clone();
-            future_state =
-                CumulativeState::new(current_block, first_token_reserve, second_token_reserve);
-        }
-
-        current_state.update(
-            current_block,
-            first_token_reserve.clone(),
-            second_token_reserve.clone(),
+        current_price_observation.compute_new_observation(
+            current_round,
+            first_token_reserve,
+            second_token_reserve,
+            safe_price_info.division_safety_constant,
         );
-        future_state.update(
-            current_block,
-            first_token_reserve.clone(),
-            second_token_reserve.clone(),
-        );
 
-        self.commit_states(current_state, future_state);
+        self.pending_price_observation()
+            .set(current_price_observation);
     }
 
-    fn commit_states(
+    fn get_price_observation(
         &self,
-        current: CumulativeState<Self::Api>,
-        future: CumulativeState<Self::Api>,
-    ) {
-        if !current.is_default() {
-            self.current_state().set(&current);
+        current_index: usize,
+        max_observations: usize,
+        price_observations: &ManagedVec<PriceObservation<Self::Api>>,
+        search_round: Round,
+    ) -> PriceObservation<Self::Api> {
+        if price_observations.len() == 0 {
+            sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST)
         }
-        if !future.is_default() {
-            self.future_state().set(&future);
+
+        // Check if the requested price observation is the last one
+        let last_observation = price_observations.get(current_index);
+        if last_observation.recording_round <= search_round {
+            return last_observation;
         }
-    }
 
-    fn has_max_observations(&self, current_state: &CumulativeState<Self::Api>) -> bool {
-        let max_observations_per_record = self.get_max_observations_per_record();
-        current_state.num_observations == max_observations_per_record
-    }
+        // Check if the observation round exists in the list
+        let oldest_observation_index = (current_index + 1) % max_observations;
+        let oldest_observation_option = price_observations.try_get(oldest_observation_index);
+        match oldest_observation_option {
+            Some(oldest_observation) => {
+                if oldest_observation.recording_round == search_round {
+                    return oldest_observation;
+                } else if oldest_observation.recording_round > search_round {
+                    sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST);
+                }
+            }
+            None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
+        }
 
-    fn has_half_max_observations(&self, current_state: &CumulativeState<Self::Api>) -> bool {
-        let max_observations_per_record = self.get_max_observations_per_record();
-        current_state.num_observations == max_observations_per_record / 2
-    }
-
-    fn get_current_state_or_default(&self) -> CumulativeState<Self::Api> {
-        if !self.current_state().is_empty() {
-            self.current_state().get()
+        // Binary search algorithm
+        let mut search_index = 0;
+        let mut left_index;
+        let mut right_index;
+        let observation_at_index_0 = price_observations.get(0);
+        if observation_at_index_0.recording_round <= search_round {
+            left_index = 0;
+            right_index = current_index - 1;
         } else {
-            Default::default()
+            left_index = current_index + 1;
+            right_index = max_observations - 1;
         }
-    }
 
-    fn get_future_state_or_default(&self) -> CumulativeState<Self::Api> {
-        if !self.future_state().is_empty() {
-            self.future_state().get()
+        while left_index <= right_index {
+            search_index = (left_index + right_index) / 2;
+            let price_observation = price_observations.get(search_index);
+            if price_observation.recording_round == search_round {
+                return price_observation;
+            } else if price_observation.recording_round < search_round {
+                left_index = search_index + 1;
+            } else {
+                right_index = search_index - 1;
+            }
+        }
+
+        // Linear interpolation in case there is no price observation for the searched round
+        let last_found_observation = price_observations.get(search_index);
+        let left_observation;
+        let right_observation;
+        if last_found_observation.recording_round < search_round {
+            left_observation = last_found_observation;
+            let right_observation_index = (search_index + 1) % max_observations;
+            right_observation = price_observations.get(right_observation_index);
         } else {
-            Default::default()
+            let left_observation_index = if search_index == 0 {
+                max_observations - 1
+            } else {
+                search_index - 1
+            };
+            left_observation = price_observations.get(left_observation_index);
+            right_observation = last_found_observation;
+        };
+
+        let left_weight = search_round - left_observation.recording_round;
+        let right_weight = right_observation.recording_round - search_round;
+        let weight_sum = left_weight + right_weight;
+        let first_token_price_sum = BigUint::from(left_weight)
+            * left_observation.first_token_price_accumulated
+            + BigUint::from(right_weight) * right_observation.first_token_price_accumulated;
+        let second_token_price_sum = BigUint::from(left_weight)
+            * left_observation.second_token_price_accumulated
+            + BigUint::from(right_weight) * right_observation.second_token_price_accumulated;
+
+        let first_token_price_accumulated = first_token_price_sum / weight_sum;
+        let second_token_price_accumulated = second_token_price_sum / weight_sum;
+        let weight_accumulated =
+            left_observation.weight_accumulated + search_round - left_observation.recording_round;
+
+        PriceObservation {
+            first_token_price_accumulated,
+            second_token_price_accumulated,
+            weight_accumulated,
+            recording_round: search_round,
         }
     }
 
-    fn get_max_observations_per_record(&self) -> u64 {
-        if !self.max_observations_per_record().is_empty() {
-            self.max_observations_per_record().get()
-        } else {
-            MAX_OBSERVATIONS_PER_RECORD
-        }
+    fn compute_first_token_weighted_price(
+        &self,
+        first_price_observation: &PriceObservation<Self::Api>,
+        last_price_observation: &PriceObservation<Self::Api>,
+    ) -> BigUint {
+        let price_diff = last_price_observation.first_token_price_accumulated.clone()
+            - first_price_observation
+                .first_token_price_accumulated
+                .clone();
+        let weight_diff = last_price_observation.weight_accumulated.clone()
+            - first_price_observation.weight_accumulated.clone();
+        price_diff / weight_diff
     }
 
-    #[storage_mapper("current_state")]
-    fn current_state(&self) -> SingleValueMapper<CumulativeState<Self::Api>>;
+    fn compute_second_token_weighted_price(
+        &self,
+        first_price_observation: &PriceObservation<Self::Api>,
+        last_price_observation: &PriceObservation<Self::Api>,
+    ) -> BigUint {
+        let price_diff = last_price_observation
+            .second_token_price_accumulated
+            .clone()
+            - first_price_observation
+                .second_token_price_accumulated
+                .clone();
+        let weight_diff = last_price_observation.weight_accumulated.clone()
+            - first_price_observation.weight_accumulated.clone();
+        price_diff / weight_diff
+    }
 
-    #[storage_mapper("future_state")]
-    fn future_state(&self) -> SingleValueMapper<CumulativeState<Self::Api>>;
+    #[view(getPriceObservation)]
+    fn get_price_observation_view(&self, search_round: Round) -> PriceObservation<Self::Api> {
+        let safe_price_info = self.safe_price_info().get();
+        let price_observations = self.price_observations().get();
 
-    #[storage_mapper("max_observations_per_record")]
-    fn max_observations_per_record(&self) -> SingleValueMapper<u64>;
+        self.get_price_observation(
+            safe_price_info.current_index,
+            safe_price_info.max_observations,
+            &price_observations,
+            search_round,
+        )
+    }
+
+    #[view(getPendingPriceObservation)]
+    #[storage_mapper("pending_price_observation")]
+    fn pending_price_observation(&self) -> SingleValueMapper<PriceObservation<Self::Api>>;
+
+    #[view(getPriceObservations)]
+    #[storage_mapper("price_observations")]
+    fn price_observations(&self) -> SingleValueMapper<ManagedVec<PriceObservation<Self::Api>>>;
+
+    #[view(getSafePriceInfo)]
+    #[storage_mapper("safe_price_info")]
+    fn safe_price_info(&self) -> SingleValueMapper<SafePriceInfo>;
 }

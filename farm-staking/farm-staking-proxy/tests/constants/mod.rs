@@ -13,6 +13,10 @@ pub const BLOCK_NONCE_FIRST_ADD_LIQ: u64 = 5;
 pub const BLOCK_NONCE_SECOND_ADD_LIQ: u64 = 6;
 pub const BLOCK_NONCE_AFTER_PAIR_SETUP: u64 = 100;
 
+pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
+pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 100;
+pub const SAFE_PRICE_DIVISION_SAFETY_CONSTANT: u64 = 1_000_000;
+
 // LP farm constants
 
 pub static FARM_WASM_PATH: &str = "farm/output/farm.wasm";
