@@ -12,11 +12,11 @@ pub mod fee;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod safe_price;
+pub mod safe_price_views;
 
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
 use crate::errors::*;
-use crate::safe_price::SafePriceInfo;
 
 use common_errors::ERROR_PERMISSION_DENIED;
 use contexts::base::*;
@@ -44,6 +44,7 @@ pub trait Pair<ContractReader>:
     + token_send::TokenSendModule
     + events::EventsModule
     + safe_price::SafePriceModule
+    + safe_price_views::SafePriceViewsModule
     + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
     + permissions_module::PermissionsModule
@@ -58,7 +59,6 @@ pub trait Pair<ContractReader>:
         router_owner_address: ManagedAddress,
         total_fee_percent: u64,
         special_fee_percent: u64,
-        safe_price_division_safety_constant: u64,
         initial_liquidity_adder: ManagedAddress,
         admins: MultiValueEncoded<ManagedAddress>,
     ) {
@@ -79,14 +79,6 @@ pub trait Pair<ContractReader>:
         self.router_address().set(&router_address);
         self.first_token_id().set_if_empty(&first_token_id);
         self.second_token_id().set_if_empty(&second_token_id);
-
-        let safe_price_info_mapper = self.safe_price_info();
-        if safe_price_info_mapper.is_empty() {
-            let mut safe_price_info = SafePriceInfo::default();
-            safe_price_info.division_safety_constant = safe_price_division_safety_constant;
-            safe_price_info_mapper.set(safe_price_info);
-        }
-
         let initial_liquidity_adder_opt = if !initial_liquidity_adder.is_zero() {
             Some(initial_liquidity_adder)
         } else {
@@ -154,7 +146,7 @@ pub trait Pair<ContractReader>:
         self.send()
             .direct_esdt(&caller, &storage_cache.lp_token_id, 0, &liq_added);
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -252,7 +244,7 @@ pub trait Pair<ContractReader>:
         self.send()
             .esdt_local_mint(&storage_cache.lp_token_id, 0, &add_liq_context.liq_added);
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -319,7 +311,7 @@ pub trait Pair<ContractReader>:
             &remove_liq_context.lp_token_payment_amount,
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -380,7 +372,7 @@ pub trait Pair<ContractReader>:
             &token_to_buyback_and_burn,
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -435,7 +427,7 @@ pub trait Pair<ContractReader>:
             &swap_context.final_output_amount,
         );
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -493,7 +485,7 @@ pub trait Pair<ContractReader>:
             );
         }
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );
@@ -557,7 +549,7 @@ pub trait Pair<ContractReader>:
             );
         }
 
-        self.update_safe_state(
+        self.update_safe_price(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
         );

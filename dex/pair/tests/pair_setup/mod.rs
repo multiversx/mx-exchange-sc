@@ -20,10 +20,10 @@ pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
 pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 100;
-pub const SAFE_PRICE_DIVISION_SAFETY_CONSTANT: u64 = 1_000_000;
 
 use pair::config::ConfigModule as PairConfigModule;
 use pair::safe_price::*;
+use pair::safe_price_views::*;
 use pair::*;
 use pausable::{PausableModule, State};
 
@@ -65,7 +65,6 @@ where
                     router_owner_address,
                     total_fee_percent,
                     special_fee_percent,
-                    SAFE_PRICE_DIVISION_SAFETY_CONSTANT,
                     ManagedAddress::<DebugApi>::zero(),
                     MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
                 );
@@ -249,20 +248,20 @@ where
         &mut self,
         search_round: u64,
         weight_accumulated: u64,
-        first_token_price_accumulated: u64,
-        second_token_price_accumulated: u64,
+        first_token_reserve_accumulated: u64,
+        second_token_reserve_accumulated: u64,
     ) {
         self.b_mock
             .execute_query(&self.pair_wrapper, |sc| {
                 let price_observation = sc.get_price_observation_view(search_round);
                 assert_eq!(price_observation.weight_accumulated, weight_accumulated);
                 assert_eq!(
-                    price_observation.first_token_price_accumulated,
-                    managed_biguint!(first_token_price_accumulated)
+                    price_observation.first_token_reserve_accumulated,
+                    managed_biguint!(first_token_reserve_accumulated)
                 );
                 assert_eq!(
-                    price_observation.second_token_price_accumulated,
-                    managed_biguint!(second_token_price_accumulated)
+                    price_observation.second_token_reserve_accumulated,
+                    managed_biguint!(second_token_reserve_accumulated)
                 );
             })
             .assert_ok();
@@ -286,8 +285,7 @@ where
                     0,
                     managed_biguint!(payment_token_amount),
                 );
-                let expected_payment =
-                    sc.update_and_get_safe_price(start_round, end_round, input_payment);
+                let expected_payment = sc.get_safe_price(start_round, end_round, input_payment);
                 assert_eq!(
                     expected_payment.token_identifier,
                     managed_token_id!(expected_token_id)

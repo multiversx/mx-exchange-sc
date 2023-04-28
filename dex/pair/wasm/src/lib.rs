@@ -54,13 +54,13 @@ multiversx_sc_wasm_adapter::endpoints! {
         getTotalSupply
         getInitialLiquidtyAdder
         getReserve
-        updateAndGetTokensForGivenPositionWithSafePrice
-        updateAndGetSafePrice
         updateSafePriceInfo
-        getPriceObservation
         getPendingPriceObservation
         getPriceObservations
         getSafePriceInfo
+        updateAndGetTokensForGivenPositionWithSafePrice
+        getSafePrice
+        getPriceObservation
         setLockingDeadlineEpoch
         setLockingScAddress
         setUnlockEpoch

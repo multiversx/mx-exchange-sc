@@ -31,6 +31,8 @@ pub const USER_BALANCE: u64 = 1_000_000_000_000_000_000;
 
 // Pair
 pub static LP_TOKEN_ID: &[u8] = b"LPTOK-123456";
+pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
+pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 1;
 
 // Farm
 pub static FARM_LOCKED_TOKEN_ID: &[u8] = b"FARML-123456";
@@ -253,7 +255,7 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(State::Active);
-            sc.set_max_observations_per_record(10);
+            sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
         })
         .assert_ok();
 

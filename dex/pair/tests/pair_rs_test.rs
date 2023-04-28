@@ -76,10 +76,8 @@ fn test_safe_price() {
     );
     let mut first_token_reserve = 1_002_000;
     let mut second_token_reserve = 1_000_004;
-    let mut first_token_accumulated =
-        second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    let mut second_token_accumulated =
-        first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    let mut first_token_accumulated = first_token_reserve;
+    let mut second_token_accumulated = second_token_reserve;
 
     block_round = 2;
     expected_amount -= 2; // slippage
@@ -99,10 +97,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 3;
     expected_amount -= 2;
@@ -122,10 +118,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 4;
     expected_amount -= 2;
@@ -145,10 +139,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 5;
     expected_amount -= 2;
@@ -168,10 +160,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 6;
     expected_amount -= 2;
@@ -191,10 +181,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 7;
     expected_amount -= 2;
@@ -214,10 +202,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 8;
     expected_amount -= 2;
@@ -237,10 +223,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 9;
     expected_amount -= 2;
@@ -260,10 +244,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 10;
     expected_amount -= 2;
@@ -283,10 +265,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     // At this point the index shifts to 0
     weight = 3;
@@ -303,10 +283,8 @@ fn test_safe_price() {
     pair_setup.check_price_observation(10, 10, first_token_accumulated, second_token_accumulated);
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     weight = 1;
     block_round = 14;
@@ -327,10 +305,8 @@ fn test_safe_price() {
     );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
-    first_token_accumulated +=
-        weight * second_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / first_token_reserve;
-    second_token_accumulated +=
-        weight * first_token_reserve * SAFE_PRICE_DIVISION_SAFETY_CONSTANT / second_token_reserve;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
 
     block_round = 15;
     expected_amount -= 2;
@@ -349,8 +325,20 @@ fn test_safe_price() {
         second_token_accumulated,
     );
 
+    // Check first 2 price observations
+    expected_amount = 992;
+    pair_setup.check_safe_price(3, 4, WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, expected_amount);
+
+    // Check last 2 price observations
+    expected_amount = 985;
+    pair_setup.check_safe_price(14, 15, WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, expected_amount);
+
+    // Check first and last price observations
+    expected_amount = 983;
+    pair_setup.check_safe_price(3, 14, WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, expected_amount);
+
     // Check the interpolation algorithm
-    expected_amount = 651;
+    expected_amount = 977;
     pair_setup.check_safe_price(11, 14, WEGLD_TOKEN_ID, 1_000, MEX_TOKEN_ID, expected_amount);
 }
 

@@ -9,6 +9,7 @@ use multiversx_sc_scenario::{
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
 use pair::safe_price::SafePriceModule;
+use pair::safe_price_views::SafePriceViewsModule;
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
@@ -50,7 +51,6 @@ where
                 router_owner_address,
                 total_fee_percent,
                 special_fee_percent,
-                SAFE_PRICE_DIVISION_SAFETY_CONSTANT,
                 ManagedAddress::<DebugApi>::zero(),
                 MultiValueEncoded::<DebugApi, ManagedAddress<DebugApi>>::new(),
             );
@@ -78,6 +78,7 @@ where
         &rust_biguint!(USER_TOTAL_RIDE_TOKENS),
     );
 
+    b_mock.set_block_round(1);
     b_mock.set_block_nonce(BLOCK_NONCE_FIRST_ADD_LIQ);
 
     let temp_user_addr = b_mock.create_user_account(&rust_zero);
@@ -105,19 +106,34 @@ where
         1_001_000_000,
     );
 
+    b_mock.set_block_round(2);
     b_mock.set_block_nonce(BLOCK_NONCE_SECOND_ADD_LIQ);
 
     add_liquidity(
         user_addr,
         b_mock,
         &pair_wrapper,
-        1_001_000_000,
-        1_000_000_000,
-        1_001_000_000,
-        1_000_000_000,
-        USER_TOTAL_LP_TOKENS,
-        1_001_000_000,
-        1_001_000_000,
+        1_001_000_000 / 2,
+        1_000_000_000 / 2,
+        1_001_000_000 / 2,
+        1_000_000_000 / 2,
+        USER_TOTAL_LP_TOKENS / 2,
+        1_001_000_000 / 2,
+        1_001_000_000 / 2,
+    );
+
+    b_mock.set_block_round(3);
+    add_liquidity(
+        user_addr,
+        b_mock,
+        &pair_wrapper,
+        1_001_000_000 / 2,
+        1_000_000_000 / 2,
+        1_001_000_000 / 2,
+        1_000_000_000 / 2,
+        USER_TOTAL_LP_TOKENS / 2,
+        1_001_000_000 / 2,
+        1_001_000_000 / 2,
     );
 
     let mut i = 10;
