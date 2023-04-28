@@ -27,7 +27,11 @@ pub const MIN_LOCKED_PERIOD_EPOCHS: u64 = 100;
 pub const USER_CUSTOM_TOKEN_BALANCE: u64 = 1_000_000_000;
 pub const USER_USDC_BALANCE: u64 = 1_000_000;
 
+pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
+pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 1;
+
 use pair::config::*;
+use pair::safe_price::SafePriceModule;
 use pair::*;
 use pausable::{PausableModule, State};
 use router::factory::*;
@@ -103,6 +107,7 @@ where
                 sc.lp_token_identifier().set(&lp_token_id);
 
                 sc.state().set(State::Active);
+                sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
             })
             .assert_ok();
 
@@ -130,6 +135,7 @@ where
                 sc.lp_token_identifier().set(&lp_token_id);
 
                 sc.state().set(State::Active);
+                sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
             })
             .assert_ok();
 

@@ -19,7 +19,7 @@ pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
-pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 100;
+pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 1;
 
 use pair::config::ConfigModule as PairConfigModule;
 use pair::safe_price::*;
