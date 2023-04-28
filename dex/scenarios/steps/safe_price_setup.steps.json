@@ -1,0 +1,27 @@
+{
+    "name": "safe price setup",
+    "steps": [
+        {
+            "step": "scCall",
+            "txId": "safePriceSetup",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:pair_contract",
+                "function": "updateSafePriceInfo",
+                "arguments": [
+                    "100",
+                    "10"
+                ],
+                "gasLimit": "100,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        }
+    ]
+}

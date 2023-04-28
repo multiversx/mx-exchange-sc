@@ -24,6 +24,10 @@
         {
             "step": "externalSteps",
             "path": "steps/pair_whitelist.steps.json"
+        },
+        {
+            "step": "externalSteps",
+            "path": "steps/safe_price_setup.steps.json"
         }
     ]
 }

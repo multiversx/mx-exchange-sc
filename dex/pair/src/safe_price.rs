@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use crate::{
     amm, config,
-    errors::{ERROR_SAFE_PRICE_MAX_OBSERVATIONS, ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS},
+    errors::{ERROR_SAFE_PRICE_INFO, ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS},
 };
 
 pub type Round = u64;
@@ -75,7 +75,7 @@ pub trait SafePriceModule:
             }
         };
         require!(
-            new_max_observations >= safe_price_info.max_observations,
+            new_max_observations >= safe_price_info.max_observations && new_max_observations > 0,
             ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS
         );
         safe_price_info.max_observations = new_max_observations;
@@ -91,12 +91,8 @@ pub trait SafePriceModule:
 
         let current_round = self.blockchain().get_block_round();
         let safe_price_info_mapper = self.safe_price_info();
+        require!(!safe_price_info_mapper.is_empty(), ERROR_SAFE_PRICE_INFO);
         let mut safe_price_info = safe_price_info_mapper.get();
-
-        require!(
-            safe_price_info.max_observations > 0,
-            ERROR_SAFE_PRICE_MAX_OBSERVATIONS
-        );
 
         let pending_price_observation_mapper = self.pending_price_observation();
         let pending_price_observation: PriceObservation<<Self as ContractBase>::Api> =

@@ -5,11 +5,8 @@ use core::cmp::Ordering;
 
 use crate::{
     amm, config,
-    errors::{
-        ERROR_SAFE_PRICE_MAX_OBSERVATIONS, ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST,
-        ERROR_ZERO_AMOUNT,
-    },
-    safe_price::{self, PriceObservation, Round, SafePriceInfo},
+    errors::{ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST, ERROR_ZERO_AMOUNT},
+    safe_price::{self, PriceObservation, Round},
 };
 
 #[multiversx_sc::module]
@@ -36,7 +33,7 @@ pub trait SafePriceViewsModule:
             ));
         }
 
-        let safe_price_info = self.get_safe_price_info();
+        let safe_price_info = self.safe_price_info().get();
         let current_round = self.blockchain().get_block_round();
         let price_observations = self.price_observations().get();
 
@@ -85,7 +82,7 @@ pub trait SafePriceViewsModule:
         end_round: Round,
         input_payment: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let safe_price_info = self.get_safe_price_info();
+        let safe_price_info = self.safe_price_info().get();
         let price_observations = self.price_observations().get();
         let first_price_observation = self.get_price_observation(
             safe_price_info.current_index,
@@ -109,7 +106,7 @@ pub trait SafePriceViewsModule:
 
     #[view(getPriceObservation)]
     fn get_price_observation_view(&self, search_round: Round) -> PriceObservation<Self::Api> {
-        let safe_price_info = self.get_safe_price_info();
+        let safe_price_info = self.safe_price_info().get();
         let price_observations = self.price_observations().get();
 
         self.get_price_observation(
@@ -286,14 +283,5 @@ pub trait SafePriceViewsModule:
         let weighted_first_token_reserve = first_token_reserve_diff / weight_diff;
         let weighted_second_token_reserve = second_token_reserve_diff / weight_diff;
         (weighted_first_token_reserve, weighted_second_token_reserve)
-    }
-
-    fn get_safe_price_info(&self) -> SafePriceInfo {
-        let safe_price_info = self.safe_price_info().get();
-        require!(
-            safe_price_info.max_observations > 0,
-            ERROR_SAFE_PRICE_MAX_OBSERVATIONS
-        );
-        safe_price_info
     }
 }
