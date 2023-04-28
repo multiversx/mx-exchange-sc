@@ -1,6 +1,7 @@
 multiversx_sc::imports!();
 
 use common_errors::ERROR_BAD_INPUT_TOKEN;
+use core::cmp::Ordering;
 
 use crate::{
     amm, config,
@@ -157,7 +158,7 @@ pub trait SafePriceViewsModule:
         price_observations: &ManagedVec<PriceObservation<Self::Api>>,
         search_round: Round,
     ) -> PriceObservation<Self::Api> {
-        if price_observations.len() == 0 {
+        if price_observations.is_empty() {
             sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST)
         }
 
@@ -178,9 +179,11 @@ pub trait SafePriceViewsModule:
             Some(oldest_observation) => {
                 if oldest_observation.recording_round == search_round {
                     return oldest_observation;
-                } else if oldest_observation.recording_round > search_round {
-                    sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST);
                 }
+                require!(
+                    oldest_observation.recording_round > search_round,
+                    ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+                );
             }
             None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
         }
@@ -201,12 +204,10 @@ pub trait SafePriceViewsModule:
         while left_index <= right_index {
             search_index = (left_index + right_index) / 2;
             let price_observation = price_observations.get(search_index);
-            if price_observation.recording_round == search_round {
-                return price_observation;
-            } else if price_observation.recording_round < search_round {
-                left_index = search_index + 1;
-            } else {
-                right_index = search_index - 1;
+            match price_observation.recording_round.cmp(&search_round) {
+                Ordering::Equal => return price_observation,
+                Ordering::Less => left_index = search_index + 1,
+                Ordering::Greater => right_index = search_index - 1,
             }
         }
 
@@ -256,8 +257,8 @@ pub trait SafePriceViewsModule:
         first_price_observation: &PriceObservation<Self::Api>,
         last_price_observation: &PriceObservation<Self::Api>,
     ) -> (BigUint, BigUint) {
-        let weight_diff = last_price_observation.weight_accumulated.clone()
-            - first_price_observation.weight_accumulated.clone();
+        let weight_diff =
+            last_price_observation.weight_accumulated - first_price_observation.weight_accumulated;
         if weight_diff == 0 {
             return (
                 last_price_observation

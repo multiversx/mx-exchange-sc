@@ -116,7 +116,7 @@ pub trait SafePriceModule:
         if pending_price_observation.recording_round < current_round
             && pending_price_observation.recording_round > 0
         {
-            let new_index = if price_observations.len() == 0 {
+            let new_index = if price_observations.is_empty() {
                 0
             } else {
                 (safe_price_info.current_index + 1) % safe_price_info.max_observations
