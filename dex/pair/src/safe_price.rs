@@ -41,7 +41,11 @@ impl<M: ManagedTypeApi> PriceObservation<M> {
         new_first_reserve: &BigUint<M>,
         new_second_reserve: &BigUint<M>,
     ) {
-        let new_weight = new_round - self.recording_round;
+        let new_weight = if self.recording_round > 0 {
+            new_round - self.recording_round
+        } else {
+            1
+        };
         self.first_token_reserve_accumulated += BigUint::from(new_weight) * new_first_reserve;
         self.second_token_reserve_accumulated += BigUint::from(new_weight) * new_second_reserve;
         self.weight_accumulated += new_weight;

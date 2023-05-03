@@ -174,11 +174,11 @@ pub trait SafePriceViewsModule:
         let oldest_observation_option = price_observations.try_get(oldest_observation_index);
         match oldest_observation_option {
             Some(oldest_observation) => {
-                if oldest_observation.recording_round == search_round {
+                if search_round == oldest_observation.recording_round {
                     return oldest_observation;
                 }
                 require!(
-                    oldest_observation.recording_round > search_round,
+                    search_round > oldest_observation.recording_round,
                     ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
                 );
             }
