@@ -7,7 +7,7 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract",
-                "function": "updateSafePriceInfo",
+                "function": "setSafePriceParams",
                 "arguments": [
                     "100",
                     "10"

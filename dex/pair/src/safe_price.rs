@@ -74,7 +74,7 @@ pub trait SafePriceModule:
             current_round,
             first_token_reserve,
             second_token_reserve,
-            last_price_observation,
+            &last_price_observation,
         );
 
         if price_observations.len() == safe_price_params.max_observations {
@@ -93,7 +93,7 @@ pub trait SafePriceModule:
         new_round: Round,
         new_first_reserve: &BigUint,
         new_second_reserve: &BigUint,
-        current_price_observation: PriceObservation<Self::Api>,
+        current_price_observation: &PriceObservation<Self::Api>,
     ) -> PriceObservation<Self::Api> {
         let new_weight = if current_price_observation.recording_round > 0 {
             new_round - current_price_observation.recording_round
@@ -101,7 +101,7 @@ pub trait SafePriceModule:
             1
         };
 
-        // Clone the old variable, to avoid overwriting the old price observation
+        // Create a new variable, to avoid overwriting the old price observation
         let mut new_price_observation = current_price_observation.clone();
         new_price_observation.first_token_reserve_accumulated +=
             BigUint::from(new_weight) * new_first_reserve;
