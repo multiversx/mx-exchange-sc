@@ -65,8 +65,18 @@ fn test_safe_price() {
     let mut block_round = starting_round + weight;
     pair_setup.b_mock.set_block_round(block_round);
 
+    let mut first_token_reserve = 1_002_000;
+    let mut second_token_reserve = 1_000_004;
+    let mut first_token_accumulated = 1_001_000;
+    let mut second_token_accumulated = 1_001_000;
     pair_setup.add_liquidity(
-        1_001_000, 1_000_000, 1_001_000, 1_000_000, 1_000_000, 1_001_000, 1_001_000,
+        1_001_000,
+        1_000_000,
+        1_001_000,
+        1_000_000,
+        1_000_000,
+        first_token_accumulated,
+        second_token_accumulated,
     );
     pair_setup.swap_fixed_input(
         WEGLD_TOKEN_ID,
@@ -75,10 +85,13 @@ fn test_safe_price() {
         900,
         expected_amount,
     );
-    let mut first_token_reserve = 1_002_000;
-    let mut second_token_reserve = 1_000_004;
-    let mut first_token_accumulated = first_token_reserve;
-    let mut second_token_accumulated = second_token_reserve;
+
+    pair_setup.check_price_observation(
+        block_round,
+        1, // The accumulated weight should be 1, as it is the first element from the list
+        first_token_accumulated,
+        second_token_accumulated,
+    );
 
     block_round += weight;
     expected_amount -= 2; // slippage
@@ -90,18 +103,22 @@ fn test_safe_price() {
         900,
         expected_amount,
     );
+
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+
     pair_setup.check_price_observation(
-        block_round - weight,
-        1, // The accumulated weight should be 1, as it is the first element from the list
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -112,17 +129,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -133,17 +150,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -154,17 +171,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -175,17 +192,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -196,17 +213,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -217,17 +234,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -238,17 +255,17 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
+
+    block_round += weight;
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -259,19 +276,19 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
-    first_token_reserve += payment_amount;
-    second_token_reserve -= expected_amount;
-    first_token_accumulated += weight * first_token_reserve;
-    second_token_accumulated += weight * second_token_reserve;
 
     // At this point the index shifts to 0
     weight = 3;
     block_round += weight;
+    first_token_reserve += payment_amount;
+    second_token_reserve -= expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -282,39 +299,18 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
-    first_token_reserve += payment_amount;
-    second_token_reserve -= expected_amount;
-    first_token_accumulated += weight * first_token_reserve;
-    second_token_accumulated += weight * second_token_reserve;
 
     weight = 1;
     block_round += weight;
-    expected_amount -= 2;
-    pair_setup.b_mock.set_block_round(block_round);
-    pair_setup.swap_fixed_input(
-        WEGLD_TOKEN_ID,
-        payment_amount,
-        MEX_TOKEN_ID,
-        900,
-        expected_amount,
-    );
-    pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
-        first_token_accumulated,
-        second_token_accumulated,
-    );
     first_token_reserve += payment_amount;
     second_token_reserve -= expected_amount;
     first_token_accumulated += weight * first_token_reserve;
     second_token_accumulated += weight * second_token_reserve;
-
-    block_round += weight;
     expected_amount -= 2;
     pair_setup.b_mock.set_block_round(block_round);
     pair_setup.swap_fixed_input(
@@ -325,8 +321,29 @@ fn test_safe_price() {
         expected_amount,
     );
     pair_setup.check_price_observation(
-        block_round - weight,
-        block_round - starting_round - weight,
+        block_round,
+        block_round - starting_round,
+        first_token_accumulated,
+        second_token_accumulated,
+    );
+
+    block_round += weight;
+    first_token_reserve += payment_amount;
+    second_token_reserve -= expected_amount;
+    first_token_accumulated += weight * first_token_reserve;
+    second_token_accumulated += weight * second_token_reserve;
+    expected_amount -= 2;
+    pair_setup.b_mock.set_block_round(block_round);
+    pair_setup.swap_fixed_input(
+        WEGLD_TOKEN_ID,
+        payment_amount,
+        MEX_TOKEN_ID,
+        900,
+        expected_amount,
+    );
+    pair_setup.check_price_observation(
+        block_round,
+        block_round - starting_round,
         first_token_accumulated,
         second_token_accumulated,
     );
@@ -334,8 +351,8 @@ fn test_safe_price() {
     // Check first 2 price observations
     expected_amount = 992;
     pair_setup.check_safe_price(
-        1003,
         1004,
+        1005,
         WEGLD_TOKEN_ID,
         1_000,
         MEX_TOKEN_ID,
@@ -343,7 +360,7 @@ fn test_safe_price() {
     );
 
     // Check last 2 price observations
-    expected_amount = 985;
+    expected_amount = 976;
     pair_setup.check_safe_price(
         1014,
         1015,
@@ -356,8 +373,8 @@ fn test_safe_price() {
     // Check first and last price observations
     expected_amount = 983;
     pair_setup.check_safe_price(
-        1003,
-        1014,
+        1004,
+        1015,
         WEGLD_TOKEN_ID,
         1_000,
         MEX_TOKEN_ID,
@@ -365,7 +382,7 @@ fn test_safe_price() {
     );
 
     // Check the interpolation algorithm
-    expected_amount = 977;
+    expected_amount = 979;
     pair_setup.check_safe_price(
         1011,
         1014,

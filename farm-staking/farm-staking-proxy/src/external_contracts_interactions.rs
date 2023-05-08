@@ -225,7 +225,7 @@ pub trait ExternalContractsInteractionsModule:
         let pair_address = self.pair_address().get();
         let result: SafePriceResult<Self::Api> = self
             .pair_proxy_obj(pair_address)
-            .update_and_get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
+            .get_tokens_for_given_position_with_safe_price(lp_tokens_amount)
             .execute_on_dest_context();
         let (first_token_info, second_token_info) = result.into_tuple();
         let staking_token_id = self.staking_token_id().get();

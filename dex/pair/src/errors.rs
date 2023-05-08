@@ -48,6 +48,6 @@ pub static ERROR_NOTHING_TO_DO_WITH_FEE_SLICE: &[u8] = b"Nothing to do with fee 
 
 pub static ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST: &[u8] =
     b"The price observation does not exist";
-pub static ERROR_SAFE_PRICE_INFO: &[u8] = b"The safe price info data does not exist";
+pub static ERROR_SAFE_PRICE_PARAMS: &[u8] = b"The safe price info data does not exist";
 pub static ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS: &[u8] =
     b"The new safe price maximum observations number must be greater than the current one";

@@ -18,8 +18,8 @@ pub trait SafePriceViewsModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
 {
-    #[endpoint(updateAndGetTokensForGivenPositionWithSafePrice)]
-    fn update_and_get_tokens_for_given_position_with_safe_price(
+    #[endpoint(getTokensForGivenPositionWithSafePrice)]
+    fn get_tokens_for_given_position_with_safe_price(
         &self,
         liquidity: BigUint,
     ) -> MultiValue2<EsdtTokenPayment<Self::Api>, EsdtTokenPayment<Self::Api>> {
@@ -33,22 +33,22 @@ pub trait SafePriceViewsModule:
             ));
         }
 
-        let safe_price_info = self.safe_price_info().get();
+        let safe_price_params = self.safe_price_params().get();
         let current_round = self.blockchain().get_block_round();
         let price_observations = self.price_observations().get();
 
         let last_price_observation = self.get_price_observation(
-            safe_price_info.current_index,
-            safe_price_info.max_observations,
+            safe_price_params.current_index,
+            safe_price_params.max_observations,
             &price_observations,
             current_round,
         );
 
         let offset_round = last_price_observation.recording_round
-            - safe_price_info.default_safe_price_rounds_offset;
+            - safe_price_params.default_safe_price_rounds_offset;
         let first_price_observation = self.get_price_observation(
-            safe_price_info.current_index,
-            safe_price_info.max_observations,
+            safe_price_params.current_index,
+            safe_price_params.max_observations,
             &price_observations,
             offset_round,
         );
@@ -82,17 +82,17 @@ pub trait SafePriceViewsModule:
         end_round: Round,
         input_payment: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let safe_price_info = self.safe_price_info().get();
+        let safe_price_params = self.safe_price_params().get();
         let price_observations = self.price_observations().get();
         let first_price_observation = self.get_price_observation(
-            safe_price_info.current_index,
-            safe_price_info.max_observations,
+            safe_price_params.current_index,
+            safe_price_params.max_observations,
             &price_observations,
             start_round,
         );
         let last_price_observation = self.get_price_observation(
-            safe_price_info.current_index,
-            safe_price_info.max_observations,
+            safe_price_params.current_index,
+            safe_price_params.max_observations,
             &price_observations,
             end_round,
         );
@@ -106,12 +106,12 @@ pub trait SafePriceViewsModule:
 
     #[view(getPriceObservation)]
     fn get_price_observation_view(&self, search_round: Round) -> PriceObservation<Self::Api> {
-        let safe_price_info = self.safe_price_info().get();
+        let safe_price_params = self.safe_price_params().get();
         let price_observations = self.price_observations().get();
 
         self.get_price_observation(
-            safe_price_info.current_index,
-            safe_price_info.max_observations,
+            safe_price_params.current_index,
+            safe_price_params.max_observations,
             &price_observations,
             search_round,
         )
@@ -185,7 +185,34 @@ pub trait SafePriceViewsModule:
             None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
         }
 
-        // Binary search algorithm
+        let (mut price_observation, last_search_index) = self.price_observation_by_binary_search(
+            current_index,
+            max_observations,
+            price_observations,
+            search_round,
+        );
+
+        if price_observation.recording_round > 0 {
+            return price_observation;
+        }
+
+        price_observation = self.price_observation_by_linear_interpolation(
+            max_observations,
+            price_observations,
+            search_round,
+            last_search_index,
+        );
+
+        price_observation
+    }
+
+    fn price_observation_by_binary_search(
+        &self,
+        current_index: usize,
+        max_observations: usize,
+        price_observations: &ManagedVec<PriceObservation<Self::Api>>,
+        search_round: Round,
+    ) -> (PriceObservation<Self::Api>, usize) {
         let mut search_index = 0;
         let mut left_index;
         let mut right_index;
@@ -202,13 +229,22 @@ pub trait SafePriceViewsModule:
             search_index = (left_index + right_index) / 2;
             let price_observation = price_observations.get(search_index);
             match price_observation.recording_round.cmp(&search_round) {
-                Ordering::Equal => return price_observation,
+                Ordering::Equal => return (price_observation, search_index),
                 Ordering::Less => left_index = search_index + 1,
                 Ordering::Greater => right_index = search_index - 1,
             }
         }
 
-        // Linear interpolation in case there is no price observation for the searched round
+        (PriceObservation::default(), search_index)
+    }
+
+    fn price_observation_by_linear_interpolation(
+        &self,
+        max_observations: usize,
+        price_observations: &ManagedVec<PriceObservation<Self::Api>>,
+        search_round: Round,
+        search_index: usize,
+    ) -> PriceObservation<Self::Api> {
         let last_found_observation = price_observations.get(search_index);
         let left_observation;
         let right_observation;

@@ -59,7 +59,7 @@ where
             sc.lp_token_identifier().set(&lp_token_id);
 
             sc.state().set(pausable::State::Active);
-            sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
+            sc.set_safe_price_params(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
         })
         .assert_ok();
 
@@ -142,9 +142,7 @@ where
 
         b_mock
             .execute_tx(user_addr, &pair_wrapper, &rust_biguint!(0), |sc| {
-                sc.update_and_get_tokens_for_given_position_with_safe_price(managed_biguint!(
-                    1_000_000_000
-                ));
+                sc.get_tokens_for_given_position_with_safe_price(managed_biguint!(1_000_000_000));
             })
             .assert_ok();
 

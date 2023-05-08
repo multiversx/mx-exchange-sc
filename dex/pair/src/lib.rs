@@ -146,11 +146,6 @@ pub trait Pair<ContractReader>:
         self.send()
             .direct_esdt(&caller, &storage_cache.lp_token_id, 0, &liq_added);
 
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
-        );
-
         self.state().set(State::PartialActive);
 
         let add_liq_context = AddLiquidityContext {
@@ -208,6 +203,11 @@ pub trait Pair<ContractReader>:
             ERROR_INITIAL_LIQUIDITY_NOT_ADDED
         );
 
+        self.update_safe_price(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
+
         let initial_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
@@ -243,11 +243,6 @@ pub trait Pair<ContractReader>:
 
         self.send()
             .esdt_local_mint(&storage_cache.lp_token_id, 0, &add_liq_context.liq_added);
-
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
-        );
 
         let output_payments = self.build_add_liq_output_payments(&storage_cache, &add_liq_context);
         self.send_multiple_tokens_if_not_zero(&caller, &output_payments);
@@ -288,6 +283,11 @@ pub trait Pair<ContractReader>:
             ERROR_BAD_PAYMENT_TOKENS
         );
 
+        self.update_safe_price(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
+
         let initial_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
@@ -309,11 +309,6 @@ pub trait Pair<ContractReader>:
         self.burn(
             &storage_cache.lp_token_id,
             &remove_liq_context.lp_token_payment_amount,
-        );
-
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
         );
 
         let output_payments =
@@ -340,6 +335,11 @@ pub trait Pair<ContractReader>:
         require!(
             payment.token_identifier == storage_cache.lp_token_id && payment.amount > 0,
             ERROR_BAD_PAYMENT_TOKENS
+        );
+
+        self.update_safe_price(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
         );
 
         let mut remove_liq_context =
@@ -371,11 +371,6 @@ pub trait Pair<ContractReader>:
             &dest_address,
             &token_to_buyback_and_burn,
         );
-
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
-        );
     }
 
     #[payable("*")]
@@ -391,6 +386,11 @@ pub trait Pair<ContractReader>:
         require!(
             self.can_swap(storage_cache.contract_state),
             ERROR_SWAP_NOT_ENABLED
+        );
+
+        self.update_safe_price(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
         );
 
         let initial_k = self.calculate_k_constant(
@@ -427,11 +427,6 @@ pub trait Pair<ContractReader>:
             &swap_context.final_output_amount,
         );
 
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
-        );
-
         self.emit_swap_no_fee_and_forward_event(swap_context, destination_address);
     }
 
@@ -455,6 +450,11 @@ pub trait Pair<ContractReader>:
 
         let reserve_out = storage_cache.get_mut_reserve_out(swap_tokens_order);
         require!(*reserve_out > amount_out_min, ERROR_NOT_ENOUGH_RESERVE);
+
+        self.update_safe_price(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
 
         let initial_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
@@ -484,11 +484,6 @@ pub trait Pair<ContractReader>:
                 &swap_context.fee_amount,
             );
         }
-
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
-        );
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);
@@ -520,6 +515,11 @@ pub trait Pair<ContractReader>:
         let reserve_out = storage_cache.get_mut_reserve_out(swap_tokens_order);
         require!(*reserve_out > amount_out, ERROR_NOT_ENOUGH_RESERVE);
 
+        self.update_safe_price(
+            &storage_cache.first_token_reserve,
+            &storage_cache.second_token_reserve,
+        );
+
         let initial_k = self.calculate_k_constant(
             &storage_cache.first_token_reserve,
             &storage_cache.second_token_reserve,
@@ -548,11 +548,6 @@ pub trait Pair<ContractReader>:
                 &swap_context.fee_amount,
             );
         }
-
-        self.update_safe_price(
-            &storage_cache.first_token_reserve,
-            &storage_cache.second_token_reserve,
-        );
 
         let caller = self.blockchain().get_caller();
         let output_payments = self.build_swap_output_payments(&swap_context);

@@ -107,7 +107,7 @@ where
                 sc.lp_token_identifier().set(&lp_token_id);
 
                 sc.state().set(State::Active);
-                sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
+                sc.set_safe_price_params(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
             })
             .assert_ok();
 
@@ -135,7 +135,7 @@ where
                 sc.lp_token_identifier().set(&lp_token_id);
 
                 sc.state().set(State::Active);
-                sc.update_safe_price_info(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
+                sc.set_safe_price_params(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
             })
             .assert_ok();
 
