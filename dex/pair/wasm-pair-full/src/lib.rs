@@ -5,9 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Endpoints:                           54
+// Endpoints:                           57
 // Async Callback (empty):               1
-// Total number of exported functions:  56
+// Total number of exported functions:  59
 
 #![no_std]
 #![feature(alloc_error_handler, lang_items)]
@@ -72,6 +72,9 @@ multiversx_sc_wasm_adapter::endpoints! {
         pause
         resume
         getState
+        getTokensForGivenPositionWithSafePrice
+        getSafePrice
+        getPriceObservation
     )
 }
 

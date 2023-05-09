@@ -12,7 +12,7 @@ pub mod fee;
 mod liquidity_pool;
 pub mod locking_wrapper;
 pub mod safe_price;
-pub mod safe_price_views;
+pub mod safe_price_view;
 
 use crate::contexts::add_liquidity::AddLiquidityContext;
 use crate::contexts::remove_liquidity::RemoveLiquidityContext;
@@ -44,7 +44,7 @@ pub trait Pair<ContractReader>:
     + token_send::TokenSendModule
     + events::EventsModule
     + safe_price::SafePriceModule
-    + safe_price_views::SafePriceViewsModule
+    + safe_price_view::SafePriceViewModule
     + contexts::output_builder::OutputBuilderModule
     + locking_wrapper::LockingWrapperModule
     + permissions_module::PermissionsModule

@@ -23,7 +23,7 @@ pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 1;
 
 use pair::config::ConfigModule as PairConfigModule;
 use pair::safe_price::*;
-use pair::safe_price_views::*;
+use pair::safe_price_view::*;
 use pair::*;
 use pausable::{PausableModule, State};
 

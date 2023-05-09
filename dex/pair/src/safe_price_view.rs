@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[multiversx_sc::module]
-pub trait SafePriceViewsModule:
+pub trait SafePriceViewModule:
     safe_price::SafePriceModule
     + config::ConfigModule
     + token_send::TokenSendModule
@@ -18,7 +18,8 @@ pub trait SafePriceViewsModule:
     + permissions_module::PermissionsModule
     + pausable::PausableModule
 {
-    #[endpoint(getTokensForGivenPositionWithSafePrice)]
+    #[label("safe-price-view")]
+    #[view(getTokensForGivenPositionWithSafePrice)]
     fn get_tokens_for_given_position_with_safe_price(
         &self,
         liquidity: BigUint,
@@ -75,7 +76,8 @@ pub trait SafePriceViewsModule:
         MultiValue2::from((first_token_weighted, second_token_weighted))
     }
 
-    #[endpoint(getSafePrice)]
+    #[label("safe-price-view")]
+    #[view(getSafePrice)]
     fn get_safe_price(
         &self,
         start_round: Round,
@@ -104,6 +106,7 @@ pub trait SafePriceViewsModule:
         )
     }
 
+    #[label("safe-price-view")]
     #[view(getPriceObservation)]
     fn get_price_observation_view(&self, search_round: Round) -> PriceObservation<Self::Api> {
         let safe_price_params = self.safe_price_params().get();

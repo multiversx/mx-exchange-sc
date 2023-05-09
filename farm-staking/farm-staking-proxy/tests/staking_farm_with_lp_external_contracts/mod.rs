@@ -9,7 +9,7 @@ use multiversx_sc_scenario::{
 use farm::exit_penalty::ExitPenaltyModule;
 use pair::config as pair_config;
 use pair::safe_price::SafePriceModule;
-use pair::safe_price_views::SafePriceViewsModule;
+use pair::safe_price_view::SafePriceViewModule;
 use pair::*;
 use pair_config::ConfigModule as _;
 use pausable::{PausableModule, State};
