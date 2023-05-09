@@ -9,6 +9,8 @@ use crate::{
     safe_price::{self, PriceObservation, Round},
 };
 
+pub const DEFAULT_SAFE_PRICE_ROUNDS_OFFSET: u64 = 10 * 60 * 24;
+
 #[multiversx_sc::module]
 pub trait SafePriceViewModule:
     safe_price::SafePriceModule
@@ -34,25 +36,44 @@ pub trait SafePriceViewModule:
             ));
         }
 
-        let safe_price_params = self.safe_price_params().get();
         let current_round = self.blockchain().get_block_round();
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let safe_price_max_observations = self.safe_price_max_observations().get();
         let price_observations = self.price_observations().get();
 
         let last_price_observation = self.get_price_observation(
-            safe_price_params.current_index,
-            safe_price_params.max_observations,
+            safe_price_current_index,
+            safe_price_max_observations,
             &price_observations,
             current_round,
         );
 
-        let offset_round = last_price_observation.recording_round
-            - safe_price_params.default_safe_price_rounds_offset;
-        let first_price_observation = self.get_price_observation(
-            safe_price_params.current_index,
-            safe_price_params.max_observations,
-            &price_observations,
-            offset_round,
-        );
+        let oldest_observation_index = if price_observations.len() < safe_price_max_observations {
+            0
+        } else {
+            (safe_price_current_index + 1) % safe_price_max_observations
+        };
+
+        let oldest_observation = match price_observations.try_get(oldest_observation_index) {
+            Some(obs) => obs,
+            None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
+        };
+
+        let first_price_observation = if DEFAULT_SAFE_PRICE_ROUNDS_OFFSET
+            > last_price_observation.recording_round
+            || DEFAULT_SAFE_PRICE_ROUNDS_OFFSET < oldest_observation.recording_round
+        {
+            oldest_observation
+        } else {
+            let offset_round =
+                last_price_observation.recording_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
+            self.get_price_observation(
+                safe_price_current_index,
+                safe_price_max_observations,
+                &price_observations,
+                offset_round,
+            )
+        };
 
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
@@ -84,17 +105,19 @@ pub trait SafePriceViewModule:
         end_round: Round,
         input_payment: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
-        let safe_price_params = self.safe_price_params().get();
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let safe_price_max_observations = self.safe_price_max_observations().get();
+
         let price_observations = self.price_observations().get();
         let first_price_observation = self.get_price_observation(
-            safe_price_params.current_index,
-            safe_price_params.max_observations,
+            safe_price_current_index,
+            safe_price_max_observations,
             &price_observations,
             start_round,
         );
         let last_price_observation = self.get_price_observation(
-            safe_price_params.current_index,
-            safe_price_params.max_observations,
+            safe_price_current_index,
+            safe_price_max_observations,
             &price_observations,
             end_round,
         );
@@ -109,12 +132,13 @@ pub trait SafePriceViewModule:
     #[label("safe-price-view")]
     #[view(getPriceObservation)]
     fn get_price_observation_view(&self, search_round: Round) -> PriceObservation<Self::Api> {
-        let safe_price_params = self.safe_price_params().get();
+        let safe_price_current_index = self.safe_price_current_index().get();
+        let safe_price_max_observations = self.safe_price_max_observations().get();
         let price_observations = self.price_observations().get();
 
         self.get_price_observation(
-            safe_price_params.current_index,
-            safe_price_params.max_observations,
+            safe_price_current_index,
+            safe_price_max_observations,
             &price_observations,
             search_round,
         )

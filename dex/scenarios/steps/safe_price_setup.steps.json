@@ -7,9 +7,8 @@
             "tx": {
                 "from": "address:owner",
                 "to": "sc:pair_contract",
-                "function": "setSafePriceParams",
+                "function": "setSafePriceMaxObservations",
                 "arguments": [
-                    "100",
                     "10"
                 ],
                 "gasLimit": "100,000,000",

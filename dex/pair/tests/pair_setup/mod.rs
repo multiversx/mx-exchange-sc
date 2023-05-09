@@ -19,7 +19,6 @@ pub const USER_TOTAL_MEX_TOKENS: u64 = 5_000_000_000;
 pub const USER_TOTAL_WEGLD_TOKENS: u64 = 5_000_000_000;
 
 pub const SAFE_PRICE_MAX_OBSERVATIONS: usize = 10;
-pub const SAFE_PRICE_ROUNDS_OFFSET: u64 = 1;
 
 use pair::config::ConfigModule as PairConfigModule;
 use pair::safe_price::*;
@@ -73,7 +72,7 @@ where
                 sc.lp_token_identifier().set(&lp_token_id);
 
                 sc.state().set(State::Active);
-                sc.set_safe_price_params(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
+                sc.set_safe_price_max_observations(SAFE_PRICE_MAX_OBSERVATIONS);
             })
             .assert_ok();
 

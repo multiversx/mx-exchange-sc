@@ -183,7 +183,7 @@ fn user_enable_pair_swaps_through_router_test() {
 
             sc.lp_token_identifier()
                 .set(&managed_token_id!(LPUSDC_TOKEN_ID));
-            sc.set_safe_price_params(SAFE_PRICE_MAX_OBSERVATIONS, SAFE_PRICE_ROUNDS_OFFSET);
+            sc.set_safe_price_max_observations(SAFE_PRICE_MAX_OBSERVATIONS);
         })
         .assert_ok();
 

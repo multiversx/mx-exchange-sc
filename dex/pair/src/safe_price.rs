@@ -3,7 +3,7 @@ multiversx_sc::derive_imports!();
 
 use crate::{
     amm, config,
-    errors::{ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS, ERROR_SAFE_PRICE_PARAMS},
+    errors::{ERROR_SAFE_PRICE_MAX_OBSERVATIONS, ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS},
 };
 
 pub type Round = u64;
@@ -12,7 +12,6 @@ pub type Round = u64;
 pub struct SafePriceParams {
     pub current_index: usize,
     pub max_observations: usize,
-    pub default_safe_price_rounds_offset: u64,
 }
 
 #[derive(ManagedVecItem, Clone, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
@@ -49,12 +48,13 @@ pub trait SafePriceModule:
         }
 
         let current_round = self.blockchain().get_block_round();
-        let safe_price_params_mapper = self.safe_price_params();
+        let safe_price_max_observations = self.safe_price_max_observations().get();
+        let safe_price_current_index = self.safe_price_current_index().get();
         require!(
-            !safe_price_params_mapper.is_empty(),
-            ERROR_SAFE_PRICE_PARAMS
+            safe_price_max_observations > 0,
+            ERROR_SAFE_PRICE_MAX_OBSERVATIONS
         );
-        let mut safe_price_params = safe_price_params_mapper.get();
+
         let price_observations_mapper = self.price_observations();
 
         let mut price_observations = ManagedVec::new();
@@ -62,8 +62,8 @@ pub trait SafePriceModule:
         let mut new_index = 0;
         if !price_observations_mapper.is_empty() {
             price_observations = price_observations_mapper.get();
-            last_price_observation = price_observations.get(safe_price_params.current_index);
-            new_index = (safe_price_params.current_index + 1) % safe_price_params.max_observations;
+            last_price_observation = price_observations.get(safe_price_current_index);
+            new_index = (safe_price_current_index + 1) % safe_price_max_observations;
         }
 
         if last_price_observation.recording_round == current_round {
@@ -77,15 +77,14 @@ pub trait SafePriceModule:
             &last_price_observation,
         );
 
-        if price_observations.len() == safe_price_params.max_observations {
+        if price_observations.len() == safe_price_max_observations {
             let _ = price_observations.set(new_index, &new_price_observation);
         } else {
             price_observations.push(new_price_observation);
         }
-        safe_price_params.current_index = new_index;
 
         price_observations_mapper.set(&price_observations);
-        safe_price_params_mapper.set(&safe_price_params);
+        self.safe_price_current_index().set(new_index);
     }
 
     fn compute_new_observation(
@@ -113,37 +112,28 @@ pub trait SafePriceModule:
         new_price_observation
     }
 
-    #[endpoint(setSafePriceParams)]
-    fn set_safe_price_params(
-        &self,
-        new_max_observations: usize,
-        default_safe_price_rounds_offset: u64,
-    ) {
+    #[endpoint(setSafePriceMaxObservations)]
+    fn set_safe_price_max_observations(&self, new_max_observations: usize) {
         self.require_caller_has_owner_permissions();
-        let safe_price_params_mapper = self.safe_price_params();
-        let mut safe_price_params = if !safe_price_params_mapper.is_empty() {
-            safe_price_params_mapper.get()
-        } else {
-            SafePriceParams {
-                current_index: 0,
-                max_observations: 0,
-                default_safe_price_rounds_offset: 0,
-            }
-        };
-        require!(
-            new_max_observations >= safe_price_params.max_observations && new_max_observations > 0,
-            ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS
-        );
-        safe_price_params.max_observations = new_max_observations;
-        safe_price_params.default_safe_price_rounds_offset = default_safe_price_rounds_offset;
-        safe_price_params_mapper.set(safe_price_params);
+        self.safe_price_max_observations()
+            .update(|max_observations| {
+                require!(
+                    &new_max_observations >= max_observations && new_max_observations > 0,
+                    ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS
+                );
+                *max_observations = new_max_observations
+            });
     }
 
     #[view(getPriceObservations)]
     #[storage_mapper("price_observations")]
     fn price_observations(&self) -> SingleValueMapper<ManagedVec<PriceObservation<Self::Api>>>;
 
-    #[view(getSafePriceParams)]
-    #[storage_mapper("safe_price_params")]
-    fn safe_price_params(&self) -> SingleValueMapper<SafePriceParams>;
+    #[view(getSafePriceCurrentIndex)]
+    #[storage_mapper("safe_price_current_index")]
+    fn safe_price_current_index(&self) -> SingleValueMapper<usize>;
+
+    #[view(getSafePriceMaxObservations)]
+    #[storage_mapper("safe_price_max_observations")]
+    fn safe_price_max_observations(&self) -> SingleValueMapper<usize>;
 }
