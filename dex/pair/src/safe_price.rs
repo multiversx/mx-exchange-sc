@@ -8,12 +8,6 @@ use crate::{
 
 pub type Round = u64;
 
-#[derive(Clone, TopEncode, TopDecode, TypeAbi)]
-pub struct SafePriceParams {
-    pub current_index: usize,
-    pub max_observations: usize,
-}
-
 #[derive(ManagedVecItem, Clone, TopEncode, TopDecode, NestedEncode, NestedDecode, TypeAbi)]
 pub struct PriceObservation<M: ManagedTypeApi> {
     pub first_token_reserve_accumulated: BigUint<M>,
