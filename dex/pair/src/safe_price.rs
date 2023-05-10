@@ -3,7 +3,10 @@ multiversx_sc::derive_imports!();
 
 use crate::{
     amm, config,
-    errors::{ERROR_SAFE_PRICE_MAX_OBSERVATIONS, ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS},
+    errors::{
+        ERROR_SAFE_PRICE_CURRENT_INDEX, ERROR_SAFE_PRICE_MAX_OBSERVATIONS,
+        ERROR_SAFE_PRICE_NEW_MAX_OBSERVATIONS,
+    },
 };
 
 pub type Round = u64;
@@ -47,6 +50,10 @@ pub trait SafePriceModule:
         require!(
             safe_price_max_observations > 0,
             ERROR_SAFE_PRICE_MAX_OBSERVATIONS
+        );
+        require!(
+            safe_price_current_index < safe_price_max_observations,
+            ERROR_SAFE_PRICE_CURRENT_INDEX
         );
 
         let price_observations_mapper = self.price_observations();
