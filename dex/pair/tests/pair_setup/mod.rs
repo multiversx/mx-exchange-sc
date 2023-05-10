@@ -275,24 +275,21 @@ where
         expected_token_id: &[u8],
         expected_token_amount: u64,
     ) {
-        let rust_zero = rust_biguint!(0u64);
-        let _ = self
-            .b_mock
-            .execute_tx(&self.user_address, &self.pair_wrapper, &rust_zero, |sc| {
-                let input_payment = EsdtTokenPayment::new(
-                    managed_token_id!(payment_token_id),
-                    0,
-                    managed_biguint!(payment_token_amount),
-                );
-                let expected_payment = sc.get_safe_price(start_round, end_round, input_payment);
-                assert_eq!(
-                    expected_payment.token_identifier,
-                    managed_token_id!(expected_token_id)
-                );
-                assert_eq!(
-                    expected_payment.amount,
-                    managed_biguint!(expected_token_amount)
-                );
-            });
+        let _ = self.b_mock.execute_query(&self.pair_wrapper, |sc| {
+            let input_payment = EsdtTokenPayment::new(
+                managed_token_id!(payment_token_id),
+                0,
+                managed_biguint!(payment_token_amount),
+            );
+            let expected_payment = sc.get_safe_price(start_round, end_round, input_payment);
+            assert_eq!(
+                expected_payment.token_identifier,
+                managed_token_id!(expected_token_id)
+            );
+            assert_eq!(
+                expected_payment.amount,
+                managed_biguint!(expected_token_amount)
+            );
+        });
     }
 }

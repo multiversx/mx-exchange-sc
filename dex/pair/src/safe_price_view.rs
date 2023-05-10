@@ -1,6 +1,6 @@
 multiversx_sc::imports!();
 
-use common_errors::ERROR_BAD_INPUT_TOKEN;
+use common_errors::{ERROR_BAD_INPUT_TOKEN, ERROR_PARAMETERS};
 use core::cmp::Ordering;
 
 use crate::{
@@ -59,21 +59,19 @@ pub trait SafePriceViewModule:
             None => sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST),
         };
 
-        let first_price_observation = if DEFAULT_SAFE_PRICE_ROUNDS_OFFSET
-            > last_price_observation.recording_round
-            || DEFAULT_SAFE_PRICE_ROUNDS_OFFSET < oldest_observation.recording_round
+        let mut first_price_observation = oldest_observation;
+        if (last_price_observation.recording_round - first_price_observation.recording_round)
+            > DEFAULT_SAFE_PRICE_ROUNDS_OFFSET
         {
-            oldest_observation
-        } else {
             let offset_round =
                 last_price_observation.recording_round - DEFAULT_SAFE_PRICE_ROUNDS_OFFSET;
-            self.get_price_observation(
+            first_price_observation = self.get_price_observation(
                 safe_price_current_index,
                 safe_price_max_observations,
                 &price_observations,
                 offset_round,
-            )
-        };
+            );
+        }
 
         let first_token_reserve = self.pair_reserve(&first_token_id).get();
         let second_token_reserve = self.pair_reserve(&second_token_id).get();
@@ -105,6 +103,8 @@ pub trait SafePriceViewModule:
         end_round: Round,
         input_payment: EsdtTokenPayment<Self::Api>,
     ) -> EsdtTokenPayment<Self::Api> {
+        require!(end_round >= start_round, ERROR_PARAMETERS);
+
         let safe_price_current_index = self.safe_price_current_index().get();
         let safe_price_max_observations = self.safe_price_max_observations().get();
 
@@ -182,9 +182,10 @@ pub trait SafePriceViewModule:
         price_observations: &ManagedVec<PriceObservation<Self::Api>>,
         search_round: Round,
     ) -> PriceObservation<Self::Api> {
-        if price_observations.is_empty() {
-            sc_panic!(ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST)
-        }
+        require!(
+            !price_observations.is_empty(),
+            ERROR_SAFE_PRICE_OBSERVATION_DOES_NOT_EXIST
+        );
 
         // Check if the requested price observation is the last one
         let last_observation = price_observations.get(current_index);
